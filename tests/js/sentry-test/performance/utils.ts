@@ -11,7 +11,7 @@ export enum ProblemSpan {
 
 const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
 
-type AddSpanOpts = {
+interface AddSpanOpts {
   endTimestamp: number;
   startTimestamp: number;
   data?: Record<string, any>;
@@ -20,7 +20,7 @@ type AddSpanOpts = {
   op?: string;
   problemSpan?: ProblemSpan | ProblemSpan[];
   status?: string;
-};
+}
 
 interface TransactionSettings {
   duration?: number;

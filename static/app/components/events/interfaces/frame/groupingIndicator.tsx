@@ -5,9 +5,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 export function GroupingIndicator({className}: Props) {
   return (

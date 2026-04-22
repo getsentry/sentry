@@ -8,7 +8,7 @@ import type {FormModel} from 'sentry/components/forms/model';
  * These differ from the 'old' forms in that they use mobx observers
  * to update state and expose it via the `FormModel`
  */
-type FormContextData = {
+interface FormContextData {
   /**
    * The default value is undefined so that FormField components
    * not within a form context boundary create MockModels based
@@ -19,7 +19,7 @@ type FormContextData = {
    * Should fields do save requests on blur?
    */
   saveOnBlur?: boolean;
-};
+}
 
 export const FormContext = createContext<FormContextData>({
   form: undefined,

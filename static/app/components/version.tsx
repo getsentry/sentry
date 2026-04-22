@@ -13,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
-type Props = {
+interface Props {
   /**
    * Raw version (canonical release identifier)
    */
@@ -51,7 +51,7 @@ type Props = {
    * Should we also show package name
    */
   withPackage?: boolean;
-};
+}
 
 export function Version({
   version,

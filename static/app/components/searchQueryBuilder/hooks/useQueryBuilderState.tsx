@@ -26,7 +26,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
 
-type QueryBuilderState = {
+interface QueryBuilderState {
   /**
    * This is a flag that is set to true when the user has committed a query.
    * It is used to clear the ask seer feedback when the user deletes a token.
@@ -50,172 +50,178 @@ type QueryBuilderState = {
    * This is the basic source of truth for what is currently being displayed.
    */
   query: string;
-};
+}
 
-type ClearAction = {type: 'CLEAR'};
+interface ClearAction {
+  type: 'CLEAR';
+}
 
-type CommitQueryAction = {
+interface CommitQueryAction {
   type: 'COMMIT_QUERY';
-};
+}
 
-type UpdateQueryAction = {
+interface UpdateQueryAction {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
   shouldCommitQuery?: boolean;
-};
+}
 
-type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
+interface ResetFocusOverrideAction {
+  type: 'RESET_FOCUS_OVERRIDE';
+}
 
-type DeleteTokenAction = {
+interface DeleteTokenAction {
   token: ParseResultToken;
   type: 'DELETE_TOKEN';
-};
+}
 
-type DeleteTokensAction = {
+interface DeleteTokensAction {
   tokens: ParseResultToken[];
   type: 'DELETE_TOKENS';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnSelect = {
+interface UpdateFreeTextActionOnSelect {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnBlur = {
+interface UpdateFreeTextActionOnBlur {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_BLUR';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnCommit = {
+interface UpdateFreeTextActionOnCommit {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_COMMIT';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnExit = {
+interface UpdateFreeTextActionOnExit {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_EXIT';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnFunction = {
+interface UpdateFreeTextActionOnFunction {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_FUNCTION';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnParenthesis = {
+interface UpdateFreeTextActionOnParenthesis {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_PARENTHESIS';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFreeTextActionOnColon = {
+interface UpdateFreeTextActionOnColon {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT_ON_COLON';
   focusOverride?: FocusOverride;
-};
+}
 
-type ReplaceTokensWithTextOnPasteAction = {
+interface ReplaceTokensWithTextOnPasteAction {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE';
   focusOverride?: FocusOverride;
-};
+}
 
-type ReplaceTokensWithTextOnDeleteAction = {
+interface ReplaceTokensWithTextOnDeleteAction {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_DELETE';
   focusOverride?: FocusOverride;
-};
+}
 
-type ReplaceTokensWithTextOnCutAction = {
+interface ReplaceTokensWithTextOnCutAction {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_CUT';
   focusOverride?: FocusOverride;
-};
+}
 
-type ReplaceTokensWithTextOnKeyDownAction = {
+interface ReplaceTokensWithTextOnKeyDownAction {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_KEY_DOWN';
   focusOverride?: FocusOverride;
-};
+}
 
-type ReplaceTokensWithTextOnSelectAction = {
+interface ReplaceTokensWithTextOnSelectAction {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT';
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateFilterKeyAction = {
+interface UpdateFilterKeyAction {
   key: string;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_KEY';
-};
+}
 
-type UpdateFilterOpAction = {
+interface UpdateFilterOpAction {
   op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
   focusOverride?: FocusOverride;
   shouldCommitQuery?: boolean;
-};
+}
 
-type UpdateTokenValueAction = {
+interface UpdateTokenValueAction {
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_TOKEN_VALUE';
   value: string;
   op?: TermOperator;
-};
+}
 
-type MultiSelectFilterValueAction = {
+interface MultiSelectFilterValueAction {
   token: TokenResult<Token.FILTER>;
   type: 'TOGGLE_FILTER_VALUE';
   value: string;
-};
+}
 
-type UpdateAggregateArgsAction = {
+interface UpdateAggregateArgsAction {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
   focusOverride?: FocusOverride;
-};
+}
 
-type UpdateLogicOperatorAction = {
+interface UpdateLogicOperatorAction {
   token: TokenResult<Token.LOGIC_BOOLEAN>;
   type: 'UPDATE_LOGIC_OPERATOR';
   value: string;
-};
+}
 
-type WrapTokensWithParenthesesAction = {
+interface WrapTokensWithParenthesesAction {
   tokens: ParseResultToken[];
   type: 'WRAP_TOKENS_WITH_PARENTHESES';
   focusOverride?: FocusOverride;
-};
+}
 
-type ResetClearAskSeerFeedbackAction = {type: 'RESET_CLEAR_ASK_SEER_FEEDBACK'};
+interface ResetClearAskSeerFeedbackAction {
+  type: 'RESET_CLEAR_ASK_SEER_FEEDBACK';
+}
 
 type UpdateFreeTextActions =
   | UpdateFreeTextActionOnSelect

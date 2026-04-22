@@ -25,7 +25,7 @@ const cellColor = (p: CellProps & {theme: Theme}) => {
   return 'color: inherit';
 };
 
-type CellProps = {
+interface CellProps {
   align?: 'flex-start' | 'flex-end';
   className?: string;
   hasOccurred?: boolean;
@@ -34,7 +34,7 @@ type CellProps = {
   isStatusWarning?: boolean;
   numeric?: boolean;
   onClick?: undefined | (() => void);
-};
+}
 
 export const Cell = styled('div')<CellProps>`
   display: flex;

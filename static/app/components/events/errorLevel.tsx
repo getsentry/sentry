@@ -7,10 +7,10 @@ import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-type Props = {
+interface Props {
   className?: string;
   level?: Level;
-};
+}
 
 export function ErrorLevel({className, level = 'unknown'}: Props) {
   const levelLabel = t('Level: %s', capitalize(level));

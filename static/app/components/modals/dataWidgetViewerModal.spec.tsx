@@ -35,11 +35,11 @@ jest.mock('echarts-for-react/lib/core', () => {
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 type LocationConfig = NonNullable<RouterConfig['location']>;
-type InitialData = {
+interface InitialData {
   initialRouterConfig: RouterConfig & {location: LocationConfig};
   organization: ReturnType<typeof OrganizationFixture>;
   projects: Array<ReturnType<typeof ProjectFixture>>;
-};
+}
 
 const defaultInitialRouterConfig: RouterConfig & {location: LocationConfig} = {
   location: {

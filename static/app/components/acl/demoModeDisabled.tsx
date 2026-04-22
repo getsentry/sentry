@@ -3,9 +3,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
-type Props = {
+interface Props {
   children?: React.ReactNode;
-};
+}
 
 export function DisableInDemoMode({children}: Props) {
   if (!isDemoModeActive()) {

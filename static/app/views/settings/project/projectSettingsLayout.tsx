@@ -20,9 +20,9 @@ import ProjectContext from 'sentry/views/projects/projectContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
-type ProjectSettingsOutletContext = {
+interface ProjectSettingsOutletContext {
   project: Project;
-};
+}
 
 function ProjectSettingsOutlet(props: ProjectSettingsOutletContext) {
   return <Outlet context={props} />;

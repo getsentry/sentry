@@ -4,11 +4,11 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {Card} from 'sentry/components/card';
 
-type Props = {
+interface Props {
   imgUrl: string;
   link: string;
   title: string;
-};
+}
 
 export function ResourceCard({title, link, imgUrl}: Props) {
   return (

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
 
-type Props = {
+interface Props {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: MouseEventHandler<HTMLElement>;
   onMouseDown: MouseEventHandler<HTMLElement>;
-};
+}
 
 export const SplitDivider = styled((props: Props & DOMAttributes<HTMLDivElement>) => (
   <div {...props}>

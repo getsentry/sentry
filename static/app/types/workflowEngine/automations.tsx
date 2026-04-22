@@ -28,15 +28,15 @@ export interface AutomationFireHistory {
   detector?: Detector;
 }
 
-export type AutomationStats = {
+export interface AutomationStats {
   count: number;
   date: string;
-};
+}
 
 /**
  * Warning information about the status of actions in an automation.
  */
-export type StatusWarning = {
+export interface StatusWarning {
   color: 'danger' | 'warning';
   message: string;
-};
+}

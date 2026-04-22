@@ -14,14 +14,14 @@ import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
 
-type AssigneeBadgeProps = {
+interface AssigneeBadgeProps {
   assignedTo?: Actor | undefined;
   assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
   isTooltipDisabled?: boolean;
   loading?: boolean;
   showLabel?: boolean;
-};
+}
 
 const AVATAR_SIZE = 16;
 

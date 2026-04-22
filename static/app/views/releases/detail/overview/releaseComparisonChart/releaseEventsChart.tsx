@@ -27,7 +27,7 @@ import {
   releaseMarkLinesLabels,
 } from 'sentry/views/releases/detail/utils';
 
-type Props = {
+interface Props {
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
   organization: Organization;
@@ -38,7 +38,7 @@ type Props = {
   period?: string | null;
   start?: string;
   utc?: boolean;
-};
+}
 
 function ReleaseEventsChart({
   release,

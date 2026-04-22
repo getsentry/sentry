@@ -19,9 +19,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, subregionCodeToName} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   size?: ComponentProps<typeof CompactSelect>['size'];
-};
+}
 
 export function SubregionSelector({size}: Props) {
   const organization = useOrganization();

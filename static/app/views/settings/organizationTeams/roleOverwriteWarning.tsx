@@ -5,12 +5,12 @@ import {IconInfo} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {OrgRole, TeamRole} from 'sentry/types/organization';
 
-type Props = {
+interface Props {
   orgRole: OrgRole['id'] | undefined;
   orgRoleList: OrgRole[];
   teamRoleList: TeamRole[];
   isSelf?: boolean;
-};
+}
 
 export function RoleOverwriteIcon(props: Props) {
   const hasOverride = hasOrgRoleOverwrite(props);

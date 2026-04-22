@@ -4,10 +4,10 @@ import {tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Team} from 'sentry/types/organization';
 
-type CallbackOptions = {
+interface CallbackOptions {
   error?: (...args: unknown[]) => void;
   success?: (...args: unknown[]) => void;
-};
+}
 
 const doCallback = (
   params: CallbackOptions = {},
@@ -17,13 +17,17 @@ const doCallback = (
 /**
  * Note these are both slugs
  */
-type OrgSlug = {orgId: string};
+interface OrgSlug {
+  orgId: string;
+}
 type OrgAndTeamSlug = OrgSlug & {teamId: string};
 
 /**
  * This is the actual internal id, not username or email
  */
-type MemberId = {memberId: string};
+interface MemberId {
+  memberId: string;
+}
 
 // Fetch user teams for current org and place them in the team store
 export async function fetchUserTeams(api: Client, params: OrgSlug) {

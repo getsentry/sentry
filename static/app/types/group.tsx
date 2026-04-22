@@ -24,17 +24,17 @@ export type EntryData = Record<string, any | any[]>;
 /**
  * Saved issues searches
  */
-export type RecentSearch = {
+export interface RecentSearch {
   dateCreated: string;
   id: string;
   lastSeen: string;
   organizationId: string;
   query: string;
   type: SavedSearchType;
-};
+}
 
 // XXX: Deprecated Sentry 9 attributes are not included here.
-export type SavedSearch = {
+export interface SavedSearch {
   dateCreated: string;
   id: string;
   isGlobal: boolean;
@@ -44,7 +44,7 @@ export type SavedSearch = {
   sort: string;
   type: SavedSearchType;
   visibility: SavedSearchVisibility;
-};
+}
 
 export enum SavedSearchVisibility {
   ORGANIZATION = 'organization',
@@ -438,7 +438,7 @@ export function isOccurrenceBased(typeId: number | undefined): boolean {
 }
 
 // endpoint: /api/0/organizations/:orgSlug/issues/:issueId/attachments/?limit=50
-export type IssueAttachment = {
+export interface IssueAttachment {
   dateCreated: string;
   event_id: string;
   headers: Record<PropertyKey, unknown>;
@@ -448,7 +448,7 @@ export type IssueAttachment = {
   sha1: string;
   size: number;
   type: string;
-};
+}
 
 // endpoint: /api/0/projects/:orgSlug/:projSlug/events/:eventId/attachments/
 export type EventAttachment = IssueAttachment;
@@ -456,7 +456,7 @@ export type EventAttachment = IssueAttachment;
 /**
  * Issue Tags
  */
-export type Tag = {
+export interface Tag {
   key: string;
   name: string;
   alias?: string;
@@ -477,7 +477,7 @@ export type Tag = {
    * Usually values are strings, but a predefined tag can define its SearchGroups
    */
   values?: string[] | SearchGroup[];
-};
+}
 
 export type TagCollection = Record<string, Tag>;
 
@@ -495,7 +495,7 @@ export type TagValue = {
   username?: string;
 } & AvatarUser;
 
-type Topvalue = {
+interface Topvalue {
   count: number;
   firstSeen: string;
   key: string;
@@ -505,32 +505,32 @@ type Topvalue = {
   // Might not actually exist.
   query?: string;
   readable?: string;
-};
+}
 
-export type TagWithTopValues = {
+export interface TagWithTopValues {
   key: string;
   name: string;
   topValues: Topvalue[];
   totalValues: number;
   uniqueValues: number;
   canDelete?: boolean;
-};
+}
 
 /**
  * Inbox, issue owners and Activity
  */
-type Annotation = {
+interface Annotation {
   displayName: string;
   url: string;
-};
+}
 
-type InboxReasonDetails = {
+interface InboxReasonDetails {
   count?: number | null;
   until?: string | null;
   user_count?: number | null;
   user_window?: number | null;
   window?: number | null;
-};
+}
 
 const enum GroupInboxReason {
   NEW = 0,
@@ -542,11 +542,11 @@ const enum GroupInboxReason {
   ONGOING = 6,
 }
 
-export type InboxDetails = {
+export interface InboxDetails {
   date_added?: string;
   reason?: GroupInboxReason;
   reason_details?: InboxReasonDetails | null;
-};
+}
 
 export type SuggestedOwnerReason =
   | 'suspectCommit'
@@ -556,11 +556,11 @@ export type SuggestedOwnerReason =
   | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
-type SuggestedOwner = {
+interface SuggestedOwner {
   date_added: string;
   owner: string;
   type: SuggestedOwnerReason;
-};
+}
 
 /**
  * Mirrors OwnershipRuleOwnerResponse from the backend
@@ -576,7 +576,7 @@ export interface ParsedOwnershipRule {
   owners: OwnershipRuleOwner[];
 }
 
-export type IssueOwnership = {
+export interface IssueOwnership {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
     | 'Auto Assign to Issue Owner'
@@ -588,7 +588,7 @@ export type IssueOwnership = {
   lastUpdated: string | null;
   raw: string | null;
   schema?: {rules: ParsedOwnershipRule[]; version: number};
-};
+}
 
 export enum GroupActivityType {
   NOTE = 'note',
@@ -1114,7 +1114,7 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
 
 // Maps to SimpleGroupSerializer in the backend
-export type SimpleGroup = {
+export interface SimpleGroup {
   culprit: string | null;
   firstSeen: string;
   id: string;
@@ -1129,7 +1129,7 @@ export type SimpleGroup = {
   substatus: GroupSubstatus | null;
   title: string;
   type: EventOrGroupType;
-};
+}
 
 export interface GroupTombstone {
   actor: AvatarUser;
@@ -1150,27 +1150,27 @@ export interface GroupTombstoneHelper extends GroupTombstone {
 /**
  * Datascrubbing
  */
-export type Meta = {
+export interface Meta {
   chunks: ChunkType[];
   err: MetaError[];
   len: number;
   rem: MetaRemark[];
-};
+}
 
 export type MetaError = string | [string, any];
 type MetaRemark = Array<string | number>;
 
-export type ChunkType = {
+export interface ChunkType {
   rule_id: string | number;
   text: string;
   type: string;
   remark?: string | number;
-};
+}
 
 /**
  * Old User Feedback
  */
-export type UserReport = {
+export interface UserReport {
   comments: string;
   dateCreated: string;
   email: string;
@@ -1180,9 +1180,9 @@ export type UserReport = {
   issue: Group;
   name: string;
   user: User;
-};
+}
 
-export type KeyValueListDataItem = {
+export interface KeyValueListDataItem {
   key: string;
   subject: string;
   action?: {
@@ -1200,16 +1200,16 @@ export type KeyValueListDataItem = {
   subjectIcon?: React.ReactNode;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
-};
+}
 
 export type KeyValueListData = KeyValueListDataItem[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/
-export type ShortIdResponse = {
+export interface ShortIdResponse {
   group: Group;
   groupId: string;
   organizationSlug: string;
   projectSlug: string;
   shortId: string;
-};
+}

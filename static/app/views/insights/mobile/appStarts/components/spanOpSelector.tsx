@@ -25,10 +25,10 @@ export const APP_START_SPANS = [
   'process.load',
 ];
 
-type Props = {
+interface Props {
   primaryRelease?: string;
   transaction?: string;
-};
+}
 
 export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();

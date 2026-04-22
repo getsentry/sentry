@@ -13,10 +13,10 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ControlProps, GeneralSelectValue} from './';
 import {Select} from './';
 
-export type Result = {
+export interface Result {
   label: string | React.ReactNode;
   value: string;
-};
+}
 
 export interface SelectAsyncControlProps<TData = any> {
   // TODO(ts): Improve data type
@@ -28,9 +28,9 @@ export interface SelectAsyncControlProps<TData = any> {
   forwardedRef?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
 }
 
-type State = {
+interface State {
   query?: string;
-};
+}
 
 /**
  * Performs an API request to `url` to fetch the options

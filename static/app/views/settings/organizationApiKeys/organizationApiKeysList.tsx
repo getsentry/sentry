@@ -16,7 +16,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import type {DeprecatedApiKey} from './types';
 
-type Props = {
+interface Props {
   /**
    * Busy differs from loading in that busy is a result of an action like removing
    */
@@ -32,7 +32,7 @@ type Props = {
 
   onRemove: (id: DeprecatedApiKey['id']) => void;
   organization: Organization;
-};
+}
 
 export function OrganizationApiKeysList({
   organization,

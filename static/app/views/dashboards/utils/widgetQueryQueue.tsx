@@ -12,15 +12,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FetchDataFn = () => Promise<void>;
 
-type QueueItem = {
+interface QueueItem {
   fetchDataRef: RefObject<FetchDataFn>;
-};
+}
 
 type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
 
-type Context = {
+interface Context {
   queue: WidgetQueryQueue;
-};
+}
 
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 

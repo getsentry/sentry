@@ -13,23 +13,23 @@ import {t, tct} from 'sentry/locale';
 import type {AccessRequest} from 'sentry/types/organization';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   orgSlug: string;
   requestList: AccessRequest[];
-};
+}
 
-type State = {
+interface State {
   accessRequestBusy: Record<string, boolean>;
-};
+}
 
-type HandleOpts = {
+interface HandleOpts {
   errorMessage: string;
   id: string;
   isApproved: boolean;
   successMessage: string;
-};
+}
 
 class OrganizationAccessRequests extends Component<Props, State> {
   state: State = {

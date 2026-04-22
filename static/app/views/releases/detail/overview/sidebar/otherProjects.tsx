@@ -12,12 +12,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject} from 'sentry/types/release';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projects: ReleaseProject[];
   version: string;
-};
+}
 
 export function OtherProjects({projects, location, version, organization}: Props) {
   return (

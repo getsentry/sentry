@@ -84,7 +84,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {ThresholdsChart} from './thresholdsChart';
 
-type Props = {
+interface Props {
   aggregate: MetricRule['aggregate'];
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -115,7 +115,7 @@ type Props = {
   seriesSamplingInfo?: SeriesSamplingInfo;
   showTotalCount?: boolean;
   traceItemType?: TraceItemDataset;
-};
+}
 
 const SESSION_AGGREGATE_TO_HEADING = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: t('Total Sessions'),
@@ -124,13 +124,13 @@ const SESSION_AGGREGATE_TO_HEADING = {
 
 const noop: any = () => {};
 
-type State = {
+interface State {
   adjustedExtrapolationMode: ExtrapolationMode | undefined;
   extrapolationSampleCount: number | null;
   sampleRate: number;
   statsPeriod: TimePeriod;
   totalCount: number | null;
-};
+}
 
 const getStatsPeriodFromQuery = (
   queryParam: string | string[] | null | undefined

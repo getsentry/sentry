@@ -11,16 +11,18 @@ export enum DebugFileFeature {
   SOURCES = 'sources',
 }
 
-type Secret = {'hidden-secret': boolean};
+interface Secret {
+  'hidden-secret': boolean;
+}
 
-export type BuiltinSymbolSource = {
+export interface BuiltinSymbolSource {
   hidden: boolean;
   id: string;
   name: string;
   sentry_key: string;
-};
+}
 
-export type DebugFile = {
+export interface DebugFile {
   codeId: string;
   cpuName: string;
   dateCreated: string;
@@ -33,7 +35,7 @@ export type DebugFile = {
   symbolType: string;
   uuid: string;
   data?: {features: DebugFileFeature[]; type: DebugFileType};
-};
+}
 
 // Custom Repository
 export enum CustomRepoType {
@@ -42,7 +44,7 @@ export enum CustomRepoType {
   GCS = 'gcs',
 }
 
-export type CustomRepoHttp = {
+export interface CustomRepoHttp {
   id: string;
   layout: {casing: string; type: string};
   name: string;
@@ -50,9 +52,9 @@ export type CustomRepoHttp = {
   type: CustomRepoType.HTTP;
   url: string;
   username: string;
-};
+}
 
-type CustomRepoS3 = {
+interface CustomRepoS3 {
   access_key: string;
   bucket: string;
   id: string;
@@ -61,9 +63,9 @@ type CustomRepoS3 = {
   region: string;
   secret_key: Secret;
   type: CustomRepoType.S3;
-};
+}
 
-type CustomRepoGCS = {
+interface CustomRepoGCS {
   bucket: string;
   client_email: string;
   id: string;
@@ -72,6 +74,6 @@ type CustomRepoGCS = {
   prefix: string;
   private_key: Secret;
   type: CustomRepoType.GCS;
-};
+}
 
 export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS;

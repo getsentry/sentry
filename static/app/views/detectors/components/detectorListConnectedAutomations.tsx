@@ -19,10 +19,10 @@ import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/useIssueStreamDetectorsForProject';
 
-type DetectorListConnectedAutomationsProps = {
+interface DetectorListConnectedAutomationsProps {
   automationIds: string[];
   projectId: string;
-};
+}
 
 function ConnectedAutomationsHoverBody({automationIds}: {automationIds: string[]}) {
   const organization = useOrganization();

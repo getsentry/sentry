@@ -44,17 +44,19 @@ interface AttributesTreeColumnData {
   startIndex: number;
 }
 
-type AttributeItem = {
+interface AttributeItem {
   fieldKey: string;
   value: string | number | null;
-};
+}
 
-export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBaggage> = {
+export interface AttributesFieldRendererProps<
+  RendererExtra extends RenderFunctionBaggage,
+> {
   extra: RendererExtra;
   item: AttributeItem;
   basicRendered?: React.ReactNode;
   meta?: EventsMetaType;
-};
+}
 
 export interface AttributesFieldRender<RendererExtra extends RenderFunctionBaggage> {
   /**

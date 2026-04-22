@@ -13,9 +13,9 @@ import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
-type DashboardsNavigationItemsProps = {
+interface DashboardsNavigationItemsProps {
   initialDashboards: DashboardListItem[];
-};
+}
 
 export function DashboardsNavigationItems({
   initialDashboards,

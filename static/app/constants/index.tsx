@@ -120,12 +120,12 @@ export const ORG_ROLES: OrgRole[] = [
   },
 ];
 
-type PermissionChoice = {
+interface PermissionChoice {
   label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
-};
+}
 
-export type PermissionObj = {
+export interface PermissionObj {
   choices: {
     'no-access': PermissionChoice;
     admin?: PermissionChoice;
@@ -135,7 +135,7 @@ export type PermissionObj = {
   help: string;
   resource: PermissionResource;
   label?: string;
-};
+}
 
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 

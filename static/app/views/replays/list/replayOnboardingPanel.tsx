@@ -25,12 +25,12 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
 import {ReplayPanel} from 'sentry/views/replays/list/replayPanel';
 
-type Breakpoints = {
+interface Breakpoints {
   lg: string;
   md: string;
   sm: string;
   xl: string;
-};
+}
 
 const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',

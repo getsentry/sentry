@@ -9,14 +9,14 @@ import {
   type PerformanceScore,
 } from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 
-type Props = {
+interface Props {
   description: string;
   formattedValue: string | undefined;
   status: string | undefined;
   statusLabel: string | undefined;
   title: string;
   onClick?: () => void;
-};
+}
 
 export function VitalCard({
   description,

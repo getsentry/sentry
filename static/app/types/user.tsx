@@ -4,7 +4,7 @@ import type {Avatar, Scope} from './core';
 /**
  * Avatars are a more primitive version of User.
  */
-export type AvatarUser = {
+export interface AvatarUser {
   email: string;
   id: string;
   ip_address: string;
@@ -19,7 +19,7 @@ export type AvatarUser = {
   options?: {
     avatarType: Avatar['avatarType'];
   };
-};
+}
 
 export enum StacktraceOrder {
   DEFAULT = -1, // Equivalent to `MOST_RECENT_FIRST`
@@ -62,11 +62,11 @@ export interface User extends Omit<AvatarUser, 'options'> {
 
 // XXX(epurkhiser): we should understand how this is diff from User['emails]
 // above
-export type UserEmail = {
+export interface UserEmail {
   email: string;
   isPrimary: boolean;
   isVerified: boolean;
-};
+}
 
 /**
  * API tokens and Api Applications.
@@ -93,7 +93,7 @@ export interface NewInternalAppApiToken extends InternalAppApiToken {
   token: string;
 }
 
-export type ApiApplication = {
+export interface ApiApplication {
   allowedOrigins: string[];
   clientID: string;
   clientSecret: string | null;
@@ -109,9 +109,9 @@ export type ApiApplication = {
   privacyUrl: string | null;
   redirectUris: string[];
   termsUrl: string | null;
-};
+}
 
-export type OrgAuthToken = {
+export interface OrgAuthToken {
   dateCreated: Date;
   id: string;
   name: string;
@@ -119,14 +119,14 @@ export type OrgAuthToken = {
   dateLastUsed?: Date;
   projectLastUsedId?: string;
   tokenLastCharacters?: string;
-};
+}
 
 // Used in user session history.
-export type InternetProtocol = {
+export interface InternetProtocol {
   countryCode: string | null;
   firstSeen: string;
   id: string;
   ipAddress: string;
   lastSeen: string;
   regionCode: string | null;
-};
+}

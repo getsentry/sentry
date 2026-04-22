@@ -48,9 +48,9 @@ type Props = Pick<
   pageLinks?: string;
 };
 
-type LocationQuery = {
+interface LocationQuery {
   cursor?: string;
-};
+}
 
 export function IntegrationExternalMappings(props: Props) {
   const {

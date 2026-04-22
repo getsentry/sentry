@@ -34,7 +34,7 @@ export const stackTraceDisplayOptionLabels = {
   'verbose-function-names': t('Verbose function names'),
 };
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   event: Event;
   eventId: Event['id'];
@@ -50,7 +50,7 @@ type Props = {
   type: string;
   activeThreadId?: number;
   isNestedSection?: boolean;
-};
+}
 
 export function TraceEventDataSection({
   type,

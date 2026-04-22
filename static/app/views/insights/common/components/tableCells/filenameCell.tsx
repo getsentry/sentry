@@ -1,9 +1,9 @@
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 
-type Props = {
+interface Props {
   url?: string;
-};
+}
 
 export function FilenameCell(props: Props) {
   const {url} = props;

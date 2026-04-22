@@ -10,9 +10,9 @@ import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateAutomation} from 'sentry/views/automations/hooks';
 
-type DisabledAlertProps = {
+interface DisabledAlertProps {
   automation: Automation;
-};
+}
 
 /**
  * Alert banner for users to quickly understand that an automation is

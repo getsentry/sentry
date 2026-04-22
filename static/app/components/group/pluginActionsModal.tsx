@@ -63,9 +63,9 @@ type ModalProps = ModalRenderProps & {
   project: Project;
 };
 
-type ModalState = {
+interface ModalState {
   actionType: 'create' | 'link' | null;
-};
+}
 
 class PluginActionsModal extends Component<ModalProps, ModalState> {
   state: ModalState = {

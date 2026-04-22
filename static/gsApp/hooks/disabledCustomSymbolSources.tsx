@@ -15,9 +15,9 @@ import {displayPlanName} from 'getsentry/utils/billing';
 
 const FEATURE = 'custom-symbol-sources';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
 export function DisabledCustomSymbolSources({organization}: Props) {
   return (

@@ -92,13 +92,13 @@ function getHoverHeader(
   }
 }
 
-type HoverHeaderProps = {
+interface HoverHeaderProps {
   organization: Organization;
   title: string;
   copyContent?: string;
   copyLabel?: React.ReactNode;
   hideCopy?: boolean;
-};
+}
 
 function HoverHeader({
   title,

@@ -1,9 +1,9 @@
 import {parse} from './grammar.pegjs';
 
-type DurationTokenValue = {
+interface DurationTokenValue {
   value: string;
   unit?: string;
-};
+}
 
 /**
  * This parser is specifically meant for parsing the value of a duration filter.

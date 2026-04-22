@@ -24,10 +24,10 @@ import {
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 
-type Props = {
+interface Props {
   traceSampling: boolean;
   uptimeChecks: UptimeCheck[];
-};
+}
 
 type ColumnKey =
   | 'traceItemId'

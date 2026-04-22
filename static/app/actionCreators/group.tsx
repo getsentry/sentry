@@ -9,12 +9,12 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 
-type ParamsType = {
+interface ParamsType {
   environment?: string | string[] | null;
   itemIds?: string[];
   project?: number[] | string[] | null;
   query?: string;
-};
+}
 
 type UpdateParams = ParamsType & {
   orgId: string;
@@ -205,14 +205,14 @@ export function mergeGroups(
   );
 }
 
-type FetchIssueTagValuesParameters = {
+interface FetchIssueTagValuesParameters {
   groupId: string;
   organization: Organization;
   tagKey: string;
   cursor?: QueryParamValue;
   environment?: string[];
   sort?: string | string[];
-};
+}
 
 export function issueTagValuesApiOptions({
   organization,
@@ -239,11 +239,11 @@ export function issueTagValuesApiOptions({
   });
 }
 
-type FetchIssueTagParameters = {
+interface FetchIssueTagParameters {
   groupId: string;
   organization: Organization;
   tagKey: string;
-};
+}
 
 export function fetchIssueTagApiOptions<TData = GroupTag>(
   parameters: FetchIssueTagParameters

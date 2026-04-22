@@ -29,7 +29,7 @@ import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type NotificationActionItemProps = {
+interface NotificationActionItemProps {
   /**
    * The notification action being represented
    */
@@ -70,7 +70,7 @@ type NotificationActionItemProps = {
    * Optional list of roles to display as recipients of Sentry notifications
    */
   recipientRoles?: string[];
-};
+}
 
 export function NotificationActionItem({
   action,

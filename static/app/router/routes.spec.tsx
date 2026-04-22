@@ -18,10 +18,10 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-type RouteMetadata = {
+interface RouteMetadata {
   leadingPath: string;
   route: RouteObject;
-};
+}
 
 function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   const routes = new Set<string>();

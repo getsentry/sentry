@@ -18,14 +18,14 @@ import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';
 import {useEventViewProject} from './useEventViewProject';
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   organization: Organization;
   projects: Project[];
   transactionName: string;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
-};
+}
 
 function TransactionThresholdButton({
   api,

@@ -16,12 +16,12 @@ interface Props {
   projectSlug: string;
 }
 
-export type ReplayBulkDeletePayload = {
+export interface ReplayBulkDeletePayload {
   environments: string | string[] | undefined;
   query: string;
   rangeEnd: string | undefined;
   rangeStart: string | undefined;
-};
+}
 
 type Vars = [ReplayBulkDeletePayload];
 

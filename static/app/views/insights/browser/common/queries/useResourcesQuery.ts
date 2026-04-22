@@ -22,14 +22,14 @@ const {
   NORMALIZED_DESCRIPTION,
 } = SpanFields;
 
-type Props = {
+interface Props {
   referrer: string;
   sort: ValidSort;
   cursor?: string;
   defaultResourceTypes?: string[];
   limit?: number;
   query?: string;
-};
+}
 
 export const DEFAULT_RESOURCE_FILTERS = [
   'has:sentry.normalized_description',

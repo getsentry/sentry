@@ -12,12 +12,12 @@ import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   activities: GroupActivity[];
   project: Project;
   // TODO(ts): This should be a union type `IgnoredStatusDetails | ResolvedStatusDetails`
   statusDetails: ResolvedStatusDetails;
-};
+}
 
 export function ResolutionReason({statusDetails, project, activities}: Props) {
   const organization = useOrganization();

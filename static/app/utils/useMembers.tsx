@@ -11,7 +11,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type State = {
+interface State {
   /**
    * The error that occurred if fetching failed
    */
@@ -40,7 +40,7 @@ type State = {
    * Pagination
    */
   nextCursor?: null | string;
-};
+}
 
 type Result = {
   /**
@@ -64,7 +64,7 @@ type Result = {
   onSearch: (searchTerm: string) => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
-type Options = {
+interface Options {
   /**
    * When provided, fetches specified members by email if necessary and only
    * provides those members.
@@ -79,16 +79,16 @@ type Options = {
    * Number of members to return when not using `props.slugs`
    */
   limit?: number;
-};
+}
 
-type FetchMemberOptions = {
+interface FetchMemberOptions {
   cursor?: State['nextCursor'];
   emails?: string[];
   ids?: Options['ids'];
   lastSearch?: State['lastSearch'];
   limit?: Options['limit'];
   search?: State['lastSearch'];
-};
+}
 
 /**
  * Helper function to actually load members

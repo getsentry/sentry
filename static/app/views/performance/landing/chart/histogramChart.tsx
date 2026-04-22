@@ -23,7 +23,7 @@ import {
 const NUM_BUCKETS = 50;
 const PRECISION = 0;
 
-type Props = {
+interface Props {
   eventView: EventView;
   field: string;
   location: Location;
@@ -34,9 +34,9 @@ type Props = {
   usingBackupAxis: boolean;
   backupField?: string;
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
-};
+}
 
-type ChartProps = {
+interface ChartProps {
   field: string;
   isErrored: boolean;
   isLoading: boolean;
@@ -49,7 +49,7 @@ type ChartProps = {
   disableZoom?: boolean;
   grid?: BarChartProps['grid'];
   height?: number;
-};
+}
 
 export function Chart(props: ChartProps) {
   const {

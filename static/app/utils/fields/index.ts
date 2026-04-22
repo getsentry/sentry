@@ -441,7 +441,7 @@ export function getIsFieldDescriptionFromValue(
   return undefined;
 }
 
-type AggregateColumnParameter = {
+interface AggregateColumnParameter {
   /**
    * The types of columns that are valid for this parameter.
    * Can pass a list of FieldValueTypes or a predicate function.
@@ -453,9 +453,9 @@ type AggregateColumnParameter = {
   name: string;
   required: boolean;
   defaultValue?: string;
-};
+}
 
-type AggregateValueParameter = {
+interface AggregateValueParameter {
   dataType: FieldValueType;
   kind: 'value';
   name: string;
@@ -463,7 +463,7 @@ type AggregateValueParameter = {
   defaultValue?: string;
   options?: Array<{value: string; label?: string}>;
   placeholder?: string;
-};
+}
 
 export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
 

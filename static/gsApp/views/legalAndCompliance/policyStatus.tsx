@@ -7,14 +7,14 @@ import {IconCheckmark, IconSubtract} from 'sentry/icons';
 
 import type {Policy} from 'getsentry/types';
 
-type PolicyStatusProps = {
+interface PolicyStatusProps {
   policy: Policy;
-};
+}
 
-type StatusIconProps = {
+interface StatusIconProps {
   icon: React.ReactNode;
   tooltip: string;
-};
+}
 
 export function StatusIconWithTooltip({icon, tooltip}: StatusIconProps) {
   return (

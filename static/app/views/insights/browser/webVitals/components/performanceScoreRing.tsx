@@ -3,10 +3,10 @@ import {useMemo} from 'react';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type TextProps = {
+interface TextProps {
   theme: Theme;
   textCss?: Props['textCss'];
-};
+}
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   backgroundColors: readonly string[];

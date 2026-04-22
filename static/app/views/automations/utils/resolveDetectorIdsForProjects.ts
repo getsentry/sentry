@@ -7,13 +7,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
 import {fetchIssueStreamDetectorIdsForProjects} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIdsForProjects';
 
-type ResolveDetectorIdsForProjectsParams = {
+interface ResolveDetectorIdsForProjectsParams {
   formData: AutomationFormData;
   organization: Organization;
   queryClient: QueryClient;
   onSubmitError?: (error: unknown) => void;
   projectIds?: string[];
-};
+}
 
 /**
  * If the user selected by project, we need to convert to detector IDs,

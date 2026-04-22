@@ -13,7 +13,7 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 const TOOLTIP_POSITION_X_OFFSET = 20;
 const TOOLTIP_POSITION_Y_OFFSET = -10;
 
-type Params = {
+interface Params {
   /**
    * The ref to the chart component.
    */
@@ -31,12 +31,12 @@ type Params = {
    * clickable actions on click. When null, no actions are shown.
    */
   actions?: TooltipActions | null;
-};
+}
 
-export type TooltipActions = {
+export interface TooltipActions {
   htmlRenderer: (value: string) => string;
   onAction: (params: {action: string; key: string; value: string}) => void;
-};
+}
 
 export enum Actions {
   GROUP_BY = 'group_by_attribute',

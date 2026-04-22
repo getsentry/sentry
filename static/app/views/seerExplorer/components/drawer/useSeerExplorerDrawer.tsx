@@ -9,7 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
-export type OpenSeerExplorerDrawerOptions = {
+export interface OpenSeerExplorerDrawerOptions {
   /**
    * Optional run ID to open. If provided, opens an existing session.
    * Cannot be used together with `startNewRun`.
@@ -20,7 +20,7 @@ export type OpenSeerExplorerDrawerOptions = {
    * Cannot be used together with `runId`.
    */
   startNewRun?: boolean;
-};
+}
 
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});

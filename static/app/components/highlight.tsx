@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-type HighlightProps = {
+interface HighlightProps {
   /**
    * The original text
    */
@@ -17,7 +17,7 @@ type HighlightProps = {
    * Should highlighting be disabled?
    */
   disabled?: boolean;
-};
+}
 
 type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
   HighlightProps;

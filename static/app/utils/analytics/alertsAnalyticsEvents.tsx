@@ -2,7 +2,7 @@ import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import type {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 import type {MonitorConfig} from 'sentry/views/insights/crons/types';
 
-export type AlertsEventParameters = {
+export interface AlertsEventParameters {
   'anomaly-detection.feedback-submitted': {
     choice_selected: boolean;
     incident_id: string;
@@ -18,7 +18,7 @@ export type AlertsEventParameters = {
   'uptime_monitor.created': {
     uptime_mode: UptimeMonitorMode;
   };
-};
+}
 
 type AlertsEventKey = keyof AlertsEventParameters;
 

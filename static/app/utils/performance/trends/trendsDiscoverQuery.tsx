@@ -20,13 +20,13 @@ import {
 } from 'sentry/views/performance/trends/utils';
 import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 
-type TrendsRequest = {
+interface TrendsRequest {
   eventView: Partial<TrendView>;
   projects: Project[];
   trendChangeType?: TrendChangeType;
   trendFunctionField?: TrendFunctionField;
   withBreakpoint?: boolean;
-};
+}
 
 type RequestProps = DiscoverQueryProps & TrendsRequest;
 

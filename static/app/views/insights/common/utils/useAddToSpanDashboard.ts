@@ -20,7 +20,7 @@ import {CHART_TYPE_TO_DISPLAY_TYPE} from 'sentry/views/explore/hooks/useAddToDas
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SpanFields} from 'sentry/views/insights/types';
 
-export type AddToSpanDashboardOptions = {
+export interface AddToSpanDashboardOptions {
   chartType: ChartType;
   yAxes: string[];
   groupBy?: SpanFields[];
@@ -28,7 +28,7 @@ export type AddToSpanDashboardOptions = {
   sort?: Sort;
   topEvents?: number;
   widgetName?: string;
-};
+}
 
 export const useAddToSpanDashboard = () => {
   const organization = useOrganization();

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import BottomLeft from 'sentry-images/pattern/highlight-bottom-left.svg';
 import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   /**
    * @default '200px'
@@ -14,7 +14,7 @@ type Props = {
    * @default '400px'
    */
   topWidth?: string;
-};
+}
 
 export function HighlightModalContainer({
   topWidth = '400px',

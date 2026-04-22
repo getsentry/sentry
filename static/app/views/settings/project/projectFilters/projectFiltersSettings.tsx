@@ -190,7 +190,7 @@ type LegacyBrowserSubfilterKeys = Array<keyof typeof LEGACY_BROWSER_SUBFILTERS>;
 
 type FormFieldProps = React.ComponentProps<typeof FormField>;
 
-type RowProps = {
+interface RowProps {
   data: {
     active: string[] | boolean;
   };
@@ -200,7 +200,7 @@ type RowProps = {
     event: React.ChangeEvent | React.MouseEvent
   ) => void;
   disabled?: boolean;
-};
+}
 
 function getActiveSubfilters() {
   return new Set(
@@ -374,21 +374,21 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
   );
 }
 
-type Props = {
+interface Props {
   features: Set<string>;
   params: {
     projectId: string;
   };
   project: Project;
-};
+}
 
-type Filter = {
+interface Filter {
   active: boolean | string[];
   description: string;
   hello: string;
   id: string;
   name: string;
-};
+}
 
 export function ProjectFiltersSettings({project, params, features}: Props) {
   const organization = useOrganization();

@@ -65,13 +65,13 @@ export const enum MultipleCheckboxOptions {
   INTEGRATION = 'integration',
 }
 
-export type IntegrationChannel = {
+export interface IntegrationChannel {
   label: ReactNode;
   value: string;
   new?: boolean;
-};
+}
 
-export type IssueAlertNotificationProps = {
+export interface IssueAlertNotificationProps {
   actions: MultipleCheckboxOptions[];
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
@@ -83,7 +83,7 @@ export type IssueAlertNotificationProps = {
   setProvider: (provider: string | undefined) => void;
   shouldRenderSetupButton: boolean;
   channel?: IntegrationChannel;
-};
+}
 
 export function useCreateNotificationAction({
   actions: defaultActions,

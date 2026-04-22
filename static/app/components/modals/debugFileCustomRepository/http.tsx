@@ -18,7 +18,7 @@ import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 
-type InitialData = {
+interface InitialData {
   id: string;
   layout: {
     casing: keyof typeof DEBUG_SOURCE_CASINGS;
@@ -30,7 +30,7 @@ type InitialData = {
     'hidden-secret': boolean;
   };
   username?: string;
-};
+}
 
 type Data = Partial<Pick<InitialData, 'name' | 'url'>> &
   Omit<InitialData, 'name' | 'url' | 'password' | 'layout'> & {

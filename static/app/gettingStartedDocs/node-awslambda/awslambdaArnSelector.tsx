@@ -7,14 +7,17 @@ import Select from 'sentry/components/forms/controls/reactSelectWrapper';
 import {t} from 'sentry/locale';
 import {useQuery} from 'sentry/utils/queryClient';
 
-type RegionData = {region: string; version: string};
+interface RegionData {
+  region: string;
+  version: string;
+}
 
-type LayerData = {
+interface LayerData {
   account_number: string;
   canonical: string;
   layer_name: string;
   regions: RegionData[];
-};
+}
 
 export function useAwsLambdaLayers() {
   const awsLambdaLayers = useQuery<Record<string, LayerData>>({

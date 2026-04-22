@@ -31,7 +31,7 @@ import {useGenericWidgetQueries} from './genericWidgetQueries';
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
-type SpansWidgetQueriesProps = {
+interface SpansWidgetQueriesProps {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
@@ -43,7 +43,7 @@ type SpansWidgetQueriesProps = {
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
-};
+}
 
 type SpansWidgetQueriesImplProps = SpansWidgetQueriesProps & {
   getConfidenceInformation: (result: SeriesResult) => {

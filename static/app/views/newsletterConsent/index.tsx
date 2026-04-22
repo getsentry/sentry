@@ -8,9 +8,9 @@ import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 
-type Props = {
+interface Props {
   onSubmitSuccess?: () => void;
-};
+}
 
 function NewsletterConsent({onSubmitSuccess}: Props) {
   useEffect(() => {

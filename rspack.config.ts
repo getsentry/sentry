@@ -134,9 +134,9 @@ const localeCatalogPath = path.join(
   'catalogs.json'
 );
 
-type LocaleCatalog = {
+interface LocaleCatalog {
   supported_locales: string[];
-};
+}
 
 const localeCatalog: LocaleCatalog = JSON.parse(
   fs.readFileSync(localeCatalogPath, 'utf8')

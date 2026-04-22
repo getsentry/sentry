@@ -9,7 +9,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
-type Props = {
+interface Props {
   /**
    * The page title
    */
@@ -26,7 +26,7 @@ type Props = {
   noTitleStyles?: boolean;
   subtitle?: React.ReactNode;
   tabs?: React.ReactNode;
-};
+}
 
 function UnstyledSettingsPageHeader({
   title,

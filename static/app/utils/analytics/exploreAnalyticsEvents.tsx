@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-export type ExploreAnalyticsEventParameters = {
+export interface ExploreAnalyticsEventParameters {
   'explore.floating_trigger.clear_selection': {
     organization: Organization;
   };
@@ -23,7 +23,7 @@ export type ExploreAnalyticsEventParameters = {
     start?: string;
     statsPeriod?: string;
   };
-};
+}
 
 type ExploreAnalyticsEventKey = keyof ExploreAnalyticsEventParameters;
 

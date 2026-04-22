@@ -32,7 +32,11 @@ import {SeerSection} from 'sentry/views/issueDetails/streamline/sidebar/seerSect
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 import {SupergroupSection} from 'sentry/views/issueDetails/streamline/sidebar/supergroupSection';
 
-type Props = {group: Group; project: Project; event?: Event};
+interface Props {
+  group: Group;
+  project: Project;
+  event?: Event;
+}
 
 export function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();

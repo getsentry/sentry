@@ -16,11 +16,11 @@ import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
-type Props = {
+interface Props {
   onChangeTitle: (data: string) => void;
   organization: Organization;
   project: Project;
-};
+}
 
 export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
   const {monitorSlug, projectId} = useParams<{

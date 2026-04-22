@@ -7,10 +7,10 @@ import type {Tag} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-type KeyDescriptionProps = {
+interface KeyDescriptionProps {
   tag: Tag;
   size?: 'sm' | 'md';
-};
+}
 
 export function ValueType({
   fieldDefinition,

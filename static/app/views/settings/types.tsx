@@ -4,18 +4,18 @@ import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-export type NavigationProps = {
+export interface NavigationProps {
   access?: Set<Scope>;
   features?: Set<string>;
   id?: string;
   isSelfHosted?: boolean;
   organization?: Organization;
   project?: Project;
-};
+}
 
 export type NavigationGroupProps = NavigationProps & NavigationSection;
 
-export type NavigationItem = {
+export interface NavigationItem {
   /**
    * The path of the navigation link
    */
@@ -50,9 +50,9 @@ export type NavigationItem = {
    * Should the navigation item be displayed?
    */
   show?: boolean | ((opts: NavigationGroupProps) => boolean);
-};
+}
 
-export type NavigationSection = {
+export interface NavigationSection {
   /**
    * Unique identifier for the navigation section, used to save collapsed state
    */
@@ -62,4 +62,4 @@ export type NavigationSection = {
    * Heading of the navigation section
    */
   name: string;
-};
+}

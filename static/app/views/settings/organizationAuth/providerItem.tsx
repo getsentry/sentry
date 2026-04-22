@@ -14,26 +14,26 @@ import type {AuthProvider} from 'sentry/types/auth';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 
-type RenderInstallButtonProps = {
+interface RenderInstallButtonProps {
   hasFeature: boolean;
   /**
    * We pass the provider so that it may be passed into any hook provided
    * callbacks.
    */
   provider: AuthProvider;
-};
+}
 
-type LockedFeatureProps = {
+interface LockedFeatureProps {
   features: string[];
   provider: AuthProvider;
   className?: string;
-};
+}
 
-type Props = {
+interface Props {
   active: boolean;
   provider: AuthProvider;
   onConfigure?: (providerKey: string, e: React.MouseEvent) => void;
-};
+}
 
 export function ProviderItem({provider, active, onConfigure}: Props) {
   const handleConfigure = (e: React.MouseEvent) => {

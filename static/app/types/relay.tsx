@@ -1,18 +1,18 @@
-export type Relay = {
+export interface Relay {
   name: string;
   publicKey: string;
   created?: string;
   description?: string;
   lastModified?: string;
-};
+}
 
-export type RelayActivity = {
+export interface RelayActivity {
   firstSeen: string;
   lastSeen: string;
   publicKey: string;
   relayId: string;
   version: string;
-};
+}
 
 export type RelaysByPublickey = Record<
   string,

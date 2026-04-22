@@ -26,7 +26,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   generateUrl: (key: string, value: string) => LocationDescriptor;
@@ -36,9 +36,9 @@ type Props = {
   confirmedQuery?: boolean;
   onTagValueClick?: (title: string, value: TagSegment) => void;
   tagsQueryResults?: UseApiQueryResult<Tag[], RequestError>;
-};
+}
 
-type State = {
+interface State {
   error: string;
   hasLoaded: boolean;
   hasMore: boolean;
@@ -47,7 +47,7 @@ type State = {
   totalValues: null | number;
   nextCursor?: string;
   tagLinks?: string;
-};
+}
 
 class Tags extends Component<Props, State> {
   state: State = {

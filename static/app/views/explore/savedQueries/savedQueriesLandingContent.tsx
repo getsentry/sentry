@@ -14,7 +14,10 @@ import type {SortOption} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import {SavedQueriesTable} from './savedQueriesTable';
 
-type Option = {label: string; value: SortOption};
+interface Option {
+  label: string;
+  value: SortOption;
+}
 
 export function SavedQueriesLandingContent() {
   const navigate = useNavigate();

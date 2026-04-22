@@ -26,15 +26,15 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-type BufferEntry = {
+interface BufferEntry {
   bucketIndex: number;
   count: number;
-};
+}
 
-type BufferedTimeseriesGroup = {
+interface BufferedTimeseriesGroup {
   stableIndex: number;
   values: BufferEntry[];
-};
+}
 
 /**
  * Streaming Timeseries Result

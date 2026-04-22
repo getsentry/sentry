@@ -11,19 +11,25 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {ImageAvatarProps} from './imageAvatar/imageAvatar';
 import type {LetterAvatarProps} from './letterAvatar/letterAvatar';
 
-type GravatarDefinition = {gravatarId: string; type: 'gravatar'};
-type UploadDefinition = {type: 'upload'; uploadUrl: string};
+interface GravatarDefinition {
+  gravatarId: string;
+  type: 'gravatar';
+}
+interface UploadDefinition {
+  type: 'upload';
+  uploadUrl: string;
+}
 type ImageDefinition = GravatarDefinition | UploadDefinition;
 
-type LetterAvatarDefinition = {
+interface LetterAvatarDefinition {
   configuration: LetterAvatarProps['configuration'];
   type: 'letter';
-};
+}
 
-type ImageAvatarDefinition = {
+interface ImageAvatarDefinition {
   configuration: ImageAvatarProps['configuration'];
   type: 'image';
-};
+}
 
 type AvatarDefinition = LetterAvatarDefinition | ImageAvatarDefinition;
 

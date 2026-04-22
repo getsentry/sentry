@@ -6,13 +6,13 @@ import {defined} from 'sentry/utils';
 import {ProjectsStore} from './projectsStore';
 import type {StrictStoreDefinition} from './types';
 
-type State = {
+interface State {
   cursor: string | null;
   hasMore: boolean | null;
   loadedUserTeams: boolean;
   loading: boolean;
   teams: Team[];
-};
+}
 
 interface TeamStoreDefinition extends StrictStoreDefinition<State> {
   getAll(): Team[];

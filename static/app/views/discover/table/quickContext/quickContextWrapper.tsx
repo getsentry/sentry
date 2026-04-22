@@ -8,9 +8,9 @@ import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/qu
 
 import {NoContextWrapper} from './styles';
 
-type NoContextProps = {
+interface NoContextProps {
   isLoading: boolean;
-};
+}
 
 export function NoContext({isLoading}: NoContextProps) {
   return isLoading ? (

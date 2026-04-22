@@ -17,12 +17,12 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   projectSlug: string;
   version: string;
-};
+}
 
 type ReleaseStatsType = {usersBreakdown: CrashFreeTimeBreakdown} | null;
 

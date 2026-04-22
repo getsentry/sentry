@@ -6,7 +6,7 @@ export enum WidgetBuilderVersion {
 }
 
 // Used in the full-page widget builder
-type DashboardsEventParametersWidgetBuilder = {
+interface DashboardsEventParametersWidgetBuilder {
   'dashboards_views.engagement.load': {
     globalFilterCount: number;
     issuesRatio: number;
@@ -45,7 +45,7 @@ type DashboardsEventParametersWidgetBuilder = {
     title: string;
     widget_type: string;
   };
-};
+}
 
 const dashboardsEventMapWidgetBuilder: Record<
   keyof DashboardsEventParametersWidgetBuilder,

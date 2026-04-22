@@ -32,12 +32,12 @@ const DATASET_LABEL_MAP = {
   [SavedQueryDatasets.DISCOVER]: t('Unknown'),
 };
 
-type Props = {
+interface Props {
   eventView: EventView;
   isHomepage: boolean | undefined;
   savedQuery: SavedQuery | undefined;
   splitDecision?: SavedQueryDatasets;
-};
+}
 
 function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDatasets) {
   let modifiedQuery = false;

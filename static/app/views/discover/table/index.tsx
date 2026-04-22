@@ -24,7 +24,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {TableView} from './tableView';
 
-type TableProps = {
+interface TableProps {
   api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
@@ -40,16 +40,16 @@ type TableProps = {
   queryDataset?: SavedQueryDatasets;
   setSplitDecision?: (value: SavedQueryDatasets) => void;
   setTips?: (tips: string[]) => void;
-};
+}
 
-type TableState = {
+interface TableState {
   error: null | string;
   isLoading: boolean;
   pageLinks: null | string;
   prevView: null | EventView;
   tableData: TableData | null | undefined;
   tableFetchID: symbol | undefined;
-};
+}
 
 /**
  * `Table` is a container element that handles 2 things

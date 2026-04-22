@@ -23,10 +23,10 @@ export const ERROR_MAP = {
 // array, but since we never actually use its array-ness, it makes the typing
 // significantly simpler if we just rely on the "arrays are objects and we
 // can always check if a given property is defined on an object" principle
-type ResponseJSON = {
+interface ResponseJSON {
   [key: string]: unknown;
   detail?: string | {code?: string; message?: string};
-};
+}
 
 export class RequestError extends Error {
   responseText?: string;

@@ -16,10 +16,10 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type OpenPeriodTimelineSectionProps = {
+interface OpenPeriodTimelineSectionProps {
   eventId: string;
   groupId: string;
-};
+}
 
 function getOpenPeriodActivityLabel(
   activity: GroupOpenPeriod['activities'][number]

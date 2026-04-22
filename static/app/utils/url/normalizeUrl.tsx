@@ -25,9 +25,9 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/^\/?checkout\/[^/]+\/(.*)/, '/checkout/$1'],
 ];
 
-type NormalizeUrlOptions = {
+interface NormalizeUrlOptions {
   forceCustomerDomain: boolean;
-};
+}
 
 /**
  * Normalize a URL for customer domains based on the organization that was

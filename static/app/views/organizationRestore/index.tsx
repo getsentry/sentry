@@ -31,9 +31,9 @@ function OrganizationRestore() {
   );
 }
 
-type BodyProps = {
+interface BodyProps {
   orgSlug: string;
-};
+}
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
   const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
@@ -69,10 +69,10 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   );
 }
 
-type RestoreFormProps = {
+interface RestoreFormProps {
   endpoint: string;
   organization: Organization;
-};
+}
 
 function RestoreForm({endpoint, organization}: RestoreFormProps) {
   return (

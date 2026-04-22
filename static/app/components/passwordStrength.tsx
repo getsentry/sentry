@@ -11,7 +11,7 @@ import {tct} from 'sentry/locale';
  */
 const MAX_SCORE = 5;
 
-type Props = {
+interface Props {
   /**
    * The password value.
    */
@@ -24,7 +24,7 @@ type Props = {
    * A set of labels to display for each password strength level. 5 levels.
    */
   labels?: [string, string, string, string, string];
-};
+}
 
 /**
  * NOTE: Do not import this component synchronously. The zxcvbn library is

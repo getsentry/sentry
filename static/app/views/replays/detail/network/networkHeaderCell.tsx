@@ -8,13 +8,13 @@ import {t, tct} from 'sentry/locale';
 import type {useSortNetwork} from 'sentry/views/replays/detail/network/useSortNetwork';
 
 type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
-type Props = {
+interface Props {
   handleSort: ReturnType<typeof useSortNetwork>['handleSort'];
   index: number;
   sortConfig: SortConfig;
   style: CSSProperties;
   ref?: React.Ref<HTMLButtonElement>;
-};
+}
 
 const COLUMNS: Array<{
   field: SortConfig['by'];

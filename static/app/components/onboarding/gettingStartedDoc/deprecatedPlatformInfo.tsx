@@ -9,10 +9,10 @@ import {Text} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 
-type DeprecatedPlatformInfoProps = {
+interface DeprecatedPlatformInfoProps {
   dsn: ProjectKey['dsn'];
   platform: PlatformIntegration;
-};
+}
 
 export function DeprecatedPlatformInfo({platform, dsn}: DeprecatedPlatformInfoProps) {
   return (

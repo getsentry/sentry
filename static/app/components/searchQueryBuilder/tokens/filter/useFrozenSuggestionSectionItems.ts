@@ -10,11 +10,11 @@ import type {
 
 type FrozenSuggestionOrder = Array<{sectionText: string; values: string[]}>;
 
-type Props = {
+interface Props {
   createItem: (suggestion: SuggestionItem) => Omit<SelectOptionWithKey<string>, 'key'>;
   selectedValues: Array<{selected: boolean; value: string}>;
   suggestionGroups: SuggestionSection[];
-};
+}
 
 function suggestionGroupsAffectOrderChanged(
   previousSuggestionGroups: SuggestionSection[] | null,

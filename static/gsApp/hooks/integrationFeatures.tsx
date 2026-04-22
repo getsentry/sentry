@@ -16,23 +16,23 @@ import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type IntegrationFeature = {
+interface IntegrationFeature {
   description: React.ReactNode;
   featureGate: string;
-};
+}
 
-type GatedFeatureGroup = {
+interface GatedFeatureGroup {
   features: IntegrationFeature[];
   hasFeatures: boolean;
   plan?: Plan;
-};
+}
 
-type MapFeatureGroupsOpts = {
+interface MapFeatureGroupsOpts {
   billingConfig: BillingConfig;
   features: IntegrationFeature[];
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 /**
  * Given a users subscription, billing config, and organization, determine from
@@ -124,7 +124,7 @@ function mapFeatureGroups({
   return {ungatedFeatures, gatedFeatureGroups, disabled, disabledReason};
 }
 
-type RenderProps = {
+interface RenderProps {
   /**
    * Boolean false if the integration may be installed on the current users
    * plan, or a string describing why it cannot be installed.
@@ -142,14 +142,14 @@ type RenderProps = {
    * A list of features that are available for free.
    */
   ungatedFeatures: IntegrationFeature[];
-};
+}
 
-type IntegrationFeaturesProps = {
+interface IntegrationFeaturesProps {
   children: (props: RenderProps) => React.ReactElement;
   features: IntegrationFeature[];
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 function IntegrationFeaturesBase({
   features,
@@ -252,13 +252,13 @@ const HasFeatureIndicator = styled((p: any) => (
   margin-right: 4px;
 `;
 
-type GroupProps = {
+interface GroupProps {
   features: IntegrationFeature[];
   hasFeatures: boolean;
   message: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
-};
+}
 
 const IntegrationFeatureGroup = styled((p: GroupProps) => {
   if (p.features.length === 0) {

@@ -863,11 +863,11 @@ class StyledComponentsDetector extends BaseDetector {
       }>
     > = {};
 
-    type RuleInfo = {
+    interface RuleInfo {
       dynamic: number;
       value: string;
       children?: RuleInfo[];
-    };
+    }
 
     const parseErrors: string[] = [];
     this.styledComponents.forEach(sc => {

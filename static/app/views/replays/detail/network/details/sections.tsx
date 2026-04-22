@@ -33,11 +33,11 @@ import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/
 import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
 import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
 
-export type SectionProps = {
+export interface SectionProps {
   item: SpanFrame;
   projectId: string;
   startTimestampMs: number;
-};
+}
 
 const config = {
   isString: (v: any) => {

@@ -20,7 +20,7 @@ function guidePrioritySort(a: Guide, b: Guide) {
   return a_priority - b_priority;
 }
 
-export type GuideStoreState = {
+export interface GuideStoreState {
   /**
    * Anchors that are currently mounted
    */
@@ -61,7 +61,7 @@ export type GuideStoreState = {
    * The previously shown guide
    */
   prevGuide: Guide | null;
-};
+}
 
 const defaultState: GuideStoreState = {
   forceHide: false,

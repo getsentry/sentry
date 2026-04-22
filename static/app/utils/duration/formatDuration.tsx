@@ -19,7 +19,7 @@ export type Format =
   // See https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#durations
   | 'ISO8601';
 
-type Args = {
+interface Args {
   /**
    * The timespan/duration to be displayed
    * ie: "1000 miliseconds" would have the same output as "1 second"
@@ -46,7 +46,7 @@ type Args = {
    * ie: 10500 formatted as "count" + "sec" results in "10.5"
    */
   style: Format;
-};
+}
 
 const PRECISION_FACTORS: Record<Unit, number> = {
   ms: 1,

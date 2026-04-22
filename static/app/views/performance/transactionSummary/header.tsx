@@ -50,7 +50,7 @@ import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
-type Props = {
+interface Props {
   currentTab: Tab;
   eventView: EventView;
   location: Location;
@@ -60,7 +60,7 @@ type Props = {
   transactionName: string;
   metricsCardinality?: MetricsCardinalityContext;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
-};
+}
 
 export function TransactionHeader({
   eventView,

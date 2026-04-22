@@ -12,14 +12,14 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Data = {
+interface Data {
   config: Array<[key: string, value: string]>;
   environment: {
     config: string;
     start_date: string;
   };
   pythonVersion: string;
-};
+}
 
 export default function AdminEnvironment() {
   const {data, isPending, isError} = useApiQuery<Data>(

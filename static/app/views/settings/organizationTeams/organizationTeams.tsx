@@ -20,13 +20,13 @@ import OrganizationAccessRequests from './organizationAccessRequests';
 import {OtherTeamsTable} from './otherTeamsTable';
 import {YourTeamsTable} from './yourTeamsTable';
 
-type Props = {
+interface Props {
   access: Set<string>;
   features: Set<string>;
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
   organization: Organization;
   requestList: AccessRequest[];
-};
+}
 
 export function OrganizationTeams({
   organization,

@@ -200,8 +200,13 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
 }
 
 type EventHandler<E = any> = (event: E) => void;
-type ResizeEventArg = {height: number; width: number};
-type SkipEventArg = {speed: number};
+interface ResizeEventArg {
+  height: number;
+  width: number;
+}
+interface SkipEventArg {
+  speed: number;
+}
 type StateChangeEventArg = {player: PlayerState} | {speed: SpeedState};
 
 function makeReplayerEventMap(

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 
 import {Client} from 'sentry/api';
 
-type Options = {
+interface Options {
   /**
    * An existing API client may be provided.
    *
@@ -19,7 +19,7 @@ type Options = {
    * component is unmounted.
    */
   persistInFlight?: boolean;
-};
+}
 
 /**
  * Returns an API client that will have its requests canceled when the owning

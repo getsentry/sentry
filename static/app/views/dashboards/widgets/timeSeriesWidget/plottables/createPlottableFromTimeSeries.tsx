@@ -6,12 +6,12 @@ import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 
-type PlottableConfig = {
+interface PlottableConfig {
   alias?: string;
   color?: string;
   name?: string;
   stack?: string;
-};
+}
 
 export function createPlottableFromTimeSeries(
   displayType: DisplayType,

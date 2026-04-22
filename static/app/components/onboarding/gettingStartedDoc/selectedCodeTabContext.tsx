@@ -10,10 +10,10 @@
 
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-type TabSelectionsState = {
+interface TabSelectionsState {
   selections: ReadonlyMap<string, string>;
   setSelection: (key: string, value: string) => void;
-};
+}
 
 const TabRegistryContext = createContext<TabSelectionsState | null>(null);
 

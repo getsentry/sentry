@@ -98,10 +98,10 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 import type {TableExpando} from './tables/useTableExpando';
 
-type LogsTabProps = {
+interface LogsTabProps {
   datePageFilterProps: DatePageFilterProps;
   tableExpando: TableExpando;
-};
+}
 
 interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];

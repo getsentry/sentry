@@ -19,9 +19,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 import {IntegrationExternalMappings} from './integrationExternalMappings';
 
-type Props = {
+interface Props {
   integration: Integration;
-};
+}
 
 export function IntegrationExternalTeamMappings(props: Props) {
   const {integration} = props;

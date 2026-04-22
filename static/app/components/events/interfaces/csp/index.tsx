@@ -39,10 +39,10 @@ function getView(view: View, data: Record<any, any>, meta: Record<any, any>) {
   }
 }
 
-type Props = {
+interface Props {
   data: Record<string, any>;
   event: Event;
-};
+}
 
 export function Csp({data, event}: Props) {
   const [view, setView] = useState<View>('report');

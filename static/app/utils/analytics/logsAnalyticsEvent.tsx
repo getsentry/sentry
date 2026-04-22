@@ -8,7 +8,7 @@ export enum LogsAnalyticsPageSource {
   REPLAY_DETAILS = 'replay details',
 }
 
-export type LogsAnalyticsEventParameters = {
+export interface LogsAnalyticsEventParameters {
   'logs.ai_query_applied': {
     group_by_count: number;
     organization: Organization;
@@ -93,7 +93,7 @@ export type LogsAnalyticsEventParameters = {
     organization: Organization;
     platform: PlatformKey | 'unknown';
   };
-};
+}
 
 type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 

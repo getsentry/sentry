@@ -113,11 +113,11 @@ type Props = DistributedOmit<ControlProps, 'onChange'> & {
   useTeamDefaultIfOnlyOne?: boolean;
 };
 
-type TeamActor = {
+interface TeamActor {
   id: string;
   name: string;
   type: 'team';
-};
+}
 
 export interface TeamOption extends GeneralSelectValue {
   actor: TeamActor | null;

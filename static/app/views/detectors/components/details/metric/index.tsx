@@ -19,10 +19,10 @@ import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/deta
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
-type MetricDetectorDetailsProps = {
+interface MetricDetectorDetailsProps {
   detector: MetricDetector;
   project: Project;
-};
+}
 
 export function MetricDetectorDetails({detector, project}: MetricDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];

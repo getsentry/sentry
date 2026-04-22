@@ -17,11 +17,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {TextAction, TextCondition} from './textRule';
 
-type Props = {
+interface Props {
   projectSlug: string;
   rule: IssueAlertRule;
   teams: Team[];
-};
+}
 
 function Conditions({rule, teams, projectSlug}: Props) {
   const organization = useOrganization();

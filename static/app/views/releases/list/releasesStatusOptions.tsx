@@ -14,10 +14,10 @@ const options = {
   [ReleasesStatusOption.ARCHIVED]: {label: t('Archived')},
 };
 
-type Props = {
+interface Props {
   onSelect: (key: string) => void;
   selected: ReleasesStatusOption;
-};
+}
 
 export function ReleasesStatusOptions({selected, onSelect}: Props) {
   return (

@@ -15,7 +15,7 @@ import {TagsHeatMap} from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
 import {getTagSortForTagsPage} from './utils';
 
-type Props = {
+interface Props {
   aggregateColumn: string;
   eventView: EventView;
   location: Location;
@@ -23,7 +23,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   tagKey?: string;
-};
+}
 
 const HISTOGRAM_TAG_KEY_LIMIT = 8;
 const HISTOGRAM_BUCKET_LIMIT = 40;

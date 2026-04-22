@@ -7,10 +7,10 @@ type TrackingCallback = (params: {
   slideMotion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
 }) => void;
 
-type Options = {
+interface Options {
   slideDirection: 'updown' | 'leftright';
   track: TrackingCallback | undefined;
-};
+}
 
 export function useSplitPanelTracking({slideDirection, track}: Options) {
   const startSizeCSSRef = useRef<number>(0);

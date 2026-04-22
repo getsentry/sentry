@@ -18,10 +18,10 @@ import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/uti
 import {transformEventStats} from 'sentry/views/performance/trends/utils/transformEventStats';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
-export type EventBreakpointChartData = {
+export interface EventBreakpointChartData {
   evidenceData: BreakpointEvidenceData;
   percentileData: EventsStatsData | EventsStatsSeries<'p95()'>;
-};
+}
 
 export type BreakpointEvidenceData = Pick<
   NormalizedTrendsTransaction,

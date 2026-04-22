@@ -2,7 +2,12 @@ import type {DOMAttributes, MouseEvent, RefObject} from 'react';
 import {useCallback, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
-type CallbackArgs = {height: number; left: number; top: number; width: number};
+interface CallbackArgs {
+  height: number;
+  left: number;
+  top: number;
+  width: number;
+}
 
 type Opts<T extends Element> = {
   elem: RefObject<T | null>;

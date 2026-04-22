@@ -5,14 +5,14 @@ import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   actionType: 'create' | 'link';
   group: Group;
   onSuccess: (data: any) => void;
   organization: Organization;
   plugin: Plugin;
   project: Project;
-};
+}
 
 export class DefaultIssuePlugin extends BasePlugin {
   renderGroupActions(props: Props) {

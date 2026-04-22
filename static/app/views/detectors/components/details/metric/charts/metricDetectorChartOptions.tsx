@@ -128,7 +128,7 @@ function createIncidentSeries(
   };
 }
 
-export type MetricDetectorChartData = {
+export interface MetricDetectorChartData {
   detector: MetricDetector;
   timeseriesData: Series[];
   anomalies?: Anomaly[];
@@ -136,15 +136,15 @@ export type MetricDetectorChartData = {
   selectedOpenPeriod?: GroupOpenPeriod | null;
   seriesName?: string;
   showWaitingForData?: boolean;
-};
+}
 
-type MetricDetectorChartOption = {
+interface MetricDetectorChartOption {
   chartOption: AreaChartProps;
   criticalDuration: number;
   totalDuration: number;
   waitingForDataDuration: number;
   warningDuration: number;
-};
+}
 
 /**
  * For now, this function is exclusively used by Chartcuterie to generate images for

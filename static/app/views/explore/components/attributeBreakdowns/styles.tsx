@@ -202,12 +202,12 @@ const PaginationContainer = styled(Flex)`
   justify-content: end;
 `;
 
-type PaginationProps = {
+interface PaginationProps {
   isNextDisabled: boolean;
   isPrevDisabled: boolean;
   onNextClick: () => void;
   onPrevClick: () => void;
-};
+}
 
 function Pagination({
   isPrevDisabled,
@@ -237,14 +237,14 @@ function Pagination({
   );
 }
 
-type ChartProps = {
+interface ChartProps {
   chartRef: React.RefObject<ReactEchartsRef | null>;
   chartWidth: number;
   maxSeriesValue: number;
   series: BarSeriesOption[];
   tooltip: TooltipOption;
   xAxisData: string[];
-};
+}
 
 function Chart({
   xAxisData,

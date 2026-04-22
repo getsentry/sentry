@@ -23,13 +23,13 @@ import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
 
 type ScatterPlotDatum = [timestamp: string, value: number, id: string];
 
-type ValidSampleRow = {
+interface ValidSampleRow {
   [key: string]: string | number | null;
   id: string;
   timestamp: string;
-};
+}
 
-type SamplesConfig = {
+interface SamplesConfig {
   /**
    * The name of the data attribute to plot. This should be one of the keys in the data that's available in the `samples` parameter that's passed to the constructor.
    */
@@ -58,9 +58,9 @@ type SamplesConfig = {
    * Callback for ECharts' `onHighlight`. Called with the sample that corresponds to the highlighted sample in the chart.
    */
   onHighlight?: (datum: ValidSampleRow) => void;
-};
+}
 
-type SamplesPlottingOptions = {
+interface SamplesPlottingOptions {
   /**
    * The current theme.
    */
@@ -69,7 +69,7 @@ type SamplesPlottingOptions = {
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
   unit: DurationUnit | SizeUnit | RateUnit | null;
-};
+}
 
 /**
  * `Samples` is a plottable that represents discontinous individual measurements. These are usually overlaid on top of a continuous aggregate time series.

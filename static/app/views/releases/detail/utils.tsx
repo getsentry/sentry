@@ -78,10 +78,10 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
  * Get request query according to the url params and active repository
  */
 
-type GetQueryProps = {
+interface GetQueryProps {
   location: Location;
   perPage?: number;
-};
+}
 
 export function getQuery({location, perPage = 40}: GetQueryProps) {
   const query = {
@@ -155,10 +155,10 @@ export const releaseComparisonChartHelp: Partial<
   [ReleaseComparisonChartType.USER_COUNT]: t('The number of users in a given period.'),
 };
 
-type GenerateReleaseMarklineOptions = {
+interface GenerateReleaseMarklineOptions {
   axisIndex?: number;
   hideLabel?: boolean;
-};
+}
 
 function generateReleaseMarkLine(
   title: string,

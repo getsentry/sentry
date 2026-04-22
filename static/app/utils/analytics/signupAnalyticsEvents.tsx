@@ -1,8 +1,8 @@
-export type SignupAnalyticsParameters = {
+export interface SignupAnalyticsParameters {
   'join_request.created': {
     referrer: string;
   };
-};
+}
 
 type SignupAnalyticsKeys = keyof SignupAnalyticsParameters;
 

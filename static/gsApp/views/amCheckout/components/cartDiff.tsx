@@ -42,11 +42,11 @@ const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   sharedMaxBudget: 0,
 };
 
-type CheckoutChange<K, V> = {
+interface CheckoutChange<K, V> {
   currentValue: V | null;
   key: K;
   newValue: V | null;
-};
+}
 
 type PlanChange = CheckoutChange<'plan', string>;
 

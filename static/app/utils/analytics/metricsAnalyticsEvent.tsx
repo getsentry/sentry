@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
-export type MetricsAnalyticsEventParameters = {
+export interface MetricsAnalyticsEventParameters {
   'metrics.explorer.metadata': {
     datetime_selection: string;
     environment_count: number;
@@ -67,7 +67,7 @@ export type MetricsAnalyticsEventParameters = {
     save_type: 'save_new_query';
     ui_source: string;
   };
-};
+}
 
 type MetricsAnalyticsEventKey = keyof MetricsAnalyticsEventParameters;
 

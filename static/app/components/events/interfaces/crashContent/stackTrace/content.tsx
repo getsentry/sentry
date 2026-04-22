@@ -17,10 +17,10 @@ import {defined} from 'sentry/utils';
 
 import {OmittedFrames} from './omittedFrames';
 
-type DefaultProps = {
+interface DefaultProps {
   expandFirstFrame: boolean;
   includeSystemFrames: boolean;
-};
+}
 
 type Props = {
   data: StacktraceType;

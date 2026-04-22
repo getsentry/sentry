@@ -54,10 +54,10 @@ import {
 const METRICS_GH_DISCUSSION_LINK =
   'https://github.com/getsentry/sentry/discussions/102275';
 
-type OnboardingProps = {
+interface OnboardingProps {
   organization: Organization;
   project: Project;
-};
+}
 
 function OnboardingPanel({
   project,
@@ -402,11 +402,11 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-type MetricsTabOnboardingProps = {
+interface MetricsTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-};
+}
 
 export function MetricsTabOnboarding({
   datePageFilterProps,

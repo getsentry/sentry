@@ -2,10 +2,10 @@ import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 type Match = Fuse.FuseResultMatch;
 
-type HighlightResult = {
+interface HighlightResult {
   highlight: boolean;
   text: string;
-};
+}
 
 type MatchResult = HighlightResult[];
 

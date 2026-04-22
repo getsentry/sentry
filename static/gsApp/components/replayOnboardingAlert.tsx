@@ -5,10 +5,10 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 
-type Props = {
+interface Props {
   children: ReactNode;
   subscription: Subscription;
-};
+}
 
 function ReplayOnboardingAlert({children, subscription}: Props) {
   // in `sentry` we render an info alert to re-enforce the "Select/Create Project" CTA

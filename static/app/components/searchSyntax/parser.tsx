@@ -326,7 +326,7 @@ export enum InvalidReason {
 /**
  * Object representing an invalid filter state
  */
-type InvalidFilter = {
+interface InvalidFilter {
   /**
    * The message indicating why the filter is invalid
    */
@@ -343,7 +343,7 @@ type InvalidFilter = {
    * This may be multiple filter types.
    */
   expectedType?: FilterType[];
-};
+}
 
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
@@ -399,11 +399,11 @@ type AggregateFilterType =
  */
 type FilterResult = FilterMap[FilterType];
 
-type TokenConverterOpts = {
+interface TokenConverterOpts {
   config: SearchConfig;
   location: LocationFn;
   text: TextFn;
-};
+}
 
 /**
  * Used to construct token results via the token grammar
@@ -1352,7 +1352,7 @@ export type AggregateFilter = AggregateFilterType & {
 /**
  * Configures behavior of search parsing
  */
-export type SearchConfig = {
+export interface SearchConfig {
   /**
    * Keys considered valid for boolean filter types
    */
@@ -1426,7 +1426,7 @@ export type SearchConfig = {
    * If set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   validateKeys?: boolean;
-};
+}
 
 export const defaultConfig: SearchConfig = {
   textOperatorKeys: new Set([

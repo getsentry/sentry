@@ -42,9 +42,9 @@ import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
-type MetricsTabProps = {
+interface MetricsTabProps {
   datePageFilterProps: DatePageFilterProps;
-};
+}
 
 export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();

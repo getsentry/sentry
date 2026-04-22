@@ -8,33 +8,33 @@ import type {ExceptionValue} from 'sentry/types/event';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-type ExceptionGroupContextProps = {
+interface ExceptionGroupContextProps {
   allExceptions: ExceptionValue[];
   onExceptionClick: (exceptionId: number) => void;
   mechanism?: StackTraceMechanism | null;
   newestFirst?: boolean;
-};
+}
 
-type ExceptionTreeProps = {
+interface ExceptionTreeProps {
   childExceptions: ExceptionValue[];
   onExceptionClick: (exceptionId: number) => void;
   exception?: ExceptionValue;
   parentException?: ExceptionValue;
-};
+}
 
-type ExceptionLinkProps = {
+interface ExceptionLinkProps {
   exception: ExceptionValue;
   link: boolean;
   onExceptionClick: (exceptionId: number) => void;
-};
+}
 
-type ExceptionTreeItemProps = {
+interface ExceptionTreeItemProps {
   exception: ExceptionValue;
   level: number;
   onExceptionClick: (exceptionId: number) => void;
   firstChild?: boolean;
   link?: boolean;
-};
+}
 
 function getExceptionName(exception: ExceptionValue) {
   if (exception.type) {

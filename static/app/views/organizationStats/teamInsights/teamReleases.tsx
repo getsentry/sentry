@@ -33,11 +33,11 @@ interface TeamReleasesProps extends DateTimeObject {
   teamSlug: string;
 }
 
-export type ProjectReleaseCount = {
+export interface ProjectReleaseCount {
   last_week_totals: Record<string, number>;
   project_avgs: Record<string, number>;
   release_counts: Record<string, number>;
-};
+}
 
 export function TeamReleases({
   organization,

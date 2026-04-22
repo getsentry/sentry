@@ -55,14 +55,14 @@ export enum AutofixStoppingPoint {
   OPEN_PR = 'open_pr',
 }
 
-type AutofixPullRequestDetails = {
+interface AutofixPullRequestDetails {
   pr_number: number;
   pr_url: string;
-};
+}
 
-type AutofixOptions = {
+interface AutofixOptions {
   iterative_feedback?: boolean;
-};
+}
 
 interface CodingAgentResult {
   description: string;
@@ -101,13 +101,13 @@ export interface CodingAgentState {
   results?: CodingAgentResult[];
 }
 
-type CodebaseState = {
+interface CodebaseState {
   is_readable: boolean | null;
   is_writeable: boolean | null;
   repo_external_id: string | null;
-};
+}
 
-export type AutofixData = {
+export interface AutofixData {
   codebases: Record<string, CodebaseState>;
   last_triggered_at: string;
   request: {
@@ -128,14 +128,14 @@ export type AutofixData = {
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
-};
+}
 
-export type AutofixProgressItem = {
+export interface AutofixProgressItem {
   message: string;
   timestamp: string;
   type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
   data?: any;
-};
+}
 
 export type AutofixStep =
   | AutofixDefaultStep
@@ -157,11 +157,11 @@ interface BaseStep {
   output_stream?: string | null;
 }
 
-export type CommentThread = {
+export interface CommentThread {
   id: string;
   is_completed: boolean;
   messages: CommentThreadMessage[];
-};
+}
 
 export interface CommentThreadMessage {
   content: string;
@@ -169,16 +169,16 @@ export interface CommentThreadMessage {
   isLoading?: boolean;
 }
 
-export type AutofixInsight = {
+export interface AutofixInsight {
   insight: string;
   justification: string;
   change_diff?: FilePatch[];
   markdown_snippets?: string;
   sources?: InsightSources;
   type?: 'insight' | 'file_change';
-};
+}
 
-export type InsightSources = {
+export interface InsightSources {
   breadcrumbs_used: boolean;
   code_used_urls: string[];
   connected_error_ids_used: string[];
@@ -190,7 +190,7 @@ export type InsightSources = {
   trace_event_ids_used: string[];
   event_trace_id?: string;
   event_trace_timestamp?: number;
-};
+}
 
 export interface AutofixDefaultStep extends BaseStep {
   insights: AutofixInsight[];
@@ -219,7 +219,7 @@ interface AutofixSolutionStep extends BaseStep {
   description?: string;
 }
 
-export type AutofixCodebaseChange = {
+export interface AutofixCodebaseChange {
   description: string;
   diff: FilePatch[];
   repo_name: string;
@@ -229,7 +229,7 @@ export type AutofixCodebaseChange = {
   pull_request?: AutofixPullRequestDetails;
   repo_external_id?: string;
   repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
-};
+}
 
 export interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
@@ -237,38 +237,38 @@ export interface AutofixChangesStep extends BaseStep {
   termination_reason?: string;
 }
 
-type AutofixRelevantCodeFile = {
+interface AutofixRelevantCodeFile {
   file_path: string;
   repo_name: string;
-};
+}
 
 type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
   url?: string;
 };
 
-export type AutofixTimelineEvent = {
+export interface AutofixTimelineEvent {
   code_snippet_and_analysis: string;
   relevant_code_file: AutofixRelevantCodeFile;
   timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
   title: string;
   is_most_important_event?: boolean;
-};
+}
 
-export type AutofixSolutionTimelineEvent = {
+export interface AutofixSolutionTimelineEvent {
   timeline_item_type: 'internal_code' | 'human_instruction';
   title: string;
   code_snippet_and_analysis?: string;
   is_active?: boolean;
   is_most_important_event?: boolean;
   relevant_code_file?: AutofixRelevantCodeFileWithUrl;
-};
+}
 
-export type AutofixRootCauseData = {
+export interface AutofixRootCauseData {
   id: string;
   description?: string;
   reproduction_urls?: Array<string | null>;
   root_cause_reproduction?: AutofixTimelineEvent[];
-};
+}
 
 type EventMetadataWithAutofix = EventMetadata & {
   autofix?: AutofixData;
@@ -278,7 +278,7 @@ export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
 };
 
-export type FilePatch = {
+export interface FilePatch {
   added: number;
   hunks: Hunk[];
   path: string;
@@ -286,7 +286,7 @@ export type FilePatch = {
   source_file: string;
   target_file: string;
   type: DiffFileType;
-};
+}
 
 export function isFilePatch(value: unknown): value is FilePatch {
   if (value === null || typeof value !== 'object') {
@@ -304,14 +304,14 @@ export function isFilePatch(value: unknown): value is FilePatch {
   );
 }
 
-type Hunk = {
+interface Hunk {
   lines: DiffLine[];
   section_header: string;
   source_length: number;
   source_start: number;
   target_length: number;
   target_start: number;
-};
+}
 
 function isHunk(value: unknown): value is Hunk {
   if (value === null || typeof value !== 'object') {
@@ -328,13 +328,13 @@ function isHunk(value: unknown): value is Hunk {
   );
 }
 
-export type DiffLine = {
+export interface DiffLine {
   diff_line_no: number | null;
   line_type: DiffLineType;
   source_line_no: number | null;
   target_line_no: number | null;
   value: string;
-};
+}
 
 function isDiffLine(value: unknown): value is DiffLine {
   if (value === null || typeof value !== 'object') {

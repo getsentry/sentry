@@ -17,7 +17,7 @@ import {
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   browserTypes?: BrowserType[];
   defaultSort?: Sort;
   enabled?: boolean;
@@ -28,7 +28,7 @@ type Props = {
   subregions?: SubregionCode[];
   transaction?: string | null;
   webVital?: WebVitals | 'total';
-};
+}
 
 export const useTransactionWebVitalsScoresQuery = ({
   limit,

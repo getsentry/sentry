@@ -6,12 +6,12 @@ import type {Client} from 'sentry/api';
 import {Form} from 'sentry/components/forms/form';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   onUpdated: (data: any) => void;
   orgId: string;
   spendAllocationEnabled: boolean;
-};
+}
 
 type ModalProps = Props & ModalRenderProps;
 

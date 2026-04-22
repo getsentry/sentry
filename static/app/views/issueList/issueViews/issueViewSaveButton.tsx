@@ -26,10 +26,10 @@ import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-type IssueViewSaveButtonProps = {
+interface IssueViewSaveButtonProps {
   query: string;
   sort: IssueSortOptions;
-};
+}
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,

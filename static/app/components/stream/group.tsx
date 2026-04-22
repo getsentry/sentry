@@ -72,7 +72,7 @@ const COLUMNS: GroupListColumn[] = [
   'lastTriggered',
 ];
 
-type Props = {
+interface Props {
   group: Group;
   canSelect?: boolean;
   customStatsPeriod?: TimePeriodType;
@@ -90,7 +90,7 @@ type Props = {
   useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
-};
+}
 
 function GroupCheckbox({
   group,

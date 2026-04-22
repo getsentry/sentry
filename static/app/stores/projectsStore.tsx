@@ -8,18 +8,18 @@ import type {Project} from 'sentry/types/project';
 
 import type {StrictStoreDefinition} from './types';
 
-type State = {
+interface State {
   loading: boolean;
   projects: Project[];
-};
+}
 
 /**
  * Attributes that need typing but aren't part of the external interface,
  */
-type InternalDefinition = {
+interface InternalDefinition {
   api: Client;
   removeTeamFromProject(teamSlug: string, project: Project): void;
-};
+}
 
 interface ProjectsStoreDefinition
   extends InternalDefinition, StrictStoreDefinition<State> {

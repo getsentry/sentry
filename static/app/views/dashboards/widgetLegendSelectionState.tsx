@@ -8,12 +8,12 @@ import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLege
 import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
 import {DisplayType, type DashboardDetails, type Widget} from './types';
 
-type Props = {
+interface Props {
   dashboard: DashboardDetails | null;
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
-};
+}
 
 type LegendSelection = Record<string, boolean>;
 

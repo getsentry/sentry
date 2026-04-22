@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+}
 
 export function DashboardBackground({anchorRef}: Props) {
   return (

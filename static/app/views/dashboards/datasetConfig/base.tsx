@@ -44,7 +44,7 @@ import {SpansConfig} from './spans';
 import {TraceMetricsConfig} from './traceMetrics';
 import {TransactionsConfig} from './transactions';
 
-export type WidgetBuilderSearchBarProps = {
+export interface WidgetBuilderSearchBarProps {
   getFilterWarning: ((key: string) => React.ReactNode) | undefined;
   onClose: (value: string, additionalSearchBarState: {validSearch: boolean}) => void;
   onSearch: (query: string) => void;
@@ -54,12 +54,12 @@ export type WidgetBuilderSearchBarProps = {
   disabled?: boolean;
   index?: number;
   portalTarget?: HTMLElement | null;
-};
+}
 
-export type SearchBarDataProviderProps = {
+export interface SearchBarDataProviderProps {
   pageFilters: PageFilters;
   widgetQuery?: WidgetQuery;
-};
+}
 
 export interface SearchBarData {
   getFilterKeySections: () => FilterKeySection[];
@@ -71,7 +71,7 @@ export interface SearchBarData {
  * Parameters passed to hook-based query methods (useSeriesQuery/useTableQuery).
  * These hooks handle fetching data for all widget queries at once.
  */
-export type WidgetQueryParams = {
+export interface WidgetQueryParams {
   /**
    * Whether the queries should be enabled.
    */
@@ -120,7 +120,7 @@ export type WidgetQueryParams = {
    * Optional user-selected interval override for timeseries queries.
    */
   widgetInterval?: string;
-};
+}
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**

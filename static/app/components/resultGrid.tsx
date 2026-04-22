@@ -16,13 +16,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Option = [value: string, label: string];
 
-type FilterProps = {
+interface FilterProps {
   name: string;
   options: Option[];
   path: string;
   queryKey: string;
   value: string;
-};
+}
 
 function Filter({name, options, path, queryKey, value}: FilterProps) {
   const location = useLocation();
@@ -79,11 +79,11 @@ function Filter({name, options, path, queryKey, value}: FilterProps) {
   );
 }
 
-type SortByProps = {
+interface SortByProps {
   options: Option[];
   path: string;
   value: string;
-};
+}
 
 function SortBy({options, path, value}: SortByProps) {
   const location = useLocation();
@@ -132,17 +132,17 @@ function SortBy({options, path, value}: SortByProps) {
   );
 }
 
-type FilterConfig = {
+interface FilterConfig {
   name: string;
   options: Option[];
-};
+}
 
 // XXX(ts): Using Partial here on the DefaultProps is not really correct, since
 // defaultProps guarantees they'll be set. But because this component is
 // wrapped with a HoC, we lose the defaultProps, and users of the component
 type Props = Partial<DefaultProps>;
 
-type DefaultProps = {
+interface DefaultProps {
   columns: React.ReactNode[];
   columnsForRow: (row: any) => React.ReactNode[];
   defaultParams: Record<string, any>;
@@ -155,9 +155,9 @@ type DefaultProps = {
   method: RequestOptions['method'];
   path: string;
   sortOptions: Option[];
-};
+}
 
-type State = {
+interface State {
   error: string | boolean;
   filters: Record<string, string>;
   loading: boolean;
@@ -165,7 +165,7 @@ type State = {
   query: string;
   rows: any[];
   sortBy: string;
-};
+}
 
 export function ResultGrid(props: Props) {
   const api = useApi({persistInFlight: true});

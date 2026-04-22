@@ -13,9 +13,9 @@ import * as Stories from 'sentry/stories';
 
 import {StoryHeading} from './storyHeading';
 
-type HeadingProps = {
+interface HeadingProps {
   children: React.ReactNode;
-};
+}
 
 const calloutToAlertType: Record<string, AlertProps['variant']> = {
   tip: 'muted',

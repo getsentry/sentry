@@ -45,11 +45,11 @@ export function getDatasetLabel(dataset: WidgetType) {
   return DATASET_CHOICES.get(dataset) ?? '';
 }
 
-type AddFilterProps = {
+interface AddFilterProps {
   getSearchBarData: (widgetType: WidgetType) => SearchBarData;
   globalFilters: GlobalFilter[];
   onAddFilter: (filter: GlobalFilter) => void;
-};
+}
 
 export function AddFilter({
   globalFilters,

@@ -25,7 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
-type AutofixDiffProps = {
+interface AutofixDiffProps {
   diff: FilePatch[];
   editable: boolean;
   groupId: string;
@@ -34,7 +34,7 @@ type AutofixDiffProps = {
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   repoId?: string;
-};
+}
 
 interface DiffLineWithChanges extends DiffLine {
   changes?: Change[];

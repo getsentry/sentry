@@ -1,5 +1,11 @@
-type TextSegment = {type: 'text'; value: string};
-type JsonSegment = {type: 'json'; value: string};
+interface TextSegment {
+  type: 'text';
+  value: string;
+}
+interface JsonSegment {
+  type: 'json';
+  value: string;
+}
 
 type ExtractedSegment = TextSegment | JsonSegment;
 

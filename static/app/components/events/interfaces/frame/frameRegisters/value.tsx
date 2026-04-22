@@ -8,10 +8,10 @@ import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Meta} from 'sentry/types/group';
 
-type Props = {
+interface Props {
   value: string | number;
   meta?: Meta;
-};
+}
 
 export function FrameRegisterValue({meta, value}: Props) {
   const [isHexadecimal, setIsHexadecimal] = useState(true);

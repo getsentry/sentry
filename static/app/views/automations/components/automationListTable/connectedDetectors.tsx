@@ -14,9 +14,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 
-type AutomationListConnectedDetectorsProps = {
+interface AutomationListConnectedDetectorsProps {
   detectorIds: string[];
-};
+}
 
 const MAX_DISPLAYED_DETECTORS = 5;
 

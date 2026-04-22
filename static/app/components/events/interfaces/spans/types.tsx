@@ -2,14 +2,14 @@ import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {SpanTreeModel} from './spanTreeModel';
 
-export type GapSpanType = {
+export interface GapSpanType {
   isOrphan: boolean;
   start_timestamp: number;
   // this is essentially end_timestamp
   timestamp: number;
   type: 'gap';
   description?: string;
-};
+}
 
 interface SpanSourceCodeAttributes {
   'code.column'?: number;
@@ -26,7 +26,7 @@ interface SpanDatabaseAttributes {
   'db.user'?: string;
 }
 
-export type RawSpanType = {
+export interface RawSpanType {
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
@@ -49,7 +49,7 @@ export type RawSpanType = {
   };
   status?: string;
   tags?: Record<string, string>;
-};
+}
 
 export type AggregateSpanType = RawSpanType & {
   count: number;
@@ -103,21 +103,21 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
-type SpanGroupProps = {
+interface SpanGroupProps {
   isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
   toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
-};
+}
 
-type SpanSiblingGroupProps = {
+interface SpanSiblingGroupProps {
   isLastSibling: boolean;
   occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
   toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
-};
+}
 
-type CommonEnhancedProcessedSpanType = {
+interface CommonEnhancedProcessedSpanType {
   continuingTreeDepths: TreeDepthType[];
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   isEmbeddedTransactionTimeAdjusted: boolean;
@@ -128,7 +128,7 @@ type CommonEnhancedProcessedSpanType = {
   treeDepth: number;
   groupOccurrence?: number;
   isFirstSiblingOfGroup?: boolean;
-};
+}
 
 export type EnhancedSpan =
   | ({
@@ -173,7 +173,7 @@ export type EnhancedProcessedSpanType =
 // map span_id to children whose parent_span_id is equal to span_id
 export type SpanChildrenLookupType = Record<string, SpanType[]>;
 
-export type ParsedTraceType = {
+export interface ParsedTraceType {
   childSpans: SpanChildrenLookupType;
   op: string;
   rootSpanID: string;
@@ -189,19 +189,19 @@ export type ParsedTraceType = {
   hash?: string;
   parentSpanID?: string;
   total?: number;
-};
+}
 
 type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
 
-type SpanLink = {
+interface SpanLink {
   span_id: string;
   trace_id: string;
   attributes?: Record<string, AttributeValue> & {'sentry.link.type'?: AttributeValue};
   parent_span_id?: string;
   sampled?: boolean;
-};
+}
 
-export type TraceContextType = {
+export interface TraceContextType {
   client_sample_rate?: number;
   count?: number;
   data?: Record<string, any>;
@@ -217,7 +217,7 @@ export type TraceContextType = {
   total?: number;
   trace_id?: string;
   type?: 'trace';
-};
+}
 
 export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
@@ -225,39 +225,39 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
 
 type SpanTreeDepth = number;
 
-export type OrphanTreeDepth = {
+export interface OrphanTreeDepth {
   depth: number;
   type: 'orphan';
-};
+}
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
 
-export type IndexedFusedSpan = {
+export interface IndexedFusedSpan {
   dataKeys: string[];
   dataValues: string[];
   indexed: string[];
   span: RawSpanType;
   tagKeys: string[];
   tagValues: string[];
-};
+}
 
-export type FilterSpans = {
+export interface FilterSpans {
   results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
-};
+}
 
-export type TraceBound = {
+export interface TraceBound {
   spanId: string;
   traceEndTimestamp: number;
   traceStartTimestamp: number;
-};
+}
 
-export type DescendantGroup = {
+export interface DescendantGroup {
   group: SpanTreeModel[];
   occurrence?: number;
-};
+}
 
-export type TraceInfo = {
+export interface TraceInfo {
   /**
    * The very latest end timestamp in the trace.
    */
@@ -291,4 +291,4 @@ export type TraceInfo = {
    * The transactions in the trace.
    */
   transactions: Set<string>;
-};
+}

@@ -34,9 +34,9 @@ function getReactSelectContainerFromInput(input: HTMLElement): HTMLElement {
 
 type User = ReturnType<typeof userEvent.setup> | typeof userEvent;
 
-type UserEventOptions = {
+interface UserEventOptions {
   user?: User;
-};
+}
 
 /**
  * Open the select's dropdown menu.

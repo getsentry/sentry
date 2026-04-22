@@ -9,12 +9,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
-type Props = {
+interface Props {
   eventView: EventView;
   organization: Organization;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
-};
+}
 
 const NAME_DEFAULT = t('Untitled query');
 const HOMEPAGE_DEFAULT = t('New Query');

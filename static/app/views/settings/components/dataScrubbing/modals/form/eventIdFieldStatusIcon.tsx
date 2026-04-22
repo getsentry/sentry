@@ -2,9 +2,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {EventIdStatus} from 'sentry/views/settings/components/dataScrubbing/types';
 
-type Props = {
+interface Props {
   status: EventIdStatus;
-};
+}
 
 export function EventIdFieldStatusIcon({status}: Props) {
   switch (status) {

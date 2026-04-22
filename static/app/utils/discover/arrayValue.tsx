@@ -5,9 +5,9 @@ import {t} from 'sentry/locale';
 
 import {nullableValue} from './fieldRenderers';
 
-type Props = {
+interface Props {
   value: Array<string | null>;
-};
+}
 
 export function ArrayValue(props: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);

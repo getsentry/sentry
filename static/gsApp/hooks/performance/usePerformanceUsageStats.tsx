@@ -4,18 +4,18 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type PerformanceStatsGroup = {
+interface PerformanceStatsGroup {
   by: {
     reason: string;
   };
   totals: {
     'sum(quantity)': number;
   };
-};
+}
 
-type PartialUsageStats = {
+interface PartialUsageStats {
   groups?: PerformanceStatsGroup[];
-};
+}
 
 export function usePerformanceUsageStats({
   organization,

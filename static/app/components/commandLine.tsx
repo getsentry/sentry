@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   /**
    * The text interface
    */
   children: string;
-};
+}
 
 export function CommandLine({children}: Props) {
   return <Wrapper>{children}</Wrapper>;

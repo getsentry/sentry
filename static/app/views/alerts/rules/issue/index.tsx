@@ -121,18 +121,21 @@ const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
 type ConfigurationKey = keyof IssueAlertConfiguration;
 
-type RuleTaskResponse = {
+interface RuleTaskResponse {
   status: 'pending' | 'failed' | 'success';
   error?: string;
   rule?: IssueAlertRule;
-};
+}
 
-type RouteParams = {projectId?: string; ruleId?: string};
+interface RouteParams {
+  projectId?: string;
+  ruleId?: string;
+}
 
-type IncompatibleRule = {
+interface IncompatibleRule {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
-};
+}
 
 type Props = {
   location: Location;

@@ -9,11 +9,11 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {IconParenthesis} from 'sentry/icons/iconParenthesis';
 
-type SearchQueryBuilderParenProps = {
+interface SearchQueryBuilderParenProps {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.L_PAREN | Token.R_PAREN>;
-};
+}
 
 export function SearchQueryBuilderParenIcon({
   token,

@@ -226,7 +226,7 @@ export function fetchFeatureFlagValues({
   });
 }
 
-export type FetchOrganizationTagsParams = {
+export interface FetchOrganizationTagsParams {
   orgSlug: string;
   dataset?: Dataset;
   enabled?: boolean;
@@ -237,7 +237,7 @@ export type FetchOrganizationTagsParams = {
   statsPeriod?: string | null;
   useCache?: boolean;
   useFlagsBackend?: boolean;
-};
+}
 
 const makeFetchOrganizationTags = ({
   orgSlug,

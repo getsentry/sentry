@@ -84,7 +84,7 @@ export type FilterKeyItem =
   | AskSeerConsentItem
   | LogicFilterItem;
 
-export type Section = {
+export interface Section {
   label: ReactNode;
   value: string;
-};
+}

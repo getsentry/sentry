@@ -125,12 +125,12 @@ export const getSlot = (
  * isGifted: For gifted data volumes, 0 is displayed as 0 instead of unlimited.
  * useUnitScaling: For Attachments only. Scale from KB -> MB -> GB -> TB -> etc
  */
-type FormatOptions = {
+interface FormatOptions {
   fractionDigits?: number;
   isAbbreviated?: boolean;
   isGifted?: boolean;
   useUnitScaling?: boolean;
-};
+}
 
 /**
  * This expects values from CustomerSerializer, which contains quota/reserved

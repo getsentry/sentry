@@ -11,7 +11,7 @@ import type {Event} from 'sentry/types/event';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
 
-type ContextType = {
+interface ContextType {
   frameOrEvent: HydrationErrorFrame | Event;
   leftOffsetMs: number;
   leftTimestampMs: number;
@@ -20,7 +20,7 @@ type ContextType = {
   rightTimestampMs: number;
   setLeftOffsetMs: Dispatch<SetStateAction<number>>;
   setRightOffsetMs: Dispatch<SetStateAction<number>>;
-};
+}
 
 const Context = createContext<ContextType>({
   frameOrEvent: {} as Event,

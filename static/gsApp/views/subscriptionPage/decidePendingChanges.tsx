@@ -6,10 +6,10 @@ import type {Subscription} from 'getsentry/types';
 import {PendingChanges} from './pendingChanges';
 import {PlanMigrationActive} from './planMigrationActive';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 export function DecidePendingChanges({subscription, organization}: Props) {
   const {planMigrations, isLoading} = usePlanMigrations();

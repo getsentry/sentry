@@ -24,12 +24,12 @@ import {withOrganization} from 'sentry/utils/withOrganization';
 import {withSentryRouter} from 'sentry/utils/withSentryRouter';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-type ReleaseMetaBasic = {
+interface ReleaseMetaBasic {
   date: string;
   version: string;
-};
+}
 
-type ReleaseConditions = {
+interface ReleaseConditions {
   end: DateString;
   environment: readonly string[];
   project: readonly number[];
@@ -37,7 +37,7 @@ type ReleaseConditions = {
   cursor?: string;
   query?: string;
   statsPeriod?: string | null;
-};
+}
 
 // This is not an exported action/function because releases list uses AsyncComponent
 // and this is not re-used anywhere else afaict
@@ -93,10 +93,10 @@ export interface ReleaseSeriesProps extends WithRouterProps {
   utc?: boolean | null;
 }
 
-type State = {
+interface State {
   releaseSeries: Series[];
   releases: ReleaseMetaBasic[] | null;
-};
+}
 
 /**
  * @deprecated use useReleaseBubbles instead

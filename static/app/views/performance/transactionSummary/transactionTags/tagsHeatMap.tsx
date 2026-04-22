@@ -47,7 +47,7 @@ import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerforma
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
-type Props = {
+interface Props {
   aggregateColumn: string;
   eventView: EventView;
   location: Location;
@@ -55,7 +55,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   tagKey?: string;
-};
+}
 
 const findRowKey = (row: TableDataRow) => {
   return Object.keys(row).find(key => key.includes('histogram'));
@@ -465,13 +465,13 @@ const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
   }
 `;
 
-type DropdownItemProps = {
+interface DropdownItemProps {
   children: React.ReactNode;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
   to?: LocationDescriptor;
   width?: 'small' | 'large';
-};
+}
 
 function DropdownItem({
   children,

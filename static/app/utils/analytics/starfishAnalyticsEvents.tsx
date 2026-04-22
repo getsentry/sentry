@@ -1,4 +1,4 @@
-type StarfishEventParameters = {
+interface StarfishEventParameters {
   'starfish.chart.zoom': {
     end: number;
     start: number;
@@ -36,7 +36,7 @@ type StarfishEventParameters = {
   'starfish.web_service_view.endpoint_list.search': {
     query: string;
   };
-};
+}
 
 export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {
   'starfish.chart.zoom': 'Starfish: Chart Zoomed',

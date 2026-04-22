@@ -19,10 +19,10 @@ import {AlertStripedTable} from 'getsentry/views/subscriptionPage/styles';
 
 import {PlanMigrationRow} from './planMigrationRow';
 
-type Props = {
+interface Props {
   migration: PlanMigration;
   subscription: Subscription;
-};
+}
 
 export function PlanMigrationTable({subscription, migration}: Props) {
   if (!migration?.cohort?.nextPlan) {

@@ -15,7 +15,7 @@ import {withProjects} from 'sentry/utils/withProjects';
 
 type ProjectPlaceholder = AvatarProject;
 
-type State = {
+interface State {
   /**
    * The error that occurred if fetching failed
    */
@@ -54,7 +54,7 @@ type State = {
   projectsFromStore: Project[];
 
   nextCursor?: null | string;
-};
+}
 
 type RenderProps = {
   /**
@@ -74,12 +74,12 @@ type RenderProps = {
 >;
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * If slugs is passed, forward placeholder objects with slugs while fetching
    */
   passthroughPlaceholderProject?: boolean;
-};
+}
 
 type Props = {
   api: Client;

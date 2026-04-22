@@ -2,9 +2,9 @@ import {Alert, type AlertProps} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   variant?: AlertProps['variant'];
-};
+}
 
 export function PreviewFeature({variant = 'info'}: Props) {
   return (

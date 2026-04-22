@@ -28,40 +28,40 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 
-type TypedTraceItemAttributes = {
+interface TypedTraceItemAttributes {
   boolean: TagCollection;
   booleanSecondaryAliases: TagCollection;
   number: TagCollection;
   numberSecondaryAliases: TagCollection;
   string: TagCollection;
   stringSecondaryAliases: TagCollection;
-};
+}
 
-type TypedTraceItemAttributesStatus = {
+interface TypedTraceItemAttributesStatus {
   booleanAttributesLoading: boolean;
   numberAttributesLoading: boolean;
   stringAttributesLoading: boolean;
-};
+}
 
 type TypedTraceItemAttributesResult = TypedTraceItemAttributes &
   TypedTraceItemAttributesStatus;
 
 type TraceItemAttributeType = 'number' | 'string' | 'boolean';
 
-type TraceItemAttributeResult = {
+interface TraceItemAttributeResult {
   attributes: TagCollection;
   isLoading: boolean;
   secondaryAliases: TagCollection;
-};
+}
 
-export type TraceItemAttributeConfig = {
+export interface TraceItemAttributeConfig {
   enabled: boolean;
   traceItemType: TraceItemDataset;
   projects?: Project[] | Array<string | number>;
   query?: string;
   search?: string;
   staleTime?: number;
-};
+}
 
 type TraceItemAttributeOptions = Partial<Omit<TraceItemAttributeConfig, 'traceItemType'>>;
 

@@ -5,17 +5,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type DataState = 'pending' | 'loading' | 'errored' | 'empty' | 'populated';
 
-type DataLoaded = {
+interface DataLoaded {
   flamegraphData: DataState;
   transactionsTableData: DataState;
   widget1Data: DataState;
   widget2Data: DataState;
-};
+}
 
-type DataStateAction = {
+interface DataStateAction {
   dataKey: keyof DataLoaded;
   dataState: DataState;
-};
+}
 
 function dataLoadedReducer(state: DataLoaded, action: DataStateAction) {
   return {

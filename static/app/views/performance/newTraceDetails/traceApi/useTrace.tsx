@@ -21,11 +21,11 @@ import type {TraceFullDetailed, TraceSplitResults} from './types';
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
 
-type TraceQueryParamOptions = {
+interface TraceQueryParamOptions {
   limit?: number;
   targetId?: string;
   timestamp?: number;
-};
+}
 
 function getTargetIdParams(
   traceType: 'eap' | 'non-eap',
@@ -222,7 +222,7 @@ function useDemoTrace(
   >;
 }
 
-type UseTraceOptions = {
+interface UseTraceOptions {
   additionalAttributes?: string[];
   limit?: number;
   /**
@@ -232,7 +232,7 @@ type UseTraceOptions = {
   targetEventId?: string;
   timestamp?: number;
   traceSlug?: string;
-};
+}
 
 export function useTrace(
   options: UseTraceOptions

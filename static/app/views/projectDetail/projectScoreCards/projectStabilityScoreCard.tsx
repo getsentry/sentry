@@ -24,7 +24,7 @@ import {
 
 import {ActionWrapper} from './actionWrapper';
 
-type Props = {
+interface Props {
   field:
     | SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS
     | SessionFieldWithOperation.CRASH_FREE_RATE_USERS;
@@ -33,7 +33,7 @@ type Props = {
   selection: PageFilters;
   project?: Project;
   query?: string;
-};
+}
 
 const useCrashFreeRate = (props: Props) => {
   const organization = useOrganization();

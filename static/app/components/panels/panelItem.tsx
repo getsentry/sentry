@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   /**
    * Align items vertical center (assuming flex-direction isn't changed).
    */
@@ -9,7 +9,7 @@ type Props = {
    * Disables the default padding
    */
   noPadding?: boolean;
-};
+}
 
 export const PanelItem = styled('div')<Props>`
   display: flex;

@@ -28,9 +28,9 @@ import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
 import {getPotentialProductTrial, getSeerTrialCategory} from 'getsentry/utils/billing';
 
-type AiSetupDataConsentProps = {
+interface AiSetupDataConsentProps {
   groupId?: string;
-};
+}
 
 export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
   const api = useApi({persistInFlight: true});

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-type ListGroupItemProps = {
+interface ListGroupItemProps {
   centered?: boolean;
-};
+}
 
 const ListGroupItem = styled('li')<ListGroupItemProps>`
   position: relative;

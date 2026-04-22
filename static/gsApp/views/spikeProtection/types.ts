@@ -29,7 +29,7 @@ export interface SpikesList {
   start: string;
 }
 
-export type SpikeThresholds = {
+export interface SpikeThresholds {
   end: string;
   groups: Array<{
     billing_metric: DataCategoryInfo['uid'];
@@ -37,4 +37,4 @@ export type SpikeThresholds = {
   }>;
   intervals: string[];
   start: string;
-};
+}

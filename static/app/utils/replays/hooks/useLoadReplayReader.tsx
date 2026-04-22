@@ -5,7 +5,7 @@ import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
 
-type Props = {
+interface Props {
   orgSlug: string;
   replaySlug: string;
   clipWindow?: {
@@ -14,7 +14,7 @@ type Props = {
   };
   eventTimestampMs?: number;
   group?: Group;
-};
+}
 
 interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
   replay: ReplayReader | null;

@@ -189,14 +189,14 @@ export interface CheckIn {
   groups?: Array<{id: number; shortId: string}>;
 }
 
-type StatsBucket = {
+interface StatsBucket {
   [CheckInStatus.IN_PROGRESS]: number;
   [CheckInStatus.OK]: number;
   [CheckInStatus.MISSED]: number;
   [CheckInStatus.TIMEOUT]: number;
   [CheckInStatus.ERROR]: number;
   [CheckInStatus.UNKNOWN]: number;
-};
+}
 
 type MonitorBucketEnvMapping = Record<string, StatsBucket>;
 

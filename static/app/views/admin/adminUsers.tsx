@@ -5,13 +5,13 @@ import {Link} from '@sentry/scraps/link';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
 
-type Row = {
+interface Row {
   dateJoined: string;
   email: string;
   id: string;
   lastLogin: string;
   username: string;
-};
+}
 
 const getRow = (row: Row) => [
   <td key="username">

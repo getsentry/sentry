@@ -1,13 +1,13 @@
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-type DetailSectionProps = {
+interface DetailSectionProps {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   description?: React.ReactNode;
   trailingItems?: React.ReactNode;
-};
+}
 
 export function DetailSection({
   children,

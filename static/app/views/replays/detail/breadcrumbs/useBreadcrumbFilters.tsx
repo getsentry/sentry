@@ -9,16 +9,16 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
-type FilterFields = {
+interface FilterFields {
   f_b_search: string;
   f_b_type: string[];
-};
+}
 
-type Options = {
+interface Options {
   frames: ReplayFrame[];
-};
+}
 
-type Return = {
+interface Return {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
   getBreadcrumbTypes: () => Array<{label: string; value: string}>;
   items: ReplayFrame[];
@@ -26,7 +26,7 @@ type Return = {
   setSearchTerm: (searchTerm: string) => void;
   setType: (type: string[]) => void;
   type: string[];
-};
+}
 
 const TYPE_TO_LABEL: Record<string, string> = {
   start: 'Replay Start',

@@ -31,10 +31,10 @@ import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';
 
-type UptimeDetectorDetailsProps = {
+interface UptimeDetectorDetailsProps {
   detector: UptimeDetector;
   project: Project;
-};
+}
 
 export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];

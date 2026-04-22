@@ -26,7 +26,7 @@ function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
     : projects.some(({platform}) => platform && sourceMaps.includes(platform));
 }
 
-type Options = {
+interface Options {
   /**
    * The organization to show onboarding tasks for
    */
@@ -36,7 +36,7 @@ type Options = {
    * tasks to show additional task details (such as for suggesting sourcemaps)
    */
   projects?: Project[];
-};
+}
 
 function getIssueAlertUrl({projects, organization}: Options) {
   if (!projects?.length) {

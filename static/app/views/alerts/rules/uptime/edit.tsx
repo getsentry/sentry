@@ -16,10 +16,10 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {UptimeAlertForm} from 'sentry/views/alerts/rules/uptime/uptimeAlertForm';
 import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 
-type RouteParams = {
+interface RouteParams {
   projectId: string;
   ruleId: string;
-};
+}
 
 type Props = {
   onChangeTitle: (data: string) => void;

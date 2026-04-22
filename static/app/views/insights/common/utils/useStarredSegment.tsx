@@ -8,10 +8,10 @@ import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type StarTransactionParams = {
+interface StarTransactionParams {
   project_id?: string;
   segment_name?: string;
-};
+}
 
 const URL_PREFIX = '/insights/starred-segments/';
 

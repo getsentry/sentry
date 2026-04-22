@@ -5,12 +5,12 @@ import path from 'node:path';
 
 const FIXTURES_ROOT = path.join(__dirname, '../../../fixtures');
 
-type Options = {
+interface Options {
   /**
    * Flatten all fixtures to together into a single object
    */
   flatten?: boolean;
-};
+}
 
 /**
  * Loads a directory of JSON fixtures.

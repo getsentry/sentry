@@ -8,11 +8,11 @@ import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
-type Props = {
+interface Props {
   event: Event;
   group: Group;
   project: Project;
-};
+}
 
 export function useHasLinkedIssues({group, event, project}: Props) {
   const organization = useOrganization();

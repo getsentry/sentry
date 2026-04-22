@@ -6,53 +6,53 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 
-export type ProviderNode = {
+export interface ProviderNode {
   integrationCount: number;
   isExpanded: boolean;
   provider: IntegrationProvider;
   type: 'provider';
-};
+}
 
-export type IntegrationNode = {
+export interface IntegrationNode {
   connectedRepoCount: number;
   integration: OrganizationIntegration;
   isExpanded: boolean;
   isReposPending: boolean;
   repoCount: number;
   type: 'integration';
-};
+}
 
-export type RepoNode = {
+export interface RepoNode {
   integration: Integration;
   isConnected: boolean;
   isToggling: boolean;
   repo: IntegrationRepository;
   type: 'repo';
-};
+}
 
-export type AddConfigNode = {
+export interface AddConfigNode {
   provider: IntegrationProvider;
   type: 'add-config';
-};
+}
 
-export type NoMatchNode = {
+export interface NoMatchNode {
   integrationId: string;
   repoFilter: RepoFilter;
   search: string;
   type: 'no-match';
-};
+}
 
-export type DisconnectedSectionNode = {
+export interface DisconnectedSectionNode {
   isExpanded: boolean;
   repoCount: number;
   type: 'disconnected-section';
-};
+}
 
-export type DisconnectedRepoNode = {
+export interface DisconnectedRepoNode {
   isToggling: boolean;
   repo: Repository;
   type: 'disconnected-repo';
-};
+}
 
 export type TreeNode =
   | ProviderNode

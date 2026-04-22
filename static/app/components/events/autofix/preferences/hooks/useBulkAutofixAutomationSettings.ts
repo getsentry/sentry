@@ -42,13 +42,13 @@ export interface BackendRepository {
   provider_raw?: string;
 }
 
-export type AutofixAutomationSettings = {
+export interface AutofixAutomationSettings {
   autofixAutomationTuning: AutofixAutomationTuning;
   automatedRunStoppingPoint: ProjectSeerPreferences['automated_run_stopping_point'];
   automationHandoff: ProjectSeerPreferences['automation_handoff'];
   projectId: string;
   reposCount: number;
-};
+}
 
 export function bulkAutofixAutomationSettingsInfiniteOptions({
   organization,

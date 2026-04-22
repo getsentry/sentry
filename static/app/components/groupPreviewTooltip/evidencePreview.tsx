@@ -10,19 +10,19 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
-type SpanEvidencePreviewProps = {
+interface SpanEvidencePreviewProps {
   children: React.ReactNode;
   groupId: string;
   query?: string;
-};
+}
 
-type SpanEvidencePreviewBodyProps = {
+interface SpanEvidencePreviewBodyProps {
   groupId: string;
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
   query?: string;
-};
+}
 
 function SpanEvidencePreviewBody({
   onRequestBegin,

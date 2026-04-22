@@ -10,14 +10,14 @@ import {
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-type Props = {
+interface Props {
   onSelect: (sort: string) => void;
   query: string;
   sort: string;
   className?: string;
   showIcon?: boolean;
   triggerSize?: DropdownButtonProps['size'];
-};
+}
 
 function getSortTooltip(key: IssueSortOptions) {
   switch (key) {

@@ -4,10 +4,10 @@ import * as Sentry from '@sentry/react';
 
 import type {LinkProps} from './link';
 
-type LinkBehavior = {
+interface LinkBehavior {
   behavior: (props: LinkProps) => LinkProps;
   component: FunctionComponent<LinkProps>;
-};
+}
 
 const LinkBehaviorContext = createContext<LinkBehavior | null>(null);
 

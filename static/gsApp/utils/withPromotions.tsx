@@ -6,13 +6,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PromotionData} from 'getsentry/types';
 import {usePromotionTriggerCheck} from 'getsentry/utils/usePromotionTriggerCheck';
 
-type InjectedPromotionProps = {
+interface InjectedPromotionProps {
   isError?: boolean;
   isLoading?: boolean;
   promotionData?: PromotionData;
   queryClient?: QueryClient;
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
-};
+}
 
 export const withPromotions = <P extends InjectedPromotionProps>(
   WrappedComponent: React.ComponentType<P> | typeof LoadingIndicator

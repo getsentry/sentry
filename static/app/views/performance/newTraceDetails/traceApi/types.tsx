@@ -5,7 +5,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
  * `EventLite` represents the type of a simplified event from
  * the `events-trace` and `events-trace-light` endpoints.
  */
-type EventLite = {
+interface EventLite {
   event_id: string;
   generation: number | null;
   parent_event_id: string | null;
@@ -17,9 +17,9 @@ type EventLite = {
   timestamp: number;
   transaction: string;
   'transaction.duration': number;
-};
+}
 
-export type TraceError = {
+export interface TraceError {
   event_id: string;
   issue: string;
   issue_id: number;
@@ -33,7 +33,7 @@ export type TraceError = {
   generation?: number;
   timestamp?: number;
   type?: number;
-};
+}
 
 export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
   culprit: string;
@@ -81,12 +81,12 @@ export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
   transaction?: string;
 };
 
-export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> = {
+export interface TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLite> {
   orphan_errors: TraceError[];
   transactions: U[];
-};
+}
 
-export type TraceMeta = {
+export interface TraceMeta {
   errors: number;
   performance_issues: number;
   projects: number;
@@ -94,9 +94,9 @@ export type TraceMeta = {
   span_count_map: Record<string, number>;
   transaction_child_count_map: Record<string, number>;
   transactions: number;
-};
+}
 
-export type EAPTraceMeta = {
+export interface EAPTraceMeta {
   errors: number;
   logs: number;
   performance_issues: number;
@@ -104,4 +104,4 @@ export type EAPTraceMeta = {
   span_count_map: Record<string, number>;
   transaction_child_count_map: Record<string, number>;
   uptime_checks: number;
-};
+}

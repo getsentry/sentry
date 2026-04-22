@@ -44,21 +44,21 @@ enum IssuesQuery {
   ALL = '',
 }
 
-type Count = {
+interface Count {
   all: number;
   new: number;
   regressed: number;
   resolved: number;
   unhandled: number;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   location: Location;
   organization: Organization;
   projectId: number;
   query?: string;
-};
+}
 
 export function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();

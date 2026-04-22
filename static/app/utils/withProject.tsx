@@ -4,9 +4,9 @@ import type {Project} from 'sentry/types/project';
 import {getDisplayName} from 'sentry/utils/getDisplayName';
 import {ProjectContext} from 'sentry/views/projects/projectContext';
 
-type InjectedProjectProps = {
+interface InjectedProjectProps {
   project?: Project;
-};
+}
 
 export function withProject<P extends InjectedProjectProps>(
   WrappedComponent: React.ComponentType<P>

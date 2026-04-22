@@ -115,7 +115,7 @@ export default function AccountSecurityWrapper() {
   );
 }
 
-type OutletContext = {
+interface OutletContext {
   authenticators: Authenticator[] | null;
   countEnrolled: number;
   deleteDisabled: boolean;
@@ -124,7 +124,7 @@ type OutletContext = {
   onDisable: (auth: Authenticator) => void;
   onRegenerateBackupCodes: () => void;
   orgsRequire2fa: OrganizationSummary[];
-};
+}
 
 export function useAccountSecurityContext(): OutletContext {
   return useOutletContext<OutletContext>();

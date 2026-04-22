@@ -32,7 +32,7 @@ export const TIME_WINDOWS = {
 export const API_INTERVAL_POINTS_LIMIT = 10000;
 export const API_INTERVAL_POINTS_MIN = 150;
 
-export type TimePeriodType = {
+export interface TimePeriodType {
   display: React.ReactNode;
   end: string;
   label: string;
@@ -44,7 +44,7 @@ export type TimePeriodType = {
   usingPeriod: boolean;
   custom?: boolean;
   utc?: boolean;
-};
+}
 
 // A La models/alert_rule.py::AlertRuleStatus
 export const ALERT_RULE_STATUS = {

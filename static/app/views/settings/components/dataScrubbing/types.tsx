@@ -37,22 +37,22 @@ export enum SourceSuggestionType {
   STRING = 'string',
 }
 
-export type SourceSuggestion = {
+export interface SourceSuggestion {
   type: SourceSuggestionType;
   value: string;
   description?: string;
   examples?: string[];
-};
+}
 
-export type AttributeSuggestion = {
+export interface AttributeSuggestion {
   label: string;
   value: string; // Hidden from the user.
-};
+}
 
-type RuleBase = {
+interface RuleBase {
   id: number;
   source: string;
-};
+}
 
 export type RuleDefault = RuleBase & {
   method: MethodType.MASK | MethodType.REMOVE | MethodType.HASH;
@@ -88,10 +88,10 @@ type RuleReplaceAndPattern = Omit<RulePattern, 'method'> & Omit<RuleReplace, 'ty
 
 export type Rule = RuleDefault | RuleReplace | RulePattern | RuleReplaceAndPattern;
 
-export type EventId = {
+export interface EventId {
   status: EventIdStatus;
   value: string;
-};
+}
 
 export type EditableRule = Omit<
   {
@@ -100,29 +100,29 @@ export type EditableRule = Omit<
   'id'
 >;
 
-type PiiConfigDefault = {
+interface PiiConfigDefault {
   redaction: {
     method: RuleDefault['method'];
   };
   type: RuleDefault['type'];
-};
+}
 
-type PiiConfigReplace = {
+interface PiiConfigReplace {
   redaction: {
     method: RuleReplace['method'];
     text?: string;
   };
   type: RuleReplace['type'];
-};
+}
 
-type PiiConfigPattern = {
+interface PiiConfigPattern {
   pattern: string;
   redaction: {
     method: RulePattern['method'];
   };
   type: RulePattern['type'];
   replaceGroups?: number[];
-};
+}
 
 type PiiConfigReplaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &
   Pick<PiiConfigReplace, 'redaction'>;

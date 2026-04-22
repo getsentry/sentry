@@ -51,7 +51,7 @@ const percentageChange = (a?: number, b?: number) => {
   return ((a - b) / b) * 100;
 };
 
-type ProjectScoreQuery = {
+interface ProjectScoreQuery {
   error: Error | null;
   isLoading: boolean;
   data?: {
@@ -59,7 +59,7 @@ type ProjectScoreQuery = {
     projectData: ProjectData[];
     projectScore: ProjectScore;
   };
-};
+}
 
 function usePerformanceScoreData({query}: {query?: string}): ProjectScoreQuery {
   const {interval: _, ...pageFilterChartParams} = usePageFilterChartParams();

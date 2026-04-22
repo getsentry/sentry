@@ -1,19 +1,27 @@
 import type {ShortcutType} from 'sentry/components/searchBar/types';
 
-type SearchEventBase = {
+interface SearchEventBase {
   query: string;
   search_type: string;
   is_multi_project?: boolean;
   new_experience?: boolean;
   search_source?: string;
-};
+}
 
 type OpenEvent = Record<string, unknown>;
-type SelectEvent = {result_type: string; source_type: string; query?: string};
-type QueryEvent = {query: string};
-type ProjectSelectorEvent = {path: string};
+interface SelectEvent {
+  result_type: string;
+  source_type: string;
+  query?: string;
+}
+interface QueryEvent {
+  query: string;
+}
+interface ProjectSelectorEvent {
+  path: string;
+}
 
-export type SearchEventParameters = {
+export interface SearchEventParameters {
   'command_palette.open': OpenEvent;
   'command_palette.query': QueryEvent;
   'command_palette.select': SelectEvent;
@@ -105,7 +113,7 @@ export type SearchEventParameters = {
   'sidebar_help.open': OpenEvent;
   'sidebar_help.query': QueryEvent;
   'sidebar_help.select': SelectEvent;
-};
+}
 
 type SearchEventKey = keyof SearchEventParameters;
 

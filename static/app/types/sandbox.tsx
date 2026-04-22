@@ -1,4 +1,4 @@
-export type SandboxData = {
+export interface SandboxData {
   acceptedTracking?: boolean;
   cta?: {
     id: string;
@@ -8,7 +8,7 @@ export type SandboxData = {
   };
   extraQueryString?: string;
   skipEmail?: boolean;
-};
+}
 
 declare global {
   interface Window {

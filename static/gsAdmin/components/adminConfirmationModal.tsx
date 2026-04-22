@@ -11,14 +11,14 @@ import {TextareaField} from 'sentry/components/forms/fields/textareaField';
 
 type ConfirmProps = React.ComponentProps<typeof Confirm>;
 
-export type AdminConfirmParams = {
+export interface AdminConfirmParams {
   /**
    * Additional properties may be set via the renderModalSpecificContent
    */
   [key: string]: any;
   notes?: string;
   ticketURL?: string;
-};
+}
 
 export type AdminConfirmRenderProps = Omit<
   ConfirmMessageRenderProps,
@@ -105,12 +105,12 @@ type ConfirmMessageProps = ConfirmMessageRenderProps &
     | 'onConfirm'
   >;
 
-type State = {
+interface State {
   confirmCallback: ((params: AdminConfirmParams) => void) | null;
   invalidTicketURL: boolean;
   notes: string | null;
   ticketURL: string | null;
-};
+}
 
 class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
   state: State = {

@@ -5,9 +5,9 @@ import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 import {unreachable} from 'sentry/utils/unreachable';
 
-type Props = {
+interface Props {
   status: ImageStatus;
-};
+}
 
 export function getProcessingTooltip(status: ImageStatus): string | undefined {
   switch (status) {

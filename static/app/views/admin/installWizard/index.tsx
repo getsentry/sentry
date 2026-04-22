@@ -16,9 +16,9 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
-type InstallWizardProps = {
+interface InstallWizardProps {
   onConfigured: () => void;
-};
+}
 
 export type InstallWizardOptions = Record<
   string,

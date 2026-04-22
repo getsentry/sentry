@@ -38,18 +38,18 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {AssociatedReleases} from 'sentry/views/settings/projectSourceMaps/associatedReleases';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
 
-type Props = {
+interface Props {
   project: Project;
-};
+}
 
-type SourceMapUpload = {
+interface SourceMapUpload {
   associations: DebugIdBundleAssociation[];
   date: string;
   dateModified: string;
   fileCount: number;
   id: string; // bundleId or release name
   type: 'debugId' | 'release';
-};
+}
 
 function mergeReleaseAndDebugIdBundles(
   releases: SourceMapsArchive[] | undefined,

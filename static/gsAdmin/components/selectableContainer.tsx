@@ -7,14 +7,14 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 
-type SelectableContainerPanelProps = {
+interface SelectableContainerPanelProps {
   children: React.ReactNode;
   extraActions?: React.ReactNode;
-};
+}
 
 export type SelectableContainerPanel = React.ComponentType<SelectableContainerPanelProps>;
 
-type ContentRenderProps = {
+interface ContentRenderProps {
   /**
    * May be used to wrap sections in panels
    */
@@ -23,9 +23,9 @@ type ContentRenderProps = {
    * May be used to render the section selector
    */
   selector: React.ReactNode;
-};
+}
 
-type Section = {
+interface Section {
   /**
    * Renders the content of the section. See the ContentRenderProps to
    * understand what each injected Prop is used for.
@@ -39,9 +39,9 @@ type Section = {
    * The name of the section. Rendered in the dropdown selector
    */
   name: string;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * Each available section
    */
@@ -59,7 +59,7 @@ type Props = {
    * as the panel name
    */
   panelTitle?: string;
-};
+}
 
 export function SelectableContainer({
   dropdownPrefix,

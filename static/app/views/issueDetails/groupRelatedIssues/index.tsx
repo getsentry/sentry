@@ -16,14 +16,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type RelatedIssuesResponse = {
+interface RelatedIssuesResponse {
   data: number[];
   meta: {
     event_id: string;
     trace_id: string;
   };
   type: string;
-};
+}
 
 function GroupRelatedIssues({group}: {group: Group}) {
   return (

@@ -1,57 +1,57 @@
 import type {PlatformKey} from 'sentry/types/project';
 
-type MobilePromptBannerParams = {
+interface MobilePromptBannerParams {
   matchedUserAgentString: string;
-};
+}
 
-type PlatformParam = {
+interface PlatformParam {
   platform: PlatformKey;
-};
+}
 
-type PlatformCategory = {
+interface PlatformCategory {
   category: string;
   source?: string;
-};
+}
 
-type PlatformPickerParam = {
+interface PlatformPickerParam {
   platform_id: string;
   source?: string;
-};
+}
 
-type PlatformSearchParam = {
+interface PlatformSearchParam {
   num_results: number;
   search: string;
   source?: string;
-};
+}
 
-type SampleEventParam = {
+interface SampleEventParam {
   platform?: PlatformKey;
-};
+}
 
-type InviteRequestParam = {
+interface InviteRequestParam {
   invite_status: string;
   member_id: number;
-};
+}
 
-type InviteModal = {
+interface InviteModal {
   modal_session: string;
-};
+}
 
-type SampleEvent = {
+interface SampleEvent {
   duration: number;
   interval: number;
   platform: string;
   project_id: string;
   retries: number;
   source: string;
-};
+}
 
-type SetupWizard = {
+interface SetupWizard {
   project_platform?: string;
-};
+}
 
 // define the event key to payload mappings
-export type GrowthEventParameters = {
+export interface GrowthEventParameters {
   'assistant.guide_cued': {
     guide: string;
   };
@@ -152,7 +152,7 @@ export type GrowthEventParameters = {
   'setup_wizard.clicked_viewed_issues': SetupWizard;
   'setup_wizard.complete': SetupWizard;
   'setup_wizard.viewed': SetupWizard;
-};
+}
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
 

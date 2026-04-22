@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   busy: boolean;
   checked: boolean;
   groupId: Group['id'];
@@ -36,7 +36,7 @@ type Props = {
     exception: Array<[string, number | null]>;
     message: Array<[string, any | null]>;
   };
-};
+}
 
 const similarityEmbeddingScoreValues = [0.9, 0.925, 0.95, 0.975, 0.99, 1];
 

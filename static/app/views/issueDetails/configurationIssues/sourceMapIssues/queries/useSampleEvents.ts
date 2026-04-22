@@ -4,12 +4,12 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SampleEvent = {
+interface SampleEvent {
   event_id: string;
   group_id: string | null;
   timestamp: string;
   title: string;
-};
+}
 
 interface SamplesResult {
   data: SampleEvent[];

@@ -20,16 +20,16 @@ import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
-type AssignIssueVariables = {
+interface AssignIssueVariables {
   actor: Pick<Actor, 'id' | 'type'> | null;
   groupId: string;
   orgSlug: string;
   assignedBy?: AssignedBy;
-};
+}
 
-type AssignIssueContext = {
+interface AssignIssueContext {
   changeId: string;
-};
+}
 
 function getAssignIssueSuccessMessage(assignedTo: Group['assignedTo']) {
   if (!assignedTo) {

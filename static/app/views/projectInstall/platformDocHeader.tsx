@@ -18,11 +18,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-type Props = {
+interface Props {
   platform: PlatformIntegration;
   projectSlug: Project['slug'];
   title?: string;
-};
+}
 
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();

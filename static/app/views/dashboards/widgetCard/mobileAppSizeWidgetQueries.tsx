@@ -7,13 +7,13 @@ import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
-type MobileAppSizeWidgetQueriesProps = {
+interface MobileAppSizeWidgetQueriesProps {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   dashboardFilters?: DashboardFilters;
   selection?: PageFilters;
   widgetInterval?: string;
-};
+}
 
 export function MobileAppSizeWidgetQueries({
   children,

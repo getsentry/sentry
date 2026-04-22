@@ -5,7 +5,7 @@ export type ConversationDrawerOpenSource =
   | 'table_output'
   | 'table_tool_tag';
 
-export type ConversationsEventParameters = {
+export interface ConversationsEventParameters {
   'conversations.drawer.open': {
     source: ConversationDrawerOpenSource;
   };
@@ -15,7 +15,7 @@ export type ConversationsEventParameters = {
     toTab: string;
   };
   'conversations.page-view': Record<string, unknown>;
-};
+}
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
   'conversations.page-view': 'Conversations: Page View',

@@ -1,7 +1,7 @@
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export type InsightEventParameters = {
+export interface InsightEventParameters {
   'insight.app_start.select_start_type': {type: string};
   'insight.app_start.spans.filter_by_device_class': {filter: string};
   'insight.app_start.spans.filter_by_operation': {filter: string};
@@ -59,7 +59,7 @@ export type InsightEventParameters = {
     moduleName: ModuleName;
   };
   'insights.session_health_tour.dismissed': Record<string, unknown>;
-};
+}
 
 export type InsightEventKey = keyof InsightEventParameters;
 

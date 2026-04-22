@@ -7,14 +7,14 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type CommonParams = {
+interface CommonParams {
   cursor?: QueryParamValue;
   end?: string | null;
   eventId?: string;
   limit?: number;
   start?: string | null;
   statsPeriod?: string | null;
-};
+}
 
 type UseOpenPeriodsParams =
   | ({

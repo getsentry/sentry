@@ -13,7 +13,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 import SentryAppExternalForm from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
-type Props = {
+interface Props {
   action: 'create' | 'link';
   appName: string;
   config: SchemaFormConfig;
@@ -21,7 +21,7 @@ type Props = {
   group: Group;
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
   sentryAppInstallation: SentryAppInstallation;
-};
+}
 
 export function SentryAppExternalIssueForm({
   action,

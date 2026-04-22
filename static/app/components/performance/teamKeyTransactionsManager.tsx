@@ -10,21 +10,21 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
 
-export type TeamSelection = {
+export interface TeamSelection {
   action: 'key' | 'unkey';
   project: Project;
   teamIds: string[];
   transactionName: string;
-};
+}
 
-export type TeamKeyTransactionManagerChildrenProps = {
+export interface TeamKeyTransactionManagerChildrenProps {
   counts: Map<string, number> | null;
   error: string | null;
   getKeyedTeams: (project: string, transactionName: string) => Set<string> | null;
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   isLoading: boolean;
   teams: Team[];
-};
+}
 
 const TeamKeyTransactionsManagerContext =
   createContext<TeamKeyTransactionManagerChildrenProps>({
@@ -36,13 +36,13 @@ const TeamKeyTransactionsManagerContext =
     handleToggleKeyTransaction: () => {},
   });
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   organization: Organization;
   selectedTeams: string[];
   teams: Team[];
   selectedProjects?: string[];
-};
+}
 
 type State = Omit<
   TeamKeyTransactionManagerChildrenProps,

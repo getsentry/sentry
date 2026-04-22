@@ -17,7 +17,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-type Props = {
+interface Props {
   canAddMembers: boolean;
   canRemoveMembers: boolean;
   currentUser: AvatarUser;
@@ -29,11 +29,11 @@ type Props = {
   organization: Organization;
   requireLink: boolean;
   status: '' | 'loading' | 'success' | 'error' | null;
-};
+}
 
-type State = {
+interface State {
   busy: boolean;
-};
+}
 
 const DisabledMemberTooltip = HookOrDefault({
   hookName: 'component:disabled-member-tooltip',

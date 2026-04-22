@@ -130,7 +130,7 @@ function createIncidentSeries(
   };
 }
 
-export type MetricChartData = {
+export interface MetricChartData {
   rule: MetricRule;
   timeseriesData: Series[];
   anomalies?: Anomaly[];
@@ -139,15 +139,15 @@ export type MetricChartData = {
   selectedIncident?: Incident | null;
   seriesName?: string;
   showWaitingForData?: boolean;
-};
+}
 
-type MetricChartOption = {
+interface MetricChartOption {
   chartOption: AreaChartProps;
   criticalDuration: number;
   totalDuration: number;
   waitingForDataDuration: number;
   warningDuration: number;
-};
+}
 
 export function getMetricAlertChartOption(
   {

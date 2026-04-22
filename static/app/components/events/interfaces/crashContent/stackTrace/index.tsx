@@ -11,7 +11,7 @@ import {Content} from './content';
 import {NativeContent} from './nativeContent';
 import {displayRawContent as rawStacktraceContent} from './rawContent';
 
-type Props = {
+interface Props {
   event: Event;
   newestFirst: boolean;
   platform: PlatformKey;
@@ -23,7 +23,7 @@ type Props = {
   maxDepth?: number;
   meta?: Record<any, any>;
   threadId?: number;
-};
+}
 
 export function StackTraceContent({
   stackView,

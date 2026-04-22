@@ -27,12 +27,12 @@ const fadeAway: MotionProps = {
   transition: {duration: 0.8},
 };
 
-type TextWrapperProps = {
+interface TextWrapperProps {
   cta: React.ReactNode;
   src: string;
   subText: React.ReactNode;
   title: React.ReactNode;
-};
+}
 
 function InnerAction({title, subText, cta, src}: TextWrapperProps) {
   return (

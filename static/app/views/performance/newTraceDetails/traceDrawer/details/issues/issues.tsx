@@ -21,10 +21,10 @@ import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
-type IssueProps = {
+interface IssueProps {
   issue: TraceTree.TraceIssue;
   organization: Organization;
-};
+}
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 
@@ -173,11 +173,11 @@ const IconWrapper = styled('div')`
   }
 `;
 
-type IssueListProps = {
+interface IssueListProps {
   issues: TraceTree.TraceIssue[];
   node: BaseNode;
   organization: Organization;
-};
+}
 
 export function IssueList({issues, node, organization}: IssueListProps) {
   const uniqueIssues = [

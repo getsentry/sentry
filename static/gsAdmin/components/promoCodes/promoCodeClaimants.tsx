@@ -8,11 +8,11 @@ import {CustomerContact} from 'admin/components/customerContact';
 import ResultGrid from 'admin/components/resultGrid';
 import type {PromoCode} from 'admin/types';
 
-type Props = {
+interface Props {
   promoCode: PromoCode;
-};
+}
 
-type PromoClaimant = {
+interface PromoClaimant {
   customer: {
     name: string;
     slug: string;
@@ -20,7 +20,7 @@ type PromoClaimant = {
   dateCreated: string;
   id: string;
   user: User;
-};
+}
 
 const getRow = (row: PromoClaimant) => {
   const {customer, user} = row;

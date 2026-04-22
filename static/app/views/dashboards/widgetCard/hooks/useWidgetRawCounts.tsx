@@ -11,16 +11,16 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
 
-type Props = {
+interface Props {
   selection: PageFilters;
   widget: Widget;
-};
+}
 
-type RawCountConfig = {
+interface RawCountConfig {
   dataset: DiscoverDatasets;
   enabled: boolean;
   supported: boolean;
-};
+}
 
 export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): string {
   const search = new MutableSearch('');

@@ -9,14 +9,14 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
-type Section = {
+interface Section {
   key: string;
   heading?: string;
-};
+}
 
 // TODO(epurkhiser): This should really use the types from the form system, but
 // they're still pretty bad so that's difficult I guess?
-export type Field = {
+export interface Field {
   key: string;
   label: React.ReactNode;
   allowEmpty?: boolean;
@@ -32,7 +32,7 @@ export type Field = {
   placeholder?: string;
   required?: boolean;
   step?: number;
-};
+}
 
 // This are ordered based on their display order visually
 const sections: Section[] = [

@@ -41,7 +41,7 @@ type VisitorFn<T> = (opts: {
   token: TokenResult<Token>;
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
 
-type TreeResultLocatorOpts<T> = {
+interface TreeResultLocatorOpts<T> {
   /**
    * The value to return when returnValue was never called and all nodes of the
    * search tree were visited.
@@ -57,7 +57,7 @@ type TreeResultLocatorOpts<T> = {
    * inner nodes.
    */
   visitorTest: VisitorFn<T>;
-};
+}
 
 /**
  * Utility function to visit every Token node within an AST tree (in DFS order)
@@ -156,12 +156,12 @@ export function treeResultLocator<T>({
   return noResultValue;
 }
 
-type GetKeyNameOpts = {
+interface GetKeyNameOpts {
   /**
    * Include arguments in aggregate key names
    */
   aggregateWithArgs?: boolean;
-};
+}
 
 /**
  * Utility to get the internal string name of any type of key.

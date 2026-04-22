@@ -20,12 +20,12 @@ const DEFAULT_SORT = {
   field: 'measurements.time_to_initial_display',
 } as Sort;
 
-type Props = {
+interface Props {
   cursorName: string;
   release: string | undefined;
   sortKey: string;
   transaction: string;
-};
+}
 
 export function ScreenLoadEventSamples({
   cursorName,

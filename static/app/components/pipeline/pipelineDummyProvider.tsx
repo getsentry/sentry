@@ -63,9 +63,9 @@ function DummyStepTwo({
   );
 }
 
-type DummyCompletionData = {
+interface DummyCompletionData {
   result: string;
-};
+}
 
 function DummyCompletionView({
   data,

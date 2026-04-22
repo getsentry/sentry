@@ -18,11 +18,11 @@ import {
 } from 'sentry/views/insights/browser/webVitals/types';
 import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
-type Props = {
+interface Props {
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
   webVital?: WebVitals | null;
-};
+}
 
 export function PerformanceScoreChart({
   projectScore,

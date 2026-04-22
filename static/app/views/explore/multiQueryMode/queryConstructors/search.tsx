@@ -15,7 +15,10 @@ import {
   SectionLabel,
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 
-type Props = {index: number; query: ReadableExploreQueryParts};
+interface Props {
+  index: number;
+  query: ReadableExploreQueryParts;
+}
 
 export function SearchBarSection({query, index}: Props) {
   const {selection} = usePageFilters();

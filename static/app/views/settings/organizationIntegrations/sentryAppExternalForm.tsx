@@ -28,18 +28,18 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   uri?: string;
 };
 
-export type SchemaFormConfig = {
+export interface SchemaFormConfig {
   uri: string;
   description?: string;
   optional_fields?: FieldFromSchema[];
   required_fields?: FieldFromSchema[];
-};
+}
 
-type SentryAppSetting = {
+interface SentryAppSetting {
   name: string;
   value: any;
   label?: string;
-};
+}
 
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
@@ -47,7 +47,7 @@ type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   selectedOptions: Record<string, GeneralSelectValue>;
 };
 
-type Props = {
+interface Props {
   action: 'create' | 'link';
   api: Client;
   appName: string;
@@ -79,7 +79,7 @@ type Props = {
     [key: string]: any;
     settings?: SentryAppSetting[];
   };
-};
+}
 
 /**
  *  This component is the result of a refactor of sentryAppExternalIssueForm.tsx.

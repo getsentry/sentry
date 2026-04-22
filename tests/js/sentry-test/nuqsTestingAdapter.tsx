@@ -9,7 +9,7 @@ import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type SentryNuqsTestingAdapterProps = {
+interface SentryNuqsTestingAdapterProps {
   children: ReactNode;
   /**
    * Default options to pass to nuqs
@@ -24,7 +24,7 @@ type SentryNuqsTestingAdapterProps = {
    * Connect that to a spy in your tests to assert the URL updates.
    */
   onUrlUpdate?: OnUrlUpdateFunction;
-};
+}
 
 /**
  * Custom nuqs adapter component for Sentry that reads location from our

@@ -24,10 +24,10 @@ const optionsAvailable = [
 
 type Field = ReturnType<typeof getOption>;
 
-type FieldDef = {
+interface FieldDef {
   field: Field;
   value: string | undefined;
-};
+}
 
 export default function AdminSettings() {
   const {data, isPending, isError} = useApiQuery<Record<string, FieldDef>>(

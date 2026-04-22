@@ -95,11 +95,11 @@ describe('useQueryParamState', () => {
   });
 
   it('can take any kind of value and serialize it to a string compatible with query params', () => {
-    type TestType = {
+    interface TestType {
       count: number;
       isActive: boolean;
       value: string;
-    };
+    }
 
     const mockedNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockedNavigate);

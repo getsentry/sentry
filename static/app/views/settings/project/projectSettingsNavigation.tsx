@@ -4,10 +4,10 @@ import {withProject} from 'sentry/utils/withProject';
 import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavigation';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 
-type Props = {
+interface Props {
   organization: Organization;
   project?: Project;
-};
+}
 
 function ProjectSettingsNavigation({organization, project}: Props) {
   return (

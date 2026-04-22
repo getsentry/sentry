@@ -9,14 +9,14 @@ import {Content} from './content';
 import {LineCoverageProvider} from './lineCoverageContext';
 import {RawContent} from './rawContent';
 
-type Props = {
+interface Props {
   event: Event;
   projectSlug: Project['slug'];
   values: ExceptionType['values'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   threadId?: number;
-};
+}
 
 export function ExceptionContent({
   projectSlug,

@@ -25,13 +25,13 @@ interface UndoableIndicatorOptions extends IndicatorOptions {
   };
 }
 
-export type Indicator = {
+export interface Indicator {
   id: string | number;
   message: React.ReactNode;
   options: IndicatorOptions;
   type: IndicatorType;
   clearId?: null | number;
-};
+}
 
 // Clears all indicators
 export function clearIndicators() {

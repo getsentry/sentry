@@ -9,16 +9,16 @@ import type {DiffItem, DiffType} from 'sentry/views/preprod/types/appSizeTypes';
 
 export const ITEMS_PER_PAGE = 40;
 
-export type DiffTableSort = {
+export interface DiffTableSort {
   field: string;
   kind: 'asc' | 'desc';
-};
+}
 
-type DiffChangeElements = {
+interface DiffChangeElements {
   icon: React.ReactNode;
   label: string;
   type: 'success' | 'danger' | 'warning';
-};
+}
 
 export function getDiffChangeElements(diffItem: DiffItem): DiffChangeElements {
   let change: {

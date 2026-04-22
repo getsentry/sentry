@@ -71,14 +71,14 @@ const TREND_FUNCTIONS_OPTIONS: Array<SelectValue<string>> = TRENDS_FUNCTIONS.map
   })
 );
 
-type Props = {
+interface Props {
   currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
   location: Location;
   organization: Organization;
   totalValue: number | null;
   project?: Project;
-};
+}
 
 export function TransactionSummaryCharts({
   totalValue,

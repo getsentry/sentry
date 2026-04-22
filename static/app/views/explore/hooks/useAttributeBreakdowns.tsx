@@ -11,13 +11,13 @@ import {CHARTS_PER_PAGE} from 'sentry/views/explore/components/attributeBreakdow
 
 type AttributeDistributionData = Record<string, Array<{label: string; value: number}>>;
 
-type AttributeBreakdowns = {
+interface AttributeBreakdowns {
   data: Array<{
     attribute_distributions: {
       data: AttributeDistributionData;
     };
   }>;
-};
+}
 
 // The /trace-items/stats/ endpoint returns a paginated response, but recommends fetching
 //  more data than we need to display the current page. Hence we accumulate the

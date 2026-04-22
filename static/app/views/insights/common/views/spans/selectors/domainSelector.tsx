@@ -20,14 +20,14 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
 import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   domainAlias: string;
   moduleName: ModuleName;
   additionalQuery?: string[];
   emptyOptionLocation?: 'top' | 'bottom';
   spanCategory?: string;
   value?: string;
-};
+}
 
 export function DomainSelector({
   value = '',

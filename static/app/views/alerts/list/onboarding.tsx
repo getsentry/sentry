@@ -7,9 +7,9 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   actions: React.ReactNode;
-};
+}
 
 export function Onboarding({actions}: Props) {
   return (

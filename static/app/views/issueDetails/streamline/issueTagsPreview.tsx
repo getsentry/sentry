@@ -49,12 +49,12 @@ const BACKEND_TAGS = [
 const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
 const RTL_TAGS = ['transaction', 'url'];
 
-type Segment = {
+interface Segment {
   count: number;
   name: string | React.ReactNode;
   percentage: number;
   color?: string;
-};
+}
 
 const bgColor = (index: number, theme: Theme) =>
   color(theme.chart.getColorPalette(4).at(index)).alpha(0.8).toString();

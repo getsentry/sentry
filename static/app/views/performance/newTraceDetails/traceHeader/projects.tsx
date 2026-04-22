@@ -14,11 +14,11 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-type Props = {
+interface Props {
   logs: OurLogsResponseItem[] | undefined;
   projects: Project[];
   tree: TraceTree;
-};
+}
 
 export function Projects({projects, logs, tree}: Props) {
   const dispatch = useTraceStateDispatch();

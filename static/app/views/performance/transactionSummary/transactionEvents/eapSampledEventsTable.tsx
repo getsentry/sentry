@@ -109,14 +109,14 @@ const COLUMN_ORDER: SampledEventsColumn[] = [
   {key: 'profile.id', name: t('Profile'), width: COL_WIDTH_UNDEFINED},
 ];
 
-type Props = {
+interface Props {
   eventView: EventView;
   isMaxDurationLoading: boolean;
   onCursor: CursorHandler;
   transactionName: string;
   cursor?: string;
   maxDuration?: number;
-};
+}
 
 export function SampledEventsTable({
   eventView,

@@ -11,13 +11,13 @@ import {useApi} from 'sentry/utils/useApi';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
 
-type RelayRow = {
+interface RelayRow {
   firstSeen: string;
   id: string;
   lastSeen: string;
   publicKey: string;
   relayId: string;
-};
+}
 
 export default function AdminRelays() {
   const api = useApi();

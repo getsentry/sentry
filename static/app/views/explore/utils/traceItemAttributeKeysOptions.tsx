@@ -9,7 +9,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
-type AttributeType = {
+interface AttributeType {
   attributeSource: {
     source_type: string;
   };
@@ -17,7 +17,7 @@ type AttributeType = {
   key: string;
   name: string;
   secondaryAliases?: string[];
-};
+}
 
 type TraceItemAttributeType = 'string' | 'number' | 'boolean';
 
@@ -79,11 +79,11 @@ export function traceItemAttributeKeysOptions({
   );
 }
 
-type TraceItemTagCollections = {
+interface TraceItemTagCollections {
   booleanAttributes: TagCollection;
   numberAttributes: TagCollection;
   stringAttributes: TagCollection;
-};
+}
 
 export function selectTraceItemTagCollection(): (
   data: ApiResponse<AttributeType[]>

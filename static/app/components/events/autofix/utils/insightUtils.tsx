@@ -3,11 +3,11 @@ import type {
   InsightSources,
 } from 'sentry/components/events/autofix/types';
 
-type ParsedCodeUrl = {
+interface ParsedCodeUrl {
   baseUrl: string;
   endLine: number | null;
   startLine: number | null;
-};
+}
 
 /**
  * Parses a code URL to extract the base URL and line range information.

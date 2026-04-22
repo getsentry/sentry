@@ -21,10 +21,10 @@ import {dataConditionNodesMap} from 'sentry/views/automations/components/dataCon
 import {TRIGGER_MATCH_OPTIONS} from 'sentry/views/automations/components/triggers/constants';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 
-type ConditionsPanelProps = {
+interface ConditionsPanelProps {
   actionFilters: DataConditionGroup[];
   triggers: DataConditionGroup | null;
-};
+}
 
 export function ConditionsPanel({triggers, actionFilters}: ConditionsPanelProps) {
   return (

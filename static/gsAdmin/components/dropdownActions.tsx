@@ -7,7 +7,7 @@ import {IconNot} from 'sentry/icons';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
 
-type Props = {
+interface Props {
   actions: Array<{
     key: string;
     name: string;
@@ -20,7 +20,7 @@ type Props = {
     visible?: boolean;
   }>;
   label: string;
-};
+}
 
 /**
  * Map actions to a format that can be used by the CompactSelect component. This exists

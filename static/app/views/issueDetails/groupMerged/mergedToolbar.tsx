@@ -10,12 +10,12 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   groupId: Group['id'];
   onToggleCollapse: () => void;
   onUnmerge: () => void;
   project: Project;
-};
+}
 
 export function MergedToolbar({groupId, project, onUnmerge, onToggleCollapse}: Props) {
   const {

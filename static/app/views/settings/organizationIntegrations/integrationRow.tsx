@@ -26,7 +26,7 @@ import {AlertContainer} from './integrationAlertContainer';
 import {IntegrationStatus} from './integrationStatus';
 import {PluginDeprecationAlert} from './pluginDeprecationAlert';
 
-type Props = {
+interface Props {
   categories: string[];
   configurations: number;
   displayName: string;
@@ -47,7 +47,7 @@ type Props = {
    */
   resolveText?: string;
   status?: IntegrationInstallationStatus;
-};
+}
 
 const urlMap = {
   plugin: 'plugins',
@@ -190,7 +190,9 @@ const LearnMore = styled(Link)`
   color: ${p => p.theme.tokens.content.secondary};
 `;
 
-type PublishStatusProps = {status: SentryApp['status']};
+interface PublishStatusProps {
+  status: SentryApp['status'];
+}
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{status}</div>

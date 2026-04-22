@@ -12,7 +12,10 @@ import type {PlatformKey} from 'sentry/types/project';
 import {platformToCategory} from 'sentry/utils/platform';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 
-type ColumnInfo = {columnTitles: string[]; fields: string[]};
+interface ColumnInfo {
+  columnTitles: string[];
+  fields: string[];
+}
 
 export const useEventColumns = (group: Group, organization: Organization): ColumnInfo => {
   return useMemo(() => {

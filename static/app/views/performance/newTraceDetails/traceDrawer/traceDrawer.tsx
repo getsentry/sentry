@@ -38,7 +38,7 @@ import {
 import {type TraceTabsReducerState} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-type TraceDrawerProps = {
+interface TraceDrawerProps {
   manager: VirtualizedViewManager;
   meta: TraceMetaQueryResults;
   onScrollToNode: (node: BaseNode) => void;
@@ -50,7 +50,7 @@ type TraceDrawerProps = {
   traceGridRef: HTMLElement | null;
   traceId: string;
   traceType: TraceShape;
-};
+}
 
 export function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();

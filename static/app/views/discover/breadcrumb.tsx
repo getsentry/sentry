@@ -11,13 +11,13 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
   event?: Event;
   isHomepage?: boolean;
-};
+}
 
 export function DiscoverBreadcrumb({
   eventView,

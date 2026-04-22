@@ -13,12 +13,12 @@ import type {Organization} from 'sentry/types/organization';
 /**
  * Visual representation of a project/team/organization/user
  */
-export type Avatar = {
+export interface Avatar {
   avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'default';
   avatarUuid: string | null;
   avatarUrl?: string | null;
   color?: boolean;
-};
+}
 
 export type ObjectStatus =
   | 'active'
@@ -26,12 +26,12 @@ export type ObjectStatus =
   | 'pending_deletion'
   | 'deletion_in_progress';
 
-export type Actor = {
+export interface Actor {
   id: string;
   name: string;
   type: 'user' | 'team';
   email?: string;
-};
+}
 
 export type Scope = (typeof ALLOWED_SCOPES)[number];
 
@@ -222,7 +222,7 @@ export type IntervalPeriod = ReturnType<typeof getInterval>;
  */
 export type PinnedPageFilter = 'projects' | 'environments' | 'datetime';
 
-export type PageFilters = {
+export interface PageFilters {
   /**
    * Currently selected time filter
    */
@@ -240,23 +240,29 @@ export type PageFilters = {
    * Currently selected Project IDs
    */
   projects: number[];
-};
+}
 
-type EmptyState = {type: 'empty'};
+interface EmptyState {
+  type: 'empty';
+}
 
-type InitialState = {type: 'initial'};
+interface InitialState {
+  type: 'initial';
+}
 
-type LoadingState = {type: 'loading'};
+interface LoadingState {
+  type: 'loading';
+}
 
-type ResolvedState<T> = {
+interface ResolvedState<T> {
   data: T;
   type: 'resolved';
-};
+}
 
-type ErroredState = {
+interface ErroredState {
   error: string;
   type: 'errored';
-};
+}
 
 export type RequestState<T> =
   | EmptyState

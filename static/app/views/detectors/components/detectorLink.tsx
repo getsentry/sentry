@@ -37,11 +37,11 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type DetectorLinkProps = {
+interface DetectorLinkProps {
   detector: Detector;
   className?: string;
   openInNewTab?: boolean;
-};
+}
 
 function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {

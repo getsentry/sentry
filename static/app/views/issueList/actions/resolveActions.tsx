@@ -5,14 +5,14 @@ import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/usePro
 import type {getConfirm, getLabel} from './utils';
 import {ConfirmAction} from './utils';
 
-type Props = {
+interface Props {
   anySelected: boolean;
   confirm: ReturnType<typeof getConfirm>;
   label: ReturnType<typeof getLabel>;
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
   selectedProjectSlug: string | undefined;
-};
+}
 
 export function ResolveActionsContainer({
   anySelected,

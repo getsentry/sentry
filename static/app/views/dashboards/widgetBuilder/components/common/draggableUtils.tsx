@@ -1,11 +1,11 @@
 import type {Modifier, Translate} from '@dnd-kit/core';
 
-export type WidgetDragPositioning = {
+export interface WidgetDragPositioning {
   initialTranslate: Translate;
   translate: Translate;
   left?: number;
   top?: number;
-};
+}
 
 export const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
 

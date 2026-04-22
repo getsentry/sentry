@@ -21,17 +21,17 @@ export type TrendsQuery = EventQuery &
     trendType?: TrendChangeType;
   };
 
-export type TrendFunction = {
+export interface TrendFunction {
   alias: string;
   field: TrendFunctionField;
   label: string;
   legendLabel: string;
-};
+}
 
-export type TrendParameter = {
+export interface TrendParameter {
   column: TrendParameterColumn;
   label: TrendParameterLabel;
-};
+}
 
 export enum TrendChangeType {
   IMPROVED = 'improved',
@@ -71,14 +71,14 @@ export enum TrendParameterLabel {
   SPANS_RESOURCE = 'Spans (resource)',
 }
 
-type TrendStat = {
+interface TrendStat {
   data: EventsStatsData;
   order: number;
-};
+}
 
 export type TrendsStats = Record<string, TrendStat>;
 
-export type TrendsTransaction = {
+export interface TrendsTransaction {
   aggregate_range_1: number;
   aggregate_range_2: number;
   count: number;
@@ -94,18 +94,18 @@ export type TrendsTransaction = {
   count_percentage?: number;
   count_range_1?: number;
   count_range_2?: number;
-};
+}
 
-export type TrendsDataEvents = {
+export interface TrendsDataEvents {
   data: TrendsTransaction[];
   meta: any;
-};
+}
 
-export type TrendsData = {
+export interface TrendsData {
   events: TrendsDataEvents;
   projects: Project[];
   stats: TrendsStats;
-};
+}
 
 export type NormalizedTrendsTransaction = TrendsTransaction & {
   received_at: Readonly<moment.Moment>;

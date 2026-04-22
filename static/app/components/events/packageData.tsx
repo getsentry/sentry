@@ -9,9 +9,9 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 export function EventPackageData({event}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);

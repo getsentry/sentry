@@ -88,13 +88,13 @@ type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 /**
  * Used for some properties that can be truncated
  */
-type Truncateable = {
+interface Truncateable {
   /**
    * Truncate the label / value some number of characters.
    * If true is passed, it will use truncate based on a default length.
    */
   truncate?: number | boolean;
-};
+}
 
 export interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>, Truncateable {

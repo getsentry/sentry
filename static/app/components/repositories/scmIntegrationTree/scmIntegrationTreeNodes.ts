@@ -12,7 +12,7 @@ import type {
 
 export const DISCONNECTED_SECTION_KEY = '__disconnected__';
 
-type Props = {
+interface Props {
   connectedIdentifiers: Set<string>;
   connectedRepos: Repository[];
   expandedIntegrations: Set<string>;
@@ -26,7 +26,7 @@ type Props = {
   search: string;
   supportedProviderIds: string[];
   togglingRepos: Set<string>;
-};
+}
 
 export function buildIntegrationTreeNodes({
   scmProviders,

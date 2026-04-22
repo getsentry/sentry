@@ -11,13 +11,13 @@ import {t} from 'sentry/locale';
 import type {Rule} from './types';
 import {getRuleDescription} from './utils';
 
-type Props = {
+interface Props {
   rules: Rule[];
   disabled?: boolean;
   onDeleteRule?: (id: Rule['id']) => void;
   onEditRule?: (id: Rule['id']) => void;
   ref?: React.Ref<HTMLUListElement>;
-};
+}
 
 export function Rules({ref, rules, onEditRule, onDeleteRule, disabled}: Props) {
   return (

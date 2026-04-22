@@ -1,11 +1,11 @@
 import {defined} from 'sentry/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-export type SeriesSamplingInfo = {
+export interface SeriesSamplingInfo {
   isSampled: boolean | null;
   sampleCount: number;
   dataScanned?: 'full' | 'partial';
-};
+}
 
 export function determineSeriesSampleCountAndIsSampled(
   data: TimeSeries[],

@@ -21,12 +21,12 @@ import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
-type FilterKeyProps = {
+interface FilterKeyProps {
   item: Node<ParseResultToken>;
   onActiveChange: (active: boolean) => void;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
-};
+}
 
 export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) {
   const ref = useRef<HTMLDivElement>(null);

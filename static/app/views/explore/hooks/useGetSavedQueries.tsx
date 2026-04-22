@@ -13,18 +13,18 @@ import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSave
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export type RawGroupBy = {
+export interface RawGroupBy {
   groupBy: string;
-};
+}
 
 function isRawGroupBy(value: any): value is RawGroupBy {
   return typeof value === 'object' && typeof value.groupBy === 'string';
 }
 
-export type RawVisualize = {
+export interface RawVisualize {
   yAxes: string[];
   chartType?: number;
-};
+}
 
 export function isRawVisualize(value: any): value is RawVisualize {
   return (
@@ -34,7 +34,7 @@ export function isRawVisualize(value: any): value is RawVisualize {
   );
 }
 
-type ReadableQuery = {
+interface ReadableQuery {
   fields: string[];
   mode: Mode;
   orderby: string;
@@ -50,7 +50,7 @@ type ReadableQuery = {
   // Only used for metrics dataset.
   metric?: TraceMetric;
   visualize?: RawVisualize[];
-};
+}
 
 // This is the `query` property on our SavedQuery, which indicates the actualy query portion of the saved query, hence SavedQueryQuery.
 class SavedQueryQuery {
@@ -102,7 +102,7 @@ export type SortOption =
   | 'mostStarred';
 
 // Comes from ExploreSavedQueryModelSerializer
-export type ReadableSavedQuery = {
+export interface ReadableSavedQuery {
   dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays'; // ExploreSavedQueryDataset
   dateAdded: string;
   dateUpdated: string;
@@ -122,7 +122,7 @@ export type ReadableSavedQuery = {
   isPrebuilt?: boolean;
   range?: string;
   start?: string;
-};
+}
 
 export class SavedQuery {
   dateAdded: string;
@@ -193,14 +193,14 @@ export function starredSavedQueriesApiOptions(organization: Organization) {
   });
 }
 
-type Props = {
+interface Props {
   cursor?: string;
   exclude?: 'owned' | 'shared';
   perPage?: number;
   query?: string;
   sortBy?: SortOption[];
   starred?: boolean;
-};
+}
 
 export function useGetSavedQueries({
   sortBy,

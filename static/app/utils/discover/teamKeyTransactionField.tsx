@@ -11,10 +11,10 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type BaseProps = {
+interface BaseProps {
   isKeyTransaction: boolean;
   organization: Organization;
-};
+}
 
 type Props = BaseProps &
   TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {

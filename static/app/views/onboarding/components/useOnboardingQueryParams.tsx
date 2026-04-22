@@ -5,7 +5,7 @@ import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type QueryValues = {
+interface QueryValues {
   /**
    * Used to show product selection (error monitoring, tracing, profiling and session replay) for certain platforms, e.g. javascript-react
    */
@@ -14,7 +14,7 @@ type QueryValues = {
    * Used to show or not the integration onboarding for certain platforms, e.g. AWS (python)
    */
   showManualSetup: boolean;
-};
+}
 
 export function useOnboardingQueryParams(): [
   params: Partial<QueryValues>,

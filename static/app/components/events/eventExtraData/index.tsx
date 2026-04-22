@@ -17,9 +17,9 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import type {EventExtraDataType, EventExtraData as TEventExtraData} from './types';
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 export function EventExtraData({event}: Props) {
   const [raw, setRaw] = useState(false);

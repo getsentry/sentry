@@ -7,12 +7,12 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
 import type {AvatarUser} from 'sentry/types/user';
 
-type Props = {
+interface Props {
   type: 'system' | 'user';
   className?: string;
   size?: number;
   user?: AvatarUser;
-};
+}
 
 export function ActivityAvatar({className, type, user, size = 38}: Props) {
   if (user) {

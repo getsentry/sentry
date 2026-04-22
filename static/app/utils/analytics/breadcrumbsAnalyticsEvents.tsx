@@ -1,7 +1,7 @@
-export type BreadcrumbsAnalyticsEventParameters = {
+export interface BreadcrumbsAnalyticsEventParameters {
   'breadcrumbs.link.clicked': {organization: null};
   'breadcrumbs.menu.opened': {organization: null};
-};
+}
 
 export const breadcrumbsAnalyticsEventMap: Record<
   keyof BreadcrumbsAnalyticsEventParameters,

@@ -6,10 +6,10 @@ import {IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   color?: string;
   legacySize?: SVGIconProps['legacySize'];
-};
+}
 
 export function MoreFeaturesLink({color, legacySize}: Props) {
   return (

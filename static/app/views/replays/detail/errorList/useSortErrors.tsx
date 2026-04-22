@@ -12,7 +12,9 @@ const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
   timestamp: row => row.timestamp,
 };
 
-type Opts = {items: ErrorFrame[]};
+interface Opts {
+  items: ErrorFrame[];
+}
 
 export function useSortErrors({items}: Opts) {
   const [sortAsc, setSortAsc] = useQueryState(

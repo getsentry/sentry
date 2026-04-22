@@ -36,10 +36,10 @@ enum YAxis {
   COUNT = 7,
 }
 
-type Props = {
+interface Props {
   additionalFilters?: string[];
   chartHeight?: number;
-};
+}
 
 const yAxes = [YAxis.TTID, YAxis.TTFD, YAxis.COUNT];
 

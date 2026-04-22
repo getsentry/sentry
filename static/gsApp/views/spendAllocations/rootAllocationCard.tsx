@@ -22,12 +22,12 @@ import {Card, HalvedGrid} from './components/styles';
 import type {SpendAllocation} from './components/types';
 import {bigNumFormatter, BigNumUnits} from './utils';
 
-type Props = {
+interface Props {
   createRootAllocation: (e: React.MouseEvent) => void;
   selectedMetric: string;
   subscription: Subscription;
   rootAllocation?: SpendAllocation;
-};
+}
 
 export function RootAllocationCard({
   createRootAllocation,

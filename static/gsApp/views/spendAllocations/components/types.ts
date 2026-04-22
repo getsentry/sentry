@@ -1,4 +1,4 @@
-export type SpendAllocation = {
+export interface SpendAllocation {
   billingMetric: string;
   consumedQuantity: number;
   costPerItem: number;
@@ -9,4 +9,4 @@ export type SpendAllocation = {
   targetId: number;
   targetSlug: string;
   targetType: string;
-};
+}

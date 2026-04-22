@@ -58,7 +58,7 @@ export interface ThresholdMetaState {
   dataUnit?: string;
 }
 
-type WidgetBuilderV2Props = {
+interface WidgetBuilderV2Props {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
@@ -66,7 +66,7 @@ type WidgetBuilderV2Props = {
   onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
-};
+}
 
 export function WidgetBuilderV2({
   isOpen,

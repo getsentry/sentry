@@ -14,11 +14,11 @@ import type {Mode} from 'sentry/views/explore/queryParams/mode';
 
 import {useChartSelection} from './chartSelectionContext';
 
-type Props = {
+interface Props {
   chartIndex: number;
   params: SelectionCallbackParams;
   setTab: (tab: Mode | Tab) => void;
-};
+}
 
 export function FloatingTrigger({chartIndex, params, setTab}: Props) {
   const location = useLocation();

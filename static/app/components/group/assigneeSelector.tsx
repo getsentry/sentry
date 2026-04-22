@@ -18,9 +18,9 @@ import {
   type AssignedBy,
 } from 'sentry/views/issueDetails/useAssignIssueMutation';
 
-type HandleAssignOptions = {
+interface HandleAssignOptions {
   assignedBy?: AssignedBy;
-};
+}
 
 interface AssigneeSelectorProps {
   assigneeLoading: boolean;

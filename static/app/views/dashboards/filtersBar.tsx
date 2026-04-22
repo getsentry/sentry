@@ -96,7 +96,7 @@ function getDataCategoriesFromWidgets(
     : [DataCategory.TRANSACTIONS];
 }
 
-export type FiltersBarProps = {
+export interface FiltersBarProps {
   filters: DashboardFilters;
   hasUnsavedChanges: boolean;
   isEditingDashboard: boolean;
@@ -111,7 +111,7 @@ export type FiltersBarProps = {
   prebuiltDashboardId?: PrebuiltDashboardId;
   shouldBusySaveButton?: boolean;
   storageNamespace?: string;
-};
+}
 
 export function FiltersBar({
   filters,

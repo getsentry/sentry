@@ -112,14 +112,14 @@ export function useDataConditionNodeContext(): DataConditionNodeProps {
   return context;
 }
 
-type DataConditionNode = {
+interface DataConditionNode {
   label: string;
   validate: (({condition}: ValidateDataConditionProps) => string | undefined) | undefined;
   dataCondition?: React.ComponentType<any>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
   warningMessage?: React.ComponentType<any>;
-};
+}
 
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
   [

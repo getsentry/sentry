@@ -75,7 +75,7 @@ import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibr
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-type WidgetBuilderSlideoutProps = {
+interface WidgetBuilderSlideoutProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
@@ -87,7 +87,7 @@ type WidgetBuilderSlideoutProps = {
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
   onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
-};
+}
 
 function WidgetBuilderSlideoutInner({
   onClose,
@@ -537,9 +537,9 @@ function Section({children}: {children: React.ReactNode}) {
   );
 }
 
-type DisableModeProps = {
+interface DisableModeProps {
   children: React.ReactNode;
-};
+}
 
 function DisableTransactionWidget({children}: DisableModeProps) {
   const disableTransactionWidget = useDisableTransactionWidget();

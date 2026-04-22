@@ -40,7 +40,7 @@ export function getReferrer(displayType: DisplayType) {
   return referrer;
 }
 
-export type OnDataFetchedProps = {
+export interface OnDataFetchedProps {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isProgressivelyLoading?: boolean;
@@ -52,9 +52,9 @@ export type OnDataFetchedProps = {
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
-};
+}
 
-export type GenericWidgetQueriesResult = {
+export interface GenericWidgetQueriesResult {
   loading: boolean;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
@@ -68,7 +68,7 @@ export type GenericWidgetQueriesResult = {
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalCount?: string;
-};
+}
 
 /**
  * Result type for hook-based queries.
@@ -80,7 +80,7 @@ export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
   rawData: any[];
 };
 
-type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
+interface UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
@@ -114,7 +114,7 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   // Optional override for the widget interval (e.g., '1m', '5m', '1h')
   // If not provided, widget interval will be calculated automatically
   widgetInterval?: string;
-};
+}
 
 /**
  * Creates a table widget variant for fetching breakdown totals.

@@ -7,7 +7,7 @@ import {ExpandedStateContextProvider} from 'sentry/components/structuredEventDat
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {t} from 'sentry/locale';
 
-export type StructedEventDataConfig = {
+export interface StructedEventDataConfig {
   isBoolean?: (value: unknown) => boolean;
   isNull?: (value: unknown) => boolean;
   isNumber?: (value: unknown) => boolean;
@@ -16,7 +16,7 @@ export type StructedEventDataConfig = {
   renderNull?: (value: unknown) => React.ReactNode;
   renderObjectKeys?: (value: string) => string;
   renderString?: (value: string) => string;
-};
+}
 
 interface BaseProps {
   /**

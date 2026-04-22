@@ -6,11 +6,11 @@ import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import type {FormSize} from 'sentry/utils/theme';
 
-type CheckboxConfig = {
+interface CheckboxConfig {
   borderRadius: string;
   box: string;
   icon: string;
-};
+}
 
 const NativeHiddenCheckbox = styled('input')`
   position: absolute;

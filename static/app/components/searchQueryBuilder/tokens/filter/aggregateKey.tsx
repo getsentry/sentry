@@ -19,13 +19,13 @@ import type {
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 
-type AggregateKeyProps = {
+interface AggregateKeyProps {
   filterRef: React.RefObject<HTMLDivElement | null>;
   item: Node<ParseResultToken>;
   onActiveChange: (active: boolean) => void;
   state: ListState<ParseResultToken>;
   token: AggregateFilter;
-};
+}
 
 export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
   const fnName = getKeyName(token.key);

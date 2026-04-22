@@ -142,11 +142,11 @@ const DATATYPE_KEY = 'type';
 
 const NO_VALUE = ' \u2014 ';
 
-type Props = {
+interface Props {
   transaction: string;
   limit?: number;
   search?: string;
-};
+}
 
 export function PageSamplePerformanceTable({transaction, search, limit = 9}: Props) {
   const location = useLocation();

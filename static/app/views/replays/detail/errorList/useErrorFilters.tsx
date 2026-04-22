@@ -17,17 +17,17 @@ const DEFAULT_FILTERS = {
   f_e_project: [],
 } as Record<ErrorSelectOption['qs'], string[]>;
 
-export type FilterFields = {
+export interface FilterFields {
   f_e_level: string[];
   f_e_project: string[];
   f_e_search: string;
-};
+}
 
-type Options = {
+interface Options {
   errorFrames: ErrorFrame[];
-};
+}
 
-type Return = {
+interface Return {
   getLevelOptions: () => ErrorSelectOption[];
   getProjectOptions: () => ErrorSelectOption[];
   items: ErrorFrame[];
@@ -35,7 +35,7 @@ type Return = {
   selectValue: string[];
   setFilters: (val: ErrorSelectOption[]) => void;
   setSearchTerm: (searchTerm: string) => void;
-};
+}
 
 const FILTERS = {
   level: (item: ErrorFrame, levels: string[]) =>

@@ -72,9 +72,9 @@ mockUseLoadReplayReader.mockImplementation(() => {
   };
 });
 
-type InitializeOrgProps = {
+interface InitializeOrgProps {
   organizationProps?: Parameters<typeof OrganizationFixture>[0];
-};
+}
 
 describe('GroupReplays', () => {
   const mockGroup = GroupFixture();

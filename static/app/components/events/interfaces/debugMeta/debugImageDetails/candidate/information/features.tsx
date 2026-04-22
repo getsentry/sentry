@@ -8,9 +8,9 @@ import {getImageFeatureDescription} from 'sentry/components/events/interfaces/de
 import type {CandidateDownload} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
 
-type Props = {
+interface Props {
   download: CandidateDownload;
-};
+}
 
 export function Features({download}: Props) {
   let features: string[] = [];

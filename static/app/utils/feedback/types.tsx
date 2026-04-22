@@ -4,7 +4,7 @@ import type {Project} from 'sentry/types/project';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type FeedbackIssueMetadata = {
+interface FeedbackIssueMetadata {
   contact_email: null | string;
   message: string;
   name: null | string;
@@ -16,7 +16,7 @@ type FeedbackIssueMetadata = {
   };
   source?: null | string;
   summary?: null | string;
-};
+}
 
 export type FeedbackIssue = Overwrite<
   BaseGroup & GroupStats,

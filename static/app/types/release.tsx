@@ -8,15 +8,15 @@ export enum ReleaseStatus {
   ARCHIVED = 'archived',
 }
 
-export type SourceMapsArchive = {
+export interface SourceMapsArchive {
   date: string;
   fileCount: number;
   id: number;
   name: string;
   type: 'release';
-};
+}
 
-export type Artifact = {
+export interface Artifact {
   dateCreated: string;
   dist: string | null;
   headers: {'Content-Type': string} | Record<string, unknown>;
@@ -24,9 +24,9 @@ export type Artifact = {
   name: string;
   sha1: string;
   size: number;
-};
+}
 
-export type Deploy = {
+export interface Deploy {
   dateFinished: string;
   dateStarted: string;
   environment: string;
@@ -34,7 +34,7 @@ export type Deploy = {
   name: string;
   url: string;
   version: string;
-};
+}
 
 interface RawVersion {
   raw: string;
@@ -49,12 +49,12 @@ export interface SemverVersion extends RawVersion {
   pre: string | null;
 }
 
-export type VersionInfo = {
+export interface VersionInfo {
   buildHash: string | null;
   description: string;
   package: string | null;
   version: RawVersion | SemverVersion;
-};
+}
 
 export interface BaseRelease {
   dateCreated: string;
@@ -108,7 +108,7 @@ interface ReleaseData {
   userAgent?: string;
 }
 
-export type ReleaseProject = {
+export interface ReleaseProject {
   id: number;
   name: string;
   newGroups: number;
@@ -117,17 +117,17 @@ export type ReleaseProject = {
   slug: string;
   hasHealthData?: boolean;
   healthData?: Health;
-};
+}
 
 /**
  * From the `/releases/stats/` endpoint
  */
-export type ReleaseMetaBasic = {
+export interface ReleaseMetaBasic {
   date: string;
   version: string;
-};
+}
 
-export type ReleaseMeta = {
+export interface ReleaseMeta {
   commitCount: number;
   commitFilesChanged: number;
   deployCount: number;
@@ -139,12 +139,12 @@ export type ReleaseMeta = {
   released: string;
   version: string;
   versionInfo: VersionInfo;
-};
+}
 
 /**
  * Release health
  */
-export type Health = {
+export interface Health {
   adoption: number | null;
   crashFreeSessions: number | null;
   crashFreeUsers: number | null;
@@ -161,7 +161,7 @@ export type Health = {
   totalSessions24h: number | null;
   totalUsers: number;
   totalUsers24h: number | null;
-};
+}
 
 type HealthGraphData = Record<string, TimeseriesValue[]>;
 

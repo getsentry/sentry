@@ -36,10 +36,10 @@ function fetchCustomMeasurements(
   });
 }
 
-type CustomMeasurementsConfig = {
+interface CustomMeasurementsConfig {
   organization: Organization;
   selection?: PageFilters;
-};
+}
 
 type CustomMeasurementsProviderProps = {
   children:

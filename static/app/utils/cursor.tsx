@@ -1,8 +1,8 @@
-type CursorInfo = {
+interface CursorInfo {
   isPrev: boolean;
   offset: number;
   value: number;
-};
+}
 
 /// Converts a cursor string into a Cursor object.
 export function parseCursor(

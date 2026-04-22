@@ -22,13 +22,13 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
-type DerivedCodeMapping = {
+interface DerivedCodeMapping {
   filename: string;
   repo_branch: string;
   repo_name: string;
   source_path: string;
   stacktrace_root: string;
-};
+}
 
 interface StacktraceLinkModalProps extends ModalRenderProps {
   filename: string;

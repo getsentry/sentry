@@ -81,9 +81,9 @@ const Alerts = styled('g')`
   }
 `;
 
-type Props = {
+interface Props {
   anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+}
 
 export function AlertsBackground({anchorRef}: Props) {
   let alertInterval: undefined | number;

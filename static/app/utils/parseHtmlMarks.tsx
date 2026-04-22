@@ -1,13 +1,13 @@
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-type Options = {
+interface Options {
   htmlString: string;
   key: string;
   markTags: {
     highlightPostTag: string;
     highlightPreTag: string;
   };
-};
+}
 
 /**
  * Parses the "marked" html strings into a {key, value, indices} (mimincing the

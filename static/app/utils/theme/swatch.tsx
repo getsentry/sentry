@@ -1,4 +1,7 @@
-type OnVibrant = {dark: string; light: string};
+interface OnVibrant {
+  dark: string;
+  light: string;
+}
 
 /**
  * Hardcoded contrast mapping for categorical palette colors.

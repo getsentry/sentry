@@ -27,7 +27,7 @@ export interface StackTraceViewStateProviderProps {
   platform?: PlatformKey;
 }
 
-export type FrameRow = {
+export interface FrameRow {
   frame: Frame;
   frameIndex: number;
   isSubFrame: boolean;
@@ -35,13 +35,13 @@ export type FrameRow = {
   timesRepeated: number;
   hiddenFrameCount?: number;
   nextFrame?: Frame;
-};
+}
 
-export type OmittedFramesRow = {
+export interface OmittedFramesRow {
   kind: 'omitted';
   omittedFrames: [number, number];
   rowKey: string;
-};
+}
 
 export type Row = FrameRow | OmittedFramesRow;
 

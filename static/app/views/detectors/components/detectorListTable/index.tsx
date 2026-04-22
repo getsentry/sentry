@@ -43,14 +43,14 @@ import {
 import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {useCanEditDetectors} from 'sentry/views/detectors/utils/useCanEditDetector';
 
-type DetectorListTableProps = {
+interface DetectorListTableProps {
   allResultsVisible: boolean;
   detectors: Detector[];
   isError: boolean;
   isPending: boolean;
   isSuccess: boolean;
   queryCount: string;
-};
+}
 
 function LoadingSkeletons() {
   return Array.from({length: DETECTOR_LIST_PAGE_LIMIT}).map((_, index) => (

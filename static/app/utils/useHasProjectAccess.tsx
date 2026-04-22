@@ -1,12 +1,12 @@
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
-type Options = {
+interface Options {
   /**
    * When true, superusers must also be a project member to count as having access.
    */
   superuserNeedsToBeProjectMember?: boolean;
-};
+}
 
 /**
  * Returns whether the current user has access to at least one project,

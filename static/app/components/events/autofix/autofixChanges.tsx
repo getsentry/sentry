@@ -37,7 +37,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type AutofixChangesProps = {
+interface AutofixChangesProps {
   groupId: string;
   runId: string;
   step: AutofixChangesStep;
@@ -45,7 +45,7 @@ type AutofixChangesProps = {
   isChangesFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
-};
+}
 
 function AutofixRepoChange({
   change,

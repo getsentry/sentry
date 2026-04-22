@@ -2,10 +2,10 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {getDisplayName} from 'sentry/utils/getDisplayName';
 
-type InjectedPageFiltersProps = {
+interface InjectedPageFiltersProps {
   isGlobalSelectionReady?: boolean;
   selection?: PageFilters;
-};
+}
 
 /**
  * Higher order component that uses PageFiltersStore and provides the active

@@ -5,11 +5,11 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
-type FeatureFlagConfiguration = {
+interface FeatureFlagConfiguration {
   integrationName: string;
   makeConfigureCode: (dsn: string) => string;
   makeVerifyCode: () => string;
-};
+}
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
   FeatureFlagProviderEnum,

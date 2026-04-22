@@ -71,13 +71,13 @@ export function sessionDisplayToField(display: ReleasesDisplayOption) {
   }
 }
 
-export type ReleasesRequestRenderProps = {
+export interface ReleasesRequestRenderProps {
   errored: boolean;
   getHealthData: ReturnType<ReleasesRequest['getHealthData']>;
   isHealthLoading: boolean;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   children: (renderProps: ReleasesRequestRenderProps) => React.ReactNode;
   display: ReleasesDisplayOption[];
@@ -89,8 +89,8 @@ type Props = {
   disable?: boolean;
   healthStatsPeriod?: HealthStatsPeriodOption;
   releasesReloading?: boolean;
-};
-type State = {
+}
+interface State {
   errored: boolean;
   loading: boolean;
   statusCountByProjectInPeriod: SessionApiResponse | null;
@@ -99,7 +99,7 @@ type State = {
   totalCountByProjectInPeriod: SessionApiResponse | null;
   totalCountByReleaseIn24h: SessionApiResponse | null;
   totalCountByReleaseInPeriod: SessionApiResponse | null;
-};
+}
 
 class ReleasesRequest extends Component<Props, State> {
   state: State = {

@@ -61,7 +61,7 @@ function getCrashFreeIcon(
   return <IconCheckmark variant="success" size={iconSize} />;
 }
 
-type Props = {
+interface Props {
   activeDisplay: ReleasesDisplayOption;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
   index: number;
@@ -73,7 +73,7 @@ type Props = {
   showPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
   adoptionStages?: Release['adoptionStages'];
-};
+}
 
 export function ReleaseCardProjectRow({
   activeDisplay,

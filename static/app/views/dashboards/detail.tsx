@@ -127,14 +127,14 @@ const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.LOGS]: WidgetType.LOGS,
 };
 
-type RouteParams = {
+interface RouteParams {
   dashboardId?: string;
   templateId?: string;
   widgetId?: string;
   widgetIndex?: string;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   dashboard: DashboardDetails;
   dashboards: DashboardListItem[];
@@ -152,9 +152,9 @@ type Props = {
   pageAlerts?: React.ReactNode;
   storageNamespace?: string;
   widgetInterval?: string;
-};
+}
 
-type State = {
+interface State {
   dashboardState: DashboardState;
   isCommittingChanges: boolean;
   isSavingDashboardFilters: boolean;
@@ -166,7 +166,7 @@ type State = {
   widgetLimitReached: boolean;
   newlyAddedWidget?: Widget;
   openWidgetTemplates?: boolean;
-};
+}
 
 function getDashboardLocation({
   organization,

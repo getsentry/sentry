@@ -5,26 +5,26 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import type {Token} from 'sentry/components/arithmeticBuilder/token';
 import {defined} from 'sentry/utils';
 
-type ArithmeticBuilderUpdateResetFocusOverrideAction = {
+interface ArithmeticBuilderUpdateResetFocusOverrideAction {
   type: 'RESET_FOCUS_OVERRIDE';
-};
+}
 
-export type FocusOverride = {
+export interface FocusOverride {
   itemKey: Key;
-};
+}
 
-type ArithmeticBuilderDeleteAction = {
+interface ArithmeticBuilderDeleteAction {
   token: Token;
   type: 'DELETE_TOKEN';
   focusOverride?: FocusOverride;
-};
+}
 
-type ArithmeticBuilderReplaceAction = {
+interface ArithmeticBuilderReplaceAction {
   text: string;
   token: Token;
   type: 'REPLACE_TOKEN';
   focusOverride?: FocusOverride;
-};
+}
 
 export type ArithmeticBuilderAction =
   | ArithmeticBuilderUpdateResetFocusOverrideAction

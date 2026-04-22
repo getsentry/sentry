@@ -4,14 +4,14 @@ import {useMatches} from 'react-router-dom';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
-type ExplicitTitleProps = {
+interface ExplicitTitleProps {
   routes: PlainRoute[];
   title: string;
-};
+}
 
 type PathMap = Record<string, string>;
 
-type Context = {
+interface Context {
   /**
    * Represents a mapping of paths to breadcrumb names
    */
@@ -23,13 +23,13 @@ type Context = {
    * removed when appropriate (typically on unmount of the route component)
    */
   setExplicitTitle: (update: ExplicitTitleProps) => () => void;
-};
+}
 
 const BreadcrumbContext = createContext<Context | undefined>(undefined);
 
-type ProviderProps = {
+interface ProviderProps {
   children: React.ReactNode;
-};
+}
 
 function BreadcrumbProvider({children}: ProviderProps) {
   const matches = useMatches();

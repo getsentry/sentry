@@ -77,10 +77,10 @@ function useApplyOptimisticUpdate({project}: {project: Project}) {
   );
 }
 
-type MutateOptions = {
+interface MutateOptions {
   onError?: (error: Error) => void;
   onSuccess?: () => void;
-};
+}
 
 export function useMutateSelectedAgent({project}: {project: Project}) {
   const {mutateAsync: updateProject} = useUpdateProject(project);

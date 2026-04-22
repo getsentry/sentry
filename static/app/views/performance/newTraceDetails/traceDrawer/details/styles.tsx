@@ -337,14 +337,14 @@ const getDurationComparison = (
   return {deltaPct, status, deltaText};
 };
 
-type DurationProps = {
+interface DurationProps {
   baseline: number | undefined;
   duration: number;
   node: BaseNode;
   baseDescription?: string;
   precision?: number;
   ratio?: number;
-};
+}
 
 function Duration(props: DurationProps) {
   if (typeof props.duration !== 'number' || Number.isNaN(props.duration)) {
@@ -419,7 +419,7 @@ function TableRow({
   );
 }
 
-type HighlightProps = {
+interface HighlightProps {
   avgDuration: number | undefined;
   bodyContent: React.ReactNode;
   headerContent: React.ReactNode;
@@ -429,7 +429,7 @@ type HighlightProps = {
   footerContent?: React.ReactNode;
   hideNodeActions?: boolean;
   highlightedAttributes?: Array<{name: string; value: React.ReactNode}>;
-};
+}
 
 function Highlights({
   node,

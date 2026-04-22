@@ -40,11 +40,11 @@ interface UnsubscribeResponse {
   viewUrl: string;
 }
 
-type BodyProps = {
+interface BodyProps {
   issueId: string;
   orgSlug: string;
   signature?: string;
-};
+}
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   const endpoint = getApiUrl(

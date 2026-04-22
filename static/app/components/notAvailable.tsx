@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-type Props = {
+interface Props {
   className?: string;
   tooltip?: React.ReactNode;
-};
+}
 
 export function NotAvailable({tooltip, className}: Props) {
   return (

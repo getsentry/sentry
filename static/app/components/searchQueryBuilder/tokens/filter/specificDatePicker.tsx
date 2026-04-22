@@ -28,12 +28,12 @@ interface SearchBarDatePickerProps extends CustomComboboxMenuProps<
   handleSave?: (value: string) => void;
 }
 
-type TimeInputProps = {
+interface TimeInputProps {
   disabled: boolean;
   setTime: (newTime: string) => void;
   time: string;
   ref?: React.Ref<HTMLInputElement>;
-};
+}
 
 const ISO_DATE_FORMAT = 'YYYY-MM-DD';
 

@@ -1,7 +1,7 @@
 import type {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils';
 import type {PlatformKey} from 'sentry/types/project';
 
-export type FeatureFlagEventParameters = {
+export interface FeatureFlagEventParameters {
   'flags.cta_dismissed': {surface: string; type: string};
   'flags.cta_read_more_clicked': {
     surface: string;
@@ -42,7 +42,7 @@ export type FeatureFlagEventParameters = {
     surface: string;
     platform?: PlatformKey;
   };
-};
+}
 
 type FeatureFlagEventKey = keyof FeatureFlagEventParameters;
 

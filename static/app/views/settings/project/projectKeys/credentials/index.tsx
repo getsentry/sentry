@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
 
-type Props = {
+interface Props {
   data: ProjectKey;
   projectId: string;
   showDsn?: boolean;
@@ -26,7 +26,7 @@ type Props = {
   showSecretKey?: boolean;
   showSecurityEndpoint?: boolean;
   showUnreal?: boolean;
-};
+}
 
 type TabValue = 'otlp' | 'security' | 'minidump' | 'unreal' | 'vercel' | 'credentials';
 

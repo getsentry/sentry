@@ -2,10 +2,10 @@ import type {GroupStatus} from 'sentry/types/group';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
-type RuleViewed = {
+interface RuleViewed {
   alert_type: 'issue' | 'metric';
   project_id: string;
-};
+}
 
 interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
@@ -17,7 +17,7 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   alert_type?: string;
 }
 
-export type BaseEventAnalyticsParams = {
+export interface BaseEventAnalyticsParams {
   event_id: string;
   exception_group_height: number;
   exception_group_width: number;
@@ -55,16 +55,16 @@ export type BaseEventAnalyticsParams = {
   release_user_agent?: string;
   sdk_name?: string | null;
   sdk_version?: string | null;
-};
+}
 
-type BaseTour = {
+interface BaseTour {
   duration: number;
   step: number;
-};
+}
 
 type ReleasesTour = BaseTour & {project_id: string};
 
-export type TeamInsightsEventParameters = {
+export interface TeamInsightsEventParameters {
   'alert_builder.filter': {query: string; session_id?: string};
   'alert_builder.noisy_warning_agreed': Record<string, unknown>;
   'alert_builder.noisy_warning_viewed': Record<string, unknown>;
@@ -203,7 +203,7 @@ export type TeamInsightsEventParameters = {
     area: string;
     num_hidden: number;
   };
-};
+}
 
 type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 

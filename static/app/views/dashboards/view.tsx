@@ -62,10 +62,10 @@ export default function ViewEditDashboard() {
   );
 }
 
-type FeatureProps = {
+interface FeatureProps {
   children: React.ReactNode;
   organization: Organization;
-};
+}
 
 export function DashboardBasicFeature({organization, children}: FeatureProps) {
   const renderDisabled = () => (

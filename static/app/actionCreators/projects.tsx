@@ -17,12 +17,12 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 
-type UpdateParams = {
+interface UpdateParams {
   orgId: string;
   projectId: string;
   data?: Record<string, any>;
   query?: Query;
-};
+}
 
 export function update(api: Client, params: UpdateParams) {
   ProjectsStatsStore.onUpdate(params.projectId, params.data as Partial<Project>);

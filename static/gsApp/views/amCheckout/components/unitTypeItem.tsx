@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 
-type UnitTypeProps = {
+interface UnitTypeProps {
   description: React.ReactNode;
   unitName: React.ReactNode;
   weight: string;
-};
+}
 
 export function UnitTypeItem({unitName, description, weight}: UnitTypeProps) {
   return (

@@ -79,7 +79,7 @@ function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) 
   });
 }
 
-type AutofixRootCauseProps = {
+interface AutofixRootCauseProps {
   causes: AutofixRootCauseData[];
   groupId: string;
   rootCauseSelection: AutofixRootCauseSelection;
@@ -92,7 +92,7 @@ type AutofixRootCauseProps = {
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
-};
+}
 
 const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},

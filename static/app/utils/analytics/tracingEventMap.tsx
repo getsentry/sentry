@@ -4,7 +4,7 @@ import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
-export type TracingEventParameters = {
+export interface TracingEventParameters {
   'compare_queries.add_query': {
     num_queries: number;
   };
@@ -216,7 +216,7 @@ export type TracingEventParameters = {
     expanded: boolean;
     source: 'trace explorer' | 'new explore';
   };
-};
+}
 
 type TracingEventKey = keyof TracingEventParameters;
 

@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels/panel';
 
-type Props = {
+interface Props {
   /**
    * Adds hover and focus states to the card
    */
   interactive?: boolean;
-};
+}
 
 const hoverStyle = css`
   &:focus,

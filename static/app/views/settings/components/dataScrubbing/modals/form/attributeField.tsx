@@ -39,23 +39,23 @@ const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
   [AllowedDataScrubbingDatasets.METRICS]: new Set(['metric.name']),
 };
 
-type FieldProps = {
+interface FieldProps {
   'aria-describedby': string;
   'aria-invalid': boolean;
   disabled: boolean;
   id: string;
   name: string;
   onBlur: () => void;
-};
+}
 
-type Props = {
+interface Props {
   dataset: AllowedDataScrubbingDatasets;
   fieldProps: FieldProps;
   onChange: (value: string) => void;
   value: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
   projectId?: Project['id'];
-};
+}
 
 export function AttributeField({
   dataset,

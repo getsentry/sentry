@@ -105,10 +105,10 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = {
+interface Props {
   bundleId: string;
   project: Project;
-};
+}
 
 export function SourceMapsDetails({bundleId, project}: Props) {
   const api = useApi();

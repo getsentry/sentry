@@ -40,10 +40,10 @@ type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
 };
 
-type StackTraceStoryData = {
+interface StackTraceStoryData {
   event: Event;
   stacktrace: StacktraceWithFrames;
-};
+}
 
 function getSampleSourceLineCoverage(length: number): Coverage[] {
   return Array.from({length}, (_, index) => {

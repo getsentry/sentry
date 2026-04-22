@@ -5,10 +5,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   speed: number;
   className?: string;
-};
+}
 
 export function FastForwardBadge({speed, className}: Props) {
   return (

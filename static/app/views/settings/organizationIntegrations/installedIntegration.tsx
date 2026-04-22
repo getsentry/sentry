@@ -20,7 +20,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {AddIntegrationButton} from './addIntegrationButton';
 import {IntegrationItem} from './integrationItem';
 
-type Props = {
+interface Props {
   integration: Integration;
   onDisable: (integration: Integration) => void;
   onRemove: (integration: Integration) => void;
@@ -30,7 +30,7 @@ type Props = {
     eventKey: 'integrations.uninstall_clicked' | 'integrations.uninstall_completed'
   ) => void; // analytics callback
   requiresUpgrade?: boolean;
-};
+}
 
 export class InstalledIntegration extends Component<Props> {
   handleUninstallClick = () => {

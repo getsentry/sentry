@@ -21,9 +21,9 @@ interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOpti
   selectedProducts?: ProductSolution[];
 }
 
-type RenderOptions = {
+interface RenderOptions {
   organization?: Organization;
-};
+}
 
 export function renderWithOnboardingLayout<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,

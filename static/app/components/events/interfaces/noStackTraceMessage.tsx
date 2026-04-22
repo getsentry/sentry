@@ -2,9 +2,9 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   message?: React.ReactNode;
-};
+}
 
 export function NoStackTraceMessage({message}: Props) {
   return (

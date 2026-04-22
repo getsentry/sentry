@@ -11,7 +11,7 @@ import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/us
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   transaction: string;
   browserTypes?: BrowserType[];
   enabled?: boolean;
@@ -22,7 +22,7 @@ type Props = {
   subregions?: SubregionCode[];
   webVital?: WebVitals;
   withProfiles?: boolean;
-};
+}
 
 export const useTransactionSamplesWebVitalsScoresQuery = ({
   orderBy,

@@ -5,7 +5,7 @@ export type ScoreMap = Record<string, number | null | string>;
 type ScoresByInterface = NonNullable<SimilarItem['scoresByInterface']>;
 type Aggregate = NonNullable<SimilarItem['aggregate']>;
 
-export type SimilarItem = {
+export interface SimilarItem {
   isBelowThreshold: boolean;
   issue: Group;
   aggregate?: {
@@ -19,7 +19,7 @@ export type SimilarItem = {
     message: Array<[string, any | null]>;
     shouldBeGrouped?: Array<[string, string | null]>;
   };
-};
+}
 
 export type SimilarApiResponse = Array<[Group, ScoreMap]>;
 

@@ -327,7 +327,7 @@ function getFrame(
   }
 }
 
-type DisplayRawContentArgs = {
+interface DisplayRawContentArgs {
   /** The parsed stack trace data. */
   data: StacktraceType | null;
   /** The platform of this stack trace. */
@@ -347,7 +347,7 @@ type DisplayRawContentArgs = {
   // If true, the generated stack trace will be in the default format for the platform.
   // If false, the stack trace will be structured according to newestFirst.
   rawTrace?: boolean;
-};
+}
 
 /**
  * For the given stack trace, generates an array of platform-specific raw content (strings)

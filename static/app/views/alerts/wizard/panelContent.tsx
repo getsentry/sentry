@@ -18,12 +18,12 @@ import {t, tct} from 'sentry/locale';
 
 import type {AlertType} from './options';
 
-type PanelContent = {
+interface PanelContent {
   description: React.ReactNode;
   examples: string[];
   docsLink?: string;
   illustration?: string;
-};
+}
 
 export function getAlertWizardPanelContent(): Record<AlertType, PanelContent> {
   return {

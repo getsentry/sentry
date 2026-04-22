@@ -16,7 +16,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useWidgetRawCounts} from './hooks/useWidgetRawCounts';
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 
-type Props = {
+interface Props {
   loading: boolean;
   series: Array<Series & {fieldName?: string}>;
   timeseriesResults: GenericWidgetQueriesResult['timeseriesResults'];
@@ -27,7 +27,7 @@ type Props = {
   isSampled?: boolean | null;
   sampleCount?: number;
   selection?: PageFilters;
-};
+}
 
 export function WidgetCardConfidenceFooter({
   confidence,

@@ -30,7 +30,7 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
 const SpanSamplesTableContainer = styled('div')``;
 
-type Props = {
+interface Props {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
@@ -45,7 +45,7 @@ type Props = {
   spanSearch?: MutableSearch;
   subregions?: SubregionCode[];
   transactionMethod?: string;
-};
+}
 
 export function SampleTable({
   groupId,

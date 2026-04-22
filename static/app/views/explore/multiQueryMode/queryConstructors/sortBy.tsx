@@ -20,10 +20,10 @@ import {
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type Props = {
+interface Props {
   index: number;
   query: ReadableExploreQueryParts;
-};
+}
 
 export function SortBySection({query, index}: Props) {
   const mode = query.groupBys.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;

@@ -24,7 +24,9 @@ import {
 import {NewProviderForm} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 import {NewSecretHandler} from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
 
-type FetchSecretResponse = {data: Secret[]};
+interface FetchSecretResponse {
+  data: Secret[];
+}
 
 function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);

@@ -25,14 +25,14 @@ import {
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
 
-type Props = {
+interface Props {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
   platform?: PlatformKey;
   query?: string;
-};
+}
 
 export function ProjectAnrScoreCard({
   isProjectStabilized,

@@ -19,7 +19,7 @@ import type {NoteType} from 'sentry/types/alerts';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
-type Props = {
+interface Props {
   errorJSON?: CreateError | null;
   /**
    * This is the id of the server's note object and is meant to indicate that
@@ -35,7 +35,7 @@ type Props = {
    * The note text itself
    */
   text?: string;
-};
+}
 
 function StreamlinedNoteInput({
   text,

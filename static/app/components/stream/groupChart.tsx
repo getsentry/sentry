@@ -18,13 +18,13 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
 
 const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
-type Props = {
+interface Props {
   stats: readonly TimeseriesValue[];
   height?: number;
   secondaryStats?: readonly TimeseriesValue[];
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
-};
+}
 
 export function GroupChart({
   stats,

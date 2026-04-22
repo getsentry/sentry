@@ -33,12 +33,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-type RowProps = {
+interface RowProps {
   hook: ServiceHook;
   onToggleActive: () => void;
   orgId: string;
   projectId: string;
-};
+}
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (

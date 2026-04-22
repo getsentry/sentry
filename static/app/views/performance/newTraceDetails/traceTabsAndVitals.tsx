@@ -9,11 +9,11 @@ import {TraceHeaderComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceLayoutTabsConfig} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
-type TraceTabsAndVitalsProps = {
+interface TraceTabsAndVitalsProps {
   rootEventResults: TraceRootEventQueryResults;
   tabsConfig: TraceLayoutTabsConfig;
   tree: TraceTree;
-};
+}
 
 const CONTAINER_MIN_HEIGHT = 36;
 

@@ -188,10 +188,10 @@ export function createFrameIndex(
   }, {});
 }
 
-type Cache<Arguments extends readonly any[] | any, Value> = {
+interface Cache<Arguments extends readonly any[] | any, Value> {
   args: Arguments;
   value: Value;
-};
+}
 
 export function memoizeByReference<Arguments, Value>(
   fn: (args: Arguments) => Value

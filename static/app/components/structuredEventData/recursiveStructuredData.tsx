@@ -10,7 +10,7 @@ import {
 } from 'sentry/components/structuredEventData/utils';
 import {containsCRLF} from 'sentry/utils/string/containsCRLF';
 
-type Config = {
+interface Config {
   isBoolean?: (value: unknown) => boolean;
   isNull?: (value: unknown) => boolean;
   isNumber?: (value: unknown) => boolean;
@@ -19,7 +19,7 @@ type Config = {
   renderNull?: (value: unknown) => React.ReactNode;
   renderObjectKeys?: (value: string) => string;
   renderString?: (value: string) => string;
-};
+}
 
 interface Props {
   meta: Record<any, any> | undefined;

@@ -14,10 +14,10 @@ import {defined} from 'sentry/utils';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
-export type TraceSearchResult = {
+export interface TraceSearchResult {
   index: number;
   value: BaseNode;
-};
+}
 
 const {info, fmt} = Sentry.logger;
 

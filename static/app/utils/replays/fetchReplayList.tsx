@@ -10,15 +10,15 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayListQueryReferrer, ReplayListRecord} from 'sentry/views/replays/types';
 
-type State = {
+interface State {
   fetchError: undefined | RequestError;
   pageLinks: null | string;
   replays: undefined | ReplayListRecord[];
-};
+}
 
 type Result = State;
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   location: Location;
@@ -26,7 +26,7 @@ type Props = {
   selection: PageFilters;
   perPage?: number;
   queryReferrer?: ReplayListQueryReferrer;
-};
+}
 
 export async function fetchReplayList({
   api,

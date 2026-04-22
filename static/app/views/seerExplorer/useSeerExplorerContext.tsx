@@ -8,14 +8,14 @@ import {
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
-type SeerExplorerContextValue = {
+interface SeerExplorerContextValue {
   closeSeerExplorer: () => void;
   isMinimized: boolean; // for backward compatibility with ExplorerPanel.
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   setIsMinimized: (value: boolean) => void; // for backward compatibility with ExplorerPanel.
   toggleSeerExplorer: () => void;
-};
+}
 
 export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},

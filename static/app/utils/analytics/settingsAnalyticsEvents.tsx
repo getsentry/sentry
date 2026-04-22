@@ -1,4 +1,4 @@
-export type SettingsEventParameters = {
+export interface SettingsEventParameters {
   'notification_settings.index_page_viewed': Record<string, unknown>;
   'notification_settings.tuning_page_viewed': {
     notification_type: string;
@@ -13,7 +13,7 @@ export type SettingsEventParameters = {
     project_id?: string;
     sidebar_item_id?: string;
   };
-};
+}
 
 type SettingsEventKey = keyof SettingsEventParameters;
 

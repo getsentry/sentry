@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SearchBar} from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';
 
-type Props = {
+interface Props {
   onChange: (value: string) => void;
   onFilterChange: (options: Array<SelectOption<string>>) => void;
   placeholder: string;
@@ -16,7 +16,7 @@ type Props = {
   className?: string;
   filterOptions?: Array<SelectOptionOrSection<string>>;
   filterSelections?: Array<SelectOption<string>>;
-};
+}
 
 export function SearchBarAction({
   onChange,

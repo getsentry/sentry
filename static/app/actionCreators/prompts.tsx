@@ -9,7 +9,7 @@ import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
-type PromptsUpdateParams = {
+interface PromptsUpdateParams {
   /**
    * The prompt feature name
    */
@@ -20,7 +20,7 @@ type PromptsUpdateParams = {
    * The numeric project ID as a string
    */
   projectId?: string;
-};
+}
 
 /**
  * Update the status of a prompt
@@ -40,7 +40,7 @@ export function promptsUpdate(api: Client, params: PromptsUpdateParams) {
   });
 }
 
-type PromptCheckParams = {
+interface PromptCheckParams {
   /**
    * The prompt feature name
    */
@@ -50,18 +50,18 @@ type PromptCheckParams = {
    * The numeric project ID as a string
    */
   projectId?: string;
-};
+}
 
-type PromptCheckHookParams = {
+interface PromptCheckHookParams {
   feature: string | string[];
   organization: OrganizationSummary | null;
   projectId?: string;
-};
+}
 
 /**
  * Raw response data from the endpoint
  */
-type PromptResponseItem = {
+interface PromptResponseItem {
   /**
    * Time since dismissed
    */
@@ -70,11 +70,11 @@ type PromptResponseItem = {
    * Time since snoozed
    */
   snoozed_ts?: number;
-};
-export type PromptResponse = {
+}
+export interface PromptResponse {
   data?: PromptResponseItem;
   features?: Record<string, PromptResponseItem>;
-};
+}
 
 /**
  * Processed endpoint response data

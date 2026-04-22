@@ -7,12 +7,12 @@ import {promisify} from 'node:util';
 
 const execAsync = promisify(exec);
 
-type GitDiffChange = {
+interface GitDiffChange {
   addedLines: Set<number>;
   file: string;
   modifiedRanges: Array<{end: number; start: number}>;
   removedLines: Set<number>;
-};
+}
 
 const colors = {
   red: (text: string) => `\x1b[31m${text}\x1b[0m`,
@@ -23,7 +23,7 @@ const colors = {
   dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
 };
 
-type TypeCoverageResult = {
+interface TypeCoverageResult {
   files: Array<{
     coverage: number;
     file: string;
@@ -58,15 +58,15 @@ type TypeCoverageResult = {
     line: number;
     targetType: string;
   }>;
-};
+}
 
-type Options = {
+interface Options {
   commit?: string;
   daysAgo?: number;
   ignoreFiles?: string[];
   outputFile?: string;
   verbose?: boolean;
-};
+}
 
 function showHelp() {
   console.log(`

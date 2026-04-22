@@ -12,7 +12,7 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
 import {ReserveAdditionalVolume} from 'getsentry/views/amCheckout/steps/reserveAdditionalVolume';
 
-type SliderInfo = {
+interface SliderInfo {
   billingInterval: string;
   category: string;
   max: string;
@@ -20,7 +20,7 @@ type SliderInfo = {
   selectedTier: string;
   pricePerEvent?: string;
   tierPrice?: number;
-};
+}
 
 function assertSlider({
   category,

@@ -10,10 +10,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {getTooltipText} from './utils';
 import {ValueElement} from './valueElement';
 
-type Props = {
+interface Props {
   meta: Record<any, any>;
   value: React.ReactNode;
-};
+}
 
 export function FilteredAnnotatedTextValue({value, meta}: Props) {
   const organization = useOrganization();

@@ -19,11 +19,11 @@ import {
 import {ButtonWrapper, SubscriptionBody} from 'getsentry/views/subscriptionPage/styles';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
   referrer?: string;
-};
+}
 
 function OrgStatsBanner({organization, subscription, referrer}: Props) {
   if (!subscription.canSelfServe || !hasPerformance(subscription.planDetails)) {

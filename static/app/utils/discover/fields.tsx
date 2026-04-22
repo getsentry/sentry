@@ -28,29 +28,29 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
-export type Sort = {
+export interface Sort {
   field: string;
   kind: 'asc' | 'desc';
-};
+}
 
 // Contains the URL field value & the related table column width.
 // Can be parsed into a Column using explodeField()
-export type Field = {
+export interface Field {
   field: string;
   // When an alias is defined for a field, it will be shown as a column name in the table visualization.
   alias?: string;
   width?: number;
-};
+}
 
 // ColumnType is kept as a string literal union instead of an enum due to the countless uses of it and refactoring would take huge effort.
 export type ColumnType = `${Exclude<FieldValueType, FieldValueType.NEVER>}`;
 
 export type ColumnValueType = ColumnType | `${FieldValueType.NEVER}`;
 
-export type ParsedFunction = {
+export interface ParsedFunction {
   arguments: string[];
   name: string;
-};
+}
 
 type ValidateColumnValueFunction = (data: {
   dataType: ColumnType;
@@ -666,11 +666,11 @@ export type AggregationOutputType = Extract<
 
 export type PlotType = 'bar' | 'line' | 'area';
 
-type DefaultValueInputs = {
+interface DefaultValueInputs {
   parameter: AggregateParameter;
-};
+}
 
-export type Aggregation = {
+export interface Aggregation {
   /**
    * Can this function be used in a sort result
    */
@@ -691,7 +691,7 @@ export type Aggregation = {
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
-};
+}
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
 

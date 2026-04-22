@@ -20,11 +20,11 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type TimeAndScrubberGridProps = {
+interface TimeAndScrubberGridProps {
   isCompact?: boolean;
   isLoading?: boolean;
   showZoom?: boolean;
-};
+}
 
 function TimelineSizeBar({isLoading}: {isLoading?: boolean}) {
   const replay = useReplayReader();

@@ -139,14 +139,14 @@ export const PERFORMANCE_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type SampleButtonProps = {
+interface SampleButtonProps {
   api: Client;
   errorMessage: React.ReactNode;
   loadingMessage: React.ReactNode;
   organization: Organization;
   project: Project;
   triggerText: React.ReactNode;
-};
+}
 
 function SampleButton({
   triggerText,
@@ -201,10 +201,10 @@ function SampleButton({
   );
 }
 
-type OnboardingProps = {
+interface OnboardingProps {
   organization: Organization;
   project: Project;
-};
+}
 
 export function LegacyOnboarding({organization, project}: OnboardingProps) {
   const api = useApi();

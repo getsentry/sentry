@@ -20,7 +20,7 @@ import {
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 
-type ThresholdsStepProps = {
+interface ThresholdsStepProps {
   onThresholdChange: (maxKey: ThresholdMaxKeys, value: string) => void;
   onUnitChange: (unit: string) => void;
   thresholdsConfig: ThresholdsConfig | null;
@@ -29,9 +29,9 @@ type ThresholdsStepProps = {
   errors?: ThresholdErrors;
   onPolarityChange?: (polarity: Polarity) => void;
   preferredPolarity?: Polarity;
-};
+}
 
-type ThresholdRowProp = {
+interface ThresholdRowProp {
   color: string;
   maxInputProps: NumberFieldProps;
   minInputProps: NumberFieldProps;
@@ -40,7 +40,7 @@ type ThresholdRowProp = {
   maxKey?: ThresholdMaxKeys;
   onThresholdChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
   onUnitChange?: (maxKey: ThresholdMaxKeys, value: string) => void;
-};
+}
 
 enum ThresholdMaxKeys {
   MAX_1 = 'max1',
@@ -49,11 +49,11 @@ enum ThresholdMaxKeys {
 
 type ThresholdMaxValues = Partial<Record<ThresholdMaxKeys, number>>;
 
-export type ThresholdsConfig = {
+export interface ThresholdsConfig {
   max_values: ThresholdMaxValues;
   unit: string | null;
   preferredPolarity?: Polarity;
-};
+}
 
 const WIDGET_INDICATOR_SIZE = 15;
 

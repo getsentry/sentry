@@ -1,13 +1,13 @@
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 
-export type ProjectData = {
+export interface ProjectData {
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
   'p75(measurements.inp)': number;
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
-};
+}
 
 export const WEB_VITALS_METERS_CONFIG = {
   lcp: {

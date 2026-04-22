@@ -4,17 +4,17 @@ export type RequestMethod = 'DELETE' | 'GET' | 'POST' | 'PUT';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;
 
-export type QueryKeyEndpointOptions<
+export interface QueryKeyEndpointOptions<
   Headers = Record<string, string>,
   Query = Record<string, any>,
   Data = Record<string, any>,
-> = {
+> {
   data?: Data;
   headers?: Headers;
   host?: string;
   method?: RequestMethod;
   query?: Query;
-};
+}
 
 /**
  * @deprecated Prefer using `apiOptions.as<T>()(...args)` whenever possible.

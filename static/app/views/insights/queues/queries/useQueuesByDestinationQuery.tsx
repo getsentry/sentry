@@ -10,12 +10,12 @@ import {
   TABLE_ROWS_LIMIT,
 } from 'sentry/views/insights/queues/settings';
 
-type Props = {
+interface Props {
   referrer: Referrer;
   destination?: string;
   enabled?: boolean;
   sort?: Sort;
-};
+}
 
 export function useQueuesByDestinationQuery({
   enabled,

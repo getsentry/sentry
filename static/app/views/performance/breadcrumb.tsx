@@ -10,7 +10,7 @@ import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {Tab} from './transactionSummary/tabs';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   eventSlug?: string;
@@ -21,7 +21,7 @@ type Props = {
     name: string;
     project: string;
   };
-};
+}
 
 export function getCrumbs(props: Props) {
   const crumbs: Crumb[] = [];

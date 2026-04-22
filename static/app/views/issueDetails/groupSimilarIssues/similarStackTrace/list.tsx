@@ -15,7 +15,7 @@ import {SimilarStackTraceItem} from './item';
 import {SimilarToolbar} from './toolbar';
 import type {SimilarItem} from './types';
 
-type Props = {
+interface Props {
   busyIds: ReadonlySet<string>;
   checkedIds: ReadonlySet<string>;
   filteredItems: SimilarItem[];
@@ -26,7 +26,7 @@ type Props = {
   onToggle: (id: string) => void;
   pageLinks: string | null;
   project: Project;
-};
+}
 
 function Empty() {
   return (

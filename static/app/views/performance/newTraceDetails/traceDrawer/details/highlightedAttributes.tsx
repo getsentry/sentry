@@ -24,10 +24,10 @@ import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenB
 import {SpanFields} from 'sentry/views/insights/types';
 import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
-type HighlightedAttribute = {
+interface HighlightedAttribute {
   name: string;
   value: React.ReactNode;
-};
+}
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.

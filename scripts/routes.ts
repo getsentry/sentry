@@ -379,8 +379,15 @@ const PARAM_DEFAULTS: Record<string, string> = {
 const content = fs.readFileSync(ROUTES_FILE, 'utf8');
 const lines = content.split('\n');
 
-type StackEntry = {fullPath: string; hasUnknown: boolean; indent: number};
-type RawPath = {fullPath: string; hasUnknown: boolean};
+interface StackEntry {
+  fullPath: string;
+  hasUnknown: boolean;
+  indent: number;
+}
+interface RawPath {
+  fullPath: string;
+  hasUnknown: boolean;
+}
 
 // Indentation-based path stack.
 // When we encounter path: at indent N, pop all stack entries with indent >= N
@@ -461,7 +468,11 @@ const effectiveParams = useDefaults
   : {...userParams};
 
 // ─── Filter & resolve ────────────────────────────────────────────────────────
-type MatchedRoute = {hasUnknown: boolean; isAbsolute: boolean; url: string};
+interface MatchedRoute {
+  hasUnknown: boolean;
+  isAbsolute: boolean;
+  url: string;
+}
 
 const matching: MatchedRoute[] = [];
 for (const {fullPath, hasUnknown} of deduped) {

@@ -38,7 +38,7 @@ import {TransactionsTable} from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
 
-export type DropdownOption = {
+export interface DropdownOption {
   /**
    * The label to display in the dropdown
    */
@@ -59,9 +59,9 @@ export type DropdownOption = {
    * Included if the option is for a trend
    */
   trendType?: TrendChangeType;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * The name of the url parameter that contains the cursor info.
    */
@@ -129,7 +129,7 @@ type Props = {
    */
   titles?: string[];
   trendView?: TrendView;
-};
+}
 
 type TableRenderProps = Omit<React.ComponentProps<typeof Pagination>, 'size'> &
   React.ComponentProps<typeof TransactionsTable> & {

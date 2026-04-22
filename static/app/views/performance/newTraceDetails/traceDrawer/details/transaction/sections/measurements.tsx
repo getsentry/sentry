@@ -23,11 +23,11 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
-type MeasurementsProps = {
+interface MeasurementsProps {
   event: EventTransaction;
   location: Location;
   organization: Organization;
-};
+}
 
 export function hasMeasurements(event: EventTransaction) {
   const measurementNames = Object.keys(event.measurements ?? {})

@@ -6,14 +6,14 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   data: Record<
     string,
     string | null | boolean | number | Record<string, string | null>
   > | null;
   meta?: Record<any, any>;
   platform?: PlatformKey;
-};
+}
 
 const PYTHON_STRING_REGEX = /^['"](.*)['"]$/;
 const NUMERIC_STRING_REGEX = /^-?\d+(\.\d+)?$/;

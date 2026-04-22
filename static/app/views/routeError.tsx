@@ -17,7 +17,7 @@ import type {Project} from 'sentry/types/project';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {withProject} from 'sentry/utils/withProject';
 
-type Props = {
+interface Props {
   /**
    * Disable logging to Sentry
    */
@@ -28,7 +28,7 @@ type Props = {
   disableReport?: boolean;
   error?: Error;
   project?: Project;
-};
+}
 
 function RouteError({error, disableLogSentry, disableReport, project}: Props) {
   const matches = useMatches();

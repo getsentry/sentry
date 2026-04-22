@@ -3,10 +3,10 @@ import {queryOptions} from '@tanstack/react-query';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-type FetchGroupSearchViewsParameters = {
+interface FetchGroupSearchViewsParameters {
   id: string | number;
   orgSlug: string;
-};
+}
 
 export function groupSearchViewApiOptions({
   id,

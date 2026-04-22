@@ -14,11 +14,11 @@ import type {ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {Processings} from './processings';
 import {Status} from './status';
 
-type Props = {
+interface Props {
   image: ImageWithCombinedStatus;
   isLast: boolean;
   onOpenImageDetailsModal: (image: ImageWithCombinedStatus) => void;
-};
+}
 
 export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
   const {unwind_status, debug_status, debug_file, code_file, status} = image;

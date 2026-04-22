@@ -6,14 +6,14 @@ import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type ScmProvidersData = {
+interface ScmProvidersData {
   activeIntegrationExisting: Integration | null;
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
   refetchIntegrations: () => void;
   scmProviders: IntegrationProvider[];
-};
+}
 
 /**
  * Fetches SCM integration providers and active installations for use in the

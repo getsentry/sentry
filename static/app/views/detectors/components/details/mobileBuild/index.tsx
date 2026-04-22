@@ -9,10 +9,10 @@ import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/c
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {MobileBuildDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/mobileBuild/sidebar';
 
-type MobileBuildDetectorDetailsProps = {
+interface MobileBuildDetectorDetailsProps {
   detector: PreprodDetector;
   project: Project;
-};
+}
 
 export function MobileBuildDetectorDetails({
   detector,

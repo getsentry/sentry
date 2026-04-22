@@ -27,7 +27,7 @@ export enum GroupSearchViewCreatedBy {
   OTHERS = 'others',
 }
 
-export type StarredGroupSearchView = {
+export interface StarredGroupSearchView {
   createdBy: AvatarUser | null;
   dateCreated: string;
   dateUpdated: string;
@@ -40,7 +40,7 @@ export type StarredGroupSearchView = {
   querySort: IssueSortOptions;
   stars: number;
   timeFilters: PageFilters['datetime'];
-};
+}
 
 export type GroupSearchView = StarredGroupSearchView & {
   starred: boolean;

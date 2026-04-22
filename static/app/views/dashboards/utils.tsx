@@ -50,13 +50,13 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-type ValidationError = {
+interface ValidationError {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
-};
+}
 
-type FlatValidationError = {
+interface FlatValidationError {
   [key: string]: string | FlatValidationError[] | FlatValidationError;
-};
+}
 
 export function cloneDashboard(dashboard: DashboardDetails): DashboardDetails {
   return cloneDeep(dashboard);
@@ -383,7 +383,7 @@ export function hasUnsavedFilterChanges(
   location: Location
 ) {
   // Use Sets to compare the filter fields that are arrays
-  type Filters = {
+  interface Filters {
     end?: string;
     environment?: Set<string>;
     globalFilter?: Set<string>;
@@ -392,7 +392,7 @@ export function hasUnsavedFilterChanges(
     release?: Set<string>;
     start?: string;
     utc?: boolean;
-  };
+  }
 
   const savedFilters: Filters = {
     projects: new Set(initialDashboard.projects),

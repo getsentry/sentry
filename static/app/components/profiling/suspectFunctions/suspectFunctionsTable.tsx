@@ -43,10 +43,10 @@ function sortFunctions(a: Profiling.FunctionMetric, b: Profiling.FunctionMetric)
   return b.sumSelfTime - a.sumSelfTime;
 }
 
-type Column = {
+interface Column {
   label: React.ReactNode;
   value: keyof Profiling.FunctionMetric;
-};
+}
 
 const COLUMNS: Column[] = [
   {

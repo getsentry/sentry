@@ -14,13 +14,13 @@ import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerforma
 import {traceAnalytics, type TraceTreeSource} from './traceAnalytics';
 import {useTraceQueryParams} from './useTraceQueryParams';
 
-type Options = {
+interface Options {
   organization: Organization;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceTreeSource: TraceTreeSource;
   tree: TraceTree;
   meta?: TraceMetaQueryResults;
-};
+}
 
 export function useTraceStateAnalytics({
   trace,

@@ -14,7 +14,10 @@ type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config
 
 type FieldWithValues = Field & {defaultValue?: any; value?: any};
 
-type ApiData = {config: FieldWithValues[]; default_project?: string};
+interface ApiData {
+  config: FieldWithValues[];
+  default_project?: string;
+}
 
 type Props = DefaultSettings['props'];
 

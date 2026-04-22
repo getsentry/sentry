@@ -44,7 +44,7 @@ export type GroupListColumn =
   | 'firstSeen'
   | 'lastSeen';
 
-type Props = {
+interface Props {
   /**
    * Number of placeholder rows to show during loading
    */
@@ -79,16 +79,16 @@ type Props = {
   withChart?: boolean;
   withColumns?: GroupListColumn[];
   withPagination?: boolean;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   errorData: {detail: string} | null;
   groups: Group[];
   loading: boolean;
   pageLinks: string | null;
   memberList?: ReturnType<typeof indexMembersByProject>;
-};
+}
 
 const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
 

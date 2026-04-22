@@ -69,9 +69,9 @@ function getReplayTabs({
   };
 }
 
-type Props = {
+interface Props {
   isVideoReplay: boolean;
-};
+}
 
 export function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();

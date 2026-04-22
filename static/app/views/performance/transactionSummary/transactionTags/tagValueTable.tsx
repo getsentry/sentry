@@ -38,7 +38,7 @@ import {trackTagPageInteraction} from './utils';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
-type Props = {
+interface Props {
   aggregateColumn: string;
   eventView: EventView;
   isLoading: boolean;
@@ -49,7 +49,7 @@ type Props = {
   transactionName: string;
   onCursor?: CursorHandler;
   tagKey?: string;
-};
+}
 
 export function TagValueTable({
   aggregateColumn,

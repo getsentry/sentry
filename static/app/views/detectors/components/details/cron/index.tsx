@@ -53,10 +53,10 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type CronDetectorDetailsProps = {
+interface CronDetectorDetailsProps {
   detector: CronDetector;
   project: Project;
-};
+}
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
   const environments = detector.dataSources[0].queryObj.environments;

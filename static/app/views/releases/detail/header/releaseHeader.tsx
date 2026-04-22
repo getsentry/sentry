@@ -30,14 +30,14 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ReleaseActions, releaseFeedbackOptions} from './releaseActions';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   project: Required<ReleaseProject>;
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
-};
+}
 
 export function ReleaseHeader({
   location,

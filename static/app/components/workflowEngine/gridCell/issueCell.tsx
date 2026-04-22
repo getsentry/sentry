@@ -13,10 +13,10 @@ import type {SimpleGroup} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type IssueCellProps = {
+interface IssueCellProps {
   group: SimpleGroup | null;
   className?: string;
-};
+}
 
 export function IssueCell({group, className}: IssueCellProps) {
   const organization = useOrganization();

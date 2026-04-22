@@ -51,12 +51,12 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-export type ChangeData = {
+export interface ChangeData {
   relative: string | null;
   end?: Date;
   start?: Date;
   utc?: boolean | null;
-};
+}
 
 export interface TimeRangeSelectorProps extends Omit<
   SingleSelectProps<string>,

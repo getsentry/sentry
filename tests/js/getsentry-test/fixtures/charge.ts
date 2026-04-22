@@ -1,4 +1,4 @@
-type Charge = {
+interface Charge {
   amount: number;
   amountRefunded: number;
   cardLast4: string;
@@ -9,7 +9,7 @@ type Charge = {
   isPaid: boolean;
   isRefunded: boolean;
   stripeID: string;
-};
+}
 
 export function ChargeFixture(params: Partial<Charge>): Charge {
   return {

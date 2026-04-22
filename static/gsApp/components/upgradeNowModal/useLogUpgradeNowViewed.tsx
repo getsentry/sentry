@@ -8,12 +8,12 @@ import {
   type AM2UpdateSurfaces,
 } from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface Props {
   hasPriceChange: boolean;
   organization: Organization;
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
-};
+}
 
 export function useLogUpgradeNowViewed({
   hasPriceChange,

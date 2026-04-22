@@ -4,7 +4,7 @@ import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 
-export type BeaconData = {
+export interface BeaconData {
   email: string;
   events24h: number;
   firstCheckin: string;
@@ -15,11 +15,11 @@ export type BeaconData = {
   totalProjects: number;
   totalUsers: number;
   version: string;
-};
+}
 
-type Props = {
+interface Props {
   data: BeaconData;
-};
+}
 
 export function BeaconOverview({data}: Props) {
   return (

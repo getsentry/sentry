@@ -1,21 +1,21 @@
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-type SetProfilesThreadId = {
+interface SetProfilesThreadId {
   payload: number;
   type: 'set thread id';
-};
+}
 
-type SetRootNode = {
+interface SetRootNode {
   payload: FlamegraphFrame | null;
   type: 'set selected root';
-};
+}
 
 type FlamegraphProfilesAction = SetProfilesThreadId | SetRootNode;
 
-type FlamegraphProfiles = {
+interface FlamegraphProfiles {
   selectedRoot: FlamegraphFrame | null;
   threadId: number | null;
-};
+}
 
 export function flamegraphProfilesReducer(
   state: FlamegraphProfiles,

@@ -14,7 +14,7 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
-export type TeamSelectProps = {
+export interface TeamSelectProps {
   /**
    * Should button be disabled
    */
@@ -36,7 +36,7 @@ export type TeamSelectProps = {
    * Callback when teams are created
    */
   onCreateTeam?: (team: Team) => void;
-};
+}
 
 export function DropdownAddTeam({
   disabled,

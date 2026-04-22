@@ -8,9 +8,9 @@ import {t, tct} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type Props = {
+interface Props {
   authConfig: AuthConfig;
-};
+}
 
 export function SsoForm({authConfig}: Props) {
   const navigate = useNavigate();
@@ -60,10 +60,10 @@ export function SsoForm({authConfig}: Props) {
   );
 }
 
-type SlugExampleProps = {
+interface SlugExampleProps {
   hostname: string;
   slug: string;
-};
+}
 
 function SlugExample({hostname, slug}: SlugExampleProps) {
   return (

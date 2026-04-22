@@ -79,7 +79,7 @@ export function useActionNodeContext(): ActionNodeProps {
   return context;
 }
 
-type ActionNode = {
+interface ActionNode {
   action: React.ComponentType<any>;
   validate: ((action: Action) => string | undefined) | undefined;
   defaultData?: Record<string, any>;
@@ -87,7 +87,7 @@ type ActionNode = {
   label?: string;
   link?: string;
   ticketType?: string;
-};
+}
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
   [

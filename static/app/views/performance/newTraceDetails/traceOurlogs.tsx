@@ -21,10 +21,10 @@ import {
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 
-type UseTraceViewLogsDataProps = {
+interface UseTraceViewLogsDataProps {
   children: React.ReactNode;
   traceSlug: string;
-};
+}
 
 export function TraceViewLogsDataProvider({
   traceSlug,

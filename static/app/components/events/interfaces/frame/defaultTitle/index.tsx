@@ -29,7 +29,7 @@ import {isUrl} from 'sentry/utils/string/isUrl';
  */
 export const FRAME_TOOLTIP_MAX_WIDTH = 750;
 
-type Props = {
+interface Props {
   frame: Frame;
   platform: PlatformKey;
   /**
@@ -42,9 +42,13 @@ type Props = {
   isPotentiallyThirdParty?: boolean;
   isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
-};
+}
 
-type GetPathNameOutput = {key: string; value: string; meta?: Meta};
+interface GetPathNameOutput {
+  key: string;
+  value: string;
+  meta?: Meta;
+}
 
 export function DefaultTitle({
   frame,

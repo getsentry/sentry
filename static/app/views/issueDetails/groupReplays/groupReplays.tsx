@@ -46,9 +46,9 @@ import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/repla
 
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 
-type Props = {
+interface Props {
   group: Group;
-};
+}
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,

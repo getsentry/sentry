@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/performance/vitalDetail/utils';
 import {VitalPercents} from 'sentry/views/performance/vitalDetail/vitalPercents';
 
-type VitalBarProps = {
+interface VitalBarProps {
   data: VitalsData | null;
   isLoading: boolean;
   vital: WebVital | WebVital[];
@@ -34,7 +34,7 @@ type VitalBarProps = {
   showVitalPercentNames?: boolean;
   showVitalThresholds?: boolean;
   value?: string;
-};
+}
 
 export function VitalBar(props: VitalBarProps) {
   const theme = useTheme();
@@ -146,10 +146,10 @@ function getP75(data: VitalData | null, vitalName: WebVital): string {
   return vitalName === WebVital.CLS ? p75.toFixed(2) : `${p75.toFixed(0)}ms`;
 }
 
-type Percent = {
+interface Percent {
   percent: number;
   vitalState: VitalState;
-};
+}
 
 function getPercentsFromCounts({
   poor,

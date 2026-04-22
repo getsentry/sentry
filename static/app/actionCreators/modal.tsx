@@ -48,17 +48,17 @@ export function closeModal() {
   ModalStore.closeModal();
 }
 
-type EmailVerificationModalOptions = {
+interface EmailVerificationModalOptions {
   actionMessage?: string;
   emailVerified?: boolean;
   onClose?: () => void;
-};
+}
 
-type InviteMembersModalOptions = {
+interface InviteMembersModalOptions {
   initialData?: Array<Partial<InviteRow>>;
   onClose?: () => void;
   source?: string;
-};
+}
 
 export async function openEmailVerification({
   onClose,
@@ -94,7 +94,7 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type CreateOwnershipRuleModalOptions = {
+interface CreateOwnershipRuleModalOptions {
   issueId: string;
   /**
    * The organization to create a rules for
@@ -112,7 +112,7 @@ type CreateOwnershipRuleModalOptions = {
    * Suggestions will be created from the current event
    */
   eventData?: Event;
-};
+}
 
 /**
  * Open the edit ownership modal within issue details
@@ -128,13 +128,13 @@ export async function openIssueOwnershipRuleModal(
   });
 }
 
-export type EditOwnershipRulesModalOptions = {
+export interface EditOwnershipRulesModalOptions {
   onSave: (ownership: IssueOwnership) => void;
   organization: Organization;
   ownership: IssueOwnership;
   project: Project;
   theme: Theme;
-};
+}
 
 export async function openEditOwnershipRules(options: EditOwnershipRulesModalOptions) {
   const {default: Modal, modalCss} =
@@ -179,9 +179,9 @@ export async function toggleCommandPalette(
     });
   }
 }
-type RecoveryModalOptions = {
+interface RecoveryModalOptions {
   authenticatorName: string;
-};
+}
 
 export async function openRecoveryOptions(options: RecoveryModalOptions) {
   const {default: Modal} = await import('sentry/components/modals/recoveryOptionsModal');
@@ -189,11 +189,11 @@ export async function openRecoveryOptions(options: RecoveryModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export type TeamAccessRequestModalOptions = {
+export interface TeamAccessRequestModalOptions {
   memberId: string;
   orgId: string;
   teamId: string;
-};
+}
 
 export async function openTeamAccessRequestModal(options: TeamAccessRequestModalOptions) {
   const {default: Modal} =
@@ -202,10 +202,10 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type HelpSearchModalOptions = {
+interface HelpSearchModalOptions {
   organization?: Organization;
   placeholder?: string;
-};
+}
 
 export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   const {default: Modal, modalCss} =
@@ -214,13 +214,13 @@ export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type DebugFileSourceModalOptions = {
+interface DebugFileSourceModalOptions {
   onSave: (data: Record<string, any>) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
-};
+}
 
 export async function openDebugFileSourceModal({
   onClose,
@@ -245,12 +245,12 @@ export async function openInviteMembersModal({
   openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
 }
 
-type InviteMissingMembersModalOptions = {
+interface InviteMissingMembersModalOptions {
   allowedRoles: OrgRole[];
   missingMembers: MissingMember[];
   onClose: () => void;
   organization: Organization;
-};
+}
 
 export async function openInviteMissingMembersModal({
   onClose,
@@ -313,9 +313,9 @@ export async function demoSignupModal(options: ModalOptions = {}) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type DemoEndModalOptions = {
+interface DemoEndModalOptions {
   tour: string;
-};
+}
 
 export async function demoEndModal(options: DemoEndModalOptions) {
   const {default: Modal, modalCss} =
@@ -383,9 +383,9 @@ export async function openCreateReleaseIntegration(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type NavigateToExternalLinkModalOptions = {
+interface NavigateToExternalLinkModalOptions {
   linkText: string;
-};
+}
 
 export async function openNavigateToExternalLinkModal(
   options: NavigateToExternalLinkModalOptions
@@ -465,10 +465,10 @@ export async function openPrivateGamingSdkAccessModal(
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }
 
-type InsightInfoModalOptions = {
+interface InsightInfoModalOptions {
   children: React.ReactNode;
   title: string;
-};
+}
 
 export async function openInsightInfoModal(options: InsightInfoModalOptions) {
   const {InsightInfoModal} =

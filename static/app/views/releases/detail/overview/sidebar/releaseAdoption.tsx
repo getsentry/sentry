@@ -41,7 +41,7 @@ const axisIndexToSessionsField = {
   [usersAxisIndex]: SessionFieldWithOperation.USERS,
 };
 
-type Props = {
+interface Props {
   allSessions: SessionApiResponse | null;
   environment: string[];
   errored: boolean;
@@ -50,7 +50,7 @@ type Props = {
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;
   reloading: boolean;
-};
+}
 
 export function ReleaseAdoption({
   release,

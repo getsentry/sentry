@@ -11,13 +11,13 @@ import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
-type Props = {
+interface Props {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
   canEdit?: boolean;
   onRemoveConfirmMessage?: string;
   tokenPrefix?: string;
-};
+}
 
 export function ApiTokenRow({
   token,

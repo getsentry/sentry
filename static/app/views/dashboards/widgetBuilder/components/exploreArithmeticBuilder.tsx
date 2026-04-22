@@ -13,10 +13,10 @@ import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBui
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 
-type Props = {
+interface Props {
   equation: string;
   onUpdate: (value: string) => void;
-};
+}
 
 export function ExploreArithmeticBuilder({equation, onUpdate}: Props) {
   const expression = stripEquationPrefix(equation);

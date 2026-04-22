@@ -61,7 +61,7 @@ export type ParameterDescription =
       placeholder?: string;
     };
 
-type Props = {
+interface Props {
   fieldOptions: FieldOptions;
   fieldValue: QueryFieldValue;
   onChange: (fieldValue: QueryFieldValue) => void;
@@ -122,7 +122,7 @@ type Props = {
    * Useful for rendering query fields in scroll containers.
    */
   useMenuPortal?: boolean;
-};
+}
 
 class _QueryField extends Component<Props> {
   FieldSelectComponents = {
@@ -754,7 +754,9 @@ interface BufferedInputProps extends InputProps {
   onUpdate: (value: string) => void;
   value: string;
 }
-type InputState = {value: string};
+interface InputState {
+  value: string;
+}
 
 /**
  * Because controlled inputs fire onChange on every key stroke,

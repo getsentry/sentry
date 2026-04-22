@@ -2,12 +2,12 @@ import {t} from 'sentry/locale';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
 
-type DetectorTypeConfig = {
+interface DetectorTypeConfig {
   label: string;
   userCreateable: boolean;
   path?: string;
   systemCreatedNotice?: (detector: Detector) => undefined | string;
-};
+}
 
 const DETECTOR_TYPE_CONFIG: Record<DetectorType, DetectorTypeConfig> = {
   error: {

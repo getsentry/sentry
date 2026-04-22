@@ -11,11 +11,11 @@ import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {isEmptyTrace} from './utils';
 
-type UseTraceTreeParams = {
+interface UseTraceTreeParams {
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
-};
+}
 
 function getTraceViewQueryStatus(traceQueryStatus: QueryStatus): QueryStatus {
   if (traceQueryStatus === 'error') {

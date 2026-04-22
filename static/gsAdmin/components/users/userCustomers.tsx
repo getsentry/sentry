@@ -5,9 +5,9 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {AddToOrgModal, RemoveFromOrgModal} from 'admin/components/addOrRemoveOrgModal';
 import {CustomerGrid} from 'admin/components/customerGrid';
 
-type Props = {
+interface Props {
   userId: string;
-};
+}
 
 export function UserCustomers({userId}: Props) {
   const openAddToOrgModal = () => {

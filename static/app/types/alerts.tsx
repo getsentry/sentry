@@ -291,10 +291,10 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
 }
 
 // Project's alert rule stats
-export type ProjectAlertRuleStats = {
+export interface ProjectAlertRuleStats {
   count: number;
   date: string;
-};
+}
 
 export enum MailActionTargetType {
   ISSUE_OWNERS = 'IssueOwners',
@@ -309,7 +309,7 @@ export enum AssigneeTargetType {
   MEMBER = 'Member',
 }
 
-export type NoteType = {
+export interface NoteType {
   mentions: string[];
   text: string;
-};
+}

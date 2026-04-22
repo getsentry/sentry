@@ -16,7 +16,7 @@ import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {AlertRuleComparisonType, Dataset} from './types';
 
-type Props = {
+interface Props {
   alertType: MetricAlertType;
   comparisonType: AlertRuleComparisonType;
   dataset: Dataset;
@@ -25,7 +25,7 @@ type Props = {
   onComparisonTypeChange: (value: AlertRuleComparisonType) => void;
   organization: Organization;
   comparisonDelta?: number;
-};
+}
 
 export function ThresholdTypeForm({
   alertType,

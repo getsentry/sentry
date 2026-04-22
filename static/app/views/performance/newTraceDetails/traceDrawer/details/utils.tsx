@@ -112,14 +112,14 @@ export function sortAttributes(attributes: TraceItemResponseAttribute[]) {
   });
 }
 
-export type KeyValueActionParams = {
+export interface KeyValueActionParams {
   location: Location;
   organization: Organization;
   rowKey: string;
   rowValue: React.ReactNode;
   kind?: TraceDrawerActionValueKind;
   projectIds?: string | string[];
-};
+}
 
 export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemProps[] {
   const {rowKey, rowValue, kind, projectIds, location, organization} = params;

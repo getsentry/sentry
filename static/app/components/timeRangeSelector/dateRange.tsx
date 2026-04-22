@@ -27,7 +27,11 @@ import {TimePicker} from './timePicker';
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
-type ChangeData = {end?: Date; hasDateRangeErrors?: boolean; start?: Date};
+interface ChangeData {
+  end?: Date;
+  hasDateRangeErrors?: boolean;
+  start?: Date;
+}
 
 const defaultProps = {
   showAbsolute: true,
@@ -83,10 +87,10 @@ type Props = WithRouterProps & {
   utc?: boolean | null;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   hasEndErrors: boolean;
   hasStartErrors: boolean;
-};
+}
 
 class BaseDateRange extends Component<Props, State> {
   static defaultProps = defaultProps;

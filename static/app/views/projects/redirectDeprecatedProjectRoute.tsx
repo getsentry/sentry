@@ -15,18 +15,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
 
-type DetailsProps = {
+interface DetailsProps {
   api: Client;
   children: (props: ChildProps) => React.ReactNode;
   orgId: string;
   projectSlug: string;
-};
+}
 
-type DetailsState = {
+interface DetailsState {
   error: null | RequestError;
   loading: boolean;
   project: null | Project;
-};
+}
 
 type ChildProps = DetailsState & {
   hasProjectId: boolean;
@@ -109,10 +109,10 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
 
 const ProjectDetails = withApi(ProjectDetailsInner);
 
-type RedirectOptions = {
+interface RedirectOptions {
   orgId: string;
   projectId: null | string;
-};
+}
 
 type RedirectCallback = (options: RedirectOptions) => string;
 

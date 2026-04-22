@@ -140,10 +140,10 @@ function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
   );
 }
 
-type ProfileLight = {
+interface ProfileLight {
   name: Profile['name'];
   threadId: Profile['threadId'];
-};
+}
 
 export function compareProfiles(activeThreadId?: number) {
   return function (a: ProfileLight, b: ProfileLight): number {

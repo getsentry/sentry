@@ -29,7 +29,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 import {IssueDetailsJumpTo} from 'sentry/views/issueDetails/streamline/issueDetailsJumpTo';
 
-type EventNavigationProps = {
+interface EventNavigationProps {
   event: Event;
   group: Group;
   className?: string;
@@ -39,7 +39,7 @@ type EventNavigationProps = {
   'data-stuck'?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
-};
+}
 
 export const MIN_NAV_HEIGHT = 44;
 

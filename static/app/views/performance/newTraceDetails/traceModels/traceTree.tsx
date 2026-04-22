@@ -122,7 +122,7 @@ export declare namespace TraceTree {
     ['trace timeline change']: (view: [number, number]) => void;
   }
 
-  type EAPError = {
+  interface EAPError {
     event_id: string;
     event_type: 'error';
     issue_id: number;
@@ -132,9 +132,9 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     description?: string;
-  };
+  }
 
-  type EAPOccurrence = {
+  interface EAPOccurrence {
     culprit: string;
     description: string;
     event_id: string;
@@ -147,9 +147,9 @@ export declare namespace TraceTree {
     start_timestamp: number;
     transaction: string;
     short_id?: string;
-  };
+  }
 
-  type EAPSpan = {
+  interface EAPSpan {
     children: EAPSpan[];
     duration: number;
     end_timestamp: number;
@@ -172,9 +172,9 @@ export declare namespace TraceTree {
     additional_attributes?: Record<string, number | string>;
     description?: string;
     measurements?: Record<string, number>;
-  };
+  }
 
-  type UptimeCheck = {
+  interface UptimeCheck {
     children: EAPSpan[];
     duration: number;
     end_timestamp: number;
@@ -191,9 +191,9 @@ export declare namespace TraceTree {
     transaction_id: string;
     additional_attributes?: Record<string, number | string>;
     description?: string;
-  };
+  }
 
-  type UptimeCheckTiming = {
+  interface UptimeCheckTiming {
     duration: number;
     end_timestamp: number;
     event_id: string;
@@ -201,7 +201,7 @@ export declare namespace TraceTree {
     op: string;
     start_timestamp: number;
     description?: string;
-  };
+  }
 
   // Raw node values
   interface Span extends RawSpanType {
@@ -225,15 +225,15 @@ export declare namespace TraceTree {
 
   type TraceIssue = TraceErrorIssue | TraceOccurrence;
 
-  type RepresentativeTraceEvent = {
+  interface RepresentativeTraceEvent {
     dataset: TraceItemDataset | null;
     event: BaseNode | OurLogsResponseItem | null;
-  };
+  }
 
   type Profile = {profile_id: string} | {profiler_id: string};
-  type Project = {
+  interface Project {
     slug: string;
-  };
+  }
   type Root = null;
 
   // All possible node value types
@@ -302,7 +302,7 @@ export declare namespace TraceTree {
     | 'root';
   type NodePath = `${NodeType}-${string}`;
 
-  type Metadata = {
+  interface Metadata {
     event_id: string | undefined;
     project_slug: string | undefined;
     // This is used to track the traceslug associated with a trace in a replay.
@@ -311,14 +311,14 @@ export declare namespace TraceTree {
     // to be able to fetch the correct trace-item details from EAP, in the trace drawer.
     replayTraceSlug?: string;
     spans?: number;
-  };
+  }
 
   type OpsBreakdown = Array<{
     count: number;
     op: string;
   }>;
 
-  type Indicator = {
+  interface Indicator {
     duration: number;
     label: string;
     measurement: Measurement;
@@ -326,9 +326,13 @@ export declare namespace TraceTree {
     start: number;
     type: keyof typeof RENDERABLE_MEASUREMENTS;
     score?: number;
-  };
+  }
 
-  type CollectedVital = {key: string; measurement: Measurement; score?: number};
+  interface CollectedVital {
+    key: string;
+    measurement: Measurement;
+    score?: number;
+  }
 }
 
 export enum TraceShape {

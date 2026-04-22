@@ -17,7 +17,10 @@ import {
   MetricDetectorTimePeriod,
 } from 'sentry/views/detectors/datasetConfig/utils/timePeriods';
 
-type BaseOption = {label: React.ReactNode; value: string};
+interface BaseOption {
+  label: React.ReactNode;
+  value: string;
+}
 
 const CUSTOM_TIME_VALUE = '__custom_time__';
 

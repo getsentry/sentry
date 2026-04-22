@@ -32,7 +32,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-type Props = {
+interface Props {
   columnNameMap: Record<string, string>;
   cursorName: string;
   eventIdKey: 'id' | 'transaction.id' | 'transaction.span_id';
@@ -44,7 +44,7 @@ type Props = {
   data?: TableData;
   footerAlignedPagination?: boolean;
   pageLinks?: string;
-};
+}
 
 const ICON_FIELDS = ['profile.id', 'profile_id'];
 const COLUMN_RESIZE_PARAM_NAME = 'spans';

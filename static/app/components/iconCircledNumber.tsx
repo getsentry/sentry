@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 
-type IconCircledNumberProps = {
+interface IconCircledNumberProps {
   number: number;
   size?: SVGIconProps['size'];
-};
+}
 
 export function IconCircledNumber({number, size = 'md'}: IconCircledNumberProps) {
   return (

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 type Variant = 'small' | 'large';
 
-type Props = {
+interface Props {
   /**
    * The value of the progress indicator for the determinate variant. Value between 0 and 100
    */
@@ -16,7 +16,7 @@ type Props = {
    * The style of the progressBar
    */
   variant?: Variant;
-};
+}
 
 const getVariantStyle = ({
   variant = 'small',

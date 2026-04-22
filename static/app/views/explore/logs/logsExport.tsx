@@ -10,11 +10,11 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type LogsExportButtonProps = {
+interface LogsExportButtonProps {
   isLoading: boolean;
   tableData: OurLogsResponseItem[] | null | undefined;
   error?: Error | null;
-};
+}
 
 interface LogsQueryInfo {
   dataset: 'logs';

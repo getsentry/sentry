@@ -13,15 +13,15 @@ import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 
-type ProjectSettingsCommandPaletteEntry = {
+interface ProjectSettingsCommandPaletteEntry {
   display: {
     label: string;
   };
   keywords: string[];
   to: string;
-};
+}
 
-type ProjectSettingsCommandPaletteGroup = {
+interface ProjectSettingsCommandPaletteGroup {
   items: Array<{
     display: {
       label: string;
@@ -31,13 +31,13 @@ type ProjectSettingsCommandPaletteGroup = {
   }>;
   label: string;
   icon?: ReactNode;
-};
+}
 
-type ProjectSettingsCommandPaletteSection = {
+interface ProjectSettingsCommandPaletteSection {
   items: Array<ProjectSettingsCommandPaletteEntry | ProjectSettingsCommandPaletteGroup>;
   label: string;
   icon?: ReactNode;
-};
+}
 
 function shouldShowItem(
   item: NavigationItem,

@@ -29,7 +29,7 @@ const filterOptionCategories = {
 
 type ImageCandidates = NonNullable<Image['candidates']>;
 
-type Props = {
+interface Props {
   baseUrl: string;
   candidates: ImageCandidates;
   hasReprocessWarning: boolean;
@@ -39,15 +39,15 @@ type Props = {
   projSlug: Project['slug'];
   eventDateReceived?: string;
   imageStatus?: ImageStatus;
-};
+}
 
-type State = {
+interface State {
   filterOptions: Array<SelectSection<string>>;
   filterSelections: Array<SelectOption<string>>;
   filteredCandidatesByFilter: ImageCandidates;
   filteredCandidatesBySearch: ImageCandidates;
   searchTerm: string;
-};
+}
 
 export class Candidates extends Component<Props, State> {
   state: State = {

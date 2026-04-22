@@ -8,7 +8,7 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {defined} from 'sentry/utils';
 
-type ScoreCardProps = {
+interface ScoreCardProps {
   title: React.ReactNode;
   className?: string;
   help?: React.ReactNode;
@@ -17,7 +17,7 @@ type ScoreCardProps = {
   score?: React.ReactNode;
   trend?: React.ReactNode;
   trendStatus?: 'good' | 'bad';
-};
+}
 
 export function ScoreCard({
   title,
@@ -110,7 +110,9 @@ export const Score = styled('span')`
   white-space: nowrap;
 `;
 
-type TrendProps = {trendStatus: ScoreCardProps['trendStatus']};
+interface TrendProps {
+  trendStatus: ScoreCardProps['trendStatus'];
+}
 
 export const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};

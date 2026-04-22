@@ -2,18 +2,18 @@ import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
 
-type Props = {
+interface Props {
   api: Client;
   orgSlug: string;
   projectSlug: string;
   query: string;
   replayId: string;
-};
+}
 
-type NodeMarker = {
+interface NodeMarker {
   node_id: number;
   timestamp: string;
-};
+}
 
 export async function fetchReplayClicks({
   api,

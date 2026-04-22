@@ -20,13 +20,13 @@ import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
-export type PendingUserInput = {
+export interface PendingUserInput {
   data: Record<string, any>;
   id: string;
   input_type: 'file_change_approval' | 'ask_user_question';
-};
+}
 
-export type SeerExplorerResponse = {
+export interface SeerExplorerResponse {
   session: {
     blocks: Block[];
     status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
@@ -36,16 +36,16 @@ export type SeerExplorerResponse = {
     repo_pr_states?: Record<string, RepoPRState>;
     run_id?: number;
   } | null;
-};
+}
 
-type SeerExplorerChatResponse = {
+interface SeerExplorerChatResponse {
   message: Block;
   run_id: number;
-};
+}
 
-type SeerExplorerUpdateResponse = {
+interface SeerExplorerUpdateResponse {
   run_id: number;
-};
+}
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 

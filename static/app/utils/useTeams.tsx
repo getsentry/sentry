@@ -12,7 +12,7 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type State = {
+interface State {
   /**
    * The error that occurred if fetching failed
    */
@@ -41,7 +41,7 @@ type State = {
    * Pagination
    */
   nextCursor?: null | string;
-};
+}
 
 type Result = {
   /**
@@ -62,7 +62,7 @@ type Result = {
   teams: Team[];
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
-type Options = {
+interface Options {
   /**
    * Number of teams to return when not using `props.slugs`
    */
@@ -80,16 +80,16 @@ type Options = {
    * @deprecated use `useTeamsById({slugs: []})`
    */
   slugs?: string[];
-};
+}
 
-type FetchTeamOptions = {
+interface FetchTeamOptions {
   cursor?: State['nextCursor'];
   ids?: string[];
   lastSearch?: State['lastSearch'];
   limit?: Options['limit'];
   search?: State['lastSearch'];
   slugs?: string[];
-};
+}
 
 /**
  * Helper function to actually load teams

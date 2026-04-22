@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 
 import {Panel} from './panel';
 
-type PanelTableProps = {
+interface PanelTableProps {
   /**
    * Headers of the table.
    */
@@ -58,7 +58,7 @@ type PanelTableProps = {
    * If true, scrolling headers out of view will pin to the top of container.
    */
   stickyHeaders?: boolean;
-};
+}
 
 /**
  * Bare bones table generates a CSS grid template based on the content.
@@ -136,7 +136,7 @@ function getContent(children: PanelTableProps['children']) {
   return children;
 }
 
-type WrapperProps = {
+interface WrapperProps {
   /**
    * The number of columns the table will have, this is derived from the headers list
    */
@@ -144,7 +144,7 @@ type WrapperProps = {
   disableHeaderBorderBottom: boolean;
   disablePadding: PanelTableProps['disablePadding'];
   hasRows: boolean;
-};
+}
 
 const LoadingWrapper = styled('div')``;
 

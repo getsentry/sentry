@@ -21,14 +21,14 @@ interface QueryInfo {
   statsPeriod?: string;
 }
 
-type BaseExploreExportProps = {
+interface BaseExploreExportProps {
   disabled: boolean;
   hasReachedCSVLimit: boolean;
   isDataEmpty: boolean;
   isDataError: boolean;
   isDataLoading: boolean;
   downloadAsCsv?: () => void;
-};
+}
 
 type LogsExploreExportProps = BaseExploreExportProps & {
   queryInfo: QueryInfo;

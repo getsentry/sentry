@@ -4,11 +4,11 @@ import type {LocationDescriptor} from 'history';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
 
-type NavigateOptions = {
+interface NavigateOptions {
   preventScrollReset?: boolean;
   replace?: boolean;
   state?: any;
-};
+}
 
 export interface ReactRouter3Navigate {
   (to: LocationDescriptor, options?: NavigateOptions): void;

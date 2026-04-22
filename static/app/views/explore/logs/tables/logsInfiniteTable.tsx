@@ -82,7 +82,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
-type LogsTableProps = {
+interface LogsTableProps {
   additionalData?: {
     event?: Event;
     scrollToDisabled?: boolean;
@@ -106,7 +106,7 @@ type LogsTableProps = {
   };
   numberAttributes?: TagCollection;
   stringAttributes?: TagCollection;
-};
+}
 
 const {info, fmt} = Sentry.logger;
 

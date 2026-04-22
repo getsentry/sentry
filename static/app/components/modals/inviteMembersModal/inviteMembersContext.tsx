@@ -6,7 +6,7 @@ import type {
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 
-export type InviteMembersContextValue = {
+export interface InviteMembersContextValue {
   complete: boolean;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
@@ -21,7 +21,7 @@ export type InviteMembersContextValue = {
   setTeams: (teams: string[], index: number) => void;
   willInvite: boolean;
   error?: string;
-};
+}
 
 /** @internal used in tests */
 export const defaultInviteProps: InviteMembersContextValue = {

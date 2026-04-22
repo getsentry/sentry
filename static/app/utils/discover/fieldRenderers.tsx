@@ -105,7 +105,7 @@ import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamK
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
-export type RenderFunctionBaggage = {
+export interface RenderFunctionBaggage {
   location: Location;
   organization: Organization;
   theme: Theme;
@@ -125,11 +125,11 @@ export type RenderFunctionBaggage = {
   traceItemMeta?: TraceItemDetailsMeta;
 
   unit?: string;
-};
+}
 
-type RenderFunctionOptions = {
+interface RenderFunctionOptions {
   enableOnClick?: boolean;
-};
+}
 
 type FieldFormatterRenderFunction = (
   field: string,
@@ -142,12 +142,12 @@ export type FieldFormatterRenderFunctionPartial = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type FieldFormatter = {
+interface FieldFormatter {
   isSortable: boolean;
   renderFunc: FieldFormatterRenderFunction;
-};
+}
 
-type FieldFormatters = {
+interface FieldFormatters {
   array: FieldFormatter;
   boolean: FieldFormatter;
   currency: FieldFormatter;
@@ -160,7 +160,7 @@ type FieldFormatters = {
   rate: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
-};
+}
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
@@ -411,10 +411,10 @@ type SpecialFieldRenderFunc = (
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type SpecialField = {
+interface SpecialField {
   renderFunc: SpecialFieldRenderFunc;
   sortField: string | null;
-};
+}
 
 const DownloadCount = styled('span')`
   padding-left: ${p => p.theme.space.sm};
@@ -1105,10 +1105,10 @@ type SpecialFunctionFieldRenderer = (
   fieldName: string
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
-type SpecialFunctions = {
+interface SpecialFunctions {
   time_spent_percentage: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
-};
+}
 
 /**
  * "Special functions" are functions whose values either do not map 1:1 to a single column,

@@ -34,11 +34,11 @@ function Gridlines({
   );
 }
 
-type Props = {
+interface Props {
   durationMs: number;
   width: number;
   minWidth?: number;
-};
+}
 
 export function MajorGridlines({durationMs, minWidth = 50, width}: Props) {
   const {cols, remaining} = countColumns(durationMs, width, minWidth);

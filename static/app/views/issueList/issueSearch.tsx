@@ -10,11 +10,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueListSeerComboBox} from './issueListSeerComboBox';
 import {IssueListSearchBar, useIssueListSearchBarDataProvider} from './searchBar';
 
-type IssueSearchProps = {
+interface IssueSearchProps {
   onSearch: (query: string) => void;
   query: string;
   className?: string;
-};
+}
 
 function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const organization = useOrganization();

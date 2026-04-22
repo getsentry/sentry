@@ -6,14 +6,14 @@ import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKe
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {QUERY_API_CLIENT, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 
-export type ApiResponse<TResponseData = unknown> = {
+export interface ApiResponse<TResponseData = unknown> {
   headers: {
     Link?: string;
     'X-Hits'?: number;
     'X-Max-Hits'?: number;
   };
   json: TResponseData;
-};
+}
 
 export async function apiFetch<TQueryFnData = unknown>(
   context: QueryFunctionContext<ApiQueryKey, never>

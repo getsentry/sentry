@@ -145,10 +145,10 @@ const ITERATION_LIMIT = 20;
 // finish in under 5ms.
 const MAXIMUM_DIFFERENCE = 1; // px
 
-type Dimensions = {
+interface Dimensions {
   height: number;
   width: number;
-};
+}
 
 function getElementDimensions(element: HTMLElement): Dimensions {
   const bbox = element.getBoundingClientRect();

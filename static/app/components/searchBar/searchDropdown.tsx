@@ -26,7 +26,7 @@ const getDropdownItemKey = (item: SearchItem): string =>
     item.children?.[0] ? getDropdownItemKey(item.children[0]) : ''
   }`;
 
-type Props = {
+interface Props {
   items: SearchGroup[];
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
@@ -51,7 +51,7 @@ type Props = {
   supportedTags?: TagCollection;
   textOperatorKeys?: Set<string>;
   visibleShortcuts?: Shortcut[];
-};
+}
 
 export function SearchDropdown({
   className,
@@ -169,9 +169,9 @@ export function SearchDropdown({
   );
 }
 
-type HeaderItemProps = {
+interface HeaderItemProps {
   group: SearchGroup;
-};
+}
 
 function HeaderItem({group}: HeaderItemProps) {
   return (
@@ -185,13 +185,13 @@ function HeaderItem({group}: HeaderItemProps) {
   );
 }
 
-type HighlightedRestOfWordsProps = {
+interface HighlightedRestOfWordsProps {
   combinedRestWords: string;
   firstWord: string;
   searchSubstring: string;
   hasSplit?: boolean;
   isFirstWordHidden?: boolean;
-};
+}
 
 function HighlightedRestOfWords({
   combinedRestWords,
@@ -223,12 +223,12 @@ function HighlightedRestOfWords({
   );
 }
 
-type ItemTitleProps = {
+interface ItemTitleProps {
   item: SearchItem;
   searchSubstring: string;
 
   isChild?: boolean;
-};
+}
 
 function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
   if (!item.title) {
@@ -293,10 +293,10 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
   );
 }
 
-type KindTagProps = {
+interface KindTagProps {
   kind: FieldKind;
   deprecated?: boolean;
-};
+}
 
 function KindTag({kind, deprecated}: KindTagProps) {
   if (deprecated) {
@@ -317,7 +317,7 @@ function KindTag({kind, deprecated}: KindTagProps) {
   }
 }
 
-type DropdownItemProps = {
+interface DropdownItemProps {
   item: SearchItem;
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
@@ -325,7 +325,7 @@ type DropdownItemProps = {
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   isChild?: boolean;
   onIconClick?: (value: string) => void;
-};
+}
 
 function DropdownItem({
   item,
@@ -435,10 +435,10 @@ function DropdownItem({
   );
 }
 
-type DropdownDocumentationProps = {
+interface DropdownDocumentationProps {
   searchSubstring: string;
   documentation?: React.ReactNode;
-};
+}
 
 function DropdownDocumentation({
   documentation,
@@ -464,10 +464,10 @@ function DropdownDocumentation({
   return <Documentation>{documentation}</Documentation>;
 }
 
-type QueryItemProps = {
+interface QueryItemProps {
   item: SearchItem;
   additionalSearchConfig?: Partial<SearchConfig>;
-};
+}
 
 function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
   if (!item.value) {

@@ -10,12 +10,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
 
-export type CreateReleaseIntegrationModalOptions = {
+export interface CreateReleaseIntegrationModalOptions {
   onCancel: () => void;
   onCreateSuccess: (integration: any) => void;
   organization: Organization;
   project: Project;
-};
+}
 type CreateReleaseIntegrationModalProps = CreateReleaseIntegrationModalOptions &
   ModalRenderProps;
 

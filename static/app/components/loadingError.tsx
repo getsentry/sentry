@@ -2,11 +2,11 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   className?: string;
   message?: React.ReactNode;
   onRetry?: () => void;
-};
+}
 
 /**
  * Renders an Alert box of type "error". Renders a "Retry" button only if a

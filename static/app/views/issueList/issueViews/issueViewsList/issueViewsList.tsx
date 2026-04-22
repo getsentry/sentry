@@ -45,12 +45,12 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type IssueViewSectionProps = {
+interface IssueViewSectionProps {
   createdBy: GroupSearchViewCreatedBy;
   cursorQueryParam: string;
   limit: number;
   emptyState?: React.ReactNode;
-};
+}
 
 // We expose a few simplified sort options which are mapped to multiple
 // backend sorts to provide the best results.

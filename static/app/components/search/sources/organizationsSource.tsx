@@ -9,7 +9,7 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {ChildProps, ResultItem} from './types';
 import {makeResolvedTs} from './utils';
 
-type Props = {
+interface Props {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
@@ -19,7 +19,7 @@ type Props = {
    * fuse.js options
    */
   searchOptions?: Fuse.IFuseOptions<ResultItem>;
-};
+}
 
 export function OrganizationsSource({children, query, searchOptions}: Props) {
   const {organizations, loaded} = useLegacyStore(OrganizationsStore);

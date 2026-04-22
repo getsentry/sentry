@@ -4,22 +4,22 @@ import Prism from 'prismjs';
 
 import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 
-type PrismHighlightParams = {
+interface PrismHighlightParams {
   code: string;
   language: string;
-};
+}
 
-type SyntaxHighlightToken = {
+interface SyntaxHighlightToken {
   children: string;
   className: string;
-};
+}
 
 export type SyntaxHighlightLine = SyntaxHighlightToken[];
 
-type IntermediateToken = {
+interface IntermediateToken {
   children: string;
   types: Set<string>;
-};
+}
 
 const useLoadPrismLanguage = (
   language: string,

@@ -6,12 +6,12 @@ import {withApi} from 'sentry/utils/withApi';
 describe('withApi', () => {
   let apiInstance: Client | undefined;
 
-  type Props = {
+  interface Props {
     /**
      * Test passthrough API clients
      */
     api?: Client;
-  };
+  }
 
   const MyComponent = jest.fn((props: Props) => {
     apiInstance = props.api;

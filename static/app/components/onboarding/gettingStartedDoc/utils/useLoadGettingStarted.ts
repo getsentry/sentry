@@ -15,7 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 
-type Props = {
+interface Props {
   orgSlug: Organization['slug'];
   platform: PlatformIntegration;
   productType?:
@@ -26,7 +26,7 @@ type Props = {
     | 'logs'
     | 'metrics';
   projSlug?: Project['slug'];
-};
+}
 
 export function useLoadGettingStarted({
   platform,

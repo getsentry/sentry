@@ -7,19 +7,19 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {FILTER_OPTIONS} from './constants';
 import type {DataFilter} from './types';
 
-type HistogramChildrenProps = {
+interface HistogramChildrenProps {
   activeFilter: SelectValue<DataFilter>;
   filterOptions: typeof FILTER_OPTIONS;
   handleFilterChange: (option: string) => void;
   handleResetView: () => void;
   isZoomed: boolean;
-};
+}
 
-type Props = {
+interface Props {
   children: (props: HistogramChildrenProps) => React.ReactNode;
   location: Location;
   zoomKeys: string[];
-};
+}
 
 export function Histogram(props: Props) {
   const {location, zoomKeys, children} = props;

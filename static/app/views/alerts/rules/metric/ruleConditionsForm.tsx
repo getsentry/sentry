@@ -93,7 +93,7 @@ import {
   type EventTypes,
 } from './types';
 
-type Props = {
+interface Props {
   aggregate: string;
   alertType: AlertType;
   api: Client;
@@ -124,13 +124,13 @@ type Props = {
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
   onMetricLoadingChange?: (isLoading: boolean) => void;
-};
+}
 
-type State = {
+interface State {
   environments: Environment[] | null;
   filterKeys: TagCollection;
   measurements: MeasurementCollection;
-};
+}
 
 class RuleConditionsForm extends PureComponent<Props, State> {
   state: State = {

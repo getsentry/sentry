@@ -8,9 +8,9 @@ import type {Organization} from 'sentry/types/organization';
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
 export function OpenInDiscoverBtn(props: Props) {
   const {organization} = props;

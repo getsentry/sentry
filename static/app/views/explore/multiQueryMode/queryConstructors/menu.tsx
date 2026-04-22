@@ -8,10 +8,10 @@ import {
   useDuplicateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 
-type Props = {
+interface Props {
   index: number;
   totalQueryRows: number;
-};
+}
 
 export function MenuSection({index, totalQueryRows}: Props) {
   const deleteQuery = useDeleteQueryAtIndex();

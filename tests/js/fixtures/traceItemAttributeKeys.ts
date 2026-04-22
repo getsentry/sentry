@@ -2,12 +2,12 @@ import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type MockTraceItemAttributeResponse = {
+interface MockTraceItemAttributeResponse {
   attributeType: 'string' | 'number' | 'boolean';
   key: string;
   name: string;
   secondaryAliases?: string[];
-};
+}
 
 function getAttributeTypeFromTag(
   tag: Tag

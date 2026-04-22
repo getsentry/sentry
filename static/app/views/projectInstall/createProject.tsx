@@ -56,12 +56,12 @@ import {
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-type FormData = {
+interface FormData {
   projectName: string;
   alertRule?: Partial<AlertRuleOptions>;
   platform?: OnboardingSelectedSDK;
   team?: string;
-};
+}
 
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;

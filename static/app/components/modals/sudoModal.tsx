@@ -39,17 +39,17 @@ interface WebAuthnParams {
   superuserReason?: string;
 }
 
-type DefaultProps = {
+interface DefaultProps {
   closeButton?: boolean;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   errorType: string;
   showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
-};
+}
 
 type Props = DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {

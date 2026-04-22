@@ -1,12 +1,12 @@
 import {AnnotatedTextErrors} from './annotatedTextErrors';
 import {AnnotatedTextValue} from './annotatedTextValue';
 
-type Props = {
+interface Props {
   value: React.ReactNode;
   className?: string;
   meta?: Record<any, any>;
   withOnlyFormattedText?: boolean;
-};
+}
 
 export function AnnotatedText({
   value,

@@ -28,10 +28,10 @@ const getActiveDiscounts = (recurringCredits: RecurringCredit[]) =>
       !isExpired(credit.periodEnd)
   );
 
-type Props = {
+interface Props {
   displayType: 'data' | 'discount';
   planDetails: Plan;
-};
+}
 
 export function RecurringCredits({displayType, planDetails}: Props) {
   const {recurringCredits, isLoading} = useRecurringCredits();

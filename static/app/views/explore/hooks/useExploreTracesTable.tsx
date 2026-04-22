@@ -21,10 +21,10 @@ interface UseExploreTracesTableOptions {
   };
 }
 
-export type TracesTableResult = {
+export interface TracesTableResult {
   error: QueryError | null;
   result: UseQueryResult<ApiResponse<TraceResults>, Error>;
-};
+}
 
 export function useExploreTracesTableApiOptions({
   limit,

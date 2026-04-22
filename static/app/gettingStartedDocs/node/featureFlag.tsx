@@ -3,10 +3,10 @@ import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStarted
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t} from 'sentry/locale';
 
-type FeatureFlagConfiguration = {
+interface FeatureFlagConfiguration {
   makeConfigureCode: (dsn: string) => string;
   makeVerifyCode: () => string;
-};
+}
 
 // Node.js only supports the generic featureFlagsIntegration. Vendor-specific
 // integrations (LaunchDarkly, OpenFeature, etc.) are browser-only in @sentry/browser.

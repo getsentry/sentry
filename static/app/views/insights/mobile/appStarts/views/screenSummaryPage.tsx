@@ -24,7 +24,7 @@ import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/s
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {ModuleName, SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 
-type Query = {
+interface Query {
   [SpanFields.APP_START_TYPE]: string;
   'device.class': string;
   primaryRelease: string;
@@ -33,7 +33,7 @@ type Query = {
   spanGroup: string;
   spanOp: string;
   transaction: string;
-};
+}
 
 export function ScreenSummaryContentPage() {
   const navigate = useNavigate();

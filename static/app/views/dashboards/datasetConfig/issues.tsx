@@ -62,14 +62,14 @@ const DEFAULT_SERIES_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
-export type IssuesSeriesResponse = {
+export interface IssuesSeriesResponse {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: string;
     end: number;
     start: number;
   };
-};
+}
 
 export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
   defaultField: DEFAULT_FIELD,

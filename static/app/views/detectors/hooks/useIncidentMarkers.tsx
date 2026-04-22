@@ -462,7 +462,9 @@ export function useIncidentMarkers({
 
         // Click on the incident start markLine
         if (params.componentType === 'markLine' && params.seriesId === seriesId) {
-          type MarkLineDatum = {xAxis?: number};
+          interface MarkLineDatum {
+            xAxis?: number;
+          }
           const datum = params.data as MarkLineDatum;
           const start = typeof datum?.xAxis === 'number' ? datum.xAxis : undefined;
           const period = start === undefined ? undefined : periodByStart.get(start);

@@ -2,9 +2,9 @@ import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 
-type BaseBlock<T extends string> = {
+interface BaseBlock<T extends string> {
   type: T;
-};
+}
 
 /**
  * Renders the Alert component

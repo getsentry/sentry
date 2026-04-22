@@ -30,22 +30,22 @@ import {SectionHeadingWrapper, SidebarSection} from './styles';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '160px';
 
-type Props = {
+interface Props {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
   projectSlug: string;
   project?: Project;
-};
+}
 
-type BodyProps = {
+interface BodyProps {
   isError: boolean;
   isLoading: boolean;
   isProjectStabilized: boolean;
   organization: Organization;
   project: Project | undefined;
   releases: Release[] | null;
-};
+}
 
 function useHasOlderReleases({
   releases,

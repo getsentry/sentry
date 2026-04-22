@@ -17,23 +17,23 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 // Types
-type SeriesData = {
+interface SeriesData {
   data: Map<number, number>;
   name: string;
   rateUnit: RateUnit | null;
   unit: string | null;
-};
+}
 
-type GridHelpers = {
+interface GridHelpers {
   cols: number;
   grid: string[][];
   putText: (text: string, l: number, r: number, t: number, b: number) => void;
   rows: number;
   setCell: (r: number, c: number, ch: string) => void;
   writeOverlay: (r: number, c: number, text: string) => void;
-};
+}
 
-type ChartProcessingContext = {
+interface ChartProcessingContext {
   cellHeightPx: number;
   cellWidthPx: number;
   gridHelpers: GridHelpers;
@@ -42,7 +42,7 @@ type ChartProcessingContext = {
   leftShiftPx: number;
   viewportHeight: number;
   viewportWidth: number;
-};
+}
 
 /**
  * Creates grid helpers for ASCII rendering

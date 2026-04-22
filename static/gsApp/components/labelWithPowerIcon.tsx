@@ -47,11 +47,11 @@ const POWER_FEATURE_CONFIG = [
   },
 ];
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   subscription: Subscription;
   id?: string;
-};
+}
 
 function LabelWithPowerIcon({children, id, subscription}: Props) {
   // Must return React Elements

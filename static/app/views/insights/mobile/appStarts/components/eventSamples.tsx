@@ -17,13 +17,13 @@ const DEFAULT_SORT: Sort = {
   field: 'span.duration',
 };
 
-type Props = {
+interface Props {
   cursorName: string;
   sortKey: string;
   transaction: string;
   footerAlignedPagination?: boolean;
   release?: string;
-};
+}
 
 export function EventSamples({
   cursorName,

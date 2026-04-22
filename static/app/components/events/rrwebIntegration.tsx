@@ -14,12 +14,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type Props = {
+interface Props {
   event: Event;
   orgId: Organization['id'];
   projectSlug: Project['slug'];
   disableCollapsePersistence?: boolean;
-};
+}
 
 const LazyReplayer = lazy(() => import('./rrwebReplayer'));
 

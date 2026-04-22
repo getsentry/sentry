@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 
-type Options = {
+interface Options {
   // parameters to replace any route string parameters (e.g. if route is `:orgId`,
   // params should have `{orgId: slug}`
   params: Record<string, string | undefined>;
@@ -18,7 +18,7 @@ type Options = {
    * There's no ts type for negative numbers so we are arbitrarily specifying -1-9
    */
   stepBack?: -1 | -2 | -3 | -4 | -5 | -6 | -7 | -8 | -9;
-};
+}
 
 /**
  * Given a route object or a string and a list of routes + params from router, this will attempt to recreate a location string while replacing url params.

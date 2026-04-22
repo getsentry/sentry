@@ -6,7 +6,7 @@ import {
   type SetStateAction,
 } from 'react';
 
-type State = {
+interface State {
   /**
    * The scaled height of the player
    */
@@ -23,7 +23,7 @@ type State = {
    * The scaled width of the player
    */
   width: number;
-};
+}
 
 const Context = createContext<[State, Dispatch<SetStateAction<State>>]>([
   {width: 0, height: 0, scale: 0},

@@ -81,7 +81,7 @@ import {generateTitle} from 'sentry/views/discover/utils';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
-type Props = {
+interface Props {
   api: Client;
   loading: boolean;
   location: Location;
@@ -91,9 +91,9 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
-};
+}
 
-type State = {
+interface State {
   confirmedQuery: boolean;
   error: string;
   errorCode: number;
@@ -110,7 +110,7 @@ type State = {
   showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
-};
+}
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 

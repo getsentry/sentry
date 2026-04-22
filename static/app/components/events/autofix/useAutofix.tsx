@@ -30,9 +30,9 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type AutofixResponse = {
+export interface AutofixResponse {
   autofix: AutofixData | null;
-};
+}
 
 const POLL_INTERVAL = 500;
 
@@ -321,13 +321,13 @@ export const useAiAutofix = (
   };
 };
 
-export type CodingAgentIntegration = {
+export interface CodingAgentIntegration {
   id: string | null;
   name: string;
   provider: string;
   has_identity?: boolean;
   requires_identity?: boolean;
-};
+}
 
 export function organizationIntegrationsCodingAgents(organization: Organization) {
   return apiOptions.as<{

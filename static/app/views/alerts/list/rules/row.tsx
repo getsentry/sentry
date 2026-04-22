@@ -37,7 +37,7 @@ import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options'
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
-type Props = {
+interface Props {
   hasEditAccess: boolean;
   hasMetricAlerts: boolean;
   onDelete: (projectId: string, rule: CombinedAlerts) => void;
@@ -46,7 +46,7 @@ type Props = {
   projects: Project[];
   projectsLoaded: boolean;
   rule: CombinedAlerts;
-};
+}
 
 export function RuleListRow({
   rule,

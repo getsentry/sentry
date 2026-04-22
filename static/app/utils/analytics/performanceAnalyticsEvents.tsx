@@ -6,20 +6,20 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
-type SampleTransactionParam = {
+interface SampleTransactionParam {
   platform?: PlatformKey;
-};
+}
 
-type PerformanceTourParams = {
+interface PerformanceTourParams {
   duration: number;
   step: number;
-};
+}
 
-type PageLayoutParams = {
+interface PageLayoutParams {
   project_platforms: string;
-};
+}
 
-export type PerformanceEventParameters = {
+export interface PerformanceEventParameters {
   'performance_views.all_events.open_in_discover': Record<string, unknown>;
   'performance_views.change_view': {
     project_platforms: string;
@@ -231,7 +231,7 @@ export type PerformanceEventParameters = {
   'performance_views.vitals.open_all_events': {vital: string};
   'performance_views.vitals.reset_view': Record<string, unknown>;
   'performance_views.vitals.vitals_tab_clicked': PageLayoutParams;
-};
+}
 
 type PerformanceEventKey = keyof PerformanceEventParameters;
 

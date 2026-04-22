@@ -27,14 +27,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   attachments: IssueAttachment[];
   eventAttachment: IssueAttachment;
   eventId: string;
   groupId: string;
   onDelete: (attachment: IssueAttachment) => void;
   projectSlug: Project['slug'];
-};
+}
 
 export function ScreenshotCard({
   eventAttachment,

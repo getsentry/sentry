@@ -46,12 +46,12 @@ const defaultProps: DefaultProps = {
   shouldSelectWithTab: false,
 };
 
-type Item = {
+interface Item {
   'data-test-id'?: string;
   disabled?: boolean;
-};
+}
 
-type GetInputArgs<E extends HTMLInputElement> = {
+interface GetInputArgs<E extends HTMLInputElement> {
   onBlur?: (event: React.FocusEvent<E>) => void;
   onChange?: (event: React.ChangeEvent<E>) => void;
   onFocus?: (event: React.FocusEvent<E>) => void;
@@ -59,18 +59,18 @@ type GetInputArgs<E extends HTMLInputElement> = {
   placeholder?: string;
   style?: React.CSSProperties;
   type?: string;
-};
+}
 
 type GetInputOutput<E extends HTMLInputElement> = GetInputArgs<E> &
   GetActorArgs<E> & {
     value?: string;
   };
 
-type GetItemArgs<T> = {
+interface GetItemArgs<T> {
   index: number;
   item: T;
   onClick?: (item: T) => (e: React.MouseEvent) => void;
-};
+}
 
 type ChildrenProps<T> = Parameters<DeprecatedDropdownMenuProps['children']>[0] & {
   /**
@@ -115,12 +115,12 @@ type ChildrenProps<T> = Parameters<DeprecatedDropdownMenuProps['children']>[0] &
   selectedItem?: T;
 };
 
-type State<T> = {
+interface State<T> {
   highlightedIndex: number;
   inputValue: string;
   isOpen: boolean;
   selectedItem?: T;
-};
+}
 
 export interface AutoCompleteProps<T> extends DefaultProps {
   /**

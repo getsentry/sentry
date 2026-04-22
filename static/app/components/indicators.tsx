@@ -6,9 +6,9 @@ import {Toast} from '@sentry/scraps/toast';
 import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 function Indicators(props: Props) {
   const items = useLegacyStore(IndicatorStore);

@@ -24,7 +24,7 @@ import {
 
 import {isSchemaFormConfig, RuleNode} from './ruleNode';
 
-type Props = {
+interface Props {
   disabled: boolean;
   error: React.ReactNode;
   /**
@@ -56,7 +56,7 @@ type Props = {
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
   selectType?: 'grouped';
-};
+}
 
 const createSelectOptions = (
   actions: IssueAlertRuleActionTemplate[]

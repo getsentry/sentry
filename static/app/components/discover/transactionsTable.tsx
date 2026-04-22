@@ -27,7 +27,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
-type Props = {
+interface Props {
   columnOrder: Array<TableColumn<string | number>>;
   eventView: EventView;
   isLoading: boolean;
@@ -48,7 +48,7 @@ type Props = {
   ) => (a: Actions, v: string | number) => void;
   referrer?: string;
   titles?: string[];
-};
+}
 
 export function TransactionsTable(props: Props) {
   const {

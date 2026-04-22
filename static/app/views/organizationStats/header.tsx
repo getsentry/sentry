@@ -8,10 +8,10 @@ import type {Organization} from 'sentry/types/organization';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-type Props = {
+interface Props {
   activeTab: 'stats' | 'issues' | 'health';
   organization: Organization;
-};
+}
 
 function StatsHeaderTabs({organization}: Props) {
   return (

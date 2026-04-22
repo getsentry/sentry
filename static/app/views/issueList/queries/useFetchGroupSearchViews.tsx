@@ -14,14 +14,14 @@ export type GroupSearchViewBackendSortOption =
   | 'created'
   | '-created';
 
-type FetchGroupSearchViewsParameters = {
+interface FetchGroupSearchViewsParameters {
   orgSlug: string;
   createdBy?: GroupSearchViewCreatedBy;
   cursor?: string;
   limit?: number;
   query?: string;
   sort?: GroupSearchViewBackendSortOption[];
-};
+}
 
 export function groupSearchViewsApiOptions({
   orgSlug,

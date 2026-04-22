@@ -14,7 +14,7 @@ import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
 
-type ScmIntegrationTreeData = {
+interface ScmIntegrationTreeData {
   connectedIdentifiers: Set<string>;
   connectedRepos: Repository[];
   isError: boolean;
@@ -27,7 +27,7 @@ type ScmIntegrationTreeData = {
   >;
   scmIntegrations: OrganizationIntegration[];
   scmProviders: IntegrationProvider[];
-};
+}
 
 export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   const organization = useOrganization();

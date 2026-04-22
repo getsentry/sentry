@@ -37,7 +37,7 @@ import {FieldValueKind} from './types';
 
 type Sources = WidgetType;
 
-type Props = {
+interface Props {
   // Input columns
   columns: Column[];
   fieldOptions: ReturnType<typeof generateFieldOptions>;
@@ -53,9 +53,9 @@ type Props = {
   showAliasField?: boolean;
   source?: Sources;
   supportsEquations?: boolean;
-};
+}
 
-type State = {
+interface State {
   draggingGrabbedOffset: undefined | {x: number; y: number};
   draggingIndex: undefined | number;
   draggingTargetIndex: undefined | number;
@@ -63,7 +63,7 @@ type State = {
   isDragging: boolean;
   left: undefined | number;
   top: undefined | number;
-};
+}
 
 const DRAG_CLASS = 'draggable-item';
 const GHOST_PADDING = 4;

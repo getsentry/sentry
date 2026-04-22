@@ -12,14 +12,14 @@ import {MoreFeaturesLink} from 'getsentry/views/amCheckout/components/moreFeatur
 
 import type {Feature} from './types';
 
-type Props = {
+interface Props {
   features: Feature[];
   onClick: (feat: Feature) => void;
   shouldShowPerformanceFeatures: boolean;
   shouldShowTeamFeatures: boolean;
   selected?: Feature;
   withCountdown?: number;
-};
+}
 
 export function FeatureList({
   features,
@@ -60,11 +60,11 @@ export function FeatureList({
   );
 }
 
-type CountdownRingProps = {
+interface CountdownRingProps {
   id: string;
   theme: Theme;
   totalTime: number;
-};
+}
 
 /**
  * Countdown ring is used to show a countdown ring to the right of the header

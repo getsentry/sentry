@@ -14,11 +14,11 @@ import {
 
 import type {ThresholdsConfig} from './thresholds';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   thresholds: ThresholdsConfig;
   type?: string;
-};
+}
 
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {

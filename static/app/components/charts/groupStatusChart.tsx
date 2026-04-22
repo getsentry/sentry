@@ -22,7 +22,7 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
 
 const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
-type Props = {
+interface Props {
   stats: readonly TimeseriesValue[];
   groupStatus?: string;
   height?: number;
@@ -31,7 +31,7 @@ type Props = {
   secondaryStats?: readonly TimeseriesValue[];
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
-};
+}
 
 export function GroupStatusChart({
   stats,

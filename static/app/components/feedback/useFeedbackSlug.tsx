@@ -1,9 +1,9 @@
 import {createParser, useQueryState} from 'nuqs';
 
-type FeedbackSlug = {
+interface FeedbackSlug {
   feedbackId: string;
   projectSlug: string;
-};
+}
 
 const parseFeedbackSlug = createParser<FeedbackSlug>({
   parse: value => {

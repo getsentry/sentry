@@ -1,4 +1,4 @@
-export type OnboardingEventParameters = {
+export interface OnboardingEventParameters {
   'onboarding.back_button_clicked': {
     browserBackButton: boolean;
     from: string;
@@ -108,7 +108,7 @@ export type OnboardingEventParameters = {
     products: string[];
     project_id: string;
   };
-};
+}
 
 export const onboardingEventMap: Record<keyof OnboardingEventParameters, string> = {
   'onboarding.js_loader_optional_configuration_shown':

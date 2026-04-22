@@ -4,11 +4,11 @@ import {t} from 'sentry/locale';
 import type {Action} from 'sentry/views/alerts/rules/metric/types';
 import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
 
-type Props = {
+interface Props {
   action: Action;
   disabled: boolean;
   onChange: (value: string) => void;
-};
+}
 
 export function ActionSpecificTargetSelector({action, disabled, onChange}: Props) {
   const handleChangeSpecificTargetIdentifier = (

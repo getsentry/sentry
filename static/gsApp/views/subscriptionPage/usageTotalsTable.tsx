@@ -32,7 +32,7 @@ const OUTCOMES_SHOWN = [
   'droppedOther',
 ];
 
-type RowProps = {
+interface RowProps {
   category: DataCategory;
   /**
    * Name of outcome reason (e.g. Over Quota, Spike Protection, etc.)
@@ -63,7 +63,7 @@ type RowProps = {
    * Adds an info tooltip to `name`
    */
   tooltipTitle?: TooltipProps['title'];
-};
+}
 
 function OutcomeRow({
   name,
@@ -113,7 +113,7 @@ function OutcomeRow({
   );
 }
 
-type OutcomeSectionProps = {
+interface OutcomeSectionProps {
   category: DataCategory;
   children: React.ReactNode;
   name: string;
@@ -121,7 +121,7 @@ type OutcomeSectionProps = {
   totals: BillingStatTotal;
   expanded?: boolean;
   isEventBreakdown?: boolean;
-};
+}
 
 function OutcomeSection({
   name,
@@ -217,12 +217,12 @@ function IngestionSummary({
   );
 }
 
-type Props = {
+interface Props {
   category: DataCategory;
   subscription: Subscription;
   totals: BillingStatTotal;
   isEventBreakdown?: boolean;
-};
+}
 
 export function UsageTotalsTable({
   category,

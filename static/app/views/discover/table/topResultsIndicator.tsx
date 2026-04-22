@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-type TopResultsIndicatorProps = {
+interface TopResultsIndicatorProps {
   count: number;
   index: number;
-};
+}
 
 export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
   position: absolute;

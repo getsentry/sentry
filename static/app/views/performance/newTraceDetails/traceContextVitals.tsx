@@ -32,11 +32,11 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree.measurements';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 
-type Props = {
+interface Props {
   containerWidth: number | undefined;
   rootEventResults: TraceRootEventQueryResults;
   tree: TraceTree;
-};
+}
 
 export function TraceContextVitals({rootEventResults, tree, containerWidth}: Props) {
   const {hasVitals} = useTraceContextSections({
@@ -109,10 +109,10 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
   );
 }
 
-type VitalPillProps = {
+interface VitalPillProps {
   vital: TraceTree.CollectedVital | undefined;
   vitalDetails: VitalDetails;
-};
+}
 
 function VitalPill({vital, vitalDetails}: VitalPillProps) {
   const status = vital?.score === undefined ? 'none' : scoreToStatus(vital.score);

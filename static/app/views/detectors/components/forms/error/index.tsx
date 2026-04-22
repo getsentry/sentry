@@ -35,9 +35,9 @@ import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/util
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type ErrorDetectorFormData = {
+interface ErrorDetectorFormData {
   workflowIds: string[];
-};
+}
 
 function ErrorDetectorForm({project}: {project: Project}) {
   const organization = useOrganization();

@@ -39,7 +39,7 @@ interface ExploreQueryInfo {
   statsPeriod?: string;
 }
 
-type BaseDownload = {
+interface BaseDownload {
   checksum: string;
   dateCreated: string;
   id: number;
@@ -51,7 +51,7 @@ type BaseDownload = {
   };
   dateExpired?: string;
   dateFinished?: string;
-};
+}
 
 type ExploreDownload = BaseDownload & {
   query: {

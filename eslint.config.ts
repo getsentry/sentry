@@ -750,7 +750,6 @@ export default typescript.config([
 
       // TODO: Evaluate which rules we could practically fix violations from & enable
       '@typescript-eslint/class-literal-property-style': 'off',
-      '@typescript-eslint/consistent-type-definitions': 'off',
       '@typescript-eslint/no-dynamic-delete': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-explicit-any': 'off',

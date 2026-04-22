@@ -3,7 +3,9 @@ import styled from '@emotion/styled';
 import {Card} from 'sentry/components/card';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 
-type Props = {title?: string};
+interface Props {
+  title?: string;
+}
 
 export function ModalTask({title}: Props) {
   return (

@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-type TrustedRelaysResponseError = {
+interface TrustedRelaysResponseError {
   message: string;
   type:
     | 'unknown'
@@ -11,7 +11,7 @@ type TrustedRelaysResponseError = {
     | 'missing-key'
     | 'invalid-key'
     | 'duplicated-key';
-};
+}
 
 interface TrustedRelaysRequestError extends RequestError {
   responseJSON?: {

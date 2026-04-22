@@ -9,13 +9,13 @@ import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   button?: React.JSX.Element;
   className?: string;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
-};
+}
 
 export function ChartPanel({title, children, button, subtitle, className}: Props) {
   return (

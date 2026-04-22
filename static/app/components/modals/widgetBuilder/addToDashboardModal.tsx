@@ -79,7 +79,7 @@ export type AddToDashboardModalActions =
   | 'add-and-stay-on-current-page'
   | 'open-in-widget-builder';
 
-export type AddToDashboardModalProps = {
+export interface AddToDashboardModalProps {
   location: Location;
   organization: Organization;
   selection: PageFilters;
@@ -87,7 +87,7 @@ export type AddToDashboardModalProps = {
   widgets: [Widget, ...Widget[]];
   actions?: AddToDashboardModalActions[];
   source?: DashboardWidgetSource;
-};
+}
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
 

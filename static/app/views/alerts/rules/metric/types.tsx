@@ -91,22 +91,22 @@ export enum SessionsAggregate {
   CRASH_FREE_USERS = 'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 }
 
-export type UnsavedTrigger = {
+export interface UnsavedTrigger {
   actions: Action[];
   alertThreshold: number | '' | null;
   label: AlertRuleTriggerType;
   // UnsavedTrigger can be a part of an Unsaved Alert Rule that does not have an
   // id yet
   alertRuleId?: string;
-};
+}
 
-export type ThresholdControlValue = {
+export interface ThresholdControlValue {
   /**
    * Resolve threshold is optional, so it can be null
    */
   threshold: number | '' | null;
   thresholdType: AlertRuleThresholdType;
-};
+}
 
 export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   actions: Action[];
@@ -117,7 +117,7 @@ export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
 export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 
 // Form values for creating a new metric alert rule
-export type UnsavedMetricRule = {
+export interface UnsavedMetricRule {
   aggregate: string;
   dataset: Dataset;
   detectionType: string;
@@ -136,7 +136,7 @@ export type UnsavedMetricRule = {
   queryType?: MEPAlertsQueryType | null;
   seasonality?: AlertRuleSeasonality | null;
   sensitivity?: AlertRuleSensitivity | null;
-};
+}
 
 // Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
@@ -240,7 +240,7 @@ export const DefaultPriorities = {
  * This is an available action template that is associated to a Trigger in a
  * Metric Alert Rule. They are defined by the available-actions API.
  */
-export type MetricActionTemplate = {
+export interface MetricActionTemplate {
   /**
    * See `TargetType`
    */
@@ -286,14 +286,14 @@ export type MetricActionTemplate = {
    * If this is a `sentry_app` action, this is the Sentry App's status.
    */
   status?: 'unpublished' | 'published' | 'internal';
-};
+}
 
 /**
  * This is the user's configured action
  */
 export type Action = UnsavedAction & Partial<SavedActionFields>;
 
-type SavedActionFields = {
+interface SavedActionFields {
   /**
    * The id of the alert rule this action belongs to
    */
@@ -323,9 +323,9 @@ type SavedActionFields = {
    * Priority of the Opsgenie action or severity of the Pagerduty action
    */
   priority?: string;
-};
+}
 
-type UnsavedAction = {
+interface UnsavedAction {
   /**
    * An optional Slack channel or user id the user can input to avoid rate limiting issues.
    */
@@ -361,4 +361,4 @@ type UnsavedAction = {
    * If this is a `sentry_app` action, this is the Sentry App's status.
    */
   status?: 'unpublished' | 'published' | 'internal';
-};
+}

@@ -49,12 +49,12 @@ import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
-type Props = {
+interface Props {
   activeDisplay: ReleasesDisplayOption;
   location: Location;
   organization: Organization;
   selection: PageFilters;
-};
+}
 
 export function ReleasesAdoptionChart({
   activeDisplay,

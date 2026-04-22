@@ -42,11 +42,11 @@ export const errorConfig: IssueCategoryConfigMapping = {
   },
 };
 
-type ErrorInfo = {
+interface ErrorInfo {
   errorHelpType: ErrorHelpType;
   errorTitle: string | RegExp | ((title: string) => boolean);
   projectPlatforms: PlatformKey[];
-};
+}
 
 const ErrorInfoChecks: ErrorInfo[] = [
   {

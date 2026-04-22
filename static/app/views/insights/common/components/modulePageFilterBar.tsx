@@ -12,11 +12,11 @@ import {InsightsProjectSelector} from 'sentry/views/insights/common/components/p
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   moduleName: ModuleName;
   disableProjectFilter?: boolean; // This is used primarily for module summary pages when a project can't be selected
   extraFilters?: React.ReactNode;
-};
+}
 
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
 

@@ -24,7 +24,7 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
-type Props = {
+interface Props {
   dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
   location: Location;
@@ -35,9 +35,9 @@ type Props = {
   isError?: boolean;
   isLoading?: boolean;
   showStoredOutcome?: boolean;
-};
+}
 
-export type TableStat = {
+export interface TableStat {
   accepted: number;
   accepted_stored: number;
   filtered: number;
@@ -47,7 +47,7 @@ export type TableStat = {
   projectSettingsLink: string;
   rate_limited: number;
   total: number;
-};
+}
 
 class UsageTable extends Component<Props> {
   getErrorMessage = (errorMessage: any) => {

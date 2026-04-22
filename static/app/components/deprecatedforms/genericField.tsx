@@ -24,7 +24,7 @@ type FieldType =
 
 type SelectFieldType = 'select' | 'choice';
 
-type Config = {
+interface Config {
   choices: Array<[number | string, number | string]>;
   default: string;
   name: string;
@@ -34,7 +34,7 @@ type Config = {
   help?: string;
   label?: string;
   required?: boolean;
-};
+}
 
 type SelectFieldConfig = Omit<Config, 'type' | 'has_autocomplete'> & {
   has_autocomplete: false;
@@ -48,13 +48,13 @@ type AsyncSelectFieldConfig = Omit<SelectFieldConfig, 'has_autocomplete'> & {
 
 type FormData = Record<string, string>;
 
-type Props = {
+interface Props {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
   formState: (typeof FormState)[keyof typeof FormState];
   onChange: FormFieldProps['onChange'];
   formErrors?: Record<PropertyKey, string>;
-};
+}
 
 export function GenericField({
   config,

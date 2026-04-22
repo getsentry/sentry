@@ -12,13 +12,13 @@ import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/even
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-type SuspectFrame = {
+interface SuspectFrame {
   module: string | RegExp;
   resources: React.ReactNode;
   exceptionMessage?: string;
   functions?: Array<string | RegExp>;
   offendingThreadStates?: ThreadStates[];
-};
+}
 
 const CULPRIT_FRAMES: SuspectFrame[] = [
   {

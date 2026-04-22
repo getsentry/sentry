@@ -31,7 +31,7 @@ const subscriptionSchema = z.object({
   subscribed: z.boolean(),
 });
 
-export type Subscription = {
+export interface Subscription {
   email: string;
   listDescription: string;
   listId: number;
@@ -39,7 +39,7 @@ export type Subscription = {
   subscribed: boolean;
   subscribedDate: string | null;
   unsubscribedDate: string | null;
-};
+}
 
 function AccountSubscriptions() {
   const {

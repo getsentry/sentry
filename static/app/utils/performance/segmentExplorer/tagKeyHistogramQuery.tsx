@@ -9,22 +9,22 @@ import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 /**
  * An individual row in a Segment explorer result
  */
-export type TableDataRow = {
+export interface TableDataRow {
   [key: string]: string | number;
   count: number;
   tags_key: string;
   tags_value: string;
-};
+}
 
-type HistogramTag = {
+interface HistogramTag {
   tags_value: string;
-};
+}
 
-export type TableData = {
+export interface TableData {
   histogram: {data: TableDataRow[]};
   meta: Record<string, unknown>;
   tags: {data: HistogramTag[]};
-};
+}
 
 /**
  * A Segment Explorer result including rows and metadata.

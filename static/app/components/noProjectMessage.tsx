@@ -13,11 +13,11 @@ import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-type Props = {
+interface Props {
   organization: Organization;
   children?: React.ReactNode;
   superuserNeedsToBeProjectMember?: boolean;
-};
+}
 
 export function NoProjectMessage({
   children,

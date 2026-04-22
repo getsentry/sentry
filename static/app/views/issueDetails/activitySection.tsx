@@ -15,13 +15,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {GroupActivityItem} from 'sentry/views/issueDetails/groupActivityItem';
 
-type Props = {
+interface Props {
   group: Group;
   onCreate: (n: NoteType, me: User) => void;
   onDelete: (item: GroupActivity) => void;
   onUpdate: (item: GroupActivity, n: NoteType) => void;
   placeholderText: string;
-};
+}
 
 export function ActivitySection(props: Props) {
   const {group, placeholderText, onCreate, onDelete, onUpdate} = props;

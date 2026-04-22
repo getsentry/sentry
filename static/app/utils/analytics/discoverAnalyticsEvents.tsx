@@ -1,13 +1,13 @@
 import type {EventOrGroupType} from 'sentry/types/event';
 import type {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
-type SaveQueryParams = {
+interface SaveQueryParams {
   fields?: readonly string[];
   projects?: readonly number[];
   query?: string;
-};
+}
 
-export type SaveQueryEventParameters = {
+export interface SaveQueryEventParameters {
   'discover_v2.delete_query_failed': SaveQueryParams & {error: string};
   'discover_v2.delete_query_request': SaveQueryParams;
   'discover_v2.delete_query_success': SaveQueryParams;
@@ -22,7 +22,7 @@ export type SaveQueryEventParameters = {
   'discover_v2.update_query_name_successs': SaveQueryParams;
   'discover_v2.update_query_request': SaveQueryParams;
   'discover_v2.update_query_success': SaveQueryParams;
-};
+}
 
 export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_search.failed': {

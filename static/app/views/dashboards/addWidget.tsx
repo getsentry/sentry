@@ -20,9 +20,9 @@ const initialStyles = {
   scaleY: 1,
 };
 
-type Props = {
+interface Props {
   onAddWidget?: (dataset: DataSet, openWidgetTemplates?: boolean) => void;
-};
+}
 
 export function AddWidget({onAddWidget}: Props) {
   const {setNodeRef, transform} = useSortable({

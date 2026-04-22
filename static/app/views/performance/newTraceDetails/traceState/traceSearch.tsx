@@ -28,7 +28,7 @@ type TraceSearchAction =
       resultIteratorIndex?: number;
     };
 
-export type TraceSearchState = {
+export interface TraceSearchState {
   node: BaseNode | null;
   query: string | undefined;
   // Index in the list/tree
@@ -38,7 +38,7 @@ export type TraceSearchState = {
   results: readonly TraceSearchResult[] | null;
   resultsLookup: Map<BaseNode, number>;
   status: [ts: number, 'loading' | 'success' | 'error'] | undefined;
-};
+}
 
 function assertBoundedIndex(index: number, length: number) {
   if (index < 0 || index > length - 1) {

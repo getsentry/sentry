@@ -7,11 +7,11 @@ import {OnboardingStepId} from 'sentry/views/onboarding/types';
 
 jest.mock('sentry/utils/analytics');
 
-type MappedCase = {
+interface MappedCase {
   referrer: string;
   sidebarSource: string;
   stepId: OnboardingStepId;
-};
+}
 
 const MAPPED_CASES: MappedCase[] = [
   {

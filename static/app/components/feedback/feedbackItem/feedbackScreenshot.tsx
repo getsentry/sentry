@@ -13,13 +13,13 @@ import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   organization: Organization;
   projectSlug: Project['slug'];
   screenshot: EventAttachment;
   className?: string;
   onClick?: () => void;
-};
+}
 
 export function FeedbackScreenshot({
   className,

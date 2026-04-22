@@ -1,7 +1,7 @@
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   /**
    * Do not add padding to left and right of the header
    */
@@ -16,7 +16,7 @@ type Props = {
    * Use light text
    */
   lightText?: boolean;
-};
+}
 
 const getPadding = ({disablePadding, hasButtons, theme}: Props & {theme: Theme}) => css`
   padding: ${hasButtons ? theme.space.md : theme.space.xl}

@@ -1,6 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 
-export type SeerAnalyticsEventsParameters = {
+export interface SeerAnalyticsEventsParameters {
   'ai_query.applied': {
     area: string;
     query: string;
@@ -142,7 +142,7 @@ export type SeerAnalyticsEventsParameters = {
     surface: 'global_panel';
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
-};
+}
 
 type SeerAnalyticsEventKey = keyof SeerAnalyticsEventsParameters;
 

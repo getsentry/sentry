@@ -255,9 +255,9 @@ export function initSessionsChart(theme: Theme) {
   };
 }
 
-type GetSessionsIntervalOptions = {
+interface GetSessionsIntervalOptions {
   dailyInterval?: boolean;
-};
+}
 
 export function getSessionsInterval(
   datetimeObj: DateTimeObject,

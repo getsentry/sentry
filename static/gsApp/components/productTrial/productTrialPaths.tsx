@@ -3,10 +3,10 @@ import {DataCategory} from 'sentry/types/core';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 
-type Product = {
+interface Product {
   categories: DataCategory[];
   product: DataCategory;
-};
+}
 
 type Path = string;
 

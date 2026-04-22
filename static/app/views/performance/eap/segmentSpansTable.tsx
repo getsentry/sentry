@@ -40,14 +40,14 @@ import {TransactionFilterOptions} from 'sentry/views/performance/transactionSumm
 const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
 
-type Props = {
+interface Props {
   eventView: EventView;
   handleDropdownChange: (k: string) => void;
   totalValues: Record<string, number> | null;
   transactionName: string;
   query?: string;
   showViewSampledEventsButton?: boolean;
-};
+}
 
 export function SegmentSpansTable({
   eventView,

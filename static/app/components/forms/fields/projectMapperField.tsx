@@ -38,10 +38,10 @@ interface RenderProps extends ProjectMapperProps, ProjectMapperType {
 
 type MappedValue = string | number;
 
-type State = {
+interface State {
   selectedMappedValue: MappedValue | null;
   selectedSentryProjectId: number | null;
-};
+}
 
 const DISABLED_TOOLTIP_TEXT = 'Please link at least one project to continue.';
 

@@ -1,10 +1,10 @@
 import {platformsWithNestedInstrumentationGuides} from 'sentry/data/platformCategories';
 import type {Project} from 'sentry/types/project';
 
-type ParsedPlatform = {
+interface ParsedPlatform {
   platformName: string;
   framework?: string;
-};
+}
 
 function parsePlatform(platform: string): ParsedPlatform {
   const platformParts = platform.split('-');

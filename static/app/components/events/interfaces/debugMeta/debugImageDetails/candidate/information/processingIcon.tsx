@@ -4,9 +4,9 @@ import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import type {CandidateProcessingInfo} from 'sentry/types/debugImage';
 import {CandidateProcessingStatus} from 'sentry/types/debugImage';
 
-type Props = {
+interface Props {
   processingInfo: CandidateProcessingInfo;
-};
+}
 
 export function getProcessingInfoTooltip(
   processingInfo: CandidateProcessingInfo

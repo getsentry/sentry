@@ -3,10 +3,10 @@ import type {User} from 'sentry/types/user';
 import {ResultTable} from 'admin/components/resultTable';
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
-type Props = {
+interface Props {
   Panel: SelectableContainerPanel;
   user: User;
-};
+}
 
 export function UserEmails({Panel, user}: Props) {
   const primary = user.email;

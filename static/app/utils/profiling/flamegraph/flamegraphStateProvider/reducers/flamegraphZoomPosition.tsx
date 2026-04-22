@@ -1,13 +1,13 @@
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
-type FlamegraphZoomPositionAction = {
+interface FlamegraphZoomPositionAction {
   payload: Rect;
   type: 'checkpoint';
-};
+}
 
-type FlamegraphZoomPosition = {
+interface FlamegraphZoomPosition {
   view: Rect;
-};
+}
 
 export function flamegraphZoomPositionReducer(
   state: FlamegraphZoomPosition,

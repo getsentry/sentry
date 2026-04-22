@@ -9,10 +9,10 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
-type ListCache = {
+interface ListCache {
   pageParams: unknown[];
   pages: Array<ApiResult<FeedbackIssueListItem[]>>;
-};
+}
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
 function isIssueEndpointUrl(query: any) {

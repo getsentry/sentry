@@ -3,7 +3,7 @@ import {createContext} from 'react';
 import type {IntegrationProvider, IntegrationType} from 'sentry/types/integrations';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
-type IntegrationContextProps = {
+interface IntegrationContextProps {
   analyticsParams: {
     already_installed: boolean;
     view:
@@ -29,7 +29,7 @@ type IntegrationContextProps = {
    * Use when the surrounding UI already communicates the connected state.
    */
   suppressSuccessMessage?: boolean;
-};
+}
 
 export const IntegrationContext = createContext<IntegrationContextProps | undefined>(
   undefined

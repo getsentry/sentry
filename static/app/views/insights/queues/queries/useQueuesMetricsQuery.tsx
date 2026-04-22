@@ -3,12 +3,12 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/queues/settings';
 
-type Props = {
+interface Props {
   referrer: Referrer;
   destination?: string;
   enabled?: boolean;
   transaction?: string;
-};
+}
 
 export function useQueuesMetricsQuery({
   destination,

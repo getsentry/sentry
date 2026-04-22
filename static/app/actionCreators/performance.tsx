@@ -7,16 +7,16 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
-type KeyTransaction = {
+interface KeyTransaction {
   project_id: string;
   transaction: string;
-};
+}
 
-type TeamKeyTransaction = {
+interface TeamKeyTransaction {
   count: number;
   keyed: KeyTransaction[];
   team: string;
-};
+}
 
 export type TeamKeyTransactions = TeamKeyTransaction[];
 

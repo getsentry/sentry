@@ -130,10 +130,10 @@ function resolveStoppingPoint(
   }
 }
 
-type StoppingPointVariables = {
+interface StoppingPointVariables {
   project: Project;
   stoppingPoint: UserFacingStoppingPoint;
-};
+}
 
 export type MutateStoppingPoint = UseMutateFunction<
   [Project, SeerPreferencesResponse | undefined],

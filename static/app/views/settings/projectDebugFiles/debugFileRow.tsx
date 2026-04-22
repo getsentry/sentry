@@ -19,14 +19,14 @@ import type {Project} from 'sentry/types/project';
 
 import {getFeatureTooltip, getPrettyFileType} from './utils';
 
-type Props = {
+interface Props {
   debugFile: DebugFile;
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
   project: Project;
   showDetails: boolean;
-};
+}
 
 export function DebugFileRow({
   debugFile,

@@ -8,12 +8,12 @@ import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
-type Options = {
+interface Options {
   p95: number;
   query: string;
   sort: Sort;
   limit?: number;
-};
+}
 
 const DEFAULT_LIMIT = 5;
 
@@ -93,13 +93,13 @@ export function useSegmentSpansQuery({query, sort, p95, limit = DEFAULT_LIMIT}: 
   };
 }
 
-type UseSingleQueryOptions = {
+interface UseSingleQueryOptions {
   limit: number;
   p95: number;
   query: string;
   sort: Sort;
   enabled?: boolean;
-};
+}
 
 // Hook for executing the default query to fetch table data for spans when no category is selected
 function useSingleQuery(options: UseSingleQueryOptions) {
@@ -140,13 +140,13 @@ function useSingleQuery(options: UseSingleQueryOptions) {
   };
 }
 
-type UseMultipleQueriesOptions = {
+interface UseMultipleQueriesOptions {
   limit: number;
   p95: number;
   query: string;
   sort: Sort;
   enabled?: boolean;
-};
+}
 
 function useMultipleQueries(options: UseMultipleQueriesOptions) {
   const {query, sort, p95, enabled, limit} = options;

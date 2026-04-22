@@ -19,7 +19,7 @@ import {useTeams} from 'sentry/utils/useTeams';
 import {mentionStyle} from './mentionStyle';
 import type {CreateError, MentionChangeEvent, Mentioned} from './types';
 
-type Props = {
+interface Props {
   /**
    * Is the note saving?
    */
@@ -47,7 +47,7 @@ type Props = {
    * The note text itself
    */
   text?: string;
-};
+}
 
 function NoteInput({
   text,
@@ -229,10 +229,10 @@ function NoteInput({
 
 export {NoteInput};
 
-type NotePreviewProps = {
+interface NotePreviewProps {
   minHeight: Props['minHeight'];
   theme: Theme;
-};
+}
 
 // This styles both the note preview and the note editor input
 const getNotePreviewCss = (p: NotePreviewProps) => {

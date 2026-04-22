@@ -28,7 +28,7 @@ export type FieldValue =
   | null
   | undefined; // is undefined valid here?
 
-export type FormOptions = {
+export interface FormOptions {
   /**
    * Does the form support undo?
    */
@@ -82,7 +82,7 @@ export type FormOptions = {
    * Custom transformer function used before the API request
    */
   transformData?: (data: Record<string, any>, instance: FormModel) => Record<string, any>;
-};
+}
 
 export class FormModel {
   /**

@@ -24,19 +24,19 @@ import {
   type IdentityIconProps,
 } from 'sentry/views/settings/components/identityIcon';
 
-type TIcon = {
+interface TIcon {
   id: string;
   name: string;
   additionalProps?: string[];
   defaultProps?: Record<string, unknown>;
   groups?: string[];
   keywords?: string[];
-};
-type TSection = {
+}
+interface TSection {
   icons: TIcon[];
   id: string;
   label: string;
-};
+}
 
 const SECTIONS: TSection[] = [
   {

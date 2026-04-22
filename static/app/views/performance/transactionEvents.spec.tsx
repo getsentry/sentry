@@ -31,12 +31,12 @@ const renderWithLayout = (data: ReturnType<typeof initializeData>) => {
   });
 };
 
-type Data = {
+interface Data {
   features?: string[];
   query?: {
     webVital?: WebVital;
   };
-};
+}
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];

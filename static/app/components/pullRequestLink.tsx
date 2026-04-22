@@ -26,11 +26,11 @@ function renderIcon(repo: Repository) {
   }
 }
 
-type Props = {
+interface Props {
   pullRequest: PullRequest;
   repository: Repository;
   inline?: boolean;
-};
+}
 
 export function PullRequestLink({pullRequest, repository, inline}: Props) {
   const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;

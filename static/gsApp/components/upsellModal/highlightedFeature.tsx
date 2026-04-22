@@ -11,11 +11,11 @@ import {displayPlanName, hasPerformance} from 'getsentry/utils/billing';
 
 import type {Feature} from './types';
 
-type Props = {
+interface Props {
   feature: Feature;
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 const IMAGE_SIZE = {height: 'auto', width: '540px'};
 

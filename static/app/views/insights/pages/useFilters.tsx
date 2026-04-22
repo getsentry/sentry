@@ -21,11 +21,11 @@ export const domainViews: DomainView[] = [
   MCP_LANDING_SUB_PATH,
 ];
 
-export type DomainViewFilters = {
+export interface DomainViewFilters {
   isInDomainView?: boolean;
   isInOverviewPage?: boolean;
   view?: DomainView;
-};
+}
 
 export const useDomainViewFilters = () => {
   const location = useLocation();

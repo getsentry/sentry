@@ -23,10 +23,10 @@ import {MetricRulesEdit} from './rules/metric/edit';
 import {UptimeRulesEdit} from './rules/uptime/edit';
 import {CombinedAlertType} from './types';
 
-type RouteParams = {
+interface RouteParams {
   projectId: string;
   ruleId: string;
-};
+}
 
 export default function ProjectAlertsEditor() {
   const organization = useOrganization();

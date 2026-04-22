@@ -7,7 +7,7 @@ import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 
-type UndoItem = {
+interface UndoItem {
   /**
    * If there was a focus override when the query was saved, it should be
    * restored when undoing if available. Otherwise, the last focused key
@@ -22,7 +22,7 @@ type UndoItem = {
    * The raw query string. No two sequential items should have the same query.
    */
   query: string;
-};
+}
 
 const MAX_ITEMS = 100;
 

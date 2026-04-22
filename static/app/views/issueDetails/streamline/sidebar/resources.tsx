@@ -8,11 +8,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig, ResourceLink} from 'sentry/utils/issueTypeConfig/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   configResources: NonNullable<IssueTypeConfig['resources']>;
   eventPlatform: Event['platform'];
   group: Group;
-};
+}
 
 export function Resources({configResources, eventPlatform, group}: Props) {
   const organization = useOrganization();

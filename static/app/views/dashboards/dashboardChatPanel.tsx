@@ -17,10 +17,10 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 
 const MAX_CHAT_HISTORY_HEIGHT = 500;
 
-export type WidgetError = {
+export interface WidgetError {
   errorMessage: string;
   widgetTitle: string;
-};
+}
 
 interface DashboardChatPanelProps {
   blocks: Block[];

@@ -120,12 +120,12 @@ export enum DetectorConfigCustomer {
   WEB_VITALS_COUNT = 'web_vitals_count',
 }
 
-type ProjectThreshold = {
+interface ProjectThreshold {
   metric: string;
   threshold: string;
   editedBy?: string;
   id?: string;
-};
+}
 
 const formFields: Field[] = [
   {

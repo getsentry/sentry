@@ -18,14 +18,14 @@ import {
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-type GeneralInfoProps = {
+interface GeneralInfoProps {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
   location: Location;
   node: TransactionNode;
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
-};
+}
 
 export function GeneralInfo(props: GeneralInfoProps) {
   const {node, onParentClick} = props;

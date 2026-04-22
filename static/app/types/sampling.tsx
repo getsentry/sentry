@@ -6,7 +6,7 @@ export enum DynamicSamplingBiasType {
   MINIMUM_SAMPLE_RATE = 'minimumSampleRate',
 }
 
-export type DynamicSamplingBias = {
+export interface DynamicSamplingBias {
   active: boolean;
   id: DynamicSamplingBiasType;
-};
+}

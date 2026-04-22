@@ -16,13 +16,13 @@ import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 
-type Props = {
+interface Props {
   downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
   orgSlug: string;
   associations?: ProguardMappingAssociation;
-};
+}
 
 export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {
   const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});

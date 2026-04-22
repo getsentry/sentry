@@ -74,7 +74,7 @@ const BREAKPOINTS = (theme: Theme) => ({
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
 export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
-type Props = {
+interface Props {
   dashboard: DashboardDetails;
   handleAddCustomWidget: (widget: Widget) => void;
   handleUpdateWidgetList: (widgets: Widget[]) => void;
@@ -95,7 +95,7 @@ type Props = {
   onNewWidgetScrollComplete?: () => void;
   onSetNewWidget?: () => void;
   widgetInterval?: string;
-};
+}
 
 interface LayoutState extends Record<string, Layout[]> {
   [DESKTOP]: Layout[];

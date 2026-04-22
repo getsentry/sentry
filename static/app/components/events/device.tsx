@@ -6,9 +6,9 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import {KeyValueList} from './interfaces/keyValueList';
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 export function EventDevice({event}: Props) {
   const data = event.device ?? {};

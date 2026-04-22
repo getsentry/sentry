@@ -3,7 +3,11 @@ import {MenuListItem} from '@sentry/scraps/menuListItem';
 
 import * as Storybook from 'sentry/stories';
 
-type ItemState = {disabled: boolean; isFocused: boolean; isSelected: boolean};
+interface ItemState {
+  disabled: boolean;
+  isFocused: boolean;
+  isSelected: boolean;
+}
 
 const leadingItems = (state: ItemState) => (state.isSelected ? '✅' : '⬜');
 

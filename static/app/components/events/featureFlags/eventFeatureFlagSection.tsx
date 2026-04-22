@@ -48,11 +48,11 @@ export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   );
 }
 
-type EventFeatureFlagSectionProps = {
+interface EventFeatureFlagSectionProps {
   event: Event;
   group: Group;
   project: Project;
-};
+}
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();

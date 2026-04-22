@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/explore/components/chart/placeholder';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 
-type Props = {
+interface Props {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   extrapolate?: boolean;
@@ -23,7 +23,7 @@ type Props = {
   sampleCount?: number;
   topEvents?: number;
   userQuery?: string;
-};
+}
 
 export function ConfidenceFooter(props: Props) {
   return <Container>{confidenceMessage(props)}</Container>;

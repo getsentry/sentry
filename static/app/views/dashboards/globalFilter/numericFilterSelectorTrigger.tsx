@@ -6,11 +6,11 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {getOperatorLabel} from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
-type NumericFilterSelectorTriggerProps = {
+interface NumericFilterSelectorTriggerProps {
   globalFilter: GlobalFilter;
   globalFilterOperator: TermOperator;
   globalFilterValue: string;
-};
+}
 
 function NumericFilterSelectorTrigger({
   globalFilter,
@@ -29,11 +29,11 @@ function NumericFilterSelectorTrigger({
   );
 }
 
-type BetweenFilterSelectorTriggerProps = {
+interface BetweenFilterSelectorTriggerProps {
   globalFilter: GlobalFilter;
   lowerBound: string;
   upperBound: string;
-};
+}
 
 function BetweenFilterSelectorTrigger({
   globalFilter,

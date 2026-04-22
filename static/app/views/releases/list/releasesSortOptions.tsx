@@ -6,12 +6,12 @@ import {t} from 'sentry/locale';
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import {ReleasesDropdown} from './releasesDropdown';
 
-type Props = {
+interface Props {
   environments: string[];
   onSelect: (key: string) => void;
   selected: ReleasesSortOption;
   selectedDisplay: ReleasesDisplayOption;
-};
+}
 
 export function ReleasesSortOptions({
   selected,

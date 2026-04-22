@@ -4,9 +4,9 @@ import type {FormContextData} from 'sentry/components/deprecatedforms/formContex
 import {FormContext} from 'sentry/components/deprecatedforms/formContext';
 import {getDisplayName} from 'sentry/utils/getDisplayName';
 
-type InjectedFormContextProps = {
+interface InjectedFormContextProps {
   formContext?: FormContextData;
-};
+}
 
 /**
  * Wrap deprecated form components with form context

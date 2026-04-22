@@ -20,7 +20,7 @@ const installText = (features: Props['features'], featureName: string): string =
     .join('\n')}`;
 };
 
-type Props = {
+interface Props {
   /**
    * The English name of the feature. This is used in the comment that will
    * be outputted above the example line of code to enable the feature.
@@ -47,7 +47,7 @@ type Props = {
    * A custom message to display. Defaults to a generic disabled message.
    */
   message?: string;
-};
+}
 
 /**
  * DisabledInfo renders a component informing that a feature has been disabled.

@@ -29,11 +29,11 @@ import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
-type IssueCategoryAndType = {
+interface IssueCategoryAndType {
   issueCategory: IssueCategory;
   issueType?: IssueType;
   title?: string;
-};
+}
 
 type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategoryAndType;
 

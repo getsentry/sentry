@@ -3,13 +3,13 @@ import {defined} from 'sentry/utils';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import type {SpanFields, SubregionCode} from 'sentry/views/insights/types';
 
-export type ModuleFilters = {
+export interface ModuleFilters {
   [SpanFields.SPAN_ACTION]?: string;
   [SpanFields.SPAN_DOMAIN]?: string;
   [SpanFields.SPAN_GROUP]?: string;
   [SpanFields.SPAN_OP]?: string;
   [SpanFields.USER_GEO_SUBREGION]?: SubregionCode[];
-};
+}
 
 type DataKey =
   | 'change'

@@ -72,7 +72,7 @@ export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
   },
 };
 
-export type WidgetBuilderStateQueryParams = {
+export interface WidgetBuilderStateQueryParams {
   axisRange?: AxisRange;
   dataset?: WidgetType;
   description?: string;
@@ -88,11 +88,11 @@ export type WidgetBuilderStateQueryParams = {
   thresholds?: string;
   title?: string;
   yAxis?: string[];
-};
+}
 
-export type WidgetBuilderStateLocalParams = {
+export interface WidgetBuilderStateLocalParams {
   textContent?: string;
-};
+}
 
 /**
  * Extends the URL query params shape with `textContent` for text widgets.
@@ -165,9 +165,9 @@ type WidgetAction =
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
     }
   | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
-type WidgetBuilderStateActionOptions = {
+interface WidgetBuilderStateActionOptions {
   updateUrl?: boolean;
-};
+}
 
 export interface WidgetBuilderState {
   axisRange?: AxisRange;

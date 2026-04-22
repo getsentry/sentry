@@ -24,14 +24,14 @@ import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
-type FilterKeySearchItem = {
+interface FilterKeySearchItem {
   description: string;
   item: Tag;
   keywords: string[];
   type: 'value' | 'key' | 'logic';
   key?: string;
   value?: string;
-};
+}
 
 const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<FilterKeySearchItem> = {
   keys: [

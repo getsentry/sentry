@@ -4,9 +4,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 
-type TestProps = {
+interface TestProps {
   testProp?: boolean;
-};
+}
 
 function FooComponent() {
   return <div>my foo component</div>;
@@ -16,7 +16,9 @@ function BarComponent() {
   return <div>my bar component</div>;
 }
 
-type ResolvedComponent = {default: React.ComponentType<TestProps>};
+interface ResolvedComponent {
+  default: React.ComponentType<TestProps>;
+}
 
 describe('LazyLoad', () => {
   beforeEach(() => {

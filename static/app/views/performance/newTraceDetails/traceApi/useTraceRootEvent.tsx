@@ -14,11 +14,11 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
-type Params = {
+interface Params {
   logs: OurLogsResponseItem[] | undefined;
   traceId: string;
   tree: TraceTree;
-};
+}
 
 export type TraceRootEventQueryResults =
   | UseApiQueryResult<EventTransaction, RequestError>

@@ -121,10 +121,10 @@ export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>
   trace_item_metrics: <FeatureBadge type="beta" />,
 };
 
-type AlertWizardCategory = {
+interface AlertWizardCategory {
   categoryHeading: string;
   options: AlertType[];
-};
+}
 export const getAlertWizardCategories = (org: Organization) => {
   const result: AlertWizardCategory[] = [
     {
@@ -203,12 +203,12 @@ export const getAlertWizardCategories = (org: Organization) => {
   return result;
 };
 
-export type WizardRuleTemplate = {
+export interface WizardRuleTemplate {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes;
   query?: string;
-};
+}
 
 export const AlertWizardRuleTemplates: Record<
   MetricAlertType,

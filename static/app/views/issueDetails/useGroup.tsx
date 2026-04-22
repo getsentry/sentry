@@ -8,11 +8,11 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-type FetchGroupQueryParameters = {
+interface FetchGroupQueryParameters {
   environments: string[];
   groupId: string;
   organizationSlug: string;
-};
+}
 
 export function makeFetchGroupQueryKey({
   groupId,

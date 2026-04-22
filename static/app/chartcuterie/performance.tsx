@@ -14,10 +14,10 @@ import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './sla
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
-type FunctionRegressionChartData = {
+interface FunctionRegressionChartData {
   evidenceData: NormalizedTrendsTransaction;
   rawResponse: unknown;
-};
+}
 
 export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<ChartType>> {
   const performanceCharts: Array<RenderDescriptor<ChartType>> = [];

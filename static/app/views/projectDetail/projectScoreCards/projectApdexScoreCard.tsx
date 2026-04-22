@@ -19,13 +19,13 @@ import {MissingPerformanceButtons} from 'sentry/views/projectDetail/missingFeatu
 
 import {ActionWrapper} from './actionWrapper';
 
-type Props = {
+interface Props {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
   hasTransactions?: boolean;
   query?: string;
-};
+}
 
 const useApdex = (props: Props) => {
   const {organization, selection, isProjectStabilized, hasTransactions, query} = props;

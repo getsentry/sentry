@@ -17,10 +17,10 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import {useMetricRule} from 'sentry/views/alerts/rules/metric/utils/useMetricRule';
 
-type RouteParams = {
+interface RouteParams {
   projectId: string;
   ruleId: string;
-};
+}
 
 type Props = {
   onChangeTitle: (data: string) => void;

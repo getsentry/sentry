@@ -3,10 +3,10 @@ import {Button} from '@sentry/scraps/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
-};
+}
 
 export function ReplaySidebarToggleButton({isOpen, setIsOpen}: Props) {
   return (

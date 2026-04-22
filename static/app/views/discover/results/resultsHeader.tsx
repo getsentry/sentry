@@ -22,7 +22,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type Props = {
+interface Props {
   api: Client;
   errorCode: number;
   eventView: EventView;
@@ -33,13 +33,13 @@ type Props = {
   yAxis: string[];
   isHomepage?: boolean;
   splitDecision?: SavedQueryDatasets;
-};
+}
 
-type State = {
+interface State {
   homepageQuery: SavedQuery | undefined;
   loading: boolean;
   savedQuery: SavedQuery | undefined;
-};
+}
 
 class ResultsHeader extends Component<Props, State> {
   state: State = {

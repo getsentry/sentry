@@ -8,10 +8,10 @@ import type {PageFilters} from 'sentry/types/core';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
 
-type Props = {
+interface Props {
   location: Location;
   selection: PageFilters;
-};
+}
 
 function ReleaseCardStatsPeriod({location, selection}: Props) {
   const activePeriod = location.query.healthStatsPeriod || HealthStatsPeriodOption.AUTO;

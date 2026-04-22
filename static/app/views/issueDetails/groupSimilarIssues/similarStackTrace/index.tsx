@@ -23,9 +23,9 @@ import {List} from './list';
 import {processSimilarItem} from './types';
 import type {SimilarApiResponse} from './types';
 
-type Props = {
+interface Props {
   project: Project;
-};
+}
 
 const DataConsentBanner = HookOrDefault({
   hookName: 'component:data-consent-banner',

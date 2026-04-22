@@ -13,10 +13,10 @@ const COMPARISON_DESCRIPTION = t(
   'To better understand what happened before and after this regression, compare a baseline event with a regressed event. Look for any significant shape changes, operation percentage changes, and tag differences.'
 );
 
-type EventComparisonProps = {
+interface EventComparisonProps {
   event: Event;
   project: Project;
-};
+}
 
 export function EventComparison({event, project}: EventComparisonProps) {
   const now = useMemo(() => Date.now(), []);

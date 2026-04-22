@@ -2,7 +2,7 @@ import {useEffect, useId, useMemo, useState} from 'react';
 
 import {useDocumentTitleManager} from './documentTitleManager';
 
-type Props = {
+interface Props {
   children?: React.ReactNode;
   /**
    * Should the ` - Sentry` suffix be excluded?
@@ -21,7 +21,7 @@ type Props = {
    * This string will be shown at the very front of the title
    */
   title?: string;
-};
+}
 
 export function SentryDocumentTitle({
   title = '',

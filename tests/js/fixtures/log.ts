@@ -87,10 +87,10 @@ interface LogsTestInitOptions {
 }
 
 // Narrowed type from sentry-test/reactTestingLibrary.tsx
-type LocationConfig = {
+interface LocationConfig {
   pathname: string;
   query?: Record<string, string | number | string[]>;
-};
+}
 
 /**
  * Standardized initialization for logs tests

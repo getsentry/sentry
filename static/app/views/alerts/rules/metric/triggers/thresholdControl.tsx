@@ -23,9 +23,9 @@ interface Props extends ThresholdControlValue {
   hideControl?: boolean;
 }
 
-type State = {
+interface State {
   currentValue: string | null;
-};
+}
 
 export class ThresholdControl extends Component<Props, State> {
   state: State = {

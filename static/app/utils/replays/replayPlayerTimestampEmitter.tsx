@@ -1,7 +1,7 @@
-type ReplayPlayerTimestampChangeEvent = {
+interface ReplayPlayerTimestampChangeEvent {
   currentHoverTime: number | undefined;
   currentTime: number;
-};
+}
 type ReplayPlayerListener = (arg: ReplayPlayerTimestampChangeEvent) => void;
 
 class ReplayPlayerTimestampEmitter {

@@ -11,21 +11,21 @@ import {generateFieldAsString, isLegalEquationColumn} from 'sentry/utils/discove
 
 const NONE_SELECTED = -1;
 
-type DropdownOption = {
+interface DropdownOption {
   active: boolean;
   kind: 'field' | 'operator';
   value: string;
-};
+}
 
-type DropdownOptionGroup = {
+interface DropdownOptionGroup {
   options: DropdownOption[];
   title: string;
-};
+}
 
-type DefaultProps = {
+interface DefaultProps {
   options: Column[];
   className?: string;
-};
+}
 
 type Props = DefaultProps &
   InputProps & {
@@ -34,14 +34,14 @@ type Props = DefaultProps &
     hideFieldOptions?: boolean;
   };
 
-type State = {
+interface State {
   activeSelection: number;
   dropdownOptionGroups: DropdownOptionGroup[];
   dropdownVisible: boolean;
   partialTerm: string | null;
   query: string;
   rawOptions: Column[];
-};
+}
 
 export class ArithmeticInput extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
@@ -300,11 +300,11 @@ const Container = styled('div')<{isOpen: boolean}>`
   }
 `;
 
-type TermDropdownProps = {
+interface TermDropdownProps {
   handleSelect: (option: DropdownOption) => void;
   isOpen: boolean;
   optionGroups: DropdownOptionGroup[];
-};
+}
 
 function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
   return (

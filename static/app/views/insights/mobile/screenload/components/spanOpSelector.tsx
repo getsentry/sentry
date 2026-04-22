@@ -25,10 +25,10 @@ export const TTID_CONTRIBUTING_SPAN_OPS = [
   'db.sql.transaction',
 ];
 
-type Props = {
+interface Props {
   primaryRelease?: string;
   transaction?: string;
-};
+}
 
 export function SpanOpSelector({transaction, primaryRelease}: Props) {
   const navigate = useNavigate();

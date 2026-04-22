@@ -28,7 +28,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
-type Props = {
+interface Props {
   aggregate: UnsavedMetricRule['aggregate'];
   api: Client;
   comparisonType: AlertRuleComparisonType;
@@ -54,7 +54,7 @@ type Props = {
   error?: Record<string, string>;
 
   hideControl?: boolean;
-};
+}
 
 class TriggerFormItem extends PureComponent<Props> {
   /**

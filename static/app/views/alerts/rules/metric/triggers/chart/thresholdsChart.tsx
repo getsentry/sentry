@@ -32,11 +32,11 @@ import type {Anomaly} from 'sentry/views/alerts/types';
 import {alertAxisFormatter, isSessionAggregate} from 'sentry/views/alerts/utils';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
-type DefaultProps = {
+interface DefaultProps {
   comparisonData: Series[];
   comparisonMarkLines: LineChartSeries[];
   data: Series[];
-};
+}
 
 type Props = DefaultProps & {
   aggregate: string;

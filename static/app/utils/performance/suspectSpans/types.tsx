@@ -1,4 +1,4 @@
-export type SpanSlug = {
+export interface SpanSlug {
   group: string;
   op: string;
-};
+}

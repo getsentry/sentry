@@ -13,10 +13,10 @@ import type {
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 type NavProps = NavigationProps & {
   access?: Set<Scope>;

@@ -21,13 +21,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export type SaveQueryModalProps = {
+export interface SaveQueryModalProps {
   organization: Organization;
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   traceItemDataset: TraceItemDataset;
   name?: string;
   source?: 'toolbar' | 'table';
-};
+}
 
 type Props = ModalRenderProps & SaveQueryModalProps;
 

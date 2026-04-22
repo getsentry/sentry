@@ -19,7 +19,7 @@ import {
 } from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
 
-type IssueViewsTableProps = {
+interface IssueViewsTableProps {
   handleDeleteView: (view: GroupSearchView) => void;
   handleStarView: (view: GroupSearchView) => void;
   isError: boolean;
@@ -28,7 +28,7 @@ type IssueViewsTableProps = {
   type: GroupSearchViewCreatedBy;
   views: GroupSearchView[];
   hideCreatedBy?: boolean;
-};
+}
 
 export function IssueViewsTable({
   views,

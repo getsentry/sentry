@@ -55,10 +55,10 @@ import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type OnboardingProps = {
+interface OnboardingProps {
   organization: Organization;
   project: Project;
-};
+}
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -471,11 +471,11 @@ const OnboardingContainer = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
 
-type LogsTabOnboardingProps = {
+interface LogsTabOnboardingProps {
   datePageFilterProps: DatePageFilterProps;
   organization: Organization;
   project: Project;
-};
+}
 
 export function LogsTabOnboarding({
   organization,

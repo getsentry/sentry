@@ -25,7 +25,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const MAX_SEGMENTS = 4;
 const TOOLTIP_DELAY = 800;
 
-type Props = {
+interface Props {
   segments: TagSegment[];
   title: string;
   totalValues: number;
@@ -35,7 +35,7 @@ type Props = {
   onTagValueClick?: (title: string, value: TagSegment) => void;
   otherUrl?: LocationDescriptor;
   project?: Project;
-};
+}
 
 export function TagFacetsDistributionMeter({
   segments,

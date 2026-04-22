@@ -28,7 +28,10 @@ import type {
 const isValidSpanID = (maybeSpanID: any) =>
   typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
 
-export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
+export interface SpanBoundsType {
+  endTimestamp: number;
+  startTimestamp: number;
+}
 export type SpanGeneratedBoundsType =
   | {isSpanVisibleInView: boolean; type: 'TRACE_TIMESTAMPS_EQUAL'}
   | {isSpanVisibleInView: boolean; type: 'INVALID_VIEW_WINDOW'}

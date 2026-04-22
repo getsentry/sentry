@@ -81,10 +81,10 @@ type Column = GridColumnHeader<
   | 'sum(span.self_time)'
 >;
 
-type Props = {
+interface Props {
   sort: ValidSort;
   defaultResourceTypes?: string[];
-};
+}
 
 export function ResourceTable({sort, defaultResourceTypes}: Props) {
   const navigate = useNavigate();

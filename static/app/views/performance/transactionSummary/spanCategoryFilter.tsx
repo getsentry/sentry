@@ -18,9 +18,9 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {SpanFields} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   segmentSpanName: string;
-};
+}
 
 const LIMIT = 10;
 

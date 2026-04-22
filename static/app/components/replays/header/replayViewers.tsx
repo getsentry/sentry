@@ -7,11 +7,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type TResponseData = {
+interface TResponseData {
   data: {
     viewed_by: User[];
   };
-};
+}
 
 interface Props {
   projectId: string;

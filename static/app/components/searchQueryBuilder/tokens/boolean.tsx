@@ -27,11 +27,11 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-type SearchQueryBuilderBooleanProps = {
+interface SearchQueryBuilderBooleanProps {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.LOGIC_BOOLEAN>;
-};
+}
 
 function FilterDelete({token, state, item}: SearchQueryBuilderBooleanProps) {
   const {dispatch, disabled} = useSearchQueryBuilder();

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
 
-type Props = {
+interface Props {
   score: number;
   className?: string;
   palette?: readonly string[];
@@ -12,7 +12,7 @@ type Props = {
   size?: number;
   thickness?: number;
   vertical?: boolean;
-};
+}
 
 function BaseScoreBar({
   score,
@@ -65,14 +65,14 @@ export const ScoreBar = styled(BaseScoreBar)`
         `};
 `;
 
-type BarProps = {
+interface BarProps {
   radius: number;
   size: number;
   thickness: number;
   color?: string;
   empty?: boolean;
   vertical?: boolean;
-};
+}
 
 const Bar = styled('div')<BarProps>`
   border-radius: ${p => p.radius}px;

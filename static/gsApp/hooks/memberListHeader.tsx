@@ -14,11 +14,11 @@ import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName, getBestPlanForUnlimitedMembers} from 'getsentry/utils/billing';
 
-type Props = {
+interface Props {
   members: Member[];
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 function MemberListHeader({members, organization, subscription}: Props) {
   const hasDisabledMembers = members.some(isMemberDisabledFromLimit);

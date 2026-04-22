@@ -41,7 +41,7 @@ import {
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from './utils';
 
-type Props = {
+interface Props {
   api: Client;
   location: Location;
   organization: Organization;
@@ -50,7 +50,7 @@ type Props = {
   renderPrebuilt: boolean;
   savedQueries: SavedQuery[];
   savedQuerySearchQuery: string;
-};
+}
 
 class QueryList extends Component<Props> {
   componentDidMount() {

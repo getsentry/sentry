@@ -41,11 +41,11 @@ export const enum DemoTourStep {
   PERFORMANCE_SPAN_TREE = 'demo-tour-performance-span-tree',
 }
 
-type DemoToursContextType = {
+interface DemoToursContextType {
   issues: TourContextType<DemoTourStep>;
   performance: TourContextType<DemoTourStep>;
   releases: TourContextType<DemoTourStep>;
-};
+}
 
 const DemoToursContext = createContext<DemoToursContextType | null>(null);
 

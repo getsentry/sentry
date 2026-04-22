@@ -12,7 +12,7 @@ import {IconSentry, IconWarning} from 'sentry/icons';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 
-export type TitleCellProps = {
+export interface TitleCellProps {
   link: LocationDescriptor | null;
   name: string;
   className?: string;
@@ -21,7 +21,7 @@ export type TitleCellProps = {
   openInNewTab?: boolean;
   systemCreated?: string;
   warning?: StatusWarning | null;
-};
+}
 
 export function TitleCell({
   name,

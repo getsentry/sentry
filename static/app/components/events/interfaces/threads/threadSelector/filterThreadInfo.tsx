@@ -8,12 +8,12 @@ import {getRelevantFrame} from './getRelevantFrame';
 import {getThreadException} from './getThreadException';
 import {getThreadStacktrace} from './getThreadStacktrace';
 
-export type ThreadInfo = {
+export interface ThreadInfo {
   crashedInfo?: EntryData;
   filename?: string;
   label?: string;
   state?: ThreadStates;
-};
+}
 
 function trimFilename(filename: string) {
   const pieces = filename.split(/\//);

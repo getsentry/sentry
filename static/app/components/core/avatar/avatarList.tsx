@@ -11,7 +11,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {TeamAvatar} from './teamAvatar';
 import {UserAvatar, type UserAvatarProps} from './userAvatar';
 
-type Props = {
+interface Props {
   avatarSize?: number;
   className?: string;
   maxVisibleAvatars?: number;
@@ -25,7 +25,7 @@ type Props = {
   tooltipOptions?: UserAvatarProps['tooltipOptions'];
   typeAvatars?: string;
   users?: Array<Actor | AvatarUser>;
-};
+}
 
 export function CollapsedAvatars({
   ref,

@@ -15,10 +15,10 @@ import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface Props {
   source: string;
   subscription: Subscription;
-};
+}
 
 function TargetedOnboardingHeader({source, subscription}: Props) {
   const organization = useOrganization();

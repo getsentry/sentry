@@ -18,7 +18,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
-type Props = {
+interface Props {
   dateUpdated: string | null;
   initialText: string;
   onCancel: () => void;
@@ -30,9 +30,11 @@ type Props = {
   project: Project;
   disabled?: boolean;
   onSave?: (ownership: IssueOwnership) => void;
-};
+}
 
-type InputError = {raw: string[]};
+interface InputError {
+  raw: string[];
+}
 
 function parseError(error: InputError | null) {
   const text = error?.raw?.[0];

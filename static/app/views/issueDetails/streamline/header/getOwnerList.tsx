@@ -40,12 +40,12 @@ function findMatchedRules(
     .map(([rule]) => rule);
 }
 
-type IssueOwner = {
+interface IssueOwner {
   actor: Actor;
   source: 'codeowners' | 'projectOwnership' | 'suspectCommit';
   commits?: Commit[];
   rules?: Array<[string, string]> | null;
-};
+}
 export interface EventOwners {
   owners: Actor[];
   rule: RuleDefinition;
@@ -71,12 +71,12 @@ type SuggestedAssignee = Actor & {
   suggestedReasonText?: React.ReactNode;
 };
 
-type AssignableTeam = {
+interface AssignableTeam {
   display: string;
   email: string;
   id: string;
   team: Team;
-};
+}
 
 /**
  * Combine the committer and ownership data into a single array, merging

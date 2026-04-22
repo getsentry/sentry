@@ -6,12 +6,12 @@ import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/qu
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   browserTypes?: BrowserType[];
   subregions?: SubregionCode[];
   tag?: Tag;
   transaction?: string;
-};
+}
 
 export const useProjectRawWebVitalsQuery = ({
   transaction,

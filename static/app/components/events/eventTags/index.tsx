@@ -12,12 +12,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   event: Event;
   projectSlug: Project['slug'];
   filteredTags?: EventTagWithMeta[];
   tagFilter?: TagFilter;
-};
+}
 
 const IOS_DEVICE_FAMILIES = ['iPhone', 'iOS', 'iOS-Device'];
 

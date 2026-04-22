@@ -4,13 +4,13 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 
-type ValueComboboxContextValue = {
+interface ValueComboboxContextValue {
   ctrlKeyPressed: boolean;
   selectedValueMap: ReadonlyMap<string, boolean>;
   token: TokenResult<Token.FILTER>;
-};
+}
 
-type ValueComboboxMenuContextValue = {
+interface ValueComboboxMenuContextValue {
   canSelectMultipleValues: boolean;
   canUseWildcard: boolean;
   inputValue: string;
@@ -22,7 +22,7 @@ type ValueComboboxMenuContextValue = {
   showDatePicker: boolean;
   token: TokenResult<Token.FILTER>;
   wrapperRef: RefObject<HTMLDivElement | null>;
-};
+}
 
 export const ValueComboboxContext = createContext<ValueComboboxContextValue | null>(null);
 export const ValueComboboxMenuContext =

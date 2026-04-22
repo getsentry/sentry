@@ -10,7 +10,7 @@ import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
-type Props = {
+interface Props {
   /**
    * This could accept most props from AddIntegrationButton, but we are
    * selectively picking the ones that we are actively using
@@ -23,7 +23,7 @@ type Props = {
   onExternalClick: () => void;
   userHasAccess: boolean;
   externalInstallText?: string;
-};
+}
 
 export function IntegrationButton({
   userHasAccess,

@@ -8,12 +8,12 @@ export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
 type ProviderValue = 'always' | 'never';
 
-type NotificationBaseObject = {
+interface NotificationBaseObject {
   id: string;
   scopeIdentifier: string;
   scopeType: string;
   type: string;
-};
+}
 
 export type NotificationOptionsObject = NotificationBaseObject & {
   value: ProviderValue | 'subscribe_only' | 'committed_only';

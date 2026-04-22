@@ -29,7 +29,7 @@ import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 const TABLE_ITEM_LIMIT = 20;
 
-type Props = {
+interface Props {
   index: string;
   isEditingDashboard: boolean;
   onDelete: () => void;
@@ -51,7 +51,7 @@ type Props = {
   onNewWidgetScrollComplete?: () => void;
   widgetInterval?: string;
   windowWidth?: number;
-};
+}
 
 export function SortableWidget(props: Props) {
   const widgetRef = useRef<HTMLDivElement>(null);

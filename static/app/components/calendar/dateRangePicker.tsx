@@ -13,7 +13,9 @@ export interface DateRangePickerProps extends Omit<
   startDate?: Date;
 }
 
-type RangeSelection = {primary: Range};
+interface RangeSelection {
+  primary: Range;
+}
 
 const PRIMARY_RANGE_KEY = 'primary';
 

@@ -32,10 +32,10 @@ function makeYAxisFormatter(timeSeries: TimeSeries[]) {
   return (value: number) => formatYAxisValue(value, valueType, valueUnit ?? undefined);
 }
 
-type ChartData = {
+interface ChartData {
   timeSeries: TimeSeries[];
   type?: DisplayType;
-};
+}
 
 export const makeTimeseriesCharts = (
   theme: Theme

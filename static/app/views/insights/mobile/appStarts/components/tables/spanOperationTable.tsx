@@ -40,10 +40,10 @@ import type {SpanProperty} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanFields;
 
-type Props = {
+interface Props {
   primaryRelease?: string;
   transaction?: string;
-};
+}
 
 export function SpanOperationTable({transaction, primaryRelease}: Props) {
   const organization = useOrganization();

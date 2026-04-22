@@ -18,7 +18,7 @@ import {MobileAppSizeWidgetQueries} from './mobileAppSizeWidgetQueries';
 import {ReleaseWidgetQueries} from './releaseWidgetQueries';
 import {WidgetQueries} from './widgetQueries';
 
-type Results = {
+interface Results {
   loading: boolean;
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
@@ -32,9 +32,9 @@ type Results = {
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
-};
+}
 
-type Props = {
+interface Props {
   children: (props: Results) => React.ReactNode;
   selection: PageFilters;
   widget: Widget;
@@ -58,7 +58,7 @@ type Props = {
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
   widgetInterval?: string;
-};
+}
 
 export function WidgetCardDataLoader({
   children,

@@ -54,7 +54,7 @@ type Span = (RawSpanType | TraceContextSpanProxy) & {
   timestamp?: number;
 };
 
-type SpanEvidenceKeyValueListProps = {
+interface SpanEvidenceKeyValueListProps {
   causeSpans: Span[];
   event: EventTransaction;
   location: Location;
@@ -64,7 +64,7 @@ type SpanEvidenceKeyValueListProps = {
   theme: Theme;
   issueType?: IssueType;
   projectSlug?: string;
-};
+}
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 

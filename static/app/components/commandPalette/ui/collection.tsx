@@ -8,11 +8,11 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-type StoredNode<T> = {
+interface StoredNode<T> {
   dataRef: React.MutableRefObject<T>;
   key: string;
   parent: string | null;
-};
+}
 
 export type CollectionTreeNode<T> = {
   children: Array<CollectionTreeNode<T>>;

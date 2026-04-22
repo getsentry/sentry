@@ -51,11 +51,11 @@ export function SizeTooltip({children}: {children: ReactNode}) {
   );
 }
 
-export type KeyValueTuple = {
+export interface KeyValueTuple {
   key: string;
   value: string | ReactNode;
   type?: 'warning' | 'error';
-};
+}
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
   return data.length ? (

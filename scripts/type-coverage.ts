@@ -17,7 +17,7 @@ const colors = {
   dim: (text: string) => `\x1b[2m${text}\x1b[0m`,
 };
 
-type Options = {
+interface Options {
   tsconfigPath: string;
   detail?: boolean;
   failBelow?: number;
@@ -26,7 +26,7 @@ type Options = {
   listAny?: boolean;
   listNonNull?: boolean;
   listTypeAssertions?: boolean;
-};
+}
 
 function parseArgs(): Options {
   const args = process.argv.slice(2);
@@ -118,30 +118,30 @@ function isContextuallyTypedCallbackParam(
   return !isAny(paramType, typeChecker);
 }
 
-type AnyHit = {
+interface AnyHit {
   column: number;
   file: string;
   kind: 'var' | 'var(binding)' | 'param' | 'param(binding)' | 'as-any';
   line: number;
   name: string;
-};
+}
 
-type NonNullHit = {
+interface NonNullHit {
   code: string;
   column: number;
   file: string;
   kind: 'nonnull(expr)' | 'nonnull(property)';
   line: number;
-};
+}
 
-type TypeAssertionHit = {
+interface TypeAssertionHit {
   code: string;
   column: number;
   file: string;
   kind: 'type(as)' | 'type(angle)';
   line: number;
   targetType: string;
-};
+}
 
 function recordAny(
   hits: AnyHit[],

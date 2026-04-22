@@ -19,7 +19,9 @@ const SortStrategies: Record<string, (row: any) => any> = {
   startTimestamp: row => row.startTimestamp,
 };
 
-type Opts = {items: SpanFrame[]};
+interface Opts {
+  items: SpanFrame[];
+}
 
 export function useSortNetwork({items}: Opts) {
   const [sortAsc, setSortAsc] = useQueryState(

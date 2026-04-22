@@ -7,13 +7,13 @@ import type {EventOrGroupType, Level} from 'sentry/types/event';
 import {eventTypeHasLogLevel} from 'sentry/utils/events';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
-type Props = {
+interface Props {
   message: React.ReactNode;
   type: EventOrGroupType;
   className?: string;
   level?: Level;
   showUnhandled?: boolean;
-};
+}
 
 export function EventMessage({
   className,

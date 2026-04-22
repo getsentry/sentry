@@ -55,7 +55,10 @@ interface JsonFormAdapterNumber extends JsonFormAdapterBase {
   default?: number;
 }
 
-type ChoiceMapperSelector = {choices: Array<[string, string]>; placeholder?: string};
+interface ChoiceMapperSelector {
+  choices: Array<[string, string]>;
+  placeholder?: string;
+}
 
 interface JsonFormAdapterChoiceMapperBase extends JsonFormAdapterBase {
   type: 'choice_mapper';

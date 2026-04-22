@@ -6,11 +6,11 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 
-type Props = {
+interface Props {
   // TODO(ts): Type customer when available
   customer: any;
   onAction: (data: any) => void;
-};
+}
 
 export function ChangeARRAction(props: Props) {
   return (
@@ -28,10 +28,10 @@ export function ChangeARRAction(props: Props) {
 
 type ModalProps = ModalRenderProps & Props;
 
-type ModalState = {
+interface ModalState {
   error: boolean;
   newAcv: number;
-};
+}
 
 class ChangeARRModal extends Component<ModalProps, ModalState> {
   state: ModalState = {

@@ -9,14 +9,14 @@ import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   attachment: IssueAttachment;
   onDelete: () => void;
   projectSlug: string;
   onPreviewClick?: () => void;
   previewIsOpen?: boolean;
   withPreviewButton?: boolean;
-};
+}
 
 export function EventAttachmentActions({
   attachment,

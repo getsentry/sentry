@@ -11,16 +11,16 @@ import {getBucket} from 'getsentry/views/amCheckout/utils';
 
 import type {Reservations} from './types';
 
-type Opts = {
+interface Opts {
   organization: Organization;
   subscription: Subscription;
   enabled?: boolean;
-};
+}
 
-type State = {
+interface State {
   plan: undefined | Plan;
   reservations: undefined | Reservations;
-};
+}
 
 const DEFAULT_STATE: State = {plan: undefined, reservations: undefined};
 

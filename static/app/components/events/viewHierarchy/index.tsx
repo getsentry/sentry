@@ -61,7 +61,7 @@ function onScrollToNode(
 }
 
 // there can be many other properties, but we only care about a few
-export type ViewHierarchyWindow = {
+export interface ViewHierarchyWindow {
   alpha?: number;
   children?: ViewHierarchyWindow[];
   depth?: number;
@@ -73,23 +73,23 @@ export type ViewHierarchyWindow = {
   width?: number;
   x?: number;
   y?: number;
-};
+}
 
-export type ViewHierarchyData = {
+export interface ViewHierarchyData {
   rendering_system: string;
   windows: ViewHierarchyWindow[];
   positioning?: 'absolute' | 'relative';
-};
+}
 
 export type ViewHierarchyNodeField = 'type' | 'name';
 
-type ViewHierarchyProps = {
+interface ViewHierarchyProps {
   emptyMessage: string;
   nodeField: ViewHierarchyNodeField;
   showWireframe: boolean;
   viewHierarchy: ViewHierarchyData;
   platform?: string;
-};
+}
 
 function ViewHierarchy({
   viewHierarchy,

@@ -319,12 +319,12 @@ function ChangePlanAction({
   );
 }
 
-type Options = {
+interface Options {
   onSuccess: () => void;
   organization: Organization;
   partnerPlanId: string | null;
   subscription: Subscription;
-};
+}
 
 export const triggerChangePlanAction = (opts: Options) =>
   openModal(deps => <ChangePlanAction {...deps} {...opts} />);

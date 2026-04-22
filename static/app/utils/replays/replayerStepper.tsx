@@ -16,9 +16,9 @@ interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
   startTimestampMs: number;
 }
 
-type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
+interface FrameRef<Frame extends ReplayFrame | RecordingFrame> {
   current: Frame | undefined;
-};
+}
 
 export function replayerStepper<
   Frame extends ReplayFrame | RecordingFrame,

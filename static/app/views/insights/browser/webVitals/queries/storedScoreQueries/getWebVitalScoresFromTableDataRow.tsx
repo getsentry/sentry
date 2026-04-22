@@ -23,7 +23,9 @@ type CountScores = Pick<
   | 'count_scores(measurements.score.total)'
 >;
 
-type TotalPerformanceScore = {'performance_score(measurements.score.total)': number};
+interface TotalPerformanceScore {
+  'performance_score(measurements.score.total)': number;
+}
 
 export type WebVitalScores = CountScores & PerformanceScores & TotalPerformanceScore;
 

@@ -21,14 +21,14 @@ import type {
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type DeletableTokenProps = {
+interface DeletableTokenProps {
   children: React.ReactNode;
   item: Node<ParseResultToken>;
   label: string;
   state: ListState<ParseResultToken>;
   token: ParseResultToken;
   invalid?: {type: InvalidReason; reason?: string} | null;
-};
+}
 
 export function DeletableToken({
   item,

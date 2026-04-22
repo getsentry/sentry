@@ -18,9 +18,9 @@ import {
   QUERY_LIMIT_PARAM,
 } from 'sentry/views/performance/landing/widgets/utils';
 
-type AreaDataType = {
+interface AreaDataType {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
-};
+}
 
 export function HistogramWidget(props: PerformanceWidgetProps) {
   const location = useLocation();

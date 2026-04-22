@@ -18,7 +18,7 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 
 import {AuditLogList} from './auditLogList';
 
-type State = {
+interface State {
   entryList: AuditLog[] | null;
   entryListPageLinks: string | null;
   eventType: string | undefined;
@@ -29,7 +29,7 @@ type State = {
   currentCursor?: string;
   end?: DateString;
   start?: DateString;
-};
+}
 
 function OrganizationAuditLog() {
   const location = useLocation();

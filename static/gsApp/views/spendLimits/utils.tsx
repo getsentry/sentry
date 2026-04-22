@@ -88,11 +88,11 @@ export function isOnDemandBudgetsEqual(
   return isEqual(value, other);
 }
 
-type DisplayNameProps = {
+interface DisplayNameProps {
   budget: PerCategoryOnDemandBudget;
   categories: DataCategory[];
   plan: Plan;
-};
+}
 
 function listBudgets({plan, categories, budget}: DisplayNameProps) {
   const categoryNames = categories.map(category => {

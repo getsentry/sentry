@@ -13,12 +13,12 @@ import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';
 const DOCS_URL = 'https://docs.sentry.io/product/releases/';
 const DOCS_HEALTH_URL = 'https://docs.sentry.io/product/releases/health/';
 
-type Props = {
+interface Props {
   organization: Organization;
   health?: boolean;
   platform?: PlatformKey;
   projectId?: string;
-};
+}
 
 export function MissingReleasesButtons({
   organization,

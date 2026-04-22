@@ -12,7 +12,10 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-type IntervalChoice = {label: string; value: Interval};
+interface IntervalChoice {
+  label: string;
+  value: Interval;
+}
 
 interface BranchProps {
   intervalChoices?: IntervalChoice[];

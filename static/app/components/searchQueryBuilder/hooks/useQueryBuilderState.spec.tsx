@@ -7,7 +7,7 @@ import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderSta
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
-    type TestCase = {
+    interface TestCase {
       description: string;
       expected: {
         focusOverride: FocusOverride | undefined;
@@ -17,7 +17,7 @@ describe('replaceFreeTextTokens', () => {
         currentQuery: string;
         rawSearchReplacement: string[];
       };
-    };
+    }
 
     const testCases: TestCase[] = [
       {

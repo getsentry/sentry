@@ -10,20 +10,20 @@ import type {
 } from 'sentry/types/echarts';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type RenderProps = {
+interface RenderProps {
   dataZoom: ReturnType<typeof DataZoomInside>;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
   toolBox: ReturnType<typeof ToolBox>;
-};
+}
 
-type BarChartBucket = {
+interface BarChartBucket {
   end: number;
   start: number;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * This is the list of bucket start and end ranges. This is used by the
    * component to determine the start and end of the zoom.
@@ -66,7 +66,7 @@ type Props = {
    *
    */
   onHistoryPush?: (start: number, end: number) => void;
-};
+}
 
 export function BarChartZoom({
   buckets,

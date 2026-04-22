@@ -27,7 +27,7 @@ export type CursorHandler = (
   delta: number
 ) => void;
 
-type Props = {
+interface Props {
   caption?: React.ReactNode;
   className?: string;
   disabled?: boolean;
@@ -36,7 +36,7 @@ type Props = {
   paginationAnalyticsEvent?: (direction: string) => void;
   size?: 'zero' | 'xs' | 'sm' | 'md';
   to?: string;
-};
+}
 
 export function Pagination({
   to,

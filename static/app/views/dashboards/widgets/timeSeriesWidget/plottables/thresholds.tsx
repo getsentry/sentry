@@ -22,13 +22,13 @@ import type {
   PlottableTimeSeriesValueType,
 } from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 
-type ThresholdPlottableOptions = {
+interface ThresholdPlottableOptions {
   thresholds: ThresholdsConfig;
   dataType?: string;
   showLabels?: boolean;
-};
+}
 
-type ThresholdPlottablePlottingOptions = {
+interface ThresholdPlottablePlottingOptions {
   theme: Theme;
   /**
    * The top offset (in pixels) of the chart grid within the SVG container.
@@ -36,7 +36,7 @@ type ThresholdPlottablePlottingOptions = {
    * grid rather than the top of the SVG, which would overlap the legend.
    */
   maxOffset?: number;
-};
+}
 
 export class Thresholds implements Plottable {
   maxOffset = 5; // The offset from the top of the chart (in pixels), of the max threshold

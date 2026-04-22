@@ -9,10 +9,10 @@ import type {PluginWithProjectList} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
-type Props = {
+interface Props {
   organization: Organization;
   plugin: PluginWithProjectList;
-};
+}
 
 export function PluginDeprecationAlert({organization, plugin}: Props) {
   // Short-circuit if not deprecated.

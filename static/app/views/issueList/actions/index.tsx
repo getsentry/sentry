@@ -40,7 +40,7 @@ import {ActionSet} from './actionSet';
 import {Headers} from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
 
-type IssueListActionsProps = {
+interface IssueListActionsProps {
   allResultsVisible: boolean;
   displayReprocessingActions: boolean;
   groupIds: string[];
@@ -51,7 +51,7 @@ type IssueListActionsProps = {
   selection: PageFilters;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
-};
+}
 
 const animationProps: MotionNodeAnimationOptions = {
   initial: {translateY: 8, opacity: 0},

@@ -12,10 +12,10 @@ interface Props {
   organization: Organization;
 }
 
-type ItemQueryKeys = {
+interface ItemQueryKeys {
   eventQueryKey: ApiQueryKey | undefined;
   issueQueryKey: ApiQueryKey | undefined;
-};
+}
 
 interface TContext {
   getItemQueryKeys: (id: string) => ItemQueryKeys;

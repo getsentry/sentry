@@ -12,11 +12,11 @@ import type {
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
-type Props = {
+interface Props {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   filename: string;
   lineNo: number | null;
-};
+}
 
 function OpenInContextLine({lineNo, filename, components}: Props) {
   const handleRecordInteraction =

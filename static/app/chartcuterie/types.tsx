@@ -34,7 +34,7 @@ export type RenderOption = Omit<EChartsOption, 'animation' | 'tooltip' | 'toolbo
 /**
  * Describes configuration for a renderable chart style
  */
-export type RenderDescriptor<D extends string = string> = {
+export interface RenderDescriptor<D extends string = string> {
   /**
    * Produce the echart option config for rendering the charts series. It is up
    * to the implementation to declare what data it should receive, as long as
@@ -50,7 +50,7 @@ export type RenderDescriptor<D extends string = string> = {
    * Width of the produced image in pixels
    */
   width: number;
-};
+}
 
 /**
  * Maps style keys to style descriptor configuration
@@ -60,7 +60,7 @@ export type RenderConfig<D extends string = string> = Map<D, RenderDescriptor<D>
 /**
  * The data given to the service to render a chart
  */
-export type RenderData = {
+export interface RenderData {
   /**
    * Arbitrary series data. The RenderDescriptor.getOption should transform this
    * into a valid echarts series.
@@ -74,7 +74,7 @@ export type RenderData = {
    * The style config key
    */
   style: string;
-};
+}
 
 /**
  * Performs any additional initialization steps on Chartcuterie's global
@@ -86,7 +86,7 @@ export type InitFn = (echarts: any) => void;
 /**
  * The configuration object type expected to be provided to the service
  */
-export type ChartcuterieConfig = {
+export interface ChartcuterieConfig {
   renderConfig: RenderConfig;
   /**
    * A string version identifier for the configuration. This may be useful for
@@ -99,12 +99,12 @@ export type ChartcuterieConfig = {
    * or restarts due to configuration updates.
    */
   init?: InitFn;
-};
+}
 
 /**
  * Configuration to specify how often to poll for configuration changes
  */
-export type PollingConfig = {
+export interface PollingConfig {
   /**
    * The number of seconds between each polling attempt when the application boots
    * and has yet to load a configuration.
@@ -115,4 +115,4 @@ export type PollingConfig = {
    * has already loaded a valid configuration file
    */
   idleInterval: number;
-};
+}

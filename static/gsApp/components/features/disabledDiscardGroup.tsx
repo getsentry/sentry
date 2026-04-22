@@ -12,10 +12,10 @@ import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
+interface Props {
   features: Organization['features'];
   organization: Organization;
-};
+}
 
 export function DisabledDiscardGroup({organization, features}: Props) {
   return (

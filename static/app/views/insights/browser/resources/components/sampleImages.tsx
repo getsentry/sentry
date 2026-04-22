@@ -23,7 +23,11 @@ import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
-type Props = {groupId: string; noVisualizationPadding?: boolean; projectId?: number};
+interface Props {
+  groupId: string;
+  noVisualizationPadding?: boolean;
+  projectId?: number;
+}
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 

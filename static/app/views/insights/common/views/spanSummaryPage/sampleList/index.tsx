@@ -59,12 +59,12 @@ function SampleListSearchQueryBuilder({
   return <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />;
 }
 
-type Props = {
+interface Props {
   groupId: string;
   moduleName: ModuleName;
   referrer?: string;
   transactionRoute?: string;
-};
+}
 
 export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
   const organization = useOrganization();

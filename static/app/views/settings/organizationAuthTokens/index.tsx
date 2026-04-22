@@ -31,12 +31,12 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
-type FetchOrgAuthTokensParameters = {
+interface FetchOrgAuthTokensParameters {
   orgSlug: string;
-};
-type RevokeTokenQueryVariables = {
+}
+interface RevokeTokenQueryVariables {
   token: OrgAuthToken;
-};
+}
 
 export const makeFetchOrgAuthTokensForOrgQueryKey = ({
   orgSlug,

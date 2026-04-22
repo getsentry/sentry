@@ -10,9 +10,9 @@ import {IconMail} from 'sentry/icons';
 
 import ResultGrid from 'admin/components/resultGrid';
 
-type Props = {
+interface Props {
   orgId: string;
-};
+}
 
 const getRow = (row: any) => [
   <td key="name">

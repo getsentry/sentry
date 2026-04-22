@@ -7,10 +7,10 @@ import type {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegrap
 import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-export type FlamegraphRendererOptions = {
+export interface FlamegraphRendererOptions {
   colorCoding: FlamegraphColorCodings[number];
   draw_border: boolean;
-};
+}
 
 export const DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS: FlamegraphRendererOptions = {
   colorCoding: 'by symbol name',

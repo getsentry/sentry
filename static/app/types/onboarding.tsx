@@ -117,7 +117,7 @@ export interface OnboardingSelectedSDK extends Pick<
   key: PlatformKey;
 }
 
-export type OnboardingRecentCreatedProject = {
+export interface OnboardingRecentCreatedProject {
   isProjectActive: boolean | undefined;
   project: Project | undefined;
-};
+}

@@ -55,7 +55,7 @@ type ChartComponent =
   | React.ComponentType<AreaChartProps>
   | React.ComponentType<LineChartProps>;
 
-type ChartProps = {
+interface ChartProps {
   currentSeriesNames: string[];
   loading: boolean;
   previousSeriesNames: string[];
@@ -98,12 +98,12 @@ type ChartProps = {
   timeframe?: {end: number; start: number};
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   topEvents?: number;
-};
+}
 
-type State = {
+interface State {
   forceUpdate: boolean;
   seriesSelection: Record<string, boolean>;
-};
+}
 
 class Chart extends Component<ChartProps, State> {
   state: State = {
@@ -473,7 +473,7 @@ export type EventsChartProps = {
   | 'fromDiscover'
 >;
 
-type ChartDataProps = {
+interface ChartDataProps {
   errored: boolean;
   loading: boolean;
   reloading: boolean;
@@ -486,7 +486,7 @@ type ChartDataProps = {
   timeseriesData?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   topEvents?: number;
-};
+}
 
 export class EventsChart extends Component<EventsChartProps> {
   isStacked() {

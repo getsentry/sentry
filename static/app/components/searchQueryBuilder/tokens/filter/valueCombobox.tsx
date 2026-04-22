@@ -79,12 +79,12 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SearchQueryValueBuilderProps = {
+interface SearchQueryValueBuilderProps {
   onCommit: () => void;
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
-};
+}
 
 function isStringFilterValues(
   tagValues: string[] | SearchGroup[]

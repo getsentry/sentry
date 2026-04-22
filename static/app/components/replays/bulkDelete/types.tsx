@@ -1,4 +1,4 @@
-export type ReplayBulkDeleteAuditLog = {
+export interface ReplayBulkDeleteAuditLog {
   countDeleted: number;
   dateCreated: string;
   dateUpdated: string;
@@ -8,4 +8,4 @@ export type ReplayBulkDeleteAuditLog = {
   rangeEnd: string;
   rangeStart: string;
   status: 'pending' | 'in-progress' | 'completed';
-};
+}

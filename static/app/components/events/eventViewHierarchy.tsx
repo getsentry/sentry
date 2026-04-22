@@ -21,11 +21,11 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import type {ViewHierarchyData} from './viewHierarchy';
 import {ViewHierarchy} from './viewHierarchy';
 
-type Props = {
+interface Props {
   event: Event;
   project: Project;
   disableCollapsePersistence?: boolean;
-};
+}
 
 function EventViewHierarchyContent({event, project, disableCollapsePersistence}: Props) {
   const organization = useOrganization();

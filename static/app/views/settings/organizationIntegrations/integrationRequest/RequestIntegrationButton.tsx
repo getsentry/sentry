@@ -9,11 +9,11 @@ import type {IntegrationType} from 'sentry/types/integrations';
 
 import {RequestIntegrationModal} from './RequestIntegrationModal';
 
-type Props = {
+interface Props {
   name: string;
   slug: string;
   type: IntegrationType;
-};
+}
 
 export function RequestIntegrationButton(props: Props) {
   const [isOpen, setIsOpen] = useState<boolean>(false);

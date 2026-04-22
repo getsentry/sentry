@@ -31,7 +31,7 @@ import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {DashboardCard} from './dashboardCard';
 import {GridPreview} from './gridPreview';
 
-type Props = {
+interface Props {
   api: Client;
   columnCount: number;
   dashboards: DashboardListItem[] | undefined;
@@ -39,7 +39,7 @@ type Props = {
   organization: Organization;
   rowCount: number;
   isLoading?: boolean;
-};
+}
 
 function DashboardGrid({
   api,

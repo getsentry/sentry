@@ -1,11 +1,11 @@
-type NoFilter = {
+interface NoFilter {
   type: 'no_filter';
-};
+}
 
-export type ActiveFilter = {
+export interface ActiveFilter {
   operationNames: Set<string>;
   type: 'active_filter';
-};
+}
 
 export const noFilter: NoFilter = {
   type: 'no_filter',

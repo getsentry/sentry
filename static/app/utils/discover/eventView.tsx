@@ -79,13 +79,13 @@ export type EventsMetaType = {fields: Record<string, ColumnType>} & {
 // Data in discover results.
 export type EventData = Record<string, any>;
 
-export type LocationQuery = {
+export interface LocationQuery {
   cursor?: string | string[] | null;
   end?: string | string[] | null;
   start?: string | string[] | null;
   statsPeriod?: string | string[] | null;
   utc?: string | string[] | null;
-};
+}
 
 const DATETIME_QUERY_STRING_KEYS = ['start', 'end', 'utc', 'statsPeriod'] as const;
 
@@ -270,7 +270,7 @@ function validateTableMeta(tableMeta: MetaType | undefined): MetaType | undefine
   return tableMeta && Object.keys(tableMeta).length > 0 ? tableMeta : undefined;
 }
 
-export type EventViewOptions = {
+export interface EventViewOptions {
   createdBy: User | undefined;
   display: string | undefined;
   end: string | undefined;
@@ -292,7 +292,7 @@ export type EventViewOptions = {
   multiSort?: boolean;
   utc?: string | boolean | undefined;
   yAxis?: string | string[] | undefined;
-};
+}
 
 export class EventView {
   id: string | undefined;

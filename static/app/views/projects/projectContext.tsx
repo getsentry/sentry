@@ -31,11 +31,11 @@ enum ErrorTypes {
   UNKNOWN = 'UNKNOWN',
 }
 
-type ChildFuncProps = {
+interface ChildFuncProps {
   project: Project;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
   loadingProjects: boolean;
@@ -46,15 +46,15 @@ type Props = {
    * If true, this will not change `state.loading` during `fetchData` phase
    */
   skipReload?: boolean;
-};
+}
 
-type State = {
+interface State {
   error: boolean;
   errorType: ErrorTypes | null;
   loading: boolean;
   memberList: User[];
   project: Project | null;
-};
+}
 
 const ProjectContext = createContext<Project | null>(null);
 

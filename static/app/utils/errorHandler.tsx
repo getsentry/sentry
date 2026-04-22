@@ -2,10 +2,10 @@ import {Component} from 'react';
 
 import RouteError from 'sentry/views/routeError';
 
-type State = {
+interface State {
   error: Error | undefined;
   hasError: boolean;
-};
+}
 
 export function errorHandler<P>(WrappedComponent: React.ComponentType<P>) {
   class ErrorHandler extends Component<P, State> {

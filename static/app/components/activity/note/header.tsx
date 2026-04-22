@@ -8,13 +8,13 @@ import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 
-type Props = {
+interface Props {
   authorName: string;
   onDelete: () => void;
   onEdit: () => void;
   // Naming is not great here, but this seems to be the author, aka user who wrote the note.
   user?: User;
-};
+}
 
 function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
   const activeUser = useUser();

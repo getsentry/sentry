@@ -8,10 +8,10 @@ import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/co
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 
-type FallbackDetectorDetailsProps = {
+interface FallbackDetectorDetailsProps {
   detector: Detector;
   project: Project;
-};
+}
 
 export function FallbackDetectorDetails({
   detector,

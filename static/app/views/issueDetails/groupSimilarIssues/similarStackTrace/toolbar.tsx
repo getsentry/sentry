@@ -8,11 +8,11 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   hasSimilarityEmbeddingsFeature: boolean;
   mergeCount: number;
   onMerge: () => void;
-};
+}
 
 export function SimilarToolbar({
   hasSimilarityEmbeddingsFeature,

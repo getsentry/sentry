@@ -23,7 +23,7 @@ import {defined} from 'sentry/utils';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
-type ParametersComboboxProps = {
+interface ParametersComboboxProps {
   onCommit: () => void;
   onDelete: () => void;
   state: ListState<ParseResultToken>;
@@ -32,13 +32,13 @@ type ParametersComboboxProps = {
     e: KeyboardEvent,
     extra: {state: ComboBoxState<SelectOptionWithKey<string>>}
   ) => void;
-};
+}
 
-type SuggestionItem = {
+interface SuggestionItem {
   value: string;
   description?: ReactNode;
   label?: ReactNode;
-};
+}
 
 function getInitialInputValue(token: AggregateFilter) {
   if ('args' in token.key) {

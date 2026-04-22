@@ -5,9 +5,9 @@ import {tct} from 'sentry/locale';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
+interface Props {
   subscription: Subscription;
-};
+}
 
 export function TrialEnded({subscription}: Props) {
   const canRequestTrial =

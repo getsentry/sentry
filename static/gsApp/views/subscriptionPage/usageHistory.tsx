@@ -63,11 +63,11 @@ function usagePercentage(usage: number, prepaid: number | null): string {
   return formatPercentage(usage / prepaid, 0);
 }
 
-type DisplayProps = {
+interface DisplayProps {
   metricHistory: BillingMetricHistory;
   hadCustomDynamicSampling?: boolean;
   plan?: Plan;
-};
+}
 
 function getCategoryDisplay({
   plan,
@@ -136,10 +136,10 @@ function UsageHistory({subscription}: Props) {
   );
 }
 
-type RowProps = {
+interface RowProps {
   history: BillingHistory;
   subscription: Subscription;
-};
+}
 
 function UsageHistoryRow({history}: RowProps) {
   const organization = useOrganization();

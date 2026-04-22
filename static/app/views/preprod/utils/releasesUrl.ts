@@ -1,7 +1,7 @@
-type ReleasesUrlParams = {
+interface ReleasesUrlParams {
   query?: string;
   tab?: string;
-};
+}
 
 export function makeReleasesUrl(
   organizationSlug: string,

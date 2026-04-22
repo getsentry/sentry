@@ -1,4 +1,4 @@
-export type AgentMonitoringEventParameters = {
+export interface AgentMonitoringEventParameters {
   'agent-monitoring.column-sort': {
     column: string;
     direction: 'asc' | 'desc';
@@ -23,7 +23,7 @@ export type AgentMonitoringEventParameters = {
   'agent-monitoring.trace.view-full-trace-click': Record<string, unknown>;
 
   'agent-monitoring.view-ai-trace-click': Record<string, unknown>;
-};
+}
 
 export const agentMonitoringEventMap: Record<
   keyof AgentMonitoringEventParameters,

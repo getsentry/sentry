@@ -14,12 +14,12 @@ import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {Cell, Centered, Divider, HalvedWithDivider} from './styles';
 import type {SpendAllocation} from './types';
 
-type AllocationRowProps = {
+interface AllocationRowProps {
   allocation: SpendAllocation;
   deleteAction: (e: React.MouseEvent) => void;
   metricUnit: BigNumUnits;
   openForm: (e: React.MouseEvent) => void;
-};
+}
 
 export function AllocationRow({
   allocation,

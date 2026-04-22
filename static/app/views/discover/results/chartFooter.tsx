@@ -11,7 +11,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {TOP_EVENT_MODES} from 'sentry/utils/discover/types';
 
-type Props = {
+interface Props {
   displayMode: string;
   displayOptions: Array<SelectValue<string>>;
   eventView: EventView;
@@ -23,7 +23,7 @@ type Props = {
   total: number | null;
   yAxisOptions: Array<SelectValue<string>>;
   yAxisValue: string[];
-};
+}
 
 export function ChartFooter({
   total,

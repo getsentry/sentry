@@ -38,11 +38,11 @@ export const COL_WIDTH_UNDEFINED = -1;
 // Set to 90 as the edit/trash icons need this much space.
 export const COL_WIDTH_MINIMUM = 90;
 
-type GridEditableProps<
+interface GridEditableProps<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
   SortBy extends GridColumnSortBy<unknown> = GridColumnSortBy<keyof DataRow>,
-> = {
+> {
   columnOrder: Order[];
   columnSortBy: SortBy[];
   data: DataRow[];
@@ -95,7 +95,7 @@ type GridEditableProps<
    *   move sorting into Grid for performance
    */
   title?: ReactNode;
-};
+}
 
 export function GridEditable<
   DataRow extends Record<string, any>,

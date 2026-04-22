@@ -22,14 +22,14 @@ export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown
 /**
  * Grouping Configuration.
  */
-export type EventGroupComponent = {
+export interface EventGroupComponent {
   contributes: boolean;
   hint: string | null;
   id: string;
   name: string | null;
   values: EventGroupComponent[] | string[];
-};
-type VariantEvidence = {
+}
+interface VariantEvidence {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
@@ -39,7 +39,7 @@ type VariantEvidence = {
   op?: string;
   parent_span_hashes?: string[];
   parent_span_ids?: string[];
-};
+}
 
 export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
@@ -103,27 +103,27 @@ export type EventGroupVariant =
 /**
  * SDK Update metadata
  */
-type EnableIntegrationSuggestion = {
+interface EnableIntegrationSuggestion {
   enables: SDKUpdatesSuggestion[];
   integrationName: string;
   type: 'enableIntegration';
   integrationUrl?: string | null;
-};
+}
 
-type UpdateSdkSuggestion = {
+interface UpdateSdkSuggestion {
   enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
   type: 'updateSdk';
   sdkUrl?: string | null;
-};
+}
 
-type ChangeSdkSuggestion = {
+interface ChangeSdkSuggestion {
   enables: SDKUpdatesSuggestion[];
   newSdkName: string;
   type: 'changeSdk';
   sdkUrl?: string | null;
-};
+}
 
 export type SDKUpdatesSuggestion =
   | EnableIntegrationSuggestion
@@ -144,13 +144,13 @@ export interface Thread {
   state?: string | null;
 }
 
-export type Lock = {
+export interface Lock {
   type: LockType;
   address?: string | null;
   class_name?: string | null;
   package_name?: string | null;
   thread_id?: number | null;
-};
+}
 
 export enum LockType {
   LOCKED = 1,
@@ -159,7 +159,7 @@ export enum LockType {
   BLOCKED = 8,
 }
 
-export type Frame = {
+export interface Frame {
   absPath: string | null;
   colNo: number | null;
   context: Array<[number, string | null]>;
@@ -187,9 +187,9 @@ export type Frame = {
   sampleCount?: number | null;
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
-};
+}
 
-export type ExceptionValue = {
+export interface ExceptionValue {
   mechanism: StackTraceMechanism | null;
   module: string | null;
   rawStacktrace: StacktraceType | null;
@@ -201,16 +201,16 @@ export type ExceptionValue = {
   rawModule?: string | null;
   rawType?: string | null;
   rawValue?: string | null;
-};
+}
 
-export type ExceptionType = {
+export interface ExceptionType {
   excOmitted: any | null;
   hasSystemFrames: boolean;
   values?: ExceptionValue[];
-};
+}
 
 // This type is incomplete
-export type EventMetadata = {
+export interface EventMetadata {
   current_level?: number;
   directive?: string;
   filename?: string;
@@ -222,7 +222,7 @@ export type EventMetadata = {
   type?: string;
   uri?: string;
   value?: string;
-};
+}
 
 export enum EventOrGroupType {
   ERROR = 'error',
@@ -259,7 +259,7 @@ export enum EntryType {
   RESOURCES = 'resources',
 }
 
-export type EntryDebugMeta = {
+export interface EntryDebugMeta {
   data: {
     images?: Array<Image | null>;
     sdk_info?: {
@@ -270,49 +270,49 @@ export type EntryDebugMeta = {
     };
   };
   type: EntryType.DEBUGMETA;
-};
+}
 
-export type EntryBreadcrumbs = {
+export interface EntryBreadcrumbs {
   data: {
     values: RawCrumb[];
   };
   type: EntryType.BREADCRUMBS;
-};
+}
 
-export type EntryThreads = {
+export interface EntryThreads {
   data: {
     values?: Thread[];
   };
   type: EntryType.THREADS;
-};
+}
 
-export type EntryException = {
+export interface EntryException {
   data: ExceptionType;
   type: EntryType.EXCEPTION;
-};
+}
 
-export type EntryStacktrace = {
+export interface EntryStacktrace {
   data: StacktraceType;
   type: EntryType.STACKTRACE;
-};
+}
 
-export type EntrySpans = {
+export interface EntrySpans {
   data: RawSpanType[];
   type: EntryType.SPANS;
-};
+}
 
-export type AggregateEntrySpans = {
+export interface AggregateEntrySpans {
   data: AggregateSpanType[];
   type: EntryType.SPANS;
-};
+}
 
-type EntryMessage = {
+interface EntryMessage {
   data: {
     formatted: string;
     params?: Record<string, any> | any[];
   };
   type: EntryType.MESSAGE;
-};
+}
 
 interface EntryRequestDataDefault {
   apiTarget: null;
@@ -343,30 +343,30 @@ export interface EntryRequestDataGraphQl extends Omit<
   };
 }
 
-export type EntryRequest = {
+export interface EntryRequest {
   data: EntryRequestDataDefault | EntryRequestDataGraphQl;
   type: EntryType.REQUEST;
-};
+}
 
-type EntryTemplate = {
+interface EntryTemplate {
   data: Frame;
   type: EntryType.TEMPLATE;
-};
+}
 
-type EntryCsp = {
+interface EntryCsp {
   data: Record<string, any>;
   type: EntryType.CSP;
-};
+}
 
-type EntryGeneric = {
+interface EntryGeneric {
   data: Record<string, any>;
   type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
-};
+}
 
-type EntryResources = {
+interface EntryResources {
   data: any; // Data is unused here
   type: EntryType.RESOURCES;
-};
+}
 
 export type Entry =
   | EntryDebugMeta
@@ -501,13 +501,13 @@ interface RuntimeContext
   [RuntimeContextKey.VERSION]?: number;
 }
 
-type OSContext = {
+interface OSContext {
   build: string;
   kernel_version: string;
   name: string;
   type: string;
   version: string;
-};
+}
 
 enum OtelContextKey {
   ATTRIBUTES = 'attributes',
@@ -601,9 +601,9 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
-type MetricAlertContextType = {
+interface MetricAlertContextType {
   alert_rule_id?: string;
-};
+}
 
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
@@ -634,10 +634,15 @@ interface ResponseContext {
 }
 
 // event.contexts.flags can be overriden by the user so the type is not strict
-export type FeatureFlag = {flag?: string; result?: boolean};
-type Flags = {values?: Array<FeatureFlag | null>};
+export interface FeatureFlag {
+  flag?: string;
+  result?: boolean;
+}
+interface Flags {
+  values?: Array<FeatureFlag | null>;
+}
 
-export type EventContexts = {
+export interface EventContexts {
   'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -664,14 +669,21 @@ export type EventContexts = {
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
-};
+}
 
-export type Measurement = {value: number; type?: string; unit?: string};
+export interface Measurement {
+  value: number;
+  type?: string;
+  unit?: string;
+}
 
-export type EventTag = {key: string; value: string};
+export interface EventTag {
+  key: string;
+  value: string;
+}
 export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 
-type EventUser = {
+interface EventUser {
   data?: string | null;
   email?: string;
   geo?: {
@@ -684,22 +696,22 @@ type EventUser = {
   ip_address?: string;
   name?: string | null;
   username?: string | null;
-};
+}
 
-type PerformanceDetectorData = {
+interface PerformanceDetectorData {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
   issueType?: IssueType;
-};
+}
 
-export type EventEvidenceDisplay = {
+export interface EventEvidenceDisplay {
   important: boolean;
   name: string;
   value: string;
-};
+}
 
-export type EventOccurrence = {
+export interface EventOccurrence {
   detectionTime: string;
   eventId: string;
   /**
@@ -717,7 +729,7 @@ export type EventOccurrence = {
   resourceId: string;
   subtitle: string;
   type: number;
-};
+}
 
 type EventRelease = Pick<
   Release,
@@ -851,10 +863,10 @@ export type Event = EventError | EventTransaction | EventBase;
 
 // Response from EventIdLookupEndpoint
 // /organizations/${orgSlug}/eventids/${eventId}/
-export type EventIdResponse = {
+export interface EventIdResponse {
   event: Event;
   eventId: string;
   groupId: string;
   organizationSlug: string;
   projectSlug: string;
-};
+}

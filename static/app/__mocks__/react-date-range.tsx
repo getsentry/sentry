@@ -11,16 +11,16 @@ import moment from 'moment-timezone';
  * jest.unmock('react-date-range')
  */
 
-type DatePickerInputProps = {
+interface DatePickerInputProps {
   'data-test-id': string;
   date?: Date;
   onChange?: (date: Date) => void;
-};
+}
 
-type DateRangeInputsProps = {
+interface DateRangeInputsProps {
   onChange: (range: Range) => void;
   range: Range;
-};
+}
 
 function DatePickerInput({date, onChange, ...props}: DatePickerInputProps) {
   return (

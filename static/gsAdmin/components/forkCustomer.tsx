@@ -19,9 +19,9 @@ type Props = AdminConfirmRenderProps & {
   organization: Organization;
 };
 
-type State = {
+interface State {
   regionUrl: string;
-};
+}
 
 /**
  * Rendered as part of a openAdminConfirmModal call

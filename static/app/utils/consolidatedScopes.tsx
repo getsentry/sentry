@@ -37,11 +37,11 @@ const PROJECT_RELEASES = 'project:releases';
 const PROJECT_DISTRIBUTION = 'project:distribution';
 const ORG_INTEGRATIONS = 'org:integrations';
 
-type PermissionLevelResources = {
+interface PermissionLevelResources {
   admin: string[];
   read: string[];
   write: string[];
-};
+}
 /**
  * Numerical value of the scope where Admin is higher than Write,
  * which is higher than Read. Used to sort scopes by access.

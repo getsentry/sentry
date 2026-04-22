@@ -9,9 +9,9 @@ import * as Storybook from 'sentry/stories';
 import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Message = {
+interface Message {
   value: string;
-};
+}
 
 export default Storybook.story('Conduit Demo', story => {
   story('Streaming Demo', () => {

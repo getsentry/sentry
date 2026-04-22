@@ -7,18 +7,18 @@ import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-type Props = {
+interface Props {
   onChange: (query: string) => void;
   query: string;
   roles: OrgRole[];
-};
+}
 
-type Filters = {
+interface Filters {
   has2fa: boolean | null;
   isInvited: boolean | null;
   roles: string[];
   ssoLinked: boolean | null;
-};
+}
 
 const getBooleanValue = (list: string[]) => {
   if (!Array.isArray(list) || !list.length) {

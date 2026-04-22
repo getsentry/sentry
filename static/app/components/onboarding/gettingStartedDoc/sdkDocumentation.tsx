@@ -11,14 +11,14 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 
-type SdkDocumentationProps = {
+interface SdkDocumentationProps {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
   project: Project;
   configType?: ConfigType;
   newOrg?: boolean;
-};
+}
 
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({

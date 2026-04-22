@@ -18,13 +18,13 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-type HighlightProps = {
+interface HighlightProps {
   event: EventTransaction;
   node: TransactionNode;
   organization: Organization;
   project: Project | undefined;
   hideNodeActions?: boolean;
-};
+}
 
 export function TransactionHighlights(props: HighlightProps) {
   const location = useLocation();

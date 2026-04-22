@@ -33,12 +33,12 @@ import {BrowserOSIcons} from 'sentry/views/replays/detail/browserOSIcons';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {ReplayViewScale} from 'sentry/views/replays/detail/replayViewScale';
 
-type Props = {
+interface Props {
   isLoading: boolean;
   layout: LayoutKey;
   toggleFullscreen: () => void;
   toggleLayout: () => void;
-};
+}
 
 function FatalIconTooltip({error}: {error: Error | null}) {
   return (

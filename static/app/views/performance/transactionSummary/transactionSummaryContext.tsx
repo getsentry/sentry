@@ -5,7 +5,7 @@ import type {Project} from 'sentry/types/project';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
-export type TransactionSummaryContext = {
+export interface TransactionSummaryContext {
   eventView: EventView;
   organization: Organization;
   projectId: string;
@@ -15,7 +15,7 @@ export type TransactionSummaryContext = {
   // These are used to trigger a reload when the threshold/metric changes.
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
-};
+}
 
 export const TransactionSummaryContext = createContext<TransactionSummaryContext | null>(
   null

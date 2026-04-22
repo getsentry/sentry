@@ -12,7 +12,7 @@ import type {Project} from 'sentry/types/project';
 import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
 
-type Props = {
+interface Props {
   groupId: Group['id'];
   /**
    * From GroupingStore.onToggleCollapseFingerprints
@@ -25,7 +25,7 @@ type Props = {
   project: Project;
   fingerprints?: Fingerprint[];
   pageLinks?: string;
-};
+}
 
 export function MergedList({
   fingerprints = [],

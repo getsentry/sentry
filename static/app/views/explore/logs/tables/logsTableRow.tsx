@@ -97,7 +97,7 @@ import {
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 
-type LogsRowProps = {
+interface LogsRowProps {
   dataRow: LogTableRowItem;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
@@ -115,7 +115,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
-};
+}
 
 const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.ADD,

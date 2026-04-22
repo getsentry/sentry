@@ -21,10 +21,10 @@ export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
 export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 
-export type Dimensions = {
+export interface Dimensions {
   height: number;
   width: number;
-};
+}
 
 // Extracting WebVitalFrame types from TRawSpanFrame so we can document/support
 // the deprecated `nodeId` data field Moving forward, `nodeIds` is the accepted
@@ -40,9 +40,9 @@ type ReplayWebVitalFrameSdk = Extract<TRawSpanFrame, {op: ReplayWebVitalFrameOps
  * aware of to maintain backwards compatibility, i.e. for
  * replay recordings for SDK version < 8.22.0
  */
-type DeprecatedReplayWebVitalFrameData = {
+interface DeprecatedReplayWebVitalFrameData {
   nodeId?: number;
-};
+}
 interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
   data: ReplayWebVitalFrameSdk['data'] & DeprecatedReplayWebVitalFrameData;
 }
@@ -51,7 +51,7 @@ interface CompatibleReplayWebVitalFrame extends ReplayWebVitalFrameSdk {
 // the SDK updates to the latest version... once that happens delete this!
 // Needed for tests
 // TODO[ryan953]: Remove this once the SDK is exporting the type as part of ReplayBreadcrumbFrame
-export type RawHydrationErrorFrame = {
+export interface RawHydrationErrorFrame {
   category: 'replay.hydrate-error';
   timestamp: number;
   type: string;
@@ -59,7 +59,7 @@ export type RawHydrationErrorFrame = {
     url?: string;
   };
   message?: string;
-};
+}
 
 // These stub types should be coming from the sdk, but they're hard-coded until
 // the SDK updates to the latest version... once that happens delete this!
@@ -285,7 +285,7 @@ export function isHydrationErrorFrame(
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
-type HydratedTimestamp = {
+interface HydratedTimestamp {
   /**
    * The difference in timestamp and replay.started_at, in millieseconds
    */
@@ -298,14 +298,14 @@ type HydratedTimestamp = {
    * Alias of timestamp, in milliseconds
    */
   timestampMs: number;
-};
+}
 
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
 
-type HydratedStartEndDate = {
+interface HydratedStartEndDate {
   /**
    * The end Date of the span
    */
@@ -330,7 +330,7 @@ type HydratedStartEndDate = {
    * Included to make sorting with `HydratedBreadcrumb` easier
    */
   timestampMs: number;
-};
+}
 type HydratedSpan<Op extends string> = Overwrite<
   Extract<TRawSpanFrame, {op: Op}>,
   HydratedStartEndDate // TODO: do we need `{id:string}` added too?
@@ -342,7 +342,7 @@ export type BreadcrumbFrame = Overwrite<
   HydratedTimestamp
 >;
 
-export type FeedbackFrame = {
+export interface FeedbackFrame {
   category: 'feedback';
   data: {
     eventId: string;
@@ -357,7 +357,7 @@ export type FeedbackFrame = {
   timestamp: Date;
   timestampMs: number;
   type: string;
-};
+}
 
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
@@ -433,17 +433,17 @@ export type ResourceFrame = HydratedSpan<
 >;
 
 // OurLogs converted from log to frame for use with jump buttons etc.
-export type OurLogsPseudoFrame = {
+export interface OurLogsPseudoFrame {
   category: 'ourlogs';
   offsetMs: number;
   timestampMs: number;
   data?: undefined;
-};
+}
 
 /**
  * This is a result of a custom discover query
  */
-export type RawReplayError = {
+export interface RawReplayError {
   ['error.type']: Array<string | undefined | null>;
   id: string;
   issue: string;
@@ -454,7 +454,7 @@ export type RawReplayError = {
   // format (no "T", no timezone).
   timestamp_ms: string;
   title: string;
-};
+}
 
 export type ErrorFrame = Overwrite<
   BreadcrumbFrame,

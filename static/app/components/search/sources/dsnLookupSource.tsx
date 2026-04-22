@@ -9,10 +9,10 @@ import type {DsnLookupResponse} from './dsnLookupUtils';
 import type {ChildProps} from './types';
 import {makeResolvedTs} from './utils';
 
-type Props = {
+interface Props {
   children: (props: ChildProps) => React.ReactElement;
   query: string;
-};
+}
 
 export function DsnLookupSource({query, children}: Props) {
   const organization = useOrganization({allowNull: true});

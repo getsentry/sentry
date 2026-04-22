@@ -32,7 +32,7 @@ const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 const SIXTY_DAYS = 60 * 24 * 60 * 60 * 1000;
 
-type SpansQueryProps<T = any[]> = {
+interface SpansQueryProps<T = any[]> {
   allowAggregateConditions?: boolean;
   cursor?: string;
   enabled?: boolean;
@@ -42,7 +42,7 @@ type SpansQueryProps<T = any[]> = {
   queryExtras?: RPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
-};
+}
 
 export function useSpansQuery<T = any[]>({
   referrer = 'use-spans-query',
@@ -124,7 +124,7 @@ function useSpansQueryBase<T>({
   return response;
 }
 
-type WrappedDiscoverTimeseriesQueryProps = {
+interface WrappedDiscoverTimeseriesQueryProps {
   eventView: EventView;
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
@@ -136,7 +136,7 @@ type WrappedDiscoverTimeseriesQueryProps = {
   referrer?: string;
   samplingMode?: SamplingMode;
   spanQuery?: string[];
-};
+}
 
 function useWrappedDiscoverTimeseriesQueryBase<T>({
   eventView,
@@ -240,7 +240,7 @@ function useWrappedDiscoverTimeseriesQueryWithoutPageFilters<T>(
   return useWrappedDiscoverTimeseriesQueryBase<T>(props);
 }
 
-type WrappedDiscoverQueryProps<T> = {
+interface WrappedDiscoverQueryProps<T> {
   eventView: EventView;
   additionalQueryKey?: string[];
   allowAggregateConditions?: boolean;
@@ -259,7 +259,7 @@ type WrappedDiscoverQueryProps<T> = {
   refetchInterval?: number;
   samplingMode?: SamplingMode;
   spanQuery?: string[];
-};
+}
 
 function useWrappedDiscoverQueryBase<T>({
   eventView,
@@ -371,7 +371,10 @@ export function useWrappedDiscoverQueryWithoutPageFilters<T>(
   return useWrappedDiscoverQueryBase({...props, pageFiltersReady: true});
 }
 
-type Interval = {interval: string; group?: string};
+interface Interval {
+  interval: string;
+  group?: string;
+}
 
 function processDiscoverTimeseriesResult(
   result: TableData | undefined,

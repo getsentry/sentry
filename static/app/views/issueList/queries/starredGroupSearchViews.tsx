@@ -1,9 +1,9 @@
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 
-type FetchStarredGroupSearchViewsParameters = {
+interface FetchStarredGroupSearchViewsParameters {
   orgSlug: string;
-};
+}
 
 export function starredGroupSearchViewsApiOptions({
   orgSlug,

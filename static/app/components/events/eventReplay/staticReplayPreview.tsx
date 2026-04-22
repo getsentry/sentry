@@ -17,7 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
-type StaticReplayPreviewProps = {
+interface StaticReplayPreviewProps {
   analyticsContext: string;
   initialTimeOffsetMs: number;
   isFetching: boolean;
@@ -25,7 +25,7 @@ type StaticReplayPreviewProps = {
   replayId: string;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
-};
+}
 
 export function StaticReplayPreview({
   analyticsContext,

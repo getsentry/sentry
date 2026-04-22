@@ -16,12 +16,12 @@ import type {DashboardDetails, Widget, WidgetLayout} from './types';
 
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 
-type DashboardArtifact = {
+interface DashboardArtifact {
   title: string;
   widgets: WidgetArtifact[];
-};
+}
 
-type WidgetArtifact = {
+interface WidgetArtifact {
   display_type: Widget['displayType'];
   interval: string;
   layout: {h: number; min_h: number; w: number; x: number; y: number};
@@ -30,7 +30,7 @@ type WidgetArtifact = {
   widget_type: Widget['widgetType'];
   description?: string;
   limit?: number;
-};
+}
 
 /**
  * Converts a Seer-generated widget artifact (snake_case) to a frontend Widget (camelCase).

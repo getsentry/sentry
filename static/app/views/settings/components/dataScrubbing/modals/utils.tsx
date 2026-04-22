@@ -8,10 +8,10 @@ import {valueSuggestions} from 'sentry/views/settings/components/dataScrubbing/u
 
 const ADVANCED_DATA_SCRUBBING_LOCALSTORAGE_KEY = 'advanced-data-scrubbing';
 
-type StorageValue = {
+interface StorageValue {
   eventId: string;
   sourceSuggestions: SourceSuggestion[];
-};
+}
 
 export function useSourceGroupData() {
   const [sourceGroupData, setSourceGroupData] = useLocalStorageState<StorageValue>(

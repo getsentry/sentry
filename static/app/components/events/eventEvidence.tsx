@@ -11,12 +11,12 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type EvidenceProps = {
+interface EvidenceProps {
   event: Event;
   project: Project;
   disableCollapsePersistence?: boolean;
   group?: Group;
-};
+}
 
 /**
  * This component is rendered whenever an `event.occurrence.evidenceDisplay` is

@@ -6,7 +6,7 @@ export enum SymbolicatorStatus {
   MALFORMED = 'malformed',
 }
 
-export type EventErrorData = {
+export interface EventErrorData {
   message: React.ReactNode;
   type: string;
   data?: {
@@ -18,4 +18,4 @@ export type EventErrorData = {
     server_time?: string;
     url?: string;
   } & Record<string, any>;
-};
+}

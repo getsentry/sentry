@@ -19,7 +19,7 @@ import type {User} from './user';
 
 export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
 
-export type Permissions = {
+export interface Permissions {
   Event: PermissionValue;
   Member: PermissionValue;
   Organization: PermissionValue;
@@ -28,43 +28,43 @@ export type Permissions = {
   Team: PermissionValue;
   Alerts?: PermissionValue;
   Distribution?: PermissionValue;
-};
+}
 
 export type PermissionResource = keyof Permissions;
 
-export type ExternalActorMapping = {
+export interface ExternalActorMapping {
   externalName: string;
   id: string;
   sentryName: string;
   teamId?: string;
   userId?: string;
-};
+}
 
-export type ExternalActorSuggestion = {
+export interface ExternalActorSuggestion {
   externalName: string;
   teamId?: string;
   userId?: string;
-};
+}
 
 export type ExternalActorMappingOrSuggestion =
   | ExternalActorMapping
   | ExternalActorSuggestion;
 
-export type ExternalUser = {
+export interface ExternalUser {
   externalName: string;
   id: string;
   integrationId: string;
   memberId: string;
   provider: string;
-};
+}
 
-export type ExternalTeam = {
+export interface ExternalTeam {
   externalName: string;
   id: string;
   integrationId: string;
   provider: string;
   teamId: string;
-};
+}
 
 /**
  * Repositories, pull requests, and commits
@@ -77,7 +77,7 @@ export enum RepositoryStatus {
   DELETION_IN_PROGRESS = 'deletion_in_progress',
 }
 
-export type Repository = {
+export interface Repository {
   dateCreated: string;
   externalId: string;
   externalSlug: string;
@@ -87,7 +87,7 @@ export type Repository = {
   provider: {id: string; name: string};
   status: RepositoryStatus;
   url: string;
-};
+}
 
 /**
  * Available only when calling API with `expand=settings` query parameter
@@ -104,7 +104,7 @@ export const DEFAULT_CODE_REVIEW_TRIGGERS: CodeReviewTrigger[] = ['on_ready_for_
 /**
  * Integration Repositories from OrganizationIntegrationReposEndpoint
  */
-export type IntegrationRepository = {
+export interface IntegrationRepository {
   /**
    * ex - getsentry/sentry
    */
@@ -113,9 +113,9 @@ export type IntegrationRepository = {
   name: string;
   defaultBranch?: string | null;
   url?: string | null;
-};
+}
 
-export type Commit = {
+export interface Commit {
   dateCreated: string;
   id: string;
   message: string | null;
@@ -124,9 +124,9 @@ export type Commit = {
   pullRequest?: PullRequest | null;
   repository?: Repository;
   suspectCommitType?: string;
-};
+}
 
-export type Committer = {
+export interface Committer {
   author: User;
   commits: Commit[];
   /**
@@ -134,14 +134,14 @@ export type Committer = {
    * Used for suspect commit feedback analytics.
    */
   group_owner_id?: number;
-};
+}
 
-export type CommitAuthor = {
+export interface CommitAuthor {
   email?: string;
   name?: string;
-};
+}
 
-export type CommitFile = {
+export interface CommitFile {
   author: CommitAuthor;
   commitMessage: string;
   filename: string;
@@ -149,14 +149,14 @@ export type CommitFile = {
   orgId: number;
   repoName: string;
   type: string;
-};
+}
 
-export type PullRequest = {
+export interface PullRequest {
   externalUrl: string;
   id: string;
   repository: Repository;
   title: string;
-};
+}
 
 /**
  * Sentry Apps
@@ -168,7 +168,7 @@ export type SentryAppStatus =
   | 'publish_request_inprogress'
   | 'deletion_in_progress';
 
-export type SentryAppSchemaIssueLink = {
+export interface SentryAppSchemaIssueLink {
   create: {
     required_fields: any[];
     uri: string;
@@ -180,29 +180,29 @@ export type SentryAppSchemaIssueLink = {
     optional_fields?: any[];
   };
   type: 'issue-link';
-};
+}
 
-export type SentryAppSchemaStacktraceLink = {
+export interface SentryAppSchemaStacktraceLink {
   type: 'stacktrace-link';
   uri: string;
   url: string;
   params?: string[];
-};
+}
 
-type SentryAppSchemaAlertRuleAction = {
+interface SentryAppSchemaAlertRuleAction {
   settings: SentryAppSchemaAlertRuleActionSettings;
   title: string;
   type: 'alert-rule-action';
-};
+}
 
-type SentryAppSchemaAlertRuleActionSettings = {
+interface SentryAppSchemaAlertRuleActionSettings {
   description: string;
   // a list of FormFields
   required_fields: any[];
   type: 'alert-rule-settings';
   uri: string;
   optional_fields?: any[];
-};
+}
 
 export enum Coverage {
   NOT_APPLICABLE = -1,
@@ -243,7 +243,7 @@ export type SentryAppSchemaElement =
   | SentryAppSchemaAlertRuleAction
   | SentryAppSchemaStacktraceLink;
 
-export type SentryApp = {
+export interface SentryApp {
   author: string;
   events: WebhookEvent[];
   featureData: IntegrationFeature[];
@@ -271,17 +271,17 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
-};
+}
 
 // Minimal Sentry App representation for use with avatars
-export type AvatarSentryApp = {
+export interface AvatarSentryApp {
   name: string;
   slug: string;
   uuid: string;
   avatars?: Avatar[];
-};
+}
 
-export type SentryAppInstallation = {
+export interface SentryAppInstallation {
   app: {
     slug: string;
     uuid: string;
@@ -292,13 +292,13 @@ export type SentryAppInstallation = {
   status: 'installed' | 'pending' | 'pending_deletion';
   uuid: string;
   code?: string;
-};
+}
 
-export type SentryAppComponent<
+export interface SentryAppComponent<
   Schema extends SentryAppSchemaStacktraceLink | SentryAppSchemaElement =
     | SentryAppSchemaStacktraceLink
     | SentryAppSchemaElement,
-> = {
+> {
   schema: Schema;
   sentryApp: {
     avatars: Avatar[];
@@ -309,7 +309,7 @@ export type SentryAppComponent<
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
   error?: string | boolean;
-};
+}
 
 export type SentryAppAvatar = Avatar & {
   photoType: SentryAppAvatarPhotoType;
@@ -317,7 +317,7 @@ export type SentryAppAvatar = Avatar & {
 
 export type SentryAppAvatarPhotoType = 'icon' | 'logo';
 
-export type SentryAppWebhookRequest = {
+export interface SentryAppWebhookRequest {
   date: string;
   eventType: string;
   responseCode: number;
@@ -329,18 +329,18 @@ export type SentryAppWebhookRequest = {
     name: string;
     slug: string;
   };
-};
+}
 
 /**
  * Organization Integrations
  */
 export type IntegrationType = 'document' | 'plugin' | 'first_party' | 'sentry_app';
 
-export type IntegrationFeature = {
+export interface IntegrationFeature {
   description: string;
   featureGate: string;
   featureId: number;
-};
+}
 
 export type IntegrationInstallationStatus =
   | typeof INSTALLED
@@ -349,12 +349,12 @@ export type IntegrationInstallationStatus =
   | typeof DISABLED_STATUS
   | typeof PENDING_DELETION;
 
-type IntegrationDialog = {
+interface IntegrationDialog {
   actionText: string;
   body: string;
-};
+}
 
-export type DocIntegration = {
+export interface DocIntegration {
   author: string;
   description: string;
   isDraft: boolean;
@@ -365,9 +365,9 @@ export type DocIntegration = {
   avatar?: Avatar;
   features?: IntegrationFeature[];
   resources?: Array<{title: string; url: string}>;
-};
+}
 
-type IntegrationAspects = {
+interface IntegrationAspects {
   // This was previously passed to us
   alerts?: Array<
     unknown & {
@@ -387,7 +387,7 @@ type IntegrationAspects = {
     url: string;
   };
   removal_dialog?: IntegrationDialog;
-};
+}
 
 interface BaseIntegrationProvider {
   canAdd: boolean;
@@ -459,28 +459,28 @@ export interface IntegrationWithConfig extends Integration {
 /**
  * Integration & External issue links
  */
-export type IntegrationExternalIssue = {
+export interface IntegrationExternalIssue {
   description: string;
   displayName: string;
   id: string;
   key: string;
   title: string;
   url: string;
-};
+}
 
 export interface GroupIntegration extends Integration {
   externalIssues: IntegrationExternalIssue[];
 }
 
-export type PlatformExternalIssue = {
+export interface PlatformExternalIssue {
   displayName: string;
   id: string;
   issueId: string;
   serviceType: string;
   webUrl: string;
-};
+}
 
-export type ExternalIssue = {
+export interface ExternalIssue {
   description: string;
   displayName: string;
   id: string;
@@ -488,7 +488,7 @@ export type ExternalIssue = {
   integrationName: string;
   key: string;
   title: string;
-};
+}
 
 /**
  * The issue config form fields we get are basically the form fields we use in
@@ -503,7 +503,7 @@ export type IssueConfigField = Field & {
   url?: string;
 };
 
-export type IntegrationIssueConfig = {
+export interface IntegrationIssueConfig {
   domainName: string;
   icon: string[];
   name: string;
@@ -511,12 +511,12 @@ export type IntegrationIssueConfig = {
   status: ObjectStatus;
   createIssueConfig?: IssueConfigField[];
   linkIssueConfig?: IssueConfigField[];
-};
+}
 
 /**
  * Project Plugins
  */
-export type PluginNoProject = {
+export interface PluginNoProject {
   canDisable: boolean;
   // TODO(ts)
   contexts: any[];
@@ -547,20 +547,20 @@ export type PluginNoProject = {
   };
   resourceLinks?: Array<{title: string; url: string}>;
   version?: string;
-};
+}
 
 export type Plugin = PluginNoProject & {
   enabled: boolean;
 };
 
-export type PluginProjectItem = {
+export interface PluginProjectItem {
   configured: boolean;
   enabled: boolean;
   projectId: string;
   projectName: string;
   projectPlatform: PlatformKey;
   projectSlug: string;
-};
+}
 
 export type PluginWithProjectList = PluginNoProject & {
   projectList: PluginProjectItem[];
@@ -577,19 +577,19 @@ export type AppOrProviderOrPlugin =
  */
 export type WebhookEvent = 'issue' | 'error' | 'comment' | 'seer' | 'preprod_artifact';
 
-export type ServiceHook = {
+export interface ServiceHook {
   dateCreated: string;
   events: string[];
   id: string;
   secret: string;
   status: string;
   url: string;
-};
+}
 
 /**
  * Codeowners and repository path mappings.
  */
-export type CodeOwner = {
+export interface CodeOwner {
   codeMappingId: string;
   /**
    * Link to the CODEOWNERS file in source control
@@ -611,13 +611,13 @@ export type CodeOwner = {
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
   schema?: {rules: ParsedOwnershipRule[]; version: number};
-};
+}
 
-export type CodeownersFile = {
+export interface CodeownersFile {
   filepath: string;
   html_url: string;
   raw: string;
-};
+}
 
 type RepoName = string;
 type FileName = string;
@@ -653,10 +653,10 @@ interface RepositoryProjectPathConfigWithIntegration extends BaseRepositoryProje
   provider: BaseIntegrationProvider;
 }
 
-export type ServerlessFunction = {
+export interface ServerlessFunction {
   enabled: boolean;
   name: string;
   outOfDate: boolean;
   runtime: string;
   version: number;
-};
+}

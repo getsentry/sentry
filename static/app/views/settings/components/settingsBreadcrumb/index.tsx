@@ -21,11 +21,11 @@ const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
   Team: TeamCrumb,
 } as const;
 
-type Props = {
+interface Props {
   params: Record<string, string | undefined>;
   routes: RouteWithName[];
   className?: string;
-};
+}
 
 export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();

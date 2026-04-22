@@ -1,4 +1,4 @@
-export type ProjectCreationEventParameters = {
+export interface ProjectCreationEventParameters {
   'project_creation.back_button_clicked': Record<string, unknown>;
   'project_creation.data_removal_modal_confirm_button_clicked': {
     platform: string;
@@ -32,7 +32,7 @@ export type ProjectCreationEventParameters = {
     platform: string;
     project_id: string;
   };
-};
+}
 
 export const projectCreationEventMap: Record<
   keyof ProjectCreationEventParameters,

@@ -80,7 +80,7 @@ import type {
  *
  */
 
-type Props = {
+interface Props {
   appPublished: boolean;
   onChange: (permissions: Permissions) => void;
   permissions: Permissions;
@@ -90,11 +90,11 @@ type Props = {
    * Useful for limiting permissions available to personal tokens vs integration tokens.
    */
   displayedPermissions?: PermissionObj[];
-};
+}
 
-type State = {
+interface State {
   permissions: Permissions;
-};
+}
 
 function findResource(r: PermissionResource) {
   return SENTRY_APP_PERMISSIONS.find(permissions => permissions.resource === r);

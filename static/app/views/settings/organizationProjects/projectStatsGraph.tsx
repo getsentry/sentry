@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   project: Project;
   stats?: Project['stats'];
-};
+}
 
 export function ProjectStatsGraph({project, stats}: Props) {
   stats = stats || project.stats || [];

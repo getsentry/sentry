@@ -56,18 +56,18 @@ const SUPPORTED_RELATIVE_UNITS_LIST = Object.keys(
   SUPPORTED_RELATIVE_PERIOD_UNITS
 ) as IntervalUnits[];
 
-type Props = {
+interface Props {
   displayMode: string;
   eventView: EventView;
   onIntervalChange: (value: string | undefined) => void;
-};
+}
 
-type IntervalOption = {
+interface IntervalOption {
   default: string; // The default interval if we go out of bounds
   min: number; // The smallest allowed interval in hours, max is implicitly 1/2 of the time range
   options: string[]; // The dropdown options
   rangeStart: number; // The minimum bound of the time range in hours, options should be in order largest to smallest
-};
+}
 
 const INTERVAL_OPTIONS: IntervalOption[] = [
   {

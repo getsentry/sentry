@@ -15,9 +15,9 @@ const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, option
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
-type OptionalOrg = {
+interface OptionalOrg {
   organization: Organization | string | null;
-};
+}
 type Options = Parameters<Hooks['analytics:raw-track-event']>[1];
 
 /**

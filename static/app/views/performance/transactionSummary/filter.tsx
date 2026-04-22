@@ -44,11 +44,11 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.UI,
 ];
 
-type Props = {
+interface Props {
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter | undefined) => void;
   organization: OrganizationSummary;
-};
+}
 
 export function Filter(props: Props) {
   const theme = useTheme();

@@ -11,14 +11,14 @@ import type {
   ReplayListQueryReferrer,
 } from 'sentry/views/replays/types';
 
-type Options = {
+interface Options {
   enabled: boolean;
   eventView: EventView;
   location: Location<ReplayListLocationQuery>;
   organization: Organization;
   perPage?: number;
   queryReferrer?: ReplayListQueryReferrer;
-};
+}
 
 type State = Awaited<ReturnType<typeof fetchReplayList>> & {isFetching: boolean};
 

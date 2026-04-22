@@ -27,10 +27,10 @@ import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 const REFERRER = 'eap-sidebar-charts';
 
-type Props = {
+interface Props {
   hasWebVitals: boolean;
   transactionName: string;
-};
+}
 
 export function EAPSidebarCharts({transactionName, hasWebVitals}: Props) {
   return (
@@ -113,9 +113,9 @@ function WebVitalsWidget({transactionName}: {transactionName: string}) {
   );
 }
 
-type FailureRateWidgetProps = {
+interface FailureRateWidgetProps {
   transactionName: string;
-};
+}
 
 function FailureRateWidget({transactionName}: FailureRateWidgetProps) {
   const organization = useOrganization();

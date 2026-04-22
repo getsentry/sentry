@@ -40,10 +40,10 @@ interface SubscriptionNotificationsProps {
   subscription: Subscription;
 }
 
-type ThresholdsType = {
+interface ThresholdsType {
   perProductOndemandPercent: number[];
   reservedPercent: number[];
-};
+}
 
 const OPTIONS = [
   {label: '90%', value: 90},
@@ -181,12 +181,12 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   );
 }
 
-type GenericConsumptionGroupProps = {
+interface GenericConsumptionGroupProps {
   help: string;
   label: string;
   thresholds: number[];
   updateThresholds: (newThresholds: number[]) => void;
-};
+}
 
 function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
   const {thresholds, updateThresholds, label, help} = props;

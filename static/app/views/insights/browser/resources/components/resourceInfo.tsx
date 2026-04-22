@@ -14,7 +14,7 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 
-type Props = {
+interface Props {
   avgContentLength: number;
   avgDecodedContentLength: number;
   avgDuration: number;
@@ -22,7 +22,7 @@ type Props = {
   isLoading: boolean;
   throughput: number;
   timeSpentTotal: number;
-};
+}
 
 export function ResourceInfo(props: Props) {
   const {

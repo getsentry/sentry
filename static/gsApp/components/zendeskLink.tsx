@@ -8,7 +8,7 @@ import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface Props {
   organization: Organization;
   Component?: typeof ExternalLink;
   address?: string;
@@ -16,7 +16,7 @@ type Props = {
   className?: string;
   source?: string;
   subject?: string;
-};
+}
 
 function ZendeskLink({
   organization,

@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Data = {
+interface Data {
   extensions: Array<[key: string, value: string]>;
   modules: Array<[key: string, value: string]>;
-};
+}
 
 export default function AdminPackages() {
   const {data, isPending, isError} = useApiQuery<Data>(

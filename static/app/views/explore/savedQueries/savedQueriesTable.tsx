@@ -38,7 +38,7 @@ import {
   getSavedQueryTraceItemUrl,
 } from 'sentry/views/explore/utils';
 
-type Props = {
+interface Props {
   title: string;
   cursorKey?: string;
   hideIfEmpty?: boolean;
@@ -46,7 +46,7 @@ type Props = {
   perPage?: number;
   searchQuery?: string;
   sort?: SortOption;
-};
+}
 
 export function SavedQueriesTable({
   mode = 'all',

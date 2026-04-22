@@ -24,18 +24,18 @@ import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition as defaultGetFieldDefinition} from 'sentry/utils/fields';
 
-export type FormattedQueryProps = {
+export interface FormattedQueryProps {
   query: string;
   className?: string;
   fieldDefinitionGetter?: FieldDefinitionGetter;
   filterKeyAliases?: TagCollection;
   filterKeys?: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
-};
+}
 
-type TokenProps = {
+interface TokenProps {
   token: ParseResultToken;
-};
+}
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
 

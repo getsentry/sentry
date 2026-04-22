@@ -26,12 +26,12 @@ import {
 } from 'sentry/views/dashboards/types';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 
-export type LinkToDashboardModalProps = {
+export interface LinkToDashboardModalProps {
   currentLinkedDashboard?: LinkedDashboard;
   onLink?: (dashboardId: string) => void;
   // TODO: perhpas make this an enum
   source?: string;
-};
+}
 
 type Props = ModalRenderProps & LinkToDashboardModalProps;
 

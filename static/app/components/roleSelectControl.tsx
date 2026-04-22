@@ -7,12 +7,12 @@ import {Select} from '@sentry/scraps/select';
 import type {BaseRole} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type OptionType = {
+interface OptionType {
   details: React.ReactNode;
   disabled: boolean;
   label: string;
   value: string;
-};
+}
 
 type Props = DistributedOmit<ControlProps<OptionType>, 'value'> & {
   disableUnallowed: boolean;

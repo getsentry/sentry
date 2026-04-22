@@ -7,16 +7,16 @@ export enum ErrorType {
   ATTRIBUTE_INVALID = 'attribute-invalid',
 }
 
-type Error = {
+interface Error {
   message: string;
   type: ErrorType;
-};
+}
 
 type ResponseFields = 'relayPiiConfig';
 
-type ResponseError = {
+interface ResponseError {
   responseJSON?: Record<ResponseFields, string[]>;
-};
+}
 
 export function handleError(error: ResponseError): Error {
   const errorMessage = error.responseJSON?.relayPiiConfig[0];

@@ -14,17 +14,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * collection key and display label so the palette can render the correct
  * subtree and placeholder text without holding on to the full action object.
  */
-export type CMDKNavStack = {
+export interface CMDKNavStack {
   previous: CMDKNavStack | null;
   value: {key: string; label: string; query: string; prompt?: string};
-};
+}
 
-export type CommandPaletteState = {
+export interface CommandPaletteState {
   action: CMDKNavStack | null;
   input: React.RefObject<HTMLInputElement | null>;
   open: boolean;
   query: string;
-};
+}
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 

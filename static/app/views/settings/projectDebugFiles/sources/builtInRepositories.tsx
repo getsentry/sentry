@@ -15,13 +15,13 @@ import type {Project} from 'sentry/types/project';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
-type Props = {
+interface Props {
   api: Client;
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   organization: Organization;
   project: Project;
-};
+}
 
 export function BuiltInRepositories({
   api,

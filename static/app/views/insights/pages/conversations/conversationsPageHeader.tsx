@@ -11,13 +11,13 @@ import {
   type Props as HeaderProps,
 } from 'sentry/views/insights/pages/domainViewHeader';
 
-type Props = {
+interface Props {
   domainBaseUrl: string;
   breadcrumbs?: HeaderProps['additionalBreadCrumbs'];
   headerActions?: HeaderProps['additonalHeaderActions'];
   headerTitle?: HeaderProps['headerTitle'];
   hideDefaultTabs?: HeaderProps['hideDefaultTabs'];
-};
+}
 
 export function ConversationsPageHeader({
   headerActions,

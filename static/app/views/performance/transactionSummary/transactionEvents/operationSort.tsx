@@ -16,12 +16,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   tableMeta: TableData['meta'];
   title: React.ComponentType<TitleProps>;
-};
+}
 
 export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
   const navigate = useNavigate();

@@ -9,7 +9,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 
-type Props = {
+interface Props {
   renderGraph: () => React.ReactNode;
   to: Record<PropertyKey, unknown>;
   createdBy?: User | undefined;
@@ -19,7 +19,7 @@ type Props = {
   renderContextMenu?: () => React.ReactNode;
   subtitle?: string;
   title?: string;
-};
+}
 
 export class QueryCard extends PureComponent<Props> {
   handleClick = () => {

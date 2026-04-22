@@ -10,7 +10,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   dateUpdated: string | null;
   raw: string;
   type: 'codeowners' | 'issueowners';
@@ -19,7 +19,7 @@ type Props = {
   placeholder?: string;
   provider?: string;
   repoName?: string;
-};
+}
 
 export function RulesPanel({
   raw,

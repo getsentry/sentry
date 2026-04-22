@@ -25,7 +25,7 @@ type Field = {
 type ActionType = 'link' | 'create' | 'unlink';
 type FieldStateValue = (typeof FormState)[keyof typeof FormState];
 
-type Props = {
+interface Props {
   actionType: ActionType;
   group: Group;
   organization: Organization;
@@ -39,7 +39,7 @@ type Props = {
   project: Project;
   onError?: (data: any) => void;
   onSuccess?: (data: any) => void;
-};
+}
 
 type State = {
   createFormData: Record<string, any>;

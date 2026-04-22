@@ -8,10 +8,10 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AlertStore} from 'sentry/stores/alertStore';
 
-type Props = {
+interface Props {
   alert: ReturnType<(typeof AlertStore)['getState']>[number];
   system: boolean;
-};
+}
 
 export function AlertMessage({alert, system}: Props) {
   const handleClose = () => AlertStore.closeAlert(alert);

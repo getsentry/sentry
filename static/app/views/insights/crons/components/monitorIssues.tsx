@@ -24,10 +24,10 @@ const ISSUE_TYPES = [
   {value: IssuesType.ALL, label: t('All Issues')},
 ];
 
-type Props = {
+interface Props {
   monitor: Monitor;
   monitorEnvs: MonitorEnvironment[];
-};
+}
 
 function MonitorIssuesEmptyMessage() {
   return (

@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 import {SliderAndInputWrapper} from './sliderAndInputWrapper';
 import {SliderLabel} from './sliderLabel';
 
-type SliderProps = {
+interface SliderProps {
   name: string;
 
   /**
@@ -81,7 +81,7 @@ type SliderProps = {
    */
   showLabel?: boolean;
   step?: number;
-};
+}
 
 export function RangeSlider({
   id,

@@ -50,10 +50,10 @@ const PLATFORM_DOCS: Array<{
   },
 ];
 
-type Props = {
+interface Props {
   platform: PlatformKey | null;
   onDocsClick?: (linkType: 'product' | SupportedPlatform) => void;
-};
+}
 
 export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
   const theme = useTheme();

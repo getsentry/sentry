@@ -9,14 +9,14 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 
-type ChildProps = {
+interface ChildProps {
   startTrial: () => Promise<void>;
   subscription: Subscription;
   trialFailed: boolean;
   trialStarted: boolean;
   trialStarting: boolean;
-};
-type Props = {
+}
+interface Props {
   children: (args: ChildProps) => React.ReactNode;
   organization: Organization;
   source: string;
@@ -25,7 +25,7 @@ type Props = {
   // Can't use default prop typings because of HoC wrappers.
   onTrialStarted?: () => void;
   requestData?: Record<string, unknown>;
-};
+}
 
 function TrialStarter(props: Props) {
   const api = useApi({persistInFlight: true});

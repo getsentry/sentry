@@ -65,11 +65,11 @@ function MergeAccounts() {
         : [...prevSelectedUserIds, newUserId]
     );
 
-  type SubmitVariables = {
+  interface SubmitVariables {
     idsToDelete: string[];
     idsToMerge: string[];
     verificationCode: string;
-  };
+  }
   const {isPending: isSubmitPending, mutate: submit} = useMutation<
     UserWithOrganizations[],
     RequestError,
@@ -217,11 +217,11 @@ function makeMergeAccountsEndpointKey(): ApiQueryKey {
   return [ENDPOINT];
 }
 
-type AccountSelectionProps = {
+interface AccountSelectionProps {
   onSelect: (newUserId: string) => void;
   selectedUsers: string[];
   users: UserWithOrganizations[];
-};
+}
 
 function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProps) {
   const signedInUser = useUser();
@@ -253,11 +253,11 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
   );
 }
 
-type UserProps = {
+interface UserProps {
   onSelect: (newUserId: string) => void;
   selectedUsers: string[];
   users: UserWithOrganizations[];
-};
+}
 
 function Users({users, onSelect, selectedUsers}: UserProps) {
   const isPrimaryUser = useContext(IsPrimaryUserContext);
@@ -304,11 +304,11 @@ function Users({users, onSelect, selectedUsers}: UserProps) {
   );
 }
 
-type UserRowProps = {
+interface UserRowProps {
   onSelect: (newUserId: string) => void;
   selectedUsers: string[];
   user: UserWithOrganizations;
-};
+}
 
 function UserRow({user, onSelect, selectedUsers}: UserRowProps) {
   const isPrimaryUser = useContext(IsPrimaryUserContext);

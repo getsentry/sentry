@@ -1,15 +1,15 @@
 import type {Organization} from 'sentry/types/organization';
 
-type TempestEventBase = {
+interface TempestEventBase {
   organization: Organization;
   project_slug: string;
-};
+}
 
 type TempestEventBaseWithOrigin = TempestEventBase & {
   origin: 'onboarding' | 'project-creation' | 'project-settings';
 };
 
-export type TempestEventParameters = {
+export interface TempestEventParameters {
   'tempest.credentials.add_modal_opened': TempestEventBaseWithOrigin;
   'tempest.credentials.added': TempestEventBaseWithOrigin;
   'tempest.credentials.error_displayed': TempestEventBase & {
@@ -18,7 +18,7 @@ export type TempestEventParameters = {
   'tempest.credentials.removed': TempestEventBase;
   'tempest.sdk_access_modal_opened': TempestEventBaseWithOrigin;
   'tempest.sdk_access_modal_submitted': TempestEventBaseWithOrigin;
-};
+}
 
 type TempestEventKey = keyof TempestEventParameters;
 

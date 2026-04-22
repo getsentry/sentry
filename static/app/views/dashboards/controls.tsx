@@ -37,7 +37,7 @@ import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
-type Props = {
+interface Props {
   dashboard: DashboardDetails;
   dashboardState: DashboardState;
   dashboards: DashboardListItem[];
@@ -51,7 +51,7 @@ type Props = {
   hasUnsavedFilters?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
-};
+}
 
 export function Controls({
   dashboardState,

@@ -25,13 +25,13 @@ export interface ViewNode {
   rect: Rect;
 }
 
-type WireframeProps = {
+interface WireframeProps {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
   platform?: string;
   positioning?: 'absolute' | 'relative';
   selectedNode?: ViewHierarchyWindow;
-};
+}
 
 function Wireframe({
   hierarchy,

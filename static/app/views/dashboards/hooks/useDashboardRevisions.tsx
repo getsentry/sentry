@@ -3,13 +3,13 @@ import {useQuery} from '@tanstack/react-query';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type DashboardRevision = {
+export interface DashboardRevision {
   createdBy: {email: string; id: string; name: string} | null;
   dateCreated: string;
   id: string;
   source: 'edit' | 'pre-restore';
   title: string;
-};
+}
 
 const REVISIONS_PATH =
   '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/' as const;

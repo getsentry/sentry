@@ -16,7 +16,7 @@ import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-type NotificationActionManagerProps = {
+interface NotificationActionManagerProps {
   /**
    * The list of existing notification actions
    */
@@ -39,7 +39,7 @@ type NotificationActionManagerProps = {
    * Updates the notification alert count for this project
    */
   updateAlertCount?: (projectId: number, alertCount: number) => void;
-};
+}
 
 export function NotificationActionManager({
   actions,

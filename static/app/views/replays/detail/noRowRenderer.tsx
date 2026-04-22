@@ -6,11 +6,11 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {StyledEmptyStateWarning as EmptyState} from 'sentry/views/replays/detail/emptyState';
 
-type Props = {
+interface Props {
   children: ReactNode;
   clearSearchTerm: () => void;
   unfilteredItems: unknown[];
-};
+}
 
 export function NoRowRenderer({children, unfilteredItems, clearSearchTerm}: Props) {
   return unfilteredItems.length === 0 ? (

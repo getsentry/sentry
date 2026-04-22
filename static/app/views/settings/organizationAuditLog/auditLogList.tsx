@@ -248,7 +248,7 @@ function AuditNote({
   return <Note>{entry.note}</Note>;
 }
 
-type Props = {
+interface Props {
   entries: AuditLog[] | null;
   eventType: string | undefined;
   eventTypes: string[] | null;
@@ -261,7 +261,7 @@ type Props = {
   end?: DateString;
   start?: DateString;
   utc?: boolean;
-};
+}
 
 export function AuditLogList({
   entries,

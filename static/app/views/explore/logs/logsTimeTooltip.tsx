@@ -13,13 +13,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
-type Props = {
+interface Props {
   attributes: Record<string, string | number | boolean>;
   children: React.ReactNode;
   timestamp: string | number;
   relativeTimeToReplay?: number;
   shouldRender?: boolean;
-};
+}
 
 function TimestampTooltipBody({
   timestamp,

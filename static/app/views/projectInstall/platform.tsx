@@ -31,10 +31,10 @@ const ProductUnavailableCTAHook = HookOrDefault({
   hookName: 'component:product-unavailable-cta',
 });
 
-type Props = {
+interface Props {
   platform: PlatformIntegration | undefined;
   project: Project;
-};
+}
 
 export function ProjectInstallPlatform({project, platform}: Props) {
   const organization = useOrganization();

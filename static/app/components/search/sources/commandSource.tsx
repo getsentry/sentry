@@ -18,13 +18,13 @@ import {useUser} from 'sentry/utils/useUser';
 import type {ChildProps, ResultItem} from './types';
 import {makeResolvedTs} from './utils';
 
-type Action = {
+interface Action {
   action: () => void;
   description: string;
   requiresSuperuser: boolean;
   title: string;
   isHidden?: () => boolean;
-};
+}
 
 const ACTIONS: Action[] = [
   {
@@ -146,7 +146,7 @@ function createCopyDSNAction(params: {orgId?: string; projectId?: string}) {
   };
 }
 
-type Props = {
+interface Props {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
   /**
@@ -157,7 +157,7 @@ type Props = {
    * fuse.js options
    */
   searchOptions?: Fuse.IFuseOptions<Action>;
-};
+}
 
 /**
  * This source is a hardcoded list of action creators and/or routes maybe

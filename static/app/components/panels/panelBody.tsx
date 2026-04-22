@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {textStyles} from 'sentry/styles/text';
 
-type BaseProps = {
+interface BaseProps {
   display?: 'contents';
   withPadding?: boolean;
-};
+}
 
 export const PanelBody = styled('div')<BaseProps>`
   ${p => p.display && `display: ${p.display};`}

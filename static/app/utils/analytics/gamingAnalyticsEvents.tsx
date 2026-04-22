@@ -1,9 +1,9 @@
-type GamingPlatformBase = {
+interface GamingPlatformBase {
   origin: 'onboarding' | 'project-creation' | 'project-settings' | 'org-settings';
   platform?: string;
-};
+}
 
-export type GamingAnalyticsEventParameters = {
+export interface GamingAnalyticsEventParameters {
   'gaming.partner_request_access_guidance_modal_button_got_it_clicked': GamingPlatformBase;
   'gaming.partner_request_access_guidance_modal_opened': GamingPlatformBase;
   'gaming.private_sdk_access_modal_opened': GamingPlatformBase & {
@@ -13,7 +13,7 @@ export type GamingAnalyticsEventParameters = {
     platforms: string[];
     project_id?: string;
   };
-};
+}
 
 export const gamingEventMap: Record<keyof GamingAnalyticsEventParameters, string> = {
   'gaming.partner_request_access_guidance_modal_opened':

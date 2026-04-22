@@ -55,7 +55,7 @@ interface BaseRouteObject {
 /**
  * Enforces that these props are not expected by the component.
  */
-type NoRouteProps = {
+interface NoRouteProps {
   [key: string | number | symbol]: any;
   children?: never;
   location?: never;
@@ -64,7 +64,7 @@ type NoRouteProps = {
   routeParams?: never;
   router?: never;
   routes?: never;
-};
+}
 
 interface RouteObject extends BaseRouteObject {
   /**

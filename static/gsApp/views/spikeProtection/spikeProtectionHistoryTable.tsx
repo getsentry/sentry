@@ -45,7 +45,7 @@ import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 
 import {isSpikeProtectionEnabled} from './spikeProtectionProjectToggle';
 
-type Props = {
+interface Props {
   dataCategoryInfo: DataCategoryInfo;
   onEnableSpikeProtection: () => void;
   organization: Organization;
@@ -53,7 +53,7 @@ type Props = {
   spikes: SpikeDetails[];
   subscription: Subscription;
   isLoading?: boolean;
-};
+}
 
 function EnableSpikeProtectionButton({
   onEnableSpikeProtection,

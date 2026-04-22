@@ -23,13 +23,13 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {isReleaseArchived} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-type Props = {
+interface Props {
   projectSlug: string;
   refetchData: () => void;
   release: Release;
   releaseMeta: ReleaseMeta;
   showFeedbackButton?: boolean;
-};
+}
 
 export const releaseFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),

@@ -6,10 +6,10 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import DeprecatedLine from './frame/deprecatedLine';
 
-type Props = {
+interface Props {
   data: Frame;
   event: Event;
-};
+}
 
 export function Template({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.TEMPLATE);

@@ -24,10 +24,10 @@ export function groupingComponentFilter(
   return true;
 }
 
-type FrameGroup = {
+interface FrameGroup {
   data: EventGroupComponent[];
   key: string;
-};
+}
 
 export function getFrameGroups(
   component: EventGroupComponent,

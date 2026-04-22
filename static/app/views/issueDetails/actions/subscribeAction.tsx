@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {getSubscriptionReason} from 'sentry/views/issueDetails/utils';
 
-type Props = {
+interface Props {
   group: Group;
   onClick: (event: React.MouseEvent) => void;
   className?: string;
@@ -16,7 +16,7 @@ type Props = {
   disabled?: boolean;
   icon?: React.ReactNode;
   size?: 'xs' | 'sm';
-};
+}
 
 export function SubscribeAction({
   className,

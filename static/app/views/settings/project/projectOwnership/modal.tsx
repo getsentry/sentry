@@ -20,22 +20,22 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
 
-type IssueOwnershipResponse = {
+interface IssueOwnershipResponse {
   autoAssignment: boolean;
   dateCreated: string;
   fallthrough: boolean;
   isActive: boolean;
   lastUpdated: string;
   raw: string;
-};
+}
 
-type Props = {
+interface Props {
   issueId: string;
   onCancel: () => void;
   organization: Organization;
   project: Project;
   eventData?: Event;
-};
+}
 
 function getFrameSuggestions(eventData?: Event) {
   // pull frame data out of exception or the stacktrace

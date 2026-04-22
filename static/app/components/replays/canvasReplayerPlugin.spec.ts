@@ -43,11 +43,11 @@ jest.mock('lodash/debounce', () =>
   })
 );
 
-type EventWithTime = {
+interface EventWithTime {
   data: any;
   timestamp: number;
   type: number;
-};
+}
 
 jest.useFakeTimers();
 

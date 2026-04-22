@@ -13,13 +13,16 @@ import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
-type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
+interface GraphQlBodyProps {
+  data: EntryRequestDataGraphQl['data'];
+  event: Event;
+}
 
-type GraphQlError = {
+interface GraphQlError {
   locations?: Array<{column: number; line: number}>;
   message?: string;
   path?: string[];
-};
+}
 
 function getGraphQlErrorsFromResponseContext(event: Event): GraphQlError[] {
   const responseData = event.contexts?.response?.data;

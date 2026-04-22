@@ -17,22 +17,22 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SeerNightShiftRunIssue = {
+interface SeerNightShiftRunIssue {
   action: string;
   dateAdded: string;
   groupId: string;
   id: string;
   seerRunId: string | null;
-};
+}
 
-type SeerNightShiftRun = {
+interface SeerNightShiftRun {
   dateAdded: string;
   errorMessage: string | null;
   extras: Record<string, unknown>;
   id: string;
   issues: SeerNightShiftRunIssue[];
   triageStrategy: string;
-};
+}
 
 function SeerWorkflows() {
   const organization = useOrganization();

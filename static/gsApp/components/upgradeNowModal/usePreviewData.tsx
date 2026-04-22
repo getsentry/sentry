@@ -32,12 +32,12 @@ type Result =
       reservations: undefined;
     };
 
-type Props = {
+interface Props {
   children: (props: Result) => ReactElement;
   organization: Organization;
   subscription: Subscription;
   enabled?: boolean;
-};
+}
 
 export function usePreviewData({
   organization,

@@ -4,17 +4,17 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type FeedbackCategory = {
+interface FeedbackCategory {
   associatedLabels: string[];
   feedbackCount: number;
   primaryLabel: string;
-};
+}
 
-type FeedbackCategoriesResponse = {
+interface FeedbackCategoriesResponse {
   categories: FeedbackCategory[] | null;
   numFeedbacksContext: number;
   success: boolean;
-};
+}
 
 export function useFeedbackCategories(): {
   categories: FeedbackCategory[] | null;

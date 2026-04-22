@@ -33,7 +33,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-export type Props = {
+export interface Props {
   domainBaseUrl: string;
   domainTitle: string;
   modules: ModuleName[];
@@ -46,7 +46,7 @@ export type Props = {
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
   unified?: boolean;
-};
+}
 
 export function DomainViewHeader({
   modules,

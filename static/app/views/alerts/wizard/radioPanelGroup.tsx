@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
-type RadioPanelGroupProps<C extends string> = {
+interface RadioPanelGroupProps<C extends string> {
   /**
    * An array of [id, name]
    */
@@ -16,7 +16,7 @@ type RadioPanelGroupProps<C extends string> = {
   label: string;
   onChange: (id: C, e: React.FormEvent<HTMLInputElement>) => void;
   value: string | null;
-};
+}
 
 type Props<C extends string> = RadioPanelGroupProps<C> &
   Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioPanelGroupProps<C>>;

@@ -38,11 +38,11 @@ function getView({
   }
 }
 
-type Props = {
+interface Props {
   data: Record<string, any> | null;
   type: string;
   meta?: Record<string, any>;
-};
+}
 
 type View = 'report' | 'raw';
 

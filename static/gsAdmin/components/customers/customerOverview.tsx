@@ -54,10 +54,10 @@ import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
-type SubscriptionSummaryProps = {
+interface SubscriptionSummaryProps {
   customer: Subscription;
   onAction: (data: any) => void;
-};
+}
 
 function SoftCapTypeDetail({
   categories,
@@ -165,9 +165,9 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   );
 }
 
-type ReservedDataProps = {
+interface ReservedDataProps {
   customer: Subscription;
-};
+}
 
 function ReservedData({customer}: ReservedDataProps) {
   const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
@@ -300,9 +300,9 @@ function ReservedBudgetData({
   );
 }
 
-type OnDemandSummaryProps = {
+interface OnDemandSummaryProps {
   customer: Subscription;
-};
+}
 
 function OnDemandSummary({customer}: OnDemandSummaryProps) {
   const onDemandPeriod = `${moment(customer.onDemandPeriodStart).format('ll')} › ${moment(
@@ -386,11 +386,11 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
   );
 }
 
-type Props = {
+interface Props {
   customer: Subscription;
   onAction: (data: any) => void;
   organization: Organization;
-};
+}
 
 function isWithinAcceptedMargin(
   effectiveSampleRate: number,
@@ -939,10 +939,10 @@ const StyledTag = styled(Tag)`
   width: fit-content;
 `;
 
-type ThresholdLabelProps = {
+interface ThresholdLabelProps {
   children: React.ReactNode;
   positive: boolean;
-};
+}
 
 function ThresholdLabel({positive, children}: ThresholdLabelProps) {
   return (
