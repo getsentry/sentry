@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -21,8 +22,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -48,27 +48,17 @@ function PaymentHistory() {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {
-    data: payments,
-    isPending,
-    isError,
-    getResponseHeader,
-  } = useApiQuery<InvoiceBase[]>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/invoices/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {cursor: location.query.cursor},
-      },
-    ],
-    {
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<InvoiceBase[]>()('/customers/$organizationIdOrSlug/invoices/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {cursor: location.query.cursor},
       staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   const hasBillingPerms = organization.access?.includes('org:billing');
-  const paymentsPageLinks = getResponseHeader?.('Link');
+  const paymentsPageLinks = data?.headers.Link;
 
   return (
     <SubscriptionPageContainer background="primary">
@@ -80,7 +70,7 @@ function PaymentHistory() {
         <LoadingError />
       ) : hasBillingPerms ? (
         <ReceiptGrid
-          payments={payments}
+          payments={data.json}
           organization={organization}
           paymentsPageLinks={paymentsPageLinks}
         />

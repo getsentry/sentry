@@ -113,7 +113,7 @@ const SimpleTableGrid = styled(StyledSimpleTable)<{
 }>`
   grid-template-columns: ${p =>
     p.embedded
-      ? 'min-content min-content min-content minmax(0, 1fr) min-content min-content'
-      : 'min-content min-content minmax(0, 1fr) min-content min-content'};
+      ? `${p.theme.space['3xl']} min-content min-content minmax(0, 1fr) min-content min-content`
+      : `${p.theme.space['3xl']} min-content minmax(0, 1fr) min-content min-content`};
   grid-column: 1 / -1;
 `;

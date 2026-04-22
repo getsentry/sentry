@@ -192,7 +192,7 @@ function MetricsEquationVisualizeContent({
   }, [hasEquationRow]);
 
   return (
-    <Stack gap="md">
+    <Stack gap="md" flex="1">
       {functionQueries.length > 0 && <FunctionColumnHeaders />}
       {functionQueries.map(metricQuery => {
         const isReferenced = referencedLabels.has(metricQuery.label ?? '');
@@ -392,13 +392,15 @@ function MetricToolbar({
       />
       {isVisualizeFunction(visualize) ? (
         <Fragment>
-          <MetricSelector
-            traceMetric={traceMetric}
-            onChange={setTraceMetric}
-            projectIds={projectIds}
-            environments={environments}
-          />
-          <AggregateDropdown traceMetric={traceMetric} />
+          <Flex minWidth={0}>
+            <MetricSelector
+              traceMetric={traceMetric}
+              onChange={setTraceMetric}
+              projectIds={projectIds}
+              environments={environments}
+            />
+          </Flex>
+          <AggregateDropdown traceMetric={traceMetric} singleSelect />
           <Filter traceMetric={traceMetric} />
           <DeleteMetricButton disabled={!canDelete} />
         </Fragment>

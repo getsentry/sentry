@@ -36,7 +36,7 @@ export function ExplorerDrawerContent({
   const user = useUser();
 
   const [inputValue, setInputValue] = useState('');
-  const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1);
+  const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -44,14 +44,11 @@ export function ExplorerDrawerContent({
   const blockEnterHandlers = useRef<
     Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
   >(new Map());
-  const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
-  const allowHoverFocusChange = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    hoveredBlockIndex.current = -1;
-    setFocusedBlockIndex(-1);
+    setHoveredBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
 
@@ -62,7 +59,6 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -183,7 +179,7 @@ export function ExplorerDrawerContent({
   });
 
   // Menu component
-  const {menu, isMenuOpen, closeMenu, openPRWidget} = useExplorerMenu({
+  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
     clearInput: () => setInputValue(''),
     inputValue,
     focusInput,
@@ -213,10 +209,9 @@ export function ExplorerDrawerContent({
     sendMessage(inputValue.trim());
     setInputValue('');
     userScrolledUpRef.current = false;
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
   }, [readOnly, inputValue, isPolling, sendMessage]);
+
+  const canInterrupt = sessionData?.status === 'processing';
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -227,19 +222,20 @@ export function ExplorerDrawerContent({
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
+      } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
+        e.preventDefault();
+        interruptRun();
       }
     },
-    [readOnly, handleSend]
+    [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    if (focusedBlockIndex !== -1) {
-      setFocusedBlockIndex(-1);
+    if (hoveredBlockIndex !== -1) {
+      setHoveredBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
 
   const handleInputClick = useCallback(() => {
@@ -293,69 +289,9 @@ export function ExplorerDrawerContent({
       };
     }
     return undefined;
-  }, [focusedBlockIndex]);
-
-  // Reset scroll state when navigating to input (which is at the bottom)
-  useEffect(() => {
-    if (focusedBlockIndex === -1 && scrollContainerRef.current) {
-      // Small delay to let scrollIntoView complete
-      setTimeout(() => {
-        const container = scrollContainerRef.current;
-        if (container) {
-          const {scrollTop, scrollHeight, clientHeight} = container;
-          const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
-          if (isAtBottom) {
-            userScrolledUpRef.current = false;
-          }
-        }
-      }, 100);
-    }
-  }, [focusedBlockIndex]);
+  }, []);
 
   // - Keyboard listeners -----------------------------------------------------
-
-  // Keyboard event listeners for when the menu is closed.
-  // Menu keyboard listeners are in the menu component.
-  useEffect(() => {
-    if (isMenuOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
-      // If input is enabled and not focused
-      if (
-        focusedBlockIndex !== -1 &&
-        !readOnly &&
-        !isFileApprovalPending &&
-        !isQuestionPending
-      ) {
-        if (isPrintableChar) {
-          // Focus input when user starts typing
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          setInputValue(prev => prev + e.key);
-        } else if (e.key === 'Tab') {
-          // Focus input when user presses tab
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-        }
-      }
-    };
-
-    // Re-enable hover focus changes when mouse actually moves
-    const handleMouseMove = () => {
-      allowHoverFocusChange.current = true;
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [isMenuOpen, readOnly, focusedBlockIndex, isFileApprovalPending, isQuestionPending]);
 
   // Update block refs array when blocks change
   useEffect(() => {
@@ -366,14 +302,12 @@ export function ExplorerDrawerContent({
   useBlockNavigation({
     isOpen: true, // Drawer content is always visible when rendered
     isMinimized: false,
-    focusedBlockIndex,
+    focusedBlockIndex: hoveredBlockIndex,
     blocks,
     blockRefs,
     textareaRef,
-    setFocusedBlockIndex,
     isFileApprovalPending,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
@@ -426,42 +360,22 @@ export function ExplorerDrawerContent({
                 }}
                 block={block}
                 blockIndex={index}
+                isHovered={hoveredBlockIndex === index}
                 runId={runId ?? undefined}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
-                isLast={
-                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
-                }
-                isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
-                onMouseEnter={() => {
-                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
-                  if (
-                    isMenuOpen ||
-                    hoveredBlockIndex.current === index ||
-                    !allowHoverFocusChange.current
-                  ) {
-                    return;
-                  }
-
-                  hoveredBlockIndex.current = index;
-                  setFocusedBlockIndex(index);
-                  textareaRef.current?.blur();
-                }}
-                onMouseLeave={() => {
-                  if (hoveredBlockIndex.current === index) {
-                    hoveredBlockIndex.current = -1;
-                  }
-                }}
-                onDelete={() => {
-                  deleteFromIndex(index);
-                  focusInput();
-                }}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
+                }}
+                onMouseEnter={() => {
+                  setHoveredBlockIndex(index);
+                }}
+                onMouseLeave={() => {
+                  setHoveredBlockIndex(-1);
                 }}
               />
             ))}
@@ -470,7 +384,6 @@ export function ExplorerDrawerContent({
               fileApprovalIndex < fileApprovalTotalPatches && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
-                  isLast
                   pendingInput={pendingInput!}
                 />
               )}
@@ -478,7 +391,6 @@ export function ExplorerDrawerContent({
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
-                isLast
                 isOtherSelected={isOtherSelected}
                 onCustomTextChange={handleQuestionCustomTextChange}
                 onSelectOption={handleQuestionSelectOption}
@@ -493,8 +405,7 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        isFocused={focusedBlockIndex === -1}
-        canInterrupt={sessionData?.status === 'processing'} // TODO: update when adding timeouts
+        canInterrupt={canInterrupt} // TODO: update when adding timeouts
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
