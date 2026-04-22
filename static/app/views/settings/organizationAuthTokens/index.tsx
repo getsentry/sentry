@@ -11,6 +11,7 @@ import {Access} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -158,6 +159,7 @@ export function OrganizationAuthTokensIndex({
     <LinkButton
       priority="primary"
       size="sm"
+      icon={<IconAdd />}
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
     >
@@ -177,29 +179,44 @@ export function OrganizationAuthTokensIndex({
             title={t('Organization Tokens')}
             action={hasPageFrame ? undefined : createNewToken}
             subtitle={
-              <Stack gap="md">
-                <div>
-                  {t(
-                    'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-                  )}
-                </div>
-                <div>
-                  {tct(
-                    'For more information on how to use the web API, see our [link:documentation].',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                    }
-                  )}
-                </div>
-              </Stack>
+              hasPageFrame ? (
+                <Flex justify="between" align="center" gap="md">
+                  <Stack gap="md">
+                    <div>
+                      {t(
+                        'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                      )}
+                    </div>
+                    <div>
+                      {tct(
+                        'For more information on how to use the web API, see our [link:documentation].',
+                        {
+                          link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                        }
+                      )}
+                    </div>
+                  </Stack>
+                  {createNewToken}
+                </Flex>
+              ) : (
+                <Stack gap="md">
+                  <div>
+                    {t(
+                      'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                    )}
+                  </div>
+                  <div>
+                    {tct(
+                      'For more information on how to use the web API, see our [link:documentation].',
+                      {
+                        link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                      }
+                    )}
+                  </div>
+                </Stack>
+              )
             }
           />
-
-          {hasPageFrame && (
-            <Flex justify="end" marginBottom="xl">
-              {createNewToken}
-            </Flex>
-          )}
 
           <ResponsivePanelTable
             isLoading={isPending || isError}
