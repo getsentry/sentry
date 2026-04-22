@@ -228,7 +228,7 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
         dcg = validator.update(dcg, validator.validated_data)
         assert dcg.conditions.count() == 2
 
-        conditions = dcg.conditions.all()
+        conditions = list(dcg.conditions.order_by("id"))
         condition1 = conditions[0]
         condition2 = conditions[1]
 
@@ -419,7 +419,7 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
 
         assert dcg.conditions.count() == 2
 
-        conditions = dcg.conditions.all()
+        conditions = list(dcg.conditions.order_by("id"))
         condition1 = conditions[0]
         condition2 = conditions[1]
 
