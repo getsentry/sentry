@@ -548,6 +548,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
             ),
+            default_value=default_value,
         )
 
 
