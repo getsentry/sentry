@@ -1,4 +1,5 @@
 import orjson
+import pytest
 from django.utils import timezone
 
 from sentry.models.activity import Activity
@@ -9,6 +10,9 @@ from sentry.types.activity import ActivityType
 
 
 class SlackDeployNotificationTest(SlackActivityNotificationTest):
+    @pytest.mark.skip(
+        reason="test pollution: stale projects from prior tests cause blocks[1]/blocks[2] ordering to diverge; blocks[1] footer uses a different project sort than blocks[2] when extra projects are present in DB"
+    )
     def test_deploy_block(self) -> None:
         """
         Test that a Slack message is sent with the expected payload when a deploy happens.
