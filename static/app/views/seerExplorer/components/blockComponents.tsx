@@ -137,13 +137,7 @@ function getToolStatus(
     return 'success';
   }
 
-  // No tools, check if there's content
-  const hasContent = hasValidContent(block.message.content);
-  if (hasContent) {
-    return 'content';
-  }
-
-  return 'success';
+  return 'content';
 }
 
 export function BlockComponent({
