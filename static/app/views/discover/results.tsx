@@ -865,6 +865,7 @@ export class Results extends Component<Props, State> {
                   yAxis={yAxisArray}
                   isHomepage={isHomepage}
                   setSavedQuery={setSavedQuery}
+                  errorCode={errorCode}
                 />
                 <CustomMeasurementsContext.Consumer>
                   {contextValue =>
@@ -1102,6 +1103,10 @@ function DiscoverContextMenu({
     });
   }
 
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <DropdownMenu
       items={items}
@@ -1131,7 +1136,9 @@ function SaveQueryButton({
   savedQuery,
   yAxis,
   setSavedQuery,
+  errorCode,
 }: {
+  errorCode: number;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -1167,9 +1174,6 @@ function SaveQueryButton({
     savedQuery?.queryDataset
   );
   const deprecatingTransactionsDataset =
-    currentDataset === DiscoverDatasets.TRANSACTIONS &&
-    organization.features.includes('discover-saved-queries-deprecation');
-  const deprecatingSaveAs =
     currentDataset === DiscoverDatasets.TRANSACTIONS &&
     organization.features.includes('discover-saved-queries-deprecation');
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
@@ -1209,7 +1213,7 @@ function SaveQueryButton({
   return (
     <Feature organization={organization} features="discover-query">
       {({hasFeature}) => {
-        const disabled = !hasFeature;
+        const disabled = !hasFeature || (errorCode >= 400 && errorCode < 500);
 
         if (!isNewQuery && !isEditingQuery) {
           return null;
@@ -1247,7 +1251,7 @@ function SaveQueryButton({
                   queryName={queryName}
                   onChangeInput={e => setQueryName(e.currentTarget.value)}
                   modifiedHandleCreateQuery={handleCreate}
-                  disabled={disabled || deprecatingSaveAs}
+                  disabled={disabled || deprecatingTransactionsDataset}
                 />
               </Tooltip>
             </Fragment>
@@ -1267,7 +1271,7 @@ function SaveQueryButton({
               queryName={queryName}
               onChangeInput={e => setQueryName(e.currentTarget.value)}
               modifiedHandleCreateQuery={handleCreate}
-              disabled={disabled || deprecatingSaveAs}
+              disabled={disabled || deprecatingTransactionsDataset}
             />
           </Tooltip>
         );
@@ -1284,7 +1288,9 @@ function DiscoverPageFilters({
   yAxis,
   isHomepage,
   setSavedQuery,
+  errorCode,
 }: {
+  errorCode: number;
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -1341,6 +1347,7 @@ function DiscoverPageFilters({
             savedQuery={savedQuery}
             yAxis={yAxis}
             setSavedQuery={setSavedQuery}
+            errorCode={errorCode}
           />
           {!shouldHideCreateAlert && (
             <Feature organization={organization} features="incidents">
