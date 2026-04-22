@@ -66,6 +66,9 @@ export const useSeerExplorerDrawer = ({
         return;
       }
 
+      const nextRunId =
+        openRunId === undefined ? (startNewRun ? null : runId) : openRunId;
+
       if (openRunId !== undefined) {
         setRunId(openRunId);
       } else if (startNewRun) {
@@ -76,7 +79,7 @@ export const useSeerExplorerDrawer = ({
         () => (
           <ExplorerDrawerContent
             getPageReferrer={getPageReferrer}
-            runId={runId}
+            runId={nextRunId}
             setRunId={setRunId}
           />
         ),
