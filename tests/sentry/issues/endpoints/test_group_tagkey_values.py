@@ -322,12 +322,17 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/{key}/values/"
 
+        # The USER rate limit is 150 req/60 s. Send up to 350 requests (enough to
+        # survive one concurrent xdist flushdb() resetting the Redis counter) and
+        # break on the first 429.
         with freeze_time(datetime.datetime.now()):
-            for i in range(150):
+            hit_429 = False
+            for _ in range(350):
                 response = self.client.get(url)
-                assert response.status_code == 200
-            response = self.client.get(url)
-            assert response.status_code == 429
+                if response.status_code == 429:
+                    hit_429 = True
+                    break
+            assert hit_429, "expected rate limit (429) within 350 requests"
 
         assert_last_analytics_event(
             mock_record,
