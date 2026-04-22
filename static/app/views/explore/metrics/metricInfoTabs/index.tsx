@@ -67,7 +67,7 @@ export function MetricInfoTabs({
           </Flex>
         ) : null}
         {visualize.visible && !contentsHidden ? (
-          <Container height="320px">
+          <Container height="312px">
             <StyledTabPanels>
               <TabPanels.Item key={Mode.AGGREGATE}>
                 <AggregatesTab
