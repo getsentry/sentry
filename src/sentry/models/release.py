@@ -35,7 +35,6 @@ from sentry.integrations.source_code_management.providers import normalize_integ
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -44,7 +43,6 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
-from sentry.models.repository import Repository
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -630,6 +628,8 @@ class Release(Model):
     def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
+            from sentry.models.releaseheadcommit import ReleaseHeadCommit
+            from sentry.models.repository import Repository
             from sentry.tasks.commits import fetch_commits
 
             names = {r["repository"] for r in refs}
