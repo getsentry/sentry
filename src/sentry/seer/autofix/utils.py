@@ -757,9 +757,7 @@ def _build_automation_handoff(
 
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
-    """Read a single project's Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Read a single project's Seer preferences from Sentry DB."""
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
@@ -784,9 +782,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
 ) -> dict[int, SeerProjectPreference]:
-    """Bulk read Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
         return {}
 
@@ -829,43 +825,6 @@ def bulk_read_preferences_from_sentry_db(
             autofix_automation_tuning=_get_project_option("sentry:autofix_automation_tuning"),
         )
 
-    return result
-
-
-def bulk_read_preferences(
-    organization: Organization, project_ids: list[int]
-) -> dict[int, SeerProjectPreference | None]:
-    """Read Seer project preferences in bulk, using the correct source based on feature flag.
-
-    Always returns ``dict[int, SeerProjectPreference | None]`` regardless of the
-    underlying read path (Sentry DB or Seer API)."""
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)  # type: ignore[return-value]
-
-    raw = bulk_get_project_preferences(organization.id, project_ids)
-    tuning_by_id = ProjectOption.objects.get_value_bulk_id(
-        project_ids, "sentry:autofix_automation_tuning"
-    )
-    result: dict[int, SeerProjectPreference | None] = {}
-    for pid, data in raw.items():
-        int_pid = int(pid)
-        if data is None:
-            result[int_pid] = None
-            continue
-        try:
-            pref = SeerProjectPreference.validate(data)
-        except pydantic.ValidationError:
-            logger.exception(
-                "seer.bulk_read_preferences.validation_error",
-                extra={"project_id": pid, "organization_id": organization.id},
-            )
-            result[int_pid] = None
-            continue
-        tuning = tuning_by_id.get(int_pid)
-        if tuning is None:
-            tuning = projectoptions.get_well_known_default("sentry:autofix_automation_tuning")
-        pref.autofix_automation_tuning = tuning
-        result[int_pid] = pref
     return result
 
 

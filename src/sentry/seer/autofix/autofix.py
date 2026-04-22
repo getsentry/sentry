@@ -678,7 +678,6 @@ def trigger_autofix(
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
 
-    # Preference repos are the source of truth (even if empty).
     preference = read_preference_from_sentry_db(group.project)
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
