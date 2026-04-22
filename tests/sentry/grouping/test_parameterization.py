@@ -296,6 +296,24 @@ incorrect_cases = [
         "<int>,<int>,<int>",
     ),
     (
+        "ip - v4, leading zeros",
+        "11.21.12.001",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, segment > 255",
+        "12.31.12.908",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, too many segments",
+        "11.21.12.31.12",
+        "<int>.<int>.<int>.<int>.<int>",
+        "<ip>.<int>",
+    ),
+    (
         "ip - short double colon object property including only hex",
         "Fee::add() called too early",
         "Fee::add() called too early",
