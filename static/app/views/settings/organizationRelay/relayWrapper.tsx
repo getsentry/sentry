@@ -65,7 +65,7 @@ export function RelayWrapper() {
         title: disabled ? t('You do not have permission to register keys') : undefined,
       }}
       priority="primary"
-      size="sm"
+      size={hasPageFrame ? 'md' : 'sm'}
       icon={<IconAdd />}
       onClick={handleOpenAddDialog}
       disabled={disabled}
