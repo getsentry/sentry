@@ -207,10 +207,6 @@ export interface BaseChartProps {
    * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
    */
   minutesThresholdToDisplaySeconds?: number;
-  /**
-   * states whether or not to merge with previous `option`
-   */
-  notMerge?: boolean;
   onBrushEnd?: EChartBrushEndHandler;
   onBrushSelected?: EChartBrushSelectedHandler;
   onBrushStart?: EChartBrushStartHandler;
@@ -385,7 +381,6 @@ export function BaseChart({
   height = 200,
   width,
   renderer = 'svg',
-  notMerge = true,
   lazyUpdate = false,
   isGroupedByDate = false,
   transformSinglePointToBar = false,
@@ -685,7 +680,6 @@ export function BaseChart({
       <ReactEchartsCore
         ref={ref}
         echarts={echarts}
-        notMerge={notMerge}
         lazyUpdate={lazyUpdate}
         theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}

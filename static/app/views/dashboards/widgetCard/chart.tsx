@@ -400,7 +400,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
 
   const chartOptions = {
     animation: false, // Turn off all chart animations. This turns off all ZRender hooks that might `requestAnimationFrame`
-    notMerge: false, // Enable ECharts option merging. Chart components are only re-drawn if they've changed
     autoHeightResize: shouldResize ?? true,
     useMultilineDate: true,
     grid: {

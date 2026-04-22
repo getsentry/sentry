@@ -26,14 +26,12 @@ interface ChartVisualizationProps {
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   hidden?: boolean;
-  notMerge?: boolean;
 }
 
 export function ChartVisualization({
   chartXRangeSelection,
   chartInfo,
   chartRef,
-  notMerge,
 }: ChartVisualizationProps) {
   const theme = useTheme();
 
@@ -92,7 +90,6 @@ export function ChartVisualization({
           ref={chartRef}
           plottables={previousPlottables}
           chartXRangeSelection={chartXRangeSelection}
-          notMerge={notMerge}
         />
       </StyledTransparentLoadingMask>
     );
@@ -122,7 +119,6 @@ export function ChartVisualization({
       ref={chartRef}
       plottables={plottables}
       chartXRangeSelection={chartXRangeSelection}
-      notMerge={notMerge}
     />
   );
 }
