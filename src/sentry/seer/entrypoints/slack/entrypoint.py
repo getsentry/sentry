@@ -9,18 +9,18 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
     SeerAutofixError,
     SeerAutofixUpdate,
-    SeerExplorerError,
-    SeerExplorerResponse,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
+    agent_entrypoint_registry,
     autofix_entrypoint_registry,
-    explorer_entrypoint_registry,
 )
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
@@ -28,9 +28,9 @@ from sentry.seer.entrypoints.slack.messaging import (
     update_existing_message,
 )
 from sentry.seer.entrypoints.types import (
+    SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
-    SeerExplorerEntrypoint,
 )
 from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.sentry_apps.metrics import SentryAppEventType
@@ -65,7 +65,7 @@ class SlackAutofixCachePayload(TypedDict):
     threads: list[SlackThreadDetails]
 
 
-class SlackExplorerCachePayload(TypedDict):
+class SlackAgentCachePayload(TypedDict):
     organization_id: int
     integration_id: int
     thread: SlackThreadDetails
@@ -376,8 +376,8 @@ class SlackAutofixEntrypoint(
         )
 
 
-class SlackExplorerEntrypoint(
-    SeerExplorerEntrypoint[SlackExplorerCachePayload],
+class SlackAgentEntrypoint(
+    SeerAgentEntrypoint[SlackAgentCachePayload],
 ):
     key = SeerEntrypointKey.SLACK
 
@@ -428,27 +428,27 @@ class SlackExplorerEntrypoint(
         has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
         return has_seer_slack_feature_flag and has_explorer_access
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
+    def on_trigger_agent_error(self, *, error: str) -> None:
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerExplorerError(error_message=error),
+            data=SeerAgentError(error_message=error),
             ephemeral_user_id=self.slack_user_id,
         )
 
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
+    def on_trigger_agent_success(self, *, run_id: int) -> None:
         pass
 
-    def create_explorer_cache_payload(self) -> SlackExplorerCachePayload:
-        return SlackExplorerCachePayload(
+    def create_agent_cache_payload(self) -> SlackAgentCachePayload:
+        return SlackAgentCachePayload(
             thread=self.thread,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
         )
 
     @staticmethod
-    def on_explorer_update(
-        cache_payload: SlackExplorerCachePayload,
+    def on_agent_update(
+        cache_payload: SlackAgentCachePayload,
         summary: str | None,
         run_id: int,
     ) -> None:
@@ -457,7 +457,7 @@ class SlackExplorerEntrypoint(
         thread = cache_payload["thread"]
 
         if not summary:
-            data: SeerExplorerError | SeerExplorerResponse = SeerExplorerError(
+            data: SeerAgentError | SeerAgentResponse = SeerAgentError(
                 error_message="Seer was unable to generate a response."
             )
         else:
@@ -467,7 +467,7 @@ class SlackExplorerEntrypoint(
                 channel_id=thread["channel_id"],
                 thread_ts=thread["thread_ts"],
             )
-            data = SeerExplorerResponse(
+            data = SeerAgentResponse(
                 run_id=run_id,
                 organization_id=organization_id,
                 summary=summary,
@@ -555,4 +555,4 @@ def prepare_slack_thread_for_autofix_updates(
 
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
 autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
-explorer_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackExplorerEntrypoint)
+agent_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAgentEntrypoint)

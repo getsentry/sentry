@@ -7,18 +7,18 @@ from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
     SeerAutofixUpdate,
-    SeerExplorerError,
-    SeerExplorerResponse,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
+    SlackAgentCachePayload,
+    SlackAgentEntrypoint,
     SlackAutofixCachePayload,
     SlackAutofixEntrypoint,
-    SlackExplorerCachePayload,
-    SlackExplorerEntrypoint,
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
@@ -490,7 +490,7 @@ class SlackAutofixEntrypointTest(TestCase):
         mock_update_message.assert_not_called()
 
 
-class SlackExplorerEntrypointTest(TestCase):
+class SlackAgentEntrypointTest(TestCase):
     def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX2"
         self.channel_id = "CXXXXXXXXX2"
@@ -501,8 +501,8 @@ class SlackExplorerEntrypointTest(TestCase):
             provider="slack",
         )
 
-    def _get_entrypoint(self, thread_ts: str | None = None) -> SlackExplorerEntrypoint:
-        return SlackExplorerEntrypoint(
+    def _get_entrypoint(self, thread_ts: str | None = None) -> SlackAgentEntrypoint:
+        return SlackAgentEntrypoint(
             integration_id=self.integration.id,
             organization_id=self.organization.id,
             channel_id=self.channel_id,
@@ -521,7 +521,7 @@ class SlackExplorerEntrypointTest(TestCase):
 
     def test_init_raises_if_integration_not_found(self) -> None:
         with pytest.raises(EntrypointSetupError):
-            SlackExplorerEntrypoint(
+            SlackAgentEntrypoint(
                 integration_id=99999,
                 organization_id=self.organization.id,
                 channel_id=self.channel_id,
@@ -535,7 +535,7 @@ class SlackExplorerEntrypointTest(TestCase):
     )
     def test_init_raises_if_no_org_integration(self, mock_get_ois):
         with pytest.raises(EntrypointSetupError):
-            SlackExplorerEntrypoint(
+            SlackAgentEntrypoint(
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
                 channel_id=self.channel_id,
@@ -549,18 +549,18 @@ class SlackExplorerEntrypointTest(TestCase):
             "organizations:seer-explorer": True,
         }
         with self.feature({"organizations:seer-slack-explorer": False, **explorer_flags}):
-            assert not SlackExplorerEntrypoint.has_access(self.organization)
+            assert not SlackAgentEntrypoint.has_access(self.organization)
         with self.feature({"organizations:seer-slack-explorer": True, **explorer_flags}):
-            assert SlackExplorerEntrypoint.has_access(self.organization)
+            assert SlackAgentEntrypoint.has_access(self.organization)
             self.organization.update_option("sentry:hide_ai_features", True)
-            assert not SlackExplorerEntrypoint.has_access(self.organization)
+            assert not SlackAgentEntrypoint.has_access(self.organization)
             self.organization.update_option("sentry:hide_ai_features", False)
-            assert SlackExplorerEntrypoint.has_access(self.organization)
+            assert SlackAgentEntrypoint.has_access(self.organization)
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
-    def test_on_trigger_explorer_error(self, mock_send_ephemeral):
+    def test_on_trigger_agent_error(self, mock_send_ephemeral):
         ep = self._get_entrypoint()
-        ep.on_trigger_explorer_error(error="Test error")
+        ep.on_trigger_agent_error(error="Test error")
 
         mock_send_ephemeral.assert_called_once_with(
             channel_id=self.channel_id,
@@ -569,14 +569,14 @@ class SlackExplorerEntrypointTest(TestCase):
             slack_user_id=self.slack_user_id,
         )
 
-    def test_on_trigger_explorer_success_is_noop(self) -> None:
+    def test_on_trigger_agent_success_is_noop(self) -> None:
         ep = self._get_entrypoint()
-        ep.on_trigger_explorer_success(run_id=12345)
+        ep.on_trigger_agent_success(run_id=12345)
 
-    def test_create_explorer_cache_payload(self) -> None:
+    def test_create_agent_cache_payload(self) -> None:
         ep = self._get_entrypoint()
-        payload = ep.create_explorer_cache_payload()
-        SlackExplorerCachePayload(**payload)  # validates TypedDict structure
+        payload = ep.create_agent_cache_payload()
+        SlackAgentCachePayload(**payload)  # validates TypedDict structure
         assert payload["organization_id"] == self.organization.id
         assert payload["integration_id"] == self.integration.id
         assert payload["thread"]["thread_ts"] == self.thread_ts
@@ -587,12 +587,12 @@ class SlackExplorerEntrypointTest(TestCase):
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
-    def test_on_explorer_update(self, mock_has_history_scope, mock_schedule_all_thread_updates):
+    def test_on_agent_update(self, mock_has_history_scope, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
         run_id = 12345
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary="Test summary",
             run_id=run_id,
@@ -610,11 +610,11 @@ class SlackExplorerEntrypointTest(TestCase):
         assert call_data.summary == "Test summary"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
-    def test_on_explorer_update_with_no_summary(self, mock_schedule_all_thread_updates):
+    def test_on_agent_update_with_no_summary(self, mock_schedule_all_thread_updates):
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary=None,
             run_id=12345,
@@ -622,12 +622,12 @@ class SlackExplorerEntrypointTest(TestCase):
 
         mock_schedule_all_thread_updates.assert_called_once()
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
-        assert isinstance(call_data, SeerExplorerError)
+        assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
 
-    def test_on_explorer_update_skips_clear_when_integration_not_found(self) -> None:
+    def test_on_agent_update_skips_clear_when_integration_not_found(self) -> None:
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
         with (
             patch(
@@ -638,7 +638,7 @@ class SlackExplorerEntrypointTest(TestCase):
                 return_value=None,
             ),
         ):
-            SlackExplorerEntrypoint.on_explorer_update(
+            SlackAgentEntrypoint.on_agent_update(
                 cache_payload=cache_payload,
                 summary=None,
                 run_id=12345,
@@ -652,19 +652,19 @@ class SlackExplorerEntrypointTest(TestCase):
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
     )
-    def test_on_explorer_update_sets_missing_scope_url(self, mock_has_history_scope, mock_schedule):
-        """When history scope is missing, on_explorer_update sets missing_scope_settings_url."""
+    def test_on_agent_update_sets_missing_scope_url(self, mock_has_history_scope, mock_schedule):
+        """When history scope is missing, on_agent_update sets missing_scope_settings_url."""
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary="Test summary",
             run_id=12345,
         )
 
         call_data = mock_schedule.call_args.kwargs["data"]
-        assert isinstance(call_data, SeerExplorerResponse)
+        assert isinstance(call_data, SeerAgentResponse)
         assert call_data.missing_scope_settings_url is not None
         assert "/integrations/slack/" in call_data.missing_scope_settings_url
 
@@ -673,21 +673,21 @@ class SlackExplorerEntrypointTest(TestCase):
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=True,
     )
-    def test_on_explorer_update_no_missing_scope_url_when_has_scope(
+    def test_on_agent_update_no_missing_scope_url_when_has_scope(
         self, mock_has_history_scope, mock_schedule
     ):
         """When history scope is present, missing_scope_settings_url should be None."""
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary="Test summary",
             run_id=12345,
         )
 
         call_data = mock_schedule.call_args.kwargs["data"]
-        assert isinstance(call_data, SeerExplorerResponse)
+        assert isinstance(call_data, SeerAgentResponse)
         assert call_data.missing_scope_settings_url is None
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
@@ -695,14 +695,14 @@ class SlackExplorerEntrypointTest(TestCase):
         "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
         return_value=False,
     )
-    def test_on_explorer_update_missing_scope_url_cached_per_thread(
+    def test_on_agent_update_missing_scope_url_cached_per_thread(
         self, mock_has_history_scope, mock_schedule
     ):
         """Second call for the same thread should not set the URL (cached)."""
         ep = self._get_entrypoint()
-        cache_payload = ep.create_explorer_cache_payload()
+        cache_payload = ep.create_agent_cache_payload()
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary="First response",
             run_id=12345,
@@ -712,7 +712,7 @@ class SlackExplorerEntrypointTest(TestCase):
 
         mock_schedule.reset_mock()
 
-        SlackExplorerEntrypoint.on_explorer_update(
+        SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
             summary="Second response",
             run_id=12346,

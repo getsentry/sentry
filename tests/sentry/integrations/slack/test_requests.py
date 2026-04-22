@@ -349,7 +349,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.error_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=False,
     )
     def test_org_no_seer_access(self, mock_access):
@@ -366,7 +366,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.error_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=True,
     )
     def test_resolves_valid_organization(self, mock_access):
