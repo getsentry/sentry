@@ -283,6 +283,36 @@ describe('useHoverOverlay timing', () => {
     expect(screen.getByTestId('state-b')).toHaveTextContent('open');
   });
 
+  it("does not let a snap-closed cooling overlay's hide timer cool the group", () => {
+    renderInGroup(
+      <Fragment>
+        <Trigger label="a" isHoverable />
+        <Trigger label="b" />
+        <Trigger label="c" />
+      </Fragment>
+    );
+    const a = screen.getByRole('button', {name: 'a'});
+    const b = screen.getByRole('button', {name: 'b'});
+    const c = screen.getByRole('button', {name: 'c'});
+
+    hover(a);
+    advance(OPEN_DELAY);
+    unhover(a); // A goes cooling with a pending hide timer.
+
+    hover(b); // Snaps A; the stale hide timer must be cancelled.
+    expect(screen.getByTestId('state-b')).toHaveTextContent('open');
+
+    // Advance past where A's hide timer would have fired and past where the
+    // resulting stale cooldown would have expired. If the timer weren't
+    // cancelled, the group would go cold here while B is still open.
+    advance(CLOSE_DELAY + SKIP_DELAY_WINDOW + 10);
+
+    // Move to C via an unhover-then-hover cycle within the warm window.
+    unhover(b);
+    hover(c);
+    expect(screen.getByTestId('state-c')).toHaveTextContent('open');
+  });
+
   it('does not snap the overlay that is itself opening', () => {
     renderInGroup(<Trigger label="a" />);
     const a = screen.getByRole('button', {name: 'a'});

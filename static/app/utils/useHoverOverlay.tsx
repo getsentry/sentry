@@ -297,17 +297,27 @@ function useHoverOverlay({
   // closed-but-still-animating-out), we snap-close rather than letting the
   // exit animation trail alongside the incoming overlay.
   const [snapClosed, setSnapClosed] = useState(false);
+  // Tracks whether this overlay may currently be on-screen or mid-exit-
+  // animation. Used to skip snap-close bookkeeping for idle overlays that
+  // have never been hovered — in pages with many siblings (tables of
+  // tooltips) this keeps warmUpGroup O(visible) instead of O(N).
+  const mayBeAnimatingOutRef = useRef(false);
   const commitStatus = useCallback((next: OverlayStatus) => {
     statusRef.current = next;
     setStatus(next);
     if (next === 'open' || next === 'warming') {
       setSnapClosed(false);
     }
+    if (next === 'open') {
+      mayBeAnimatingOutRef.current = true;
+    }
   }, []);
 
-  // Subscribe to group-open events. If another overlay opens while we are not
-  // ourselves opening (our status is anything other than 'open' or 'warming'
-  // — i.e. we're idle or mid-cooling), snap shut immediately.
+  // Subscribe to group-open events. Only overlays that are currently visible
+  // or mid-exit-animation need to snap shut — idle overlays that have never
+  // opened have nothing to unmount. When snapping a 'cooling' overlay, also
+  // cancel its pending hide timer so the delayed startGroupCoolDown doesn't
+  // fire against the newly-warm group.
   //
   // forceVisible tooltips are explicitly decoupled from hover state — e.g.
   // form-field validation errors anchored to a warning icon. They must not
@@ -320,13 +330,21 @@ function useHoverOverlay({
       if (statusRef.current === 'open' || statusRef.current === 'warming') {
         return;
       }
+      if (!mayBeAnimatingOutRef.current) {
+        return;
+      }
+      if (statusRef.current === 'cooling') {
+        maybeClearRefTimeout(hideTimerRef);
+        commitStatus('idle');
+      }
+      mayBeAnimatingOutRef.current = false;
       setSnapClosed(true);
     };
     group.openListeners.add(listener);
     return () => {
       group.openListeners.delete(listener);
     };
-  }, [group, forceVisible]);
+  }, [group, forceVisible, commitStatus]);
 
   const isOpen = forceVisible ?? (status === 'open' || status === 'cooling');
 
