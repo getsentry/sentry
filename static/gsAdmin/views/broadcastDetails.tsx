@@ -302,40 +302,34 @@ export function BroadcastDetails() {
     </DetailList>
   );
 
-  const actions: ActionItem[] = [];
-
-  if (isAdmin && !isEditing) {
-    actions.push({
+  const actions: ActionItem[] = [
+    {
       key: 'edit-broadcast',
       name: 'Edit Broadcast',
       help: fromChangelog
         ? 'Edit broadcast content. Saving will lock this broadcast from future changelog syncs.'
         : 'Edit broadcast content.',
-      visible: true,
+      visible: isAdmin && !isEditing,
       skipConfirmModal: true,
       onAction: () => setIsEditing(true),
-    });
-  }
-
-  actions.push({
-    key: 'toggle-activation',
-    name: `${data.isActive ? 'Deactivate' : 'Activate'} Broadcast`,
-    help: data.isActive
-      ? 'Hide this broadcast from users.'
-      : "Show this broadcast to users (if it hasn't expired).",
-    visible: isAdmin,
-    onAction: () => onUpdate({isActive: !data.isActive}),
-  });
-
-  if (isAdmin && fromChangelog && data.syncLocked && !isEditing) {
-    actions.push({
+    },
+    {
+      key: 'toggle-activation',
+      name: `${data.isActive ? 'Deactivate' : 'Activate'} Broadcast`,
+      help: data.isActive
+        ? 'Hide this broadcast from users.'
+        : "Show this broadcast to users (if it hasn't expired).",
+      visible: isAdmin,
+      onAction: () => onUpdate({isActive: !data.isActive}),
+    },
+    {
       key: 'unlock-sync',
       name: 'Re-enable changelog sync',
       help: 'Allow the hourly changelog job to refresh this broadcast again. Your manual edits will be overwritten on the next sync.',
-      visible: true,
+      visible: isAdmin && fromChangelog && data.syncLocked && !isEditing,
       onAction: () => onUpdate({syncLocked: false}),
-    });
-  }
+    },
+  ];
 
   const badges: BadgeItem[] = [
     {
