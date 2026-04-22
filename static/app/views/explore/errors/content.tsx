@@ -27,15 +27,13 @@ export default function ErrorsContent() {
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
-      <Layout.Page>
-        <ErrorsHeader />
-        <PageFiltersContainer>
-          <ExploreBodySearch>
-            <ErrorsFilterSection />
-          </ExploreBodySearch>
-        </PageFiltersContainer>
-        <ErrorsBody />
-      </Layout.Page>
+      <ErrorsHeader />
+      <PageFiltersContainer>
+        <ExploreBodySearch>
+          <ErrorsFilterSection />
+        </ExploreBodySearch>
+      </PageFiltersContainer>
+      <ErrorsBody />
     </SentryDocumentTitle>
   );
 }
