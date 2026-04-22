@@ -14,13 +14,15 @@ from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issu
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+_FROZEN_NOW = before_now(days=1).replace(hour=0, minute=0, second=0, microsecond=0)
 from sentry.utils.snuba import raw_snql_query
 from tests.sentry.feedback import mock_feedback_event
 
 
-class TestLabelQuery(APITestCase):
+class TestLabelQuery(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
@@ -37,57 +39,69 @@ class TestLabelQuery(APITestCase):
         create_feedback_issue(event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     def test_get_ai_labels_from_tags_retrieves_labels_correctly(self) -> None:
-        self._create_feedback(
-            "a",
-            ["Authentication"],
-            dt=before_now(days=2),
-        )
-        self._create_feedback(
-            "b",
-            ["Authentication", "Security"],
-            dt=before_now(days=1),
-        )
+        project = self.create_project()
+        original_project = self.project
+        self.project = project
+        try:
+            self._create_feedback(
+                "a",
+                ["Authentication"],
+                dt=before_now(days=2),
+            )
+            self._create_feedback(
+                "b",
+                ["Authentication", "Security"],
+                dt=before_now(days=1),
+            )
 
-        query = Query(
-            match=Entity(Dataset.IssuePlatform.value),
-            select=[
-                _get_ai_labels_from_tags(alias="labels"),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
-                Condition(Column("timestamp"), Op.LT, before_now(days=0)),
-                Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
-            ],
-            orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
-        )
+            query = Query(
+                match=Entity(Dataset.IssuePlatform.value),
+                select=[
+                    _get_ai_labels_from_tags(alias="labels"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("timestamp"), Op.GTE, before_now(days=30)),
+                    Condition(Column("timestamp"), Op.LT, before_now(days=0)),
+                    Condition(Column("occurrence_type_id"), Op.EQ, FeedbackGroup.type_id),
+                ],
+                orderby=[OrderBy(Column("timestamp"), Direction.ASC)],
+            )
 
-        result = raw_snql_query(
-            Request(
-                dataset=Dataset.IssuePlatform.value,
-                app_id="feedback-backend-web",
-                query=query,
-                tenant_ids={"organization_id": self.organization.id},
-            ),
-            referrer="feedbacks.label_query",
-        )
+            result = raw_snql_query(
+                Request(
+                    dataset=Dataset.IssuePlatform.value,
+                    app_id="feedback-backend-web",
+                    query=query,
+                    tenant_ids={"organization_id": project.organization.id},
+                ),
+                referrer="feedbacks.label_query",
+            )
 
-        assert len(result["data"]) == 2
-        assert {label for label in result["data"][0]["labels"]} == {"Authentication"}
-        assert {label for label in result["data"][1]["labels"]} == {"Authentication", "Security"}
+            assert len(result["data"]) == 2
+            assert {label for label in result["data"][0]["labels"]} == {"Authentication"}
+            assert {label for label in result["data"][1]["labels"]} == {
+                "Authentication",
+                "Security",
+            }
+        finally:
+            self.project = original_project
 
     def test_query_top_ai_labels_by_feedback_count(self) -> None:
         self._create_feedback(
             "UI issue 1",
             ["User Interface", "Performance"],
+            dt=before_now(hours=3),
         )
         self._create_feedback(
             "UI issue 2",
             ["Checkout", "User Interface"],
+            dt=before_now(hours=2),
         )
         self._create_feedback(
             "UI issue 3",
             ["Performance", "User Interface", "Colors"],
+            dt=before_now(hours=1),
         )
 
         result = query_top_ai_labels_by_feedback_count(
@@ -109,6 +123,7 @@ class TestLabelQuery(APITestCase):
         assert result[2]["label"] == "Checkout" or result[2]["label"] == "Colors"
         assert result[2]["count"] == 1
 
+    @freeze_time(_FROZEN_NOW)
     def test_query_recent_feedbacks_with_ai_labels(self) -> None:
         self._create_feedback(
             "The UI is too slow and confusing",
@@ -129,7 +144,7 @@ class TestLabelQuery(APITestCase):
         result = query_recent_feedbacks_with_ai_labels(
             organization_id=self.organization.id,
             project_ids=[self.project.id],
-            start=before_now(days=30),
+            start=before_now(days=4),
             end=before_now(days=0),
             limit=1,
         )
