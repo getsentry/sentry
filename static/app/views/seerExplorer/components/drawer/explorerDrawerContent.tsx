@@ -228,6 +228,7 @@ export function ExplorerDrawerContent({
         handleSend();
       } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
         e.preventDefault();
+        e.stopPropagation();
         interruptRun();
       }
     },
