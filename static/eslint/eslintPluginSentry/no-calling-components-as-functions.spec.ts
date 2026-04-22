@@ -31,9 +31,20 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     {
       code: 'import {OrganizationFixture} from "sentry-fixture/organization"; const x = OrganizationFixture();',
     },
+    // sentry-fixture imports — data factories, not components
+    {
+      code: 'import {AutofixCodebaseChangeData} from "sentry-fixture/autofixCodebaseChangeData"; const x = AutofixCodebaseChangeData();',
+    },
     // Known utility — even if imported, skip
     {
       code: 'import {HookOrDefault} from "sentry/utils/hook"; const x = HookOrDefault({hookName: "x"});',
+    },
+    // SCREAMING_SNAKE_CASE — not a component
+    {
+      code: 'import {DO_NOT_USE_getButtonStyles} from "./styles"; const x = DO_NOT_USE_getButtonStyles({size: "md"});',
+    },
+    {
+      code: 'import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from "./router"; DANGEROUS_SET_REACT_ROUTER_6_HISTORY({history});',
     },
     // Multiple arguments — not a component call pattern
     {

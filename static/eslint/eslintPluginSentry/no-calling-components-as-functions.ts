@@ -13,11 +13,17 @@ import type {RuleFix, RuleFixer} from '@typescript-eslint/utils/ts-eslint';
 
 const IGNORED_NAMES = new Set(['HookOrDefault']);
 
+// Matches SCREAMING_SNAKE_CASE prefixes like DO_NOT_USE_ or DANGEROUS_
+const SCREAMING_SNAKE_RE = /^[A-Z][A-Z0-9]*_/;
+
 function shouldSkip(name: string): boolean {
   if (IGNORED_NAMES.has(name)) {
     return true;
   }
   if (name.endsWith('Fixture')) {
+    return true;
+  }
+  if (SCREAMING_SNAKE_RE.test(name)) {
     return true;
   }
   return false;
@@ -43,6 +49,13 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
     return {
       // Track imports: import {Foo} from '...', import Foo from '...'
       ImportDeclaration(node) {
+        const source = typeof node.source.value === 'string' ? node.source.value : '';
+
+        // Skip fixture imports — these are data factories, not components
+        if (source.startsWith('sentry-fixture/')) {
+          return;
+        }
+
         for (const specifier of node.specifiers) {
           if (/^[A-Z]/.test(specifier.local.name)) {
             knownComponents.add(specifier.local.name);
