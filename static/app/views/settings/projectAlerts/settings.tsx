@@ -81,7 +81,7 @@ export default function ProjectAlertSettings() {
       ) : (
         <Fragment>
           {hasPageFrameFeature && (
-            <Flex justify="flex-end" paddingBottom="sm">
+            <Flex justify="end" paddingBottom="sm">
               <LinkButton to={alertRulesTo} size="sm">
                 {t('View Alert Rules')}
               </LinkButton>
