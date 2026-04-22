@@ -472,7 +472,7 @@ function extractOutputFromSpan(span: Record<string, unknown>): string | null {
     try {
       const parsed: unknown = JSON.parse(outputMessages);
       if (!Array.isArray(parsed)) {
-        return null;
+        throw new Error('Not an array');
       }
       const messagesArray: OutputMessage[] = parsed;
       const assistantMessage = messagesArray.findLast(
