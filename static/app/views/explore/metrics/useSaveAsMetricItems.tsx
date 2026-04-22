@@ -112,37 +112,41 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
       return [];
     }
 
-    const alertsUrls = metricQueries
-      .filter(mq => isVisualizeFunction(mq.queryParams.visualizes[0]!))
-      .map((metricQuery, index) => {
-        const visualize = metricQuery.queryParams.visualizes[0]!;
-        const yAxis = isVisualizeFunction(visualize) ? visualize.yAxis : '';
-        const func = parseFunction(yAxis);
-        const label = func ? prettifyParsedFunction(func) : yAxis;
-        const query = metricQuery.queryParams.query ?? '';
+    const alertsUrls = metricQueries.map((metricQuery, index) => {
+      const visualize = metricQuery.queryParams.visualizes[0]!;
+      const yAxis = visualize.yAxis;
 
-        return {
-          key: `create-alert-${index}`,
-          label,
-          to: getAlertsUrl({
-            project,
-            query,
-            pageFilters: pageFilters.selection,
-            aggregate: yAxis,
+      const query = metricQuery.queryParams.query ?? '';
+      let label = yAxis;
+      if (isVisualizeFunction(visualize)) {
+        const func = parseFunction(yAxis);
+        label = func ? prettifyParsedFunction(func) : yAxis;
+      } else if (isVisualizeEquation(visualize)) {
+        label = metricQuery.label ?? '';
+      }
+
+      return {
+        key: `create-alert-${index}`,
+        label,
+        to: getAlertsUrl({
+          project,
+          query,
+          pageFilters: pageFilters.selection,
+          aggregate: yAxis,
+          organization,
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+          interval: options.interval,
+          eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+        }),
+        onAction: () => {
+          trackAnalytics('metrics.save_as', {
+            save_type: 'alert',
+            ui_source: 'searchbar',
             organization,
-            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-            interval: options.interval,
-            eventTypes: [EventTypes.TRACE_ITEM_METRIC],
-          }),
-          onAction: () => {
-            trackAnalytics('metrics.save_as', {
-              save_type: 'alert',
-              ui_source: 'searchbar',
-              organization,
-            });
-          },
-        };
-      });
+          });
+        },
+      };
+    });
 
     const newAlertLabel = organization.features.includes('workflow-engine-ui')
       ? t('Monitor for')
@@ -187,15 +191,18 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             : []),
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
+            const label = isVisualizeFunction(visualize)
+              ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
+                  formatTraceMetricsFunction(
+                    metricQuery.queryParams.aggregateFields
+                      .filter(isVisualize)
+                      .map(v => v.yAxis)
+                  ) as string
+                }`
+              : (metricQuery.label ?? '');
             return {
               key: `add-to-dashboard-${index}`,
-              label: `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
-                formatTraceMetricsFunction(
-                  metricQuery.queryParams.aggregateFields
-                    .filter(isVisualize)
-                    .map(v => v.yAxis)
-                ) as string
-              }`,
+              label,
               onAction: () => {
                 if (isVisualizeEquation(visualize)) {
                   return;
