@@ -18,14 +18,10 @@ interface UseBlockNavigationProps {
 export function useBlockNavigation({
   isOpen,
   focusedBlockIndex,
-  blocks,
-  blockRefs,
   textareaRef,
   isFileApprovalPending = false,
-  isMinimized = false,
   isQuestionPending = false,
   onKeyPress,
-  onNavigate,
 }: UseBlockNavigationProps) {
   // Handle keyboard navigation
   useEffect(() => {
@@ -54,13 +50,9 @@ export function useBlockNavigation({
   }, [
     isOpen,
     focusedBlockIndex,
-    blocks.length,
-    blockRefs,
     textareaRef,
     isFileApprovalPending,
-    isMinimized,
     isQuestionPending,
     onKeyPress,
-    onNavigate,
   ]);
 }
