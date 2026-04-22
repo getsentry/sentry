@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -28,6 +29,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -39,6 +41,7 @@ export default function ProjectKeys() {
   const location = useLocation();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrame = useHasPageFrameFeature();
   const api = useApi({persistInFlight: true});
   const routes = useRoutes();
 
@@ -190,28 +193,60 @@ export default function ProjectKeys() {
       <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
       <SettingsPageHeader
         title={t('Client Keys')}
-        subtitle={tct(
-          `To send data to Sentry you will need to configure an SDK with a client key
+        subtitle={
+          hasPageFrame ? (
+            <Flex justify="between" align="center" gap="md">
+              <span>
+                {tct(
+                  `To send data to Sentry you will need to configure an SDK with a client key
           (usually referred to as the [code:SENTRY_DSN] value). For more
           information on integrating Sentry with your application take a look at our
           [link:documentation].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
-            ),
-            code: <code />,
-          }
-        )}
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
+                    ),
+                    code: <code />,
+                  }
+                )}
+              </span>
+              <Button
+                onClick={() => handleCreateKeyMutation.mutate()}
+                size="md"
+                priority="primary"
+                icon={<IconAdd />}
+                disabled={!hasAccess}
+              >
+                {t('Generate New Key')}
+              </Button>
+            </Flex>
+          ) : (
+            tct(
+              `To send data to Sentry you will need to configure an SDK with a client key
+          (usually referred to as the [code:SENTRY_DSN] value). For more
+          information on integrating Sentry with your application take a look at our
+          [link:documentation].`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
+                ),
+                code: <code />,
+              }
+            )
+          )
+        }
         action={
-          <Button
-            onClick={() => handleCreateKeyMutation.mutate()}
-            size="sm"
-            priority="primary"
-            icon={<IconAdd />}
-            disabled={!hasAccess}
-          >
-            {t('Generate New Key')}
-          </Button>
+          hasPageFrame ? undefined : (
+            <Button
+              onClick={() => handleCreateKeyMutation.mutate()}
+              size="sm"
+              priority="primary"
+              icon={<IconAdd />}
+              disabled={!hasAccess}
+            >
+              {t('Generate New Key')}
+            </Button>
+          )
         }
       />
 

@@ -50,11 +50,24 @@ type SeerExplorerUpdateResponse = {
 const POLL_INTERVAL = 500; // Poll every 500ms
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set([
-  '/dashboard/:dashboardId/',
+const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
+/** New experimental routes where the LLMContext tree provides structured page context. */
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
 ]);
+
+function supportsStructuredContext(
+  referrer: string,
+  organization: {features: string[]} | null | undefined
+): boolean {
+  return (
+    (STRUCTURED_CONTEXT_ROUTES.has(referrer) &&
+      organization?.features.includes('seer-explorer-context-engine') === true) ||
+    (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer) &&
+      organization?.features.includes('context-engine-structured-page-context') === true)
+  );
+}
 
 const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Looking around...',
@@ -382,10 +395,7 @@ export const useSeerExplorer = () => {
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
-      if (
-        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer()) &&
-        organization?.features.includes('context-engine-structured-page-context')
-      ) {
+      if (supportsStructuredContext(getPageReferrer(), organization)) {
         try {
           screenshot = JSON.stringify(getLLMContext());
         } catch (e) {

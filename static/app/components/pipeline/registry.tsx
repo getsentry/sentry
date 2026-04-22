@@ -8,6 +8,7 @@ import {githubIntegrationPipeline} from './pipelineIntegrationGitHub';
 import {gitlabIntegrationPipeline} from './pipelineIntegrationGitLab';
 import {opsgenieIntegrationPipeline} from './pipelineIntegrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './pipelineIntegrationPagerDuty';
+import {perforceIntegrationPipeline} from './pipelineIntegrationPerforce';
 import {
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
@@ -29,6 +30,7 @@ export const PIPELINE_REGISTRY = [
   gitlabIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,
+  perforceIntegrationPipeline,
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
   vstsIntegrationPipeline,
