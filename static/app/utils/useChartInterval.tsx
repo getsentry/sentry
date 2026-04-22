@@ -80,6 +80,10 @@ function useChartIntervalImpl({
       options.push(ONE_DAY_OPTION);
     }
 
+    if (diffInMinutes >= MINIMUM_DURATION_FOR_SEVEN_DAY_INTERVAL) {
+      options.push(SEVEN_DAY_OPTION);
+    }
+
     return {intervalOptions: options, defaultInterval: fallback};
   }, [datetime, unspecifiedStrategy]);
 
@@ -147,6 +151,9 @@ const MAXIMUM_INTERVAL = new GranularityLadder([
 
 const ONE_DAY_OPTION = {value: '1d', label: t('1 day')};
 const MINIMUM_DURATION_FOR_ONE_DAY_INTERVAL = TWO_WEEKS;
+
+const SEVEN_DAY_OPTION = {value: '7d', label: t('7 days')};
+const MINIMUM_DURATION_FOR_SEVEN_DAY_INTERVAL = THIRTY_DAYS;
 
 export function getIntervalOptionsForPageFilter(datetime: PageFilters['datetime']) {
   const diffInMinutes = getDiffInMinutes(datetime);
