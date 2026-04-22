@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -25,18 +25,13 @@ export type OpenSeerExplorerDrawerOptions = {
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
 
-  const {openDrawer, closeDrawer} = useDrawer();
+  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {getPageReferrer} = usePageReferrer();
 
   // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
   // (useSeerExplorer hook should no longer handle this)
 
-  const [isOpen, setIsOpen] = useState(false); // for hook users
-  const isOpenRef = useRef(false); // for callback accuracy
-
   const onOpen = useCallback(() => {
-    isOpenRef.current = true;
-    setIsOpen(true);
     trackAnalytics('seer.explorer.global_panel.opened', {
       referrer: getPageReferrer(),
       organization,
@@ -44,18 +39,12 @@ export const useSeerExplorerDrawer = () => {
     });
   }, [getPageReferrer, organization]);
 
-  const onClose = useCallback(() => {
-    isOpenRef.current = false;
-    setIsOpen(false);
-  }, []);
-
   const closeSeerExplorerDrawer = useCallback(() => {
     // Prevent closing the global drawer if another drawer (e.g. autofix) is open
-    if (isOpenRef.current) {
+    if (isDrawerOpen) {
       closeDrawer();
-      onClose();
     }
-  }, [closeDrawer, onClose]);
+  }, [closeDrawer, isDrawerOpen]);
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
@@ -84,22 +73,20 @@ export const useSeerExplorerDrawer = () => {
           drawerKey: 'seer-explorer-drawer',
           resizable: true,
           mode: 'passive',
-          // XXX: passive mode keeps drawer open on location change. Be sure to update isOpenRef if closing on change is needed - useDrawer doesn't call onClose
           onOpen,
-          onClose,
         }
       );
     },
-    [openDrawer, closeSeerExplorerDrawer, onOpen, onClose, getPageReferrer]
+    [openDrawer, closeSeerExplorerDrawer, onOpen, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
-    if (isOpenRef.current) {
+    if (isDrawerOpen) {
       closeSeerExplorerDrawer();
     } else {
       openSeerExplorerDrawer();
     }
-  }, [closeSeerExplorerDrawer, openSeerExplorerDrawer]);
+  }, [closeSeerExplorerDrawer, openSeerExplorerDrawer, isDrawerOpen]);
 
   const disabledReturn = useMemo(
     () => ({
@@ -119,6 +106,6 @@ export const useSeerExplorerDrawer = () => {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
-    isOpen,
+    isOpen: isDrawerOpen,
   };
 };
