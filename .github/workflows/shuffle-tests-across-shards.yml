@@ -72,7 +72,7 @@ jobs:
           if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
             python3 .github/actions/setup-devservices/bootstrap-snuba.py &
           fi
-          .github/actions/setup-devservices/wait.sh
+          python3 .github/actions/setup-devservices/wait.py
 
       - name: Wait for Snuba bootstrap
         if: env.XDIST_PER_WORKER_SNUBA == '1'
