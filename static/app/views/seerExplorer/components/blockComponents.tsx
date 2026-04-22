@@ -13,7 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   IconCheckmark,
-  IconChevron,
   IconClose,
   IconCopy,
   IconExclamation,
@@ -48,7 +47,6 @@ interface BlockProps {
   isFocused?: boolean;
   isLast?: boolean;
   isLatestTodoBlock?: boolean;
-  isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
   onMouseEnter?: () => void;
@@ -150,7 +148,6 @@ export function BlockComponent({
   isLast,
   isLatestTodoBlock,
   isFocused,
-  isPolling,
   onClick,
   onDelete,
   onMouseEnter,
@@ -362,13 +359,12 @@ export function BlockComponent({
 
   const showActions =
     isFocused &&
-    !isPolling &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
     !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
-  const showCopyButton = block.message.role !== 'tool_use';
+  const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
 
@@ -383,8 +379,7 @@ export function BlockComponent({
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
-          <Flex align="start" width="100%">
-            <BlockChevronIcon direction="right" size="sm" />
+          <Flex align="start" justify="end" width="100%" padding="xl">
             <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
           </Flex>
         ) : (
@@ -530,14 +525,6 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
     p.isLast ? '1px solid transparent' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
-`;
-
-const BlockChevronIcon = styled(IconChevron)`
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-top: 18px;
-  margin-left: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.md};
-  flex-shrink: 0;
 `;
 
 function BlockStatusIndicator({
@@ -707,11 +694,13 @@ const BlockContent = styled(MarkedText)`
 `;
 
 const UserBlockContent = styled('div')`
-  width: 100%;
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl} ${p => p.theme.space.xl} 0;
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   white-space: pre-wrap;
   word-wrap: break-word;
-  color: ${p => p.theme.tokens.content.secondary};
+  color: ${p => p.theme.tokens.content.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: 6px;
 `;
 
 const ToolCallStack = styled(Stack)`

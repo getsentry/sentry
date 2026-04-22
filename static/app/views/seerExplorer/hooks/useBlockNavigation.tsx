@@ -11,7 +11,6 @@ interface UseBlockNavigationProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   isFileApprovalPending?: boolean;
   isMinimized?: boolean;
-  isPolling?: boolean;
   isQuestionPending?: boolean;
   onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
@@ -27,7 +26,6 @@ export function useBlockNavigation({
   setFocusedBlockIndex,
   isFileApprovalPending = false,
   isMinimized = false,
-  isPolling = false,
   isQuestionPending = false,
   onDeleteFromIndex,
   onKeyPress,
@@ -45,10 +43,7 @@ export function useBlockNavigation({
 
       // Don't handle Enter when file approval or question is pending (it's used for approve/submit)
       // or when the run is loading/polling
-      if (
-        (isFileApprovalPending || isQuestionPending || isPolling) &&
-        e.key === 'Enter'
-      ) {
+      if ((isFileApprovalPending || isQuestionPending) && e.key === 'Enter') {
         return;
       }
 
@@ -116,7 +111,6 @@ export function useBlockNavigation({
     setFocusedBlockIndex,
     isFileApprovalPending,
     isMinimized,
-    isPolling,
     isQuestionPending,
     onDeleteFromIndex,
     onKeyPress,

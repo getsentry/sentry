@@ -212,6 +212,18 @@ export function ExplorerDrawerContent({
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
+  const handleSend = useCallback(() => {
+    if (readOnly || isPolling || !inputValue.trim()) {
+      return;
+    }
+    sendMessage(inputValue.trim());
+    setInputValue('');
+    userScrolledUpRef.current = false;
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [readOnly, inputValue, isPolling, sendMessage]);
+
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (readOnly || e.nativeEvent.isComposing) {
@@ -220,19 +232,10 @@ export function ExplorerDrawerContent({
 
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (inputValue.trim() && !isPolling) {
-          sendMessage(inputValue.trim());
-          setInputValue('');
-          // Reset scroll state so we auto-scroll to show the response
-          userScrolledUpRef.current = false;
-          // Reset textarea height
-          if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-          }
-        }
+        handleSend();
       }
     },
-    [readOnly, inputValue, isPolling, sendMessage]
+    [readOnly, handleSend]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -375,7 +378,6 @@ export function ExplorerDrawerContent({
     textareaRef,
     setFocusedBlockIndex,
     isFileApprovalPending,
-    isPolling,
     isQuestionPending,
     onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
@@ -442,7 +444,6 @@ export function ExplorerDrawerContent({
                   index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
                 }
                 isFocused={focusedBlockIndex === index}
-                isPolling={isPolling}
                 readOnly={readOnly}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -502,9 +503,9 @@ export function ExplorerDrawerContent({
         enabled={!readOnly}
         inputValue={inputValue}
         isFocused={focusedBlockIndex === -1}
+        canInterrupt={sessionData?.status === 'processing'} // TODO: update when adding timeouts
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
-        isPolling={isPolling}
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
@@ -512,6 +513,7 @@ export function ExplorerDrawerContent({
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        onSend={handleSend}
         onPRWidgetClick={openPRWidget}
         prWidgetButtonRef={prWidgetButtonRef}
         repoPRStates={repoPRStates}

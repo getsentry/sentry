@@ -7,8 +7,7 @@ import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconPause} from 'sentry/icons';
+import {IconArrow, IconPause} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -32,10 +31,10 @@ interface QuestionActions {
 
 interface InputSectionProps {
   blocks: Block[];
+  canInterrupt: boolean;
   enabled: boolean;
   inputValue: string;
   isFocused: boolean;
-  isPolling: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -43,6 +42,7 @@ interface InputSectionProps {
   onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onPRWidgetClick: () => void;
+  onSend: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -59,7 +59,7 @@ export function InputSection({
   inputValue,
   isFocused,
   isMinimized = false,
-  isPolling,
+  canInterrupt,
   waitingForInterrupt,
   isVisible = false,
   onCreatePR,
@@ -68,6 +68,7 @@ export function InputSection({
   onInterrupt,
   onKeyDown,
   onPRWidgetClick,
+  onSend,
   prWidgetButtonRef,
   repoPRStates,
   textAreaRef,
@@ -257,31 +258,6 @@ export function InputSection({
     );
   }
 
-  const renderActionButton = () => {
-    if (waitingForInterrupt) {
-      return (
-        <ActionButtonWrapper title={t('Winding down...')} isDanger>
-          <LoadingIndicator size={16} />
-        </ActionButtonWrapper>
-      );
-    }
-
-    if (isPolling) {
-      return (
-        <Button
-          icon={<IconPause variant="muted" />}
-          onClick={onInterrupt}
-          size="sm"
-          priority="transparent"
-          aria-label={t('Interrupt')}
-          tooltipProps={{title: t('Press Esc to interrupt')}}
-        />
-      );
-    }
-
-    return null;
-  };
-
   return (
     <InputBlock>
       <InputRow>
@@ -294,14 +270,34 @@ export function InputSection({
             onClick={onInputClick}
             placeholder={
               isFocused
-                ? t('Type your message or / command and press Enter ↵')
+                ? t('Ask seer a question, or press / for commands.')
                 : t('Press Tab ⇥ to return here')
             }
             rows={1}
             data-test-id="seer-explorer-input"
           />
-          <InputGroup.TrailingItems>{renderActionButton()}</InputGroup.TrailingItems>
         </StyledInputGroup>
+        {canInterrupt || waitingForInterrupt ? (
+          <PauseButton
+            icon={<IconPause />}
+            onClick={onInterrupt}
+            size="md"
+            priority="primary"
+            disabled={waitingForInterrupt}
+            aria-label={t('Interrupt button')}
+            tooltipProps={{
+              title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+            }}
+          />
+        ) : (
+          <SendButton
+            icon={<IconArrow direction="right" />}
+            onClick={onSend}
+            size="md"
+            disabled={!inputValue.trim()}
+            aria-label={t('Send message')}
+          />
+        )}
         {enabled && hasCodeChanges && (
           <PRWidget
             ref={prWidgetButtonRef}
@@ -355,22 +351,27 @@ const ActionBar = styled(motion.div)`
   bottom: 0;
 `;
 
-const ActionButtonWrapper = styled('div')<{isDanger?: boolean}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+const SendButton = styled(Button)`
+  width: ${p => p.theme.form.md.height};
+  flex-shrink: 0;
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.primary};
 
-  .loading-indicator {
-    margin: 0;
-    padding: 0;
-    ${p =>
-      p.isDanger &&
-      `
-      border-color: ${p.theme.tokens.content.warning};
-      border-left-color: transparent;
-    `}
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    background: ${p => p.theme.tokens.background.primary};
+    color: ${p => p.theme.tokens.content.primary};
+  }
+`;
+
+const PauseButton = styled(Button)`
+  width: ${p => p.theme.form.md.height};
+  flex-shrink: 0;
+  background: ${p => p.theme.tokens.background.promotion.vibrant};
+  border-color: ${p => p.theme.tokens.border.promotion.vibrant};
+
+  &:disabled {
+    opacity: 0.5;
   }
 `;
 
