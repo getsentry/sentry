@@ -111,7 +111,7 @@ const DelayGroupContext = createContext<DelayGroup>(defaultDelayGroup);
  * that needs isolated groups (e.g. a fullscreen modal).
  */
 export function HoverOverlayGroupProvider({children}: {children: React.ReactNode}) {
-  const group = useMemo(createDelayGroup, []);
+  const [group] = useState(createDelayGroup);
   useEffect(() => {
     return () => {
       if (group.coolDownTimer !== undefined) {
