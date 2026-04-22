@@ -65,10 +65,6 @@ jobs:
         with:
           mode: default
 
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
-
       - name: Run API docs tests
         run: |
           make test-api-docs
@@ -244,10 +240,6 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
-
       - name: Download odiff binary
         run: |
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
@@ -390,10 +382,6 @@ jobs:
         with:
           mode: default
 
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
-
       - name: run tests
         run: |
           PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=120s" make test-python-ci
@@ -431,10 +419,6 @@ jobs:
         id: setup
         with:
           mode: migrations
-
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Run test
         env:
@@ -511,10 +495,6 @@ jobs:
         with:
           mode: backend-ci
 
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
-
       - name: Sync API Urls to TypeScript
         run: |
           python3 -m tools.api_urls_to_typescript
@@ -541,10 +521,6 @@ jobs:
         id: setup
         with:
           mode: migrations
-
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Migration & lockfile checks
         env:
@@ -579,10 +555,6 @@ jobs:
         id: setup
         with:
           mode: migrations
-
-      - name: Wait for devservices
-        run: |
-          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Run test
         run: |

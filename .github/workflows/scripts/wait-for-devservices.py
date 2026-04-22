@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-"""Log container health after devservices up and set DJANGO_LIVE_TEST_SERVER_ADDRESS.
+"""Log container health after devservices up.
 
 Usage: wait-for-devservices.py
-
-Writes: $GITHUB_ENV  (DJANGO_LIVE_TEST_SERVER_ADDRESS)
 """
 
 from __future__ import annotations
 
 import json
-import os
 import subprocess
-import sys
 
 
 def log(msg: str) -> None:
@@ -50,25 +46,5 @@ def container_inspect_dump() -> None:
             log(f"  exit={entry['ExitCode']}  {entry['Output'].strip()}")
 
 
-def run() -> None:
-    container_inspect_dump()
-
-    r = docker(
-        "network",
-        "inspect",
-        "bridge",
-        "--format",
-        "{{(index .IPAM.Config 0).Gateway}}",
-    )
-    if r.returncode != 0:
-        log(f"::error::docker network inspect bridge failed: {r.stderr.strip()}")
-        sys.exit(1)
-    gateway = r.stdout.strip()
-    github_env = os.environ.get("GITHUB_ENV")
-    if github_env:
-        with open(github_env, "a") as f:
-            f.write(f"DJANGO_LIVE_TEST_SERVER_ADDRESS={gateway}\n")
-
-
 if __name__ == "__main__":
-    run()
+    container_inspect_dump()
