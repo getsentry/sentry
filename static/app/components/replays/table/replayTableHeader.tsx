@@ -87,8 +87,8 @@ export function ReplayTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <FullGridAlert variant="info" system>
+          <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn(
               'Selected %s visible replay.',
               'Selected %s visible replays.',
@@ -106,22 +106,14 @@ export function ReplayTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap">
-            <span>
-              {queryString
-                ? tct('Selected all replays matching: [queryString].', {
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > replays.length
-                  ? t('Selected all %s+ replays.', replays.length)
-                  : tn(
-                      'Selected all %s replay.',
-                      'Selected all %s replays.',
-                      countSelected
-                    )}
-            </span>
-          </Flex>
+        <FullGridAlert variant="info" system>
+          {queryString
+            ? tct('Selected all replays matching: [queryString].', {
+                queryString: <var>{queryString}</var>,
+              })
+            : countSelected > replays.length
+              ? t('Selected all %s+ replays.', replays.length)
+              : tn('Selected all %s replay.', 'Selected all %s replays.', countSelected)}
         </FullGridAlert>
       ) : null}
     </Fragment>
