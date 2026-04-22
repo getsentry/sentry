@@ -51,8 +51,8 @@ describe('getHighlightedSpanAttributes', () => {
     };
 
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Gen AI cost data missing for model: gpt-4',
-      expectedContext
+      'Gen AI cost data missing for model',
+      {...expectedContext, fingerprint: ['Gen AI cost data missing for model']}
     );
   });
 
@@ -102,28 +102,26 @@ describe('getHighlightedSpanAttributes', () => {
       attributes,
     });
 
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Gen AI span with negative cost: gpt-4',
-      {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          span_type: 'gen_ai',
-          has_model: 'true',
-          has_cost: 'true',
-          model: 'gpt-4',
-          integration: 'openai',
-          platform: 'python',
-          version: '2.0.0',
-          org_id: '42',
-          ai_cost_warning: 'true',
-        },
-        extra: {
-          total_costs: '-1',
-          attributes,
-        },
-      }
-    );
+    expect(Sentry.captureMessage).toHaveBeenCalledWith('Gen AI span with negative cost', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'true',
+        model: 'gpt-4',
+        integration: 'openai',
+        platform: 'python',
+        version: '2.0.0',
+        org_id: '42',
+        ai_cost_warning: 'true',
+      },
+      extra: {
+        total_costs: '-1',
+        attributes,
+      },
+      fingerprint: ['Gen AI span with negative cost'],
+    });
   });
 
   it('should not emit Sentry error for non-gen_ai spans', () => {

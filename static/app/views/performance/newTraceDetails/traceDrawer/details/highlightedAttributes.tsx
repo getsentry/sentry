@@ -180,11 +180,11 @@ function getAISpanAttributes({
         (inputTokens || outputTokens) &&
         (!totalCosts || Number(totalCosts) === 0)
       ),
-      messages: [`Gen AI cost data missing for model: ${model?.toString()}`],
+      messages: ['Gen AI cost data missing for model'],
     },
     {
       shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
-      messages: [`Gen AI span with negative cost: ${model?.toString()}`],
+      messages: ['Gen AI span with negative cost'],
     },
   ];
   const shouldCapture = captureRules.some(rule => rule.shouldCapture);
@@ -220,7 +220,10 @@ function getAISpanAttributes({
       .filter(rule => rule.shouldCapture)
       .flatMap(rule => rule.messages)
       .forEach(message => {
-        Sentry.captureMessage(message, contextData);
+        Sentry.captureMessage(message, {
+          ...contextData,
+          fingerprint: [message],
+        });
       });
   }
 
