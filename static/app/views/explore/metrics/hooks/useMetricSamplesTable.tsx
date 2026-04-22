@@ -44,6 +44,7 @@ interface UseMetricSamplesTableOptions {
   disabled?: boolean;
   ingestionDelaySeconds?: number;
   queryExtras?: RPCQueryExtras;
+  staleTime?: number;
   traceMetric?: TraceMetric;
 }
 
@@ -131,6 +132,7 @@ function useMetricsQueryKey({
     const {start, end, period, utc} = baseDatetime;
 
     const periodMs = period ? intervalToMilliseconds(period) : 0;
+
     if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
       const startTime = moment().subtract(periodMs, 'milliseconds');
       const delayedEndTime = moment().subtract(ingestionDelaySeconds, 'seconds');
@@ -208,6 +210,7 @@ export function useMetricSamplesTable({
   fields,
   ingestionDelaySeconds,
   queryExtras,
+  staleTime,
 }: UseMetricSamplesTableOptions) {
   const canTriggerHighAccuracy = useCallback(
     (result: MetricSamplesTableResult['result']) => {
@@ -227,6 +230,7 @@ export function useMetricSamplesTable({
       fields,
       ingestionDelaySeconds,
       queryExtras,
+      staleTime,
     },
     queryOptions: {
       canTriggerHighAccuracy,
@@ -241,6 +245,7 @@ function useMetricSamplesTableImpl({
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
+  staleTime,
 }: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
   const {queryKey, other} = useMetricsQueryKey({
     limit,
@@ -253,7 +258,7 @@ function useMetricSamplesTableImpl({
 
   const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
     enabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
+    staleTime: staleTime ?? getStaleTimeForEventView(other.eventView),
   });
 
   return {
