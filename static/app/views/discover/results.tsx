@@ -1333,7 +1333,7 @@ function DiscoverPageFilters({
 
   return (
     <Wrapper>
-      <PageFilterBar>
+      <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
