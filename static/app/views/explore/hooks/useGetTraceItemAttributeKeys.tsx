@@ -2,7 +2,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';
 import {
   getTraceItemTagCollection,
@@ -43,7 +43,7 @@ export function useGetTraceItemAttributeKeys({
             projectIds: projectIds ?? selection.projects,
             search: queryString,
             query,
-            staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+            staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
           }),
         });
         return getTraceItemTagCollection(json);
