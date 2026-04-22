@@ -237,7 +237,7 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
             recovery_threshold=2,
         )
 
-        base_time = datetime(2025, 10, 29, 13, 30, 0, tzinfo=timezone.utc)
+        base_time = MOCK_DATETIME.replace(hour=13, minute=30, second=0, microsecond=0)
 
         test_scenarios = [
             # 2 OK checks before incident
