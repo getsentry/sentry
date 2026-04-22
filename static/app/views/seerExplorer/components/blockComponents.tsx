@@ -362,10 +362,9 @@ export function BlockComponent({
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly &&
-    block.message.role !== 'user';
+    !readOnly;
   const showFeedbackButtons = block.message.role === 'assistant';
-  const showCopyButton = block.message.role !== 'tool_use';
+  const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
 
