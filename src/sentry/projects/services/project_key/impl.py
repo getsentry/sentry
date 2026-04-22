@@ -1,5 +1,6 @@
 from django.db.models import F
 
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.projects.services.project_key import ProjectKeyRole, ProjectKeyService, RpcProjectKey
 from sentry.projects.services.project_key.serial import serialize_project_key
@@ -26,8 +27,6 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
     def get_default_project_key(
         self, *, organization_id: int, project_id: int
     ) -> RpcProjectKey | None:
-        from sentry.models.project import Project
-
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
@@ -44,8 +43,12 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
     def create_project_key(
         self, *, organization_id: int, project_id: int, label: str | None = None
     ) -> RpcProjectKey | None:
-        from sentry.models.project import Project
-
+        """Create a new ProjectKey under the given project. ``label`` is
+        the display name shown in the Keys list UI; when None or empty,
+        ProjectKey.save() auto-generates a random petname (see
+        projectkey.py) rather than leaving the label blank. Returns the
+        serialized key or None if the project doesn't exist under the
+        given organization."""
         try:
             project = Project.objects.get(id=project_id, organization_id=organization_id)
         except Project.DoesNotExist:
@@ -57,9 +60,18 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
     def delete_project_key(self, *, organization_id: int, project_id: int, public_key: str) -> bool:
         # Scope by organization+project so a stolen or malformed key value
         # can't delete keys on an unrelated project.
-        deleted_count, _ = ProjectKey.objects.filter(
-            project__organization_id=organization_id,
-            project_id=project_id,
-            public_key=public_key,
-        ).delete()
-        return deleted_count > 0
+        #
+        # ProjectKey is a ReplicatedCellModel; a naive QuerySet.delete()
+        # bypasses the per-instance override that emits the outbox for
+        # cross-silo replica cleanup. Fetch the row first so the
+        # model-level delete() runs and outboxes correctly.
+        try:
+            key = ProjectKey.objects.get(
+                project__organization_id=organization_id,
+                project_id=project_id,
+                public_key=public_key,
+            )
+        except ProjectKey.DoesNotExist:
+            return False
+        key.delete()
+        return True
