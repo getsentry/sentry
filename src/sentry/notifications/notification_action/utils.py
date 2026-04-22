@@ -148,7 +148,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
 
 
 def metric_alert_notification_data_factory(
-    invocation: ActionInvocation,
+    issue_notif_context: IssueNotificationContext,
 ) -> MetricAlertNotificationData:
     from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
         get_alert_rule_serializer,
@@ -156,7 +156,6 @@ def metric_alert_notification_data_factory(
         get_detector_serializer,
     )
 
-    issue_notif_context = IssueNotificationContext(invocation)
     notification_context = issue_notif_context.notification_context
     alert_context = issue_notif_context.alert_context
     metric_issue_context = issue_notif_context.metric_issue_context
@@ -169,17 +168,17 @@ def metric_alert_notification_data_factory(
     if notification_context.target_identifier is None:
         raise ValueError("Slack channel is None")
 
-    referrer = f"metric_alert_{invocation.action.type}"
+    referrer = f"metric_alert_{issue_notif_context.action_type}"
     attachment_info = incident_attachment_info(
         organization=organization,
         alert_context=alert_context,
         metric_issue_context=metric_issue_context,
-        notification_uuid=invocation.notification_uuid,
+        notification_uuid=issue_notif_context.notification_uuid,
         referrer=referrer,
     )
 
-    alert_rule_serialized_response = get_alert_rule_serializer(invocation.detector)
-    detector_serialized_response = get_detector_serializer(invocation.detector)
+    alert_rule_serialized_response = get_alert_rule_serializer(issue_notif_context.detector)
+    detector_serialized_response = get_detector_serializer(issue_notif_context.detector)
     incident_serialized_response = get_detailed_incident_serializer(issue_notif_context.open_period)
 
     chart_url = None
@@ -205,7 +204,7 @@ def metric_alert_notification_data_factory(
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
         organization_id=organization.id,
-        notification_uuid=invocation.notification_uuid,
+        notification_uuid=issue_notif_context.notification_uuid,
         action_id=notification_context.id,
         open_period_context=open_period_context,
         new_status=metric_issue_context.new_status.value,
