@@ -120,8 +120,10 @@ def test_replay_data_export_no_replay_projects(  # type: ignore[no-untyped-def]
 @pytest.mark.snuba
 @requires_snuba
 def test_replay_data_export_no_replay_data(  # type: ignore[no-untyped-def]
-    default_organization, default_project
+    default_organization, default_project, call_snuba
 ) -> None:
+    # Drop any replay data left by other tests to prevent false positives.
+    call_snuba("/tests/replays/drop")
     # Setting has_replays flag because the export will skip projects it assumes do not have
     # replays.
     default_project.flags.has_replays = True
