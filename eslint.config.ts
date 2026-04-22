@@ -835,7 +835,6 @@ export default typescript.config([
       'unicorn/no-unnecessary-array-splice-count': 'off',
       'unicorn/no-unnecessary-slice-end': 'off',
       'unicorn/no-unreadable-array-destructuring': 'off',
-      'unicorn/no-useless-collection-argument': 'off',
       'unicorn/no-useless-promise-resolve-reject': 'off',
       'unicorn/no-useless-spread': 'off',
       'unicorn/no-useless-switch-case': 'off',
