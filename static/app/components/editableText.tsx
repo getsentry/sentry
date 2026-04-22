@@ -201,6 +201,7 @@ export function EditableText({
         <InputWrapper
           ref={innerWrapperRef}
           isEmpty={isDraftEmpty}
+          isCompact={isCompact}
           data-test-id="editable-text-input"
         >
           <StyledInput
@@ -215,7 +216,7 @@ export function EditableText({
             placeholder={placeholder}
             isCompact={isCompact}
           />
-          <InputLabel>{currentDraft}</InputLabel>
+          <InputLabel isCompact={isCompact}>{currentDraft}</InputLabel>
         </InputWrapper>
       ) : (
         <Label
@@ -247,13 +248,13 @@ const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
   line-height: ${p => (p.isCompact ? 'inherit' : '38px')};
 `;
 
-const InputWrapper = styled('div')<{isEmpty: boolean}>`
+const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.tokens.background.tertiary};
   border-radius: ${p => p.theme.radius.md};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
+  margin: ${p => (p.isCompact ? 0 : `-${p.theme.space.xs} -${p.theme.space.md}`)};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  max-width: calc(100% + ${p => p.theme.space.xl});
+  max-width: ${p => (p.isCompact ? '100%' : `calc(100% + ${p.theme.space.xl})`)};
 `;
 
 const StyledInput = styled(Input)<{isCompact?: boolean}>`
@@ -271,11 +272,11 @@ const StyledInput = styled(Input)<{isCompact?: boolean}>`
   }
 `;
 
-const InputLabel = styled('div')`
+const InputLabel = styled('div')<{isCompact: boolean}>`
   height: 0;
   opacity: 0;
   white-space: pre;
-  padding: 0 ${p => p.theme.space.md};
+  padding: 0 ${p => (p.isCompact ? 0 : p.theme.space.md)};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
