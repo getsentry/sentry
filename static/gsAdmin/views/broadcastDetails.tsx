@@ -43,6 +43,10 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
+// Fields the backend accepts as null to clear the stored value.
+// Mirror `allow_null=True` in AdminBroadcastValidator.
+const NULLABLE_FIELDS = new Set(['dateExpires']);
+
 export function BroadcastDetails() {
   const {broadcastId} = useParams<{broadcastId: string}>();
   const api = useApi();
@@ -153,7 +157,10 @@ export function BroadcastDetails() {
       onSubmit={(formData: Record<string, any>) => {
         const payload: Record<string, any> = {};
         for (const [key, value] of Object.entries(formData)) {
-          if (value === '' || value === null || value === undefined) {
+          if (value === '' || value === undefined) {
+            continue;
+          }
+          if (value === null && !NULLABLE_FIELDS.has(key)) {
             continue;
           }
           payload[key] = value;
