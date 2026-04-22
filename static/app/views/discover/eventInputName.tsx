@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {EditableText} from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -69,13 +71,15 @@ export function EventInputName({
 
   if (compact) {
     return (
-      <EditableText
-        value={value}
-        onChange={handleChange}
-        isDisabled={!eventView.id || isHomepage}
-        errorMessage={t('Please set a name for this query')}
-        variant="compact"
-      />
+      <CompactWrapper>
+        <EditableText
+          value={value}
+          onChange={handleChange}
+          isDisabled={!eventView.id || isHomepage}
+          errorMessage={t('Please set a name for this query')}
+          variant="compact"
+        />
+      </CompactWrapper>
     );
   }
 
@@ -90,3 +94,8 @@ export function EventInputName({
     </Layout.Title>
   );
 }
+
+const CompactWrapper = styled('div')`
+  font-size: ${p => p.theme.font.size.xl};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+`;
