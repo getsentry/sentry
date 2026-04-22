@@ -202,6 +202,7 @@ function MetricsTabBodySection({
                   label={t('Add Equation')}
                 />
               )}
+              <MetricSaveAs size="md" />
             </Flex>
           )}
         </WidgetSyncContextProvider>
