@@ -103,14 +103,17 @@ describe('registerLLMContext — nesting', () => {
         nodes: [
           {
             nodeType: 'dashboard',
+            priority: 0,
             data: {name: 'Backend Health'},
             children: [
               {
                 nodeType: 'widget',
+                priority: 0,
                 data: {title: 'Error Rate', type: 'timeseries', unit: 'ms'},
                 children: [
                   {
                     nodeType: 'chart',
+                    priority: 0,
                     data: {label: 'p99'},
                     children: [],
                   },
