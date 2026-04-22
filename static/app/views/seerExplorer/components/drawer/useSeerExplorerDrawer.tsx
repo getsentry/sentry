@@ -83,6 +83,7 @@ export const useSeerExplorerDrawer = ({
         {
           ariaLabel: t('Seer Explorer Drawer'),
           drawerKey: 'seer-explorer-drawer',
+          drawerWidth: '30%',
           resizable: true,
           mode: 'passive',
           onOpen,

@@ -233,6 +233,15 @@ export function ExplorerDrawerContent({
     [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
   );
 
+  const resizeTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) {
+      return;
+    }
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     if (focusedBlockIndex !== -1) {
@@ -240,6 +249,31 @@ export function ExplorerDrawerContent({
       textareaRef.current?.focus();
     }
   };
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [inputValue, resizeTextarea]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    let lastWidth = el.clientWidth;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+      const width = entry.contentRect.width;
+      if (width !== lastWidth) {
+        lastWidth = width;
+        resizeTextarea();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [resizeTextarea]);
 
   const handleInputClick = useCallback(() => {
     focusInput();
@@ -514,4 +548,5 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  container-type: inline-size;
 `;

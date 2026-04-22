@@ -47,7 +47,7 @@ export function EmptyState({
           <IconSeer size="xl" animation="waiting" />
           <Text>{t('Ask Seer anything about your application.')}</Text>
           {onSuggestionClick && (
-            <Flex direction="column" align="center" gap="md" paddingTop="2xl">
+            <SuggestionList direction="column" align="center" gap="md" paddingTop="2xl">
               {SUGGESTED_QUESTIONS.map(question => (
                 <SuggestionButton
                   key={question}
@@ -57,7 +57,7 @@ export function EmptyState({
                   {question}
                 </SuggestionButton>
               ))}
-            </Flex>
+            </SuggestionList>
           )}
         </Fragment>
       )}
@@ -73,14 +73,34 @@ const Container = styled('div')`
   justify-content: center;
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
+
+  @container (max-width: 480px) {
+    padding: ${p => p.theme.space.xl};
+  }
+`;
+
+const SuggestionList = styled(Flex)`
+  width: 100%;
+  max-width: 100%;
 `;
 
 const SuggestionButton = styled(Button)`
-  height: 28px;
+  max-width: 100%;
+  height: auto;
+  min-height: 28px;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 16px;
+
+  > span {
+    white-space: normal !important;
+    height: auto !important;
+  }
+
+  @container (max-width: 480px) {
+    font-size: ${p => p.theme.font.size.xs};
+  }
 `;
 
 const Text = styled('div')`
@@ -88,5 +108,5 @@ const Text = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
-  max-width: 300px;
+  max-width: min(300px, 100%);
 `;

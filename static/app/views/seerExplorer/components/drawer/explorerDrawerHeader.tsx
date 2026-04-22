@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -105,7 +106,7 @@ export function ExplorerDrawerHeader({
         />
       </Flex>
       <Flex flex="1" />
-      <Flex gap="md">
+      <ActionGroup gap="md">
         {showContextEngineToggle && (
           <Tooltip
             title={
@@ -114,17 +115,17 @@ export function ExplorerDrawerHeader({
                 : t('Context engine disabled (click to enable)')
             }
           >
-            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+            <ToggleGroup align="center" gap="xs" padding="xs sm" height="100%">
               <Switch
                 size="sm"
                 checked={overrideCtxEngEnable}
                 onChange={onOverrideCtxEngEnableToggle}
                 aria-label={t('Toggle context engine')}
               />
-              <Text size="sm" variant="muted">
+              <ToggleLabel size="sm" variant="muted">
                 {t('CE')}
-              </Text>
-            </Flex>
+              </ToggleLabel>
+            </ToggleGroup>
           </Tooltip>
         )}
         {showCodeModeToggle && (
@@ -135,17 +136,17 @@ export function ExplorerDrawerHeader({
                 : t('Code mode disabled (click to enable)')
             }
           >
-            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+            <ToggleGroup align="center" gap="xs" padding="xs sm" height="100%">
               <Switch
                 size="sm"
                 checked={overrideCodeModeEnable}
                 onChange={onOverrideCodeModeEnableToggle}
                 aria-label={t('Toggle code mode')}
               />
-              <Text size="sm" variant="muted">
+              <ToggleLabel size="sm" variant="muted">
                 {t('CM')}
-              </Text>
-            </Flex>
+              </ToggleLabel>
+            </ToggleGroup>
           </Tooltip>
         )}
         <Button
@@ -171,7 +172,7 @@ export function ExplorerDrawerHeader({
             size: 'xs',
           }}
         />
-        <Button
+        <NewChatButton
           icon={<IconAdd />}
           onClick={onNewChatClick}
           priority="default"
@@ -179,12 +180,48 @@ export function ExplorerDrawerHeader({
           aria-label={t('Start a new chat (/new)')}
           tooltipProps={{title: t('Start a new chat (/new)')}}
         >
-          {t('New chat')}
-        </Button>
-      </Flex>
+          <NewChatLabel>{t('New chat')}</NewChatLabel>
+        </NewChatButton>
+      </ActionGroup>
     </DrawerHeader>
   );
 }
+
+const ActionGroup = styled(Flex)`
+  min-width: 0;
+  flex-shrink: 1;
+`;
+
+const ToggleGroup = styled(Flex)`
+  @container (max-width: 420px) {
+    padding: ${p => p.theme.space.xs};
+  }
+`;
+
+const ToggleLabel = styled(Text)`
+  @container (max-width: 420px) {
+    display: none;
+  }
+`;
+
+const NewChatButton = styled(Button)`
+  @container (max-width: 420px) {
+    padding: 0;
+    min-width: ${p => p.theme.form.xs.height};
+    width: ${p => p.theme.form.xs.height};
+
+    /* Remove the icon's right margin that's reserved for the label */
+    > span > span:first-of-type {
+      margin-right: 0;
+    }
+  }
+`;
+
+const NewChatLabel = styled('span')`
+  @container (max-width: 420px) {
+    display: none;
+  }
+`;
 
 function useSessionMenuItems({
   onChangeSession,
