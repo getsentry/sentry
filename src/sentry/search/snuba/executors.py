@@ -43,7 +43,12 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+from sentry.utils.snuba import (
+    EmptyGroupIdIntersectionError,
+    SnubaQueryParams,
+    aliased_query_params,
+    bulk_raw_query,
+)
 
 FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
@@ -465,6 +470,10 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     aggregate_kwargs,
                 )
             except UnsupportedSearchQuery:
+                pass
+            except EmptyGroupIdIntersectionError:
+                # Postgres candidates and the snuba group_id condition are
+                # disjoint for this category — it can't match anything. Skip it.
                 pass
             else:
                 if query_params is not None:

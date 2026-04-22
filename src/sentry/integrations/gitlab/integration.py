@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 from urllib.parse import urlparse
 
-from django import forms
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import BooleanField, CharField, URLField
 
@@ -15,7 +13,6 @@ from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.identity.gitlab.provider import GitlabIdentityProvider, get_oauth_data, get_user_info
 from sentry.identity.oauth2 import OAuth2ApiStep
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -44,8 +41,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,
@@ -58,7 +54,6 @@ from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .client import GitLabApiClient, GitLabSetupApiClient
 from .issue_sync import GitlabIssueSyncSpec
@@ -466,7 +461,7 @@ class InstallationConfigApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        # Strip trailing slash from URL (same as InstallationForm.clean_url)
+        # Strip trailing slash from URL to avoid invalid URLs downstream
         validated_data["url"] = validated_data["url"].rstrip("/")
 
         pipeline.bind_state("installation_data", validated_data)
@@ -493,134 +488,6 @@ class InstallationConfigApiStep:
         return PipelineStepResult.advance()
 
 
-class InstallationForm(forms.Form):
-    url = forms.CharField(
-        label=_("GitLab URL"),
-        help_text=_(
-            "The base URL for your GitLab instance, including the host and protocol. "
-            "Do not include the group path."
-            "<br>"
-            "If using gitlab.com, enter https://gitlab.com/"
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "https://gitlab.example.com"}),
-    )
-    group = forms.CharField(
-        label=_("GitLab Group Path"),
-        help_text=_(
-            "This can be found in the URL of your group's GitLab page."
-            "<br>"
-            "For example, if your group URL is "
-            "https://gitlab.com/my-group/my-subgroup, enter `my-group/my-subgroup`."
-            "<br>"
-            "If you are trying to integrate an entire self-managed GitLab instance, "
-            "leave this empty. Doing so will also allow you to select projects in "
-            "all group and user namespaces (such as users' personal repositories and forks)."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": _("my-group/my-subgroup")}),
-        required=False,
-    )
-    include_subgroups = forms.BooleanField(
-        label=_("Include Subgroups"),
-        help_text=_(
-            "Include projects in subgroups of the GitLab group."
-            "<br>"
-            "Not applicable when integrating an entire GitLab instance. "
-            "All groups are included for instance-level integrations."
-        ),
-        widget=forms.CheckboxInput(),
-        required=False,
-        initial=False,
-    )
-    verify_ssl = forms.BooleanField(
-        label=_("Verify SSL"),
-        help_text=_(
-            "By default, we verify SSL certificates "
-            "when delivering payloads to your GitLab instance, "
-            "and request GitLab to verify SSL when it delivers "
-            "webhooks to Sentry."
-        ),
-        widget=forms.CheckboxInput(),
-        required=False,
-        initial=True,
-    )
-    client_id = forms.CharField(
-        label=_("GitLab Application ID"),
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": _("5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737")
-            }
-        ),
-    )
-    client_secret = forms.CharField(
-        label=_("GitLab Application Secret"),
-        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
-    )
-
-    def clean_url(self):
-        """Strip off trailing / as they cause invalid URLs downstream"""
-        return self.cleaned_data["url"].rstrip("/")
-
-
-class InstallationConfigView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if "goback" in request.GET:
-            pipeline.state.step_index = 0
-            return pipeline.current_step()
-
-        if request.method == "POST":
-            form = InstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                pipeline.bind_state("installation_data", form_data)
-
-                pipeline.bind_state(
-                    "oauth_config_information",
-                    {
-                        "access_token_url": "{}/oauth/token".format(form_data.get("url")),
-                        "authorize_url": "{}/oauth/authorize".format(form_data.get("url")),
-                        "client_id": form_data.get("client_id"),
-                        "client_secret": form_data.get("client_secret"),
-                        "verify_ssl": form_data.get("verify_ssl"),
-                    },
-                )
-                pipeline.get_logger().info(
-                    "gitlab.setup.installation-config-view.success",
-                    extra={
-                        "base_url": form_data.get("url"),
-                        "client_id": form_data.get("client_id"),
-                        "verify_ssl": form_data.get("verify_ssl"),
-                    },
-                )
-                return pipeline.next_step()
-        else:
-            form = InstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/gitlab-config.html",
-            context={"form": form},
-            request=request,
-        )
-
-
-class InstallationGuideView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if "completed_installation_guide" in request.GET:
-            return pipeline.next_step()
-        return render_to_response(
-            template="sentry/integrations/gitlab-config.html",
-            context={
-                "next_url": f"{absolute_uri('/extensions/gitlab/setup/')}?completed_installation_guide",
-                "setup_values": [
-                    {"label": "Name", "value": "Sentry"},
-                    {"label": "Redirect URI", "value": absolute_uri("/extensions/gitlab/setup/")},
-                    {"label": "Scopes", "value": "api"},
-                ],
-            },
-            request=request,
-        )
-
-
 class GitlabIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.GITLAB.value
     name = "GitLab"
@@ -639,30 +506,6 @@ class GitlabIntegrationProvider(IntegrationProvider):
     )
 
     setup_dialog_config = {"width": 1030, "height": 1000}
-
-    def _make_identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
-        """
-        Make the nested identity provider view. It is important that this view is
-        not constructed until we reach this step and the
-        ``oauth_config_information`` is available in the pipeline state. This
-        method should be late bound into the pipeline vies.
-        """
-        oauth_information = self.pipeline.fetch_state("oauth_config_information")
-        if oauth_information is None:
-            raise AssertionError("pipeline called out of order")
-
-        identity_pipeline_config = dict(
-            oauth_scopes=sorted(GitlabIdentityProvider.oauth_scopes),
-            redirect_url=absolute_uri("/extensions/gitlab/setup/"),
-            **oauth_information,
-        )
-
-        return NestedPipelineView(
-            bind_key="identity",
-            provider_key=IntegrationProviderSlug.GITLAB.value,
-            pipeline_cls=IdentityPipeline,
-            config=identity_pipeline_config,
-        )
 
     def get_group_info(self, access_token, installation_data):
         client = GitLabSetupApiClient(
@@ -693,16 +536,8 @@ class GitlabIntegrationProvider(IntegrationProvider):
                 f"The requested GitLab group {requested_group} could not be found."
             )
 
-    def get_pipeline_views(
-        self,
-    ) -> Sequence[
-        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
-    ]:
-        return (
-            InstallationGuideView(),
-            InstallationConfigView(),
-            lambda: self._make_identity_pipeline_view(),
-        )
+    def get_pipeline_views(self) -> list:
+        return []
 
     def _make_oauth_api_step(self) -> OAuth2ApiStep:
         oauth_info = self.pipeline._fetch_state("oauth_config_information")
@@ -726,13 +561,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         ]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        # TODO: legacy views write token data to state["identity"]["data"] via
-        # NestedPipelineView. API steps write directly to state["oauth_data"].
-        # Remove the legacy path once the old views are retired.
-        if "oauth_data" in state:
-            data = state["oauth_data"]
-        else:
-            data = state["identity"]["data"]
+        data = state["oauth_data"]
 
         # Gitlab requires the client_id and client_secret for refreshing the access tokens
         oauth_config = state.get("oauth_config_information", {})

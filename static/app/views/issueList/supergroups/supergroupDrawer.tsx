@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -15,8 +16,9 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -32,6 +34,7 @@ import {IconChevron, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -70,14 +73,34 @@ export function SupergroupDetailDrawer({
   memberList,
   filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('supergroup.drawer_opened', {
+      supergroup_id: supergroup.id,
+      organization,
+    });
+  }, [supergroup.id, organization]);
+
   return (
-    <Fragment>
+    <AnalyticsArea name="supergroup_drawer">
       <DrawerHeader hideBar>
         <Flex justify="between" align="center" gap="md" flexGrow={1}>
           <Flex align="center" gap="sm">
             <NavigationCrumbs crumbs={[{label: t('Issue Groups')}]} />
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              formTitle: t('Give feedback on Issue Groups'),
+              messagePlaceholder: t('How can we make Issue Groups better for you?'),
+              tags: {
+                ['feedback.source']: 'supergroup_drawer',
+              },
+            }}
+            tooltipProps={{title: t('Give feedback on Issue Groups')}}
+          />
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>
@@ -125,11 +148,19 @@ export function SupergroupDetailDrawer({
           </Container>
         )}
       </DrawerContentBody>
-    </Fragment>
+    </AnalyticsArea>
   );
 }
 
 const PAGE_SIZE = 25;
+
+/**
+ * How many items we're willing to hoist. Doubles as the inline-id cap (members
+ * we'll embed in `issue.id:[…]` before the URL gets too big) and the stream-
+ * scan window (top stream results we inspect when the id list is too big to
+ * inline).
+ */
+const HOIST_LIMIT = 50;
 
 function SupergroupIssueList({
   groupIds,
@@ -154,8 +185,8 @@ function SupergroupIssueList({
   } = location.query;
   const query = typeof searchQuery === 'string' ? searchQuery : '';
 
-  // Search with the stream query across all member issues so matched issues
-  // can be hoisted to page 1 before pagination.
+  const inlineIdListFits = groupIds.length <= HOIST_LIMIT;
+
   const {data: matchedGroups, isPending: matchedPending} = useQuery({
     ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
@@ -165,37 +196,57 @@ function SupergroupIssueList({
         statsPeriod,
         start,
         end,
-        query: `${query} issue.id:[${groupIds.join(',')}]`,
-        per_page: PAGE_SIZE,
+        query: inlineIdListFits ? `${query} issue.id:[${groupIds.join(',')}]` : query,
+        per_page: HOIST_LIMIT,
       },
       staleTime: 30_000,
     }),
-    enabled: !!filterWithCurrentSearch,
+    enabled: !!filterWithCurrentSearch && groupIds.length > 0,
   });
 
-  const matchedIds = new Set(matchedGroups?.map(g => g.id));
-  const sortedGroupIds = [...groupIds].sort(
-    (a, b) => Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
+  const matchedIds = useMemo(() => {
+    if (!matchedGroups) {
+      return new Set<string>();
+    }
+    if (inlineIdListFits) {
+      return new Set(matchedGroups.map(g => g.id));
+    }
+    const memberSet = new Set(groupIds.map(String));
+    return new Set(matchedGroups.map(g => g.id).filter(id => memberSet.has(id)));
+  }, [matchedGroups, inlineIdListFits, groupIds]);
+
+  // When filtering with the stream query, wait for the match so the IDs we
+  // fetch reflect the hoisted ordering.
+  const pageFetchReady = !filterWithCurrentSearch || !matchedPending;
+  const sortedGroupIds = useMemo(
+    () =>
+      filterWithCurrentSearch
+        ? [...groupIds].sort(
+            (a, b) =>
+              Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
+          )
+        : groupIds,
+    [filterWithCurrentSearch, groupIds, matchedIds]
   );
 
-  const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(sortedGroupIds.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
-  const pageGroupIds = sortedGroupIds.slice(
+  const visibleIds = sortedGroupIds.slice(
     safePage * PAGE_SIZE,
     (safePage + 1) * PAGE_SIZE
   );
 
-  // Fetch all groups on this page
-  const {data: allGroups, isPending: allPending} = useQuery(
-    apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+  const {data: allGroups, isPending: allPending} = useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        group: pageGroupIds.map(String),
+        group: visibleIds.map(String),
         project: ALL_ACCESS_PROJECTS,
       },
       staleTime: 30_000,
-    })
-  );
+    }),
+    enabled: pageFetchReady,
+  });
 
   if (allPending || (filterWithCurrentSearch && matchedPending)) {
     return (
@@ -214,7 +265,7 @@ function SupergroupIssueList({
             <DrawerColumnHeaders />
           </LoadingHeader>
           <PanelBody>
-            {pageGroupIds.map(id => (
+            {visibleIds.map(id => (
               <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
             ))}
           </PanelBody>
@@ -224,11 +275,10 @@ function SupergroupIssueList({
   }
 
   const groupMap = new Map(allGroups?.map(g => [g.id, g]));
-
-  const sortedGroups = pageGroupIds
+  const sortedGroups = visibleIds
     .map(id => groupMap.get(String(id)))
-    .filter((g): g is Group => g !== undefined);
-
+    .filter((g): g is Group => g !== undefined)
+    .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)));
   const visibleGroupIds = sortedGroups.map(g => g.id);
 
   return (
@@ -302,6 +352,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const area = useAnalyticsArea();
   const {selection} = usePageFilters();
   const {toggleSelectAllVisible, deselectAll} = useIssueSelectionActions();
   const {pageSelected, anySelected, multiSelected, selectedIdsSet} =
@@ -382,8 +433,15 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
       },
       {}
     );
+    trackAnalytics('issues_stream.merged', {
+      organization,
+      project_id: undefined,
+      platform: undefined,
+      items_merged: itemIds.length,
+      area,
+    });
     deselectAll();
-  }, [api, organization.slug, selectedIdsSet, selection, deselectAll]);
+  }, [api, area, organization, selectedIdsSet, selection, deselectAll]);
 
   const onShouldConfirm = useCallback(
     (action: ConfirmAction) => {

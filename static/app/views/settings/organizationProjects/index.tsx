@@ -1,6 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
+
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -15,14 +18,14 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
@@ -33,34 +36,32 @@ const ITEMS_PER_PAGE = 50;
 
 function OrganizationProjects() {
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const navigate = useNavigate();
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
   const {
-    data: projectList,
-    getResponseHeader,
+    data: projectListResponse,
     isPending,
     isError,
-  } = useApiQuery<Project[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...location.query,
-          query,
-          per_page: ITEMS_PER_PAGE,
-          statsPeriod: '24h',
-        },
+  } = useQuery({
+    ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        ...location.query,
+        query,
+        per_page: ITEMS_PER_PAGE,
+        statsPeriod: '24h',
       },
-    ],
-    {staleTime: 0}
-  );
+      staleTime: 0,
+    }),
+    select: selectJsonWithHeaders,
+  });
 
-  const projectListPageLinks = getResponseHeader?.('Link');
+  const projectList = projectListResponse?.json;
+  const projectListPageLinks = projectListResponse?.headers.Link;
   const action = <CreateProjectButton />;
 
   const debouncedSearch = useMemo(
@@ -83,13 +84,21 @@ function OrganizationProjects() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
-      <SettingsPageHeader title="Projects" action={action} />
+      <SettingsPageHeader title="Projects" action={hasPageFrame ? undefined : action} />
       <SearchWrapper>
-        <SearchBar
-          placeholder={t('Search Projects')}
-          onChange={debouncedSearch}
-          query={query}
-        />
+        <Flex align="center" gap="md">
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search Projects')}
+                onChange={debouncedSearch}
+                query={query}
+              />
+            )}
+          </Container>
+          {hasPageFrame && action}
+        </Flex>
       </SearchWrapper>
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>

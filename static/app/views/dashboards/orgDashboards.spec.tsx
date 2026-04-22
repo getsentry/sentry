@@ -10,6 +10,10 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OrgDashboards} from 'sentry/views/dashboards/orgDashboards';
+import {
+  PREBUILT_DASHBOARDS,
+  PrebuiltDashboardId,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 describe('OrgDashboards', () => {
   const organization = OrganizationFixture({
@@ -226,6 +230,93 @@ describe('OrgDashboards', () => {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(router.location.query).toEqual({});
+  });
+
+  it('uses prebuilt globalFilter when saved dashboard has none', async () => {
+    const prebuiltConfig = PREBUILT_DASHBOARDS[PrebuiltDashboardId.FRONTEND_ASSETS];
+    const mockPrebuiltDashboard = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Frontend Assets',
+      widgets: [],
+      projects: [],
+      filters: {},
+      prebuiltId: PrebuiltDashboardId.FRONTEND_ASSETS,
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'GET',
+      body: mockPrebuiltDashboard,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockPrebuiltDashboard],
+    });
+
+    let receivedDashboard: any;
+    render(
+      <OrgDashboards>
+        {({dashboard}) => {
+          receivedDashboard = dashboard;
+          return <div>Test</div>;
+        }}
+      </OrgDashboards>,
+      {initialRouterConfig, organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(receivedDashboard?.filters?.globalFilter).toEqual(
+      prebuiltConfig.filters.globalFilter
+    );
+  });
+
+  it('merges saved globalFilter with prebuilt filters', async () => {
+    const prebuiltConfig = PREBUILT_DASHBOARDS[PrebuiltDashboardId.FRONTEND_ASSETS];
+    const prebuiltGlobalFilters = prebuiltConfig.filters.globalFilter!;
+
+    // Override one of the prebuilt filters with a saved value
+    const overriddenFilter = {
+      ...prebuiltGlobalFilters[0]!,
+      value: `${prebuiltGlobalFilters[0]!.tag.key}:custom-value`,
+    };
+    const mockPrebuiltDashboard = {
+      dateCreated: '2021-08-10T21:20:46.798237Z',
+      id: '1',
+      title: 'Frontend Assets',
+      widgets: [],
+      projects: [],
+      filters: {globalFilter: [overriddenFilter]},
+      prebuiltId: PrebuiltDashboardId.FRONTEND_ASSETS,
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'GET',
+      body: mockPrebuiltDashboard,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [mockPrebuiltDashboard],
+    });
+
+    let receivedDashboard: any;
+    render(
+      <OrgDashboards>
+        {({dashboard}) => {
+          receivedDashboard = dashboard;
+          return <div>Test</div>;
+        }}
+      </OrgDashboards>,
+      {initialRouterConfig, organization}
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    const resultFilters = receivedDashboard?.filters?.globalFilter;
+    // The overridden filter replaces its prebuilt match
+    expect(resultFilters).toContainEqual(overriddenFilter);
+    // The remaining prebuilt filters are still present
+    expect(resultFilters).toHaveLength(prebuiltGlobalFilters.length);
   });
 
   it('applies saved filters after navigating back from a dashboard without filters', async () => {

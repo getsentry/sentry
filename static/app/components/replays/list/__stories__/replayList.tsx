@@ -6,20 +6,20 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {Container} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ApiResult} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {InfiniteListItems} from 'sentry/components/infiniteList/infiniteListItems';
 import {InfiniteListState} from 'sentry/components/infiniteList/infiniteListState';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayListItem} from 'sentry/components/replays/list/__stories__/replayListItem';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {type InfiniteData, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
   onSelect: (replayId: string) => void;
   queryResult: UseInfiniteQueryResult<
-    InfiniteData<ApiResult<{data: ReplayListRecord[]}>>
+    InfiniteData<ApiResponse<{data: ReplayListRecord[]}>>
   >;
 }
 
@@ -30,8 +30,8 @@ export function ReplayList({onSelect, queryResult}: Props) {
       backgroundUpdatingMessage={() => null}
       loadingMessage={() => <LoadingIndicator />}
     >
-      <InfiniteListItems<ReplayListRecord, ApiResult<{data: ReplayListRecord[]}>>
-        deduplicateItems={pages => pages.flatMap(page => uniqBy(page[0].data, 'id'))}
+      <InfiniteListItems<ReplayListRecord, ApiResponse<{data: ReplayListRecord[]}>>
+        deduplicateItems={pages => pages.flatMap(page => uniqBy(page.json.data, 'id'))}
         estimateSize={() => 24}
         queryResult={queryResult}
         itemRenderer={({item, virtualItem}) => (

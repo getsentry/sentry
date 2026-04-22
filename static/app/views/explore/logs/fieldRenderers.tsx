@@ -72,6 +72,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
     TraceItemResponseAttribute['type'] | EventsMetaType['fields'][string]
   >;
   attributes: Record<string, string | number | boolean>;
+  caseSensitiveHighlighting: boolean;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
@@ -454,7 +455,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+        <LogsHighlight
+          caseSensitive={props.extra.caseSensitiveHighlighting}
+          text={highlightTerm}
+        >
+          {stripAnsi(attribute_value)}
+        </LogsHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             original={attribute_value}

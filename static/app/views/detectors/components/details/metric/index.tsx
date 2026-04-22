@@ -1,9 +1,15 @@
+import {Flex} from '@sentry/scraps/layout';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {
+  DisableDetectorAction,
+  EditDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
@@ -18,6 +24,7 @@ import {
 import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
@@ -26,6 +33,7 @@ type MetricDetectorDetailsProps = {
 
 export function MetricDetectorDetails({detector, project}: MetricDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
   const snubaDataset = snubaQuery?.dataset ?? Dataset.ERRORS;
@@ -53,7 +61,15 @@ export function MetricDetectorDetails({detector, project}: MetricDetectorDetails
             <TransactionsDatasetWarning />
           )}
           {showExtrapolationModeWarning && <MigratedAlertWarning detector={detector} />}
-          <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
+          <Flex align="center" gap="sm" justify="between" wrap="wrap">
+            <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
+            {hasPageFrameFeature ? (
+              <Flex align="center" gap="sm" marginLeft="auto">
+                <DisableDetectorAction detector={detector} />
+                <EditDetectorAction detector={detector} />
+              </Flex>
+            ) : null}
+          </Flex>
           {snubaQuery && (
             <MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />
           )}

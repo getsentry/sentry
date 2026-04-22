@@ -59,7 +59,6 @@ BASE_PROJECT = {
     "features": [
         "alert-filters",
         "custom-inbound-filters",
-        "data-forwarding",
         "discard-groups",
         "minidump",
         "rate-limits",
@@ -315,7 +314,6 @@ PROJECT_SUMMARY = {
     "features": [
         "alert-filters",
         "custom-inbound-filters",
-        "data-forwarding",
         "discard-groups",
         "minidump",
         "rate-limits",

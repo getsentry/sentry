@@ -12,6 +12,7 @@ import type {
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
 
 export interface AutomationFormData {
   detectorIds: string[];
@@ -106,8 +107,23 @@ export interface ValidateDataConditionProps {
   condition: DataCondition;
 }
 
-export function validateAutomationBuilderState(state: AutomationBuilderState) {
+export function validateAutomationBuilderState(
+  state: AutomationBuilderState,
+  data: AutomationFormData,
+  {validateConnectedMonitors = true}: {validateConnectedMonitors?: boolean} = {}
+) {
   const errors: Record<string, string> = {};
+
+  if (
+    validateConnectedMonitors &&
+    !data.detectorIds?.length &&
+    !data.projectIds?.length
+  ) {
+    errors[CONNECTED_MONITORS_ERROR_ID] = t(
+      'Select at least one project or monitor to create an alert.'
+    );
+  }
+
   // validate trigger conditions
   for (const condition of state.triggers.conditions || []) {
     const validationResult = dataConditionNodesMap

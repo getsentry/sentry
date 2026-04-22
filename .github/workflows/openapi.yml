@@ -49,7 +49,7 @@ jobs:
         if: steps.changes.outputs.api_docs == 'true'
         run: |
           sentry init
-          ./.github/actions/setup-devservices/wait.sh
+          ./.github/actions/setup-devservices/wait.py
 
       - name: Checkout getsentry/sentry-api-schema
         if: steps.changes.outputs.api_docs == 'true'

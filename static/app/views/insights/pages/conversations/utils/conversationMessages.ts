@@ -265,14 +265,21 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
     }
 
     try {
-      const messagesArray: RequestMessage[] = JSON.parse(outputMessages);
-      const assistantMessage = messagesArray.findLast(
-        msg => msg.role === 'assistant' && (msg.content || msg.parts)
-      );
-      if (assistantMessage) {
-        const content = extractTextFromMessage(assistantMessage);
-        if (content) {
-          return content;
+      const parsed = JSON.parse(outputMessages);
+      // Handle non-array format: extract "content" from the object directly
+      if (Array.isArray(parsed)) {
+        const assistantMessage = (parsed as RequestMessage[]).findLast(
+          msg => msg.role === 'assistant' && (msg.content || msg.parts)
+        );
+        if (assistantMessage) {
+          const content = extractTextFromMessage(assistantMessage);
+          if (content) {
+            return content;
+          }
+        }
+      } else {
+        if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
+          return parsed.content;
         }
       }
     } catch {

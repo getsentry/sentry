@@ -3,13 +3,13 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -30,6 +30,10 @@ import {
   getMonitorRefetchInterval,
   getNextCheckInEnv,
 } from 'sentry/views/alerts/rules/crons/utils';
+import {
+  DisableDetectorAction,
+  EditDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
@@ -52,6 +56,7 @@ import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/cron
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -70,6 +75,7 @@ function hasLastCheckIn(envs: MonitorEnvironment[]) {
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
@@ -161,15 +167,31 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
         <DetailLayout.Body>
           <DetailLayout.Main>
             <Flex gap="sm" justify="between" align="center">
-              <PageFilterBar condensed>
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              <TimezoneOverride
-                monitor={dataSource.queryObj}
-                userTimezone={userTimezone}
-                onTimezoneSelected={setTimezoneOverride}
-              />
+              <Flex align="center" gap="sm" justify="between" wrap="wrap" flex="1">
+                <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
+                  <DatePageFilter />
+                </PageFilterBar>
+                {hasPageFrameFeature ? (
+                  <Flex align="center" gap="sm" marginLeft="auto">
+                    <TimezoneOverride
+                      monitor={dataSource.queryObj}
+                      size="sm"
+                      userTimezone={userTimezone}
+                      onTimezoneSelected={setTimezoneOverride}
+                    />
+                    <DisableDetectorAction detector={detector} />
+                    <EditDetectorAction detector={detector} />
+                  </Flex>
+                ) : null}
+              </Flex>
+              {hasPageFrameFeature ? null : (
+                <TimezoneOverride
+                  monitor={dataSource.queryObj}
+                  userTimezone={userTimezone}
+                  onTimezoneSelected={setTimezoneOverride}
+                />
+              )}
             </Flex>
             <DisabledAlert
               detector={detector}

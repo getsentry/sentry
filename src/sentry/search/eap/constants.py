@@ -23,6 +23,16 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.OCCURRENCES: TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
 }
 
+
+PROTOBUF_TYPE_TO_SEARCH_TYPE: dict[str, Literal["string", "number", "boolean"]] = {
+    "string_value": "string",
+    "bytes_value": "string",
+    "bool_value": "boolean",
+    "int_value": "number",
+    "double_value": "number",
+}
+
+
 SUPPORTED_STATS_TYPES = {"attributeDistributions"}
 
 OPERATOR_MAP = {

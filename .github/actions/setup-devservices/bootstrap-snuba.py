@@ -12,12 +12,13 @@ Phase 2 (after devservices): Stop snuba-snuba-1 and start per-worker
   cause a timeout.
 
 Requires: XDIST_WORKERS env var
-Reads:    /tmp/ds-exit (written by setup-devservices/wait.sh)
+Reads:    /tmp/ds-exit (written by setup-devservices/wait.py)
 Writes:   /tmp/snuba-bootstrap-exit
 """
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -91,11 +92,12 @@ def docker_inspect(container: str, fmt: str) -> str:
 
 
 def inspect_snuba_container() -> tuple[str, str]:
-    image = docker_inspect("snuba-snuba-1", "{{.Config.Image}}")
-    network = docker_inspect(
-        "snuba-snuba-1",
-        "{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}",
-    )
+    r = docker("inspect", "snuba-snuba-1", "--format", "{{json .}}")
+    if r.returncode != 0:
+        fail("Could not inspect snuba-snuba-1 container")
+    info = json.loads(r.stdout)
+    image = info["Config"]["Image"]
+    network = next(iter(info["NetworkSettings"]["Networks"]), "")
     if not image or not network:
         fail("Could not inspect snuba-snuba-1 container")
     return image, network
@@ -120,16 +122,29 @@ def run_parallel(fn: Callable[[int], Any], workers: range, *, fail_fast: bool = 
 def wait_for_prerequisites(timeout: int = 300) -> None:
     log("Waiting for ClickHouse and Snuba container...")
     start = time.monotonic()
+    next_status_at = 0.0
     while True:
-        if time.monotonic() - start > timeout:
+        elapsed = time.monotonic() - start
+        if elapsed > timeout:
             fail("Timed out waiting for Snuba bootstrap prerequisites")
-        if http_ok("http://localhost:8123/") and docker_inspect("snuba-snuba-1", "{{.Id}}"):
+        ch_ok = http_ok("http://localhost:8123/")
+        snuba_ok = http_ok("http://localhost:1218/health")
+        container_ok = bool(docker_inspect("snuba-snuba-1", "{{.Id}}"))
+        if ch_ok and snuba_ok and container_ok:
             break
+        if elapsed >= next_status_at:
+            log(
+                f"  still waiting ({elapsed:.0f}s): "
+                f"clickhouse={'ok' if ch_ok else 'not ready'}  "
+                f"snuba-snuba-1={'ok' if snuba_ok else 'not ready'}  "
+                f"container={'ok' if container_ok else 'not ready'}"
+            )
+            next_status_at = elapsed + 30
         time.sleep(2)
     log(f"Prerequisites ready ({time.monotonic() - start:.0f}s)")
 
 
-def wait_for_devservices(timeout: int = 300) -> None:
+def wait_for_devservices(timeout: int = 600) -> None:
     start = time.monotonic()
     while not DS_EXIT.exists():
         if time.monotonic() - start > timeout:

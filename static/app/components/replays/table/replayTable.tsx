@@ -12,7 +12,7 @@ import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHead
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -28,7 +28,7 @@ type SortProps =
 
 type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
-  error: RequestError | null | undefined;
+  error: Error | null | undefined;
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
@@ -198,18 +198,20 @@ const StyledPagination = styled(Pagination)`
   grid-column: 1 / -1;
 `;
 
-function getErrorMessage(fetchError: RequestError) {
+function getErrorMessage(fetchError: Error | string) {
   if (typeof fetchError === 'string') {
     return fetchError;
   }
-  if (typeof fetchError?.responseJSON?.detail === 'string') {
-    return fetchError.responseJSON.detail;
-  }
-  if (fetchError?.responseJSON?.detail?.message) {
-    return fetchError.responseJSON.detail.message;
-  }
-  if (fetchError.name === ERROR_MAP[500]) {
-    return t('There was an internal systems error.');
+  if (fetchError instanceof RequestError) {
+    if (typeof fetchError?.responseJSON?.detail === 'string') {
+      return fetchError.responseJSON.detail;
+    }
+    if (fetchError?.responseJSON?.detail?.message) {
+      return fetchError.responseJSON.detail.message;
+    }
+    if (fetchError.name === ERROR_MAP[500]) {
+      return t('There was an internal systems error.');
+    }
   }
   return t(
     'This could be due to invalid search parameters or an internal systems error.'

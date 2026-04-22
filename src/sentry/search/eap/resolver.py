@@ -1327,11 +1327,37 @@ class SearchResolver:
         if isinstance(proto_definition, AttributeKey):
             return Column(key=proto_definition), contexts
 
+        # Because all aggregations in snuba by default have orNull on them, when an aggregate evaluates to 0 instead it
+        # becomes null. This is a problem with equations on aggregates since any operation on a null value in clickhouse
+        # resolves to null, so if one term of your equation is null the entire equation becomes null. Instead we want to
+        # treat these nulls like 0 to do this for an equation like (a + b), where a may be null sometimes we change the
+        # equation instead to be ((a + 0) + (b + 0)) and use the default_value option on BinaryFormulas so that when a
+        # is null instead we get 0 + b as expected instead of null + b
         if isinstance(proto_definition, AttributeAggregation):
-            return Column(aggregation=proto_definition), contexts
+            return (
+                Column(
+                    formula=Column.BinaryFormula(
+                        op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
+                        left=Column(literal=LiteralValue(val_double=0)),
+                        right=Column(aggregation=proto_definition),
+                        default_value_double=0,
+                    )
+                ),
+                contexts,
+            )
 
         if isinstance(proto_definition, AttributeConditionalAggregation):
-            return Column(conditional_aggregation=proto_definition), contexts
+            return (
+                Column(
+                    formula=Column.BinaryFormula(
+                        op=constants.ARITHMETIC_OPERATOR_MAP["plus"],
+                        left=Column(literal=LiteralValue(val_double=0)),
+                        right=Column(conditional_aggregation=proto_definition),
+                        default_value_double=0,
+                    )
+                ),
+                contexts,
+            )
 
         if isinstance(proto_definition, Column.BinaryFormula):
             return Column(formula=proto_definition), contexts

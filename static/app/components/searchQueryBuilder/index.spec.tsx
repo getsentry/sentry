@@ -2144,6 +2144,31 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('unescapes asterisks before fetching tag value suggestions', async () => {
+      const mockGetTagValues = jest.fn().mockResolvedValue([]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+      await userEvent.type(screen.getByRole('combobox'), '\\*\\*\\*\\*');
+
+      await waitFor(() => {
+        expect(mockGetTagValues).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tag: expect.objectContaining({key: 'custom_tag_name'}),
+            searchQuery: '****',
+          })
+        );
+      });
+    });
+
     it('sets the value as not selected when no comma is present', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
@@ -2208,6 +2233,259 @@ describe('SearchQueryBuilder', () => {
         'browser.name:[Firefox,*random*Value*]',
         expect.anything()
       );
+    });
+
+    it('escapes literal asterisks when adding a dropdown value', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [FieldKey.BROWSER_NAME]: {
+              ...FILTER_KEYS[FieldKey.BROWSER_NAME]!,
+              values: [
+                ...((FILTER_KEYS[FieldKey.BROWSER_NAME]?.values as
+                  | string[]
+                  | undefined) ?? []),
+                'test*',
+              ],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.type(screen.getByRole('combobox'), 'test');
+      await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,test\\*]',
+          expect.anything()
+        );
+      });
+    });
+
+    it('escapes literal asterisks when selecting a single-value dropdown option', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [FieldKey.IS]: {
+              ...FILTER_KEYS[FieldKey.IS]!,
+              values: [
+                ...((FILTER_KEYS[FieldKey.IS]?.values as string[] | undefined) ?? []),
+                'test*',
+              ],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery="is:unresolved"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: is'})
+      );
+      await userEvent.type(screen.getByRole('combobox'), 'test');
+      await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('is:test\\*', expect.anything());
+      });
+    });
+
+    describe('asterisk escape policy', () => {
+      it('preserves a manually-typed wildcard', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a manually-typed escaped asterisk', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo\\*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo\\*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves each form in a mixed multi-value list', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo*,bar\\*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[foo*,bar\\*]',
+            expect.anything()
+          );
+        });
+      });
+
+      it('escapes a predefined dropdown value without touching an existing manual wildcard', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            filterKeys={{
+              ...defaultProps.filterKeys,
+              [FieldKey.BROWSER_NAME]: {
+                ...FILTER_KEYS[FieldKey.BROWSER_NAME]!,
+                values: [
+                  ...((FILTER_KEYS[FieldKey.BROWSER_NAME]?.values as
+                    | string[]
+                    | undefined) ?? []),
+                  'test*',
+                ],
+              },
+            }}
+            onChange={mockOnChange}
+            initialQuery="browser.name:foo*"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.type(screen.getByRole('combobox'), 'test');
+        await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[foo*,test\\*]',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a manual wildcard when deselecting a neighbor via row click', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:[test*,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:test*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a manual wildcard when deselecting a neighbor via checkbox', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[test*,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:test*'})
+        ).toBeInTheDocument();
+      });
+
+      it('preserves both wildcard and literal forms when deselecting a neighbor', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery={'browser.name:[foo*,bar\\*,Chrome]'}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[foo*,bar\\*]',
+            expect.anything()
+          );
+        });
+      });
+
+      it('renders escaped asterisks as a bare asterisk in the filter chip', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
+        );
+
+        expect(
+          await within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).findByText('foo*')
+        ).toBeInTheDocument();
+      });
     });
   });
 
@@ -4851,7 +5129,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[0]).toHaveTextContent('span.description contains test*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 

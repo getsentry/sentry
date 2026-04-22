@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -11,7 +12,6 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -118,7 +118,9 @@ export function AutomationBuilderDrawerForm({
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
-      const errors = validateAutomationBuilderState(state);
+      const errors = validateAutomationBuilderState(state, data as AutomationFormData, {
+        validateConnectedMonitors: false,
+      });
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length > 0) {

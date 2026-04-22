@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,12 +12,13 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
+  TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
 const Slot = slot(['title', 'actions', 'feedback'] as const, {
@@ -27,9 +29,16 @@ function TopBarContent() {
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
-  const topOffset = useTopOffset();
+  const {barTop, contentTop} = useTopOffset();
 
-  const {openExplorerPanel} = useExplorerPanel();
+  const {toggleSeerExplorer} = useSeerExplorerContext();
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    return () => {
+      document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
+    };
+  }, [contentTop]);
 
   if (!hasPageFrame) {
     return null;
@@ -47,7 +56,7 @@ function TopBarContent() {
       padding={{sm: 'sm lg', md: 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={topOffset}
+      top={barTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
@@ -63,7 +72,7 @@ function TopBarContent() {
           </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
+            <Button icon={<IconSeer />} onClick={toggleSeerExplorer}>
               {t('Ask Seer')}
             </Button>
           ) : null}
@@ -76,6 +85,7 @@ function TopBarContent() {
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                    tooltipProps={{title: t('Give Feedback')}}
                   >
                     {null}
                   </FeedbackButton>

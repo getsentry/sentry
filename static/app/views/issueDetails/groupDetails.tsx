@@ -5,10 +5,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -578,7 +578,7 @@ function GroupDetailsContent({
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
-  const {isDrawerOpen} = useDrawer();
+  const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
   const {seerDrawer} = useLocationQuery({
@@ -590,7 +590,7 @@ function GroupDetailsContent({
   const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
-    if (isDrawerOpen) {
+    if (isAnyDrawerOpen) {
       return;
     }
 
@@ -611,7 +611,7 @@ function GroupDetailsContent({
     }
   }, [
     currentTab,
-    isDrawerOpen,
+    isAnyDrawerOpen,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,

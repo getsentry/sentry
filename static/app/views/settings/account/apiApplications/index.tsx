@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -25,6 +25,7 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {Row} from 'sentry/views/settings/account/apiApplications/row';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -32,6 +33,7 @@ const ROUTE_PREFIX = '/settings/account/api/';
 
 export default function ApiApplications() {
   const api = useApi();
+  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -94,22 +96,30 @@ export default function ApiApplications() {
 
   const isEmpty = appList.length === 0;
 
+  const action = (
+    <Button
+      priority="primary"
+      size="sm"
+      onClick={handleCreateApplication}
+      icon={<IconAdd />}
+      aria-label={t('Create New Application')}
+    >
+      {t('Create New Application')}
+    </Button>
+  );
+
   return (
     <SentryDocumentTitle title={t('API Applications')}>
       <SettingsPageHeader
         title="API Applications"
-        action={
-          <Button
-            priority="primary"
-            size="sm"
-            onClick={handleCreateApplication}
-            icon={<IconAdd />}
-            aria-label={t('Create New Application')}
-          >
-            {t('Create New Application')}
-          </Button>
-        }
+        action={hasPageFrame ? undefined : action}
       />
+
+      {hasPageFrame && (
+        <Flex justify="end" marginBottom="xl">
+          {action}
+        </Flex>
+      )}
 
       <Panel>
         <PanelHeader>{t('Application Name')}</PanelHeader>

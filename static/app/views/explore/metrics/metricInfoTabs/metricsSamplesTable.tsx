@@ -31,8 +31,6 @@ const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
 const TWO_MINUTE_DELAY = 120;
 
-export const SAMPLES_PANEL_MIN_WIDTH = 350;
-
 interface MetricsSamplesTableProps {
   embedded?: boolean;
   isMetricOptionsEmpty?: boolean;

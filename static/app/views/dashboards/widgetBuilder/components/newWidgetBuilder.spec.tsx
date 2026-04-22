@@ -8,7 +8,13 @@ import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  LLMContextProvider,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 const organization = OrganizationFixture({
   features: ['open-membership', 'visibility-explore-view'],
@@ -292,4 +298,92 @@ describe('NewWidgetBuilder', () => {
 
     expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });
+
+  it('populates LLM context with builder state', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    render(
+      <LLMContextProvider>
+        <ContextCapture />
+        <WidgetBuilderV2
+          isOpen
+          onClose={onCloseMock}
+          onSave={onSaveMock}
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{}}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </LLMContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+            query: {
+              displayType: DisplayType.LINE,
+              dataset: WidgetType.ERRORS,
+              title: 'My Widget',
+              yAxis: 'count()',
+              field: 'browser.name',
+              query: 'browser.name:Firefox',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => {
+      const node = getSnapshot().nodes.find(n => n.nodeType === 'widget-builder');
+      expect(node).toBeDefined();
+    });
+
+    const node = getSnapshot().nodes.find(n => n.nodeType === 'widget-builder')!;
+    const data = node.data as Record<string, unknown>;
+    expect(data.mode).toBe('creating');
+    expect(data.title).toBe('My Widget');
+    expect(data.dataset).toBe(WidgetType.ERRORS);
+    expect(data.displayType).toBe(DisplayType.LINE);
+    expect(data.visualize).toEqual(['count()']);
+    expect(data.fields).toEqual(['browser.name']);
+    expect(data.query).toEqual(['browser.name:Firefox']);
+  });
+
+  it('does not register LLM context when the builder is closed', () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    render(
+      <LLMContextProvider>
+        <ContextCapture />
+        <WidgetBuilderV2
+          isOpen={false}
+          onClose={onCloseMock}
+          onSave={onSaveMock}
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{}}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </LLMContextProvider>
+    );
+
+    const node = getSnapshot().nodes.find(n => n.nodeType === 'widget-builder');
+    expect(node).toBeUndefined();
+  });
 });
+
+function makeContextCapture() {
+  const ref: {current: (() => LLMContextSnapshot) | null} = {current: null};
+  function ContextCapture() {
+    const {getLLMContext} = useLLMContext();
+    ref.current = getLLMContext;
+    return null;
+  }
+  return {
+    ContextCapture,
+    getSnapshot: () => {
+      if (!ref.current) throw new Error('ContextCapture not mounted');
+      return ref.current();
+    },
+  };
+}

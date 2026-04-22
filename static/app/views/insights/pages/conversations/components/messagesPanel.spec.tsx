@@ -475,6 +475,29 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('weather_api')).toBeInTheDocument();
   });
 
+  it('handles output messages as a JSON object with content key', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+    const outputObj = JSON.stringify({content: 'Response from object format'});
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('Response from object format')).toBeInTheDocument();
+  });
+
   it('carries forward tool calls from spans without text to the next message with text', () => {
     const requestMessages = JSON.stringify([
       {role: 'user', content: 'Compare weather in Spain and Germany'},

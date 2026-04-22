@@ -45,6 +45,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TeamSelect as TeamSelectForMember} from 'sentry/views/settings/components/teamSelect/teamSelectForMember';
 
@@ -96,6 +97,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const [orgRole, setOrgRole] = useState<Member['orgRole']>(member.orgRole);
   const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>(member.teamRoles);
@@ -260,10 +262,14 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       <SentryDocumentTitle title={t('%s Member Settings', member.name || member.email)} />
       <SettingsPageHeader
         title={
-          <Fragment>
-            <div>{member.name}</div>
-            <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
-          </Fragment>
+          hasPageFrameFeature ? (
+            member.name || t('Member Settings')
+          ) : (
+            <Fragment>
+              <div>{member.name}</div>
+              <ExtraHeaderText>{t('Member Settings')}</ExtraHeaderText>
+            </Fragment>
+          )
         }
       />
 

@@ -42,6 +42,12 @@ describe('ReleaseHeader', () => {
         <TopBar.Slot.Outlet name="title">
           {props => <div {...props} data-test-id="topbar-title-slot" />}
         </TopBar.Slot.Outlet>
+        <TopBar.Slot.Outlet name="actions">
+          {props => <div {...props} data-test-id="topbar-actions-slot" />}
+        </TopBar.Slot.Outlet>
+        <TopBar.Slot.Outlet name="feedback">
+          {props => <div {...props} data-test-id="topbar-feedback-slot" />}
+        </TopBar.Slot.Outlet>
         <ReleaseHeader
           location={location}
           organization={org}
@@ -78,5 +84,17 @@ describe('ReleaseHeader', () => {
       `/organizations/${pageFrameOrg.slug}/explore/releases/?project=${project.id}`
     );
     expect(within(topbarSlot).getByText(release.version)).toBeInTheDocument();
+  });
+
+  it('renders feedback in the top bar feedback slot when page frame is enabled', () => {
+    const pageFrameOrg = OrganizationFixture({features: ['page-frame']});
+    renderHeader(pageFrameOrg);
+
+    expect(screen.getByTestId('topbar-feedback-slot')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('topbar-actions-slot')).queryByRole('button', {
+        name: 'Give Feedback',
+      })
+    ).not.toBeInTheDocument();
   });
 });
