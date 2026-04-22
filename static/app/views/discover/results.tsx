@@ -1358,7 +1358,7 @@ function DiscoverPageFilters({
                         });
                       }}
                       referrer="discover"
-                      size="md"
+                      size="sm"
                       data-test-id="discover2-create-from-discover"
                       alertType={alertType}
                     />
