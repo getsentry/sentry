@@ -105,7 +105,7 @@ describe('LogsExportModal', () => {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('downloads in the browser and shows a success toast when Export is clicked without any options', async () => {
+  it('downloads CSV in the browser and shows a success toast when a CSV Export is clicked without any options', async () => {
     renderModal(500);
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
@@ -128,6 +128,36 @@ describe('LogsExportModal', () => {
         export_type: 'browser_sync',
         export_row_limit: 100,
         export_file_format: 'csv',
+        query: queryInfo.query,
+        traceItemDataset: TraceItemDataset.LOGS,
+      })
+    );
+  });
+
+  it('downloads JSONL in the browser and shows a success toast when a JSONL Export is clicked without any options', async () => {
+    renderModal(500);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'JSONL'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(mockDownloadLogs).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockDownloadLogs).toHaveBeenCalledWith({
+      rows: tableData.slice(0, 100),
+      fields: queryInfo.field,
+      filename: 'logs',
+      format: 'jsonl',
+    });
+    expect(mockHandleDataExport).not.toHaveBeenCalled();
+    expect(addSuccessMessage).toHaveBeenCalledWith('Downloading file to your browser.');
+    expect(mockTrackAnalytics).toHaveBeenCalledWith(
+      'explore.table_exported',
+      expect.objectContaining({
+        export_type: 'browser_sync',
+        export_row_limit: 100,
+        export_file_format: 'jsonl',
         query: queryInfo.query,
         traceItemDataset: TraceItemDataset.LOGS,
       })
