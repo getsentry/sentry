@@ -19,16 +19,14 @@ import {
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 interface TopBarProps {
   isCopyLinkEnabled: boolean;
   isCopySessionEnabled: boolean;
   isEmptyState: boolean;
-  isMobile: boolean;
   isPolling: boolean;
-  isSeerDrawerOpen: boolean;
   isSessionHistoryOpen: boolean;
+  onClose: () => void;
   onCopyLinkClick: () => void;
   onCopySessionClick: () => void;
   onFeedbackClick: () => void;
@@ -36,40 +34,41 @@ interface TopBarProps {
   onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
   onSessionHistoryClick: (buttonRef: React.RefObject<HTMLElement | null>) => void;
-  onSizeToggleClick: () => void;
   overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
-  panelSize: 'max' | 'med';
   sessionHistoryButtonRef: React.RefObject<HTMLButtonElement | null>;
   showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
+  isMobile?: boolean;
+  isSeerDrawerOpen?: boolean;
+  onSizeToggleClick?: () => void;
+  panelSize?: 'max' | 'med';
 }
 
 export function TopBar({
-  isPolling,
+  onClose,
+  isCopyLinkEnabled,
+  isCopySessionEnabled,
   isEmptyState,
-  isSeerDrawerOpen,
-  isMobile,
+  isPolling,
   isSessionHistoryOpen,
+  onCopyLinkClick,
+  onCopySessionClick,
   onFeedbackClick,
   onNewChatClick,
-  onSessionHistoryClick,
-  onCopySessionClick,
-  onCopyLinkClick,
-  onSizeToggleClick,
-  onOverrideCtxEngEnableToggle,
   onOverrideCodeModeEnableToggle,
-  overrideCtxEngEnable,
+  onOverrideCtxEngEnableToggle,
+  onSessionHistoryClick,
   overrideCodeModeEnable,
-  showContextEngineToggle,
-  showCodeModeToggle,
-  panelSize,
-  isCopySessionEnabled,
-  isCopyLinkEnabled,
+  overrideCtxEngEnable,
   sessionHistoryButtonRef,
+  showCodeModeToggle,
+  showContextEngineToggle,
+  isMobile = false,
+  isSeerDrawerOpen = false,
+  onSizeToggleClick,
+  panelSize,
 }: TopBarProps) {
-  const {closeSeerExplorer} = useSeerExplorerContext();
-
   return (
     <Flex
       align="center"
@@ -111,15 +110,16 @@ export function TopBar({
           tooltipProps={{title: t('Copy conversation to clipboard')}}
           disabled={!isCopySessionEnabled}
         />
-        <Button
-          icon={<IconLink />}
-          onClick={onCopyLinkClick}
-          priority="transparent"
-          size="sm"
-          aria-label={t('Copy link to current chat and web page')}
-          tooltipProps={{title: t('Copy link to current chat and web page')}}
-          disabled={!isCopyLinkEnabled}
-        />
+        {isCopyLinkEnabled && (
+          <Button
+            icon={<IconLink />}
+            onClick={onCopyLinkClick}
+            priority="transparent"
+            size="sm"
+            aria-label={t('Copy link to current chat and web page')}
+            tooltipProps={{title: t('Copy link to current chat and web page')}}
+          />
+        )}
         {showContextEngineToggle && (
           <Tooltip
             title={
@@ -185,27 +185,29 @@ export function TopBar({
           aria-label={t('Give the devs feedback (/feedback)')}
           tooltipProps={{title: t('Give the devs feedback (/feedback)')}}
         />
-        <Button
-          icon={panelSize === 'max' ? <IconContract /> : <IconExpand />}
-          onClick={onSizeToggleClick}
-          priority="transparent"
-          size="sm"
-          disabled={isSeerDrawerOpen || isMobile}
-          aria-label={
-            panelSize === 'max'
-              ? t('Shrink to medium size (/med-size)')
-              : t('Expand to full screen (/max-size)')
-          }
-          tooltipProps={{
-            title:
+        {panelSize && onSizeToggleClick && (
+          <Button
+            icon={panelSize === 'max' ? <IconContract /> : <IconExpand />}
+            onClick={onSizeToggleClick}
+            priority="transparent"
+            size="sm"
+            disabled={isSeerDrawerOpen || isMobile}
+            aria-label={
               panelSize === 'max'
                 ? t('Shrink to medium size (/med-size)')
-                : t('Expand to full screen (/max-size)'),
-          }}
-        />
+                : t('Expand to full screen (/max-size)')
+            }
+            tooltipProps={{
+              title:
+                panelSize === 'max'
+                  ? t('Shrink to medium size (/med-size)')
+                  : t('Expand to full screen (/max-size)'),
+            }}
+          />
+        )}
         <Button
           icon={<IconClose />}
-          onClick={closeSeerExplorer}
+          onClick={onClose}
           priority="transparent"
           size="sm"
           aria-label={t('Close panel')}

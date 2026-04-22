@@ -100,7 +100,7 @@ function SaveAsDropdown({
         aria-label={t('Save as')}
         disabled={disabled}
       >
-        {`${t('Save as')}\u2026`}
+        {t('Save as')}
       </Button>
       <AnimatePresence>
         {isOpen && (

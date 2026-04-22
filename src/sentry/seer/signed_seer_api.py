@@ -206,6 +206,11 @@ class BulkRemoveRepositoriesRequest(TypedDict):
     repositories: list[RepoIdentifier]
 
 
+class RemoveHandoffsForIntegrationRequest(TypedDict):
+    organization_id: int
+    integration_id: int
+
+
 class ExplorerIndexProject(TypedDict):
     org_id: int
     project_id: int
@@ -315,6 +320,20 @@ def make_bulk_remove_repositories_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/bulk-remove-repositories",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_remove_handoffs_for_integration_request(
+    body: RemoveHandoffsForIntegrationRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/remove-handoffs-for-integration",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,

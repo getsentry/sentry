@@ -32,7 +32,7 @@ export function ExploreBreadcrumb({
   if (traceItemDataset === TraceItemDataset.TRACEMETRICS) {
     crumbs.push({
       to: makeMetricsPathname({organizationSlug: organization.slug, path: '/'}),
-      label: t('Metrics'),
+      label: t('Application Metrics'),
     });
   }
   if (traceItemDataset === TraceItemDataset.REPLAYS) {

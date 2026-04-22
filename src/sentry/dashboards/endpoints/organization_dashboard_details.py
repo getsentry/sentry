@@ -140,7 +140,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         self.check_object_permissions(request, dashboard)
 
         if dashboard.prebuilt_id is not None:
-            return self.respond({"Cannot delete prebuilt Dashboards."}, status=409)
+            return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
         # Legacy behavior from when the hardcoded "default-overview" dashboard was
         # always present as a fallback — blocking deletion of the last dashboard
@@ -151,7 +151,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if num_dashboards > 1:
             dashboard.delete()
         else:
-            return self.respond({"Cannot delete last Dashboard."}, status=409)
+            return self.respond({"detail": "Cannot delete last Dashboard."}, status=409)
 
         return self.respond(status=204)
 
@@ -223,7 +223,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                     DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
                 serializer.save()
         except IntegrityError:
-            return self.respond({"Dashboard with that title already exists."}, status=409)
+            return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
         return self.respond(serialize(serializer.instance, request.user), status=200)
 

@@ -9,9 +9,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
 
-import type {DrawerConfig} from 'sentry/components/globalDrawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import type {DrawerConfig} from '@sentry/scraps/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -223,7 +223,7 @@ describe('GlobalDrawer', () => {
     expect(button).not.toBeInTheDocument();
   });
 
-  it('ignores some close events press when option is set', async () => {
+  it('passive mode does not close on outside click', async () => {
     const closeSpy = jest.fn();
 
     render(
@@ -232,15 +232,12 @@ describe('GlobalDrawer', () => {
           renderer: () => (
             <Fragment>
               <DrawerHeader />
-              <DrawerBody data-test-id="drawer-test-content">
-                ignore close events
-              </DrawerBody>
+              <DrawerBody data-test-id="drawer-test-content">passive mode</DrawerBody>
             </Fragment>
           ),
           options: {
             onClose: closeSpy,
-            closeOnEscapeKeypress: false,
-            closeOnOutsideClick: false,
+            mode: 'passive',
             ariaLabel,
           },
         }}
@@ -250,11 +247,6 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     const content = screen.getByTestId('drawer-test-content');
-
-    await userEvent.keyboard('{Escape}');
-
-    expect(closeSpy).not.toHaveBeenCalled();
-    expect(content).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-outside'));
 
@@ -266,6 +258,53 @@ describe('GlobalDrawer', () => {
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
+  });
+
+  it('scopes isDrawerOpen to the useDrawer call-site', async () => {
+    function ScopedConsumer({label}: {label: string}) {
+      const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
+      return (
+        <Fragment>
+          <button
+            data-test-id={`open-${label}`}
+            onClick={() =>
+              openDrawer(() => <DrawerBody>{label} drawer</DrawerBody>, {
+                ariaLabel: `${label}-drawer`,
+              })
+            }
+          >
+            Open {label}
+          </button>
+          <span data-test-id={`is-open-${label}`}>
+            {isDrawerOpen ? 'mine' : 'not mine'}
+          </span>
+          <span data-test-id={`is-any-open-${label}`}>
+            {isAnyDrawerOpen ? 'any' : 'none'}
+          </span>
+        </Fragment>
+      );
+    }
+
+    render(
+      <Fragment>
+        <ScopedConsumer label="a" />
+        <ScopedConsumer label="b" />
+      </Fragment>
+    );
+
+    expect(screen.getByTestId('is-open-a')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-open-b')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-any-open-a')).toHaveTextContent('none');
+
+    await userEvent.click(screen.getByTestId('open-a'));
+
+    expect(
+      await screen.findByRole('complementary', {name: 'a-drawer'})
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('is-open-a')).toHaveTextContent('mine');
+    expect(screen.getByTestId('is-open-b')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-any-open-a')).toHaveTextContent('any');
+    expect(screen.getByTestId('is-any-open-b')).toHaveTextContent('any');
   });
 
   it('renders custom header content when specified', async () => {
