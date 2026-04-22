@@ -284,6 +284,18 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "date - slashes, day-month-year",
+        "31/Dec/2012",
+        "<date>",
+        "<int>/Dec/<int>",
+    ),
+    (
+        "date - colon btwn date and time",
+        "21/Nov/2012:12:31:12",
+        "<date>",
+        "<int>/Nov/<int>:<date>",
+    ),
+    (
         "float - postive, too many segments",
         "1.2.3",
         "<int>.<int>.<int>",
