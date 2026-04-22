@@ -431,9 +431,6 @@ export function ExplorerDrawerContent({
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
-                isLast={
-                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
-                }
                 isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
                 onMouseEnter={() => {

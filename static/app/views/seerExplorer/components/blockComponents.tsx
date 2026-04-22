@@ -45,7 +45,6 @@ interface BlockProps {
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
   isFocused?: boolean;
-  isLast?: boolean;
   isLatestTodoBlock?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
@@ -145,7 +144,6 @@ export function BlockComponent({
   getPageReferrer,
   isAwaitingFileApproval,
   isAwaitingQuestion,
-  isLast,
   isLatestTodoBlock,
   isFocused,
   onClick,
@@ -372,7 +370,6 @@ export function BlockComponent({
     <Block
       ref={ref}
       isFocused={isFocused}
-      isLast={isLast}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -518,7 +515,7 @@ export function BlockComponent({
 
 BlockComponent.displayName = 'BlockComponent';
 
-const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
+const Block = styled('div')<{isFocused?: boolean}>`
   width: 100%;
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
