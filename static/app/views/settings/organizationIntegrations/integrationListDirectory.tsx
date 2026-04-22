@@ -524,14 +524,14 @@ function IntegrationSettingsHeader({
       body={
         hasPageFrame ? (
           <Flex align="center" gap="md">
-            <CategorySelectWrapper>
+            <Container width="240px">
               <Select
                 name="select-categories"
                 onChange={onChangeCategory}
                 value={category}
                 options={categoryOptions}
               />
-            </CategorySelectWrapper>
+            </Container>
             <Container flex={1}>
               {({className}) => (
                 <SearchBar
@@ -599,10 +599,6 @@ const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px auto;
   gap: ${p => p.theme.space.xl};
-`;
-
-const CategorySelectWrapper = styled('div')`
-  width: 240px;
 `;
 
 const EmptyResultsBody = styled('div')`
