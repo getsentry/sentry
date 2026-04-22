@@ -10,6 +10,7 @@ from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.clickhouse import optimize_snuba_table
 from sentry.utils.snuba import UnqualifiedQueryError
 
 
@@ -57,7 +58,9 @@ class NodestoreDeletionTaskTest(TestCase):
                 },
             )
 
-        # Events should be deleted from eventstore after nodestore deletion
+        # Force ClickHouse to immediately deduplicate so tombstoned rows are
+        # removed without waiting for background merge.
+        optimize_snuba_table("events")
         events_after = self.fetch_events_from_eventstore(group_ids, dataset=Dataset.Events)
         assert len(events_after) == 0
 
