@@ -169,7 +169,7 @@ describe('BlockComponent', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not show any action buttons for user blocks', () => {
+    it('only shows rethink action for user blocks', () => {
       const block = createUserInputBlock();
       render(
         <BlockComponent
@@ -190,7 +190,7 @@ describe('BlockComponent', () => {
       expect(
         screen.queryByRole('button', {name: 'Copy block content'})
       ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: '↩'})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: '↩'})).toBeInTheDocument();
     });
 
     it('disables both thumbs buttons after thumbs up is clicked', async () => {
