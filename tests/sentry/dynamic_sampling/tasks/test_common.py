@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+import time_machine
 from django.utils import timezone
 
 from sentry.dynamic_sampling.tasks.common import (
@@ -22,23 +23,27 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 @freeze_time(MOCK_DATETIME)
 class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
     def setUp(self) -> None:
-        # create 10 orgs each with 10 transactions
-        for i in range(10):
-            org = self.create_organization(f"org-{i}")
+        super().setUp()
+        # Use tick=True so the clock advances during the 100 create_organization /
+        # create_project calls, giving each a unique millisecond timestamp and
+        # preventing MaxSnowflakeRetryError under @freeze_time with many objects.
+        with time_machine.travel(MOCK_DATETIME, tick=True):
             for i in range(10):
-                project = self.create_project(organization=org)
-                self.store_performance_metric(
-                    name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                    tags={
-                        "transaction": "foo_transaction",
-                        "decision": "keep",
-                        "is_segment": "true",
-                    },
-                    minutes_before_now=30,
-                    value=1,
-                    project_id=project.id,
-                    org_id=org.id,
-                )
+                org = self.create_organization(f"org-{i}")
+                for j in range(10):
+                    project = self.create_project(organization=org)
+                    self.store_performance_metric(
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                        tags={
+                            "transaction": "foo_transaction",
+                            "decision": "keep",
+                            "is_segment": "true",
+                        },
+                        minutes_before_now=30,
+                        value=1,
+                        project_id=project.id,
+                        org_id=org.id,
+                    )
 
     @property
     def now(self):
@@ -73,23 +78,26 @@ class TestGetActiveOrgsVolumes(BaseMetricsLayerTestCase, TestCase, SnubaTestCase
     def setUp(self) -> None:
         self.orgs = []
         # create 12 orgs each and some transactions with a 2/1 drop/keep rate
-        for i in range(12):
-            org = self.create_organization(f"org-{i}")
-            self.orgs.append(org)
-            project = self.create_project(organization=org)
-            for decision, value in [("drop", 2), ("keep", 1)]:
-                self.store_performance_metric(
-                    name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                    tags={
-                        "transaction": "foo_transaction",
-                        "decision": decision,
-                        "is_segment": "true",
-                    },
-                    minutes_before_now=1,
-                    value=value,
-                    project_id=project.id,
-                    org_id=org.id,
-                )
+        # Use tick=True so each create_project call gets a unique millisecond timestamp,
+        # preventing MaxSnowflakeRetryError when multiple xdist workers share MOCK_DATETIME.
+        with time_machine.travel(MOCK_DATETIME, tick=True):
+            for i in range(12):
+                org = self.create_organization(f"org-{i}")
+                self.orgs.append(org)
+                project = self.create_project(organization=org)
+                for decision, value in [("drop", 2), ("keep", 1)]:
+                    self.store_performance_metric(
+                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                        tags={
+                            "transaction": "foo_transaction",
+                            "decision": decision,
+                            "is_segment": "true",
+                        },
+                        minutes_before_now=1,
+                        value=value,
+                        project_id=project.id,
+                        org_id=org.id,
+                    )
 
     @property
     def now(self):
