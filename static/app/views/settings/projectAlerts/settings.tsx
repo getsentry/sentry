@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -106,7 +107,7 @@ export default function ProjectAlertSettings() {
                 <PanelAlert variant="info">
                   {tct(
                     'Looking to fine-tune your personal notification preferences? Visit your [link:Account Settings].',
-                    {link: <a href="/settings/account/notifications/" />}
+                    {link: <Link to="/settings/account/notifications/" />}
                   )}
                 </PanelAlert>
               )}
