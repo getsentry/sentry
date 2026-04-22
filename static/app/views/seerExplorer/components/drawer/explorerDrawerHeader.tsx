@@ -96,6 +96,15 @@ export function ExplorerDrawerHeader({
         },
       ];
     }
+    if (!isPending && rawSessionMenuItems.length === 0) {
+      return [
+        {
+          key: 'session-history-empty',
+          label: t('No previous sessions to show.'),
+          disabled: true,
+        },
+      ];
+    }
     return [
       ...rawSessionMenuItems,
       ...(isPending
