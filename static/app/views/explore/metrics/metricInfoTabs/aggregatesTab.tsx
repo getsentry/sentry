@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -71,6 +71,7 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+  const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const topEvents = useTopEvents();
@@ -146,8 +147,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [aggregateFieldCount, displayFields.length, groupByFieldCount]);
 
   const firstColumnOffset = useMemo(() => {
-    return groupBys.length > 0 ? '15px' : '8px';
-  }, [groupBys]);
+    return groupBys.length > 0 ? '15px' : theme.space.lg;
+  }, [groupBys, theme.space.lg]);
 
   // Dividers: between last groupBy and first aggregate, and between all aggregates
   const shouldShowDivider = (index: number) => {
