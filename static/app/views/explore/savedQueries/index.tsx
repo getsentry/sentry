@@ -43,96 +43,67 @@ export default function SavedQueriesView() {
     },
   ];
 
+  const createQueryButton = hasLogsFeature ? (
+    <DropdownMenu
+      items={items}
+      trigger={triggerProps => (
+        <Button
+          {...triggerProps}
+          priority="primary"
+          icon={<IconAdd />}
+          size="sm"
+          aria-label={t('Save as')}
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            triggerProps.onClick?.(e);
+          }}
+        >
+          {t('Create Query')}
+        </Button>
+      )}
+    />
+  ) : (
+    <LinkButton
+      priority="primary"
+      icon={<IconAdd />}
+      size="sm"
+      to={getExploreUrl({organization, visualize: []})}
+    >
+      {t('Create Query')}
+    </LinkButton>
+  );
+
   return (
     <SentryDocumentTitle title={t('All Queries')} orgSlug={organization?.slug}>
       <Stack flex={1}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Layout.Title>{t('All Queries')}</Layout.Title>
-          </Layout.HeaderContent>
-          {hasPageFrameFeature ? (
-            <Fragment>
-              <TopBar.Slot name="actions">
-                {hasLogsFeature ? (
-                  <DropdownMenu
-                    items={items}
-                    trigger={triggerProps => (
-                      <Button
-                        {...triggerProps}
-                        priority="primary"
-                        icon={<IconAdd />}
-                        size="sm"
-                        aria-label={t('Save as')}
-                        onClick={e => {
-                          e.stopPropagation();
-                          e.preventDefault();
-
-                          triggerProps.onClick?.(e);
-                        }}
-                      >
-                        {t('Create Query')}
-                      </Button>
-                    )}
-                  />
-                ) : (
-                  <LinkButton
-                    priority="primary"
-                    icon={<IconAdd />}
-                    size="sm"
-                    to={getExploreUrl({organization, visualize: []})}
-                  >
-                    {t('Create Query')}
-                  </LinkButton>
-                )}
-              </TopBar.Slot>
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            </Fragment>
-          ) : (
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">{t('All Queries')}</TopBar.Slot>
+            <TopBar.Slot name="actions">{createQueryButton}</TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.Header unified>
+            <Layout.HeaderContent>
+              <Layout.Title>{t('All Queries')}</Layout.Title>
+            </Layout.HeaderContent>
             <Layout.HeaderActions>
               <Grid flow="column" align="center" gap="md">
                 <FeedbackButton />
-                {hasLogsFeature ? (
-                  <DropdownMenu
-                    items={items}
-                    trigger={triggerProps => (
-                      <Button
-                        {...triggerProps}
-                        priority="primary"
-                        icon={<IconAdd />}
-                        size="sm"
-                        aria-label={t('Save as')}
-                        onClick={e => {
-                          e.stopPropagation();
-                          e.preventDefault();
-
-                          triggerProps.onClick?.(e);
-                        }}
-                      >
-                        {t('Create Query')}
-                      </Button>
-                    )}
-                  />
-                ) : (
-                  <LinkButton
-                    priority="primary"
-                    icon={<IconAdd />}
-                    size="sm"
-                    to={getExploreUrl({organization, visualize: []})}
-                  >
-                    {t('Create Query')}
-                  </LinkButton>
-                )}
+                {createQueryButton}
               </Grid>
             </Layout.HeaderActions>
-          )}
-        </Layout.Header>
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main width="full">
             <SavedQueriesLandingContent />

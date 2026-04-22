@@ -119,104 +119,94 @@ function MetricsHeader() {
     metricQueries.length >= MAX_METRICS_ALLOWED ||
     metricQueries.some(q => q.label === 'Z');
 
+  const documentTitle = hasSavedQueryTitle ? (
+    <SentryDocumentTitle
+      title={`${savedQuery.name} — ${METRICS_TITLE}`}
+      orgSlug={organization?.slug}
+    />
+  ) : null;
+
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/explore/metrics/"
+      title={t(
+        'Track critical application signals using counters, gauges, and distributions.'
+      )}
+      linkLabel={t('Read the Docs')}
+    />
+  );
+
+  const hasBreadcrumb = Boolean(title && defined(pageId));
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        {documentTitle}
+        <TopBar.Slot name="title">
+          {hasBreadcrumb ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : (
+            title || METRICS_TITLE
+          )}
+          <FeatureBadge type="beta" />
+          {titleTooltip}
+        </TopBar.Slot>
+        {defined(onboardingProject) ? null : (
+          <TopBar.Slot name="actions">
+            <ToolbarVisualizeAddChart
+              add={addMetricQuery}
+              disabled={isAddMetricDisabled}
+              label={t('Add Metric')}
+              display="button"
+              size="sm"
+            />
+            {hasEquations && (
+              <ToolbarVisualizeAddChart
+                size="sm"
+                display="button"
+                add={addEquationQuery}
+                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                label={t('Add Equation')}
+              />
+            )}
+            <MetricSaveAs size="sm" />
+          </TopBar.Slot>
+        )}
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={metricsFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${METRICS_TITLE}`}
-            orgSlug={organization?.slug}
+        {documentTitle}
+        {hasBreadcrumb ? (
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.TRACEMETRICS}
+            savedQueryName={savedQuery?.name}
           />
         ) : null}
-        {hasPageFrameFeature ? (
-          title && defined(pageId) ? (
-            <TopBar.Slot name="title">
-              <ExploreBreadcrumb
-                traceItemDataset={TraceItemDataset.TRACEMETRICS}
-                savedQueryName={savedQuery?.name}
-              />
-              <FeatureBadge type="beta" />
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/metrics/"
-                title={t(
-                  'Track critical application signals using counters, gauges, and distributions.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </TopBar.Slot>
-          ) : (
-            <TopBar.Slot name="title">
-              {title ? title : METRICS_TITLE}
-              <FeatureBadge type="beta" />
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/metrics/"
-                title={t(
-                  'Track critical application signals using counters, gauges, and distributions.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </TopBar.Slot>
-          )
-        ) : (
-          <Fragment>
-            {title && defined(pageId) ? (
-              <ExploreBreadcrumb
-                traceItemDataset={TraceItemDataset.TRACEMETRICS}
-                savedQueryName={savedQuery?.name}
-              />
-            ) : null}
-            <Layout.Title>
-              {title ? title : METRICS_TITLE}
-              <FeatureBadge type="beta" />
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/metrics/"
-                title={t(
-                  'Track critical application signals using counters, gauges, and distributions.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </Layout.Title>
-          </Fragment>
-        )}
+        <Layout.Title>
+          {title || METRICS_TITLE}
+          <FeatureBadge type="beta" />
+          {titleTooltip}
+        </Layout.Title>
       </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <Fragment>
-          {defined(onboardingProject) ? null : (
-            <TopBar.Slot name="actions">
-              <ToolbarVisualizeAddChart
-                add={addMetricQuery}
-                disabled={isAddMetricDisabled}
-                label={t('Add Metric')}
-                display="button"
-                size="sm"
-              />
-              {hasEquations && (
-                <ToolbarVisualizeAddChart
-                  size="sm"
-                  display="button"
-                  add={addEquationQuery}
-                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-                  label={t('Add Equation')}
-                />
-              )}
-              <MetricSaveAs size="sm" />
-            </TopBar.Slot>
-          )}
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              feedbackOptions={metricsFeedbackOptions}
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <Layout.HeaderActions>
-          <FeedbackButton feedbackOptions={metricsFeedbackOptions} />
-        </Layout.HeaderActions>
-      )}
+      <Layout.HeaderActions>
+        <FeedbackButton feedbackOptions={metricsFeedbackOptions} />
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }
