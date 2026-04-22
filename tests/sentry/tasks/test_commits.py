@@ -4,6 +4,7 @@ from django.core import mail
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
+from sentry.integrations.source_code_management.providers import get_integration_name
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.locks import locks
 from sentry.models.commit import Commit
@@ -18,7 +19,6 @@ from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
     fetch_commits,
     get_github_compare_commits_cache_key,
-    get_integration_name,
     handle_invalid_identity,
 )
 from sentry.testutils.asserts import assert_slo_metric
