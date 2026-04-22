@@ -85,6 +85,7 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
       spanQuery: ['test:b'],
+      metricQuery: [],
     });
   });
 
@@ -101,6 +102,7 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: [],
       spanQuery: ['test:a', 'test:b'],
+      metricQuery: [],
     });
   });
 
@@ -116,6 +118,59 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
       spanQuery: ['test:c'],
+      metricQuery: [],
+    });
+  });
+
+  it('prepends metric identity fields to metric queries', () => {
+    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+      additionalWrapper: Wrapper([
+        {
+          type: 'metrics',
+          query: 'env:prod',
+          metric: {name: 'my_metric', type: 'distribution', unit: 'ms'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [
+        'metric.name:my_metric metric.type:distribution metric.unit:ms env:prod',
+      ],
+    });
+  });
+
+  it('omits metric.unit when absent on the metric', () => {
+    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+      additionalWrapper: Wrapper([
+        {
+          type: 'metrics',
+          query: '',
+          metric: {name: 'my_metric', type: 'counter'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: ['metric.name:my_metric metric.type:counter'],
+    });
+  });
+
+  it('drops metric entries without a selected metric name', () => {
+    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+      additionalWrapper: Wrapper([
+        {type: 'metrics', query: 'env:prod', metric: {name: '', type: ''}},
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [],
     });
   });
 });

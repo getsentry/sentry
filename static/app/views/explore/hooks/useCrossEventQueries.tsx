@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
@@ -21,6 +22,7 @@ export function useCrossEventQueries() {
 
     const logQuery: string[] = [];
     const spanQuery: string[] = [];
+    const metricQuery: string[] = [];
 
     for (const crossEvent of slicedCrossEvents) {
       switch (crossEvent.type) {
@@ -30,9 +32,26 @@ export function useCrossEventQueries() {
         case 'logs':
           logQuery.push(crossEvent.query);
           break;
+        case 'metrics': {
+          const {metric} = crossEvent;
+          if (!metric.name) {
+            break;
+          }
+          const identity = new MutableSearch('');
+          identity.addFilterValue('metric.name', metric.name);
+          identity.addFilterValue('metric.type', metric.type);
+          if (metric.unit) {
+            identity.addFilterValue('metric.unit', metric.unit);
+          }
+          const combined = [identity.formatString(), crossEvent.query]
+            .filter(Boolean)
+            .join(' ');
+          metricQuery.push(combined);
+          break;
+        }
       }
     }
 
-    return {spanQuery, logQuery};
+    return {spanQuery, logQuery, metricQuery};
   }, [crossEvents]);
 }

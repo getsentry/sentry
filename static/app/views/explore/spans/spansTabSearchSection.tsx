@@ -1,4 +1,12 @@
-import {Fragment, memo, useEffect, useEffectEvent, useMemo, type Key} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  type Key,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -46,6 +54,9 @@ import {
   useSpanItemAttributes,
   useTraceItemDatasetAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsCrossEvents,
   useQueryParamsFields,
@@ -56,6 +67,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {
   isCrossEventType,
+  type CrossEvent,
   type CrossEventType,
 } from 'sentry/views/explore/queryParams/crossEvent';
 import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
@@ -66,7 +78,17 @@ import {findSuggestedColumns} from 'sentry/views/explore/utils';
 const crossEventDropdownItems: DropdownMenuProps['items'] = [
   {key: 'spans', label: t('Spans')},
   {key: 'logs', label: t('Logs')},
+  {key: 'metrics', label: t('Metrics')},
 ];
+
+const EMPTY_TRACE_METRIC: TraceMetric = {name: '', type: ''};
+
+function makeCrossEvent(type: CrossEventType, query = ''): CrossEvent {
+  if (type === 'metrics') {
+    return {query, type, metric: EMPTY_TRACE_METRIC};
+  }
+  return {query, type};
+}
 
 function CrossEventQueryingDropdown() {
   const organization = useOrganization();
@@ -84,9 +106,9 @@ function CrossEventQueryingDropdown() {
     });
 
     if (!crossEvents || crossEvents.length === 0) {
-      setCrossEvents([{query: '', type: key}]);
+      setCrossEvents([makeCrossEvent(key)]);
     } else {
-      setCrossEvents([...crossEvents, {query: '', type: key}]);
+      setCrossEvents([...crossEvents, makeCrossEvent(key)]);
     }
   };
 
@@ -120,7 +142,7 @@ function CrossEventQueryingDropdown() {
 interface SpansTabCrossEventSearchBarProps {
   index: number;
   query: string;
-  type: CrossEventType;
+  type: 'logs' | 'spans';
 }
 
 const SpansTabCrossEventSearchBar = memo(
@@ -221,6 +243,130 @@ const SpansTabCrossEventSearchBar = memo(
   }
 );
 
+interface SpansTabCrossEventMetricsSearchBarProps {
+  index: number;
+  metric: TraceMetric;
+  query: string;
+}
+
+const SpansTabCrossEventMetricsSearchBar = memo(
+  ({index, metric, query}: SpansTabCrossEventMetricsSearchBarProps) => {
+    const mode = useQueryParamsMode();
+    const crossEvents = useQueryParamsCrossEvents();
+    const setCrossEvents = useSetQueryParamsCrossEvents();
+
+    const metricFilter = useMemo(() => createTraceMetricFilter(metric), [metric]);
+    const attributeOptions = useMemo(
+      () => (metricFilter ? {query: metricFilter} : {}),
+      [metricFilter]
+    );
+
+    const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+      useTraceItemDatasetAttributes(
+        TraceItemDataset.TRACEMETRICS,
+        attributeOptions,
+        'number'
+      );
+    const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+      useTraceItemDatasetAttributes(
+        TraceItemDataset.TRACEMETRICS,
+        attributeOptions,
+        'string'
+      );
+    const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+      useTraceItemDatasetAttributes(
+        TraceItemDataset.TRACEMETRICS,
+        attributeOptions,
+        'boolean'
+      );
+
+    const onMetricChange = useCallback(
+      (newMetric: TraceMetric) => {
+        if (!crossEvents) return;
+        setCrossEvents?.(
+          crossEvents.map((c, i) => {
+            if (i === index) return {type: 'metrics', query, metric: newMetric};
+            return c;
+          })
+        );
+      },
+      [crossEvents, setCrossEvents, index, query]
+    );
+
+    const eapSpanSearchQueryBuilderProps = useMemo(
+      () => ({
+        initialQuery: query,
+        onSearch: (newQuery: string) => {
+          if (!crossEvents) return;
+          setCrossEvents?.(
+            crossEvents.map((c, i) => {
+              if (i === index) return {type: 'metrics', query: newQuery, metric};
+              return c;
+            })
+          );
+        },
+        searchSource: 'explore',
+        getFilterTokenWarning:
+          mode === Mode.SAMPLES
+            ? (key: string) => {
+                if (
+                  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(key as AggregationKey)
+                ) {
+                  return t(
+                    "This key won't affect the results because samples mode does not support aggregate functions"
+                  );
+                }
+                return undefined;
+              }
+            : undefined,
+        supportedAggregates:
+          mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+        booleanAttributes,
+        numberAttributes,
+        stringAttributes,
+        matchKeySuggestions: [
+          {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+          {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+        ],
+        booleanSecondaryAliases,
+        numberSecondaryAliases,
+        stringSecondaryAliases,
+      }),
+      [
+        booleanAttributes,
+        booleanSecondaryAliases,
+        crossEvents,
+        index,
+        metric,
+        mode,
+        numberAttributes,
+        numberSecondaryAliases,
+        query,
+        setCrossEvents,
+        stringAttributes,
+        stringSecondaryAliases,
+      ]
+    );
+
+    const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
+      itemType: TraceItemDataset.TRACEMETRICS,
+      ...eapSpanSearchQueryBuilderProps,
+    });
+
+    return (
+      <Grid columns="minmax(180px, 240px) 1fr" gap="md">
+        <MetricSelector traceMetric={metric} onChange={onMetricChange} />
+        <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+          <TraceItemSearchQueryBuilder
+            itemType={TraceItemDataset.TRACEMETRICS}
+            {...eapSpanSearchQueryBuilderProps}
+          />
+        </SearchQueryBuilderProvider>
+      </Grid>
+    );
+  }
+);
+
 function SpansTabCrossEventSearchBars() {
   const organization = useOrganization();
   const crossEvents = useQueryParamsCrossEvents();
@@ -251,6 +397,8 @@ function SpansTabCrossEventSearchBars() {
     let traceItemType = TraceItemDataset.SPANS;
     if (crossEvent.type === 'logs') {
       traceItemType = TraceItemDataset.LOGS;
+    } else if (crossEvent.type === 'metrics') {
+      traceItemType = TraceItemDataset.TRACEMETRICS;
     }
 
     const maxCrossEventQueriesReached = index >= MAX_CROSS_EVENT_QUERIES;
@@ -271,6 +419,7 @@ function SpansTabCrossEventSearchBars() {
               options={[
                 {value: 'spans', label: t('Spans')},
                 {value: 'logs', label: t('Logs')},
+                {value: 'metrics', label: t('Metrics')},
               ]}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
@@ -283,7 +432,7 @@ function SpansTabCrossEventSearchBars() {
 
                 setCrossEvents(
                   crossEvents.map((c, i) => {
-                    if (i === index) return {query: '', type: newValue};
+                    if (i === index) return makeCrossEvent(newValue);
                     return c;
                   })
                 );
@@ -317,6 +466,12 @@ function SpansTabCrossEventSearchBars() {
               }}
             />
           </SearchQueryBuilderProvider>
+        ) : crossEvent.type === 'metrics' ? (
+          <SpansTabCrossEventMetricsSearchBar
+            index={index}
+            query={crossEvent.query}
+            metric={crossEvent.metric}
+          />
         ) : (
           <SpansTabCrossEventSearchBar
             index={index}
