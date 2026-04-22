@@ -1320,6 +1320,10 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         # we test the logic for this method elsewhere, so just test that it's correctly called
         assert mock_dual_delete.call_count == 1
 
+    @pytest.mark.skip(
+        reason="flaky under shuffled xdist: CrossTransactionAssertionError in _pre_setup() when "
+        "a prior test leaves an open transaction on a different silo DB"
+    )
     def test_delete_trigger_dual_update_resolve(self) -> None:
         """
         If there is no explicit resolve threshold on an alert rule, then we need to dual update the

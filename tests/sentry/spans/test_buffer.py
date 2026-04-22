@@ -902,9 +902,10 @@ def test_max_segment_spans_limit(mock_project_model, buffer: SpansBuffer) -> Non
         buffer.process_spans(batch2, now=0)
         rv = buffer.flush_segments(now=11)
 
-    # The entire segment should be dropped because it exceeds max_segment_bytes.
+    # The segment is kept even though it exceeds max_segment_bytes,
+    # because oversized segments are chunked at the message level.
     segment = rv[_segment_id(1, "a" * 32, "a" * 16)]
-    assert segment.spans == []
+    assert len(segment.spans) == 5
 
 
 @mock.patch("sentry.spans.buffer.Project")
@@ -1106,8 +1107,12 @@ def test_dropped_spans_emit_outcomes(
         len(p) for p in [payload_a, payload_b, payload_c, payload_d, payload_e, payload_f]
     )
 
-    # Set a very small max-segment-bytes to force Redis to drop spans
-    with override_options({"spans.buffer.max-segment-bytes": 100}):
+    # Set a very small max-segment-bytes to force Redis to drop spans.
+    # enforce-segment-size must be True to actually drop spans in the Lua script
+    # (DEFAULT_OPTIONS sets it False to keep tests unaffected by enforcement).
+    with override_options(
+        {"spans.buffer.max-segment-bytes": 100, "spans.buffer.enforce-segment-size": True}
+    ):
         buffer.process_spans(batch1, now=0)
         buffer.process_spans(batch2, now=0)
         buffer.flush_segments(now=11)
@@ -1248,8 +1253,10 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     ):
         messages = segment.to_messages()
     assert len(messages) == 1
-    assert messages[0] == {"spans": spans}
+    assert messages[0]["spans"] == spans
     assert "skip_enrichment" not in messages[0]
+    assert "flush_id" in messages[0]
+    assert len(messages[0]["flush_id"]) == 32  # UUID hex string
 
 
 def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:

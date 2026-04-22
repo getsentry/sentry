@@ -1641,7 +1641,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_rejects_foreign_org(self) -> None:
         other_org = self.create_organization()
@@ -1665,7 +1665,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             self.organization.get_option("sentry:seer_default_coding_agent_integration_id")
             == integration.id
         )
-        assert response.data["defaultCodingAgentIntegrationId"] == integration.id
+        assert response.data["defaultCodingAgentIntegrationId"] == str(integration.id)
 
     def test_default_coding_agent_integration_id_null_on_first_write_create_path(self) -> None:
         # Tests the create path (no OrganizationOption row exists yet): sending null
