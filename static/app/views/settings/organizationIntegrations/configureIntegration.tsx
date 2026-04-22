@@ -251,7 +251,7 @@ function ConfigureIntegration() {
       p =>
         p.id === 'opsgenie' &&
         p.projectList.length >= 1 &&
-        p.projectList.some(({enabled}) => enabled === true)
+        p.projectList.some(({enabled}) => enabled)
     );
   };
 

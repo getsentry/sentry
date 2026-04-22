@@ -317,7 +317,7 @@ export function EditAccessSelector({
       )}
       isOpen={isMenuOpen}
       onOpenChange={newOpenState => {
-        if (newOpenState === true) {
+        if (newOpenState) {
           trackAnalytics('dashboards2.edit_access.start', {organization});
         }
 

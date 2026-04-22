@@ -54,7 +54,7 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
 
 function renderBrowserExportButton(canEdit: boolean, props: Props) {
   const {isLoading, error} = props;
-  const disabled = isLoading || error !== null || canEdit === false;
+  const disabled = isLoading || error !== null || !canEdit;
   const onClick = disabled ? undefined : () => handleDownloadAsCsv(props.title, props);
 
   return (
@@ -79,7 +79,7 @@ function renderBrowserExportButton(canEdit: boolean, props: Props) {
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
   const {isLoading, error, location, eventView} = props;
-  const disabled = isLoading || error !== null || canEdit === false;
+  const disabled = isLoading || error !== null || !canEdit;
   return (
     <DataExport
       payload={{

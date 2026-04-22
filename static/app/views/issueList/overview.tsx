@@ -832,7 +832,7 @@ function IssueListOverview({
       }
     }
 
-    if ('inbox' in data && data.inbox === false) {
+    if ('inbox' in data && !data.inbox) {
       onIssueAction({
         itemIds,
         actionType: 'Reviewed',

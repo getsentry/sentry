@@ -371,7 +371,7 @@ function AutofixHighlightPopupContent({
 
   useEffect(() => {
     if (onShouldPersistChange) {
-      onShouldPersistChange(!!commentThread && commentThread.is_completed !== true);
+      onShouldPersistChange(!!commentThread && !commentThread.is_completed);
     }
   }, [commentThread, onShouldPersistChange]);
 

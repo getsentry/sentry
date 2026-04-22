@@ -38,7 +38,7 @@ export function BeaconOverview({data}: Props) {
           {data.events24h === null ? 'n/a' : data.events24h.toLocaleString()}
         </DetailLabel>
         <DetailLabel title="Docker">
-          {data.isDocker === true ? 'Yes' : data.isDocker === false ? 'No' : 'n/a'}
+          {data.isDocker ? 'Yes' : data.isDocker ? 'n/a' : 'No'}
         </DetailLabel>
       </DetailList>
       <DetailList>
