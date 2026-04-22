@@ -153,9 +153,6 @@ class DashboardFavoriteUserTest(TestCase):
             self.organization, self.user.id, [should_be_first.id, should_be_second.id]
         )
 
-        second_favorite_dashboard.refresh_from_db()
-        first_favorite_dashboard.refresh_from_db()
-
         assert DashboardFavoriteUser.objects.get(id=second_favorite_dashboard.id).position == 1
         assert DashboardFavoriteUser.objects.get(id=first_favorite_dashboard.id).position == 0
 
