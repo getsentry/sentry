@@ -467,7 +467,6 @@ export function ExplorerDrawerContent({
               fileApprovalIndex < fileApprovalTotalPatches && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
-                  isLast
                   pendingInput={pendingInput!}
                 />
               )}
@@ -475,7 +474,6 @@ export function ExplorerDrawerContent({
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
-                isLast
                 isOtherSelected={isOtherSelected}
                 onCustomTextChange={handleQuestionCustomTextChange}
                 onSelectOption={handleQuestionSelectOption}
