@@ -9,6 +9,9 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.authenticators.totp import TotpInterface
@@ -398,7 +401,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         self.login_as(user=self.user)
 
         with outbox_runner():
-            response = self.get_success_response(name="org name")
+            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
         assert response.status_code == 201
 
         org = Organization.objects.get(slug="org-name")
@@ -412,10 +415,14 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
                 slug=org.slug,
             ),
         )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
         assert_org_audit_log_exists(
             organization=org,
             event=audit_log.get_event_id("ORG_ADD"),
         )
+        assert org.get_option("sentry:aggregated_data_consent") is True
 
     def test_data_consent(self) -> None:
         data = {"name": "hello world original", "agreeTerms": True}
