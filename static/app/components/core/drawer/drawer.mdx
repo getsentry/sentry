@@ -53,6 +53,43 @@ function MyDrawer({title}: {title: string}) {
 > [!WARNING]
 > Calling `openDrawer` updates a global context. All subscribed components re-render on every call, which can cause infinite loops. Guard with `isDrawerOpen` (as above), or wrap `openDrawer` in `useCallback` with stable dependencies.
 
+## `useDrawer`
+
+`useDrawer()` returns a stable set of helpers and state. The open/closed booleans are scoped per call-site, so different components can share the single `GlobalDrawer` without conflating whose drawer is whose.
+
+| Field             | Type                                      | Description                                                                                                                                                                                                                                                                                                                                                              |
+| ----------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `openDrawer`      | `(renderer, options) => void`             | Opens the drawer with the given renderer and options. Replaces any currently open drawer. The drawer is associated with this `useDrawer()` call-site for the lifetime of that drawer.                                                                                                                                                                                    |
+| `closeDrawer`     | `() => void`                              | Closes the currently open drawer, regardless of which call-site opened it. Unmounts the drawer content. Invokes the renderer's `closeDrawer` prop when called from inside the drawer. Does not trigger the `onClose` option.                                                                                                                                             |
+| `isDrawerOpen`    | `boolean`                                 | `true` only when the drawer currently open was opened by **this** `useDrawer()` call-site. A shared wrapper hook (e.g. `useSamplesDrawer`, `useUrlTraceDrawer`) shares a single call-site across its consumers, so all callers of the wrapper see the same value. Use this for toggle buttons, disable-while-open buttons, and guards against reopening your own drawer. |
+| `isAnyDrawerOpen` | `boolean`                                 | `true` when any drawer is open, regardless of who opened it. Escape hatch for call-sites that need the global state — e.g. a page-level effect that auto-opens a drawer only when nothing else is already open. Prefer `isDrawerOpen` unless you specifically need cross-call-site state.                                                                                |
+| `panelRef`        | `React.RefObject<HTMLDivElement \| null>` | Ref to the rendered drawer panel element. `null` when no drawer is open. Use for positioning or measurement; do not mutate.                                                                                                                                                                                                                                              |
+
+### Scoped vs global state
+
+```tsx
+// Component A — opens its own drawer.
+function ButtonA() {
+  const {openDrawer, isDrawerOpen} = useDrawer();
+  return (
+    <button
+      disabled={isDrawerOpen} // true only while A's drawer is open
+      onClick={() => openDrawer(() => <p>A</p>, {ariaLabel: 'A'})}
+    >
+      Open A
+    </button>
+  );
+}
+
+// Component B — never calls openDrawer.
+function StatusB() {
+  const {isDrawerOpen, isAnyDrawerOpen} = useDrawer();
+  // isDrawerOpen is always false here (B never opened anything).
+  // isAnyDrawerOpen is true when any drawer is open — including A's.
+  return <span>{isAnyDrawerOpen ? 'some drawer is open' : 'idle'}</span>;
+}
+```
+
 ## Modes
 
 The `mode` option on `openDrawer` controls scroll locking, click-outside, and URL-change behavior.

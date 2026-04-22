@@ -1237,6 +1237,7 @@ class DashboardDetail extends Component<Props, State> {
                         organization={organization}
                         dashboards={dashboards}
                         dashboard={dashboard}
+                        hideAddWidget
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}
                         onCancel={this.onCancel}
@@ -1301,10 +1302,12 @@ class DashboardDetail extends Component<Props, State> {
                                 this.isEditingDashboard
                               }
                               isPreview={this.isPreview}
+                              onAddWidget={this.onAddWidget}
                               onDashboardFilterChange={this.handleChangeFilter}
                               shouldBusySaveButton={this.state.isSavingDashboardFilters}
                               prebuiltDashboardId={dashboard.prebuiltId}
                               storageNamespace={this.props.storageNamespace}
+                              widgetLimitReached={widgetLimitReached}
                               onCancel={() => {
                                 resetPageFilters(dashboard, location);
                                 trackAnalytics('dashboards2.filter.cancel', {
