@@ -398,7 +398,7 @@ function MetricToolbar({
             projectIds={projectIds}
             environments={environments}
           />
-          <AggregateDropdown traceMetric={traceMetric} />
+          <AggregateDropdown traceMetric={traceMetric} singleSelect />
           <Filter traceMetric={traceMetric} />
           <DeleteMetricButton disabled={!canDelete} />
         </Fragment>
