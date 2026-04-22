@@ -1,5 +1,6 @@
 import time
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 from django.core.cache import cache
 
@@ -13,7 +14,9 @@ from sentry.utils.circuit_breaker import (
 
 class TestCircuitBreaker(TestCase):
     def setUp(self) -> None:
-        self.key = "test"
+        # Use a unique key per test so the Redis-backed passthrough ratelimiter
+        # counter doesn't bleed between concurrent xdist workers.
+        self.key = uuid4().hex
         self.error_limit = 5
         self.passthrough_data = CircuitBreakerPassthrough(limit=2, window=1)
         cache.set(ERROR_COUNT_CACHE_KEY(self.key), self.error_limit)
