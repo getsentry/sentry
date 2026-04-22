@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
@@ -28,6 +28,12 @@ export const useSeerExplorerDrawer = () => {
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const {getPageReferrer} = usePageReferrer();
 
+  // Track drawer open state in a ref so callbacks don't go stale
+  const isDrawerOpenRef = useRef(false);
+  useEffect(() => {
+    isDrawerOpenRef.current = isDrawerOpen;
+  }, [isDrawerOpen]);
+
   // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
   // (useSeerExplorer hook should no longer handle this)
 
@@ -41,16 +47,21 @@ export const useSeerExplorerDrawer = () => {
 
   const closeSeerExplorerDrawer = useCallback(() => {
     // Prevent closing the global drawer if another drawer (e.g. autofix) is open
-    if (isDrawerOpen) {
+    if (isDrawerOpenRef.current) {
       closeDrawer();
     }
-  }, [closeDrawer, isDrawerOpen]);
+  }, [closeDrawer]);
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
+      if (isDrawerOpenRef.current) {
+        // runId seeding doesn't work when the drawer is already open
+        return;
+      }
+
       const {runId, startNewRun} = options ?? {};
 
-      // Seed run_id state with sessionStorage, before rendering drawer
+      // Seed runId state with sessionStorage, before rendering drawer
       try {
         if (runId !== undefined) {
           sessionStorageWrapper.setItem('seer-explorer-run-id', JSON.stringify(runId));
@@ -81,12 +92,12 @@ export const useSeerExplorerDrawer = () => {
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
-    if (isDrawerOpen) {
+    if (isDrawerOpenRef.current) {
       closeSeerExplorerDrawer();
     } else {
       openSeerExplorerDrawer();
     }
-  }, [closeSeerExplorerDrawer, openSeerExplorerDrawer, isDrawerOpen]);
+  }, [closeSeerExplorerDrawer, openSeerExplorerDrawer]);
 
   const disabledReturn = useMemo(
     () => ({
