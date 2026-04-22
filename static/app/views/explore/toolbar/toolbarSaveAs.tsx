@@ -248,7 +248,7 @@ export function ToolbarSaveAs() {
               <SaveAsButton
                 {...triggerProps}
                 priority="primary"
-                aria-label={t('Save As')}
+                aria-label={t('Save as')}
                 onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -256,7 +256,7 @@ export function ToolbarSaveAs() {
                   triggerProps.onClick?.(e);
                 }}
               >
-                {t('Save As')}
+                {t('Save as')}
               </SaveAsButton>
             )}
           />

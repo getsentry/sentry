@@ -26,7 +26,7 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
         onClick={item.onAction}
         aria-label={item.textValue}
       >
-        {t('Save As')}
+        {t('Save as')}
       </Button>
     );
   }
@@ -39,14 +39,14 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
           {...triggerProps}
           size={size}
           priority="primary"
-          aria-label={t('Save As')}
+          aria-label={t('Save as')}
           onClick={e => {
             e.stopPropagation();
             e.preventDefault();
             triggerProps.onClick?.(e);
           }}
         >
-          {t('Save As')}
+          {t('Save as')}
         </Button>
       )}
     />

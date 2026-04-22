@@ -98,10 +98,10 @@ function SaveAsDropdown({
         size="sm"
         priority="primary"
         icon={<IconStar />}
-        aria-label={t('Save As')}
+        aria-label={t('Save as')}
         disabled={disabled}
       >
-        {t('Save As')}
+        {t('Save as')}
       </Button>
       <AnimatePresence>
         {isOpen && (
@@ -272,7 +272,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const nextEventView = eventView.clone();
     nextEventView.name = this.state.queryName;
 
-    // Checks if "Save As" button is clicked from a clean state, or it is
+    // Checks if "Save as" button is clicked from a clean state, or it is
     // clicked while modifying an existing query
     const isNewQuery = !eventView.id;
 

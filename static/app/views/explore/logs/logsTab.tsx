@@ -205,7 +205,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                   <Button
                     {...triggerProps}
                     priority="primary"
-                    aria-label={t('Save As')}
+                    aria-label={t('Save as')}
                     onClick={e => {
                       e.stopPropagation();
                       e.preventDefault();
@@ -213,7 +213,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
                       triggerProps.onClick?.(e);
                     }}
                   >
-                    {t('Save As')}
+                    {t('Save as')}
                   </Button>
                 )}
               />

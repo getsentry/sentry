@@ -117,7 +117,7 @@ function Content({datePageFilterProps}: ContentProps) {
               <Button
                 {...triggerProps}
                 priority="primary"
-                aria-label={t('Save As')}
+                aria-label={t('Save as')}
                 onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -125,7 +125,7 @@ function Content({datePageFilterProps}: ContentProps) {
                   triggerProps.onClick?.(e);
                 }}
               >
-                {t('Save As')}
+                {t('Save as')}
               </Button>
             )}
           />

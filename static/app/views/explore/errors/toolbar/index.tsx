@@ -22,8 +22,8 @@ function ErrorsToolbarSaveAs() {
   return (
     <SaveStyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
-        <Button priority="primary" aria-label={t('Save As')}>
-          {t('Save As')}
+        <Button priority="primary" aria-label={t('Save as')}>
+          {t('Save as')}
         </Button>
       </Grid>
     </SaveStyledToolbarSection>

@@ -107,7 +107,7 @@ function SegmentedIssueViewSaveButton({
             }}
             disabled={isSaving || !hasFeature}
           >
-            {canEdit ? t('Save') : t('Save As')}
+            {canEdit ? t('Save') : t('Save as')}
           </PrimarySaveButton>
           <DropdownMenu
             items={[
@@ -121,7 +121,7 @@ function SegmentedIssueViewSaveButton({
               },
               {
                 key: 'save-as',
-                label: t('Save As new view'),
+                label: t('Save as new view'),
                 onAction: () => {
                   openCreateIssueViewModal();
                 },
@@ -199,7 +199,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
           >
-            {t('Save As')}
+            {t('Save as')}
           </Button>
         )}
       </Feature>
