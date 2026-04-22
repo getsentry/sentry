@@ -1,5 +1,6 @@
 from unittest import mock
 
+from sentry import eventstream
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
@@ -34,6 +35,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.clickhouse import optimize_snuba_table
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.skips import requires_snuba
@@ -219,17 +221,43 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
 
-        with self.tasks():
-            run_scheduled_deletions()
+        with (
+            mock.patch.object(
+                eventstream.backend,
+                "start_delete_groups",
+                wraps=eventstream.backend.start_delete_groups,
+            ) as mock_start,
+            mock.patch.object(
+                eventstream.backend,
+                "end_delete_groups",
+                wraps=eventstream.backend.end_delete_groups,
+            ) as mock_end,
+        ):
+            with self.tasks():
+                run_scheduled_deletions()
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not GroupSeen.objects.filter(id=group_seen.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
 
+        # Verify the correct Snuba delete API calls were made — our code's
+        # responsibility. Then force ClickHouse to immediately deduplicate so
+        # tombstoned rows are removed without waiting for background merge.
+        mock_start.assert_called_once()
+        mock_end.assert_called_once()
+
+        optimize_snuba_table("events")
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.backend.get_events(
-            conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
-        )
+        # Retry briefly in case the tombstone Kafka message hasn't landed yet.
+        for _ in range(10):
+            events = eventstore.backend.get_events(
+                conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
+            )
+            if not events:
+                break
+            import time as _t
+
+            _t.sleep(0.5)
         assert len(events) == 0
 
     @mock.patch("sentry.quotas.backend.remove_seat")
