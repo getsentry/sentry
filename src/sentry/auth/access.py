@@ -200,7 +200,10 @@ def _intersect_member_and_token_scopes(
     if token_scopes is None:
         return member_scopes
 
-    return frozenset(token_scopes) & member_scopes
+    token_scopes = frozenset(token_scopes)
+    token_only_scopes = token_scopes & settings.SENTRY_TOKEN_ONLY_SCOPES
+
+    return (token_scopes & member_scopes) | token_only_scopes
 
 
 @dataclass
