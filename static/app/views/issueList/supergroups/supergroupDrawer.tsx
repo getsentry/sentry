@@ -154,6 +154,14 @@ export function SupergroupDetailDrawer({
 
 const PAGE_SIZE = 25;
 
+/**
+ * How many items we're willing to hoist. Doubles as the inline-id cap (members
+ * we'll embed in `issue.id:[…]` before the URL gets too big) and the stream-
+ * scan window (top stream results we inspect when the id list is too big to
+ * inline).
+ */
+const HOIST_LIMIT = 50;
+
 function SupergroupIssueList({
   groupIds,
   memberList,
@@ -177,8 +185,8 @@ function SupergroupIssueList({
   } = location.query;
   const query = typeof searchQuery === 'string' ? searchQuery : '';
 
-  // Search with the stream query across all member issues so matched issues
-  // can be hoisted to page 1 before pagination.
+  const inlineIdListFits = groupIds.length <= HOIST_LIMIT;
+
   const {data: matchedGroups, isPending: matchedPending} = useQuery({
     ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
@@ -188,37 +196,57 @@ function SupergroupIssueList({
         statsPeriod,
         start,
         end,
-        query: `${query} issue.id:[${groupIds.join(',')}]`,
-        per_page: PAGE_SIZE,
+        query: inlineIdListFits ? `${query} issue.id:[${groupIds.join(',')}]` : query,
+        per_page: HOIST_LIMIT,
       },
       staleTime: 30_000,
     }),
-    enabled: !!filterWithCurrentSearch,
+    enabled: !!filterWithCurrentSearch && groupIds.length > 0,
   });
 
-  const matchedIds = new Set(matchedGroups?.map(g => g.id));
-  const sortedGroupIds = [...groupIds].sort(
-    (a, b) => Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
+  const matchedIds = useMemo(() => {
+    if (!matchedGroups) {
+      return new Set<string>();
+    }
+    if (inlineIdListFits) {
+      return new Set(matchedGroups.map(g => g.id));
+    }
+    const memberSet = new Set(groupIds.map(String));
+    return new Set(matchedGroups.map(g => g.id).filter(id => memberSet.has(id)));
+  }, [matchedGroups, inlineIdListFits, groupIds]);
+
+  // When filtering with the stream query, wait for the match so the IDs we
+  // fetch reflect the hoisted ordering.
+  const pageFetchReady = !filterWithCurrentSearch || !matchedPending;
+  const sortedGroupIds = useMemo(
+    () =>
+      filterWithCurrentSearch
+        ? [...groupIds].sort(
+            (a, b) =>
+              Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
+          )
+        : groupIds,
+    [filterWithCurrentSearch, groupIds, matchedIds]
   );
 
-  const totalPages = Math.ceil(sortedGroupIds.length / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(sortedGroupIds.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages - 1);
-  const pageGroupIds = sortedGroupIds.slice(
+  const visibleIds = sortedGroupIds.slice(
     safePage * PAGE_SIZE,
     (safePage + 1) * PAGE_SIZE
   );
 
-  // Fetch all groups on this page
-  const {data: allGroups, isPending: allPending} = useQuery(
-    apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+  const {data: allGroups, isPending: allPending} = useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        group: pageGroupIds.map(String),
+        group: visibleIds.map(String),
         project: ALL_ACCESS_PROJECTS,
       },
       staleTime: 30_000,
-    })
-  );
+    }),
+    enabled: pageFetchReady,
+  });
 
   if (allPending || (filterWithCurrentSearch && matchedPending)) {
     return (
@@ -237,7 +265,7 @@ function SupergroupIssueList({
             <DrawerColumnHeaders />
           </LoadingHeader>
           <PanelBody>
-            {pageGroupIds.map(id => (
+            {visibleIds.map(id => (
               <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
             ))}
           </PanelBody>
@@ -247,11 +275,10 @@ function SupergroupIssueList({
   }
 
   const groupMap = new Map(allGroups?.map(g => [g.id, g]));
-
-  const sortedGroups = pageGroupIds
+  const sortedGroups = visibleIds
     .map(id => groupMap.get(String(id)))
-    .filter((g): g is Group => g !== undefined);
-
+    .filter((g): g is Group => g !== undefined)
+    .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)));
   const visibleGroupIds = sortedGroups.map(g => g.id);
 
   return (

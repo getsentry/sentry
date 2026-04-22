@@ -50,6 +50,7 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
+  hideAddWidget?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
@@ -59,6 +60,7 @@ export function Controls({
   dashboard,
   dashboards,
   hasUnsavedFilters,
+  hideAddWidget = false,
   widgetLimitReached,
   onChangeEditAccess,
   onEdit,
@@ -376,7 +378,7 @@ export function Controls({
                 <DashboardRevisionsButton dashboard={dashboard} />
               </Feature>
             )}
-            {hasFeature && !isPrebuiltDashboard && (
+            {hasFeature && !isPrebuiltDashboard && !hideAddWidget && (
               <Tooltip
                 title={tooltipMessage}
                 disabled={!widgetLimitReached && hasEditAccess}

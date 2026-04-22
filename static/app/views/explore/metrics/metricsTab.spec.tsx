@@ -607,7 +607,7 @@ describe('MetricsTabContent', () => {
         organization,
       }
     );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(2);
+    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
     expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
   });
 
@@ -623,7 +623,7 @@ describe('MetricsTabContent', () => {
         organization: orgWithFeature,
       }
     );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(2);
+    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
     expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 

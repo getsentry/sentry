@@ -979,7 +979,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "put", self.url(self.dashboard.id), data={"title": "Dashboard 2"}
         )
         assert response.status_code == 409, response.data
-        assert list(response.data) == ["Dashboard with that title already exists."]
+        assert response.data["detail"] == "Dashboard with that title already exists."
 
     def test_allow_put_when_no_project_access(self) -> None:
         # disable Open Membership

@@ -424,7 +424,12 @@ export function ExplorerDrawerContent({
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isPolling} isError={isError} runId={runId} />
+          <EmptyState
+            isLoading={isPolling}
+            isError={isError}
+            runId={runId}
+            onSuggestionClick={readOnly ? undefined : sendMessage}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
