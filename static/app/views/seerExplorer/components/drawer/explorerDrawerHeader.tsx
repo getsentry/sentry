@@ -96,7 +96,7 @@ export function ExplorerDrawerHeader({
   }, [rawSessionMenuItems, isPending, isError]);
 
   return (
-    <DrawerHeader hideBar closeButtonLabel={t('Close Seer Explorer')} hideCloseButtonText>
+    <DrawerHeader hideBar closeButtonLabel={t('Close')} hideCloseButtonText>
       <Flex align="center" gap="xs" height="100%">
         <Text size="md" weight="bold">
           {t('Seer Agent')}
