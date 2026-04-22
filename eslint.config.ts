@@ -628,7 +628,6 @@ export default typescript.config([
           '@typescript-eslint/prefer-includes': 'off',
           '@typescript-eslint/prefer-nullish-coalescing': 'off',
           '@typescript-eslint/prefer-regexp-exec': 'off',
-          '@typescript-eslint/prefer-return-this-type': 'off',
           '@typescript-eslint/prefer-string-starts-ends-with': 'off',
           '@typescript-eslint/restrict-plus-operands': 'off',
           '@typescript-eslint/restrict-template-expressions': 'off',
