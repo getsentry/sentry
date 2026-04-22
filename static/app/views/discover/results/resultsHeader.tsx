@@ -190,6 +190,7 @@ class ResultsHeader extends Component<Props, State> {
               updateCallback={() => this.fetchData()}
               yAxis={yAxis}
               isHomepage={isHomepage}
+              hasPageFrameFeature={hasPageFrameFeature}
               setHomepageQuery={updatedHomepageQuery => {
                 this.setState({
                   homepageQuery: getSavedQueryWithDataset(
