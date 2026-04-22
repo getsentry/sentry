@@ -400,10 +400,10 @@ def _get_priority(node: dict[str, Any]) -> int:
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
-    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "priority": int, "data": ..., "children": [...]}]}``
     The top-level nodes list may contain multiple root nodes (e.g. a dashboard
     and a widget-builder sidebar rendered as siblings).  Nodes are sorted by
-    ``data.priority`` (descending, default 0) and only nodes at the highest
+    ``priority`` (descending, default 0) and only nodes at the highest
     priority level are rendered.  At most ``_MAX_ROOT_NODES`` are emitted to
     guard against runaway token usage.
     """
