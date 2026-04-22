@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback, useMemo, useState} from 'react';
+import {Component, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -1168,6 +1168,10 @@ function SaveQueryButton({
     );
     return {isNewQuery: false, isEditingQuery: !isEqualQuery || !isEqualYAxis};
   }, [eventView, savedQuery, yAxis]);
+
+  useEffect(() => {
+    setQueryName('');
+  }, [eventView.id]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
