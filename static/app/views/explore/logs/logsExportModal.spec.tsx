@@ -31,18 +31,8 @@ jest.mock('sentry/views/explore/logs/downloadLogs', () => ({
   },
 }));
 
-const mockUseDataExport = jest.fn();
-
-jest.mock('sentry/components/exports/useDataExport', () => ({
-  ...jest.requireActual('sentry/components/exports/useDataExport'),
-  get useDataExport() {
-    return mockUseDataExport;
-  },
-}));
-
 const organization = OrganizationFixture({features: ['discover-query']});
 const closeModal = jest.fn();
-const mockHandleDataExport = jest.fn();
 
 const queryInfo: LogsQueryInfo = {
   dataset: 'logs',
@@ -61,8 +51,6 @@ const tableData = Array.from({length: 500}).map((_, i) =>
 );
 
 function renderModal(estimatedRowCount: number) {
-  mockUseDataExport.mockReturnValue(mockHandleDataExport);
-
   return render(
     <LogsExportModal
       Body={ModalBody}
@@ -81,6 +69,7 @@ function renderModal(estimatedRowCount: number) {
 describe('LogsExportModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
   });
 
   it('calls closeModal when Cancel is clicked', async () => {
@@ -92,6 +81,12 @@ describe('LogsExportModal', () => {
   });
 
   it('downloads in the browser and shows a success toast when Export is clicked without any options', async () => {
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      body: {id: 721},
+    });
+
     renderModal(500);
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
@@ -106,12 +101,19 @@ describe('LogsExportModal', () => {
       filename: 'logs',
       format: 'csv',
     });
-    expect(mockHandleDataExport).not.toHaveBeenCalled();
+    expect(dataExportMock).not.toHaveBeenCalled();
     expect(addSuccessMessage).toHaveBeenCalledWith('Downloading file to your browser.');
   });
 
-  it('calls handleDataExport when row limit is above the sync limit', async () => {
+  it('POSTs to data-export when row limit is above the sync limit', async () => {
     const aboveSyncLimit = QUERY_PAGE_LIMIT + 1;
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
     renderModal(aboveSyncLimit);
 
     await userEvent.click(screen.getByRole('textbox'));
@@ -123,17 +125,29 @@ describe('LogsExportModal', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
     await waitFor(() => {
-      expect(mockHandleDataExport).toHaveBeenCalledWith(
-        expect.objectContaining({
-          format: 'csv',
-          queryInfo: expect.objectContaining({
-            limit: aboveSyncLimit,
-          }),
-        })
-      );
+      expect(dataExportMock).toHaveBeenCalled();
     });
 
+    expect(dataExportMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/data-export/`,
+      expect.objectContaining({
+        data: {
+          format: 'csv',
+          query_type: 'Explore',
+          query_info: {
+            ...queryInfo,
+            dataset: 'logs',
+            limit: aboveSyncLimit,
+          },
+        },
+        method: 'POST',
+        error: expect.anything(),
+        success: expect.anything(),
+      })
+    );
     expect(mockDownloadLogs).not.toHaveBeenCalled();
-    expect(mockAddSuccessMessage).not.toHaveBeenCalled();
+    expect(mockAddSuccessMessage).toHaveBeenCalledWith(
+      "Sit tight. We'll shoot you an email when your data is ready for download."
+    );
   });
 });
