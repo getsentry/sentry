@@ -94,6 +94,9 @@ def test_ignores_results_with_empty_path(make_stacktrace_snapshot: CustomSnapsho
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "http://foo.com"}]))
 
 
+@pytest.mark.skip(
+    reason="test pollution: snapshot comparison fails when prior tests leave different stacktrace state; appears repeatedly as pollution in shuffled runs"
+)
 def test_serialize_returns_frames(make_stacktrace_snapshot: CustomSnapshotter) -> None:
     make_stacktrace_snapshot(dict(frames=[{"lineno": 1, "filename": "foo.py"}]))
 
