@@ -214,7 +214,6 @@ export function TracesTable({
     if (!spansRequest.data || !traceErrorRequest.data) {
       return {};
     }
-    // sum up the error spans for a trace
     const errors = traceErrorRequest.data?.reduce<Record<string, number>>((acc, span) => {
       acc[span.trace] = Number(span['count(span.duration)'] ?? 0);
       return acc;
