@@ -182,29 +182,58 @@ export function ProjectDetail() {
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
-              <Layout.HeaderContent unified>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      to: makeProjectsPathname({path: '/', organization}),
-                      label: t('Projects'),
-                    },
-                    {label: t('Project Details')},
-                  ]}
-                />
-                <Layout.Title>
-                  {project ? (
-                    <IdBadge
-                      project={project}
-                      avatarSize={28}
-                      hideOverflow="100%"
-                      disableLink
-                      hideName
-                    />
-                  ) : null}
-                  {project?.slug}
-                </Layout.Title>
-              </Layout.HeaderContent>
+              {hasPageFrameFeature ? (
+                <TopBar.Slot name="title">
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        to: makeProjectsPathname({path: '/', organization}),
+                        label: t('Projects'),
+                      },
+                      {
+                        label: (
+                          <Fragment>
+                            {project ? (
+                              <IdBadge
+                                project={project}
+                                avatarSize={20}
+                                hideOverflow="100%"
+                                disableLink
+                                hideName
+                              />
+                            ) : null}
+                            {project?.slug}
+                          </Fragment>
+                        ),
+                      },
+                    ]}
+                  />
+                </TopBar.Slot>
+              ) : (
+                <Layout.HeaderContent unified>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        to: makeProjectsPathname({path: '/', organization}),
+                        label: t('Projects'),
+                      },
+                      {label: t('Project Details')},
+                    ]}
+                  />
+                  <Layout.Title>
+                    {project ? (
+                      <IdBadge
+                        project={project}
+                        avatarSize={28}
+                        hideOverflow="100%"
+                        disableLink
+                        hideName
+                      />
+                    ) : null}
+                    {project?.slug}
+                  </Layout.Title>
+                </Layout.HeaderContent>
+              )}
 
               <Layout.HeaderActions>
                 <Grid flow="column" align="center" gap="md">
