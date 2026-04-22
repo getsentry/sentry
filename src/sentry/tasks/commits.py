@@ -274,8 +274,11 @@ def fetch_commits_for_ref_with_lifecycle(
     start_sha = resolved.start_sha
     end_sha = resolved.end_sha
     integration_name = get_integration_name(resolved.provider_key, default=resolved.provider.id)
+    organization_id = task_extra.get("organization_id")
+    user_id = task_extra.get("user_id")
     loop_extra = {
-        **task_extra,
+        "organization_id": organization_id,
+        "user_id": user_id,
         "repository": repo.name,
         "integration_name": integration_name,
         "start_sha": start_sha,
