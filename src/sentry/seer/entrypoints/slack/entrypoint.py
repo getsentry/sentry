@@ -421,12 +421,19 @@ class SlackExplorerEntrypoint(
         self.slack_user_id = slack_user_id
 
     @staticmethod
+    def has_feature_flag(organization: Organization | RpcOrganization) -> bool:
+        return features.has("organizations:seer-slack-explorer", organization)
+
+    @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
-        has_seer_slack_feature_flag = features.has(
-            "organizations:seer-slack-explorer", organization
-        )
+        """
+        Determines access to Seer Agent, along with the Slack feature. Shouldn't be called from
+        the CONTROL silo since `has_explorer_access_with_detail` will not get populated with the
+        subscription context, and will return False every time. For slim, CONTROL calls, use
+        the `has_feature_flag` method instead.
+        """
         has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
-        return has_seer_slack_feature_flag and has_explorer_access
+        return SlackExplorerEntrypoint.has_feature_flag(organization) and has_explorer_access
 
     def on_trigger_explorer_error(self, *, error: str) -> None:
         send_thread_update(
