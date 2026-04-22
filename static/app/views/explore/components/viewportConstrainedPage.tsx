@@ -19,9 +19,6 @@ interface ViewportConstrainedPageProps extends FlexProps<'div'> {
  *
  * When constrained, the global footer sibling is hidden on smaller
  * viewport heights and when `hideFooter` is set.
- *
- * Renders as a `<div>` — the surrounding `<main>` is provided by the
- * root `Layout.Page` in `OrganizationLayout`.
  */
 export function ViewportConstrainedPage({
   constrained = true,
@@ -29,13 +26,12 @@ export function ViewportConstrainedPage({
   ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return <Stack flex="1" background="primary" {...rest} />;
+    return <Stack flex="1" {...rest} />;
   }
 
   return (
     <ConstrainedPage
       flex="1"
-      background="primary"
       minHeight="0"
       overflow="hidden"
       data-hide-footer={hideFooter ? '' : undefined}
