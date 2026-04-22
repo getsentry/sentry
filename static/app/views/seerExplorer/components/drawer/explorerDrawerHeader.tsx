@@ -2,6 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
@@ -119,6 +120,10 @@ export function ExplorerDrawerHeader({
 
   return (
     <DrawerHeader hideBar hideCloseButtonText>
+      <FeatureBadge
+        type="beta"
+        tooltipProps={{title: t('This feature is in beta and may change')}}
+      />
       <RightAlignedContent>
         {showContextEngineToggle && (
           <Tooltip
