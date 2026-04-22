@@ -20,6 +20,9 @@ type SeerExplorerContextValue = {
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   runId: number | null;
+  /**
+   * XXX: For useSeerExplorer hook only. Do not manually call this to update the drawer UI.
+   */
   setRunId: (value: SetStateAction<number | null>) => void;
   toggleSeerExplorer: () => void;
 };

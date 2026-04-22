@@ -20,6 +20,7 @@ import {
   PRIMARY_HEADER_HEIGHT,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
+// import { useSeerExplorer } from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 
 const Slot = slot(['title', 'actions', 'feedback'] as const, {
   providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
@@ -32,6 +33,8 @@ function TopBarContent() {
   const {barTop, contentTop} = useTopOffset();
 
   const {toggleSeerExplorer} = useSeerExplorerContext();
+  // const {toggleSeerExplorer, isOpen: isSeerExplorerOpen, runId: seerExplorerRunId, setRunId: setSeerExplorerRunId} = useSeerExplorerContext();
+  // const {isSessionComplete} = useSeerExplorer({runId: seerExplorerRunId, setRunId: setSeerExplorerRunId});
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
