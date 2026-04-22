@@ -256,9 +256,12 @@ class StreamDemoDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    @patch("sentry.conduit.tasks.time.sleep")
-    def test_stream_demo_data_sends_all_phases(self, mock_sleep):
+    @patch("sentry.conduit.tasks.time")
+    def test_stream_demo_data_sends_all_phases(self, mock_time):
         """Test that stream_demo_data sends START, DELTA, and END phases."""
+        # Patch the `time` module reference in sentry.conduit.tasks (not the
+        # global time.sleep), so retry sleeps from sentry.utils.retries don't
+        # accumulate in the mock count.
         org_id = 123
         channel_id = str(uuid4())
 
@@ -271,7 +274,7 @@ class StreamDemoDataTest(TestCase):
         stream_demo_data(org_id=org_id, channel_id=channel_id)
 
         assert len(responses.calls) == NUM_DELTAS + 2
-        assert mock_sleep.call_count == NUM_DELTAS
+        assert mock_time.sleep.call_count == NUM_DELTAS
 
     @responses.activate
     @override_settings(
