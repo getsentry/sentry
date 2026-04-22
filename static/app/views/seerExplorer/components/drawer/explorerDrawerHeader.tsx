@@ -96,11 +96,20 @@ export function ExplorerDrawerHeader({
   }, [rawSessionMenuItems, isPending, isError]);
 
   return (
-    <DrawerHeader hideBar hideCloseButtonText>
-      <FeatureBadge
-        type="beta"
-        tooltipProps={{title: t('This feature is in beta and may change')}}
-      />
+    <DrawerHeader
+      hideBar
+      closeButtonLabel={t('Close Seer Explorer')}
+      hideCloseButtonText
+    >
+      <Flex align="center" gap="xs" height="100%">
+        <Text size="md" weight="bold">
+          {t('Seer Explorer')}
+        </Text>
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{title: t('This feature is in beta and may change')}}
+        />
+      </Flex>
       <Flex flex="1" />
       <Flex gap="md">
         {showContextEngineToggle && (
