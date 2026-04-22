@@ -10,12 +10,12 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -27,11 +27,9 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent({
-  onClose,
   getPageReferrer,
 }: {
   getPageReferrer: () => string;
-  onClose: () => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -50,7 +48,6 @@ export function ExplorerDrawerContent({
   const userScrolledUpRef = useRef<boolean>(false);
   const allowHoverFocusChange = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
-  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
     hoveredBlockIndex.current = -1;
@@ -186,26 +183,23 @@ export function ExplorerDrawerContent({
   });
 
   // Menu component
-  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
-    useExplorerMenu({
-      clearInput: () => setInputValue(''),
-      inputValue,
-      focusInput,
-      textAreaRef: textareaRef,
-      panelSize: 'max',
-      slashCommandHandlers: {
-        onNew: startNewSession,
-        onFeedback: openFeedbackForm ? handleFeedback : undefined,
-        onLangfuse: handleOpenLangfuse,
-        onConversations: handleOpenConversations,
-      },
-      onChangeSession: switchToRun,
-      menuAnchorRef: sessionHistoryButtonRef,
-      inputAnchorRef: textareaRef,
-      prWidgetAnchorRef: prWidgetButtonRef,
-      prWidgetItems,
-      prWidgetFooter,
-    });
+  const {menu, isMenuOpen, closeMenu, openPRWidget} = useExplorerMenu({
+    clearInput: () => setInputValue(''),
+    inputValue,
+    focusInput,
+    textAreaRef: textareaRef,
+    panelSize: 'max',
+    slashCommandHandlers: {
+      onNew: startNewSession,
+      onFeedback: openFeedbackForm ? handleFeedback : undefined,
+      onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
+      onConversations: conversationsUrl ? handleOpenConversations : undefined,
+    },
+    inputAnchorRef: textareaRef,
+    prWidgetAnchorRef: prWidgetButtonRef,
+    prWidgetItems,
+    prWidgetFooter,
+  });
 
   const handleBlocksClick = useCallback(() => {
     closeMenu();
@@ -392,22 +386,14 @@ export function ExplorerDrawerContent({
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
-      <TopBar
-        isCopyLinkEnabled={false} // TODO: disabled for drawer, may remove in favor copy URL
-        onCopyLinkClick={() => {}}
-        onClose={onClose}
-        isEmptyState={isEmptyState}
-        isPolling={isPolling}
-        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
-        onFeedbackClick={handleFeedback}
+      <ExplorerDrawerHeader
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
+        onChangeSession={switchToRun}
+        copySessionEnabled={copySessionEnabled}
         onCopySessionClick={copySessionToClipboard}
-        onSessionHistoryClick={openSessionHistory}
-        isCopySessionEnabled={copySessionEnabled}
-        sessionHistoryButtonRef={sessionHistoryButtonRef}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={
@@ -473,7 +459,7 @@ export function ExplorerDrawerContent({
                   deleteFromIndex(index);
                   focusInput();
                 }}
-                onNavigate={undefined} // TODO: close drawer on link navigate?
+                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}

@@ -5,7 +5,13 @@ from sentry.seer.assisted_query.metrics_tools import (
     _build_or_query,
     get_metric_metadata,
 )
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import (
+    APITransactionTestCase,
+    SnubaTestCase,
+    TestCase,
+    TraceMetricsTestCase,
+)
+from sentry.testutils.helpers.datetime import before_now
 
 
 class TestBuildOrQuery(TestCase):
@@ -39,13 +45,13 @@ class TestGetMetricMetadata(TestCase):
                     "metric.name": "http.request.duration",
                     "metric.type": "distribution",
                     "metric.unit": "millisecond",
-                    "count()": 1200,
+                    "count(value)": 1200,
                 },
                 {
                     "metric.name": "api.request.count",
                     "metric.type": "counter",
                     "metric.unit": "none",
-                    "count()": 800,
+                    "count(value)": 800,
                 },
             ]
         }
@@ -75,9 +81,9 @@ class TestGetMetricMetadata(TestCase):
             "metric.name",
             "metric.type",
             "metric.unit",
-            "count()",
+            "count(value)",
         ]
-        assert params["sort"] == "-count()"
+        assert params["sort"] == "-count(value)"
         assert params["query"] == '(metric.name:"*http*" OR metric.name:"*api*")'
         # over-fetch by 1 to detect has_more
         assert params["per_page"] == 11
@@ -102,7 +108,7 @@ class TestGetMetricMetadata(TestCase):
                     "metric.name": f"m.{i}",
                     "metric.type": "counter",
                     "metric.unit": "none",
-                    "count()": 100 - i,
+                    "count(value)": 100 - i,
                 }
                 for i in range(3)
             ]
@@ -134,7 +140,7 @@ class TestGetMetricMetadata(TestCase):
                     "metric.name": "a",
                     "metric.type": "counter",
                     "metric.unit": "none",
-                    "count()": 30,
+                    "count(value)": 30,
                 },
                 # Malformed — will be filtered out locally.
                 {"metric.name": None, "metric.type": "counter", "metric.unit": "none"},
@@ -142,7 +148,7 @@ class TestGetMetricMetadata(TestCase):
                     "metric.name": "b",
                     "metric.type": "counter",
                     "metric.unit": "none",
-                    "count()": 20,
+                    "count(value)": 20,
                 },
             ]
         }
@@ -167,7 +173,7 @@ class TestGetMetricMetadata(TestCase):
                     "metric.name": "good",
                     "metric.type": "counter",
                     "metric.unit": "none",
-                    "count()": 10,
+                    "count(value)": 10,
                 },
                 {"metric.name": "", "metric.type": "counter", "metric.unit": "none"},
                 {"metric.name": "no-type", "metric.type": None, "metric.unit": "none"},
@@ -192,7 +198,7 @@ class TestGetMetricMetadata(TestCase):
                     "metric.name": "foo",
                     "metric.type": "counter",
                     "metric.unit": None,
-                    "count()": 5,
+                    "count(value)": 5,
                 }
             ]
         }
@@ -244,3 +250,60 @@ class TestGetMetricMetadata(TestCase):
             "error": "events_query_failed",
         }
         mock_client.get.assert_called_once()
+
+
+class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, TraceMetricsTestCase):
+    """End-to-end test against the real tracemetrics parser.
+
+    The mock-based tests above never exercised the events-layer query parser,
+    which masked that zero-arg count() parse-fails on tracemetrics. This class
+    persists real TraceItems and lets the handler's in-process client.get call
+    hit the actual parser, so a regression in the aggregate shape surfaces here.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        ts = before_now(minutes=5)
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    metric_name="http.request.duration",
+                    metric_value=100.0,
+                    metric_type="distribution",
+                    metric_unit="millisecond",
+                    timestamp=ts,
+                ),
+                self.create_trace_metric(
+                    metric_name="http.request.duration",
+                    metric_value=200.0,
+                    metric_type="distribution",
+                    metric_unit="millisecond",
+                    timestamp=ts,
+                ),
+                self.create_trace_metric(
+                    metric_name="api.request.count",
+                    metric_value=1.0,
+                    metric_type="counter",
+                    timestamp=ts,
+                ),
+            ]
+        )
+
+    def test_returns_candidates_matching_substring(self) -> None:
+        result = get_metric_metadata(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            name_substrings=["http"],
+            stats_period="1h",
+        )
+
+        # A broken aggregate would short-circuit into events_query_failed.
+        assert "error" not in result, result
+        names = {c["name"] for c in result["candidates"]}
+        assert "http.request.duration" in names
+        assert "api.request.count" not in names
+
+        http_row = next(c for c in result["candidates"] if c["name"] == "http.request.duration")
+        assert http_row["type"] == "distribution"
+        assert http_row["unit"] == "millisecond"
+        assert http_row["count"] == 2
