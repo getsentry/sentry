@@ -308,7 +308,14 @@ function useHoverOverlay({
   // Subscribe to group-open events. If another overlay opens while we are not
   // ourselves opening (our status is anything other than 'open' or 'warming'
   // — i.e. we're idle or mid-cooling), snap shut immediately.
+  //
+  // forceVisible tooltips are explicitly decoupled from hover state — e.g.
+  // form-field validation errors anchored to a warning icon. They must not
+  // be snap-closed when another overlay in the group opens.
   useEffect(() => {
+    if (forceVisible) {
+      return;
+    }
     const listener = () => {
       if (statusRef.current === 'open' || statusRef.current === 'warming') {
         return;
@@ -319,7 +326,7 @@ function useHoverOverlay({
     return () => {
       group.openListeners.delete(listener);
     };
-  }, [group]);
+  }, [group, forceVisible]);
 
   const isOpen = forceVisible ?? (status === 'open' || status === 'cooling');
 
