@@ -28,8 +28,12 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
+  runId,
+  setRunId,
 }: {
   getPageReferrer: () => string;
+  runId: number | null;
+  setRunId: (value: number | null) => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -54,12 +58,10 @@ export function ExplorerDrawerContent({
 
   // - Session data and mutators ----------------------------------------------
   const {
-    runId,
     sessionData,
     isPolling,
     isError,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -70,7 +72,7 @@ export function ExplorerDrawerContent({
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
-  } = useSeerExplorer();
+  } = useSeerExplorer({runId, setRunId});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -397,7 +399,6 @@ export function ExplorerDrawerContent({
     setFocusedBlockIndex,
     isFileApprovalPending,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
@@ -457,10 +458,6 @@ export function ExplorerDrawerContent({
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
-                onDelete={() => {
-                  deleteFromIndex(index);
-                  focusInput();
-                }}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);

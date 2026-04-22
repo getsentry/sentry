@@ -12,7 +12,6 @@ interface UseBlockNavigationProps {
   isFileApprovalPending?: boolean;
   isMinimized?: boolean;
   isQuestionPending?: boolean;
-  onDeleteFromIndex?: (index: number) => void;
   onKeyPress?: (blockIndex: number, key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean;
   onNavigate?: () => void;
 }
@@ -27,7 +26,6 @@ export function useBlockNavigation({
   isFileApprovalPending = false,
   isMinimized = false,
   isQuestionPending = false,
-  onDeleteFromIndex,
   onKeyPress,
   onNavigate,
 }: UseBlockNavigationProps) {
@@ -112,7 +110,6 @@ export function useBlockNavigation({
     isFileApprovalPending,
     isMinimized,
     isQuestionPending,
-    onDeleteFromIndex,
     onKeyPress,
     onNavigate,
   ]);

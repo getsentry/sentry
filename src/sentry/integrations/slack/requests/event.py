@@ -13,7 +13,7 @@ from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization.service import organization_service
-from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerEntrypoint
+from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
 from sentry.silo.base import all_silo_function
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
@@ -116,7 +116,7 @@ class SlackEventRequest(SlackDMRequest):
             if ctx.organization.status != OrganizationStatus.ACTIVE:
                 continue
 
-            if not SlackExplorerEntrypoint.has_access(ctx.organization):
+            if not SlackAgentEntrypoint.has_access(ctx.organization):
                 continue
 
             if ctx.member is None:

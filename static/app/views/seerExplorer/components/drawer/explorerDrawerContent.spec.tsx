@@ -14,14 +14,12 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isPolling: false,
   isError: false,
   runId: null,
-  deletedFromIndex: null,
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
   overrideCodeModeEnable: false,
   sendMessage: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
-  deleteFromIndex: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   createPR: jest.fn(),
@@ -57,25 +55,46 @@ describe('ExplorerDrawerContent', () => {
 
   describe('Empty State', () => {
     it('renders the drawer root element', () => {
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
       expect(document.querySelector('[data-seer-explorer-root]')).toBeInTheDocument();
     });
 
     it('shows empty state when no messages exist', async () => {
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
       expect(
         await screen.findByText('Ask Seer anything about your application.')
       ).toBeInTheDocument();
     });
 
     it('shows input', async () => {
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
       expect(
         await screen.findByPlaceholderText(
           'Ask seer a question, or press / for commands.'
@@ -90,9 +109,16 @@ describe('ExplorerDrawerContent', () => {
         sendMessage,
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const suggestion = await screen.findByRole('button', {
         name: 'Which of my open issues are getting worse, not better?',
@@ -111,9 +137,16 @@ describe('ExplorerDrawerContent', () => {
         isError: true,
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={123}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       expect(
         await screen.findByText('Error loading this session (ID=123).')
@@ -149,9 +182,16 @@ describe('ExplorerDrawerContent', () => {
         } as useSeerExplorerModule.SeerExplorerResponse['session'],
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       expect(await screen.findByText('What is this error?')).toBeInTheDocument();
       expect(screen.getByText('This is a null pointer exception.')).toBeInTheDocument();
@@ -163,9 +203,16 @@ describe('ExplorerDrawerContent', () => {
 
   describe('Input Handling', () => {
     it('can type in the textarea', async () => {
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
       expect(textarea).toHaveValue('Test message');
@@ -178,9 +225,16 @@ describe('ExplorerDrawerContent', () => {
         sendMessage,
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -244,9 +298,16 @@ describe('ExplorerDrawerContent', () => {
         },
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'What is this error?');
@@ -268,9 +329,16 @@ describe('ExplorerDrawerContent', () => {
         sendMessage,
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       await screen.findByTestId('seer-explorer-input');
       await userEvent.keyboard('{Enter}');
@@ -286,9 +354,16 @@ describe('ExplorerDrawerContent', () => {
         isPolling: true,
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -312,9 +387,16 @@ describe('ExplorerDrawerContent', () => {
         } as useSeerExplorerModule.SeerExplorerResponse['session'],
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await waitFor(() => expect(textarea).toBeDisabled());
@@ -337,9 +419,16 @@ describe('ExplorerDrawerContent', () => {
         } as useSeerExplorerModule.SeerExplorerResponse['session'],
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await waitFor(() => expect(textarea).toBeEnabled());
@@ -362,9 +451,16 @@ describe('ExplorerDrawerContent', () => {
         } as useSeerExplorerModule.SeerExplorerResponse['session'],
       });
 
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
       await waitFor(() => expect(textarea).toBeEnabled());
@@ -378,9 +474,16 @@ describe('ExplorerDrawerContent', () => {
     });
 
     it('does not show toggle without the feature flag', async () => {
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
       await screen.findByTestId('seer-explorer-input');
       expect(
         screen.queryByRole('checkbox', {name: 'Toggle context engine'})
@@ -388,9 +491,16 @@ describe('ExplorerDrawerContent', () => {
     });
 
     it('shows toggle when feature flag is enabled', async () => {
-      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
-        organization: orgWithFlag,
-      });
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization: orgWithFlag,
+        }
+      );
       expect(
         await screen.findByRole('checkbox', {name: 'Toggle context engine'})
       ).toBeInTheDocument();
