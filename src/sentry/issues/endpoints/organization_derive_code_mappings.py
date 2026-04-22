@@ -13,6 +13,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import create_code_mapping
 from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import (
     get_code_mapping_from_request,
@@ -119,7 +120,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             if not installation.org_integration:
                 raise InstallationNotFoundError
 
-            code_mapping = get_code_mapping_from_request(request)
+            assert isinstance(installation, RepositoryIntegration)
+            code_mapping = get_code_mapping_from_request(request, installation)
             new_code_mapping = create_code_mapping(organization, code_mapping, project)
         except KeyError:
             return self.respond(
