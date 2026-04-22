@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal, NotRequired, TypedDict
@@ -63,6 +64,8 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def clean_rule_data(data):
@@ -1073,6 +1076,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     status=201,
                 )
             except AlertRuleWorkflow.DoesNotExist:
+                logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
                 return Response(serialize(rule, request.user))
 
         return Response(serialize(rule, request.user))
