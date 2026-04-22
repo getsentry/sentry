@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -190,21 +191,19 @@ function DiscoverLanding() {
     >
       <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
         <Stack flex={1}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Discover'),
-                    to: getDiscoverLandingUrl(organization),
-                  },
-                  {
-                    label: t('Saved Queries'),
-                  },
-                ]}
-              />
-            </Layout.HeaderContent>
-            {hasPageFrameFeature ? (
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="title">
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      label: t('Discover'),
+                      to: getDiscoverLandingUrl(organization),
+                    },
+                    {label: t('Saved Queries')},
+                  ]}
+                />
+              </TopBar.Slot>
               <TopBar.Slot name="actions">
                 <LinkButton
                   data-test-id="build-new-query"
@@ -219,7 +218,20 @@ function DiscoverLanding() {
                   {t('Build a new query')}
                 </LinkButton>
               </TopBar.Slot>
-            ) : (
+            </Fragment>
+          ) : (
+            <Layout.Header>
+              <Layout.HeaderContent>
+                <Breadcrumbs
+                  crumbs={[
+                    {
+                      label: t('Discover'),
+                      to: getDiscoverLandingUrl(organization),
+                    },
+                    {label: t('Saved Queries')},
+                  ]}
+                />
+              </Layout.HeaderContent>
               <Layout.HeaderActions>
                 <LinkButton
                   data-test-id="build-new-query"
@@ -235,8 +247,8 @@ function DiscoverLanding() {
                   {t('Build a new query')}
                 </LinkButton>
               </Layout.HeaderActions>
-            )}
-          </Layout.Header>
+            </Layout.Header>
+          )}
           <Layout.Body>
             <Layout.Main width="full">
               <StyledActions>

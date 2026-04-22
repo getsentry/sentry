@@ -578,7 +578,7 @@ function GroupDetailsContent({
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
-  const {isDrawerOpen} = useDrawer();
+  const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
   const {seerDrawer} = useLocationQuery({
@@ -590,7 +590,7 @@ function GroupDetailsContent({
   const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
-    if (isDrawerOpen) {
+    if (isAnyDrawerOpen) {
       return;
     }
 
@@ -611,7 +611,7 @@ function GroupDetailsContent({
     }
   }, [
     currentTab,
-    isDrawerOpen,
+    isAnyDrawerOpen,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,

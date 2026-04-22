@@ -310,6 +310,49 @@ def test_observability_metrics(
     emit_observability_metrics.assert_called_once()
 
 
+def test_duplicate_batch_is_idempotent(buffer: SpansBuffer) -> None:
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+        ),
+    ]
+
+    buffer.process_spans(spans, now=0)
+    buffer.process_spans(spans, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
+            payload_keys=mock.ANY,
+            project_id=1,
+            spans=[
+                _output_segment(b"a" * 16, b"b" * 16, False),
+                _output_segment(b"b" * 16, b"b" * 16, True),
+            ],
+        )
+    }
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)
+
+
 def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
     spans = [
         Span(

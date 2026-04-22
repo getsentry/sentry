@@ -116,12 +116,19 @@ export function FirstEventFooter({
         {/* if hasn't sent first event, allow creation of sample error */}
         {project.firstEvent ? (
           <LinkButton
-            onClick={() =>
-              trackAnalytics('growth.onboarding_take_to_error', {
-                organization,
-                platform: project.platform,
-              })
-            }
+            onClick={() => {
+              if (hasScmOnboarding) {
+                trackAnalytics('onboarding.scm_take_to_error_clicked', {
+                  organization,
+                  platform: project.platform,
+                });
+              } else {
+                trackAnalytics('growth.onboarding_take_to_error', {
+                  organization,
+                  platform: project.platform,
+                });
+              }
+            }}
             to={`/organizations/${organization.slug}/issues/${
               firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
             }?referrer=onboarding-first-event-footer`}
@@ -134,6 +141,7 @@ export function FirstEventFooter({
             project={project}
             source="targeted-onboarding"
             priority="primary"
+            hasScmOnboarding={hasScmOnboarding}
           >
             {t('View Sample Error')}
           </CreateSampleEventButton>

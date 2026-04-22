@@ -92,9 +92,34 @@ describe('ExplorerDrawerContent', () => {
       );
       expect(
         await screen.findByPlaceholderText(
-          'Type your message or / command and press Enter ↵'
+          'Ask seer a question, or press / for commands.'
         )
       ).toBeInTheDocument();
+    });
+
+    it('sends the suggested question when a suggestion button is clicked', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+      });
+
+      render(
+        <ExplorerDrawerContent
+          onClose={mockOnClose}
+          getPageReferrer={mockGetPageReferrer}
+        />,
+        {organization}
+      );
+
+      const suggestion = await screen.findByRole('button', {
+        name: 'Which of my open issues are getting worse, not better?',
+      });
+      await userEvent.click(suggestion);
+
+      expect(sendMessage).toHaveBeenCalledWith(
+        'Which of my open issues are getting worse, not better?'
+      );
     });
 
     it('shows error state when isError is true', async () => {
@@ -374,7 +399,7 @@ describe('ExplorerDrawerContent', () => {
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
         'placeholder',
-        'Type your message or / command and press Enter ↵'
+        'Ask seer a question, or press / for commands.'
       );
     });
 

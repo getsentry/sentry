@@ -120,7 +120,7 @@ describe('BlockComponent', () => {
 
   describe('Focus State', () => {
     it('shows reset button when isFocused=true', () => {
-      const block = createUserInputBlock();
+      const block = createResponseBlock();
       render(
         <BlockComponent
           block={block}
@@ -135,7 +135,7 @@ describe('BlockComponent', () => {
     });
 
     it('does not show reset button when isFocused=false', () => {
-      const block = createUserInputBlock();
+      const block = createResponseBlock();
       render(
         <BlockComponent
           block={block}
@@ -169,7 +169,7 @@ describe('BlockComponent', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not show feedback buttons for user blocks', () => {
+    it('only shows rethink action for user blocks', () => {
       const block = createUserInputBlock();
       render(
         <BlockComponent
@@ -187,6 +187,10 @@ describe('BlockComponent', () => {
       expect(
         screen.queryByRole('button', {name: 'Feedback Thumbs Down'})
       ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Copy block content'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: '↩'})).toBeInTheDocument();
     });
 
     it('disables both thumbs buttons after thumbs up is clicked', async () => {
