@@ -10,7 +10,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
   IconCheckmark,
   IconClose,
@@ -47,7 +46,6 @@ interface BlockProps {
   isFocused?: boolean;
   isLatestTodoBlock?: boolean;
   onClick?: () => void;
-  onDelete?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -145,7 +143,6 @@ export function BlockComponent({
   isLatestTodoBlock,
   isFocused,
   onClick,
-  onDelete,
   onNavigate,
   onRegisterEnterHandler,
   readOnly = false,
@@ -325,11 +322,6 @@ export function BlockComponent({
     );
   };
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onDelete?.();
-  };
-
   const handleCopyClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     copy(block.message.content);
@@ -488,14 +480,6 @@ export function BlockComponent({
                 onClick={handleCopyClick}
               />
             )}
-            <Button
-              size="xs"
-              priority="transparent"
-              onClick={handleDeleteClick}
-              tooltipProps={{title: 'Restart conversation from here'}}
-            >
-              <FlippedReturnIcon />
-            </Button>
           </ActionButtonBar>
         )}
       </motion.div>

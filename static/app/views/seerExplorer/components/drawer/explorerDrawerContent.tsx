@@ -423,10 +423,6 @@ export function ExplorerDrawerContent({
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
-                onDelete={() => {
-                  deleteFromIndex(index);
-                  focusInput();
-                }}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
