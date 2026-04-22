@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -11,6 +11,7 @@ import {Access} from 'sentry/components/acl/access';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -27,6 +28,7 @@ import {
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
@@ -103,6 +105,7 @@ export function OrganizationAuthTokensIndex({
   organization: Organization;
 }) {
   const api = useApi();
+  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const {
@@ -155,7 +158,8 @@ export function OrganizationAuthTokensIndex({
   const createNewToken = (
     <LinkButton
       priority="primary"
-      size="sm"
+      size={hasPageFrame ? 'md' : 'sm'}
+      icon={<IconAdd />}
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
     >
@@ -173,23 +177,44 @@ export function OrganizationAuthTokensIndex({
           />
           <SettingsPageHeader
             title={t('Organization Tokens')}
-            action={createNewToken}
+            action={hasPageFrame ? undefined : createNewToken}
             subtitle={
-              <Stack gap="md">
-                <div>
-                  {t(
-                    'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-                  )}
-                </div>
-                <div>
-                  {tct(
-                    'For more information on how to use the web API, see our [link:documentation].',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                    }
-                  )}
-                </div>
-              </Stack>
+              hasPageFrame ? (
+                <Flex justify="between" align="center" gap="md">
+                  <Stack gap="md">
+                    <div>
+                      {t(
+                        'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                      )}
+                    </div>
+                    <div>
+                      {tct(
+                        'For more information on how to use the web API, see our [link:documentation].',
+                        {
+                          link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                        }
+                      )}
+                    </div>
+                  </Stack>
+                  {createNewToken}
+                </Flex>
+              ) : (
+                <Stack gap="md">
+                  <div>
+                    {t(
+                      'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+                    )}
+                  </div>
+                  <div>
+                    {tct(
+                      'For more information on how to use the web API, see our [link:documentation].',
+                      {
+                        link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                      }
+                    )}
+                  </div>
+                </Stack>
+              )
             }
           />
 
