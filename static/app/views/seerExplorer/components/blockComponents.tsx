@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
@@ -128,13 +129,7 @@ function getToolStatus(
     return 'success';
   }
 
-  // No tools, check if there's content
-  const hasContent = hasValidContent(block.message.content);
-  if (hasContent) {
-    return 'content';
-  }
-
-  return 'success';
+  return 'content';
 }
 
 export function BlockComponent({
@@ -368,6 +363,8 @@ export function BlockComponent({
   const showFeedbackButtons = block.message.role === 'assistant';
   const showCopyButton = block.message.role !== 'tool_use';
 
+  const blockStatus = getToolStatus(block);
+
   return (
     <Block
       ref={ref}
@@ -384,8 +381,8 @@ export function BlockComponent({
           </Flex>
         ) : (
           <Flex align="start" width="100%">
-            <ResponseDot
-              status={getToolStatus(block)}
+            <BlockStatusIndicator
+              status={blockStatus}
               hasOnlyTools={!hasContent && hasTools}
             />
             <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
@@ -455,7 +452,12 @@ export function BlockComponent({
                               >
                                 {toolString}
                               </ToolCallText>
-                              <ToolCallLinkIcon size="xs" isHighlighted={isHighlighted} />
+                              <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
+                                <ToolCallLinkIcon
+                                  size="xs"
+                                  isHighlighted={isHighlighted}
+                                />
+                              </ToolCallLinkIconWrapper>
                               <EnterKeyHint isVisible={isHighlighted}>
                                 enter ⏎
                               </EnterKeyHint>
@@ -522,80 +524,102 @@ const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   flex-shrink: 0; /* Prevent blocks from shrinking */
 `;
 
-function getStatusTooltipText(
-  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending'
-): string {
-  switch (status) {
-    case 'loading':
-      return t('Running...');
-    case 'pending':
-      return t('Waiting for approval');
-    case 'content':
-      return t('Response received');
-    case 'success':
-      return t('Completed successfully');
-    case 'failure':
-      return t('Completed with errors');
-    case 'mixed':
-      return t('Completed with partial errors');
-    default:
-      return '';
-  }
-}
-
-function ResponseDot({
+function BlockStatusIndicator({
   status,
   hasOnlyTools,
 }: {
-  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
+  status: ReturnType<typeof getToolStatus>;
   hasOnlyTools?: boolean;
 }) {
+  if (status === 'content') {
+    return <BlockIndicatorSpacer />;
+  }
+  if (status === 'loading' || status === 'pending') {
+    return (
+      <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+        <Tooltip
+          title={status === 'pending' ? t('Waiting for approval') : t('Running...')}
+        >
+          <BlockSpinner />
+        </Tooltip>
+      </BlockIndicatorSlot>
+    );
+  }
+  if (status === 'failure') {
+    return (
+      <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+        <Tooltip title={t('All tool calls failed')}>
+          <BlockFailureIcon size="sm" />
+        </Tooltip>
+      </BlockIndicatorSlot>
+    );
+  }
+  if (status === 'mixed') {
+    return (
+      <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+        <Tooltip title={t('Some tool calls succeeded and some failed')}>
+          <BlockPartialIcon size="sm" />
+        </Tooltip>
+      </BlockIndicatorSlot>
+    );
+  }
   return (
-    <Tooltip title={getStatusTooltipText(status)}>
-      <ResponseDotIndicator status={status} hasOnlyTools={hasOnlyTools} />
-    </Tooltip>
+    <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+      <Tooltip title={t('All tool calls succeeded')}>
+        <BlockSuccessIcon size="sm" />
+      </Tooltip>
+    </BlockIndicatorSlot>
   );
 }
 
-const ResponseDotIndicator = styled('div')<{
-  status: 'loading' | 'content' | 'success' | 'failure' | 'mixed' | 'pending';
-  hasOnlyTools?: boolean;
-}>`
-  width: 8px;
-  height: 8px;
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const Spinner = styled('div')`
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  margin-top: ${p => (p.hasOnlyTools ? '12px' : '22px')};
+  border: 2px solid ${p => p.theme.tokens.border.primary};
+  border-left-color: ${p => p.theme.tokens.border.accent.vibrant};
+  animation: ${spin} 0.6s linear infinite;
+  flex-shrink: 0;
+`;
+
+const BlockSpinner = styled(Spinner)`
+  width: 18px;
+  height: 18px;
+`;
+
+const BlockIndicatorSlot = styled('div')<{hasOnlyTools?: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  margin-top: ${p => (p.hasOnlyTools ? '10px' : '18px')};
   margin-left: ${p => p.theme.space.xl};
   flex-shrink: 0;
-  background: ${p => {
-    switch (p.status) {
-      case 'loading':
-        return p.theme.tokens.content.promotion;
-      case 'pending':
-        return p.theme.tokens.content.promotion;
-      case 'content':
-        return p.theme.tokens.content.accent;
-      case 'success':
-        return p.theme.tokens.content.success;
-      case 'failure':
-        return p.theme.tokens.content.danger;
-      case 'mixed':
-        return p.theme.tokens.content.warning;
-      default:
-        return p.theme.tokens.content.accent;
-    }
-  }};
+`;
 
-  ${p =>
-    p.status === 'loading' &&
-    `
-    animation: blink 1s infinite;
+const BlockIndicatorSpacer = styled('div')`
+  width: 18px;
+  margin-left: ${p => p.theme.space.xl};
+  flex-shrink: 0;
+`;
 
-    @keyframes blink {
-      0%, 50% { opacity: 1; }
-      51%, 100% { opacity: 0.3; }
-    }
-  `}
+const BlockSuccessIcon = styled(IconCheckmark)`
+  color: ${p => p.theme.tokens.content.success};
+  flex-shrink: 0;
+`;
+
+const BlockFailureIcon = styled(IconClose)`
+  color: ${p => p.theme.tokens.content.danger};
+  flex-shrink: 0;
+`;
+
+const BlockPartialIcon = styled(IconExclamation)`
+  color: ${p => p.theme.tokens.content.warning};
+  flex-shrink: 0;
 `;
 
 const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
@@ -719,6 +743,16 @@ const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
       color: ${p => p.theme.tokens.interactive.link.accent.hover};
       text-decoration-color: ${p => p.theme.tokens.interactive.link.accent.hover};
     }
+  }
+`;
+
+const ToolCallLinkIconWrapper = styled('span')<{isHighlighted?: boolean}>`
+  display: inline-flex;
+  flex-shrink: 0;
+  visibility: ${p => (p.isHighlighted ? 'visible' : 'hidden')};
+
+  ${ToolCallLink}:hover & {
+    visibility: visible;
   }
 `;
 
