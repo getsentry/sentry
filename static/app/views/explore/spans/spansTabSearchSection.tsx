@@ -282,6 +282,8 @@ const SpansTabCrossEventMetricsSearchBar = memo(
       [crossEvents, setCrossEvents, index, query]
     );
 
+    const hasMetric = Boolean(metric.name);
+
     const eapSpanSearchQueryBuilderProps = useMemo(
       () => ({
         initialQuery: query,
@@ -320,11 +322,15 @@ const SpansTabCrossEventMetricsSearchBar = memo(
         booleanSecondaryAliases,
         numberSecondaryAliases,
         stringSecondaryAliases,
+        namespace: metric.name,
+        disableRecentSearches: !hasMetric,
+        disabled: !hasMetric,
       }),
       [
         booleanAttributes,
         booleanSecondaryAliases,
         crossEvents,
+        hasMetric,
         index,
         metric,
         mode,
@@ -345,7 +351,12 @@ const SpansTabCrossEventMetricsSearchBar = memo(
     return (
       <Grid columns="minmax(180px, 240px) 1fr" gap="md">
         <MetricSelector traceMetric={metric} onChange={onMetricChange} />
-        <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
+        <SearchQueryBuilderProvider
+          // Use the metric name as a key to force remount when it changes
+          // This prevents race conditions when switching between different metrics
+          key={metric.name}
+          {...searchQueryBuilderProps}
+        >
           <TraceItemSearchQueryBuilder
             itemType={TraceItemDataset.TRACEMETRICS}
             {...eapSpanSearchQueryBuilderProps}
