@@ -233,9 +233,11 @@ export function ToolbarSaveAs() {
     if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
       return false;
     }
-    const singleQuery = savedQuery.query[0];
+    // The non comparison trace explorer view only supports a single query
+    const singleQuery = savedQuery?.query[0];
     const locationSortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
 
+    // Compares editable fields from saved query with location params to check for changes
     const hasChangesArray = [
       !valueIsEqual(query, singleQuery?.query),
       !valueIsEqual(
@@ -263,18 +265,18 @@ export function ToolbarSaveAs() {
     ];
     return hasChangesArray.some(Boolean);
   }, [
-    fields,
-    groupBys,
     isLoadingSavedQuery,
+    savedQuery,
+    query,
+    groupBys,
+    sortBys,
+    fields,
+    visualizes,
+    pageFilters.selection.datetime.start,
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
-    pageFilters.selection.datetime.start,
-    pageFilters.selection.environments,
     pageFilters.selection.projects,
-    query,
-    savedQuery,
-    sortBys,
-    visualizes,
+    pageFilters.selection.environments,
   ]);
 
   const crossEvents = useQueryParamsCrossEvents();

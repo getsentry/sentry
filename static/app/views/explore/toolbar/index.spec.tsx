@@ -818,7 +818,7 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('shows Save when a saved query is changed', async () => {
+  it('highlights save button when saved query is changed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',

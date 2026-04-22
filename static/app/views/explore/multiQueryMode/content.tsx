@@ -73,9 +73,10 @@ function Content({datePageFilterProps}: ContentProps) {
       return false;
     }
     return queries.some(({sortBys, query, groupBys, fields, yAxes, chartType}, index) => {
-      const singleQuery = savedQuery.query[index];
+      const singleQuery = savedQuery?.query[index];
       const locationSortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
 
+      // Compares editable fields from saved query with location params to check for changes
       const hasChangesArray = [
         !valueIsEqual(query, singleQuery?.query),
         !valueIsEqual(groupBys, singleQuery?.groupby),
@@ -102,13 +103,13 @@ function Content({datePageFilterProps}: ContentProps) {
     });
   }, [
     isLoadingSavedQuery,
+    savedQuery,
+    queries,
+    pageFilters.selection.projects,
+    pageFilters.selection.environments,
+    pageFilters.selection.datetime.start,
     pageFilters.selection.datetime.end,
     pageFilters.selection.datetime.period,
-    pageFilters.selection.datetime.start,
-    pageFilters.selection.environments,
-    pageFilters.selection.projects,
-    queries,
-    savedQuery,
   ]);
 
   return (
