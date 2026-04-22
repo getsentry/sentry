@@ -119,13 +119,13 @@ describe('BlockComponent', () => {
   });
 
   describe('Focus State', () => {
-    it('shows copy button when assistant block is focused', () => {
+    it('shows copy button when isHovered=true', () => {
       const block = createResponseBlock();
       render(
         <BlockComponent
           block={block}
           blockIndex={0}
-          isFocused
+          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
@@ -136,13 +136,13 @@ describe('BlockComponent', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not show copy button when assistant block is not focused', () => {
+    it('does not show copy button when isHovered=false', () => {
       const block = createResponseBlock();
       render(
         <BlockComponent
           block={block}
           blockIndex={0}
-          isFocused={false}
+          isHovered={false}
           onClick={mockOnClick}
           runId={runId}
         />
@@ -153,13 +153,13 @@ describe('BlockComponent', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('shows feedback buttons for assistant blocks when isFocused=true', () => {
+    it('shows feedback buttons for assistant blocks when isHovered=true', () => {
       const block = createResponseBlock();
       render(
         <BlockComponent
           block={block}
           blockIndex={0}
-          isFocused
+          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
@@ -179,7 +179,7 @@ describe('BlockComponent', () => {
         <BlockComponent
           block={block}
           blockIndex={0}
-          isFocused
+          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
@@ -202,7 +202,7 @@ describe('BlockComponent', () => {
         <BlockComponent
           block={block}
           blockIndex={1}
-          isFocused
+          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
@@ -224,7 +224,7 @@ describe('BlockComponent', () => {
         <BlockComponent
           block={block}
           blockIndex={2}
-          isFocused
+          isHovered
           onClick={mockOnClick}
           runId={runId}
         />
@@ -247,7 +247,7 @@ describe('BlockComponent', () => {
       <BlockComponent
         block={block}
         blockIndex={1}
-        isFocused
+        isHovered
         onClick={mockOnClick}
         runId={undefined}
       />
@@ -269,7 +269,7 @@ describe('BlockComponent', () => {
       <BlockComponent
         block={block}
         blockIndex={2}
-        isFocused
+        isHovered
         onClick={mockOnClick}
         runId={undefined}
       />

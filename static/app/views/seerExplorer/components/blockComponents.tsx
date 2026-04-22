@@ -44,9 +44,11 @@ interface BlockProps {
   getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
-  isFocused?: boolean;
+  isHovered?: boolean;
   isLatestTodoBlock?: boolean;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -142,8 +144,10 @@ export function BlockComponent({
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLatestTodoBlock,
-  isFocused,
+  isHovered,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
   readOnly = false,
@@ -355,18 +359,25 @@ export function BlockComponent({
   };
 
   const showActions =
-    isFocused &&
+    isHovered &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly;
+    !readOnly &&
+    block.message.role !== 'user';
   const showFeedbackButtons = block.message.role === 'assistant';
   const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
 
   return (
-    <Block ref={ref} isFocused={isFocused} onClick={onClick}>
+    <Block
+      ref={ref}
+      isHovered={isHovered}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
           <Flex align="start" justify="end" width="100%" padding="xl">
@@ -426,7 +437,7 @@ export function BlockComponent({
                       toolLinkParams?.is_error || toolLinkParams?.empty_results
                     );
                     const isHighlighted =
-                      isFocused &&
+                      isHovered &&
                       hasValidLinks &&
                       correspondingLinkIndex !== undefined &&
                       correspondingLinkIndex === selectedLinkIndex;
@@ -533,7 +544,7 @@ export function BlockComponent({
 
 BlockComponent.displayName = 'BlockComponent';
 
-const Block = styled('div')<{isFocused?: boolean}>`
+const Block = styled('div')<{isHovered?: boolean}>`
   width: 100%;
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
@@ -14,10 +15,12 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
-from sentry.silo.base import all_silo_function
+from sentry.silo.base import SiloMode, all_silo_function
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
 SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
+
+logger = logging.getLogger(__name__)
 
 
 def has_discover_links(links: list[str]) -> bool:
@@ -89,6 +92,13 @@ class SlackEventRequest(SlackDMRequest):
         with access to Seer. If a Slack installation corresponds to multiple organizations with Seer
         access, this will not work as expected. This will be revisited.
         """
+        logging_ctx = {
+            "integration_id": self.integration.id,
+            "slack_user_id": self.user_id,
+            "channel_id": self.channel_id,
+            "thread_ts": self.thread_ts,
+            "silo_mode": SiloMode.get_current_mode().value,
+        }
         identity_user = self.get_identity_user()
         if not identity_user:
             return SeerResolutionResult(
@@ -105,25 +115,40 @@ class SlackEventRequest(SlackDMRequest):
                 organization_id=None, error_reason=SeerSlackHaltReason.NO_VALID_INTEGRATION
             )
 
+        logging_ctx["organization_ids"] = [oi.organization_id for oi in ois]
         for oi in ois:
             organization_id = oi.organization_id
             ctx = organization_service.get_organization_by_id(
                 id=oi.organization_id, user_id=identity_user.id
             )
+            logging_ctx["current_organization_id"] = oi.organization_id
             if ctx is None:
+                logger.info("resolve_seer_organization.no_rpc_response", extra=logging_ctx)
                 continue
 
             if ctx.organization.status != OrganizationStatus.ACTIVE:
+                logger.info("resolve_seer_organization.inactive_org", extra=logging_ctx)
                 continue
 
-            if not SlackAgentEntrypoint.has_access(ctx.organization):
-                continue
+            # Since the getsentry FeatureHandler does _not_ add subscription context to CONTROL
+            # evaluations, we need to slim down the check to only cover the feature flag.
+            # This is actually fine, since after routing, this method is rerun at the CELL.
+            if SiloMode.get_current_mode() == SiloMode.CONTROL:
+                if not SlackAgentEntrypoint.has_feature_flag(ctx.organization):
+                    logger.info("resolve_seer_organization.no_feature_flag", extra=logging_ctx)
+                    continue
+            else:
+                if not SlackAgentEntrypoint.has_access(ctx.organization):
+                    logger.info("resolve_seer_organization.no_access", extra=logging_ctx)
+                    continue
 
             if ctx.member is None:
+                logger.info("resolve_seer_organization.missing_membership", extra=logging_ctx)
                 continue
 
             return SeerResolutionResult(organization_id=organization_id, error_reason=None)
 
+        logger.info("resolve_seer_organization.no_organization", extra=logging_ctx)
         return SeerResolutionResult(
             organization_id=None, error_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
         )
