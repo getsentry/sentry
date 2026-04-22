@@ -69,4 +69,34 @@ describe('useDetectorStatsPeriods', () => {
     expect(router.location.query.statsPeriod).toBe('1d');
     expect(router.location.query.cursor).toBe('abc123');
   });
+
+  it('does nothing when start/end range is greater than the interval', () => {
+    const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(3600), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/detectors/1/',
+          query: {start: '2026-01-01T00:00:00', end: '2026-01-02T00:00:00'},
+        },
+      },
+    });
+
+    expect(router.location.query.start).toBe('2026-01-01T00:00:00');
+    expect(router.location.query.end).toBe('2026-01-02T00:00:00');
+    expect(router.location.query.statsPeriod).toBeUndefined();
+  });
+
+  it('replaces start/end with statsPeriod when range is smaller than the interval', () => {
+    const {router} = renderHookWithProviders(() => useDetectorStatsPeriods(86400), {
+      initialRouterConfig: {
+        location: {
+          pathname: '/detectors/1/',
+          query: {start: '2026-01-01T00:00:00', end: '2026-01-01T01:00:00'},
+        },
+      },
+    });
+
+    expect(router.location.query.statsPeriod).toBe('1d');
+    expect(router.location.query.start).toBeUndefined();
+    expect(router.location.query.end).toBeUndefined();
+  });
 });
