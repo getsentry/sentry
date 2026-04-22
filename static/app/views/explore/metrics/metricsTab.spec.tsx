@@ -26,6 +26,11 @@ import {
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
 
+jest.mock('sentry/views/explore/metrics/multiMetricsQueryParams', () => ({
+  ...jest.requireActual('sentry/views/explore/metrics/multiMetricsQueryParams'),
+  MAX_METRICS_ALLOWED: 3,
+}));
+
 const datePageFilterProps: DatePageFilterProps = {
   defaultPeriod: '7d' as const,
   maxPickableDays: 7,
@@ -705,15 +710,7 @@ describe('MetricsTabContent', () => {
               query: {
                 start: '2025-04-10T14%3A37%3A55',
                 end: '2025-04-10T20%3A04%3A51',
-                metric: [
-                  metricQueryWithGroupBy,
-                  metricQueryWithGroupBy,
-                  metricQueryWithGroupBy,
-                  metricQueryWithGroupBy,
-                  metricQueryWithGroupBy,
-                  metricQueryWithGroupBy,
-                  metricQueryWithGroupBy,
-                ],
+                metric: [metricQueryWithGroupBy, metricQueryWithGroupBy],
                 title: 'Test Title',
               },
             },
@@ -724,7 +721,7 @@ describe('MetricsTabContent', () => {
       expect(await screen.findAllByText('Add Metric')).not.toHaveLength(0);
       expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
 
-      // Only 7 entries -> both buttons are enabled
+      // Only 2 entries (cap is 3) -> both buttons are enabled
       for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
         expect(button).toBeEnabled();
       }
@@ -732,7 +729,7 @@ describe('MetricsTabContent', () => {
         expect(button).toBeEnabled();
       }
 
-      // Add an entry, 8 entries -> both buttons are disabled
+      // Add an entry, 3 entries (at cap) -> both buttons are disabled
       await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
       for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
         expect(button).toBeDisabled();

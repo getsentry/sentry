@@ -11,12 +11,12 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 type MenuMode = 'slash-commands-keyboard' | 'session-history' | 'pr-widget' | 'hidden';
 
 interface SlashCommandHandlers {
-  onConversations: () => void;
   onFeedback: (() => void) | undefined;
-  onLangfuse: () => void;
-  onMaxSize: () => void;
-  onMedSize: () => void;
   onNew: () => void;
+  onConversations?: () => void;
+  onLangfuse?: () => void;
+  onMaxSize?: () => void;
+  onMedSize?: () => void;
 }
 
 interface ExplorerMenuProps {
@@ -25,11 +25,11 @@ interface ExplorerMenuProps {
   inputValue: string;
   onChangeSession: (runId: number) => void;
   panelSize: 'max' | 'med';
-  panelVisible: boolean;
   slashCommandHandlers: SlashCommandHandlers;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   inputAnchorRef?: React.RefObject<HTMLElement | null>;
   menuAnchorRef?: React.RefObject<HTMLElement | null>;
+  panelVisible?: boolean;
   prWidgetAnchorRef?: React.RefObject<HTMLElement | null>;
   prWidgetFooter?: React.ReactNode;
   prWidgetItems?: MenuItemProps[];
@@ -48,7 +48,7 @@ export function useExplorerMenu({
   focusInput,
   textAreaRef,
   panelSize,
-  panelVisible,
+  panelVisible = true,
   slashCommandHandlers,
   onChangeSession,
   menuAnchorRef,
@@ -368,18 +368,26 @@ function useSlashCommands({
         description: 'View your session history to resume past sessions',
         handler: () => {}, // Handled by parent onSelect callback.
       },
-      {
-        title: '/max-size',
-        key: '/max-size',
-        description: 'Expand panel to full viewport height',
-        handler: onMaxSize,
-      },
-      {
-        title: '/med-size',
-        key: '/med-size',
-        description: 'Set panel to medium size (default)',
-        handler: onMedSize,
-      },
+      ...(onMaxSize
+        ? [
+            {
+              title: '/max-size',
+              key: '/max-size',
+              description: 'Expand panel to full viewport height',
+              handler: onMaxSize,
+            },
+          ]
+        : []),
+      ...(onMedSize
+        ? [
+            {
+              title: '/med-size',
+              key: '/med-size',
+              description: 'Set panel to medium size (default)',
+              handler: onMedSize,
+            },
+          ]
+        : []),
       ...(onFeedback
         ? [
             {
@@ -390,7 +398,7 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(isSentryEmployee
+      ...(isSentryEmployee && onLangfuse
         ? [
             {
               title: '/langfuse',
@@ -398,6 +406,10 @@ function useSlashCommands({
               description: 'Open Langfuse to view session details',
               handler: onLangfuse,
             },
+          ]
+        : []),
+      ...(isSentryEmployee && onConversations
+        ? [
             {
               title: '/conversations',
               key: '/conversations',

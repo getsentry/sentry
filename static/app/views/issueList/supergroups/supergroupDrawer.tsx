@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -15,8 +16,9 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -32,6 +34,7 @@ import {IconChevron, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -70,14 +73,34 @@ export function SupergroupDetailDrawer({
   memberList,
   filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('supergroup.drawer_opened', {
+      supergroup_id: supergroup.id,
+      organization,
+    });
+  }, [supergroup.id, organization]);
+
   return (
-    <Fragment>
+    <AnalyticsArea name="supergroup_drawer">
       <DrawerHeader hideBar>
         <Flex justify="between" align="center" gap="md" flexGrow={1}>
           <Flex align="center" gap="sm">
             <NavigationCrumbs crumbs={[{label: t('Issue Groups')}]} />
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              formTitle: t('Give feedback on Issue Groups'),
+              messagePlaceholder: t('How can we make Issue Groups better for you?'),
+              tags: {
+                ['feedback.source']: 'supergroup_drawer',
+              },
+            }}
+            tooltipProps={{title: t('Give feedback on Issue Groups')}}
+          />
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>
@@ -125,7 +148,7 @@ export function SupergroupDetailDrawer({
           </Container>
         )}
       </DrawerContentBody>
-    </Fragment>
+    </AnalyticsArea>
   );
 }
 
@@ -302,6 +325,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const area = useAnalyticsArea();
   const {selection} = usePageFilters();
   const {toggleSelectAllVisible, deselectAll} = useIssueSelectionActions();
   const {pageSelected, anySelected, multiSelected, selectedIdsSet} =
@@ -382,8 +406,15 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
       },
       {}
     );
+    trackAnalytics('issues_stream.merged', {
+      organization,
+      project_id: undefined,
+      platform: undefined,
+      items_merged: itemIds.length,
+      area,
+    });
     deselectAll();
-  }, [api, organization.slug, selectedIdsSet, selection, deselectAll]);
+  }, [api, area, organization, selectedIdsSet, selection, deselectAll]);
 
   const onShouldConfirm = useCallback(
     (action: ConfirmAction) => {

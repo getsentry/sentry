@@ -31,6 +31,7 @@ import {useDuplicatePrebuiltDashboard} from 'sentry/views/dashboards/hooks/useDu
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
+import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
 import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
@@ -326,6 +327,11 @@ export function Controls({
               </Tooltip>
             )}
             {renderEditButton(hasFeature)}
+            {hasFeature && (
+              <Feature features="dashboards-revisions">
+                <DashboardRevisionsButton dashboard={dashboard} />
+              </Feature>
+            )}
             {hasFeature && !isPrebuiltDashboard && (
               <Tooltip
                 title={tooltipMessage}

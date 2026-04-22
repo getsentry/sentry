@@ -13,7 +13,7 @@ from responses import matchers
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.blame import create_blame_query, generate_file_path_mapping
-from sentry.integrations.github.client import GitHubApiClient, GitHubApiEndpoint, GitHubReaction
+from sentry.integrations.github.client import GitHubApiClient, GitHubApiRequestType, GitHubReaction
 from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.source_code_management.commit_context import (
@@ -131,7 +131,7 @@ class GitHubApiClientTest(TestCase):
         mock_head_cached.assert_called_once_with(
             path=f"/repos/{self.repo.name}/contents/README.md",
             params={"ref": "master"},
-            endpoint=GitHubApiEndpoint.CHECK_FILE,
+            api_request_type=GitHubApiRequestType.CHECK_FILE,
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -188,7 +188,7 @@ class GitHubApiClientTest(TestCase):
         mock_get_with_pagination.assert_called_once_with(
             f"/repos/{self.repo.name}/compare/abc...xyz",
             response_key="commits",
-            endpoint="compare_commits",
+            api_request_type="compare_commits",
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -200,7 +200,7 @@ class GitHubApiClientTest(TestCase):
         mock_get_cached.assert_called_once_with(
             f"/repos/{self.repo.name}/commits",
             params={"sha": "abc", "per_page": 20},
-            endpoint=GitHubApiEndpoint.GET_COMMITS,
+            api_request_type=GitHubApiRequestType.GET_COMMITS,
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -211,7 +211,7 @@ class GitHubApiClientTest(TestCase):
 
         mock_get_cached.assert_called_once_with(
             f"/repos/{self.repo.name}/commits/abc",
-            endpoint="get_commit",
+            api_request_type="get_commit",
         )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

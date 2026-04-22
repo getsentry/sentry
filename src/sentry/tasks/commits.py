@@ -9,7 +9,6 @@ from django.urls import reverse
 from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.integrations.source_code_management.metrics import (
@@ -18,7 +17,6 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
-from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.exceptions import ReleaseCommitError
@@ -38,49 +36,29 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
-GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE = (
-    "organizations:integrations-github-fetch-commits-compare-cache"
-)
 GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 3600
 GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
     ("integrations:github", "integrations:github_enterprise")
 )
 
 
-def generate_invalid_identity_email(identity: Any, commit_failure: bool = False) -> MessageBuilder:
+def generate_invalid_identity_email(identity: Any) -> MessageBuilder:
     new_context = {
         "identity": identity,
         "auth_url": absolute_uri(reverse("socialauth_associate", args=[identity.provider])),
-        "commit_failure": commit_failure,
     }
 
     return MessageBuilder(
-        subject="Unable to Fetch Commits" if commit_failure else "Action Required",
+        subject="Action Required",
         context=new_context,
         template="sentry/emails/identity-invalid.txt",
         html_template="sentry/emails/identity-invalid.html",
     )
 
 
-def generate_fetch_commits_error_email(
-    release: Release, repo: Repository, error_message: str
-) -> MessageBuilder:
-    new_context = {"release": release, "error_message": error_message, "repo": repo}
-
-    return MessageBuilder(
-        subject="Unable to Fetch Commits",
-        context=new_context,
-        template="sentry/emails/unable-to-fetch-commits.txt",
-        html_template="sentry/emails/unable-to-fetch-commits.html",
-    )
-
-
-# we're future proofing this function a bit so it could be used with other code
-
-
-def handle_invalid_identity(identity: Any, commit_failure: bool = False) -> None:
+def handle_invalid_identity(identity: Any) -> None:
     # email the user
-    msg = generate_invalid_identity_email(identity, commit_failure)
+    msg = generate_invalid_identity_email(identity)
     msg.send_async(to=[identity.user.email])
 
     # now remove the identity, as its invalid
@@ -103,18 +81,14 @@ def get_github_compare_commits_cache_key(
 
 def fetch_commits_for_compare_range(
     *,
-    github_compare_commits_cache_feature_enabled: bool,
     repo: Repository,
     provider: Any,
-    is_integration_repo_provider: bool,
     start_sha: str,
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
     cache_enabled = (
-        github_compare_commits_cache_feature_enabled
-        and isinstance(repo.provider, str)
-        and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
+        isinstance(repo.provider, str) and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
     )
     set_tag("compare_commits_cache_enabled", cache_enabled)
     if cache_enabled:
@@ -132,15 +106,7 @@ def fetch_commits_for_compare_range(
         if cached_repo_commits is not None:
             return cached_repo_commits
 
-    if is_integration_repo_provider:
-        # New method to decouple the provider from the task
-        if hasattr(provider, "fetch_commits_for_compare_range"):
-            repo_commits = provider.fetch_commits_for_compare_range(repo, start_sha, end_sha)
-        else:
-            repo_commits = provider.compare_commits(repo, start_sha, end_sha)
-    else:
-        # XXX: This only works for plugins that support actor context
-        repo_commits = provider.compare_commits(repo, start_sha, end_sha, actor=user)
+    repo_commits = provider.fetch_commits_for_compare_range(repo, start_sha, end_sha, actor=user)
 
     if cache_enabled:
         cache.set(
@@ -155,17 +121,10 @@ def fetch_recent_commits(
     *,
     repo: Repository,
     provider: Any,
-    is_integration_repo_provider: bool,
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
-    if is_integration_repo_provider:
-        if hasattr(provider, "fetch_recent_commits"):
-            return provider.fetch_recent_commits(repo, end_sha)
-        return provider.compare_commits(repo, None, end_sha)
-
-    # XXX: This only works for plugins that support actor context
-    return provider.compare_commits(repo, None, end_sha, actor=user)
+    return provider.fetch_recent_commits(repo, end_sha, actor=user)
 
 
 def get_repo_for_ref(
@@ -200,10 +159,11 @@ def get_repo_for_ref(
 def get_provider_for_repo(
     *,
     repo: Repository,
-) -> tuple[Any, bool, str] | None:
-    is_integration_repo_provider = is_integration_provider(repo.provider)
+) -> tuple[Any, str] | None:
     binding_key = (
-        "integration-repository.provider" if is_integration_repo_provider else "repository.provider"
+        "integration-repository.provider"
+        if repo.has_integration_provider()
+        else "repository.provider"
     )
     try:
         provider_cls = bindings.get(binding_key).get(repo.provider)
@@ -211,11 +171,9 @@ def get_provider_for_repo(
         return None
 
     provider = provider_cls(id=repo.provider)
-    provider_key = (
-        provider_cls.repo_provider if is_integration_repo_provider else provider_cls.auth_provider
-    )
+    provider_key = provider.get_scm_provider_key() or provider.id
 
-    return provider, is_integration_repo_provider, provider_key
+    return provider, provider_key
 
 
 def get_start_sha_for_ref(
@@ -244,7 +202,6 @@ def get_start_sha_for_ref(
 class ResolvedRef(NamedTuple):
     repo: Repository
     provider: Any
-    is_integration_repo_provider: bool
     provider_key: str
     start_sha: str | None
     end_sha: str
@@ -270,7 +227,7 @@ def resolve_ref(
     provider_values = get_provider_for_repo(repo=repo)
     if provider_values is None:
         return None
-    provider, is_integration_repo_provider, provider_key = provider_values
+    provider, provider_key = provider_values
 
     start_sha = get_start_sha_for_ref(
         ref=ref,
@@ -281,7 +238,6 @@ def resolve_ref(
     return ResolvedRef(
         repo=repo,
         provider=provider,
-        is_integration_repo_provider=is_integration_repo_provider,
         provider_key=provider_key,
         start_sha=start_sha,
         end_sha=ref["commit"],
@@ -291,10 +247,8 @@ def resolve_ref(
 def fetch_commits_for_ref_with_lifecycle(
     *,
     resolved: ResolvedRef,
-    release: Release,
     user_id: int,
     user: RpcUser | None,
-    github_compare_commits_cache_feature_enabled: bool,
     task_extra: Mapping[str, Any],
 ) -> list[dict[str, Any]] | None:
     repo = resolved.repo
@@ -330,16 +284,13 @@ def fetch_commits_for_ref_with_lifecycle(
                     repo_commits = fetch_recent_commits(
                         repo=repo,
                         provider=resolved.provider,
-                        is_integration_repo_provider=resolved.is_integration_repo_provider,
                         end_sha=end_sha,
                         user=user,
                     )
                 else:
                     repo_commits = fetch_commits_for_compare_range(
-                        github_compare_commits_cache_feature_enabled=github_compare_commits_cache_feature_enabled,
                         repo=repo,
                         provider=resolved.provider,
-                        is_integration_repo_provider=resolved.is_integration_repo_provider,
                         start_sha=start_sha,
                         end_sha=end_sha,
                         user=user,
@@ -354,19 +305,11 @@ def fetch_commits_for_ref_with_lifecycle(
                     span.set_status("unknown_error")
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
-                    handle_invalid_identity(identity=e.identity, commit_failure=True)
+                    handle_invalid_identity(identity=e.identity)
                     lifecycle.record_halt(e)
                 elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
-                    msg = generate_fetch_commits_error_email(release, repo, str(e))
-                    emails = get_emails_for_user_or_org(user, release.organization_id)
-                    msg.send_async(to=emails)
                     lifecycle.record_halt(e)
                 else:
-                    msg = generate_fetch_commits_error_email(
-                        release, repo, "An internal system error occurred."
-                    )
-                    emails = get_emails_for_user_or_org(user, release.organization_id)
-                    msg.send_async(to=emails)
                     lifecycle.record_failure(e)
                 repo_commits = None
         return repo_commits
@@ -404,10 +347,6 @@ def fetch_commits(
             prev_release = Release.objects.get(id=prev_release_id)
         except Release.DoesNotExist:
             pass
-    organization = release.organization
-    github_compare_commits_cache_feature_enabled = features.has(
-        GITHUB_FETCH_COMMITS_COMPARE_CACHE_FEATURE, organization, actor=user
-    )
     set_tag("organization.slug", release.organization.slug)
     extra = {
         "organization_id": release.organization_id,
@@ -415,7 +354,6 @@ def fetch_commits(
         "refs": refs,
         "num_refs": len(refs),
         "prev_release_id": prev_release_id,
-        "github_compare_commits_cache_feature_enabled": github_compare_commits_cache_feature_enabled,
     }
     logger.info("fetch_commits.start", extra=extra)
 
@@ -426,10 +364,8 @@ def fetch_commits(
 
         repo_commits = fetch_commits_for_ref_with_lifecycle(
             resolved=resolved,
-            release=release,
             user_id=user_id,
             user=user,
-            github_compare_commits_cache_feature_enabled=github_compare_commits_cache_feature_enabled,
             task_extra=extra,
         )
         if repo_commits is None:
@@ -493,22 +429,3 @@ def fetch_commits(
         Deploy.notify_if_ready(deploy_id, fetch_complete=True)
 
     logger.info("fetch_commits.complete", extra=extra)
-
-
-def is_integration_provider(provider: str | None) -> bool:
-    return bool(provider and provider.startswith("integrations:"))
-
-
-def get_emails_for_user_or_org(user: RpcUser | None, orgId: int) -> list[str]:
-    emails: list[str] = []
-    if not user:
-        return []
-    if user.is_sentry_app:
-        organization = Organization.objects.get(id=orgId)
-        members = organization.get_members_with_org_roles(roles=["owner"])
-        user_ids = [m.user_id for m in members if m.user_id]
-        emails = list({u.email for u in user_service.get_many_by_id(ids=user_ids) if u.email})
-    else:
-        emails = [user.email]
-
-    return emails

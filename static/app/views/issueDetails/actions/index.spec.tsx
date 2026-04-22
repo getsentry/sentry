@@ -581,11 +581,21 @@ describe('GroupActions', () => {
         child => child.display.label === 'Assign to'
       );
       const assignLabels = assignAction?.children.map(child => child.display.label) ?? [];
+      const assignToMeIndex = assignLabels.indexOf('Assign to me');
+      const unassignIndex = assignLabels.indexOf('Unassign from Ada Lovelace');
+      const unassignAction = assignAction?.children.find(
+        child => child.display.label === 'Unassign from Ada Lovelace'
+      );
 
       expect(labels).toContain('Set Priority');
       expect(labels).toContain('Assign to');
       expect(assignLabels).toContain('Assign to me');
+      expect(assignLabels).toContain('Unassign from Ada Lovelace');
       expect(assignLabels).toContain('#frontend');
+      expect(unassignIndex).toBe(assignToMeIndex + 1);
+      expect(unassignAction?.display.icon).toMatchObject({
+        props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},
+      });
       expect(setPriorityAction?.display.icon).toMatchObject({props: {bars: 3}});
       expect(assignAction?.display.icon).toMatchObject({
         props: {actor: expect.objectContaining({name: 'Ada Lovelace'})},

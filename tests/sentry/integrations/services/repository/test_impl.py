@@ -242,8 +242,11 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         self.provider = "integrations:github"
         self.org_integration = self.integration.organizationintegration_set.first()
 
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
+    )
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
-    def test_disassociates_repos(self, mock_cleanup: MagicMock) -> None:
+    def test_disassociates_repos(self, mock_cleanup: MagicMock, mock_handoff: MagicMock) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
@@ -274,10 +277,19 @@ class DisassociateOrganizationIntegrationTest(TestCase):
                 ],
             }
         )
+        mock_handoff.apply_async.assert_called_once_with(
+            kwargs={
+                "organization_id": self.organization.id,
+                "integration_id": self.integration.id,
+            }
+        )
 
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
+    )
     @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
     def test_transaction_rollback_does_not_dispatch_seer_cleanup(
-        self, mock_cleanup: MagicMock
+        self, mock_cleanup: MagicMock, mock_handoff: MagicMock
     ) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -304,5 +316,6 @@ class DisassociateOrganizationIntegrationTest(TestCase):
         repo.refresh_from_db()
         assert repo.integration_id == self.integration.id
 
-        # Task should not have been dispatched
+        # Tasks should not have been dispatched
         mock_cleanup.apply_async.assert_not_called()
+        mock_handoff.apply_async.assert_not_called()

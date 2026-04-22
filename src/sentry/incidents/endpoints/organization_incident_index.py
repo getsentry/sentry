@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from dateutil.parser import parse as parse_date
-from django.db.models import BigIntegerField, Q, QuerySet
+from django.db.models import BigIntegerField, Exists, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 from rest_framework import status
 from rest_framework.request import Request
@@ -39,6 +39,7 @@ from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -183,20 +184,25 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         """
         Workflow Engine-based implementation that queries GroupOpenPeriod instead of Incident.
         """
-        # Base query: GroupOpenPeriod for MetricIssue groups in the organization's projects.
-        # Require a DetectorGroup with a non-null detector — open periods without one
-        # can't be serialized (the serializer maps group -> detector via DetectorGroup).
-        # DetectorGroup.detector is nullable (SET_NULL on delete), so filter on the FK.
-        open_periods = GroupOpenPeriod.objects.filter(
-            project__organization=organization,
-            project__in=projects,
-            group__type=MetricIssue.type_id,
-            group__detectorgroup__detector__isnull=False,
-        ).select_related("group", "project__organization")
+        # Build a single DetectorGroup subquery that accumulates all detector-related
+        # conditions, producing one EXISTS instead of multiple independent subqueries.
+        # This gives Postgres a single correlated probe per outer row instead of N.
+        #
+        # Base requirement: a non-null detector. Open periods without one can't be
+        # serialized (the serializer maps group -> detector via DetectorGroup).
+        # DetectorGroup.detector is nullable (SET_NULL on delete).
+        detector_qs = DetectorGroup.objects.filter(
+            group_id=OuterRef("group_id"),
+            detector__isnull=False,
+        )
 
         # Environment filter
         if envs:
-            open_periods = self._filter_by_environment(open_periods, envs)
+            detector_qs = detector_qs.filter(
+                detector_id__in=self._detector_ids_for_subscriptions(
+                    QuerySubscription.objects.filter(snuba_query__environment__in=envs)
+                )
+            )
 
         # Alert rule filter
         if query_alert_rule is not None:
@@ -219,7 +225,46 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             if extracted_detector_id > 0:
                 detector_ids.append(extracted_detector_id)
 
-            open_periods = open_periods.filter(group__detectorgroup__detector_id__in=detector_ids)
+            detector_qs = detector_qs.filter(detector_id__in=detector_ids)
+
+        # Team filter
+        if teams:
+            try:
+                teams_query, unassigned = parse_team_params(request, organization, teams)
+            except InvalidParams as err:
+                return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
+
+            detector_team_filter = Q(
+                detector__owner_team_id__in=teams_query.values_list("id", flat=True)
+            )
+            if unassigned:
+                detector_team_filter = detector_team_filter | Q(
+                    detector__owner_team_id__isnull=True
+                )
+
+            detector_qs = detector_qs.filter(detector_team_filter)
+
+        # Title filter
+        if title:
+            detector_qs = detector_qs.filter(detector__name__icontains=title)
+
+        # Dataset filter (exclude performance alerts if performance-view not enabled)
+        if not features.has("organizations:performance-view", organization):
+            detector_qs = detector_qs.filter(
+                detector_id__in=self._detector_ids_for_subscriptions(
+                    QuerySubscription.objects.filter(snuba_query__dataset=Dataset.Events.value)
+                )
+            )
+
+        open_periods = (
+            GroupOpenPeriod.objects.filter(
+                project__organization=organization,
+                project__in=projects,
+                group__type=MetricIssue.type_id,
+            )
+            .filter(Exists(detector_qs))
+            .select_related("group", "project__organization")
+        )
 
         # Date range filters
         if query_start_s is not None:
@@ -235,38 +280,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         # Status filter
         if query_status is not None:
             open_periods = self._filter_by_status(open_periods, query_status)
-
-        # Team filter
-        if teams:
-            try:
-                teams_query, unassigned = parse_team_params(request, organization, teams)
-            except InvalidParams as err:
-                return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
-
-            team_filter_query = Q(
-                group__detectorgroup__detector__owner_team_id__in=teams_query.values_list(
-                    "id", flat=True
-                )
-            )
-            if unassigned:
-                team_filter_query = team_filter_query | Q(
-                    group__detectorgroup__detector__owner_team_id__isnull=True
-                )
-
-            open_periods = open_periods.filter(team_filter_query)
-
-        # Title filter
-        if title:
-            open_periods = open_periods.filter(
-                group__detectorgroup__detector__name__icontains=title
-            )
-
-        # Dataset filter (exclude performance alerts if performance-view not enabled)
-        if not features.has("organizations:performance-view", organization):
-            open_periods = self._filter_by_dataset(open_periods, Dataset.Events)
-
-        # Apply distinct to handle joins through DetectorGroup
-        open_periods = open_periods.distinct()
 
         return self.paginate(
             request,
@@ -298,14 +311,6 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
             .values("detector_id")
         )
 
-    def _filter_by_environment(
-        self, open_periods: BaseQuerySet[GroupOpenPeriod], envs: Sequence[Environment]
-    ) -> BaseQuerySet[GroupOpenPeriod]:
-        matching_detector_ids = self._detector_ids_for_subscriptions(
-            QuerySubscription.objects.filter(snuba_query__environment__in=envs)
-        )
-        return open_periods.filter(group__detectorgroup__detector_id__in=matching_detector_ids)
-
     def _filter_by_status(
         self, open_periods: BaseQuerySet[GroupOpenPeriod], query_status: str
     ) -> BaseQuerySet[GroupOpenPeriod]:
@@ -322,11 +327,3 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
         elif query_status == "closed":
             return open_periods.filter(date_ended__isnull=False)
         return open_periods
-
-    def _filter_by_dataset(
-        self, open_periods: BaseQuerySet[GroupOpenPeriod], dataset: Dataset
-    ) -> BaseQuerySet[GroupOpenPeriod]:
-        matching_detector_ids = self._detector_ids_for_subscriptions(
-            QuerySubscription.objects.filter(snuba_query__dataset=dataset.value)
-        )
-        return open_periods.filter(group__detectorgroup__detector_id__in=matching_detector_ids)
