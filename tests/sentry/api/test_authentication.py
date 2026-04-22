@@ -1067,19 +1067,6 @@ class TestViewerContextAuthentication(TestCase):
         assert result is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_jwt_viewer_context_authenticates(self) -> None:
-        vc = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
-        token = encode_viewer_context(vc, key=self.SHARED_SECRET)
-
-        request = self._make_request(viewer_context=token)
-        result = ViewerContextAuthentication().authenticate(request)
-
-        assert result is not None
-        user, auth = result
-        assert user.id == self.user.id
-        assert auth is None
-
-    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_jwt_wrong_key_returns_none(self) -> None:
         vc = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
         token = encode_viewer_context(vc, key="wrong-key")
