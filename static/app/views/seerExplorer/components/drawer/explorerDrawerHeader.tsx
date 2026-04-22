@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -124,7 +123,8 @@ export function ExplorerDrawerHeader({
         type="beta"
         tooltipProps={{title: t('This feature is in beta and may change')}}
       />
-      <RightAlignedContent>
+      <Flex flex="1" />
+      <Flex gap="md">
         {showContextEngineToggle && (
           <Tooltip
             title={
@@ -191,7 +191,7 @@ export function ExplorerDrawerHeader({
         >
           {t('New chat')}
         </Button>
-      </RightAlignedContent>
+      </Flex>
     </DrawerHeader>
   );
 }
@@ -246,9 +246,3 @@ function useSessionMenuItems({
     refetch,
   };
 }
-
-const RightAlignedContent = styled('div')`
-  margin-left: auto;
-  display: flex;
-  gap: ${p => p.theme.space.md};
-`;

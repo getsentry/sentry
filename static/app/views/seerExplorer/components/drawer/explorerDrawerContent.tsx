@@ -195,7 +195,6 @@ export function ExplorerDrawerContent({
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
     },
-    onChangeSession: switchToRun,
     inputAnchorRef: textareaRef,
     prWidgetAnchorRef: prWidgetButtonRef,
     prWidgetItems,

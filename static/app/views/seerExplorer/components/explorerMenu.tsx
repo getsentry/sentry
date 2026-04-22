@@ -18,7 +18,6 @@ interface ExplorerMenuProps {
   clearInput: () => void;
   focusInput: () => void;
   inputValue: string;
-  onChangeSession: (runId: number) => void;
   panelSize: 'max' | 'med';
   slashCommandHandlers: SlashCommandHandlers;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
@@ -35,6 +34,9 @@ export interface MenuItemProps {
   title: string;
 }
 
+/**
+ * Custom floating menu for Seer Explorer slash commands and PR widget.
+ */
 export function useExplorerMenu({
   clearInput,
   inputValue,
