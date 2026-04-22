@@ -396,7 +396,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
             result = self.slack_request.resolve_seer_organization()
 
         assert result.organization_id == self.organization.id
-        assert result.error_reason is None
+        assert result.halt_reason is None
         mock_has_feature_flag.assert_called()
         mock_has_access.assert_not_called()
 
@@ -415,7 +415,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
             result = self.slack_request.resolve_seer_organization()
 
         assert result.organization_id is None
-        assert result.error_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
+        assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
         mock_has_feature_flag.assert_called()
         mock_has_access.assert_not_called()
 
@@ -436,7 +436,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
             result = self.slack_request.resolve_seer_organization()
 
         assert result.organization_id == self.organization.id
-        assert result.error_reason is None
+        assert result.halt_reason is None
         mock_has_access.assert_called()
         mock_has_feature_flag.assert_not_called()
 
