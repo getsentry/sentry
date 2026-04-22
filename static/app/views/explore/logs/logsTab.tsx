@@ -278,17 +278,12 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const rawLogCountsAll = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
 
   const showModalExport = useShowModalExport();
-  const rawLogCountsFiltered = showModalExport
-    ? // This is a bit hacky, but: we only use rawLogCountsFiltered deep inside:
-      //   LogsExportSwitch > LogsExportModalButton > LogsExportModal
-      // We don't want to send extra network requests unnecessarily.
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      useRawCounts({
-        dataset: DiscoverDatasets.OURLOGS,
-        normalModeExtrapolated: true,
-        query: logsSearch.formatString(),
-      })
-    : undefined;
+  const rawLogCountsFiltered = useRawCounts({
+    enabled: showModalExport,
+    dataset: DiscoverDatasets.OURLOGS,
+    normalModeExtrapolated: true,
+    query: logsSearch.formatString(),
+  });
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
