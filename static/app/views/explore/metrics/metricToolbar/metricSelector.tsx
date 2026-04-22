@@ -400,7 +400,7 @@ export function MetricSelector({
       <OverlayTrigger.Button
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
-        disabled={(isFetching && !traceMetric.name) || !metricOptions.length}
+        disabled={isFetching && !traceMetric.name}
         tooltipProps={{title: traceMetric.name || t('None')}}
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
