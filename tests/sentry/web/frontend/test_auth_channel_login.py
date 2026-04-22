@@ -32,6 +32,11 @@ class AuthOrganizationChannelLoginTest(TestCase):
         another_org = self.create_organization(name="another org", owner=self.user)
         self.create_auth_provider("another-fly-org", another_org.id)
         path = reverse("sentry-auth-channel", args=["fly", "another-fly-org"])
+        # Set activeorg explicitly so determine_active_organization returns
+        # self.organization (not another_org) regardless of the order
+        # user_service.get_organizations returns orgs for this user.
+        self.session["activeorg"] = self.organization.slug
+        self.save_session()
         response = self.client.get(path + "?next=/projects/", follow=True)
         assert response.status_code == 200
         # redirects to login to the org in the url
