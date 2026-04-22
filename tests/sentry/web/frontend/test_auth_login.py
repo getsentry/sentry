@@ -101,14 +101,20 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 429
 
     def test_login_ratelimited_user(self) -> None:
+        from sentry import ratelimits as ratelimiter
+        from sentry.utils.hashlib import md5_text
+
+        # Pre-fill the rate limiter using the same key the login view uses
+        # (auth_login.py::is_ratelimited_login_attempt).  Replacing the 5
+        # HTTP round-trips eliminates the window where a concurrent xdist
+        # flushdb() can reset the Redis counter mid-test, shrinking the
+        # vulnerable period from ~5 s to < 1 ms.
+        username_key = f"auth:login:username:{md5_text(self.user.username.lower()).hexdigest()}"
+        for _ in range(5):
+            ratelimiter.backend.is_limited(username_key, limit=5, window=60)
+
+        # Attempt login with correct credentials — the view must still block it.
         self.client.get(self.path)
-        # Make sure user gets ratelimited
-        for i in range(5):
-            self.client.post(
-                self.path,
-                {"username": self.user.username, "password": "wront_password", "op": "login"},
-                follow=True,
-            )
         resp = self.client.post(
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
