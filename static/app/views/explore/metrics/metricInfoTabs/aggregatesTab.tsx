@@ -256,7 +256,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           })
         ) : isPending ? (
           <SimpleTable.Empty>
-            <LoadingIndicator />
+            <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
