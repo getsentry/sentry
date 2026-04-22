@@ -4,11 +4,9 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 
-import {ExplorerDrawerContent} from './explorerDrawerContent';
-
-const mockOnClose = jest.fn();
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
@@ -16,14 +14,12 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   isPolling: false,
   isError: false,
   runId: null,
-  deletedFromIndex: null,
   waitingForInterrupt: false,
   overrideCtxEngEnable: true,
   overrideCodeModeEnable: false,
   sendMessage: jest.fn(),
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
-  deleteFromIndex: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
   createPR: jest.fn(),
@@ -61,10 +57,13 @@ describe('ExplorerDrawerContent', () => {
     it('renders the drawer root element', () => {
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
       expect(document.querySelector('[data-seer-explorer-root]')).toBeInTheDocument();
     });
@@ -72,10 +71,13 @@ describe('ExplorerDrawerContent', () => {
     it('shows empty state when no messages exist', async () => {
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
       expect(
         await screen.findByText('Ask Seer anything about your application.')
@@ -85,16 +87,47 @@ describe('ExplorerDrawerContent', () => {
     it('shows input', async () => {
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
       expect(
         await screen.findByPlaceholderText(
           'Ask seer a question, or press / for commands.'
         )
       ).toBeInTheDocument();
+    });
+
+    it('sends the suggested question when a suggestion button is clicked', async () => {
+      const sendMessage = jest.fn();
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sendMessage,
+      });
+
+      render(
+        <ExplorerDrawerContent
+          getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
+        />,
+        {
+          organization,
+        }
+      );
+
+      const suggestion = await screen.findByRole('button', {
+        name: 'Which of my open issues are getting worse, not better?',
+      });
+      await userEvent.click(suggestion);
+
+      expect(sendMessage).toHaveBeenCalledWith(
+        'Which of my open issues are getting worse, not better?'
+      );
     });
 
     it('shows error state when isError is true', async () => {
@@ -106,10 +139,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={123}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       expect(
@@ -148,10 +184,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       expect(await screen.findByText('What is this error?')).toBeInTheDocument();
@@ -166,10 +205,13 @@ describe('ExplorerDrawerContent', () => {
     it('can type in the textarea', async () => {
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
       const textarea = await screen.findByTestId('seer-explorer-input');
       await userEvent.type(textarea, 'Test message');
@@ -185,10 +227,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -255,10 +300,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -283,10 +331,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       await screen.findByTestId('seer-explorer-input');
@@ -305,10 +356,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -335,10 +389,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -364,10 +421,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -393,10 +453,13 @@ describe('ExplorerDrawerContent', () => {
 
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
 
       const textarea = await screen.findByTestId('seer-explorer-input');
@@ -413,10 +476,13 @@ describe('ExplorerDrawerContent', () => {
     it('does not show toggle without the feature flag', async () => {
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization}
+        {
+          organization,
+        }
       );
       await screen.findByTestId('seer-explorer-input');
       expect(
@@ -427,10 +493,13 @@ describe('ExplorerDrawerContent', () => {
     it('shows toggle when feature flag is enabled', async () => {
       render(
         <ExplorerDrawerContent
-          onClose={mockOnClose}
           getPageReferrer={mockGetPageReferrer}
+          runId={null}
+          setRunId={jest.fn()}
         />,
-        {organization: orgWithFlag}
+        {
+          organization: orgWithFlag,
+        }
       );
       expect(
         await screen.findByRole('checkbox', {name: 'Toggle context engine'})

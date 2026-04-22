@@ -8,16 +8,15 @@
 
 ## ActorField vs OwnerActorField
 
-`ActorField` accepts any user or team ID without validating the requesting user's relationship to that actor. `OwnerActorField` validates team membership before allowing assignment.
+`ActorField` accepts any user or team ID without validating the requesting user's relationship to that actor. `OwnerActorField` additionally checks that the requesting user is a member of the target team.
 
 **Location:** `src/sentry/api/fields/actor.py`
 
 ### When to use which
 
-| Field             | Validates Membership | Use For                           |
-| ----------------- | -------------------- | --------------------------------- |
-| `ActorField`      | No                   | Read-only display, filtering      |
-| `OwnerActorField` | Yes                  | Owner assignment, assignee fields |
+Default to `OwnerActorField` for any write-op field accepting a team or user reference (assignment, ownership, delegation). Originally PR #106074.
+
+One known exception: `GroupValidator.assignedTo` uses `ActorField`. Issue assignment is a label — it doesn't grant access, and project-access is validated separately in `validate_assignedTo`. Don't expand this exception without explicit review.
 
 ### Real vulnerability: ActorField for ownership (PR #106074)
 
@@ -25,7 +24,7 @@
 
 ```python
 class IssueAlertRuleSerializer(serializers.Serializer):
-    owner = ActorField(required=False)  # BUG: Any actor, no membership check
+    owner = ActorField(required=False)  # BUG: Any team, no membership check
 ```
 
 **Fixed code:**
@@ -42,17 +41,11 @@ class IssueAlertRuleSerializer(serializers.Serializer):
 3. If user is a member of the target team → allowed
 4. Otherwise → `ValidationError("You can only assign teams you are a member of")`
 
-### What to look for
-
-Any serializer field that accepts a team or user reference for **write operations** (assignment, ownership, delegation) should use `OwnerActorField`, not `ActorField`.
-
-Search pattern:
+### Finding existing uses
 
 ```
 grep -rn "ActorField" --include="*.py" src/sentry/api/
 ```
-
-Flag any `ActorField()` used in a serializer for PUT/POST operations where the field sets an owner or assignee.
 
 ## Foreign Key IDs in Request Bodies
 
@@ -91,7 +84,7 @@ A serializer accepted `condition_group_id` from user input, allowing a user to i
 ## Checklist
 
 ```
-□ Owner/assignee fields use OwnerActorField, not ActorField
+□ Owner/assignee fields use OwnerActorField (exception: issue assignment uses ActorField)
 □ FK ID fields in request body are validated against the org
 □ IDs that should be server-set are not exposed in the serializer
 □ Serializer context includes organization for validation

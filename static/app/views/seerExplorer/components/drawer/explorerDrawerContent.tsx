@@ -10,12 +10,12 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -27,11 +27,13 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent({
-  onClose,
   getPageReferrer,
+  runId,
+  setRunId,
 }: {
   getPageReferrer: () => string;
-  onClose: () => void;
+  runId: number | null;
+  setRunId: (value: number | null) => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -46,26 +48,20 @@ export function ExplorerDrawerContent({
   const blockEnterHandlers = useRef<
     Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
   >(new Map());
-  const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
-  const allowHoverFocusChange = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
-  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
 
   // - Session data and mutators ----------------------------------------------
   const {
-    runId,
     sessionData,
     isPolling,
     isError,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -76,7 +72,7 @@ export function ExplorerDrawerContent({
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
-  } = useSeerExplorer();
+  } = useSeerExplorer({runId, setRunId});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -186,26 +182,23 @@ export function ExplorerDrawerContent({
   });
 
   // Menu component
-  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
-    useExplorerMenu({
-      clearInput: () => setInputValue(''),
-      inputValue,
-      focusInput,
-      textAreaRef: textareaRef,
-      panelSize: 'max',
-      slashCommandHandlers: {
-        onNew: startNewSession,
-        onFeedback: openFeedbackForm ? handleFeedback : undefined,
-        onLangfuse: handleOpenLangfuse,
-        onConversations: handleOpenConversations,
-      },
-      onChangeSession: switchToRun,
-      menuAnchorRef: sessionHistoryButtonRef,
-      inputAnchorRef: textareaRef,
-      prWidgetAnchorRef: prWidgetButtonRef,
-      prWidgetItems,
-      prWidgetFooter,
-    });
+  const {menu, isMenuOpen, closeMenu, openPRWidget} = useExplorerMenu({
+    clearInput: () => setInputValue(''),
+    inputValue,
+    focusInput,
+    textAreaRef: textareaRef,
+    panelSize: 'max',
+    slashCommandHandlers: {
+      onNew: startNewSession,
+      onFeedback: openFeedbackForm ? handleFeedback : undefined,
+      onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
+      onConversations: conversationsUrl ? handleOpenConversations : undefined,
+    },
+    inputAnchorRef: textareaRef,
+    prWidgetAnchorRef: prWidgetButtonRef,
+    prWidgetItems,
+    prWidgetFooter,
+  });
 
   const handleBlocksClick = useCallback(() => {
     closeMenu();
@@ -219,10 +212,9 @@ export function ExplorerDrawerContent({
     sendMessage(inputValue.trim());
     setInputValue('');
     userScrolledUpRef.current = false;
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
   }, [readOnly, inputValue, isPolling, sendMessage]);
+
+  const canInterrupt = sessionData?.status === 'processing';
 
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -233,9 +225,12 @@ export function ExplorerDrawerContent({
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
+      } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
+        e.preventDefault();
+        interruptRun();
       }
     },
-    [readOnly, handleSend]
+    [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -244,8 +239,6 @@ export function ExplorerDrawerContent({
       setFocusedBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
 
   const handleInputClick = useCallback(() => {
@@ -350,16 +343,9 @@ export function ExplorerDrawerContent({
       }
     };
 
-    // Re-enable hover focus changes when mouse actually moves
-    const handleMouseMove = () => {
-      allowHoverFocusChange.current = true;
-    };
-
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousemove', handleMouseMove);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [isMenuOpen, readOnly, focusedBlockIndex, isFileApprovalPending, isQuestionPending]);
 
@@ -379,7 +365,6 @@ export function ExplorerDrawerContent({
     setFocusedBlockIndex,
     isFileApprovalPending,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
@@ -392,22 +377,14 @@ export function ExplorerDrawerContent({
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
-      <TopBar
-        isCopyLinkEnabled={false} // TODO: disabled for drawer, may remove in favor copy URL
-        onCopyLinkClick={() => {}}
-        onClose={onClose}
-        isEmptyState={isEmptyState}
-        isPolling={isPolling}
-        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
-        onFeedbackClick={handleFeedback}
+      <ExplorerDrawerHeader
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
+        onChangeSession={switchToRun}
+        copySessionEnabled={copySessionEnabled}
         onCopySessionClick={copySessionToClipboard}
-        onSessionHistoryClick={openSessionHistory}
-        isCopySessionEnabled={copySessionEnabled}
-        sessionHistoryButtonRef={sessionHistoryButtonRef}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={
@@ -424,7 +401,12 @@ export function ExplorerDrawerContent({
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isPolling} isError={isError} runId={runId} />
+          <EmptyState
+            isLoading={isPolling}
+            isError={isError}
+            runId={runId}
+            onSuggestionClick={readOnly ? undefined : sendMessage}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
@@ -440,35 +422,9 @@ export function ExplorerDrawerContent({
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
-                isLast={
-                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
-                }
                 isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
-                onMouseEnter={() => {
-                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
-                  if (
-                    isMenuOpen ||
-                    hoveredBlockIndex.current === index ||
-                    !allowHoverFocusChange.current
-                  ) {
-                    return;
-                  }
-
-                  hoveredBlockIndex.current = index;
-                  setFocusedBlockIndex(index);
-                  textareaRef.current?.blur();
-                }}
-                onMouseLeave={() => {
-                  if (hoveredBlockIndex.current === index) {
-                    hoveredBlockIndex.current = -1;
-                  }
-                }}
-                onDelete={() => {
-                  deleteFromIndex(index);
-                  focusInput();
-                }}
-                onNavigate={undefined} // TODO: close drawer on link navigate?
+                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}
@@ -479,7 +435,6 @@ export function ExplorerDrawerContent({
               fileApprovalIndex < fileApprovalTotalPatches && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
-                  isLast
                   pendingInput={pendingInput!}
                 />
               )}
@@ -487,7 +442,6 @@ export function ExplorerDrawerContent({
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
-                isLast
                 isOtherSelected={isOtherSelected}
                 onCustomTextChange={handleQuestionCustomTextChange}
                 onSelectOption={handleQuestionSelectOption}
@@ -503,7 +457,7 @@ export function ExplorerDrawerContent({
         enabled={!readOnly}
         inputValue={inputValue}
         isFocused={focusedBlockIndex === -1}
-        canInterrupt={sessionData?.status === 'processing'} // TODO: update when adding timeouts
+        canInterrupt={canInterrupt} // TODO: update when adding timeouts
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered

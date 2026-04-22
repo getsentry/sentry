@@ -22,13 +22,14 @@ function renderFAB(
   options?: Parameters<typeof render>[1],
   contextOverrides?: Partial<React.ContextType<typeof SeerExplorerContext>>
 ) {
-  const contextValue = {
+  const contextValue: React.ContextType<typeof SeerExplorerContext> = {
     isOpen: false,
-    isMinimized: false,
     openSeerExplorer: jest.fn(),
     closeSeerExplorer: jest.fn(),
     toggleSeerExplorer: jest.fn(),
-    setIsMinimized: jest.fn(),
+    runId: null,
+    setRunId: jest.fn(),
+    sessionState: 'inactive',
     ...contextOverrides,
   };
 

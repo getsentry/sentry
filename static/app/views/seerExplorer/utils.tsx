@@ -377,10 +377,17 @@ export function getToolsStringFromBlock(block: Block): string[] {
   const isLoading = block.loading ?? false;
   const toolCalls = block.message.tool_calls || [];
   const toolLinks = block.tool_links || [];
+  const toolResults = block.tool_results || [];
 
-  for (let i = 0; i < toolCalls.length; i++) {
-    const tool = toolCalls[i] as ToolCall;
-    const toolLink = toolLinks[i];
+  const toolLinkByCallId = new Map<string, ToolLink | null>();
+  toolResults.forEach((result, idx) => {
+    if (result?.tool_call_id) {
+      toolLinkByCallId.set(result.tool_call_id, toolLinks[idx] ?? null);
+    }
+  });
+
+  for (const tool of toolCalls) {
+    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {

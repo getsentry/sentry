@@ -119,7 +119,7 @@ describe('BlockComponent', () => {
   });
 
   describe('Focus State', () => {
-    it('shows reset button when isFocused=true', () => {
+    it('shows copy button when assistant block is focused', () => {
       const block = createResponseBlock();
       render(
         <BlockComponent
@@ -131,10 +131,12 @@ describe('BlockComponent', () => {
         />
       );
 
-      expect(screen.getByRole('button', {name: '↩'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy block content'})
+      ).toBeInTheDocument();
     });
 
-    it('does not show reset button when isFocused=false', () => {
+    it('does not show copy button when assistant block is not focused', () => {
       const block = createResponseBlock();
       render(
         <BlockComponent
@@ -146,7 +148,9 @@ describe('BlockComponent', () => {
         />
       );
 
-      expect(screen.queryByRole('button', {name: '↩'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Copy block content'})
+      ).not.toBeInTheDocument();
     });
 
     it('shows feedback buttons for assistant blocks when isFocused=true', () => {
@@ -169,7 +173,7 @@ describe('BlockComponent', () => {
       ).toBeInTheDocument();
     });
 
-    it('only shows rethink action for user blocks', () => {
+    it('does not show assistant action buttons for focused user blocks', () => {
       const block = createUserInputBlock();
       render(
         <BlockComponent
@@ -190,7 +194,6 @@ describe('BlockComponent', () => {
       expect(
         screen.queryByRole('button', {name: 'Copy block content'})
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: '↩'})).toBeInTheDocument();
     });
 
     it('disables both thumbs buttons after thumbs up is clicked', async () => {

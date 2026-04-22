@@ -14,7 +14,7 @@ from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization.service import organization_service
-from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerEntrypoint
+from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
 from sentry.silo.base import SiloMode, all_silo_function
 
 COMMANDS = ["link", "unlink", "link team", "unlink team"]
@@ -134,11 +134,11 @@ class SlackEventRequest(SlackDMRequest):
             # evaluations, we need to slim down the check to only cover the feature flag.
             # This is actually fine, since after routing, this method is rerun at the CELL.
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
-                if not SlackExplorerEntrypoint.has_feature_flag(ctx.organization):
+                if not SlackAgentEntrypoint.has_feature_flag(ctx.organization):
                     logger.info("resolve_seer_organization.no_feature_flag", extra=logging_ctx)
                     continue
             else:
-                if not SlackExplorerEntrypoint.has_access(ctx.organization):
+                if not SlackAgentEntrypoint.has_access(ctx.organization):
                     logger.info("resolve_seer_organization.no_access", extra=logging_ctx)
                     continue
 

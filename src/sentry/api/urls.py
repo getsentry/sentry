@@ -562,7 +562,6 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import Organizatio
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
-from sentry.seer.endpoints.organization_trace_summary import OrganizationTraceSummaryEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.search_agent_start import SearchAgentStartEndpoint
 from sentry.seer.endpoints.search_agent_state import SearchAgentStateEndpoint
@@ -1955,11 +1954,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/trace-logs/$",
         OrganizationTraceLogsEndpoint.as_view(),
         name="sentry-api-0-organization-trace-logs",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/trace-summary/$",
-        OrganizationTraceSummaryEndpoint.as_view(),
-        name="sentry-api-0-organization-trace-summary",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/measurements-meta/$",

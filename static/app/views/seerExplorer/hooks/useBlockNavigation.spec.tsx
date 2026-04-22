@@ -62,7 +62,6 @@ describe('useBlockNavigation', () => {
     blocks: Block[];
     focusedBlockIndex: number;
     isOpen: boolean;
-    onDeleteFromIndex: jest.Mock;
     setFocusedBlockIndex: jest.Mock;
     textareaRef: {current: HTMLTextAreaElement | null};
   };
@@ -80,7 +79,6 @@ describe('useBlockNavigation', () => {
       blockRefs: {current: [mockElement1, mockElement2, mockElement3]},
       textareaRef: {current: mockTextarea},
       setFocusedBlockIndex: jest.fn(),
-      onDeleteFromIndex: jest.fn(),
     };
   });
 
