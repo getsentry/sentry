@@ -135,10 +135,8 @@ function SpecialPermissionField({
       defaultValue={value}
       disabled={disabled}
       disabledReason={disabledReason}
-      inline={false}
       name={name}
       onChange={onChange}
-      value={value}
     >
       {({id, onChange: formOnChange, value: checked}: any) => {
         const handleChange = (event: ChangeEvent<HTMLInputElement>) => {

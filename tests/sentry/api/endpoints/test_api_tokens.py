@@ -65,13 +65,15 @@ class ApiTokensCreateTest(APITestCase):
         assert not token.refresh_token
         assert token.get_scopes() == ["event:read"]
 
-    def test_ci_scope(self) -> None:
+    def test_token_only_scopes_are_stripped(self) -> None:
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.post(url, data={"scopes": ["org:ci"]})
+
         assert response.status_code == 201
         token = ApiToken.objects.get(user=self.user)
-        assert token.get_scopes() == ["org:ci"]
+        assert response.data["scopes"] == []
+        assert token.get_scopes() == []
 
     def test_never_cache(self) -> None:
         self.login_as(self.user)

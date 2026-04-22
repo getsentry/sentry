@@ -67,7 +67,6 @@ function getPermissionsPreview(scopes: string[]): string {
 
 export default function ApiNewToken() {
   const [permissions, setPermissions] = useState<Permissions>({...INITIAL_PERMISSIONS});
-  const [hasContinuousIntegration, setHasContinuousIntegration] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -78,7 +77,7 @@ export default function ApiNewToken() {
 
   const scopes = Array.from(
     new Set(
-      permissionStateToList(permissions, hasContinuousIntegration).filter(
+      permissionStateToList(permissions, false).filter(
         (value): value is NonNullable<typeof value> => value !== undefined
       )
     )
@@ -161,11 +160,10 @@ export default function ApiNewToken() {
             <PanelBody>
               <PermissionSelection
                 appPublished={false}
-                hasContinuousIntegration={hasContinuousIntegration}
+                displaySpecialPermissions={false}
                 permissions={permissions}
-                onChange={(nextPermissions, nextHasContinuousIntegration) => {
+                onChange={nextPermissions => {
                   setPermissions({...nextPermissions});
-                  setHasContinuousIntegration(nextHasContinuousIntegration);
                 }}
                 displayedPermissions={DISPLAYED_PERMISSIONS}
               />

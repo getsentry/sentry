@@ -2158,39 +2158,6 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 201, response.content
         assert Release.objects.filter(organization_id=org.id, version="1.2.1").exists()
 
-        app_no_scope = self.create_internal_integration(
-            name="Test No Scope Integration",
-            organization=org,
-            user=user,
-            scopes=[],
-        )
-        token_no_scope = self.create_internal_integration_token(
-            user=user, internal_integration=app_no_scope
-        )
-        response = self.client.post(
-            url,
-            data={"version": "1.2.2", "projects": [project.slug]},
-            HTTP_AUTHORIZATION=f"Bearer {token_no_scope.token}",
-        )
-        assert response.status_code == 403
-
-        other_org = self.create_organization()
-        foreign_app = self.create_internal_integration(
-            name="Foreign Org Integration",
-            organization=other_org,
-            user=user,
-            scopes=["org:ci"],
-        )
-        foreign_token = self.create_internal_integration_token(
-            user=user, internal_integration=foreign_app
-        )
-        response = self.client.post(
-            url,
-            data={"version": "1.2.3", "projects": [project.slug]},
-            HTTP_AUTHORIZATION=f"Bearer {foreign_token.token}",
-        )
-        assert response.status_code == 403
-
     @patch("sentry.tasks.commits.fetch_commits")
     def test_api_token(self, mock_fetch_commits: MagicMock) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)

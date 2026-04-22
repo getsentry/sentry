@@ -43,10 +43,6 @@ __all__ = (
     "from_rpc_member",
 )
 
-# These scopes are not represented in organization member roles, but auth tokens
-# still need to retain them when request access is derived from the token.
-NON_ROLE_TOKEN_SCOPES = frozenset({"org:ci", "project:distribution"})
-
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
@@ -200,13 +196,11 @@ class Access(abc.ABC):
 def _intersect_member_and_token_scopes(
     member_scopes: Collection[str], token_scopes: Iterable[str] | None
 ) -> frozenset[str]:
+    member_scopes = frozenset(member_scopes)
     if token_scopes is None:
-        return frozenset(member_scopes)
+        return member_scopes
 
-    requested_scopes = frozenset(token_scopes)
-    return (requested_scopes & frozenset(member_scopes)) | (
-        requested_scopes & NON_ROLE_TOKEN_SCOPES
-    )
+    return frozenset(token_scopes) & member_scopes
 
 
 @dataclass

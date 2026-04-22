@@ -145,17 +145,14 @@ class OrganizationRegionTest(APITestCase):
         assert us_locality is not None
         assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
 
-    def test_user_auth_token_for_member_with_org_ci(self) -> None:
+    def test_user_auth_token_for_member_with_org_ci_is_denied(self) -> None:
         org_user = self.create_user()
         self.create_member(user=org_user, organization=self.org, role="member")
 
         user_auth_token = self.create_user_auth_token(user=org_user, scope_list=["org:ci"])
         response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
-        assert response.status_code == 200
-        us_locality = get_global_directory().get_locality_for_cell("us")
-        assert us_locality is not None
-        assert response.data == {"url": us_locality.to_url(""), "name": us_locality.name}
+        assert response.status_code == 403
 
     def test_user_auth_token_for_non_member(self) -> None:
         user_auth_token = self.create_user_auth_token(
