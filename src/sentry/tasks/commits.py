@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Protocol
 
 import sentry_sdk
 from django.urls import reverse
@@ -41,6 +41,25 @@ GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 3600
 GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
     ("integrations:github", "integrations:github_enterprise")
 )
+
+
+class CommitsProvider(Protocol):
+    id: str
+
+    def get_scm_provider_key(self) -> str | None: ...
+
+    def fetch_recent_commits(
+        self, repo: Repository, end_sha: str, *, actor: RpcUser | None = None
+    ) -> list[dict[str, Any]]: ...
+
+    def fetch_commits_for_compare_range(
+        self,
+        repo: Repository,
+        start_sha: str,
+        end_sha: str,
+        *,
+        actor: RpcUser | None = None,
+    ) -> list[dict[str, Any]]: ...
 
 
 def generate_invalid_identity_email(identity: Any) -> MessageBuilder:
@@ -83,7 +102,7 @@ def get_github_compare_commits_cache_key(
 def fetch_commits_for_compare_range(
     *,
     repo: Repository,
-    provider: Any,
+    provider: CommitsProvider,
     start_sha: str,
     end_sha: str,
     user: RpcUser | None,
@@ -121,7 +140,7 @@ def fetch_commits_for_compare_range(
 def fetch_recent_commits(
     *,
     repo: Repository,
-    provider: Any,
+    provider: CommitsProvider,
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
@@ -160,7 +179,7 @@ def get_repo_for_ref(
 def get_provider_for_repo(
     *,
     repo: Repository,
-) -> tuple[Any, str] | None:
+) -> tuple[CommitsProvider, str] | None:
     binding_key = (
         "integration-repository.provider"
         if repo.has_integration_provider()
@@ -202,7 +221,7 @@ def get_start_sha_for_ref(
 
 class ResolvedRef(NamedTuple):
     repo: Repository
-    provider: Any
+    provider: CommitsProvider
     provider_key: str
     start_sha: str | None
     end_sha: str
@@ -248,16 +267,17 @@ def resolve_ref(
 def fetch_commits_for_ref_with_lifecycle(
     *,
     resolved: ResolvedRef,
-    user_id: int,
     user: RpcUser | None,
     task_extra: Mapping[str, Any],
 ) -> list[dict[str, Any]] | None:
     repo = resolved.repo
     start_sha = resolved.start_sha
     end_sha = resolved.end_sha
+    integration_name = get_integration_name(resolved.provider_key, default=resolved.provider.id)
     loop_extra = {
         **task_extra,
         "repository": repo.name,
+        "integration_name": integration_name,
         "start_sha": start_sha,
         "end_sha": end_sha,
         "provider": resolved.provider.id,
@@ -360,7 +380,6 @@ def fetch_commits(
 
         repo_commits = fetch_commits_for_ref_with_lifecycle(
             resolved=resolved,
-            user_id=user_id,
             user=user,
             task_extra=extra,
         )

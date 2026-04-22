@@ -2567,7 +2567,9 @@ class SetRefsTestCase(APITestCase):
         self.login_as(user=self.user)
 
         self.group = self.create_group(project=self.project)
-        self.repo = Repository.objects.create(organization_id=self.org.id, name="test/repo")
+        self.repo = Repository.objects.create(
+            organization_id=self.org.id, name="test/repo", provider="dummy"
+        )
 
     def assert_fetch_commits(
         self, mock_fetch_commit, prev_release_id, release_id, refs, integration_name=None

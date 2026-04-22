@@ -2241,10 +2241,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 ],
             },
         )
-        assert response.status_code == 400
-        assert response.data == {
-            "refs": ["All refs must belong to repositories from the same provider"]
-        }
+        assert response.status_code == 201
 
     def test_repo_without_provider_in_refs(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)

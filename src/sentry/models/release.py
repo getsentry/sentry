@@ -654,11 +654,6 @@ class Release(Model):
                 raise InvalidRepository(
                     f"Repository provider is missing: {','.join(repos_missing_provider)}"
                 )
-
-            if len(providers) > 1:
-                raise InvalidRepository(
-                    "All refs must belong to repositories from the same provider"
-                )
             integration_name = next(iter(providers), None) or None
 
             self.handle_commit_ranges(refs)
