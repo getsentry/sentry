@@ -1,3 +1,4 @@
+import time as _time
 from typing import Any
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.clickhouse import optimize_snuba_table
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import redis
@@ -84,7 +86,15 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=group1.id).exists()
 
-        event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
+        # OPTIMIZE deduplicates existing rows; also retry briefly for merge Kafka
+        # replace messages that update event group_ids asynchronously.
+        optimize_snuba_table("events")
+        optimize_snuba_table("groupedmessage")
+        for _ in range(10):
+            event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
+            if event1 is not None and event1.group_id == group2.id:
+                break
+            _time.sleep(0.5)
         assert event1 is not None
         assert event1.group_id == group2.id
         assert event1.data["extra"]["foo"] == "bar"
