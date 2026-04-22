@@ -339,7 +339,12 @@ export function ExplorerDrawerContent({
           setInputValue(prev => prev + e.key);
         }
       }
-      // TODO: support pressing tab to focus input (info msg in placeholder when unfocused)
+
+      if (e.key === 'Tab' && focusedBlockIndex !== -1) {
+        e.preventDefault();
+        setFocusedBlockIndex(-1);
+        textareaRef.current?.focus();
+      }
     };
 
     // Re-enable hover focus changes when mouse actually moves
@@ -496,6 +501,7 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
+        isFocused={focusedBlockIndex === -1}
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isPolling={isPolling}
