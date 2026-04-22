@@ -9,7 +9,6 @@ Phase 1 (early): As soon as ClickHouse is accepting queries, create
 Phase 2: Stop snuba-snuba-1 and start per-worker API containers.
 
 Requires: XDIST_WORKERS env var
-Writes:   /tmp/snuba-bootstrap-exit
 """
 
 from __future__ import annotations
@@ -21,12 +20,9 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from pathlib import Path
 from typing import Any, Callable
 from urllib.error import URLError
 from urllib.request import urlopen
-
-SNUBA_EXIT = Path("/tmp/snuba-bootstrap-exit")
 
 SNUBA_ENV = {
     "CLICKHOUSE_HOST": "clickhouse",
@@ -61,7 +57,6 @@ def log(msg: str) -> None:
 
 def fail(msg: str) -> None:
     log(f"::error::{msg}")
-    SNUBA_EXIT.write_text("1")
     sys.exit(1)
 
 
@@ -240,7 +235,6 @@ def main() -> None:
     )
 
     log(f"Snuba bootstrap complete ({time.monotonic() - start:.0f}s total)")
-    SNUBA_EXIT.write_text(str(rc))
     sys.exit(rc)
 
 
