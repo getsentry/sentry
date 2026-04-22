@@ -746,7 +746,7 @@ describe('ExploreToolbar', () => {
 
     const section = screen.getByTestId('section-save-as');
 
-    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByText(/Save As/));
     await userEvent.hover(
       within(section).getByRole('menuitemradio', {name: 'Alert for'})
     );
@@ -791,7 +791,7 @@ describe('ExploreToolbar', () => {
 
     const section = screen.getByTestId('section-save-as');
 
-    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByText(/Save As/));
     await userEvent.click(within(section).getByText('Dashboard widget'));
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
@@ -818,7 +818,7 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('highlights save button when saved query is changed', async () => {
+  it('keeps the Save As button label when a saved query is changed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',
@@ -870,7 +870,7 @@ describe('ExploreToolbar', () => {
         },
       }
     );
-    screen.getByText('Save as\u2026');
+    screen.getByText('Save As');
     const section = screen.getByTestId('section-sort-by');
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
@@ -880,9 +880,9 @@ describe('ExploreToolbar', () => {
       })
     );
 
-    // After navigation, the UI should update to show "Save" instead of "Save as…"
+    // After navigation, the save action should keep the normalized "Save As" label.
     await waitFor(() => {
-      expect(screen.getByText('Save')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save As'})).toBeInTheDocument();
     });
   });
 
@@ -903,7 +903,7 @@ describe('ExploreToolbar', () => {
     const section = await screen.findByTestId('section-save-as');
 
     // Save As button should be disabled
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+    expect(within(section).getByRole('button', {name: 'Save As'})).toBeDisabled();
 
     // Compare Queries button should be disabled (LinkButton renders with role="button")
     expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(

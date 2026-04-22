@@ -20,7 +20,7 @@ export function SaveReplayQueryButton() {
 
   return (
     <Button priority="primary" onClick={handleClick}>
-      {t('Save as')}
+      {t('Save As')}
     </Button>
   );
 }

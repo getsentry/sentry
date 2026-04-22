@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -19,21 +19,16 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {encodeSort} from 'sentry/utils/discover/eventView';
-import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
-import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
@@ -52,7 +47,6 @@ interface ContentProps {
 function Content({datePageFilterProps}: ContentProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const pageFilters = usePageFilters();
   const {saveQuery, updateQuery} = useSaveMultiQuery();
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
@@ -65,52 +59,6 @@ function Content({datePageFilterProps}: ContentProps) {
       visitQuery(id);
     }
   }, [id, visitQuery]);
-
-  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
-
-  const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined) {
-      return false;
-    }
-    return queries.some(({sortBys, query, groupBys, fields, yAxes, chartType}, index) => {
-      const singleQuery = savedQuery?.query[index];
-      const locationSortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
-
-      // Compares editable fields from saved query with location params to check for changes
-      const hasChangesArray = [
-        !valueIsEqual(query, singleQuery?.query),
-        !valueIsEqual(groupBys, singleQuery?.groupby),
-        !valueIsEqual(locationSortByString, singleQuery?.orderby),
-        !valueIsEqual(fields, singleQuery?.fields),
-        !valueIsEqual(
-          yAxes.map(yAxis => ({yAxes: [yAxis], chartType})),
-          singleQuery?.visualize,
-          true
-        ),
-        !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
-        !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
-        (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
-          (pageFilters.selection.datetime.start
-            ? new Date(pageFilters.selection.datetime.start).getTime()
-            : null),
-        (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) !==
-          (pageFilters.selection.datetime.end
-            ? new Date(pageFilters.selection.datetime.end).getTime()
-            : null),
-        (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
-      ];
-      return hasChangesArray.some(Boolean);
-    });
-  }, [
-    isLoadingSavedQuery,
-    savedQuery,
-    queries,
-    pageFilters.selection.projects,
-    pageFilters.selection.environments,
-    pageFilters.selection.datetime.start,
-    pageFilters.selection.datetime.end,
-    pageFilters.selection.datetime.period,
-  ]);
 
   return (
     <Layout.Body>
@@ -168,8 +116,8 @@ function Content({datePageFilterProps}: ContentProps) {
             trigger={triggerProps => (
               <Button
                 {...triggerProps}
-                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-                aria-label={t('Save')}
+                priority="primary"
+                aria-label={t('Save As')}
                 onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -177,7 +125,7 @@ function Content({datePageFilterProps}: ContentProps) {
                   triggerProps.onClick?.(e);
                 }}
               >
-                {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
+                {t('Save As')}
               </Button>
             )}
           />

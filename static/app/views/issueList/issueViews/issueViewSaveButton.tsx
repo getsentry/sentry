@@ -40,13 +40,13 @@ function SegmentedIssueViewSaveButton({
   const location = useLocation();
   const navigate = useNavigate();
   const {hasUnsavedChanges} = useIssueViewUnsavedChanges();
-  const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const {data: view} = useSelectedGroupSearchView();
   const {mutate: updateGroupSearchView, isPending: isSaving} = useUpdateGroupSearchView();
   const user = useUser();
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
+  const buttonPriority = hasUnsavedChanges || !canEdit ? 'primary' : 'default';
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
@@ -121,7 +121,7 @@ function SegmentedIssueViewSaveButton({
               },
               {
                 key: 'save-as',
-                label: t('Save as new view'),
+                label: t('Save As new view'),
                 onAction: () => {
                   openCreateIssueViewModal();
                 },

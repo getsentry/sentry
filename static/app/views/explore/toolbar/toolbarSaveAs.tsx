@@ -20,9 +20,7 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
-import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,7 +34,6 @@ import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/l
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsCrossEvents,
-  useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsId,
   useQueryParamsMode,
@@ -61,7 +58,6 @@ export function ToolbarSaveAs() {
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  const fields = useQueryParamsFields();
   const sampleSortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const mode = useQueryParamsMode();
@@ -86,7 +82,7 @@ export function ToolbarSaveAs() {
       ? projects[0]
       : projects.find(p => p.id === `${pageFilters.selection.projects[0]}`);
 
-  const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
+  const {data: savedQuery} = useGetSavedQuery(id);
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
     const func = parseFunction(yAxis);
@@ -229,56 +225,6 @@ export function ToolbarSaveAs() {
     },
   });
 
-  const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
-      return false;
-    }
-    // The non comparison trace explorer view only supports a single query
-    const singleQuery = savedQuery?.query[0];
-    const locationSortByString = sortBys[0] ? encodeSort(sortBys[0]) : undefined;
-
-    // Compares editable fields from saved query with location params to check for changes
-    const hasChangesArray = [
-      !valueIsEqual(query, singleQuery?.query),
-      !valueIsEqual(
-        groupBys,
-        (singleQuery?.groupby?.length ?? 0) === 0 ? [''] : singleQuery?.groupby
-      ),
-      !valueIsEqual(locationSortByString, singleQuery?.orderby),
-      !valueIsEqual(fields, singleQuery?.fields),
-      !valueIsEqual(
-        visualizes.map(visualize => visualize.serialize()),
-        singleQuery?.visualize,
-        true
-      ),
-      !valueIsEqual(savedQuery.projects, pageFilters.selection.projects),
-      !valueIsEqual(savedQuery.environment, pageFilters.selection.environments),
-      (defined(savedQuery.start) ? new Date(savedQuery.start).getTime() : null) !==
-        (pageFilters.selection.datetime.start
-          ? new Date(pageFilters.selection.datetime.start).getTime()
-          : null),
-      (defined(savedQuery.end) ? new Date(savedQuery.end).getTime() : null) !==
-        (pageFilters.selection.datetime.end
-          ? new Date(pageFilters.selection.datetime.end).getTime()
-          : null),
-      (savedQuery.range ?? null) !== pageFilters.selection.datetime.period,
-    ];
-    return hasChangesArray.some(Boolean);
-  }, [
-    isLoadingSavedQuery,
-    savedQuery,
-    query,
-    groupBys,
-    sortBys,
-    fields,
-    visualizes,
-    pageFilters.selection.datetime.start,
-    pageFilters.selection.datetime.end,
-    pageFilters.selection.datetime.period,
-    pageFilters.selection.projects,
-    pageFilters.selection.environments,
-  ]);
-
   const crossEvents = useQueryParamsCrossEvents();
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
@@ -301,8 +247,8 @@ export function ToolbarSaveAs() {
             trigger={triggerProps => (
               <SaveAsButton
                 {...triggerProps}
-                priority={shouldHighlightSaveButton ? 'primary' : 'default'}
-                aria-label={t('Save as')}
+                priority="primary"
+                aria-label={t('Save As')}
                 onClick={e => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -310,7 +256,7 @@ export function ToolbarSaveAs() {
                   triggerProps.onClick?.(e);
                 }}
               >
-                {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
+                {t('Save As')}
               </SaveAsButton>
             )}
           />

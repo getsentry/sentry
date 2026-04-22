@@ -20,8 +20,13 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
   if (items.length === 1 && 'onAction' in items[0]! && !('children' in items[0])) {
     const item = items[0];
     return (
-      <Button size={size} onClick={item.onAction} aria-label={item.textValue}>
-        {t('Save as')}…
+      <Button
+        size={size}
+        priority="primary"
+        onClick={item.onAction}
+        aria-label={item.textValue}
+      >
+        {t('Save As')}
       </Button>
     );
   }
@@ -33,14 +38,15 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
         <Button
           {...triggerProps}
           size={size}
-          aria-label={t('Save as')}
+          priority="primary"
+          aria-label={t('Save As')}
           onClick={e => {
             e.stopPropagation();
             e.preventDefault();
             triggerProps.onClick?.(e);
           }}
         >
-          {t('Save as')}…
+          {t('Save As')}
         </Button>
       )}
     />

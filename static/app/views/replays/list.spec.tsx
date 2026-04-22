@@ -243,7 +243,7 @@ describe('ReplayList', () => {
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
-  it('renders Save as inline and Hide Widgets in the top bar when page frame is enabled', async () => {
+  it('renders Save As inline and Hide Widgets in the top bar when page frame is enabled', async () => {
     const mockOrg = getMockOrganizationFixture({
       features: [...AM2_FEATURES, 'page-frame'],
     });
@@ -270,9 +270,9 @@ describe('ReplayList', () => {
       within(topbarActions).getByRole('button', {name: 'Hide Widgets'})
     ).toBeInTheDocument();
     expect(
-      within(topbarActions).queryByRole('button', {name: 'Save as'})
+      within(topbarActions).queryByRole('button', {name: 'Save As'})
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', {name: 'Save as'})).toHaveLength(1);
+    expect(screen.getAllByRole('button', {name: 'Save As'})).toHaveLength(1);
     expect(screen.getAllByRole('button', {name: 'Hide Widgets'})).toHaveLength(1);
   });
 });

@@ -62,7 +62,7 @@ export default function SavedQueriesView() {
                         priority="primary"
                         icon={<IconAdd />}
                         size="sm"
-                        aria-label={t('Save as')}
+                        aria-label={t('Save As')}
                         onClick={e => {
                           e.stopPropagation();
                           e.preventDefault();
@@ -107,7 +107,7 @@ export default function SavedQueriesView() {
                         priority="primary"
                         icon={<IconAdd />}
                         size="sm"
-                        aria-label={t('Save as')}
+                        aria-label={t('Save As')}
                         onClick={e => {
                           e.stopPropagation();
                           e.preventDefault();
