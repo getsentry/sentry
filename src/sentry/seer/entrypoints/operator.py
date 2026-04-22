@@ -171,6 +171,7 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             AutofixStep,
+            NoSeerQuotaException,
             get_autofix_explorer_state,
             trigger_autofix_explorer,
             trigger_push_changes,
@@ -249,6 +250,15 @@ class SeerAutofixOperator[CachePayloadT]:
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
                     )
+            except NoSeerQuotaException:
+                error = "No budget for Seer Autofix"
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_error(error=error)
+                lifecycle.record_failure(failure_reason=error)
+                return
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
