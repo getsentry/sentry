@@ -1,6 +1,9 @@
+import * as Amplitude from '@amplitude/analytics-browser';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {_resetExposureTracking, useExperiment} from 'getsentry/hooks/useExperiment';
 
@@ -26,6 +29,7 @@ function TestComponent({
 describe('useExperiment (gsApp)', () => {
   beforeEach(() => {
     _resetExposureTracking();
+    ConfigStore.set('enableAnalytics', true);
   });
 
   it('returns inExperiment: true when feature is enabled', () => {
@@ -93,6 +97,72 @@ describe('useExperiment (gsApp)', () => {
         })
       );
     });
+  });
+
+  it('sets the Amplitude experiment group property on exposure', async () => {
+    const org = OrganizationFixture({
+      features: ['onboarding-scm-experiment'],
+      experiments: {'onboarding-scm-experiment': 'active'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/experiment-exposure/`,
+      method: 'POST',
+      statusCode: 204,
+    });
+
+    render(<TestComponent feature="onboarding-scm-experiment" />, {organization: org});
+
+    await waitFor(() => {
+      expect(Amplitude.groupIdentify).toHaveBeenCalledWith(
+        'organization_id',
+        org.id,
+        expect.anything()
+      );
+    });
+
+    // Verify hyphens in the experiment name are normalized to underscores,
+    // matching the transform in getsentry/experiments/tasks.py so both the FE
+    // and the BE write the same Amplitude property name.
+    const identifyInstance = jest.mocked(Amplitude.Identify).mock.results[0]!.value;
+    expect(identifyInstance.set).toHaveBeenCalledWith(
+      'experiment_onboarding_scm_experiment',
+      'active'
+    );
+  });
+
+  it('does not set the Amplitude group property when reportExposure is false', () => {
+    const org = OrganizationFixture({
+      features: ['test-experiment'],
+      experiments: {'test-experiment': 'active'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/experiment-exposure/`,
+      method: 'POST',
+      statusCode: 204,
+    });
+
+    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+      organization: org,
+    });
+
+    expect(Amplitude.groupIdentify).not.toHaveBeenCalled();
+  });
+
+  it('does not set the Amplitude group property when analytics are disabled', () => {
+    ConfigStore.set('enableAnalytics', false);
+    const org = OrganizationFixture({
+      features: ['test-experiment'],
+      experiments: {'test-experiment': 'active'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/experiment-exposure/`,
+      method: 'POST',
+      statusCode: 204,
+    });
+
+    render(<TestComponent feature="test-experiment" />, {organization: org});
+
+    expect(Amplitude.groupIdentify).not.toHaveBeenCalled();
   });
 
   it('does not post exposure when reportExposure is false', () => {
