@@ -51,7 +51,7 @@ class GroupingConfigTest(TestCase):
         # audit log entry is created, which means the expiry is based on a timestamp
         # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
         # necessary.
-        assert expected_expiry - audit_log_entry.data["sentry:secondary_grouping_expiry"] < 1
+        assert expected_expiry - audit_log_entry.data["sentry:secondary_grouping_expiry"] <= 1
 
     def test_updates_grouping_config_if_current_config_is_invalid(self) -> None:
         self.project.update_option("sentry:grouping_config", "non_existent_config")
