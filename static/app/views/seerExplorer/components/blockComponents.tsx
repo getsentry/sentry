@@ -48,8 +48,6 @@ interface BlockProps {
   isLatestTodoBlock?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -148,8 +146,6 @@ export function BlockComponent({
   isFocused,
   onClick,
   onDelete,
-  onMouseEnter,
-  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
   readOnly = false,
@@ -367,13 +363,7 @@ export function BlockComponent({
   const blockStatus = getToolStatus(block);
 
   return (
-    <Block
-      ref={ref}
-      isFocused={isFocused}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <Block ref={ref} isFocused={isFocused} onClick={onClick}>
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
           <Flex align="start" justify="end" width="100%" padding="xl">
@@ -691,6 +681,9 @@ const UserBlockContent = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-width: 0;
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};

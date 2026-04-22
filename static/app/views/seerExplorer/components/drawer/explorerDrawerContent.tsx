@@ -44,13 +44,10 @@ export function ExplorerDrawerContent({
   const blockEnterHandlers = useRef<
     Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
   >(new Map());
-  const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
-  const allowHoverFocusChange = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    hoveredBlockIndex.current = -1;
     setFocusedBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
@@ -344,16 +341,9 @@ export function ExplorerDrawerContent({
       }
     };
 
-    // Re-enable hover focus changes when mouse actually moves
-    const handleMouseMove = () => {
-      allowHoverFocusChange.current = true;
-    };
-
     document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousemove', handleMouseMove);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousemove', handleMouseMove);
     };
   }, [isMenuOpen, readOnly, focusedBlockIndex, isFileApprovalPending, isQuestionPending]);
 
@@ -433,25 +423,6 @@ export function ExplorerDrawerContent({
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
-                onMouseEnter={() => {
-                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
-                  if (
-                    isMenuOpen ||
-                    hoveredBlockIndex.current === index ||
-                    !allowHoverFocusChange.current
-                  ) {
-                    return;
-                  }
-
-                  hoveredBlockIndex.current = index;
-                  setFocusedBlockIndex(index);
-                  textareaRef.current?.blur();
-                }}
-                onMouseLeave={() => {
-                  if (hoveredBlockIndex.current === index) {
-                    hoveredBlockIndex.current = -1;
-                  }
-                }}
                 onDelete={() => {
                   deleteFromIndex(index);
                   focusInput();
