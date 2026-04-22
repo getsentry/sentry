@@ -396,7 +396,8 @@ _MAX_ROOT_NODES = 10
 
 def _get_priority(node: dict[str, Any]) -> int:
     data = node.get("data")
-    return data.get("priority", 0) if isinstance(data, dict) else 0
+    priority = data.get("priority") if isinstance(data, dict) else None
+    return priority if isinstance(priority, int) else 0
 
 
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:

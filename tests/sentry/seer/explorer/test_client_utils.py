@@ -306,6 +306,18 @@ class SnapshotToMarkdownTest(TestCase):
         result = snapshot_to_markdown(snapshot)
         assert result.count("# Dashboard") == 2
 
+    def test_priority_null_treated_as_zero(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "a", "data": {"priority": None}, "children": []},
+                {"nodeType": "b", "data": {"priority": 1}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# B" in result
+        assert "# A" not in result
+
     def test_priority_multiple_highest(self) -> None:
         snapshot = {
             "version": 1,
