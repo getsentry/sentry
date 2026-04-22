@@ -30,7 +30,6 @@ export function ExplorerDrawerContent({
   getPageReferrer,
 }: {
   getPageReferrer: () => string;
-  onClose: () => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -382,15 +381,15 @@ export function ExplorerDrawerContent({
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
-        copySessionEnabled={copySessionEnabled}
-        onCopySessionClick={copySessionToClipboard}
-        onSessionHistoryClick={() => {
-          /* TODO: open session history */
-        }}
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
+        onSessionHistoryClick={() => {
+          /* TODO: open session history */
+        }}
+        copySessionEnabled={copySessionEnabled}
+        onCopySessionClick={copySessionToClipboard}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={

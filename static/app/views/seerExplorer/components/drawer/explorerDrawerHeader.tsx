@@ -27,15 +27,15 @@ interface ExplorerDrawerHeaderProps {
 
 export function ExplorerDrawerHeader({
   onNewChatClick,
+  onSessionHistoryClick,
+  copySessionEnabled,
+  onCopySessionClick,
   showContextEngineToggle,
   overrideCtxEngEnable,
   onOverrideCtxEngEnableToggle,
   showCodeModeToggle,
   overrideCodeModeEnable,
   onOverrideCodeModeEnableToggle,
-  copySessionEnabled,
-  onCopySessionClick,
-  onSessionHistoryClick,
 }: ExplorerDrawerHeaderProps) {
   const menuItems: MenuItemProps[] = useMemo(
     () => [

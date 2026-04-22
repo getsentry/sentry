@@ -72,25 +72,17 @@ export const useSeerExplorerDrawer = () => {
         // Best effort
       }
 
-      openDrawer(
-        () => (
-          <ExplorerDrawerContent
-            onClose={closeSeerExplorerDrawer}
-            getPageReferrer={getPageReferrer}
-          />
-        ),
-        {
-          ariaLabel: t('Seer Explorer Drawer'),
-          drawerKey: 'seer-explorer-drawer',
-          resizable: true,
-          mode: 'passive',
-          // XXX: passive mode keeps drawer open on location change. Be sure to update isOpenRef if closing on change is needed - useDrawer doesn't call onClose
-          onOpen,
-          onClose,
-        }
-      );
+      openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
+        ariaLabel: t('Seer Explorer Drawer'),
+        drawerKey: 'seer-explorer-drawer',
+        resizable: true,
+        mode: 'passive',
+        // XXX: passive mode keeps drawer open on location change. Be sure to update isOpenRef if closing on change is needed - useDrawer doesn't call onClose
+        onOpen,
+        onClose,
+      });
     },
-    [openDrawer, closeSeerExplorerDrawer, onOpen, onClose, getPageReferrer]
+    [openDrawer, onOpen, onClose, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
