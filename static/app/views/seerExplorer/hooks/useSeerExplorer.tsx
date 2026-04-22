@@ -13,13 +13,13 @@ import {
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {
   isSessionComplete,
   useSeerExplorerPolling,
 } from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -124,10 +124,7 @@ export const useSeerExplorer = () => {
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
 
-  const [runId, setRunId] = useSessionStorage<number | null>(
-    'seer-explorer-run-id',
-    null
-  );
+  const [runId, setRunId] = useSeerExplorerRunId();
 
   const {getPageReferrer} = usePageReferrer();
 

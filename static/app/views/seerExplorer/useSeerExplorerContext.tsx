@@ -12,12 +12,12 @@ import {
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
@@ -45,10 +45,7 @@ export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  const [runId, setRunId] = useSessionStorage<number | null>(
-    'seer-explorer-run-id',
-    null
-  );
+  const [runId, setRunId] = useSeerExplorerRunId();
 
   const {
     openSeerExplorerDrawer,
