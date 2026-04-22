@@ -78,7 +78,7 @@ describe('ExplorerDrawerContent', () => {
       });
       expect(
         await screen.findByPlaceholderText(
-          'Type your message or / command and press Enter ↵'
+          'Ask seer a question, or press / for commands.'
         )
       ).toBeInTheDocument();
     });
@@ -324,7 +324,7 @@ describe('ExplorerDrawerContent', () => {
       await waitFor(() => expect(textarea).toBeEnabled());
       expect(textarea).toHaveAttribute(
         'placeholder',
-        'Type your message or / command and press Enter ↵'
+        'Ask seer a question, or press / for commands.'
       );
     });
 
