@@ -35,7 +35,10 @@ class OrganizationGroupSuspectTagsTestCase(APITestCase, SnubaTestCase):
             today,
             hash="a" * 32,
             tags={"key": False, "other": False},
-            group_id=2,
+            # Use a large offset so this never collides with group.id regardless
+            # of test ordering; a collision causes both events to land in the
+            # same group and the suspect-tags score collapses to 0.0.
+            group_id=group.id + 1_000_000,
             project_id=self.project.id,
         )
 
