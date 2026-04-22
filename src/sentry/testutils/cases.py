@@ -2571,19 +2571,7 @@ class SetRefsTestCase(APITestCase):
             organization_id=self.org.id, name="test/repo", provider="dummy"
         )
 
-    def assert_fetch_commits(
-        self, mock_fetch_commit, prev_release_id, release_id, refs, integration_name=None
-    ):
-        expected_integration_name = integration_name
-        if expected_integration_name is None:
-            repo_names = {ref["repository"] for ref in refs}
-            provider = (
-                Repository.objects.filter(organization_id=self.org.id, name__in=repo_names)
-                .exclude(provider__isnull=True)
-                .values_list("provider", flat=True)
-                .first()
-            )
-            expected_integration_name = provider.removeprefix("integrations:") if provider else None
+    def assert_fetch_commits(self, mock_fetch_commit, prev_release_id, release_id, refs):
         assert len(mock_fetch_commit.method_calls) == 1
         kwargs = mock_fetch_commit.method_calls[0][2]["kwargs"]
         assert kwargs == {
@@ -2591,7 +2579,6 @@ class SetRefsTestCase(APITestCase):
             "refs": refs,
             "release_id": release_id,
             "user_id": self.user.id,
-            "integration_name": expected_integration_name,
         }
 
     def assert_head_commit(self, head_commit, commit_key, release_id=None):
