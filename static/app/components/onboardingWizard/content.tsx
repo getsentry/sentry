@@ -340,9 +340,9 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
   );
 
   function completionTimeout(time: number): Promise<void> {
-    window.clearTimeout(markCompletionTimeout.current);
+    globalThis.clearTimeout(markCompletionTimeout.current);
     return new Promise(resolve => {
-      markCompletionTimeout.current = window.setTimeout(resolve, time);
+      markCompletionTimeout.current = globalThis.setTimeout(resolve, time);
     });
   }
 
@@ -373,7 +373,7 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
     }
 
     return () => {
-      window.clearTimeout(markCompletionTimeout.current);
+      globalThis.clearTimeout(markCompletionTimeout.current);
     };
   }, [unseenDoneTasks, markSeenOnOpen]);
 

@@ -240,10 +240,10 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       const scrollTop = Math.max(0, evt.target.scrollTop);
       if (raf !== undefined) {
-        window.cancelAnimationFrame(raf);
+        globalThis.cancelAnimationFrame(raf);
       }
 
-      raf = window.requestAnimationFrame(() => {
+      raf = globalThis.requestAnimationFrame(() => {
         dispatch({type: 'set scroll top', payload: scrollTop});
         if (Array.isArray(props.scrollContainer)) {
           for (const element of props.scrollContainer) {
@@ -325,7 +325,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
     return () => {
       if (raf !== undefined) {
-        window.cancelAnimationFrame(raf);
+        globalThis.cancelAnimationFrame(raf);
       }
       if (!scrollContainer) {
         return;
@@ -871,8 +871,8 @@ export function useVirtualizedTree<T extends TreeLike>(
       return undefined;
     }
     let rafId: number | undefined;
-    const resizeObserver = new window.ResizeObserver(elements => {
-      rafId = window.requestAnimationFrame(() => {
+    const resizeObserver = new globalThis.ResizeObserver(elements => {
+      rafId = globalThis.requestAnimationFrame(() => {
         // We only care about changes to the height of the scroll container,
         // if it has not changed then do not update the scroll height.
         if (elements[0]?.contentRect?.height !== latestStateRef.current.scrollHeight) {
@@ -894,7 +894,7 @@ export function useVirtualizedTree<T extends TreeLike>(
 
     return () => {
       if (typeof rafId === 'number') {
-        window.cancelAnimationFrame(rafId);
+        globalThis.cancelAnimationFrame(rafId);
       }
       resizeObserver.disconnect();
     };

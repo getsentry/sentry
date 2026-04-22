@@ -107,16 +107,17 @@ export function useDrawerResizing({
       panel.setAttribute('data-resizing', '');
       initialMousePositionRef.current = e.clientX;
 
-      const viewportWidth = typeof window === 'undefined' ? 1000 : window.innerWidth;
+      const viewportWidth =
+        typeof globalThis.window === 'undefined' ? 1000 : window.innerWidth;
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         moveEvent.preventDefault();
 
         if (rafIdRef.current !== null) {
-          window.cancelAnimationFrame(rafIdRef.current);
+          globalThis.cancelAnimationFrame(rafIdRef.current);
         }
 
-        rafIdRef.current = window.requestAnimationFrame(() => {
+        rafIdRef.current = globalThis.requestAnimationFrame(() => {
           if (!panel || !handle || initialMousePositionRef.current === null) {
             return;
           }
@@ -140,7 +141,7 @@ export function useDrawerResizing({
 
       const handleMouseUp = () => {
         if (rafIdRef.current !== null) {
-          window.cancelAnimationFrame(rafIdRef.current);
+          globalThis.cancelAnimationFrame(rafIdRef.current);
           rafIdRef.current = null;
         }
 
@@ -151,7 +152,7 @@ export function useDrawerResizing({
         if (panel) {
           panel.removeAttribute('data-resizing');
           // Get the computed width considering min/max constraints and save to localStorage
-          const computedStyle = window.getComputedStyle(panel);
+          const computedStyle = globalThis.getComputedStyle(panel);
           const widthValue = (parseFloat(computedStyle.width) / viewportWidth) * 100;
           setPersistedWidthPercent(widthValue);
         }
@@ -169,7 +170,7 @@ export function useDrawerResizing({
   useLayoutEffect(() => {
     return () => {
       if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
+        globalThis.cancelAnimationFrame(rafIdRef.current);
       }
     };
   }, []);

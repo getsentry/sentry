@@ -217,7 +217,7 @@ function getPreloadedData(
   name: 'organization' | 'projects' | 'teams',
   slug: string
 ): Promise<ApiResult | null> {
-  const data = window.__sentry_preload;
+  const data = globalThis.__sentry_preload;
   if (!data?.[name] || data.orgSlug?.toLowerCase() !== slug.toLowerCase()) {
     throw new Error('Prefetch query not found or slug mismatch');
   }

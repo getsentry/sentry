@@ -10,15 +10,15 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
  * In order to not redirect to production we swap domains.
  */
 function localizeDomain(domain?: string) {
-  if (!window.__SENTRY_DEV_UI || !domain) {
+  if (!globalThis.__SENTRY_DEV_UI || !domain) {
     return domain;
   }
   // Vercel doesn't support subdomains, stay on the current host.
   if (DEPLOY_PREVIEW_CONFIG) {
-    return `https://${window.location.host}`;
+    return `https://${globalThis.location.host}`;
   }
 
-  const slugDomain = extractSlug(window.location.host);
+  const slugDomain = extractSlug(globalThis.location.host);
   if (!slugDomain) {
     return domain;
   }

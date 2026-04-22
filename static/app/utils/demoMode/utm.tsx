@@ -19,7 +19,7 @@ type UTMState = {
 };
 
 export function getUTMState(): UTMState {
-  const query = qs.parse(window.location.search);
+  const query = qs.parse(globalThis.location.search);
   const trackableQuery: Record<string, string> = Object.keys(query).reduce((a, k) => {
     return trackableParamsRegExp.test(k) && !!query[k] ? {...a, [k]: query[k]} : a;
   }, {});

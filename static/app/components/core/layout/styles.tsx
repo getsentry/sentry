@@ -274,7 +274,7 @@ export function useActiveBreakpoint(): BreakpointSize {
   const theme = useTheme();
 
   const mediaQueries = useMemo(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) {
+    if (typeof globalThis.window === 'undefined' || !globalThis.matchMedia) {
       return [];
     }
 
@@ -290,7 +290,7 @@ export function useActiveBreakpoint(): BreakpointSize {
 
       queries.push({
         breakpoint: bp,
-        query: window.matchMedia(`(min-width: ${theme.breakpoints[bp]})`),
+        query: globalThis.matchMedia(`(min-width: ${theme.breakpoints[bp]})`),
       });
     }
 

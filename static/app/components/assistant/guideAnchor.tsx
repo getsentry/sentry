@@ -127,7 +127,7 @@ function BaseGuideAnchor({
         if (currentGuide) {
           dismissGuide(currentGuide.guide, step, orgId);
         }
-        window.location.hash = '';
+        globalThis.location.hash = '';
       }}
       actions={
         <Grid flow="column" align="center" gap="md">

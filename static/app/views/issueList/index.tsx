@@ -44,7 +44,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
   const previousViewData = usePrevious(view);
 
   useEffect(() => {
-    const query = qs.parse(window.location.search);
+    const query = qs.parse(globalThis.location.search);
 
     if (
       view &&

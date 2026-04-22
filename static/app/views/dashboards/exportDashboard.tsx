@@ -31,7 +31,7 @@ export async function exportDashboard() {
 }
 
 function getAPIParams(structure: any) {
-  const url = window.location.href;
+  const url = globalThis.location.href;
   const regex = {
     base_url: /(\/\/)(.*?)(\/)/,
     dashboard_id: /(dashboard\/)(.*?)(\/)/,

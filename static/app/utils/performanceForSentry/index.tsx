@@ -85,7 +85,7 @@ const PerformanceInteraction = (function () {
         _INTERACTION_SPAN = span || null;
 
         // Auto interaction timeout
-        _INTERACTION_TIMEOUT_ID = window.setTimeout(() => {
+        _INTERACTION_TIMEOUT_ID = globalThis.setTimeout(() => {
           if (!_INTERACTION_SPAN) {
             return;
           }
@@ -194,7 +194,7 @@ export function VisuallyCompleteWithData({
 
         performance.mark(`${id}-${VCD_END}-pretimeout`);
 
-        window.setTimeout(() => {
+        globalThis.setTimeout(() => {
           if (!browserPerformanceTimeOrigin) {
             return;
           }
@@ -585,8 +585,8 @@ export const addUIElementTag = (transaction: TransactionEvent) => {
 
 function supportsINP() {
   return (
-    'PerformanceObserver' in window &&
-    'PerformanceEventTiming' in window &&
+    'PerformanceObserver' in globalThis &&
+    'PerformanceEventTiming' in globalThis &&
     'interactionId' in PerformanceEventTiming.prototype
   );
 }

@@ -44,7 +44,7 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
-      const redirectPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const redirectPath = `${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`;
       const redirectURL = `${trimEnd(sentryUrl, '/')}/${trimStart(redirectPath, '/')}`;
 
       // If we have domain information, but the subdomain and slug are different
@@ -74,8 +74,8 @@ export function withDomainRedirect(WrappedComponent: RouteComponent) {
 
       const orglessRedirectPath = generatePath(orglessSlugRoute, params);
       const redirectOrgURL = `/${trim(orglessRedirectPath, '/')}/${
-        window.location.search
-      }${window.location.hash}`;
+        globalThis.location.search
+      }${globalThis.location.hash}`;
 
       // Redirect to a route path with :orgId omitted.
       return <Redirect to={redirectOrgURL} router={router} />;

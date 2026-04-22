@@ -71,7 +71,7 @@ const storeConfig: AlertStoreDefinition = {
     }
 
     if (alert.expireAfter && !alert.neverExpire) {
-      window.setTimeout(() => {
+      globalThis.setTimeout(() => {
         this.closeAlert(alert);
       }, alert.expireAfter);
     }

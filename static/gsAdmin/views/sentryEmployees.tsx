@@ -88,7 +88,7 @@ export function SentryEmployees() {
                   user={row}
                   onSubmit={() => {
                     // TODO: ideally this would update the user instead of refresh the page
-                    window.location.reload();
+                    globalThis.location.reload();
                   }}
                 />
               ));

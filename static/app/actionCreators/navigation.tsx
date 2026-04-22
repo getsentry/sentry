@@ -48,7 +48,7 @@ export function navigateTo(
           configQueryKey={configQueryKey}
           onFinish={path => {
             modalProps.closeModal();
-            return window.setTimeout(() => navigate(normalizeUrl(path)), 0);
+            return globalThis.setTimeout(() => navigate(normalizeUrl(path)), 0);
           }}
         />
       ),

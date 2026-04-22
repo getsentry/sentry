@@ -2,7 +2,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 export function extraQueryParameter(): URLSearchParams {
-  const extraQueryString = window.SandboxData?.extraQueryString || '';
+  const extraQueryString = globalThis.SandboxData?.extraQueryString || '';
   const extraQuery = new URLSearchParams(extraQueryString);
   return extraQuery;
 }

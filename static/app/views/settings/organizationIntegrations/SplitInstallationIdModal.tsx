@@ -21,7 +21,7 @@ export function SplitInstallationIdModal(props: Props) {
 
   useEffect(() => {
     return () => {
-      window.clearTimeout(openAdminIntegrationTimeoutRef.current);
+      globalThis.clearTimeout(openAdminIntegrationTimeoutRef.current);
     };
   }, []);
 
@@ -34,9 +34,9 @@ export function SplitInstallationIdModal(props: Props) {
     onCopy();
     addSuccessMessage('Copied to clipboard');
 
-    window.clearTimeout(openAdminIntegrationTimeoutRef.current);
+    globalThis.clearTimeout(openAdminIntegrationTimeoutRef.current);
 
-    openAdminIntegrationTimeoutRef.current = window.setTimeout(() => {
+    openAdminIntegrationTimeoutRef.current = globalThis.setTimeout(() => {
       window.open('https://app.split.io/org/admin/integrations');
     }, 2000);
   };

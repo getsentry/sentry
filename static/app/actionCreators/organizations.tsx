@@ -54,7 +54,7 @@ export function redirectToRemainingOrganization({
   const route = `/organizations/${firstRemainingOrg.slug}/issues/`;
   if (USING_CUSTOMER_DOMAIN) {
     const {organizationUrl} = firstRemainingOrg.links;
-    window.location.assign(`${organizationUrl}${normalizeUrl(route)}`);
+    globalThis.location.assign(`${organizationUrl}${normalizeUrl(route)}`);
     return;
   }
 

@@ -145,12 +145,12 @@ export function useTableStyles(
         resizingColumnIndex.current = null;
 
         // Cleaning up event listeners
-        window.removeEventListener('mousemove', onMouseMove);
-        window.removeEventListener('mouseup', onMouseUp);
+        globalThis.removeEventListener('mousemove', onMouseMove);
+        globalThis.removeEventListener('mouseup', onMouseUp);
       }
 
-      window.addEventListener('mousemove', onMouseMove);
-      window.addEventListener('mouseup', onMouseUp);
+      globalThis.addEventListener('mousemove', onMouseMove);
+      globalThis.addEventListener('mouseup', onMouseUp);
     },
     [tableRef, minimumColumnWidth, prefixColumnWidth]
   );

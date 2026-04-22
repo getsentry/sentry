@@ -34,7 +34,7 @@ export function AnomalyDetectionFeedbackBanner({
     });
     feedbackClient.captureEvent({
       request: {
-        url: window.location.href, // gives the full url (origin + pathname)
+        url: globalThis.location.href, // gives the full url (origin + pathname)
       },
       tags: {
         featureName: 'anomaly-detection-alerts-feedback',

@@ -88,7 +88,10 @@ function useImageSrc(definition?: ImageDefinition): {
   const {data: avatarHash} = useQuery({
     queryKey: ['gravatar', trimmedGravatarId],
     queryFn: () => {
-      if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+      if (
+        !trimmedGravatarId ||
+        typeof globalThis.crypto?.subtle?.digest === 'undefined'
+      ) {
         return null;
       }
       return hashGravatarId(trimmedGravatarId).catch(err => {
@@ -147,7 +150,7 @@ function useImageSrc(definition?: ImageDefinition): {
 async function hashGravatarId(gravatarId: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(gravatarId);
-  const hash = await window.crypto.subtle.digest('SHA-256', data);
+  const hash = await globalThis.crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');

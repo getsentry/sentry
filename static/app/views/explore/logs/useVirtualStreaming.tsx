@@ -281,7 +281,7 @@ export function useVirtualStreaming({
     return () => {
       rafOn.current = false;
       if (rafId) {
-        window.cancelAnimationFrame(rafId);
+        globalThis.cancelAnimationFrame(rafId);
       }
     };
   }, [autoRefresh, getMostRecentPageDataTimestamp, refreshInterval, setLogsAutoRefresh]);

@@ -77,7 +77,7 @@ export default function ProfileFlamegraphWrapper() {
 
   const initialFlamegraphPreferencesState = useMemo((): DeepPartial<FlamegraphState> => {
     const queryStringState = decodeFlamegraphStateFromQueryParams(
-      qs.parse(window.location.search)
+      qs.parse(globalThis.location.search)
     );
 
     return {

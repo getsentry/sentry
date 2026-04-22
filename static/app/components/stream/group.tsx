@@ -607,7 +607,7 @@ export function StreamGroup({
 
     if (selectionEnabled && e.shiftKey) {
       issueSelectionActions?.shiftToggleSelect(group.id);
-      window.getSelection()?.removeAllRanges();
+      globalThis.getSelection()?.removeAllRanges();
       return;
     }
 

@@ -108,19 +108,19 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
   }, [overlayState]);
 
   const queueMenuClose = useCallback(() => {
-    window.clearTimeout(closeTimeoutRef.current);
-    closeTimeoutRef.current = window.setTimeout(() => close?.(), CLOSE_MENU_TIMEOUT);
+    globalThis.clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = globalThis.setTimeout(() => close?.(), CLOSE_MENU_TIMEOUT);
   }, [close]);
 
   const handleOpen = () => {
     activeCrumbStates.forEach(state => state?.close());
-    window.clearTimeout(closeTimeoutRef.current);
+    globalThis.clearTimeout(closeTimeoutRef.current);
     open?.();
   };
 
   useEffect(() => {
     if (menuHasHover) {
-      window.clearTimeout(closeTimeoutRef.current);
+      globalThis.clearTimeout(closeTimeoutRef.current);
     } else {
       queueMenuClose();
     }

@@ -162,13 +162,13 @@ export const useVirtualizedList = (
       }
 
       if (rafId.current !== null) {
-        window.cancelAnimationFrame(rafId.current);
+        globalThis.cancelAnimationFrame(rafId.current);
       }
 
       managerRef.current.scrolling_source = 'list';
       managerRef.current.enqueueOnScrollEndOutOfBoundsCheck();
 
-      rafId.current = window.requestAnimationFrame(() => {
+      rafId.current = globalThis.requestAnimationFrame(() => {
         scrollTopRef.current = Math.max(0, event.target?.scrollTop ?? 0);
 
         const recomputedItems = findRenderedItems({
@@ -190,7 +190,7 @@ export const useVirtualizedList = (
       }
 
       if (pointerEventsRaf.current) {
-        window.cancelAnimationFrame(pointerEventsRaf.current.id);
+        globalThis.cancelAnimationFrame(pointerEventsRaf.current.id);
       }
 
       pointerEventsRaf.current = requestAnimationTimeout(() => {

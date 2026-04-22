@@ -21,7 +21,7 @@ export function SettingsNavigationGroup(props: NavigationGroupProps) {
 
     const handleClick = () => {
       // only call the analytics event if the URL is changing
-      if (recordAnalytics && to !== window.location.pathname && organization) {
+      if (recordAnalytics && to !== globalThis.location.pathname && organization) {
         trackAnalytics('sidebar.item_clicked', {
           organization,
           project_id: project?.id,

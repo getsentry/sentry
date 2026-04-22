@@ -52,7 +52,7 @@ function DebugFileCustomRepository({
   function handleSave(data?: Record<string, any>) {
     if (!data) {
       closeModal();
-      window.location.reload();
+      globalThis.location.reload();
       return;
     }
 

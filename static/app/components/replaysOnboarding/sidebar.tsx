@@ -55,7 +55,7 @@ export function useReplaysOnboardingDrawer() {
         ariaLabel: t('Getting Started with Session Replay'),
         // Prevent the drawer from closing when the query params change
         shouldCloseOnLocationChange: location =>
-          location.pathname !== window.location.pathname,
+          location.pathname !== globalThis.location.pathname,
       });
     }
   }, [isActive, hasProjectAccess, openDrawer]);

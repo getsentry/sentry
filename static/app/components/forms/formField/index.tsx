@@ -299,7 +299,7 @@ export function FormField(props: FormFieldProps) {
     (node: HTMLElement | null) => {
       if (node && !inputRef.current) {
         // TODO(mark) Clean this up. FormContext could include the location
-        const hash = window.location?.hash;
+        const hash = globalThis.location?.hash;
 
         if (!hash) {
           return;

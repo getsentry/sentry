@@ -119,7 +119,7 @@ function ReplayOnboardingCTAUpsell({
         organization,
         subscription,
         onComplete: () => {
-          window.location.hash = 'replay-sidequest';
+          globalThis.location.hash = 'replay-sidequest';
           OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
           onComplete();
         },

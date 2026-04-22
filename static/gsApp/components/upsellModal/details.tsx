@@ -229,9 +229,15 @@ export class Details extends Component<Props, State> {
 
     const firstAutoRotate = () => {
       this.showNextFeature();
-      this.autoRotateInterval = window.setInterval(this.showNextFeature, ROTATE_INTERVAL);
+      this.autoRotateInterval = globalThis.setInterval(
+        this.showNextFeature,
+        ROTATE_INTERVAL
+      );
     };
-    this.autoRotateInterval = window.setTimeout(firstAutoRotate, FIRST_ROTATE_TIMEOUT);
+    this.autoRotateInterval = globalThis.setTimeout(
+      firstAutoRotate,
+      FIRST_ROTATE_TIMEOUT
+    );
   }
 
   componentWillUnmount() {

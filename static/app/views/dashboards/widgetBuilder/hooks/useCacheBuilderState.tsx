@@ -9,7 +9,7 @@ import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder
 
 const WIDGET_BUILDER_DATASET_STATE_KEY = 'dashboards:widget-builder:dataset';
 
-const STORAGE = createStorage(() => window.sessionStorage);
+const STORAGE = createStorage(() => globalThis.sessionStorage);
 
 function cleanUpDatasetState() {
   for (let i = 0; i < STORAGE.length; i++) {

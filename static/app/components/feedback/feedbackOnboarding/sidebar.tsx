@@ -60,7 +60,7 @@ export function useFeedbackOnboardingDrawer() {
         ariaLabel: t('Getting Started with User Feedback'),
         // Prevent the drawer from closing when the query params change
         shouldCloseOnLocationChange: location =>
-          location.pathname !== window.location.pathname,
+          location.pathname !== globalThis.location.pathname,
       });
     }
   }, [isActive, hasProjectAccess, openDrawer]);

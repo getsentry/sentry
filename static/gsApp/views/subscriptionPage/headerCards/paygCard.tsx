@@ -117,14 +117,14 @@ export function PaygCard({
   }, [isEditing]);
 
   useEffect(() => {
-    if (window.location.hash === '#open-ondemand-modal') {
+    if (globalThis.location.hash === '#open-ondemand-modal') {
       handleEditPayg(true);
 
       // Clear hash to prevent modal reopening or focus state on refresh
-      window.history.replaceState(
+      globalThis.history.replaceState(
         null,
         '',
-        window.location.pathname + window.location.search
+        globalThis.location.pathname + globalThis.location.search
       );
     }
   }, [handleEditPayg]);

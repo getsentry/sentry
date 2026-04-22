@@ -124,7 +124,7 @@ export function FeedbackModal<T extends Data>({
       const commonEventProps: Event = {
         message,
         request: {
-          url: window.location.href, // gives the full url (origin + pathname)
+          url: globalThis.location.href, // gives the full url (origin + pathname)
         },
         extra: {
           orgFeatures: organization?.features ?? [],

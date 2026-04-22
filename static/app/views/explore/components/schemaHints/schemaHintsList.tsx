@@ -236,7 +236,7 @@ export function SchemaHintsList({
         document.body.appendChild(measureDiv);
 
         // Clone the container styles
-        const styles = window.getComputedStyle(container);
+        const styles = globalThis.getComputedStyle(container);
         measureDiv.style.display = styles.display;
         measureDiv.style.gap = styles.gap;
         measureDiv.style.width = styles.width;

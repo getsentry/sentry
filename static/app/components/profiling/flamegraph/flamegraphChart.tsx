@@ -189,10 +189,10 @@ export function FlamegraphChart({
   }, []);
 
   useEffect(() => {
-    window.addEventListener('mouseup', onMapCanvasMouseUp);
+    globalThis.addEventListener('mouseup', onMapCanvasMouseUp);
 
     return () => {
-      window.removeEventListener('mouseup', onMapCanvasMouseUp);
+      globalThis.removeEventListener('mouseup', onMapCanvasMouseUp);
     };
   }, [onMapCanvasMouseUp]);
 

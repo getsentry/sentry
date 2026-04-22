@@ -46,7 +46,7 @@ describe('useAddIntegration', () => {
       origin: document.location.origin,
     });
     Object.defineProperty(event, 'source', {value: popup});
-    window.dispatchEvent(event);
+    globalThis.dispatchEvent(event);
   }
 
   describe('legacy flow', () => {
@@ -54,7 +54,7 @@ describe('useAddIntegration', () => {
 
     beforeEach(() => {
       popup = {focus: jest.fn(), close: jest.fn()} as unknown as Window;
-      jest.spyOn(window, 'open').mockReturnValue(popup);
+      jest.spyOn(globalThis, 'open').mockReturnValue(popup);
     });
 
     it('opens a popup window when startFlow is called', () => {
@@ -211,7 +211,7 @@ describe('useAddIntegration', () => {
       });
       Object.defineProperty(event, 'source', {value: popup});
 
-      window.dispatchEvent(event);
+      globalThis.dispatchEvent(event);
 
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
@@ -307,7 +307,7 @@ describe('useAddIntegration', () => {
 
     it('does not open a popup window when the pipeline modal is used', () => {
       jest.spyOn(pipelineModal, 'openPipelineModal');
-      jest.spyOn(window, 'open');
+      jest.spyOn(globalThis, 'open');
 
       const organization = OrganizationFixture({features: []});
 
@@ -351,7 +351,7 @@ describe('useAddIntegration', () => {
     it('falls back to legacy flow when the provider is not API driven', () => {
       const openPipelineModalSpy = jest.spyOn(pipelineModal, 'openPipelineModal');
       jest
-        .spyOn(window, 'open')
+        .spyOn(globalThis, 'open')
         .mockReturnValue({focus: jest.fn(), close: jest.fn()} as unknown as Window);
 
       const organization = OrganizationFixture({features: []});

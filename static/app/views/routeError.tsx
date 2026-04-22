@@ -70,7 +70,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
 
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // throw this in a timeout so if it errors we don't fall over
-    const reportDialogTimeout = window.setTimeout(() => {
+    const reportDialogTimeout = globalThis.setTimeout(() => {
       Sentry.withScope(scope => {
         enrichScopeContext(scope);
         Sentry.captureException(error);
@@ -82,7 +82,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
     });
 
     return function cleanup() {
-      window.clearTimeout(reportDialogTimeout);
+      globalThis.clearTimeout(reportDialogTimeout);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error, disableLogSentry]);
@@ -104,7 +104,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
           {t("If you're daring, you may want to try the following:")}
         </p>
         <List symbol="bullet">
-          {window?.adblockSuspected && (
+          {globalThis?.adblockSuspected && (
             <ListItem>
               {t(
                 "We detected something AdBlock-like. Try disabling it, as it's known to cause issues."
@@ -116,7 +116,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
               link: (
                 <a
                   onClick={() => {
-                    window.location.href = String(window.location.href);
+                    globalThis.location.href = String(globalThis.location.href);
                   }}
                 />
               ),

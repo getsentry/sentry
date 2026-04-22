@@ -192,7 +192,7 @@ describe('useLocalStorageState', () => {
     const recursiveReferenceMap = new Map();
     recursiveReferenceMap.set('key', recursiveReferenceMap);
 
-    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
+    jest.spyOn(globalThis, 'queueMicrotask').mockImplementation(cb => cb());
 
     const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -209,7 +209,7 @@ describe('useLocalStorageState', () => {
     const recursiveObject: Record<string, any> = {};
     recursiveObject.key = recursiveObject;
 
-    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
+    jest.spyOn(globalThis, 'queueMicrotask').mockImplementation(cb => cb());
 
     const {result} = renderHook(
       (args: Parameters<typeof useLocalStorageState>) =>
@@ -243,7 +243,7 @@ describe('useLocalStorageState', () => {
     );
 
     // Immediately execute microtask so that the error is not thrown from the current execution stack and can be caught by a try/catch
-    jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
+    jest.spyOn(globalThis, 'queueMicrotask').mockImplementation(cb => cb());
 
     expect(() => result.current[1](value)).toThrow(
       `useLocalStorage: Native serialization of ${type.split(' ')[0]} is not supported`

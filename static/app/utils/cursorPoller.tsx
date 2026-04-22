@@ -37,7 +37,7 @@ export class CursorPoller {
       return;
     }
 
-    const issueEndpoint = new URL(linkPreviousHref, window.location.origin);
+    const issueEndpoint = new URL(linkPreviousHref, globalThis.location.origin);
 
     // Remove collapse stats
     issueEndpoint.searchParams.delete('collapse');
@@ -52,13 +52,13 @@ export class CursorPoller {
     this.disable();
 
     this.active = true;
-    this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
+    this.timeoutId = globalThis.setTimeout(this.poll.bind(this), this.getDelay());
   }
 
   disable() {
     this.active = false;
     if (this.timeoutId) {
-      window.clearTimeout(this.timeoutId);
+      globalThis.clearTimeout(this.timeoutId);
       this.timeoutId = null;
     }
 
@@ -111,7 +111,7 @@ export class CursorPoller {
         this.lastRequest = null;
 
         if (this.active) {
-          this.timeoutId = window.setTimeout(this.poll.bind(this), this.getDelay());
+          this.timeoutId = globalThis.setTimeout(this.poll.bind(this), this.getDelay());
         }
       },
     });

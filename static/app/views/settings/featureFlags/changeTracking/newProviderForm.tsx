@@ -220,7 +220,7 @@ function WebhookUrlField({
       <Container flexGrow={1}>
         <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
           {provider.length
-            ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
+            ? `${globalThis.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
             : ''}
         </TextCopyInput>
       </Container>

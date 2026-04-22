@@ -300,7 +300,7 @@ describe('Compact variant a11y', () => {
     // The element should have visually hidden styles (checking common patterns)
     expect(hintElement).toBeInTheDocument();
     // React Aria's VisuallyHidden uses specific styles to hide content
-    const styles = window.getComputedStyle(hintElement!);
+    const styles = globalThis.getComputedStyle(hintElement!);
     expect(styles.position).toBe('absolute');
     expect(styles.width).toBe('1px');
     expect(styles.height).toBe('1px');

@@ -136,7 +136,7 @@ export function searchInTraceTreeTokens(
             Sentry.captureMessage('Unbalanced tree - missing left or right token');
             info(fmt`Unbalanced tree - missing left or right token`);
             if (typeof handle.id === 'number') {
-              window.cancelAnimationFrame(handle.id);
+              globalThis.cancelAnimationFrame(handle.id);
             }
             cb([[], resultLookup, null]);
             return;
@@ -158,7 +158,7 @@ export function searchInTraceTreeTokens(
       );
       info(fmt`Invalid state in searchInTraceTreeTokens, missing boolean token`);
       if (typeof handle.id === 'number') {
-        window.cancelAnimationFrame(handle.id);
+        globalThis.cancelAnimationFrame(handle.id);
       }
       cb([[], resultLookup, null]);
       return;
@@ -169,7 +169,7 @@ export function searchInTraceTreeTokens(
       );
       info(fmt`Invalid state in searchInTraceTreeTokens, missing left or right token`);
       if (typeof handle.id === 'number') {
-        window.cancelAnimationFrame(handle.id);
+        globalThis.cancelAnimationFrame(handle.id);
       }
       cb([[], resultLookup, null]);
       return;

@@ -144,7 +144,7 @@ describe('useTrace', () => {
       [`?node=error-${invalidUUid}`],
     ])('does NOT call EAP endpoint with errorId when URL has %s', async search => {
       // Set up mocked URL before hook runs
-      window.history.pushState({}, '', `/some-path${search}`);
+      globalThis.history.pushState({}, '', `/some-path${search}`);
 
       // Set up EAP enabled
       useIsEAPTraceEnabled.mockReturnValue(true);
@@ -228,7 +228,7 @@ describe('useTrace', () => {
       'calls tracing endpoint with query param options %s',
       async ({search, mockEapEnabled, endpoint, expectedParamKey}) => {
         // Mock URL before hook runs
-        window.history.pushState({}, '', `/some-path${search}`);
+        globalThis.history.pushState({}, '', `/some-path${search}`);
 
         // Mock EAP toggle
         useIsEAPTraceEnabled.mockReturnValue(mockEapEnabled);

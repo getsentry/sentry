@@ -47,8 +47,8 @@ import {getSearchConfig} from './utils';
 // will defer the focus call until the next frame, after the browser and react
 // have had a chance to update the DOM, splitting the perf cost across frames.
 function nextFrameCallback(cb: () => void) {
-  if ('requestAnimationFrame' in window) {
-    window.requestAnimationFrame(() => cb());
+  if ('requestAnimationFrame' in globalThis) {
+    globalThis.requestAnimationFrame(() => cb());
   } else {
     setTimeout(() => {
       cb();

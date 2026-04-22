@@ -35,7 +35,7 @@ export function useFeatureFlagOnboarding({
   const activateSidebar = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
-      window.location.hash = FLAG_HASH;
+      globalThis.location.hash = FLAG_HASH;
       OnboardingDrawerStore.open(OnboardingDrawerKey.FEATURE_FLAG_ONBOARDING);
       trackAnalytics('flags.view-setup-sidebar', {
         organization,

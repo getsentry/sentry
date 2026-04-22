@@ -7,7 +7,7 @@ import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling
 
 import {ProjectsTable} from './projectsTable';
 
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockReturnValue({
+jest.spyOn(globalThis.Element.prototype, 'getBoundingClientRect').mockReturnValue({
   height: 400,
   width: 500,
   x: 0,

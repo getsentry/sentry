@@ -82,7 +82,7 @@ function BaseFooter({className}: Props) {
           <Button
             priority="transparent"
             size="xs"
-            onClick={() => window.location.reload()}
+            onClick={() => globalThis.location.reload()}
             tooltipProps={{
               title: t(
                 "An improved version of Sentry's Frontend Application is now available. Click to update now."

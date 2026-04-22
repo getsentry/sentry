@@ -114,7 +114,7 @@ describe('BitbucketAuthorizeStep', () => {
   });
 
   it('shows popup blocked notice when popup fails to open', async () => {
-    jest.spyOn(window, 'open').mockReturnValue(null);
+    jest.spyOn(globalThis, 'open').mockReturnValue(null);
     render(
       <BitbucketAuthorizeStep
         {...makeStepProps({

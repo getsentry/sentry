@@ -128,7 +128,7 @@ export function GridEditable<
   const clearWindowLifecycleEvents = useCallback(() => {
     Object.keys(resizeWindowLifecycleEvents.current).forEach(e => {
       resizeWindowLifecycleEvents.current[e]!.forEach(c =>
-        window.removeEventListener(e, c)
+        globalThis.removeEventListener(e, c)
       );
       resizeWindowLifecycleEvents.current[e] = [];
     });
@@ -181,10 +181,10 @@ export function GridEditable<
       cursorX: e.clientX,
     };
 
-    window.addEventListener('mousemove', onResizeMouseMove);
+    globalThis.addEventListener('mousemove', onResizeMouseMove);
     resizeWindowLifecycleEvents.current.mousemove!.push(onResizeMouseMove);
 
-    window.addEventListener('mouseup', onResizeMouseUp);
+    globalThis.addEventListener('mouseup', onResizeMouseUp);
     resizeWindowLifecycleEvents.current.mouseup!.push(onResizeMouseUp);
   };
 
@@ -212,7 +212,7 @@ export function GridEditable<
       return;
     }
 
-    window.requestAnimationFrame(() => resizeGridColumn(e, current));
+    globalThis.requestAnimationFrame(() => resizeGridColumn(e, current));
   };
 
   const resizeGridColumn = (e: MouseEvent, metadata: ColResizeMetadata) => {

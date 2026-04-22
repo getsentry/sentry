@@ -56,14 +56,14 @@ function Overview({subscription}: Props) {
   useEffect(() => {
     // Open on-demand budget modal if hash fragment present
     // Modal logic handles checking perms
-    if (window.location.hash === '#open-ondemand-modal') {
+    if (globalThis.location.hash === '#open-ondemand-modal') {
       openOnDemandBudgetEditModal({organization, subscription});
 
       // Clear hash to prevent modal reopening on refresh
-      window.history.replaceState(
+      globalThis.history.replaceState(
         null,
         '',
-        window.location.pathname + window.location.search
+        globalThis.location.pathname + globalThis.location.search
       );
     }
   }, [organization, subscription]);

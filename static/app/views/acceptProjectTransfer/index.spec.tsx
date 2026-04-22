@@ -36,8 +36,8 @@ describe('AcceptProjectTransfer', () => {
   });
 
   it('renders and fetches data from the region url', () => {
-    window.__initialData = {
-      ...window.__initialData,
+    globalThis.__initialData = {
+      ...globalThis.__initialData,
       links: {
         regionUrl: 'http://us.sentry.io',
         sentryUrl: 'http://sentry.io',

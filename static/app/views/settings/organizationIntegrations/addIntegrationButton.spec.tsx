@@ -1,4 +1,3 @@
-/* global global */
 import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -13,7 +12,7 @@ describe('AddIntegrationButton', () => {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
     // any is needed here because getSentry has different types for global
-    (global as any).open = open;
+    (globalThis as any).open = open;
 
     render(
       <AddIntegrationButton

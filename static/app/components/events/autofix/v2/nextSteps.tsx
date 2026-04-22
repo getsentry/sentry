@@ -180,8 +180,8 @@ function StepButton({
       onAction: () => {
         // OAuth redirect for integrations without identity
         if (needsSetup) {
-          const currentUrl = window.location.href;
-          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          const currentUrl = globalThis.location.href;
+          globalThis.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
         onCodingAgentHandoff?.(integration);

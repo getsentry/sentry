@@ -83,7 +83,7 @@ export function FrameHeader({actions}: FrameHeaderProps) {
       aria-expanded={isExpandable ? isExpanded : undefined}
       aria-controls={isExpandable ? frameContextId : undefined}
       onClick={() => {
-        const selectedText = window.getSelection()?.toString();
+        const selectedText = globalThis.getSelection()?.toString();
         if (isExpandable && !selectedText) {
           toggleExpansion();
         }

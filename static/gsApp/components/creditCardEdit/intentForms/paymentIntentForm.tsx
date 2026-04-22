@@ -59,7 +59,7 @@ export function PaymentIntentForm(props: IntentFormProps) {
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
         confirmParams: {
-          return_url: window.location.href,
+          return_url: globalThis.location.href,
         },
       })
       .then((result: PaymentIntentResult) => {

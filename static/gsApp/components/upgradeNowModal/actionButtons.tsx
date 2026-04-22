@@ -64,7 +64,7 @@ export function ActionButtons({
         closeModal();
         addSuccessMessage(t('Subscription Updated!'));
 
-        window.location.hash = 'replay-sidequest';
+        globalThis.location.hash = 'replay-sidequest';
         OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);
 
         trackGetsentryAnalytics('upgrade_now.modal.update_now', {

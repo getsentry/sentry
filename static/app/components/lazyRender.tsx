@@ -12,7 +12,7 @@ function maybeCleanupObserver(
 }
 
 function supportsIntersectionObserver(): boolean {
-  return 'IntersectionObserver' in window;
+  return 'IntersectionObserver' in globalThis;
 }
 
 const DEFAULT_OPTIONS: IntersectionObserverInit = {

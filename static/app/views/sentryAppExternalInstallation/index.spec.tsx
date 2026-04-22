@@ -81,18 +81,18 @@ describe('SentryAppExternalInstallation', () => {
         body: [],
       });
 
-      window.__initialData = ConfigFixture({
+      globalThis.__initialData = ConfigFixture({
         customerDomain: {
           subdomain: 'org1',
           organizationUrl: 'https://org1.sentry.io',
           sentryUrl: 'https://sentry.io',
         },
         links: {
-          ...window.__initialData?.links,
+          ...globalThis.__initialData?.links,
           sentryUrl: 'https://sentry.io',
         },
       });
-      ConfigStore.loadInitialData(window.__initialData);
+      ConfigStore.loadInitialData(globalThis.__initialData);
     });
 
     it('sets the org automatically', async () => {
@@ -217,18 +217,18 @@ describe('SentryAppExternalInstallation', () => {
         body: [],
       });
 
-      window.__initialData = ConfigFixture({
+      globalThis.__initialData = ConfigFixture({
         customerDomain: {
           subdomain: 'org1',
           organizationUrl: 'https://org1.sentry.io',
           sentryUrl: 'https://sentry.io',
         },
         links: {
-          ...window.__initialData?.links,
+          ...globalThis.__initialData?.links,
           sentryUrl: 'https://sentry.io',
         },
       });
-      ConfigStore.loadInitialData(window.__initialData);
+      ConfigStore.loadInitialData(globalThis.__initialData);
     });
 
     it('sets the org automatically', async () => {
@@ -251,14 +251,14 @@ describe('SentryAppExternalInstallation', () => {
     });
 
     it('loads orgs from multiple regions', async () => {
-      window.__initialData = {
-        ...window.__initialData,
+      globalThis.__initialData = {
+        ...globalThis.__initialData,
         memberRegions: [
           {name: 'us', url: 'https://us.example.org'},
           {name: 'de', url: 'https://de.example.org'},
         ],
       };
-      ConfigStore.loadInitialData(window.__initialData);
+      ConfigStore.loadInitialData(globalThis.__initialData);
 
       const deorg = OrganizationFixture({slug: 'de-org'});
       const getDeOrgs = MockApiClient.addMockResponse({
@@ -287,18 +287,18 @@ describe('SentryAppExternalInstallation', () => {
     it('selecting org changes the url', async () => {
       const preselectedOrg = OrganizationFixture();
 
-      window.__initialData = ConfigFixture({
+      globalThis.__initialData = ConfigFixture({
         customerDomain: {
           subdomain: 'org1',
           organizationUrl: 'https://org1.sentry.io',
           sentryUrl: 'https://sentry.io',
         },
         links: {
-          ...window.__initialData?.links,
+          ...globalThis.__initialData?.links,
           sentryUrl: 'https://sentry.io',
         },
       });
-      ConfigStore.loadInitialData(window.__initialData);
+      ConfigStore.loadInitialData(globalThis.__initialData);
 
       getOrgMock = MockApiClient.addMockResponse({
         url: '/organizations/org1/',

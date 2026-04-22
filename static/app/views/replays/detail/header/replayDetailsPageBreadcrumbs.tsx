@@ -61,7 +61,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   // Create URL with current timestamp for copying
   const replayUrlWithTimestamp = replayRecord
     ? (() => {
-        const url = new URL(window.location.href);
+        const url = new URL(globalThis.location.href);
         const currentTimeInSeconds = Math.floor(currentTime / 1000);
         url.searchParams.set('t', String(currentTimeInSeconds));
         return url.toString();

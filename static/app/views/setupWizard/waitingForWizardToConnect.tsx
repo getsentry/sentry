@@ -26,7 +26,7 @@ export function WaitingForWizardToConnect({
   useEffect(() => {
     return () => {
       if (closeTimeoutRef.current) {
-        window.clearTimeout(closeTimeoutRef.current);
+        globalThis.clearTimeout(closeTimeoutRef.current);
       }
     };
   }, []);
@@ -39,15 +39,15 @@ export function WaitingForWizardToConnect({
       await api.requestPromise(`/wizard/${hash}/`);
     } catch {
       setFinished(true);
-      window.clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
+      globalThis.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = globalThis.setTimeout(() => window.close(), 10000);
       trackWizardCompleted();
     }
   }, [api, hash, trackWizardCompleted, finished]);
 
   useEffect(() => {
-    const pollingInterval = window.setInterval(checkFinished, 1000);
-    return () => window.clearInterval(pollingInterval);
+    const pollingInterval = globalThis.setInterval(checkFinished, 1000);
+    return () => globalThis.clearInterval(pollingInterval);
   }, [checkFinished]);
 
   return finished ? (

@@ -44,8 +44,8 @@ export interface EventDataSectionProps {
 }
 
 function scrollToSection(element: HTMLDivElement) {
-  if (window.location.hash && element) {
-    const [, hash] = window.location.hash.split('#');
+  if (globalThis.location.hash && element) {
+    const [, hash] = globalThis.location.hash.split('#');
 
     try {
       const anchorElement = hash && element.querySelector('div#' + hash);

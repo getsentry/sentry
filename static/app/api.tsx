@@ -133,7 +133,7 @@ const globalErrorHandlers: Array<
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta, options: RequestOptions) => {
     const pageAllowsAnon = ALLOWED_ANON_PAGES.find(regex =>
-      regex.test(window.location.pathname)
+      regex.test(globalThis.location.pathname)
     );
 
     // Ignore error unless it is a 401
@@ -162,7 +162,7 @@ export const initApiClientErrorHandling = () =>
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
-      window.location.assign(extra.loginUrl);
+      globalThis.location.assign(extra.loginUrl);
       return true;
     }
 
@@ -179,7 +179,7 @@ export const initApiClientErrorHandling = () =>
     if (EXPERIMENTAL_SPA) {
       browserHistory.replace('/auth/login/');
     } else {
-      window.location.reload();
+      globalThis.location.reload();
     }
     return true;
   });
@@ -514,7 +514,7 @@ export class Client {
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins
-    if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, window.location.origin)) {
+    if (!csrfSafeMethod(method) && isSimilarOrigin(fullUrl, globalThis.location.origin)) {
       requestHeaders.set('X-CSRFToken', getCsrfToken());
     }
 
@@ -724,7 +724,7 @@ export function resolveHostname(path: string, hostname?: string): string {
     // this we want to explicitly default those requests to be proxied through
     // the control silo which can handle region resolution in exchange for a
     // bit of latency.
-    const isAdmin = window.location.pathname.startsWith('/_admin/');
+    const isAdmin = globalThis.location.pathname.startsWith('/_admin/');
     const isControlSilo = detectControlSiloPath(path);
     if (!isAdmin && !isControlSilo && configLinks.regionUrl) {
       hostname = configLinks.regionUrl;
@@ -738,7 +738,7 @@ export function resolveHostname(path: string, hostname?: string): string {
   // domain, we can drop the domain as webpack devserver will add one.
   // TODO(hybridcloud) This can likely be removed when sentry.types.cell.Region.to_url()
   // loses the monolith mode condition.
-  if (window.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
+  if (globalThis.__SENTRY_DEV_UI && hostname === configLinks.sentryUrl) {
     hostname = '';
   }
 
@@ -746,7 +746,7 @@ export function resolveHostname(path: string, hostname?: string): string {
   // of CORS. Instead we extract the subdomain from the hostname
   // and prepend the URL with `/region/$name` so that webpack-devserver proxy
   // can route requests to the regions.
-  if (hostname && window.__SENTRY_DEV_UI) {
+  if (hostname && globalThis.__SENTRY_DEV_UI) {
     const domainpattern = /https?:\/\/([^.]*)\.sentry\.io/;
     const domainmatch = hostname.match(domainpattern);
     if (domainmatch) {

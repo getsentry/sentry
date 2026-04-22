@@ -23,7 +23,7 @@ export function useTouchEventsCheck({replay}: Props) {
           pointer_id: t?.[0]?.data.pointerId,
           number_of_events: t?.length,
           replay_id: replayData.id,
-          url: window.location.href,
+          url: globalThis.location.href,
         });
       }
     });

@@ -77,7 +77,7 @@ const ACTIONS: Action[] = [
     requiresSuperuser: true,
     action: () => {
       toggleLocaleDebug();
-      window.location.reload();
+      globalThis.location.reload();
     },
   },
 
@@ -92,11 +92,11 @@ const ACTIONS: Action[] = [
 ];
 
 // Add a command palette option for opening in production when using dev-ui
-if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false) {
+if (NODE_ENV === 'development' && globalThis?.__initialData?.isSelfHosted === false) {
   const customerUrl = new URL(
-    USING_CUSTOMER_DOMAIN && window?.__initialData?.customerDomain?.organizationUrl
-      ? window.__initialData.customerDomain.organizationUrl
-      : window.__initialData?.links?.sentryUrl
+    USING_CUSTOMER_DOMAIN && globalThis?.__initialData?.customerDomain?.organizationUrl
+      ? globalThis.__initialData.customerDomain.organizationUrl
+      : globalThis.__initialData?.links?.sentryUrl
   );
 
   ACTIONS.push({
@@ -104,7 +104,7 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
     description: t('Open the current page in sentry.io'),
     requiresSuperuser: false,
     action: () => {
-      const url = new URL(window.location.toString());
+      const url = new URL(globalThis.location.toString());
       url.host = customerUrl.host;
       url.protocol = customerUrl.protocol;
       url.port = '';
@@ -113,13 +113,13 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-if (NODE_ENV === 'development' && typeof window !== 'undefined') {
+if (NODE_ENV === 'development' && typeof globalThis.window !== 'undefined') {
   ACTIONS.push({
     title: t('Toggle Component Inspector'),
     description: t('Toggle the component inspector.'),
     requiresSuperuser: true,
     action: () => {
-      window.dispatchEvent(new Event('devtools.toggle_component_inspector'));
+      globalThis.dispatchEvent(new Event('devtools.toggle_component_inspector'));
     },
   });
 }

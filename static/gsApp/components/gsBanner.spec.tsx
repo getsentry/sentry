@@ -39,7 +39,7 @@ jest.mock('sentry/stores/guideStore', () => ({
 
 function setUpTests() {
   jest.clearAllMocks();
-  delete window.pendo;
+  delete globalThis.pendo;
 
   MockApiClient.clearMockResponses();
   MockApiClient.addMockResponse({
@@ -790,7 +790,7 @@ describe('GSBanner', () => {
       body: promotionData,
     });
 
-    window.pendo = {
+    globalThis.pendo = {
       initialize: jest.fn(),
     };
 
@@ -813,7 +813,7 @@ describe('GSBanner', () => {
     });
 
     await waitFor(() => {
-      expect(window.pendo.initialize).toHaveBeenCalledWith({
+      expect(globalThis.pendo.initialize).toHaveBeenCalledWith({
         visitor: {
           id: `${organization.id}.${user.id}`,
           userId: user.id,
@@ -837,7 +837,7 @@ describe('GSBanner', () => {
       });
     });
 
-    delete window.pendo;
+    delete globalThis.pendo;
   });
 
   it('delays pendo guides if other guides are active', async () => {
@@ -856,7 +856,7 @@ describe('GSBanner', () => {
       body: {},
     });
 
-    window.pendo = {
+    globalThis.pendo = {
       initialize: jest.fn(),
     };
 
@@ -897,7 +897,7 @@ describe('GSBanner', () => {
     });
 
     await waitFor(() => {
-      expect(window.pendo.initialize).toHaveBeenCalledWith(
+      expect(globalThis.pendo.initialize).toHaveBeenCalledWith(
         expect.objectContaining({
           guides: {
             delay: true,

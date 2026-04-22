@@ -47,7 +47,7 @@ const storeConfig: OnboardingDrawerStoreDefinition = {
     this.state = '';
 
     if (hash) {
-      window.location.hash = window.location.hash.replace(`#${hash}`, '');
+      globalThis.location.hash = globalThis.location.hash.replace(`#${hash}`, '');
     }
 
     this.trigger(this.state);

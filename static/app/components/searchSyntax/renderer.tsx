@@ -128,7 +128,7 @@ function useTokenValidation(
     style.animation = 'none';
     void tokenElementRef.current.offsetTop;
 
-    window.requestAnimationFrame(
+    globalThis.requestAnimationFrame(
       () => (style.animation = `${shakeAnimation.name} 300ms`)
     );
   }, [reduceMotion, showInvalid]);

@@ -293,11 +293,11 @@ export const metric: RecordMetric = (name, value, tags) =>
 
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =
-  window.performance &&
-  typeof window.performance.mark === 'function' &&
-  typeof window.performance.measure === 'function' &&
-  typeof window.performance.getEntriesByName === 'function' &&
-  typeof window.performance.clearMeasures === 'function';
+  globalThis.performance &&
+  typeof globalThis.performance.mark === 'function' &&
+  typeof globalThis.performance.measure === 'function' &&
+  typeof globalThis.performance.getEntriesByName === 'function' &&
+  typeof globalThis.performance.clearMeasures === 'function';
 
 metric.mark = function metricMark({name, data = {}}) {
   // Just ignore if browser is old enough that it doesn't support this
@@ -309,7 +309,7 @@ metric.mark = function metricMark({name, data = {}}) {
     throw new Error('Invalid argument provided to `metric.mark`');
   }
 
-  window.performance.mark(name);
+  globalThis.performance.mark(name);
   metricDataStore.set(name, data);
 };
 
@@ -330,7 +330,7 @@ metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}
   let endMarkName = end;
 
   // Can't destructure from performance
-  const {performance} = window;
+  const {performance} = globalThis;
 
   // NOTE: Edge REQUIRES an end mark if it is given a start mark
   // If we don't have an end mark, create one now.

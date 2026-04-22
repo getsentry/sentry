@@ -14,7 +14,7 @@ export function renderMain() {
           'An unencoded "%" has appeared, it is super effective! (See https://github.com/ReactTraining/history/issues/505)'
         )
       );
-      window.location.assign(window.location.pathname);
+      globalThis.location.assign(globalThis.location.pathname);
     }
   }
 }

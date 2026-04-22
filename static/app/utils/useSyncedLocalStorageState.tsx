@@ -37,7 +37,7 @@ export function useSyncedLocalStorageState<S>(
       setValue(newValue);
 
       // We use a custom event to notify all consumers of this hook
-      window.dispatchEvent(
+      globalThis.dispatchEvent(
         new CustomEvent(SYNCED_STORAGE_EVENT, {detail: {key, value: newValue}})
       );
     },
@@ -51,10 +51,13 @@ export function useSyncedLocalStorageState<S>(
       }
     };
 
-    window.addEventListener(SYNCED_STORAGE_EVENT, handleNewSyncedLocalStorageEvent);
+    globalThis.addEventListener(SYNCED_STORAGE_EVENT, handleNewSyncedLocalStorageEvent);
 
     return () => {
-      window.removeEventListener(SYNCED_STORAGE_EVENT, handleNewSyncedLocalStorageEvent);
+      globalThis.removeEventListener(
+        SYNCED_STORAGE_EVENT,
+        handleNewSyncedLocalStorageEvent
+      );
     };
   }, [key, setValue, value]);
 

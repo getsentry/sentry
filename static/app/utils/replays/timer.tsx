@@ -16,7 +16,7 @@ export class Timer extends EventTarget {
       return;
     }
 
-    this._time = (window.performance.now() - this._start) * this._speed;
+    this._time = (globalThis.performance.now() - this._start) * this._speed;
     // We don't expect _callbacks to be very large, so we can deal with a
     // linear search
     this._callbacks.forEach((value, key, callbacks) => {
@@ -26,7 +26,7 @@ export class Timer extends EventTarget {
         callbacks.set(key, []);
       }
     });
-    this._id = window.requestAnimationFrame(this.step);
+    this._id = globalThis.requestAnimationFrame(this.step);
   };
 
   /**
@@ -37,7 +37,7 @@ export class Timer extends EventTarget {
     // we're dividing by the speed here because we multiply
     // by the same factor up in step(). doing the math,
     // you'll see that this._time turns out to be just `seconds`.
-    this._start = window.performance.now() - (seconds ?? 0) / this._speed;
+    this._start = globalThis.performance.now() - (seconds ?? 0) / this._speed;
     this.resume();
     this.step();
   }
@@ -50,9 +50,9 @@ export class Timer extends EventTarget {
       // already paused, do nothing
       return;
     }
-    this._pausedAt = window.performance.now();
+    this._pausedAt = globalThis.performance.now();
     if (this._id) {
-      window.cancelAnimationFrame(this._id);
+      globalThis.cancelAnimationFrame(this._id);
     }
     this._active = false;
   }
@@ -66,11 +66,11 @@ export class Timer extends EventTarget {
 
     // adjust for time passing since pausing
     if (this._pausedAt) {
-      this._start += window.performance.now() - this._pausedAt;
+      this._start += globalThis.performance.now() - this._pausedAt;
       this._pausedAt = 0;
     }
 
-    this._id = window.requestAnimationFrame(this.step);
+    this._id = globalThis.requestAnimationFrame(this.step);
   }
 
   reset() {

@@ -14,12 +14,14 @@ import type {Organization, OrgRole} from 'sentry/types/organization';
 export const ROOT_ELEMENT = 'blk_router';
 
 export const USING_CUSTOMER_DOMAIN =
-  typeof window === 'undefined' ? false : Boolean(window?.__initialData?.customerDomain);
+  typeof globalThis.window === 'undefined'
+    ? false
+    : Boolean(globalThis?.__initialData?.customerDomain);
 
 export const CUSTOMER_DOMAIN =
-  typeof window === 'undefined'
+  typeof globalThis.window === 'undefined'
     ? undefined
-    : window?.__initialData?.customerDomain?.subdomain;
+    : globalThis?.__initialData?.customerDomain?.subdomain;
 
 // Constant used for tracking referrer in session storage rather than
 // ?referrer=foo get parameter:

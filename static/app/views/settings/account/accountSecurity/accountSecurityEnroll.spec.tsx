@@ -34,8 +34,8 @@ describe('AccountSecurityEnroll', () => {
 
     beforeEach(() => {
       setWindowLocation('https://example.test');
-      window.__initialData = {
-        ...window.__initialData,
+      globalThis.__initialData = {
+        ...globalThis.__initialData,
         links: {
           organizationUrl: undefined,
           regionUrl: undefined,
@@ -85,8 +85,8 @@ describe('AccountSecurityEnroll', () => {
 
     it('can enroll from org subdomain', async () => {
       setWindowLocation('https://us-org.example.test');
-      window.__initialData = {
-        ...window.__initialData,
+      globalThis.__initialData = {
+        ...globalThis.__initialData,
         links: {
           organizationUrl: 'https://us-org.example.test',
           regionUrl: 'https://us.example.test',
@@ -136,8 +136,8 @@ describe('AccountSecurityEnroll', () => {
 
     it('can enroll from main domain', async () => {
       OrganizationsStore.load([]);
-      window.__initialData = {
-        ...window.__initialData,
+      globalThis.__initialData = {
+        ...globalThis.__initialData,
         links: {
           organizationUrl: 'https://us-org.example.test',
           regionUrl: 'https://us.example.test',

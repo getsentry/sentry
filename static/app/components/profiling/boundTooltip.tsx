@@ -113,11 +113,11 @@ function BoundTooltip({
       }
 
       if (rafIdRef.current) {
-        window.cancelAnimationFrame(rafIdRef.current);
+        globalThis.cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
       }
 
-      rafIdRef.current = window.requestAnimationFrame(() => {
+      rafIdRef.current = globalThis.requestAnimationFrame(() => {
         if (!sizeCache.current || sizeCache.current?.value !== children) {
           sizeCache.current = {value: children, size: node.getBoundingClientRect()};
         }

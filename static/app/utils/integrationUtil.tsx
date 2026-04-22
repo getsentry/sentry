@@ -201,7 +201,7 @@ export const convertIntegrationTypeToSnakeCase = (
 
 export const safeGetQsParam = (param: string) => {
   try {
-    const query = qs.parse(window.location.search) || {};
+    const query = qs.parse(globalThis.location.search) || {};
     return query[param];
   } catch {
     return undefined;

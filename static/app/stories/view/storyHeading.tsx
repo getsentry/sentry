@@ -30,7 +30,7 @@ export function StoryHeading(props: HeadingProps) {
         href={`#${id}`}
         icon={<IconLink />}
         onClick={() =>
-          copy(`${window.location.toString().replace(/#.*$/, '')}#${id}`, {
+          copy(`${globalThis.location.toString().replace(/#.*$/, '')}#${id}`, {
             successMessage: (
               <Fragment>
                 Copied link to{' '}

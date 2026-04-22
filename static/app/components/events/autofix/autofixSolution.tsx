@@ -383,7 +383,7 @@ function AutofixSolutionDisplay({
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
-        view: window,
+        view: globalThis,
       });
       descriptionRef.current.dispatchEvent(clickEvent);
     }

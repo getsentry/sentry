@@ -152,7 +152,7 @@ export function RepositorySelector() {
                         <IntegrationButton
                           userHasAccess={hasAccess}
                           onAddIntegration={() => {
-                            window.location.reload();
+                            globalThis.location.reload();
                           }}
                           onExternalClick={() => {}}
                           buttonProps={{

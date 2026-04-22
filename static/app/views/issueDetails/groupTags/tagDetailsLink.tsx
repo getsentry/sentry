@@ -28,14 +28,14 @@ export function TagDetailsLink({
   // We only want to prefetch if the user hovers over the tag for 1 second
   // This is to prevent every tag from prefetch when a user scrolls
   const handleMouseEnter = () => {
-    hoverTimeoutRef.current = window.setTimeout(() => {
+    hoverTimeoutRef.current = globalThis.setTimeout(() => {
       setPrefetchEnabled(true);
     }, 1000);
   };
 
   const handleMouseLeave = () => {
     if (hoverTimeoutRef.current) {
-      window.clearTimeout(hoverTimeoutRef.current);
+      globalThis.clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = undefined;
     }
   };
@@ -43,7 +43,7 @@ export function TagDetailsLink({
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) {
-        window.clearTimeout(hoverTimeoutRef.current);
+        globalThis.clearTimeout(hoverTimeoutRef.current);
       }
     };
   }, []);

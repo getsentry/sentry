@@ -127,7 +127,7 @@ describe('Dashboards > Detail', () => {
     await screen.findByRole('button', {name: 'Save and Finish'});
   }
 
-  window.IntersectionObserver = MockIntersectionObserver as any;
+  globalThis.IntersectionObserver = MockIntersectionObserver as any;
 
   describe('prebuilt dashboards', () => {
     let initialData!: ReturnType<typeof initializeOrg>;
@@ -283,7 +283,7 @@ describe('Dashboards > Detail', () => {
     let mockScrollIntoView!: jest.Mock;
 
     beforeEach(() => {
-      window.confirm = jest.fn();
+      globalThis.confirm = jest.fn();
       initialData = initializeOrg({
         organization,
         router: {
@@ -447,7 +447,7 @@ describe('Dashboards > Detail', () => {
       });
 
       mockScrollIntoView = jest.fn();
-      window.HTMLElement.prototype.scrollIntoView = mockScrollIntoView;
+      globalThis.HTMLElement.prototype.scrollIntoView = mockScrollIntoView;
     });
 
     afterEach(() => {
@@ -815,7 +815,7 @@ describe('Dashboards > Detail', () => {
       await activateDashboardEditMode();
       await userEvent.click(await screen.findByText('Cancel'));
 
-      expect(window.confirm).not.toHaveBeenCalled();
+      expect(globalThis.confirm).not.toHaveBeenCalled();
     });
 
     it('opens the widget viewer modal using the widget index specified in the url', async () => {

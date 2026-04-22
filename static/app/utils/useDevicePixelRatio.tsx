@@ -15,12 +15,12 @@ function useDevicePixelRatio(): number {
   }, []);
 
   useLayoutEffect(() => {
-    window
+    globalThis
       .matchMedia(`(resolution: ${devicePixelRatio}dppx)`)
       .addEventListener('change', updateDevicePixelRatio, {once: true});
 
     return () => {
-      window
+      globalThis
         .matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
         .removeEventListener('change', updateDevicePixelRatio);
     };

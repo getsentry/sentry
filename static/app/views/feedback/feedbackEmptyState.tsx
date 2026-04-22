@@ -52,7 +52,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   }, []);
 
   useEffect(() => {
-    window.sentryEmbedCallback = function (embed) {
+    globalThis.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
       embed.submit = function (_body: Record<string, unknown>) {
@@ -72,7 +72,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
       });
     }
     return () => {
-      window.sentryEmbedCallback = null;
+      globalThis.sentryEmbedCallback = null;
     };
   }, [hasAnyFeedback, organization, projectIds]);
 

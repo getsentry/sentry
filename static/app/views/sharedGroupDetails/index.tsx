@@ -32,7 +32,7 @@ function SharedGroupDetails() {
     if (orgId) {
       return orgId;
     }
-    const {customerDomain} = window.__initialData || {};
+    const {customerDomain} = globalThis.__initialData || {};
     if (customerDomain?.subdomain) {
       return customerDomain.subdomain;
     }

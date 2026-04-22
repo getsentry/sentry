@@ -4,14 +4,14 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 export function initializeBundleMetrics() {
   if (
-    !window.performance ||
-    typeof window.performance.measure !== 'function' ||
+    !globalThis.performance ||
+    typeof globalThis.performance.measure !== 'function' ||
     !ConfigStore.get('enableAnalytics')
   ) {
     return;
   }
 
-  const release = window.__initialData.sentryConfig?.release;
+  const release = globalThis.__initialData.sentryConfig?.release;
   try {
     const headMark = performance.getEntriesByName('head-start')[0];
     if (headMark) {
@@ -19,7 +19,7 @@ export function initializeBundleMetrics() {
     }
     performance.getEntriesByType('measure').forEach(measurement => {
       // `window.ra` can potentially be undefined here (e.g. it did not successfully load)
-      window.ra?.metric(measurement.name, measurement.duration, {
+      globalThis.ra?.metric(measurement.name, measurement.duration, {
         release,
       });
     });

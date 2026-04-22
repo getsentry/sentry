@@ -65,7 +65,7 @@ function DisabledPerformancePage({
           shortTitle: t('Upgrade'),
           url: new URL(
             `/checkout/${organization.slug}/`,
-            window.location.origin
+            globalThis.location.origin
           ).toString(),
         },
       }}

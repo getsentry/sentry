@@ -135,7 +135,7 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
   };
 
   handleSuccess = () => {
-    window.location.reload();
+    globalThis.location.reload();
   };
 
   handleError = (err: any) => {
@@ -168,14 +168,14 @@ class SuperuserStaffAccessFormContent extends Component<Props, State> {
   };
 
   handleLogout = () => {
-    const {superuserUrl} = window.__initialData.links;
+    const {superuserUrl} = globalThis.__initialData.links;
     const urlOrigin =
-      window.__initialData.customerDomain && superuserUrl
+      globalThis.__initialData.customerDomain && superuserUrl
         ? superuserUrl
-        : window.location.origin;
+        : globalThis.location.origin;
 
     const nextUrl = new URL('/auth/login/', urlOrigin);
-    nextUrl.searchParams.set('next', window.location.href);
+    nextUrl.searchParams.set('next', globalThis.location.href);
 
     logout(this.props.api, nextUrl.toString());
   };

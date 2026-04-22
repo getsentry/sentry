@@ -118,7 +118,7 @@ describe('Search', () => {
     const opener = {opener: 'Sentry.io', location: {href: null}};
 
     // @ts-expect-error this is a partial mock of the window object
-    const windowSpy = jest.spyOn(window, 'open').mockReturnValue(opener);
+    const windowSpy = jest.spyOn(globalThis, 'open').mockReturnValue(opener);
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'));
     await userEvent.keyboard('Import');
@@ -155,7 +155,7 @@ describe('Search', () => {
     const opener = {opener: 'Sentry.io', location: {href: null}};
 
     // @ts-expect-error this is a partial mock of the window object
-    const windowSpy = jest.spyOn(window, 'open').mockReturnValue(opener);
+    const windowSpy = jest.spyOn(globalThis, 'open').mockReturnValue(opener);
 
     await userEvent.click(screen.getByPlaceholderText('Search Input'));
     await userEvent.keyboard('Import');

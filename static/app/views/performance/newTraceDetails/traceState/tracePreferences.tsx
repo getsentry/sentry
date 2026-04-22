@@ -75,7 +75,7 @@ export function storeTraceViewPreferences(
   };
 
   // Make sure we dont fire this during a render phase
-  window.requestAnimationFrame(() => {
+  globalThis.requestAnimationFrame(() => {
     try {
       localStorage.setItem(key, JSON.stringify(storedState));
     } catch (e) {

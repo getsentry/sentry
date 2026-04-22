@@ -66,12 +66,12 @@ describe('GuideStore', () => {
     ];
 
     GuideStore.fetchSucceeded(data);
-    window.location.hash = '#assistant';
-    window.dispatchEvent(new Event('load'));
+    globalThis.location.hash = '#assistant';
+    globalThis.dispatchEvent(new Event('load'));
     expect(GuideStore.getState().currentGuide?.guide).toBe('issue');
     GuideStore.closeGuide();
     expect(GuideStore.getState().currentGuide?.guide).toBe('issue_stream');
-    window.location.hash = '';
+    globalThis.location.hash = '';
   });
 
   it('should force hide', () => {
@@ -94,7 +94,7 @@ describe('GuideStore', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
 
-    window.dispatchEvent(new Event('load'));
+    globalThis.dispatchEvent(new Event('load'));
     expect(spy).toHaveBeenCalledTimes(1);
 
     GuideStore.nextStep();

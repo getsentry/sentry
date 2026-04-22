@@ -69,7 +69,7 @@ export function useViewKeyboardNavigation(
       }
 
       if (animationRef.current !== null) {
-        window.cancelAnimationFrame(animationRef.current);
+        globalThis.cancelAnimationFrame(animationRef.current);
       }
 
       if (event.key === 'w') {

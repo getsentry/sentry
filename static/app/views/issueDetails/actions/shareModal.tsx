@@ -38,7 +38,7 @@ type UrlRef = React.ElementRef<typeof AutoSelectText>;
 
 export function getShareUrl(organization: Organization, group: Group) {
   const path = `/organizations/${organization.slug}/share/issue/${group.shareId}/`;
-  return `${window.location.origin}${normalizeUrl(path)}`;
+  return `${globalThis.location.origin}${normalizeUrl(path)}`;
 }
 
 export function ShareIssueModal({
@@ -68,11 +68,11 @@ export function ShareIssueModal({
 
   const issueUrl =
     includeEventId && event
-      ? window.location.origin +
+      ? globalThis.location.origin +
         normalizeUrl(
           `/organizations/${organization.slug}/issues/${group?.id}/events/${event.id}/`
         )
-      : window.location.origin +
+      : globalThis.location.origin +
         normalizeUrl(`/organizations/${organization.slug}/issues/${group?.id}/`);
 
   const markdownLink = `[${group?.shortId}](${issueUrl})`;

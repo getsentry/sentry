@@ -38,11 +38,11 @@ describe('useVirtualStreaming', () => {
     jest.resetAllMocks();
 
     requestAnimationFrameSpy = jest
-      .spyOn(window, 'requestAnimationFrame')
+      .spyOn(globalThis, 'requestAnimationFrame')
       .mockImplementation((_callback: FrameRequestCallback): number => {
         return 1;
       });
-    cancelAnimationFrameSpy = jest.spyOn(window, 'cancelAnimationFrame');
+    cancelAnimationFrameSpy = jest.spyOn(globalThis, 'cancelAnimationFrame');
   });
 
   afterEach(() => {

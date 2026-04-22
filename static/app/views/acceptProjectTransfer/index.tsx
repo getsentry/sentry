@@ -29,7 +29,7 @@ function AcceptProjectTransfer() {
     // Because this route happens outside of OrganizationContext we
     // need to use initial data to decide which host to send the request to
     // as `/accept-transfer/` cannot be resolved to a region.
-    const initialData = window.__initialData;
+    const initialData = globalThis.__initialData;
     let host: string | undefined = undefined;
     if (initialData && initialData.links?.regionUrl !== initialData.links?.sentryUrl) {
       host = initialData.links.regionUrl;

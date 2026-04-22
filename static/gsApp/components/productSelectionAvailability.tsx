@@ -151,7 +151,7 @@ function ProductSelectionAvailabilityContainer({
     subscription,
     surface: 'profiling',
     onComplete: () => {
-      window.location.reload();
+      globalThis.location.reload();
     },
     enabled: !hasSessionReplay,
   });
@@ -159,7 +159,7 @@ function ProductSelectionAvailabilityContainer({
   const profilingUpsellModal = useAM2ProfilingUpsellModal({
     subscription,
     onComplete: () => {
-      window.location.reload();
+      globalThis.location.reload();
     },
   });
 

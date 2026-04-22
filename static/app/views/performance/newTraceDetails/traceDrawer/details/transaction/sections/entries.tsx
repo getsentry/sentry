@@ -84,7 +84,7 @@ function EventEntryContent({entry, projectSlug, event}: EventEntryContentProps) 
       return null;
     // this should not happen
     default:
-      if (window.console) {
+      if (globalThis.console) {
         // eslint-disable-next-line no-console
         console.error?.('Unregistered interface: ' + (entry as any).type);
       }

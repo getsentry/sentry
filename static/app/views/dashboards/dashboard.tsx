@@ -217,7 +217,7 @@ function DashboardInner({
         queue.clear();
       }
       window.removeEventListener('resize', debouncedHandleResize);
-      window.clearTimeout(forceCheckTimeout.current);
+      globalThis.clearTimeout(forceCheckTimeout.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -386,8 +386,8 @@ function DashboardInner({
       // Force check lazyLoad elements that might have shifted into view after (re)moving an upper widget
       // Unfortunately need to use window.setTimeout since React Grid Layout animates widgets into view when layout changes
       // RGL doesn't provide a handler for post animation layout change
-      window.clearTimeout(forceCheckTimeout.current);
-      forceCheckTimeout.current = window.setTimeout(forceCheck, 400);
+      globalThis.clearTimeout(forceCheckTimeout.current);
+      forceCheckTimeout.current = globalThis.setTimeout(forceCheck, 400);
     },
     [dashboard.widgets, isMobile, onUpdate, isEditingDashboard]
   );

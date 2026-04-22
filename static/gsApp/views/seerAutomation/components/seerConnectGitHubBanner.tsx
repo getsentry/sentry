@@ -25,7 +25,7 @@ export function SeerConnectGitHubBanner() {
   );
 
   const handleAddIntegration = useCallback(() => {
-    window.location.reload();
+    globalThis.location.reload();
   }, []);
 
   if (!isFetched || isError || data?.hasSupportedScmIntegration) {

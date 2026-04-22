@@ -61,7 +61,7 @@ function mockQueryString(queryString: `?${string}` | '') {
   setWindowLocation(
     `http://localhost/organizations/org-slug/performance/trace/trace-id/${queryString}`
   );
-  expect(window.location.search).toBe(queryString);
+  expect(globalThis.location.search).toBe(queryString);
 }
 
 function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {

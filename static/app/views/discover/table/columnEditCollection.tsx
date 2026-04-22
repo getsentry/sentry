@@ -135,10 +135,10 @@ class ColumnEditCollection extends Component<Props, State> {
 
   cleanUpListeners() {
     if (this.state.isDragging) {
-      window.removeEventListener('mousemove', this.onDragMove);
-      window.removeEventListener('touchmove', this.onDragMove);
-      window.removeEventListener('mouseup', this.onDragEnd);
-      window.removeEventListener('touchend', this.onDragEnd);
+      globalThis.removeEventListener('mousemove', this.onDragMove);
+      globalThis.removeEventListener('touchmove', this.onDragMove);
+      globalThis.removeEventListener('mouseup', this.onDragEnd);
+      globalThis.removeEventListener('touchend', this.onDragEnd);
     }
   }
 
@@ -263,10 +263,10 @@ class ColumnEditCollection extends Component<Props, State> {
     });
 
     // attach event listeners so that the mouse cursor can drag anywhere
-    window.addEventListener('mousemove', this.onDragMove);
-    window.addEventListener('touchmove', this.onDragMove);
-    window.addEventListener('mouseup', this.onDragEnd);
-    window.addEventListener('touchend', this.onDragEnd);
+    globalThis.addEventListener('mousemove', this.onDragMove);
+    globalThis.addEventListener('touchmove', this.onDragMove);
+    globalThis.addEventListener('mouseup', this.onDragEnd);
+    globalThis.addEventListener('touchend', this.onDragEnd);
 
     this.setState({
       isDragging: true,

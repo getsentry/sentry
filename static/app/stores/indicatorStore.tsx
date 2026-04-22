@@ -86,7 +86,7 @@ const storeConfig: IndicatorStoreDefinition = {
     };
 
     if (options.duration) {
-      indicator.clearId = window.setTimeout(() => {
+      indicator.clearId = globalThis.setTimeout(() => {
         this.remove(indicator);
       }, options.duration);
     }
@@ -125,7 +125,7 @@ const storeConfig: IndicatorStoreDefinition = {
     this.state = this.state.filter(item => item !== indicator);
 
     if (indicator.clearId) {
-      window.clearTimeout(indicator.clearId);
+      globalThis.clearTimeout(indicator.clearId);
       indicator.clearId = null;
     }
 

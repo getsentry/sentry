@@ -19,7 +19,7 @@ function ShareModal({currentTimeSec, Header, Body}: any) {
   const [customSeconds, setSeconds] = useState(currentTimeSec);
   const [shareMode, setShareMode] = useState<'current' | 'user'>('current');
 
-  const url = new URL(window.location.href);
+  const url = new URL(globalThis.location.href);
   const {searchParams} = url;
   searchParams.set('referrer', getRouteStringFromRoutes({matches}));
   searchParams.set(

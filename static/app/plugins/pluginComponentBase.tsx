@@ -53,8 +53,8 @@ export abstract class PluginComponentBase<
 
   componentWillUnmount() {
     this.api.clear();
-    window.clearTimeout(this.successMessageTimeout);
-    window.clearTimeout(this.errorMessageTimeout);
+    globalThis.clearTimeout(this.successMessageTimeout);
+    globalThis.clearTimeout(this.errorMessageTimeout);
   }
 
   successMessageTimeout: number | undefined = undefined;
@@ -120,8 +120,8 @@ export abstract class PluginComponentBase<
       () => callback?.()
     );
 
-    window.clearTimeout(this.successMessageTimeout);
-    this.successMessageTimeout = window.setTimeout(() => {
+    globalThis.clearTimeout(this.successMessageTimeout);
+    this.successMessageTimeout = globalThis.setTimeout(() => {
       addSuccessMessage(t('Success!'));
     }, 0);
   }
@@ -135,8 +135,8 @@ export abstract class PluginComponentBase<
       () => callback?.()
     );
 
-    window.clearTimeout(this.errorMessageTimeout);
-    this.errorMessageTimeout = window.setTimeout(() => {
+    globalThis.clearTimeout(this.errorMessageTimeout);
+    this.errorMessageTimeout = globalThis.setTimeout(() => {
       addErrorMessage(t('Unable to save changes. Please try again.'));
     }, 0);
   }

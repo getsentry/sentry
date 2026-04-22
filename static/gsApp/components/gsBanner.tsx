@@ -161,7 +161,7 @@ function NoticeModal({
         referrer: 'modal-billing-failure',
       });
     }
-    if (link === window.location.pathname) {
+    if (link === globalThis.location.pathname) {
       return;
     }
     navigate(link);
@@ -377,7 +377,7 @@ class GSBanner extends Component<Props, State> {
 
   async initializePendo() {
     const {organization, subscription} = this.props;
-    if (!window.pendo || typeof window.pendo.initialize !== 'function') {
+    if (!globalThis.pendo || typeof globalThis.pendo.initialize !== 'function') {
       return;
     }
     try {
@@ -393,7 +393,7 @@ class GSBanner extends Component<Props, State> {
       // if no current active guide, can just start Pendo
       // TODO: should delay Pendo if there is any popup at all that's blocking and not just guides
       const guideIsActive = !!GuideStore.state.currentGuide;
-      window.pendo.initialize({
+      globalThis.pendo.initialize({
         guides: {
           delay: guideIsActive,
         },
@@ -873,7 +873,7 @@ class GSBanner extends Component<Props, State> {
   renderProductTrialAlerts() {
     const {subscription, organization, api} = this.props;
 
-    const productPath = getProductForPath(subscription, window.location.pathname);
+    const productPath = getProductForPath(subscription, globalThis.location.pathname);
     if (!productPath) {
       return null;
     }

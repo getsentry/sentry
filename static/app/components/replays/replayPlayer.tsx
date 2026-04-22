@@ -108,7 +108,7 @@ function BasePlayerRoot({
   useResizeObserver({ref: windowEl, onResize: updateWindowDimensions});
   // If your browser doesn't have ResizeObserver then set the size once.
   useEffect(() => {
-    if (typeof window.ResizeObserver !== 'undefined') {
+    if (typeof globalThis.ResizeObserver !== 'undefined') {
       return;
     }
     updateWindowDimensions();

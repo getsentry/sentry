@@ -14,7 +14,7 @@ import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLin
 
 function setupConfigStore(organization: Organization) {
   const defaultConfig = ConfigFixture();
-  window.__initialData = {
+  globalThis.__initialData = {
     ...defaultConfig,
     customerDomain: {
       subdomain: organization.slug,
@@ -26,12 +26,12 @@ function setupConfigStore(organization: Organization) {
       sentryUrl: 'https://sentry.io',
     },
   };
-  ConfigStore.loadInitialData(window.__initialData);
+  ConfigStore.loadInitialData(globalThis.__initialData);
 }
 
 function teardownConfigStore() {
-  window.__initialData = ConfigFixture();
-  ConfigStore.loadInitialData(window.__initialData);
+  globalThis.__initialData = ConfigFixture();
+  ConfigStore.loadInitialData(globalThis.__initialData);
 }
 
 describe('IntegrationOrganizationLink', () => {

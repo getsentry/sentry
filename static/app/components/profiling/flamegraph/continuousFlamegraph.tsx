@@ -225,7 +225,7 @@ function findLongestMatchingFrame(
 }
 
 function decodeConfigSpace(): [number, number] {
-  const qs = new URLSearchParams(window.location.search);
+  const qs = new URLSearchParams(globalThis.location.search);
   const startedAt = qs.get('start');
   const endedAt = qs.get('end');
   if (!startedAt || !endedAt) {

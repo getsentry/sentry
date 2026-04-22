@@ -136,7 +136,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
 
 export class RuleNodeList extends Component<Props> {
   componentWillUnmount() {
-    window.clearTimeout(this.propertyChangeTimeout);
+    globalThis.clearTimeout(this.propertyChangeTimeout);
   }
 
   propertyChangeTimeout: number | undefined = undefined;
@@ -210,8 +210,8 @@ export class RuleNodeList extends Component<Props> {
           // is undefined even if initial value is defined
           // can't directly call onPropertyChange, because
           // getNode is called during render
-          window.clearTimeout(this.propertyChangeTimeout);
-          this.propertyChangeTimeout = window.setTimeout(() =>
+          globalThis.clearTimeout(this.propertyChangeTimeout);
+          this.propertyChangeTimeout = globalThis.setTimeout(() =>
             onPropertyChange(itemIdx, 'comparisonInterval', '1w')
           );
         }

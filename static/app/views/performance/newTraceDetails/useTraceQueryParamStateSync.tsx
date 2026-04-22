@@ -24,11 +24,11 @@ export function useTraceQueryParamStateSync(query: Record<string, string | undef
     }
 
     if (syncStateTimeoutRef.current !== null) {
-      window.clearTimeout(syncStateTimeoutRef.current);
+      globalThis.clearTimeout(syncStateTimeoutRef.current);
     }
 
     previousQueryRef.current = query;
-    syncStateTimeoutRef.current = window.setTimeout(() => {
+    syncStateTimeoutRef.current = globalThis.setTimeout(() => {
       navigate(
         {
           pathname: location.pathname,

@@ -187,7 +187,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   componentWillUnmount() {
     super.componentWillUnmount();
     this.isUnmounted = true;
-    window.clearTimeout(this.pollingTimeout);
+    globalThis.clearTimeout(this.pollingTimeout);
     this.checkIncompatibleRuleDebounced.cancel();
   }
 
@@ -331,9 +331,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       const {status, rule, error} = response;
 
       if (status === 'pending') {
-        window.clearTimeout(this.pollingTimeout);
+        globalThis.clearTimeout(this.pollingTimeout);
 
-        this.pollingTimeout = window.setTimeout(() => {
+        this.pollingTimeout = globalThis.setTimeout(() => {
           this.pollHandler(quitTime);
         }, 1000);
         return;
@@ -408,9 +408,9 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     // or failed status but we don't want to poll forever so we pass
     // in a hard stop time of 3 minutes before we bail.
     const quitTime = Date.now() + POLLING_MAX_TIME_LIMIT;
-    window.clearTimeout(this.pollingTimeout);
+    globalThis.clearTimeout(this.pollingTimeout);
 
-    this.pollingTimeout = window.setTimeout(() => {
+    this.pollingTimeout = globalThis.setTimeout(() => {
       this.pollHandler(quitTime);
     }, 1000);
   }

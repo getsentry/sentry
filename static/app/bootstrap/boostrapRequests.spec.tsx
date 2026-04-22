@@ -73,7 +73,7 @@ describe('useBootstrapOrganizationQuery', () => {
   });
 
   it('removes the promise from window.__sentry_preload after use', async () => {
-    window.__sentry_preload = {
+    globalThis.__sentry_preload = {
       orgSlug: org.slug,
       organization: Promise.resolve<ApiResult<Organization>>([org, undefined, undefined]),
     };
@@ -81,7 +81,7 @@ describe('useBootstrapOrganizationQuery', () => {
       useBootstrapOrganizationQuery(orgSlug)
     );
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(window.__sentry_preload?.organization).toBeUndefined();
+    expect(globalThis.__sentry_preload?.organization).toBeUndefined();
   });
 
   it('sets feature flags, activates organization, and sets sentry tags', async () => {

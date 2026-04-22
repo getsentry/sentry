@@ -21,7 +21,7 @@ const UNSUPPORTED_NOTICE = t(
 const FAILURE_MESSAGE = t('There was a problem enrolling, please try again.');
 
 export function WebAuthnEnroll({challengeData}: WebAuthnEnrollProps) {
-  const isSupported = !!window.PublicKeyCredential;
+  const isSupported = !!globalThis.PublicKeyCredential;
   const challenge = JSON.stringify(challengeData);
 
   const [activated, setActivated] = useState(false);

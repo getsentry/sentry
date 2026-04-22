@@ -17,8 +17,8 @@ const ERROR_MAP: Record<number, string | undefined> = {
 
 describe('initializeSdk', () => {
   beforeAll(() => {
-    window.__initialData = {
-      ...window.__initialData,
+    globalThis.__initialData = {
+      ...globalThis.__initialData,
       customerDomain: null,
     };
   });
@@ -28,7 +28,7 @@ describe('initializeSdk', () => {
   // so that we can have frontend to backend tracing.
   it('enables distributed tracing to sentry api endpoint', () => {
     initializeSdk({
-      ...window.__initialData,
+      ...globalThis.__initialData,
       apmSampling: 1,
       sentryConfig: {
         allowUrls: [],
@@ -47,7 +47,7 @@ describe('initializeSdk', () => {
 
   it('filters malformed [null,null] unhandled rejections', () => {
     initializeSdk({
-      ...window.__initialData,
+      ...globalThis.__initialData,
       apmSampling: 1,
       sentryConfig: {
         allowUrls: [],

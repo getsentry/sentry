@@ -22,7 +22,7 @@ type MarketingEventSchema = {
  * events to Google Analytics and storing the previous_referrer into local storage
  */
 export function analyticsInitUser(user: User) {
-  const {frontend_events, referrer} = qs.parse(window.location.search) || {};
+  const {frontend_events, referrer} = qs.parse(globalThis.location.search) || {};
   // store the referrer in sessionStorage so we know what it was when the user
   // navigates to another page
   if (referrer && typeof referrer === 'string') {

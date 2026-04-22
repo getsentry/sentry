@@ -21,7 +21,7 @@ export function AutoSizedText({children}: Props) {
       return undefined;
     }
 
-    if (!window.ResizeObserver) {
+    if (!globalThis.ResizeObserver) {
       // `ResizeObserver` is missing in a test environment. In this case,
       // run one iteration of the resize behaviour so a test can at least
       // verify that the component doesn't crash.

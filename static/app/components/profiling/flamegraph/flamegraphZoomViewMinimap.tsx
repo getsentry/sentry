@@ -403,10 +403,10 @@ function FlamegraphZoomViewMinimap({
   );
 
   useEffect(() => {
-    window.addEventListener('mouseup', onMinimapCanvasMouseUp);
+    globalThis.addEventListener('mouseup', onMinimapCanvasMouseUp);
 
     return () => {
-      window.removeEventListener('mouseup', onMinimapCanvasMouseUp);
+      globalThis.removeEventListener('mouseup', onMinimapCanvasMouseUp);
     };
   }, [onMinimapCanvasMouseUp]);
 

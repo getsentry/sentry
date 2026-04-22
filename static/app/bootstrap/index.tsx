@@ -6,9 +6,9 @@ import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 const BOOTSTRAP_URL = '/api/client-config/';
 
 const bootApplication = (data: Config) => {
-  window.csrfCookieName = data.csrfCookieName;
-  window.superUserCookieName = data.superUserCookieName;
-  window.superUserCookieDomain = data.superUserCookieDomain ?? undefined;
+  globalThis.csrfCookieName = data.csrfCookieName;
+  globalThis.superUserCookieName = data.superUserCookieName;
+  globalThis.superUserCookieDomain = data.superUserCookieDomain ?? undefined;
 
   return data;
 };
@@ -24,8 +24,8 @@ async function bootWithHydration() {
   // Shim up the initialData payload to quack like it came from
   // a customer-domains initial request. Because our initial call to BOOTSTRAP_URL
   // will not be on a customer domain, the response will not include this context.
-  if (data.customerDomain === null && window.__SENTRY_DEV_UI) {
-    const domain = extractSlug(window.location.host);
+  if (data.customerDomain === null && globalThis.__SENTRY_DEV_UI) {
+    const domain = extractSlug(globalThis.location.host);
     if (domain) {
       data.customerDomain = {
         organizationUrl: `https://${domain.slug}.sentry.io`,
@@ -34,7 +34,7 @@ async function bootWithHydration() {
       };
     }
   }
-  window.__initialData = data;
+  globalThis.__initialData = data;
 
   bootApplication(data);
   preloadOrganizationData(data);
@@ -49,8 +49,8 @@ async function promiseRequest(url: string) {
       headers: {
         Accept: 'application/json; charset=utf-8',
         'Content-Type': 'application/json',
-        'sentry-trace': window.__initialData.initialTrace.sentry_trace,
-        baggage: window.__initialData.initialTrace.baggage,
+        'sentry-trace': globalThis.__initialData.initialTrace.sentry_trace,
+        baggage: globalThis.__initialData.initialTrace.baggage,
       },
       credentials: 'include',
       priority: 'high',
@@ -92,7 +92,7 @@ function preloadOrganizationData(config: Config) {
   }
   // When running in 'dev-ui' mode we need to use /region/$region instead of
   // subdomains so that webpack/vercel can proxy requests.
-  if (host && window.__SENTRY_DEV_UI) {
+  if (host && globalThis.__SENTRY_DEV_UI) {
     const domainpattern = /https?:\/\/([^.]*)\.sentry.io/;
     const domainmatch = host.match(domainpattern);
     if (domainmatch) {
@@ -105,7 +105,7 @@ function preloadOrganizationData(config: Config) {
   }
 
   const preloadPromises: Record<string, any> = {orgSlug: slug};
-  window.__sentry_preload = preloadPromises;
+  globalThis.__sentry_preload = preloadPromises;
   try {
     if (!slug) {
       return;
@@ -129,7 +129,7 @@ function preloadOrganizationData(config: Config) {
  * template.
  */
 export async function bootstrap() {
-  const bootstrapData = window.__initialData;
+  const bootstrapData = globalThis.__initialData;
 
   // If __initialData is not already set on the window, we are likely running in
   // pure SPA mode, meaning django is not serving our frontend application and we

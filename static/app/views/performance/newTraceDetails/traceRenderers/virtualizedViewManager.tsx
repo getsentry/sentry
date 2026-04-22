@@ -526,7 +526,7 @@ export class VirtualizedViewManager {
 
   onBringRowIntoView(space: [number, number]) {
     if (this.timers.onZoomIntoSpace !== null) {
-      window.cancelAnimationFrame(this.timers.onZoomIntoSpace);
+      globalThis.cancelAnimationFrame(this.timers.onZoomIntoSpace);
       this.timers.onZoomIntoSpace = null;
     }
 
@@ -599,7 +599,7 @@ export class VirtualizedViewManager {
           x,
           width,
         });
-        this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
+        this.timers.onZoomIntoSpace = globalThis.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
         this.scheduler.dispatch('set trace view', {
@@ -609,7 +609,7 @@ export class VirtualizedViewManager {
       }
     };
 
-    this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
+    this.timers.onZoomIntoSpace = globalThis.requestAnimationFrame(rafCallback);
   }
 
   resetZoom() {
@@ -618,7 +618,7 @@ export class VirtualizedViewManager {
 
   enqueueOnWheelEndRaf() {
     if (this.timers.onWheelEnd !== null) {
-      window.cancelAnimationFrame(this.timers.onWheelEnd);
+      globalThis.cancelAnimationFrame(this.timers.onWheelEnd);
     }
 
     const start = performance.now();
@@ -627,11 +627,11 @@ export class VirtualizedViewManager {
       if (elapsed > 100) {
         this.onWheelEnd();
       } else {
-        this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
+        this.timers.onWheelEnd = globalThis.requestAnimationFrame(rafCallback);
       }
     };
 
-    this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
+    this.timers.onWheelEnd = globalThis.requestAnimationFrame(rafCallback);
   }
 
   onWheelStart() {
@@ -695,7 +695,7 @@ export class VirtualizedViewManager {
 
   enqueueFOVQueryParamSync(view: TraceView) {
     if (this.timers.onFovChange !== null) {
-      window.cancelAnimationFrame(this.timers.onFovChange.id);
+      globalThis.cancelAnimationFrame(this.timers.onFovChange.id);
     }
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
@@ -818,7 +818,7 @@ export class VirtualizedViewManager {
     }
 
     if (this.timers.onRowIntoView !== null) {
-      window.cancelAnimationFrame(this.timers.onRowIntoView);
+      globalThis.cancelAnimationFrame(this.timers.onRowIntoView);
       this.timers.onRowIntoView = null;
     }
 
@@ -936,7 +936,7 @@ export class VirtualizedViewManager {
       return;
     }
 
-    window.cancelAnimationFrame(this.timers.onScrollEndSync?.id ?? 0);
+    globalThis.cancelAnimationFrame(this.timers.onScrollEndSync?.id ?? 0);
 
     this.timers.onScrollEndSync = requestAnimationTimeout(() => {
       this.onScrollEndOutOfBoundsCheck();
@@ -1050,7 +1050,7 @@ export class VirtualizedViewManager {
 
       if (progress < 1) {
         this.columns.list.translate[0] = pos;
-        this.timers.onRowIntoView = window.requestAnimationFrame(animate);
+        this.timers.onRowIntoView = globalThis.requestAnimationFrame(animate);
       } else {
         this.timers.onRowIntoView = null;
         if (this.horizontal_scrollbar_container) {
@@ -1062,7 +1062,7 @@ export class VirtualizedViewManager {
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
     };
 
-    this.timers.onRowIntoView = window.requestAnimationFrame(animate);
+    this.timers.onRowIntoView = globalThis.requestAnimationFrame(animate);
   }
 
   initialize(container: HTMLElement) {
@@ -1826,7 +1826,7 @@ function dispatchJestScrollUpdate(container: HTMLElement) {
     return;
   }
   // since we do not tightly control how browsers handle event dispatching, dispatch it async
-  window.requestAnimationFrame(() => {
+  globalThis.requestAnimationFrame(() => {
     container.dispatchEvent(new CustomEvent('scroll'));
   });
 }

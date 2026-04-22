@@ -24,7 +24,7 @@ export function init(config: Config) {
   // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed
   commonInitialization(config);
 
-  ConfigStore.set('getsentry.sendgridApiKey', window.__sendGridApiKey);
+  ConfigStore.set('getsentry.sendgridApiKey', globalThis.__sendGridApiKey);
 }
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
@@ -49,4 +49,4 @@ export function renderApp() {
 }
 
 // Make the sentry client available to the configurations beforeSend
-window.Sentry = Sentry;
+globalThis.Sentry = Sentry;

@@ -6,5 +6,5 @@ export function getConversationsUrl(
   conversationId: number | string
 ): string {
   const basePath = `/organizations/${organizationSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversationId)}/`;
-  return `${window.location.origin}${normalizeUrl(basePath)}`;
+  return `${globalThis.location.origin}${normalizeUrl(basePath)}`;
 }

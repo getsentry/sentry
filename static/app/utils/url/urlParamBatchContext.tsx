@@ -26,9 +26,9 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
 
     navigate(
       {
-        pathname: window.location.pathname,
+        pathname: globalThis.location.pathname,
         query: {
-          ...qs.parse(window.location.search),
+          ...qs.parse(globalThis.location.search),
           ...pendingUpdates.current,
         },
       },

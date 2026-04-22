@@ -187,7 +187,7 @@ export default function IntegrationOrganizationLink() {
       const normalizedUrl = normalizeUrl(
         `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
       );
-      window.location.assign(
+      globalThis.location.assign(
         `${organization?.links.organizationUrl || ''}${normalizedUrl}`
       );
     },
@@ -204,7 +204,7 @@ export default function IntegrationOrganizationLink() {
       provider,
     });
     // need to send to control silo to finish the installation
-    window.location.assign(
+    globalThis.location.assign(
       `${organization?.links.organizationUrl || ''}/extensions/${
         integrationSlug
       }/configure/?${urlEncode(query)}`

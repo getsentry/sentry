@@ -5,7 +5,7 @@
  */
 export async function activateZendesk() {
   if (await zendeskIsLoaded()) {
-    window.zE.activate({hideOnClose: true});
+    globalThis.zE.activate({hideOnClose: true});
   }
 }
 
@@ -14,7 +14,7 @@ export async function activateZendesk() {
  * widget is correctly loaded.
  */
 export function hasZendesk() {
-  return window.zE && typeof window.zE.activate === 'function';
+  return globalThis.zE && typeof globalThis.zE.activate === 'function';
 }
 
 /**
@@ -22,7 +22,7 @@ export function hasZendesk() {
  * configurations (such as Firefox's Strict Mode)
  */
 export async function zendeskIsLoaded() {
-  if (!window.zE || typeof window.zE.activate !== 'function') {
+  if (!globalThis.zE || typeof globalThis.zE.activate !== 'function') {
     return false;
   }
 

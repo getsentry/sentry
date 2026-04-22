@@ -128,7 +128,7 @@ describe('FeedbackItemUsername', () => {
     await userEvent.click(username);
 
     await waitFor(() => {
-      expect(window.getSelection()?.toString()).toBe('Foo Bar•foo@bar.com');
+      expect(globalThis.getSelection()?.toString()).toBe('Foo Bar•foo@bar.com');
     });
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Foo Bar <foo@bar.com>');

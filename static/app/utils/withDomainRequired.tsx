@@ -42,7 +42,7 @@ export function withDomainRequired(WrappedComponent: RouteComponent) {
     if (!customerDomain || !hasCustomerDomain) {
       // This route should only be accessed if a customer domain is used.
       // We redirect the user to the sentryUrl.
-      const redirectPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      const redirectPath = `${globalThis.location.pathname}${globalThis.location.search}${globalThis.location.hash}`;
       const redirectURL = `${trimEnd(sentryUrl, '/')}/${trimStart(redirectPath, '/')}`;
       testableWindowLocation.replace(redirectURL);
       return null;

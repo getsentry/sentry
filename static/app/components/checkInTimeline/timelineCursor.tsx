@@ -61,7 +61,7 @@ function useTimelineCursor<E extends HTMLElement>({
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
+        globalThis.cancelAnimationFrame(rafIdRef.current);
       }
 
       if (containerRef.current === null) {
@@ -89,7 +89,7 @@ function useTimelineCursor<E extends HTMLElement>({
         setIsVisible(isInsideContainer);
       }
 
-      rafIdRef.current = window.requestAnimationFrame(() => {
+      rafIdRef.current = globalThis.requestAnimationFrame(() => {
         if (containerRef.current === null || labelRef.current === null) {
           return;
         }
@@ -113,12 +113,12 @@ function useTimelineCursor<E extends HTMLElement>({
 
   useEffect(() => {
     if (enabled) {
-      window.addEventListener('mousemove', handleMouseMove);
+      globalThis.addEventListener('mousemove', handleMouseMove);
     } else {
       setIsVisible(false);
     }
 
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    return () => globalThis.removeEventListener('mousemove', handleMouseMove);
   }, [enabled, handleMouseMove]);
 
   const labelOverlay = (

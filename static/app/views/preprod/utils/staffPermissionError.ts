@@ -11,7 +11,7 @@ export function handleStaffPermissionError(responseDetail: StaffErrorDetail) {
       )
     );
     setTimeout(() => {
-      window.location.href = '/_admin/';
+      globalThis.location.href = '/_admin/';
     }, 2000);
     return;
   }

@@ -30,7 +30,7 @@ export function Main() {
   const [router] = useState(buildRouter);
 
   useEffect(() => {
-    preload(router.routes, window.location.pathname);
+    preload(router.routes, globalThis.location.pathname);
   }, [router.routes]);
 
   return (

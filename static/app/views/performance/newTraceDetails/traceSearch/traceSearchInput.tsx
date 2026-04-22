@@ -50,7 +50,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
   useLayoutEffect(() => {
     if (typeof timeoutRef.current === 'number') {
-      window.clearTimeout(timeoutRef.current);
+      globalThis.clearTimeout(timeoutRef.current);
       timeoutRef.current = undefined;
     }
 
@@ -72,7 +72,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       }
 
       const schedule = nextStatus[0] + MIN_LOADING_TIME - performance.now();
-      timeoutRef.current = window.setTimeout(() => {
+      timeoutRef.current = globalThis.setTimeout(() => {
         if (!cancel) {
           setStatus(nextStatus);
         }

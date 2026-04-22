@@ -41,7 +41,7 @@ export function getEventPath(matches: Array<UIMatch<unknown, unknown>>) {
  * @returns A string representing the route path
  */
 export function getUrlFromLocation(location: Location) {
-  const previousUrlObj = new URL(window.location.origin + location.pathname);
+  const previousUrlObj = new URL(globalThis.location.origin + location.pathname);
   previousUrlObj.search = location.search;
   previousUrlObj.hash = location.hash;
   return previousUrlObj.toString();

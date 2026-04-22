@@ -31,8 +31,8 @@ class ResizeObserver {
   disconnect() {}
 }
 
-window.ResizeObserver = ResizeObserver;
-window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+globalThis.ResizeObserver = ResizeObserver;
+globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
   cb(performance.now());
   return 0;
 };

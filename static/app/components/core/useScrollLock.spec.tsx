@@ -159,7 +159,7 @@ describe('useScrollLock', () => {
     const originalClientWidth = document.body.clientWidth;
     const originalScrollX = window.scrollX;
     const originalScrollY = window.scrollY;
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(globalThis, 'innerWidth', {
       configurable: true,
       value: 1200,
     });
@@ -167,15 +167,15 @@ describe('useScrollLock', () => {
       configurable: true,
       value: 1180,
     });
-    Object.defineProperty(window, 'scrollX', {
+    Object.defineProperty(globalThis, 'scrollX', {
       configurable: true,
       value: scrollX,
     });
-    Object.defineProperty(window, 'scrollY', {
+    Object.defineProperty(globalThis, 'scrollY', {
       configurable: true,
       value: scrollY,
     });
-    const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const scrollToSpy = jest.spyOn(globalThis, 'scrollTo').mockImplementation(() => {});
 
     const {result} = renderHook(() => useScrollLock(document.body));
 
@@ -202,7 +202,7 @@ describe('useScrollLock', () => {
     jest.runAllTimers();
     expect(scrollToSpy).toHaveBeenCalledWith(scrollX, scrollY);
 
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(globalThis, 'innerWidth', {
       configurable: true,
       value: originalInnerWidth,
     });
@@ -210,11 +210,11 @@ describe('useScrollLock', () => {
       configurable: true,
       value: originalClientWidth,
     });
-    Object.defineProperty(window, 'scrollX', {
+    Object.defineProperty(globalThis, 'scrollX', {
       configurable: true,
       value: originalScrollX,
     });
-    Object.defineProperty(window, 'scrollY', {
+    Object.defineProperty(globalThis, 'scrollY', {
       configurable: true,
       value: originalScrollY,
     });
@@ -225,7 +225,7 @@ describe('useScrollLock', () => {
     const originalInnerWidth = window.innerWidth;
     const originalClientWidth = document.body.clientWidth;
     const originalScrollY = window.scrollY;
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(globalThis, 'innerWidth', {
       configurable: true,
       value: 1200,
     });
@@ -233,11 +233,11 @@ describe('useScrollLock', () => {
       configurable: true,
       value: 1180,
     });
-    Object.defineProperty(window, 'scrollY', {
+    Object.defineProperty(globalThis, 'scrollY', {
       configurable: true,
       value: 0,
     });
-    const scrollToSpy = jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const scrollToSpy = jest.spyOn(globalThis, 'scrollTo').mockImplementation(() => {});
 
     // Set existing paddingRight on body
     document.body.style.paddingRight = '10px';
@@ -255,7 +255,7 @@ describe('useScrollLock', () => {
     expect(document.body).toHaveStyle({paddingRight: '10px'});
 
     document.body.style.paddingRight = '';
-    Object.defineProperty(window, 'innerWidth', {
+    Object.defineProperty(globalThis, 'innerWidth', {
       configurable: true,
       value: originalInnerWidth,
     });
@@ -263,7 +263,7 @@ describe('useScrollLock', () => {
       configurable: true,
       value: originalClientWidth,
     });
-    Object.defineProperty(window, 'scrollY', {
+    Object.defineProperty(globalThis, 'scrollY', {
       configurable: true,
       value: originalScrollY,
     });

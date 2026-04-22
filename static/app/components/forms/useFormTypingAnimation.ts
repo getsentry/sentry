@@ -31,7 +31,7 @@ export function useFormTypingAnimation({
   const cancelFormTypingAnimation = useCallback(() => {
     runIdRef.current += 1;
     if (animationFrameRef.current !== null) {
-      window.cancelAnimationFrame(animationFrameRef.current);
+      globalThis.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
   }, []);
@@ -78,7 +78,7 @@ export function useFormTypingAnimation({
         }
 
         if (currentIndexRef.current < text.length) {
-          animationFrameRef.current = window.requestAnimationFrame(animate);
+          animationFrameRef.current = globalThis.requestAnimationFrame(animate);
           return;
         }
 
@@ -87,7 +87,7 @@ export function useFormTypingAnimation({
         formModel.setValue(fieldName, text);
       };
 
-      animationFrameRef.current = window.requestAnimationFrame(animate);
+      animationFrameRef.current = globalThis.requestAnimationFrame(animate);
     },
     [cancelFormTypingAnimation, defaultSpeed]
   );

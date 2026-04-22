@@ -24,7 +24,7 @@ beforeEach(() => {
   document.elementsFromPoint = () => [];
 
   jest
-    .spyOn(window, 'requestAnimationFrame')
+    .spyOn(globalThis, 'requestAnimationFrame')
     .mockImplementation((callback: FrameRequestCallback): number => {
       callback(0);
       return 0;
@@ -32,7 +32,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.mocked(window.requestAnimationFrame).mockRestore();
+  jest.mocked(globalThis.requestAnimationFrame).mockRestore();
 });
 
 function setupTestComponent() {

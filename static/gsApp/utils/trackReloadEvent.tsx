@@ -5,5 +5,5 @@ export function trackReloadEvent(eventType: string, data: Record<PropertyKey, un
   if (!ConfigStore.get('enableAnalytics')) {
     return;
   }
-  window.ra?.event(eventType, data);
+  globalThis.ra?.event(eventType, data);
 }

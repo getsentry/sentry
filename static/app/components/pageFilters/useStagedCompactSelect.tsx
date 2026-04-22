@@ -420,12 +420,12 @@ export function useStagedCompactSelect<Value extends SelectKey>({
       keyRef.current = null;
       setModifierActive(false);
     };
-    window.addEventListener('keydown', onKeyChange);
-    window.addEventListener('keyup', onKeyChange);
+    globalThis.addEventListener('keydown', onKeyChange);
+    globalThis.addEventListener('keyup', onKeyChange);
     window.addEventListener('blur', onBlur);
     return () => {
-      window.removeEventListener('keydown', onKeyChange);
-      window.removeEventListener('keyup', onKeyChange);
+      globalThis.removeEventListener('keydown', onKeyChange);
+      globalThis.removeEventListener('keyup', onKeyChange);
       window.removeEventListener('blur', onBlur);
     };
   }, []);

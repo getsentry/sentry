@@ -41,7 +41,7 @@ function handleExitSuperuser(api: Client) {
     .requestPromise('/staff-auth/', {
       method: 'DELETE',
     })
-    .then(() => window.location.reload());
+    .then(() => globalThis.location.reload());
 }
 
 function ExitSuperuserButton() {

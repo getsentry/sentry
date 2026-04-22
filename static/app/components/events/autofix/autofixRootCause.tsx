@@ -468,7 +468,7 @@ function AutofixRootCauseDisplay({
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
-        view: window,
+        view: globalThis,
       });
       descriptionRef.current.dispatchEvent(clickEvent);
     }
@@ -508,8 +508,8 @@ function AutofixRootCauseDisplay({
   const handleLaunchCodingAgent = (integration: CodingAgentIntegration) => {
     // Redirect to OAuth if the integration requires identity but user hasn't authenticated
     if (integration.requires_identity && !integration.has_identity) {
-      const currentUrl = window.location.href;
-      window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+      const currentUrl = globalThis.location.href;
+      globalThis.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
       return;
     }
 

@@ -43,7 +43,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
   // for the copy url button below. normalizeUrl can return an object if `query`
   // or other options are passed, which breaks the copy-paste.
   const feedbackUrl =
-    window.location.origin +
+    globalThis.location.origin +
     makeFeedbackPathname({
       path: '/',
       organization,

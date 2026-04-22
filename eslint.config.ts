@@ -849,7 +849,6 @@ export default typescript.config([
       'unicorn/prefer-dom-node-dataset': 'off',
       'unicorn/prefer-dom-node-remove': 'off',
       'unicorn/prefer-dom-node-text-content': 'off',
-      'unicorn/prefer-global-this': 'off',
       'unicorn/prefer-math-min-max': 'off',
       'unicorn/prefer-module': 'off',
       'unicorn/prefer-number-properties': 'off',

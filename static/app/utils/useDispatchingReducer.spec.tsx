@@ -5,12 +5,12 @@ import {useDispatchingReducer} from 'sentry/utils/useDispatchingReducer';
 
 describe('useDispatchingReducer', () => {
   beforeEach(() => {
-    window.requestAnimationFrame = jest
+    globalThis.requestAnimationFrame = jest
       .fn()
       .mockImplementation((cb: FrameRequestCallback) => {
         return setTimeout(cb, 0);
       });
-    window.cancelAnimationFrame = jest.fn().mockImplementation(id => {
+    globalThis.cancelAnimationFrame = jest.fn().mockImplementation(id => {
       return clearTimeout(id);
     });
     jest.useFakeTimers();

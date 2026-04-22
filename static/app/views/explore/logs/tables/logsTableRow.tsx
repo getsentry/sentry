@@ -193,7 +193,7 @@ export const LogRowContent = memo(function LogRowContent({
       }
     }
 
-    if (window.getSelection()?.toString() === '') {
+    if (globalThis.getSelection()?.toString() === '') {
       toggleExpanded();
     }
   }

@@ -5,12 +5,12 @@ export function handleGuideUpdate(
   {dismissed}: {dismissed?: boolean}
 ) {
   // if not ready, ignore
-  if (!window.pendo?.isReady?.()) {
+  if (!globalThis.pendo?.isReady?.()) {
     return;
   }
   // only start Pendo if there is no next guide
   // and the user did not dismiss
   if (!nextGuide && !dismissed) {
-    window.pendo.startGuides();
+    globalThis.pendo.startGuides();
   }
 }

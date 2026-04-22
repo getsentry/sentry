@@ -40,7 +40,7 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
     if (!props.input) {
       return LOADING_PROFILE_GROUP;
     }
-    const qs = new URLSearchParams(window.location.search);
+    const qs = new URLSearchParams(globalThis.location.search);
     const threadId = qs.get('tid');
 
     try {

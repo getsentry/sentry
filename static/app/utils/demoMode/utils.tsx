@@ -71,7 +71,7 @@ function initDemoAnalytics() {
     const mainScript = document.createElement('script');
     mainScript.id = 'plausible-script';
     mainScript.defer = true;
-    mainScript.setAttribute('data-domain', window.location.hostname);
+    mainScript.setAttribute('data-domain', globalThis.location.hostname);
     mainScript.src = 'https://plausible.io/js/script.pageview-props.tagged-events.js';
 
     const queueScript = document.createElement('script');

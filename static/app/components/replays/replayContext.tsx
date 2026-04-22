@@ -261,16 +261,16 @@ export function Provider({
       // Clear previous timers. Without this (but with the setTimeout) multiple
       // requests to set the currentTime could finish out of order and cause jumping.
       if (playTimer.current) {
-        window.clearTimeout(playTimer.current);
+        globalThis.clearTimeout(playTimer.current);
       }
 
       replayer.setConfig({skipInactive});
 
       if (isPlaying) {
-        playTimer.current = window.setTimeout(() => replayer.play(time), 0);
+        playTimer.current = globalThis.setTimeout(() => replayer.play(time), 0);
         setIsPlaying(true);
       } else {
-        playTimer.current = window.setTimeout(() => replayer.pause(time), 0);
+        playTimer.current = globalThis.setTimeout(() => replayer.pause(time), 0);
         setIsPlaying(false);
       }
     },

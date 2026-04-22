@@ -34,12 +34,12 @@ export function TimelineTooltip({container}: Props) {
   const [lastHoverTime, setLastHoverTime] = useState<number | undefined>(undefined);
   useEffect(() => {
     if (currentHoverTime === undefined) {
-      timeoutRef.current = window.setTimeout(() => {
+      timeoutRef.current = globalThis.setTimeout(() => {
         setLastHoverTime(undefined);
       }, 0);
     } else {
       if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
+        globalThis.clearTimeout(timeoutRef.current);
         timeoutRef.current = undefined;
       }
       setLastHoverTime(currentHoverTime);
@@ -47,7 +47,7 @@ export function TimelineTooltip({container}: Props) {
 
     return () => {
       if (timeoutRef.current) {
-        window.clearTimeout(timeoutRef.current);
+        globalThis.clearTimeout(timeoutRef.current);
       }
     };
   }, [currentHoverTime]);

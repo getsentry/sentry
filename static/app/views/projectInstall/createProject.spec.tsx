@@ -295,7 +295,7 @@ describe('CreateProject', () => {
     TeamStore.loadUserTeams([teamWithAccess]);
 
     // Simulate a previously created project stored in localStorage
-    window.localStorage.setItem(
+    globalThis.localStorage.setItem(
       'created-project-context',
       JSON.stringify({
         id: '12345',
@@ -337,7 +337,7 @@ describe('CreateProject', () => {
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-name');
 
     // Clean up localStorage
-    window.localStorage.removeItem('created-project-context');
+    globalThis.localStorage.removeItem('created-project-context');
   });
 
   it('should update project slug on platform change when slug was not manually modified', async () => {
@@ -353,7 +353,7 @@ describe('CreateProject', () => {
 
     TeamStore.loadUserTeams([teamWithAccess]);
 
-    window.localStorage.setItem(
+    globalThis.localStorage.setItem(
       'created-project-context',
       JSON.stringify({
         id: '12345',
@@ -392,7 +392,7 @@ describe('CreateProject', () => {
 
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
 
-    window.localStorage.removeItem('created-project-context');
+    globalThis.localStorage.removeItem('created-project-context');
   });
 
   it('should display success message on proj creation', async () => {

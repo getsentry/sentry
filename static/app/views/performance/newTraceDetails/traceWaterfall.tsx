@@ -188,7 +188,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       behavior: 'track result' | 'persist'
     ) => {
       if (searchingRaf.current?.id) {
-        window.cancelAnimationFrame(searchingRaf.current.id);
+        globalThis.cancelAnimationFrame(searchingRaf.current.id);
         searchingRaf.current = null;
       }
 

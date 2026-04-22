@@ -48,12 +48,12 @@ export default function ProjectUserFeedback() {
   // We need this mock here, otherwise the demo crash modal report will send to Sentry.
   // We also need to unset window.sentryEmbedCallback, otherwise if we get a legit crash modal in our app this code would gobble it up.
   useEffect(() => {
-    window.sentryEmbedCallback = function (embed) {
+    globalThis.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
       embed.submit = function (_body: any) {
         this._submitInProgress = true;
-        window.setTimeout(() => {
+        globalThis.setTimeout(() => {
           this._submitInProgress = false;
           this.onSuccess();
         }, 500);
@@ -61,7 +61,7 @@ export default function ProjectUserFeedback() {
     };
 
     return () => {
-      window.sentryEmbedCallback = null;
+      globalThis.sentryEmbedCallback = null;
     };
   }, []);
 

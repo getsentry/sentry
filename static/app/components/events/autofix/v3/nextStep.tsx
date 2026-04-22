@@ -405,8 +405,8 @@ function useCodingAgents({
     (integration: CodingAgentIntegration) => {
       // OAuth redirect for integrations without identity
       if (integration.requires_identity && !integration.has_identity) {
-        const currentUrl = window.location.href;
-        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+        const currentUrl = globalThis.location.href;
+        globalThis.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
         return;
       }
       triggerCodingAgentHandoff(runId, integration);

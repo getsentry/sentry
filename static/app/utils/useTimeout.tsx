@@ -16,14 +16,14 @@ export function useTimeout({timeMs, onTimeout}: Options) {
 
   const saveTimeout = useCallback((timeout: number | null) => {
     if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
+      globalThis.clearTimeout(timeoutRef.current);
     }
     timeoutRef.current = timeout;
   }, []);
 
   const start = useCallback(() => {
     saveTimeout(null);
-    saveTimeout(window.setTimeout(() => onTimeoutRef.current(), timeMs));
+    saveTimeout(globalThis.setTimeout(() => onTimeoutRef.current(), timeMs));
   }, [saveTimeout, timeMs]);
 
   const cancel = useCallback(() => {

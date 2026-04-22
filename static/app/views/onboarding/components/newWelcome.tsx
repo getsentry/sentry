@@ -138,7 +138,7 @@ export function NewWelcomeUI(props: StepProps) {
   // Scroll to top on mount to fix iOS Safari retaining scroll position from previous page.
   // Skip if there's a hash in the URL to avoid conflicting with anchor-based scrolling.
   useEffect(() => {
-    if (!window.location.hash) {
+    if (!globalThis.location.hash) {
       window.scrollTo(0, 0);
     }
   }, []);

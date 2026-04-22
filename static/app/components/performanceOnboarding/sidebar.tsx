@@ -65,7 +65,7 @@ export function usePerformanceOnboardingDrawer() {
 
   useEffect(() => {
     if (isActive && hasProjectAccess) {
-      initialPathname.current = window.location.pathname;
+      initialPathname.current = globalThis.location.pathname;
 
       openDrawer(() => <DrawerContent />, {
         ariaLabel: t('Boost Performance'),

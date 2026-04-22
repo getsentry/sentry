@@ -20,7 +20,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
       let currentElement = element.parentElement;
 
       while (currentElement) {
-        const overflow = window.getComputedStyle(currentElement).overflow;
+        const overflow = globalThis.getComputedStyle(currentElement).overflow;
         if (overflow.includes('scroll') || overflow.includes('auto')) {
           scrollParents.push(currentElement);
         }
@@ -53,7 +53,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
 
     rafRef.current = requestAnimationFrame(updatePosition);
 
-    const scrollElements = [window, ...getScrollParents(targetElement)];
+    const scrollElements = [globalThis, ...getScrollParents(targetElement)];
     scrollElements.forEach(element => {
       element.addEventListener('scroll', updatePosition, {passive: true});
     });

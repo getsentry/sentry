@@ -73,7 +73,7 @@ function isConsoleBannerMessage(message: string | undefined): boolean {
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
-const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
+const shouldOverrideBrowserProfiling = globalThis?.__initialData?.user?.isSuperuser;
 function getSentryIntegrations() {
   const integrations = [
     Sentry.extraErrorDataIntegration({
@@ -249,11 +249,11 @@ export function initializeSdk(config: Config) {
   if (userIdentity) {
     Sentry.setUser(userIdentity);
   }
-  if (window.__SENTRY__VERSION) {
-    Sentry.setTag('sentry_version', window.__SENTRY__VERSION);
+  if (globalThis.__SENTRY__VERSION) {
+    Sentry.setTag('sentry_version', globalThis.__SENTRY__VERSION);
   }
 
-  const {customerDomain} = window.__initialData;
+  const {customerDomain} = globalThis.__initialData;
 
   if (customerDomain) {
     Sentry.setTag('isCustomerDomain', 'yes');

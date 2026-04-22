@@ -14,7 +14,7 @@ export function getPointerPosition(
   property: 'pageX' | 'pageY' | 'clientX' | 'clientY'
 ): number {
   const actual = isReactEvent(event) ? event.nativeEvent : event;
-  if (window.TouchEvent && actual instanceof TouchEvent) {
+  if (globalThis.TouchEvent && actual instanceof TouchEvent) {
     return actual.targetTouches[0]![property];
   }
   if (actual instanceof MouseEvent) {

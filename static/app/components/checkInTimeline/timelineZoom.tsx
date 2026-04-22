@@ -33,7 +33,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
+        globalThis.cancelAnimationFrame(rafIdRef.current);
       }
 
       if (containerRef.current === null) {
@@ -46,7 +46,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
       const containerRect = containerRef.current.getBoundingClientRect();
 
-      rafIdRef.current = window.requestAnimationFrame(() => {
+      rafIdRef.current = globalThis.requestAnimationFrame(() => {
         if (containerRef.current === null) {
           return;
         }
@@ -133,17 +133,17 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
   useEffect(() => {
     if (enabled) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mousedown', handleMouseDown);
-      window.addEventListener('mouseup', handleMouseUp);
+      globalThis.addEventListener('mousemove', handleMouseMove);
+      globalThis.addEventListener('mousedown', handleMouseDown);
+      globalThis.addEventListener('mouseup', handleMouseUp);
     } else {
       setIsActive(false);
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
+      globalThis.removeEventListener('mousemove', handleMouseMove);
+      globalThis.removeEventListener('mousedown', handleMouseDown);
+      globalThis.removeEventListener('mouseup', handleMouseUp);
     };
   }, [enabled, handleMouseMove, handleMouseDown, handleMouseUp]);
 

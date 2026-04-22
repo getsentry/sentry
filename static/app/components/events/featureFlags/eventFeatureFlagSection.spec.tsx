@@ -20,17 +20,19 @@ import {
 } from 'sentry/components/events/featureFlags/testUtils';
 
 // Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+jest
+  .spyOn(globalThis.Element.prototype, 'getBoundingClientRect')
+  .mockImplementation(() => ({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 30,
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    toJSON: jest.fn(),
+  }));
 
 describe('EventFeatureFlagList', () => {
   beforeEach(() => {

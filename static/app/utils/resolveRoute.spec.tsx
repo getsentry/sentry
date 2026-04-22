@@ -29,19 +29,19 @@ describe('resolveRoute', () => {
   });
 
   beforeEach(() => {
-    devUi = window.__SENTRY_DEV_UI;
+    devUi = globalThis.__SENTRY_DEV_UI;
     configState = ConfigStore.getState();
     ConfigStore.set('features', new Set(['system:multi-region']));
   });
   afterEach(() => {
-    window.__SENTRY_DEV_UI = devUi;
+    globalThis.__SENTRY_DEV_UI = devUi;
     ConfigStore.loadInitialData(configState);
 
     mockDeployPreviewConfig.mockReset();
   });
 
   it('should replace domains with dev-ui mode on localhost', () => {
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
     setWindowLocation('http://acme.localhost:7999');
 
     const result = resolveRoute('/issues/', organization, otherOrg);
@@ -49,7 +49,7 @@ describe('resolveRoute', () => {
   });
 
   it('should replace domains with dev-ui mode on dev.getsentry.net', () => {
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
     setWindowLocation('http://acme.dev.getsentry.net:7999');
 
     const result = resolveRoute('/issues/', organization, otherOrg);
@@ -58,7 +58,7 @@ describe('resolveRoute', () => {
 
   it('should use path slugs on sentry.dev', () => {
     // Vercel previews don't let us have additional subdomains.
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
     setWindowLocation('http://sentry-abc123.sentry.dev');
 
     mockDeployPreviewConfig.mockReturnValue({
@@ -79,7 +79,7 @@ describe('resolveRoute', () => {
   });
 
   it('will not replace domains with dev-ui mode and an unsafe host', () => {
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
     setWindowLocation('http://bad-domain.com');
 
     const result = resolveRoute('/issues/', organization, otherOrg);

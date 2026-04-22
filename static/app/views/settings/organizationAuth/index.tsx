@@ -55,7 +55,7 @@ function OrganizationAuth() {
     const path = `/organizations/${organization.slug}/auth/configure/`;
 
     // Use replace so we don't go back to the /settings/auth and hit this path again.
-    window.location.replace(path);
+    globalThis.location.replace(path);
   }, [organization.slug, shouldRedirectToProvider]);
 
   if (loadingProvider || loadingProviders || shouldRedirectToProvider) {

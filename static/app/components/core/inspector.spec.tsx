@@ -27,7 +27,7 @@ describe('SentryComponentInspector', () => {
     const mockUser = UserFixture();
     ConfigStore.set('user', mockUser);
 
-    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+    const addEventListenerSpy = jest.spyOn(globalThis, 'addEventListener');
 
     render(
       <div>
@@ -82,7 +82,7 @@ describe('SentryComponentInspector', () => {
     );
 
     await waitFor(() => {
-      window.dispatchEvent(new Event('devtools.toggle_component_inspector'));
+      globalThis.dispatchEvent(new Event('devtools.toggle_component_inspector'));
     });
     await userEvent.hover(screen.getByText('Test Component Content'));
     expect(await screen.findByText('Hovered Components')).toBeInTheDocument();

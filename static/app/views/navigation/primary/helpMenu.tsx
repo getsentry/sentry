@@ -58,7 +58,7 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
           await showIntercom(organization.slug);
         } catch {
           // Fall back to mailto
-          window.location.href = `mailto:${supportEmail}`;
+          globalThis.location.href = `mailto:${supportEmail}`;
         }
       },
     };

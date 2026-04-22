@@ -30,9 +30,9 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
   });
 
   useEffect(() => {
-    const interval = window.setInterval(() => setTimer(value => value - 1), 1000);
+    const interval = globalThis.setInterval(() => setTimer(value => value - 1), 1000);
 
-    return () => window.clearInterval(interval);
+    return () => globalThis.clearInterval(interval);
   }, []);
 
   useEffect(() => {

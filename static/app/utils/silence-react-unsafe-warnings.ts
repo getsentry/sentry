@@ -10,7 +10,7 @@ const ignoredWarnings = [
   /moment construction falls back/,
 ];
 
-window.console.warn = (message: any, ...args: any[]) => {
+globalThis.console.warn = (message: any, ...args: any[]) => {
   if (
     typeof message === 'string' &&
     ignoredWarnings.some(warning => warning.test(message))

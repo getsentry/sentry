@@ -43,8 +43,8 @@ export const NONE_UNIT = 'none';
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 
 function nextFrameCallback(cb: () => void) {
-  if ('requestAnimationFrame' in window) {
-    window.requestAnimationFrame(() => cb());
+  if ('requestAnimationFrame' in globalThis) {
+    globalThis.requestAnimationFrame(() => cb());
   } else {
     setTimeout(() => {
       cb();

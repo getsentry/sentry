@@ -77,7 +77,7 @@ describe('ScmProviderPills', () => {
   });
 
   it('triggers install flow when clicking a dropdown item', async () => {
-    const open = jest.spyOn(window, 'open').mockReturnValue({
+    const open = jest.spyOn(globalThis, 'open').mockReturnValue({
       focus: jest.fn(),
       close: jest.fn(),
     } as any);

@@ -4,15 +4,15 @@ import {useEffect, useState} from 'react';
  * Hook that updates when a media query result changes
  */
 export function useMedia(query: string) {
-  const [state, setState] = useState(() => window.matchMedia?.(query)?.matches);
+  const [state, setState] = useState(() => globalThis.matchMedia?.(query)?.matches);
 
   useEffect(() => {
     let mounted = true;
-    if (!window.matchMedia) {
+    if (!globalThis.matchMedia) {
       return undefined;
     }
 
-    const mql = window.matchMedia(query);
+    const mql = globalThis.matchMedia(query);
     const onChange = () => {
       if (!mounted) {
         return;
@@ -29,7 +29,7 @@ export function useMedia(query: string) {
     };
   }, [query]);
 
-  if (!window.matchMedia) {
+  if (!globalThis.matchMedia) {
     return false;
   }
 

@@ -65,7 +65,7 @@ export function WebAuthnAssert({
   challengeData,
   mode = 'signin',
 }: WebAuthnAssertProps) {
-  const isSupported = !!window.PublicKeyCredential;
+  const isSupported = !!globalThis.PublicKeyCredential;
   const challenge = JSON.stringify(challengeData);
 
   const inputRef = useRef<HTMLInputElement>(null);

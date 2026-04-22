@@ -152,8 +152,8 @@ export function GlobalModal({onClose}: Props) {
   const portal = getModalPortal();
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
-  if (window.SentryApp) {
-    window.SentryApp.modalFocusTrap = focusTrap;
+  if (globalThis.SentryApp) {
+    globalThis.SentryApp.modalFocusTrap = focusTrap;
   }
 
   useEffect(() => {

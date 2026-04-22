@@ -9,7 +9,7 @@ import {
 async function renderBreadcrumbDrawer() {
   // Needed to mock useVirtualizer lists.
   jest
-    .spyOn(window.Element.prototype, 'getBoundingClientRect')
+    .spyOn(globalThis.Element.prototype, 'getBoundingClientRect')
     .mockImplementation(() => ({
       x: 0,
       y: 0,

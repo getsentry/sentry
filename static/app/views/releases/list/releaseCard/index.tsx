@@ -198,7 +198,7 @@ export function ReleaseCard({
                     onClick={() =>
                       finalizeRelease.mutate([release], {
                         onSettled() {
-                          window.location.reload();
+                          globalThis.location.reload();
                         },
                       })
                     }

@@ -194,7 +194,7 @@ export function DropdownMenu({
       // happened on a hovercard or some other element rendered outside of the
       // dropdown, but controlled by the existence of the dropdown, we need to
       // ensure any click handlers are run.
-      await new Promise(resolve => window.setTimeout(resolve));
+      await new Promise(resolve => globalThis.setTimeout(resolve));
 
       handleClose();
     },
@@ -218,7 +218,7 @@ export function DropdownMenu({
         setIsOpenState(true);
       }
 
-      window.clearTimeout(mouseLeaveTimeout.current);
+      globalThis.clearTimeout(mouseLeaveTimeout.current);
 
       // If we always render menu (e.g. DropdownLink), then add the check click outside handlers when we open the menu
       // instead of when the menu component mounts. Otherwise we will have many click handlers attached on initial load.
@@ -248,8 +248,8 @@ export function DropdownMenu({
           dropdownMenu.current &&
           (!(toElement instanceof Element) || !dropdownMenu.current.contains(toElement))
         ) {
-          window.clearTimeout(mouseLeaveTimeout.current);
-          mouseLeaveTimeout.current = window.setTimeout(() => {
+          globalThis.clearTimeout(mouseLeaveTimeout.current);
+          mouseLeaveTimeout.current = globalThis.setTimeout(() => {
             handleClose(e);
           }, MENU_CLOSE_DELAY);
         }
@@ -310,16 +310,16 @@ export function DropdownMenu({
             return;
           }
 
-          window.clearTimeout(mouseEnterTimeout.current);
-          window.clearTimeout(mouseLeaveTimeout.current);
+          globalThis.clearTimeout(mouseEnterTimeout.current);
+          globalThis.clearTimeout(mouseLeaveTimeout.current);
 
-          mouseEnterTimeout.current = window.setTimeout(() => {
+          mouseEnterTimeout.current = globalThis.setTimeout(() => {
             handleOpen(e);
           }, MENU_CLOSE_DELAY);
         },
         onMouseLeave: (e: React.MouseEvent<E>) => {
-          window.clearTimeout(mouseEnterTimeout.current);
-          window.clearTimeout(mouseLeaveTimeout.current);
+          globalThis.clearTimeout(mouseEnterTimeout.current);
+          globalThis.clearTimeout(mouseLeaveTimeout.current);
 
           handleMouseLeave(e);
         },
@@ -371,7 +371,7 @@ export function DropdownMenu({
         onMouseEnter: () => {
           // There is a delay before closing a menu on mouse leave, cancel this
           // action if mouse enters menu again
-          window.clearTimeout(mouseLeaveTimeout.current);
+          globalThis.clearTimeout(mouseLeaveTimeout.current);
         },
         onMouseLeave: handleMouseLeave,
         onClick: handleDropdownMenuClick,
@@ -389,8 +389,8 @@ export function DropdownMenu({
   // Cleanup effect (equivalent to componentWillUnmount)
   useEffect(() => {
     return () => {
-      window.clearTimeout(mouseLeaveTimeout.current);
-      window.clearTimeout(mouseEnterTimeout.current);
+      globalThis.clearTimeout(mouseLeaveTimeout.current);
+      globalThis.clearTimeout(mouseEnterTimeout.current);
     };
   }, []);
 

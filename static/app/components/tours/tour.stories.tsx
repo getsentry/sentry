@@ -281,11 +281,11 @@ export const MY_TOUR_KEY = 'tour.my_tour';
                 closeModal={props.closeModal}
                 onDismissTour={() => {
                   // eslint-disable-next-line no-alert
-                  window.alert('Tour dismissed');
+                  globalThis.alert('Tour dismissed');
                 }}
                 onStartTour={() => {
                   // eslint-disable-next-line no-alert
-                  window.alert('Start Tour Clicked');
+                  globalThis.alert('Start Tour Clicked');
                 }}
                 header="Start Tour Modal"
                 description="Take the tour to learn more about this page (if you dare)."

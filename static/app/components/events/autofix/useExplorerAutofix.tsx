@@ -760,8 +760,8 @@ export function useExplorerAutofix(
         });
       } catch (e: any) {
         if (needsGitHubAuth(e)) {
-          const currentUrl = window.location.href;
-          window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
+          const currentUrl = globalThis.location.href;
+          globalThis.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
         appendCodingAgentErrors([

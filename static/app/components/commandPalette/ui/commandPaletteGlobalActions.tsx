@@ -101,7 +101,7 @@ export function GlobalCommandPaletteActions() {
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       QUERY_API_CLIENT.requestPromise('/auth/superuser/', {method: 'DELETE'}),
-    onSuccess: () => window.location.reload(),
+    onSuccess: () => globalThis.location.reload(),
   });
 
   const {data: starredSavedQueries = []} = useGetSavedQueries({

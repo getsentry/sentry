@@ -67,9 +67,9 @@ export class TraceRowWidthMeasurer<T> {
     this.queue.push([node, element]);
 
     if (this.drainRaf !== null) {
-      window.cancelAnimationFrame(this.drainRaf);
+      globalThis.cancelAnimationFrame(this.drainRaf);
     }
-    this.drainRaf = window.requestAnimationFrame(this.drain);
+    this.drainRaf = globalThis.requestAnimationFrame(this.drain);
   }
 
   drain() {

@@ -175,7 +175,7 @@ describe('OAuthLoginStep', () => {
   });
 
   it('shows warning when popup is blocked by the browser', async () => {
-    jest.spyOn(window, 'open').mockReturnValue(null);
+    jest.spyOn(globalThis, 'open').mockReturnValue(null);
 
     render(
       <OAuthLoginStep

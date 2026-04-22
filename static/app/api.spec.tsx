@@ -107,8 +107,8 @@ describe('resolveHostname', () => {
 
   beforeEach(() => {
     configstate = ConfigStore.getState();
-    location = window.location;
-    devUi = window.__SENTRY_DEV_UI;
+    location = globalThis.location;
+    devUi = globalThis.__SENTRY_DEV_UI;
 
     ConfigStore.loadInitialData({
       ...configstate,
@@ -122,8 +122,8 @@ describe('resolveHostname', () => {
   });
 
   afterEach(() => {
-    window.location = location as typeof window.location & string;
-    window.__SENTRY_DEV_UI = devUi;
+    globalThis.location = location as typeof globalThis.location & string;
+    globalThis.__SENTRY_DEV_UI = devUi;
     ConfigStore.loadInitialData(configstate);
   });
 
@@ -183,7 +183,7 @@ describe('resolveHostname', () => {
   });
 
   it('uses paths for region silo in dev-ui', () => {
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
 
     let result = resolveHostname(regionPath);
     expect(result).toBe('/region/us/api/0/organizations/slug/issues/');
@@ -193,7 +193,7 @@ describe('resolveHostname', () => {
   });
 
   it('removes sentryUrl from dev-ui mode requests', () => {
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
 
     let result = resolveHostname(regionPath, 'https://sentry.io');
     expect(result).toBe('/api/0/organizations/slug/issues/');
@@ -203,7 +203,7 @@ describe('resolveHostname', () => {
   });
 
   it('removes sentryUrl from dev-ui mode requests when feature is off', () => {
-    window.__SENTRY_DEV_UI = true;
+    globalThis.__SENTRY_DEV_UI = true;
     // Org does not have the required feature.
     OrganizationStore.onUpdate(OrganizationFixture());
 

@@ -330,7 +330,7 @@ function FlamegraphSearch({
   const handleChange: (query: string) => void = useCallback(
     query => {
       if (rafHandler.current) {
-        window.cancelAnimationFrame(rafHandler.current.id);
+        globalThis.cancelAnimationFrame(rafHandler.current.id);
       }
 
       if (!query) {

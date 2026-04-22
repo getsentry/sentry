@@ -9,19 +9,19 @@ describe('trackReloadEvent', () => {
   const data = {foo: 'bar'};
   beforeEach(() => {
     ConfigStore.set('enableAnalytics', true);
-    window.ra = {event: jest.fn()};
+    globalThis.ra = {event: jest.fn()};
   });
   afterEach(() => {
-    window.ra.event.mockClear();
+    globalThis.ra.event.mockClear();
   });
 
   it('calls window.ra.event with data', () => {
     trackReloadEvent(eventName, data);
-    expect(window.ra.event).toHaveBeenCalledWith(eventName, data);
+    expect(globalThis.ra.event).toHaveBeenCalledWith(eventName, data);
   });
   it('enableAnalytics is false', () => {
     ConfigStore.set('enableAnalytics', false);
     trackReloadEvent(eventName, data);
-    expect(window.ra.event).not.toHaveBeenCalled();
+    expect(globalThis.ra.event).not.toHaveBeenCalled();
   });
 });

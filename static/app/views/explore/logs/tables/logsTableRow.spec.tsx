@@ -414,7 +414,7 @@ describe('logsTableRow', () => {
 
   it('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
-    Object.defineProperty(window.navigator, 'clipboard', {
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
       value: {
         writeText: mockWriteText,
       },
@@ -479,7 +479,7 @@ describe('logsTableRow', () => {
 
   it('does not toggle row when clicking cell action menu items', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
-    Object.defineProperty(window.navigator, 'clipboard', {
+    Object.defineProperty(globalThis.navigator, 'clipboard', {
       value: {
         writeText: mockWriteText,
       },

@@ -46,7 +46,7 @@ export function useFeatureFlagOnboardingDrawer() {
 
   useEffect(() => {
     if (isActive && hasProjectAccess) {
-      initialPathname.current = window.location.pathname;
+      initialPathname.current = globalThis.location.pathname;
 
       openDrawer(() => <SidebarContent />, {
         ariaLabel: t('Debug Issues with Feature Flag Context'),
@@ -179,7 +179,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   // useMemo is needed to remember the original hash
   // in case window.location.hash disappears
   const ORIGINAL_HASH = useMemo(() => {
-    return window.location.hash;
+    return globalThis.location.hash;
   }, []);
 
   const sdkProviderOptions = Object.values(SdkProviderEnum)
@@ -271,7 +271,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
               provider: SdkProviderEnum.GENERIC,
             });
           }
-          window.location.hash = ORIGINAL_HASH;
+          globalThis.location.hash = ORIGINAL_HASH;
         }}
       />
     </Container>

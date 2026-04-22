@@ -26,7 +26,7 @@ export function useCanvasZoomOrScroll({
     let wheelStopTimeoutId: {current: number | undefined} = {current: undefined};
     function onCanvasWheel(evt: WheelEvent) {
       if (wheelStopTimeoutId.current !== undefined) {
-        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+        globalThis.cancelAnimationFrame(wheelStopTimeoutId.current);
       }
       wheelStopTimeoutId = requestAnimationFrameTimeout(() => {
         setLastInteraction?.(null);
@@ -50,7 +50,7 @@ export function useCanvasZoomOrScroll({
 
     return () => {
       if (wheelStopTimeoutId.current !== undefined) {
-        window.cancelAnimationFrame(wheelStopTimeoutId.current);
+        globalThis.cancelAnimationFrame(wheelStopTimeoutId.current);
       }
       canvas.removeEventListener('wheel', onCanvasWheel);
     };

@@ -468,9 +468,9 @@ export function useLaunchCodingAgent(groupId: string, runId: string) {
     },
     onError: (error, params) => {
       if (needsGitHubAuth(error)) {
-        const currentUrl = window.location.href;
+        const currentUrl = globalThis.location.href;
         const oauthUrl = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
-        window.location.href = oauthUrl;
+        globalThis.location.href = oauthUrl;
         return;
       }
       const message = getErrorMessage(error, params.agentName);

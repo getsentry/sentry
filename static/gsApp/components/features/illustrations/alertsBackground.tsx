@@ -112,7 +112,7 @@ export function AlertsBackground({anchorRef}: Props) {
       style.animation = 'none';
       void alert.getBBox();
 
-      window.requestAnimationFrame(
+      globalThis.requestAnimationFrame(
         () => (style.animation = `${alertFlashKeyframes.name} 400ms ${random(5, 10)}`)
       );
     };

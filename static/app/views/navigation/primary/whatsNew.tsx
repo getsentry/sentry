@@ -93,13 +93,13 @@ function WhatsNewContent({
     }
 
     const MARK_SEEN_DELAY = 2000;
-    const markSeenTimeout = window.setTimeout(() => {
+    const markSeenTimeout = globalThis.setTimeout(() => {
       markBroadcastsAsSeen(unseenPostIds);
     }, MARK_SEEN_DELAY);
 
     return () => {
       if (markSeenTimeout) {
-        window.clearTimeout(markSeenTimeout);
+        globalThis.clearTimeout(markSeenTimeout);
       }
     };
   }, [unseenPostIds, markBroadcastsAsSeen]);

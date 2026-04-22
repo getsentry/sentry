@@ -4,7 +4,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {scheduleMicroTask} from './scheduleMicroTask';
 
-const SUPPORTS_LOCAL_STORAGE = window && 'localStorage' in window;
+const SUPPORTS_LOCAL_STORAGE = globalThis && 'localStorage' in globalThis;
 
 // Attempt to parse JSON. If it fails, swallow the error and return null.
 // As an improvement, we should maybe allow users to intercept here or possibly use

@@ -7,11 +7,11 @@ export function selectText(node: HTMLElement): void {
     return;
   }
 
-  if (node instanceof Node && window.getSelection) {
+  if (node instanceof Node && globalThis.getSelection) {
     const range = document.createRange();
     range.selectNode(node);
 
-    const selection = window.getSelection();
+    const selection = globalThis.getSelection();
     selection?.removeAllRanges();
     selection?.addRange(range);
   }

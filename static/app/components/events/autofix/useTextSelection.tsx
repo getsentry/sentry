@@ -20,7 +20,7 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
     if (!container) {
       return '';
     }
-    const sel = window.getSelection();
+    const sel = globalThis.getSelection();
     if (!sel || sel.isCollapsed) {
       return '';
     }

@@ -193,7 +193,7 @@ export function FlamegraphSpans({
       return;
     }
 
-    const span_id = qs.parse(window.location.search).spanId;
+    const span_id = qs.parse(globalThis.location.search).spanId;
     if (!span_id) {
       return;
     }
@@ -310,10 +310,10 @@ export function FlamegraphSpans({
   });
 
   useEffect(() => {
-    window.addEventListener('mouseup', onMinimapCanvasMouseUp);
+    globalThis.addEventListener('mouseup', onMinimapCanvasMouseUp);
 
     return () => {
-      window.removeEventListener('mouseup', onMinimapCanvasMouseUp);
+      globalThis.removeEventListener('mouseup', onMinimapCanvasMouseUp);
     };
   }, [onMinimapCanvasMouseUp]);
 

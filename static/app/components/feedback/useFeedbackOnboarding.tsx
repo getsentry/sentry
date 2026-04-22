@@ -29,14 +29,14 @@ export function useFeedbackOnboardingSidebarPanel() {
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
-    window.location.hash = FEEDBACK_HASH;
+    globalThis.location.hash = FEEDBACK_HASH;
     OnboardingDrawerStore.open(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
   }, []);
 
   const activateSidebarIssueDetails = useCallback(
     (event: {preventDefault: () => void}) => {
       event.preventDefault();
-      window.location.hash = CRASH_REPORT_HASH;
+      globalThis.location.hash = CRASH_REPORT_HASH;
       OnboardingDrawerStore.open(OnboardingDrawerKey.FEEDBACK_ONBOARDING);
     },
     []

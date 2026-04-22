@@ -105,7 +105,7 @@ export function PolicyDetails() {
                 {...deps}
                 policy={policy}
                 onSuccess={(_newRevision: PolicyRevision) => {
-                  window.location.reload();
+                  globalThis.location.reload();
                 }}
               />
             ));

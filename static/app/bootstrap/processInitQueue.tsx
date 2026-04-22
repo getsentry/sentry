@@ -156,19 +156,19 @@ export async function processInitQueue() {
   // their plugins ASAP, as `SentryApp` will be loaded async and will require
   // callbacks to access it, instead of via `window` global.
   if (
-    typeof window.__onSentryInit !== 'undefined' &&
-    !Array.isArray(window.__onSentryInit)
+    typeof globalThis.__onSentryInit !== 'undefined' &&
+    !Array.isArray(globalThis.__onSentryInit)
   ) {
     return;
   }
 
-  const queued = window.__onSentryInit;
+  const queued = globalThis.__onSentryInit;
 
   // Stub future calls of `window.__onSentryInit.push` so that it is
   // processed immediately (since bundle is loaded at this point and no
   // longer needs to act as a queue)
   //
-  window.__onSentryInit = {
+  globalThis.__onSentryInit = {
     push: processItem,
   };
 

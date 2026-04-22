@@ -300,22 +300,22 @@ declare global {
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder as typeof window.TextEncoder;
-window.TextDecoder = TextDecoder as typeof window.TextDecoder;
+globalThis.TextEncoder = TextEncoder as typeof globalThis.TextEncoder;
+globalThis.TextDecoder = TextDecoder as typeof globalThis.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
-window.tick = () => new Promise(resolve => setTimeout(resolve));
+globalThis.tick = () => new Promise(resolve => setTimeout(resolve));
 
-window.MockApiClient = jest.requireMock('sentry/api').Client;
+globalThis.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
 
-window.ra = {event: jest.fn()};
+globalThis.ra = {event: jest.fn()};
 
 // The JSDOM implementation is too slow
 // Especially for dropdowns that try to position themselves
 // perf issue - https://github.com/jsdom/jsdom/issues/3234
-Object.defineProperty(window, 'getComputedStyle', {
+Object.defineProperty(globalThis, 'getComputedStyle', {
   value: (el: HTMLElement) => {
     /**
      * This is based on the jsdom implementation of getComputedStyle
@@ -341,7 +341,7 @@ Object.defineProperty(window, 'getComputedStyle', {
   writable: true,
 });
 
-Object.defineProperty(window, 'matchMedia', {
+Object.defineProperty(globalThis, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
     matches: false,
@@ -355,7 +355,7 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
-window.IntersectionObserver = class IntersectionObserver {
+globalThis.IntersectionObserver = class IntersectionObserver {
   root = null;
   rootMargin = '';
   scrollMargin = '';
@@ -367,14 +367,14 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
-window.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}
 };
 
 // Mock the crypto.subtle API for Gravatar
-Object.defineProperty(global.self, 'crypto', {
+Object.defineProperty(globalThis.self, 'crypto', {
   value: {
     subtle: webcrypto.subtle,
   },

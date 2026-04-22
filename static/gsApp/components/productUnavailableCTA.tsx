@@ -171,7 +171,7 @@ function UpdatePlanAlert({
     subscription,
     surface: 'replay_project_creation',
     onComplete: () => {
-      window.location.reload();
+      globalThis.location.reload();
     },
   });
 

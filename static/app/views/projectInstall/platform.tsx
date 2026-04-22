@@ -73,7 +73,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id);
-  const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
+  const isGettingStarted = globalThis.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.id] ?? []).length > 0;
 

@@ -261,7 +261,7 @@ export function LegacyOnboarding({organization, project}: OnboardingProps) {
         priority="primary"
         onClick={event => {
           event.preventDefault();
-          window.location.hash = 'performance-sidequest';
+          globalThis.location.hash = 'performance-sidequest';
           OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
         }}
       >
@@ -635,12 +635,12 @@ export function Onboarding({organization, project}: OnboardingProps) {
                           title: traceId ? undefined : t('Processing trace\u2026'),
                         }}
                         onClick={() => {
-                          const params = new URLSearchParams(window.location.search);
+                          const params = new URLSearchParams(globalThis.location.search);
                           params.set('table', Tab.TRACE);
                           params.set('query', `trace:${traceId}`);
                           params.delete('guidedStep');
                           testableWindowLocation.assign(
-                            `${window.location.pathname}?${params.toString()}`
+                            `${globalThis.location.pathname}?${params.toString()}`
                           );
                         }}
                       >

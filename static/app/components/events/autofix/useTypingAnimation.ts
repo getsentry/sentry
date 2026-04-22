@@ -46,7 +46,7 @@ export function useTypingAnimation({
       setDisplayedText(text);
       currentIndexRef.current = text.length;
       if (animationFrameRef.current) {
-        window.cancelAnimationFrame(animationFrameRef.current);
+        globalThis.cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
       return () => {};
@@ -75,7 +75,7 @@ export function useTypingAnimation({
       }
 
       if (currentIndexRef.current < text.length) {
-        animationFrameRef.current = window.requestAnimationFrame(animate);
+        animationFrameRef.current = globalThis.requestAnimationFrame(animate);
       } else {
         // Final check to ensure full text is displayed
         setDisplayedText(currentDisplayedText => {
@@ -93,14 +93,14 @@ export function useTypingAnimation({
 
     // Clear previous frame before starting
     if (animationFrameRef.current) {
-      window.cancelAnimationFrame(animationFrameRef.current);
+      globalThis.cancelAnimationFrame(animationFrameRef.current);
     }
-    animationFrameRef.current = window.requestAnimationFrame(animate);
+    animationFrameRef.current = globalThis.requestAnimationFrame(animate);
 
     // Cleanup
     return () => {
       if (animationFrameRef.current) {
-        window.cancelAnimationFrame(animationFrameRef.current);
+        globalThis.cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
     };

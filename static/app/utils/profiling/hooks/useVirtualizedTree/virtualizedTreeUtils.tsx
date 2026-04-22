@@ -137,25 +137,25 @@ export function requestAnimationTimeout(
 
   const timeout = () => {
     if (start === undefined) {
-      frame.id = window.requestAnimationFrame(timeout);
+      frame.id = globalThis.requestAnimationFrame(timeout);
       return;
     }
     if (Date.now() - start >= delay) {
       callback();
     } else {
-      frame.id = window.requestAnimationFrame(timeout);
+      frame.id = globalThis.requestAnimationFrame(timeout);
     }
   };
 
   const frame: AnimationTimeoutId = {
-    id: window.requestAnimationFrame(timeout),
+    id: globalThis.requestAnimationFrame(timeout),
   };
 
   return frame;
 }
 
 export function cancelAnimationTimeout(frame: AnimationTimeoutId) {
-  window.cancelAnimationFrame(frame.id);
+  globalThis.cancelAnimationFrame(frame.id);
 }
 
 function findOptimisticStartIndex<T extends TreeLike>({

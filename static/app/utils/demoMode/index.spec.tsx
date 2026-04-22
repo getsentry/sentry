@@ -16,13 +16,13 @@ describe('Demo Mode Functions', () => {
 
   describe('extraQueryParameter', () => {
     it('returns empty URLSearchParams if no extraQueryString is set', () => {
-      window.SandboxData = {};
+      globalThis.SandboxData = {};
       const params = extraQueryParameter();
       expect(params.toString()).toBe('');
     });
 
     it('returns URLSearchParams from extraQueryString', () => {
-      window.SandboxData = {extraQueryString: 'key=value&key2=value2'};
+      globalThis.SandboxData = {extraQueryString: 'key=value&key2=value2'};
       const params = extraQueryParameter();
       expect(params.get('key')).toBe('value');
       expect(params.get('key2')).toBe('value2');
@@ -32,13 +32,13 @@ describe('Demo Mode Functions', () => {
   describe('extraQueryParameterWithEmail', () => {
     it('appends email to URLSearchParams if present in localStorage', () => {
       localStorage.setItem('email', 'test@example.com');
-      window.SandboxData = {extraQueryString: 'key=value'};
+      globalThis.SandboxData = {extraQueryString: 'key=value'};
       const params = extraQueryParameterWithEmail();
       expect(params.get('email')).toBe('test@example.com');
     });
 
     it('does not append email if not present in localStorage', () => {
-      window.SandboxData = {extraQueryString: 'key=value'};
+      globalThis.SandboxData = {extraQueryString: 'key=value'};
       const params = extraQueryParameterWithEmail();
       expect(params.get('email')).toBeNull();
     });

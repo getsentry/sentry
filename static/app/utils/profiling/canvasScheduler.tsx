@@ -133,10 +133,10 @@ export class CanvasScheduler {
 
   draw(): void {
     if (this.requestAnimationFrame) {
-      window.cancelAnimationFrame(this.requestAnimationFrame);
+      globalThis.cancelAnimationFrame(this.requestAnimationFrame);
     }
 
-    this.requestAnimationFrame = window.requestAnimationFrame(() => {
+    this.requestAnimationFrame = globalThis.requestAnimationFrame(() => {
       for (const cb of this.beforeFrameCallbacks) {
         cb();
       }

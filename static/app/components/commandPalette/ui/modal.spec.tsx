@@ -166,7 +166,7 @@ describe('CommandPaletteModal', () => {
 
   it('opens external links in a new tab', async () => {
     const closeModalSpy = jest.fn();
-    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const openSpy = jest.spyOn(globalThis, 'open').mockImplementation(() => null);
 
     render(
       <CommandPaletteProvider>
@@ -191,7 +191,7 @@ describe('CommandPaletteModal', () => {
 
   it('opens internal links in a new tab when shift-enter is used', async () => {
     const closeModalSpy = jest.fn();
-    const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+    const openSpy = jest.spyOn(globalThis, 'open').mockImplementation(() => null);
 
     render(
       <CommandPaletteProvider>

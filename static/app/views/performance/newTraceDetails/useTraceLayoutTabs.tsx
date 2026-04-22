@@ -101,7 +101,7 @@ export function useTraceLayoutTabs({
   });
   const tabOptions = getTabOptions({sections: {...sections}});
 
-  const queryParams = qs.parse(window.location.search);
+  const queryParams = qs.parse(globalThis.location.search);
   const tabSlugFromUrl = queryParams.tab;
   const initialTab =
     tabOptions.find(tab => tab.slug === tabSlugFromUrl) ??

@@ -232,7 +232,7 @@ export default function AccountSecurityEnroll() {
     // (this is usually only the case for a newly claimed relocated user), we redirect to the org
     // slug's subdomain now.
     const isAlreadyInOrgSubDomain = orgs.some(org => {
-      return org.links.organizationUrl === new URL(window.location.href).origin;
+      return org.links.organizationUrl === new URL(globalThis.location.href).origin;
     });
     if (!isAlreadyInOrgSubDomain) {
       testableWindowLocation.assign(generateOrgSlugUrl(orgs[0]!.slug));

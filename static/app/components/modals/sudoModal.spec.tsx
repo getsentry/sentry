@@ -11,8 +11,8 @@ describe('Sudo Modal', () => {
     ConfigStore.set('user', {...ConfigStore.get('user'), hasPasswordAuth});
 
   beforeEach(() => {
-    window.__initialData = {
-      ...window.__initialData,
+    globalThis.__initialData = {
+      ...globalThis.__initialData,
       links: {
         organizationUrl: 'https://albertos-apples.sentry.io',
         regionUrl: 'https://albertos-apples.sentry.io',

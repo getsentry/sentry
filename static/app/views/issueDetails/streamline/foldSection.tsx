@@ -96,8 +96,8 @@ function useScrollToSection(
       hasAttemptedScroll.current = true;
 
       // scroll to element if it's the current section on page load
-      if (window.location.hash) {
-        const [, hash] = window.location.hash.split('#');
+      if (globalThis.location.hash) {
+        const [, hash] = globalThis.location.hash.split('#');
         if (hash === sectionKey) {
           if (!expanded) {
             setIsCollapsed(false);

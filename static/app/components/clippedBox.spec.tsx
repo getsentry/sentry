@@ -39,7 +39,7 @@ class MockResizeObserver {
 }
 
 function mockGetBoundingClientRect({height}: {height: number}) {
-  window.HTMLDivElement.prototype.getBoundingClientRect = () =>
+  globalThis.HTMLDivElement.prototype.getBoundingClientRect = () =>
     ({
       bottom: 0,
       height,
@@ -51,20 +51,20 @@ function mockGetBoundingClientRect({height}: {height: number}) {
 }
 
 function clearMockGetBoundingClientRect() {
-  window.HTMLDivElement.prototype.getBoundingClientRect =
-    window.HTMLElement.prototype.getBoundingClientRect;
+  globalThis.HTMLDivElement.prototype.getBoundingClientRect =
+    globalThis.HTMLElement.prototype.getBoundingClientRect;
 }
 
 describe('clipped box', () => {
   describe.each([[true], [false]])('with resize observer = %s', enableResizeObserver => {
     beforeEach(() => {
       // @ts-expect-error override readonly property
-      window.ResizeObserver = enableResizeObserver ? MockResizeObserver : undefined;
+      globalThis.ResizeObserver = enableResizeObserver ? MockResizeObserver : undefined;
     });
 
     afterEach(() => {
       // @ts-expect-error override readonly property
-      window.ResizeObserver = null;
+      globalThis.ResizeObserver = null;
       clearMockGetBoundingClientRect();
     });
 

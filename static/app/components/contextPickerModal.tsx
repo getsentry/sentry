@@ -159,7 +159,7 @@ function ContextPickerContent({
   });
 
   useEffect(() => {
-    return () => window.clearTimeout(onFinishTimeoutRef.current);
+    return () => globalThis.clearTimeout(onFinishTimeoutRef.current);
   }, []);
 
   const navigateFinish = useCallback(
@@ -176,7 +176,7 @@ function ContextPickerContent({
         project: projects.find(p => p.slug === projectSlug)?.id,
         teamId: teamSlug ?? undefined,
       });
-      window.clearTimeout(onFinishTimeoutRef.current);
+      globalThis.clearTimeout(onFinishTimeoutRef.current);
       onFinishTimeoutRef.current =
         onFinishRef.current(
           typeof np === 'string' ? newPathname : {...np, pathname: newPathname}

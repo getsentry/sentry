@@ -3,8 +3,8 @@ import Cookies from 'js-cookie';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 
-const SUPERUSER_COOKIE_NAME = window.superUserCookieName ?? 'su';
-const SUPERUSER_COOKIE_DOMAIN = window.superUserCookieDomain;
+const SUPERUSER_COOKIE_NAME = globalThis.superUserCookieName ?? 'su';
+const SUPERUSER_COOKIE_DOMAIN = globalThis.superUserCookieDomain;
 
 /**
  * Checking for just isSuperuser on a config object may not be enough as backend

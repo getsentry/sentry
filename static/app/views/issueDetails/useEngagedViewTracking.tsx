@@ -38,7 +38,7 @@ export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingP
       return undefined;
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       if (trackedGroupId.current !== group.id) {
         trackedGroupId.current = group.id;
         trackEngagedView();
@@ -46,7 +46,7 @@ export function useEngagedViewTracking({group, project}: UseEngagedViewTrackingP
     }, ENGAGED_VIEW_THRESHOLD_MS);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      globalThis.clearTimeout(timeoutId);
     };
   }, [group.id]);
 }

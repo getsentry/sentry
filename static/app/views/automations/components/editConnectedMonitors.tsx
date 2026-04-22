@@ -233,7 +233,7 @@ function SpecificMonitorsSection({
       {
         ariaLabel: t('Connect Monitors'),
         shouldCloseOnLocationChange: nextLocation =>
-          nextLocation.pathname !== window.location.pathname,
+          nextLocation.pathname !== globalThis.location.pathname,
         shouldCloseOnInteractOutside: el => {
           if (!ref.current) {
             return true;

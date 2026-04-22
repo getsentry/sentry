@@ -42,8 +42,8 @@ export function useVirtualizedGrid({
 
   useEffect(() => {
     updateMeasurements();
-    const frame = window.requestAnimationFrame(updateMeasurements);
-    return () => window.cancelAnimationFrame(frame);
+    const frame = globalThis.requestAnimationFrame(updateMeasurements);
+    return () => globalThis.cancelAnimationFrame(frame);
   }, [updateMeasurements]);
 
   const virtualizer = useVirtualizer({

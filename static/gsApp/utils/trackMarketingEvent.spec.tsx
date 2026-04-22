@@ -8,16 +8,16 @@ describe('trackMarketingEvent', () => {
   const eventName = 'my_event';
   beforeEach(() => {
     ConfigStore.set('enableAnalytics', true);
-    window.ga = jest.fn();
+    globalThis.ga = jest.fn();
   });
   afterEach(() => {
-    window.ga.mockClear();
+    globalThis.ga.mockClear();
   });
 
   it('calls window.ga with event_label', () => {
     const data = {event_label: 'my_label'};
     trackMarketingEvent(eventName, data);
-    expect(window.ga).toHaveBeenCalledWith('send', {
+    expect(globalThis.ga).toHaveBeenCalledWith('send', {
       hitType: 'event',
       eventCategory: 'User',
       eventAction: eventName,
@@ -26,7 +26,7 @@ describe('trackMarketingEvent', () => {
   });
   it('calls window.ga without event_label', () => {
     trackMarketingEvent(eventName);
-    expect(window.ga).toHaveBeenCalledWith('send', {
+    expect(globalThis.ga).toHaveBeenCalledWith('send', {
       hitType: 'event',
       eventCategory: 'User',
       eventAction: eventName,
@@ -36,6 +36,6 @@ describe('trackMarketingEvent', () => {
   it('enableAnalytics is false', () => {
     ConfigStore.set('enableAnalytics', false);
     trackMarketingEvent(eventName);
-    expect(window.ga).not.toHaveBeenCalled();
+    expect(globalThis.ga).not.toHaveBeenCalled();
   });
 });

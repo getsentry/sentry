@@ -13,7 +13,7 @@ import {GithubButton} from './githubButton';
 
 export function ConnectGithubStep() {
   const handleAddIntegration = useCallback(() => {
-    window.location.reload();
+    globalThis.location.reload();
   }, []);
 
   return (

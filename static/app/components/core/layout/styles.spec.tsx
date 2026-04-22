@@ -32,9 +32,9 @@ const mockMatchMedia = (matches: boolean) => ({
 const setupMediaQueries = (
   breakpointMatches: Partial<Record<BreakpointSize, boolean>>
 ) => {
-  const originalMatchMedia = window.matchMedia;
+  const originalMatchMedia = globalThis.matchMedia;
 
-  window.matchMedia = jest.fn((query: string) => {
+  globalThis.matchMedia = jest.fn((query: string) => {
     // Extract breakpoint from media query
     const breakpointMatch = query.match(/min-width:\s*(.+?)\)/);
     const breakpointValue = breakpointMatch?.[1];
@@ -52,7 +52,7 @@ const setupMediaQueries = (
   });
 
   return () => {
-    window.matchMedia = originalMatchMedia;
+    globalThis.matchMedia = originalMatchMedia;
   };
 };
 
@@ -264,7 +264,7 @@ describe('useActiveBreakpoint', () => {
 
   it('sets up media queries for all breakpoints', () => {
     const matchMediaSpy = jest.fn(() => mockMatchMedia(false));
-    window.matchMedia = matchMediaSpy;
+    globalThis.matchMedia = matchMediaSpy;
 
     renderHookWithProviders(() => useActiveBreakpoint());
 
@@ -301,7 +301,7 @@ describe('useActiveBreakpoint', () => {
     const mockQueries: Record<string, any> = {};
 
     // Set up mock that tracks listeners
-    window.matchMedia = jest.fn((query: string) => {
+    globalThis.matchMedia = jest.fn((query: string) => {
       const mockQuery = {
         matches: query === `(min-width: ${theme.breakpoints.md})`,
         media: query,
@@ -363,9 +363,9 @@ describe('useActiveBreakpoint', () => {
     } as unknown as AbortController;
 
     const mockAbortController = jest.fn(() => abortController);
-    window.AbortController = mockAbortController;
+    globalThis.AbortController = mockAbortController;
 
-    window.matchMedia = jest.fn(() => ({
+    globalThis.matchMedia = jest.fn(() => ({
       matches: false,
       media: '',
       addEventListener,

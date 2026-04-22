@@ -77,7 +77,7 @@ const defaultState: GuideStoreState = {
 };
 
 function isForceEnabled() {
-  return window.location.hash === '#assistant';
+  return globalThis.location.hash === '#assistant';
 }
 
 interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {

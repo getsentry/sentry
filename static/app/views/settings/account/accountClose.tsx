@@ -26,7 +26,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
-const leaveRedirect = () => (window.location.href = BYE_URL);
+const leaveRedirect = () => (globalThis.location.href = BYE_URL);
 
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
@@ -76,7 +76,7 @@ function AccountClose() {
 
   useEffect(() => {
     return () => {
-      window.clearTimeout(leaveRedirectTimeout.current);
+      globalThis.clearTimeout(leaveRedirectTimeout.current);
     };
   }, []);
 
@@ -117,8 +117,8 @@ function AccountClose() {
         });
       });
       // Redirect after 10 seconds
-      window.clearTimeout(leaveRedirectTimeout.current);
-      leaveRedirectTimeout.current = window.setTimeout(leaveRedirect, 10000);
+      globalThis.clearTimeout(leaveRedirectTimeout.current);
+      leaveRedirectTimeout.current = globalThis.setTimeout(leaveRedirect, 10000);
     },
     onError: () => {
       addErrorMessage('Error closing account');

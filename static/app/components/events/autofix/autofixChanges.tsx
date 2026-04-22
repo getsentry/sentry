@@ -201,7 +201,7 @@ export function AutofixChanges({
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
-        view: window,
+        view: globalThis,
       });
       firstChangeRef.current.dispatchEvent(clickEvent);
     }

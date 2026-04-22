@@ -145,7 +145,7 @@ function createIsVisible(
   viewportHeight: number
 ): (el: Element) => boolean {
   return (el: Element) => {
-    const style = window.getComputedStyle(el);
+    const style = globalThis.getComputedStyle(el);
     if (
       style.display === 'none' ||
       style.visibility === 'hidden' ||
@@ -732,7 +732,7 @@ function renderTextNodes(
         const rects = Array.from(range.getClientRects());
 
         if (rects.length > 0) {
-          const style = window.getComputedStyle(parent);
+          const style = globalThis.getComputedStyle(parent);
           const whiteSpace = style.whiteSpace || '';
           const noWrap = /nowrap|pre/.test(whiteSpace);
           const hasEllipsis = (style.textOverflow || '').includes('ellipsis');
@@ -837,7 +837,7 @@ export function buildResult(
   chartTables: string[],
   projectSlugs: string[]
 ): string {
-  const url = window.location.href;
+  const url = globalThis.location.href;
 
   // Step 1: Strip trailing spaces from each row. The grid is initialized as
   // all-space cells so rows are always full-width;
@@ -888,7 +888,7 @@ export function useAsciiSnapshot() {
   const {projects} = useProjects();
 
   const capture = useCallback(() => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') {
+    if (typeof document === 'undefined' || typeof globalThis.window === 'undefined') {
       return '';
     }
 

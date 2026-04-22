@@ -41,7 +41,7 @@ export function setupMockPopup(): Window {
     close: jest.fn(),
     focus: jest.fn(),
   } as unknown as Window;
-  jest.spyOn(window, 'open').mockReturnValue(popup);
+  jest.spyOn(globalThis, 'open').mockReturnValue(popup);
   return popup;
 }
 
@@ -60,6 +60,6 @@ export function dispatchPipelineMessage({
   act(() => {
     const event = new MessageEvent('message', {data, origin});
     Object.defineProperty(event, 'source', {value: source});
-    window.dispatchEvent(event);
+    globalThis.dispatchEvent(event);
   });
 }

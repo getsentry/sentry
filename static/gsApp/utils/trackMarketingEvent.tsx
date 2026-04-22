@@ -10,13 +10,13 @@ export function trackMarketingEvent(
   }
 
   // Google
-  window.ga =
-    window.ga ||
+  globalThis.ga =
+    globalThis.ga ||
     function (...args: any[]) {
-      (window.ga.q = window.ga.q || []).push(args);
+      (globalThis.ga.q = globalThis.ga.q || []).push(args);
     };
-  window.ga.l = Date.now();
-  window.ga('send', {
+  globalThis.ga.l = Date.now();
+  globalThis.ga('send', {
     hitType: 'event',
     eventCategory: 'User',
     eventAction: event_type,
@@ -24,7 +24,7 @@ export function trackMarketingEvent(
   });
 
   // GA4
-  window.gtag?.('event', event_type, {
+  globalThis.gtag?.('event', event_type, {
     event_category: 'User',
     event_label: options?.event_label,
   });

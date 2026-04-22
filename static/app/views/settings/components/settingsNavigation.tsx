@@ -66,7 +66,7 @@ export class SettingsNavigation extends Component<Props> {
         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         scope.setExtra(key, errorInfo[key]);
       });
-      scope.setExtra('url', window.location.href);
+      scope.setExtra('url', globalThis.location.href);
       Sentry.captureException(error);
     });
   }

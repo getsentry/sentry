@@ -95,7 +95,7 @@ export function Console() {
 
   const handleMeasure = useCallback(
     (index: number) => {
-      window.requestAnimationFrame(() => {
+      globalThis.requestAnimationFrame(() => {
         const row = scrollContainerRef.current?.querySelector<HTMLElement>(
           `[data-index="${index}"]`
         );

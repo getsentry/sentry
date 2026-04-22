@@ -16,7 +16,7 @@ export function useUploader({onSelect, minImageSize}: UseUploaderOptions) {
 
   const cleanupObjectUrl = useCallback(() => {
     if (objectUrl) {
-      window.URL.revokeObjectURL(objectUrl);
+      globalThis.URL.revokeObjectURL(objectUrl);
     }
   }, [objectUrl]);
 
@@ -53,7 +53,7 @@ export function useUploader({onSelect, minImageSize}: UseUploaderOptions) {
       addErrorMessage(t('That is not a supported file type.'));
       return;
     }
-    const url = window.URL.createObjectURL(file);
+    const url = globalThis.URL.createObjectURL(file);
     const {height, width} = await getImageHeightAndWidth(url);
     const sizeValidation = validateSize(height, width);
 

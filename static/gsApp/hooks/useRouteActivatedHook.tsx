@@ -139,7 +139,7 @@ export function useRouteActivatedHook({location, matches}: Props) {
     }
     // after the context first loads, we need to wait DELAY_TIME_MS
     // before we send the analytics event
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = globalThis.setTimeout(() => {
       if (!hasSentAnalytics) {
         setReadyToSend(true);
       }

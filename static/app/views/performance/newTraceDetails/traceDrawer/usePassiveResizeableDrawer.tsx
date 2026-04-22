@@ -47,10 +47,10 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
       document.documentElement.style.cursor = isXAxis ? 'ew-resize' : 'ns-resize';
 
       if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
+        globalThis.cancelAnimationFrame(rafIdRef.current);
       }
 
-      rafIdRef.current = window.requestAnimationFrame(() => {
+      rafIdRef.current = globalThis.requestAnimationFrame(() => {
         if (!currentMouseVectorRaf.current) {
           return;
         }
@@ -131,7 +131,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
     return () => {
       observer.disconnect();
       if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
+        globalThis.cancelAnimationFrame(rafIdRef.current);
       }
     };
   }, [options.direction, options.ref]);

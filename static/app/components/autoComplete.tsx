@@ -180,8 +180,8 @@ export class AutoComplete<T extends Item> extends Component<
 
   componentWillUnmount() {
     this._mounted = false;
-    window.clearTimeout(this.blurTimeout);
-    window.clearTimeout(this.cancelCloseTimeout);
+    globalThis.clearTimeout(this.blurTimeout);
+    globalThis.clearTimeout(this.cancelCloseTimeout);
   }
 
   private _mounted = false;
@@ -287,8 +287,8 @@ export class AutoComplete<T extends Item> extends Component<
    */
   makehandleInputBlur<E extends HTMLInputElement>(onBlur: GetInputArgs<E>['onBlur']) {
     return (e: React.FocusEvent<E>) => {
-      window.clearTimeout(this.blurTimeout);
-      this.blurTimeout = window.setTimeout(() => {
+      globalThis.clearTimeout(this.blurTimeout);
+      this.blurTimeout = globalThis.setTimeout(() => {
         this.closeMenu();
         onBlur?.(e);
       }, 200);
@@ -300,13 +300,13 @@ export class AutoComplete<T extends Item> extends Component<
     // Otherwise, it's possible that this gets fired multiple times
     // e.g. click outside triggers closeMenu and at the same time input gets blurred, so
     // a timer is set to close the menu
-    window.clearTimeout(this.blurTimeout);
+    globalThis.clearTimeout(this.blurTimeout);
 
     // Wait until the current macrotask completes, in the case that the click
     // happened on a hovercard or some other element rendered outside of the
     // autocomplete, but controlled by the existence of the autocomplete, we
     // need to ensure any click handlers are run.
-    await new Promise(resolve => window.setTimeout(resolve));
+    await new Promise(resolve => globalThis.setTimeout(resolve));
 
     this.closeMenu();
   };
@@ -352,7 +352,7 @@ export class AutoComplete<T extends Item> extends Component<
         return;
       }
 
-      window.clearTimeout(this.blurTimeout);
+      globalThis.clearTimeout(this.blurTimeout);
 
       this.setState({highlightedIndex: index});
       this.handleSelect(item, e);
@@ -369,10 +369,10 @@ export class AutoComplete<T extends Item> extends Component<
   }
 
   handleMenuMouseDown = () => {
-    window.clearTimeout(this.cancelCloseTimeout);
+    globalThis.clearTimeout(this.cancelCloseTimeout);
     // Cancel close menu from input blur (mouseDown event can occur before input blur :()
-    this.cancelCloseTimeout = window.setTimeout(() => {
-      window.clearTimeout(this.blurTimeout);
+    this.cancelCloseTimeout = globalThis.setTimeout(() => {
+      globalThis.clearTimeout(this.blurTimeout);
     });
   };
 

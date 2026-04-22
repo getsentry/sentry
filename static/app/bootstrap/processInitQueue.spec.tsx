@@ -17,7 +17,7 @@ import {SentryInitRenderReactComponent} from 'sentry/types/system';
 describe('processInitQueue', () => {
   describe('renderReact', () => {
     it('renders password strength input', async () => {
-      window.__onSentryInit = [
+      globalThis.__onSentryInit = [
         {
           name: 'passwordStrength',
           input: '#password',
@@ -47,7 +47,7 @@ describe('processInitQueue', () => {
     });
 
     it('renders indicators', async () => {
-      window.__onSentryInit = [
+      globalThis.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.INDICATORS,
           container: '#indicator-container',
@@ -62,7 +62,7 @@ describe('processInitQueue', () => {
       expect(await screen.findByText('Indicator Alert')).toBeInTheDocument();
     });
     it('renders system alerts', async () => {
-      window.__onSentryInit = [
+      globalThis.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.SYSTEM_ALERTS,
           container: '#system-alerts-container',
@@ -80,7 +80,7 @@ describe('processInitQueue', () => {
       expect(await screen.findByText('System Alert')).toBeInTheDocument();
     });
     it('renders setup wizard', async () => {
-      window.__onSentryInit = [
+      globalThis.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.SETUP_WIZARD,
           container: '#setup-wizard-container',
@@ -149,7 +149,7 @@ describe('processInitQueue', () => {
     });
 
     it('renders WebAuthn Assert', async () => {
-      window.__onSentryInit = [
+      globalThis.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
           container: '#webauthn-container',
@@ -170,7 +170,7 @@ describe('processInitQueue', () => {
     });
 
     it('renders superuser staff access form', async () => {
-      window.__onSentryInit = [
+      globalThis.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM,
           container: '#su-staff-access-form-container',
@@ -200,7 +200,7 @@ describe('processInitQueue', () => {
       onReady: mock,
     } as const;
 
-    window.__onSentryInit = [init];
+    globalThis.__onSentryInit = [init];
 
     processInitQueue();
     expect(mock).toHaveBeenCalledTimes(1);
@@ -208,7 +208,7 @@ describe('processInitQueue', () => {
     processInitQueue();
     expect(mock).toHaveBeenCalledTimes(1);
 
-    window.__onSentryInit.push(init);
+    globalThis.__onSentryInit.push(init);
     expect(mock).toHaveBeenCalledTimes(2);
   });
 
@@ -220,7 +220,7 @@ describe('processInitQueue', () => {
       onReady: mock,
     } as const;
 
-    window.__onSentryInit.push(init);
+    globalThis.__onSentryInit.push(init);
     expect(mock).toHaveBeenCalledTimes(1);
 
     processInitQueue();

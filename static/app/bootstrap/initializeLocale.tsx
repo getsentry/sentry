@@ -52,7 +52,7 @@ export async function initializeLocale(config: Config) {
 
   // Parse query string for `lang`
   try {
-    queryString = qs.parse(window.location.search) || {};
+    queryString = qs.parse(globalThis.location.search) || {};
   } catch {
     // ignore if this fails to parse
     // this can happen if we have an invalid query string

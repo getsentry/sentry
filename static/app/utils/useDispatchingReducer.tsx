@@ -121,11 +121,11 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
       actionQueue.current.push(a);
 
       if (updatesRef.current) {
-        window.cancelAnimationFrame(updatesRef.current);
+        globalThis.cancelAnimationFrame(updatesRef.current);
         updatesRef.current = null;
       }
 
-      updatesRef.current = window.requestAnimationFrame(() => {
+      updatesRef.current = globalThis.requestAnimationFrame(() => {
         setState(s => {
           const next = update(s, actionQueue.current, reducerRef.current, emitter);
           stateRef.current = next;

@@ -39,7 +39,7 @@ function wrapErrorHandling<T extends any[], U>(
     } catch (error: any) {
       // eslint-disable-next-line no-console
       console.error(error);
-      window.setTimeout(() => {
+      globalThis.setTimeout(() => {
         throw error;
       });
       component.setState({error});

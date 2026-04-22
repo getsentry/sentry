@@ -9,16 +9,16 @@ export function requestAnimationFrameTimeout(cb: () => void, timeout: number) {
 
   function timer() {
     if (rafId.current) {
-      window.cancelAnimationFrame(rafId.current);
+      globalThis.cancelAnimationFrame(rafId.current);
     }
     if (performance.now() - start > timeout) {
       cb();
       return;
     }
-    rafId.current = window.requestAnimationFrame(timer);
+    rafId.current = globalThis.requestAnimationFrame(timer);
   }
 
-  rafId.current = window.requestAnimationFrame(timer);
+  rafId.current = globalThis.requestAnimationFrame(timer);
   return rafId;
 }
 

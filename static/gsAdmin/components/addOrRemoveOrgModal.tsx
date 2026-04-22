@@ -28,7 +28,7 @@ function AddToOrgModal({Header, Body, userId, closeModal}: AddOrRemoveOrgModalPr
         })
         .then(() => {
           closeModal();
-          window.location.reload();
+          globalThis.location.reload();
         });
     } catch (err: any) {
       setError(err.responseJSON.detail);
@@ -84,7 +84,7 @@ function RemoveFromOrgModal({
         })
         .then(() => {
           closeModal();
-          window.location.reload();
+          globalThis.location.reload();
         });
     } catch (err: any) {
       setError(err.responseJSON.detail);

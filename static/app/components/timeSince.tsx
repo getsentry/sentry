@@ -141,9 +141,9 @@ export function TimeSince({
           : liveUpdateInterval;
 
     // Start a ticker to update the relative time
-    const ticker = window.setInterval(() => setTick(prev => prev + 1), interval);
+    const ticker = globalThis.setInterval(() => setTick(prev => prev + 1), interval);
 
-    return () => window.clearInterval(ticker);
+    return () => globalThis.clearInterval(ticker);
   }, [liveUpdateInterval]);
 
   const dateObj = getDateObj(date);

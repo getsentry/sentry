@@ -102,7 +102,7 @@ export function SentryComponentInspector() {
       return () => {};
     }
     const onMouseMove = (event: MouseEvent & {preventTrace?: boolean}) => {
-      window.requestAnimationFrame(() => {
+      globalThis.requestAnimationFrame(() => {
         if (tooltipRef.current) {
           tooltipPositionRef.current = {
             ...computeTooltipPosition(event, tooltipRef.current),
@@ -261,11 +261,11 @@ export function SentryComponentInspector() {
       document.removeEventListener('pointerdown', handleClickOutside);
     }
 
-    window.addEventListener('devtools.toggle_component_inspector', onInspectorToggle);
+    globalThis.addEventListener('devtools.toggle_component_inspector', onInspectorToggle);
     window.addEventListener('scroll', onScroll, {passive: true});
 
     return () => {
-      window.removeEventListener(
+      globalThis.removeEventListener(
         'devtools.toggle_component_inspector',
         onInspectorToggle
       );
@@ -507,7 +507,7 @@ function MenuItem(props: {
   const currentTarget = useRef<Node | null>(null);
   useLayoutEffect(() => {
     const listener = (e: MouseEvent) => {
-      window.requestAnimationFrame(() => {
+      globalThis.requestAnimationFrame(() => {
         currentTarget.current = e.target as Node;
         if (!currentTarget.current) {
           return;
@@ -703,7 +703,7 @@ function computeTooltipPosition(
   {x, y}: {x: number; y: number},
   container: HTMLDivElement
 ): {left: number; top: number} {
-  const {innerWidth, innerHeight} = window;
+  const {innerWidth, innerHeight} = globalThis;
   let top = y + CURSOR_OFFSET_TOP;
   let left = x + CURSOR_OFFSET_LEFT;
 

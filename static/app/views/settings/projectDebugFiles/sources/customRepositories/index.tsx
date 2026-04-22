@@ -85,7 +85,7 @@ export function CustomRepositories({
         addSuccessMessage(successMessage);
 
         if (refresh) {
-          window.location.reload();
+          globalThis.location.reload();
         }
       });
 

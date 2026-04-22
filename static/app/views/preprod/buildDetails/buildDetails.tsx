@@ -113,7 +113,7 @@ export default function BuildDetails() {
     onSuccess: () => {
       addSuccessMessage(t('Analysis rerun started successfully!'));
       setTimeout(() => {
-        window.location.reload();
+        globalThis.location.reload();
       }, 1000);
     },
     onError: error => {

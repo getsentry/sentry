@@ -187,7 +187,7 @@ function SudoModal({
         {replace: true}
       );
       if (needsReload) {
-        window.location.reload();
+        globalThis.location.reload();
       }
       return;
     }
@@ -249,9 +249,9 @@ function SudoModal({
   );
 
   const getAuthLoginPath = (): string => {
-    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
-    const {superuserUrl} = window.__initialData.links;
-    if (window.__initialData?.customerDomain && superuserUrl) {
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(globalThis.location.href)}`;
+    const {superuserUrl} = globalThis.__initialData.links;
+    if (globalThis.__initialData?.customerDomain && superuserUrl) {
       return `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
     }
     return authLoginPath;

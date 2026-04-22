@@ -7,7 +7,7 @@ describe('Carousel', () => {
     entries: Array<Partial<IntersectionObserverEntry>>
   ) => void = jest.fn();
 
-  window.IntersectionObserver = class IntersectionObserver {
+  globalThis.IntersectionObserver = class IntersectionObserver {
     root = null;
     rootMargin = '';
     scrollMargin = '';

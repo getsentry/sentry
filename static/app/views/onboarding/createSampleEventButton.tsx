@@ -47,7 +47,7 @@ async function latestEventAvailable(
       return {eventCreated: false, retries: retries - 1};
     }
 
-    await new Promise(resolve => window.setTimeout(resolve, EVENT_POLL_INTERVAL));
+    await new Promise(resolve => globalThis.setTimeout(resolve, EVENT_POLL_INTERVAL));
 
     try {
       await api.requestPromise(

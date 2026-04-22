@@ -71,14 +71,14 @@ function StreamContentText({stream}: {stream: string}) {
 
     let intervalId: number | undefined;
     if (currentIndexRef.current < combinedText.length) {
-      intervalId = window.setInterval(() => {
+      intervalId = globalThis.setInterval(() => {
         if (currentIndexRef.current < combinedText.length) {
           startTransition(() => {
             setDisplayedText(combinedText.slice(0, currentIndexRef.current + 1));
           });
           currentIndexRef.current++;
         } else {
-          window.clearInterval(intervalId);
+          globalThis.clearInterval(intervalId);
           intervalId = undefined;
         }
       }, 1);
@@ -86,7 +86,7 @@ function StreamContentText({stream}: {stream: string}) {
 
     return () => {
       if (intervalId) {
-        window.clearInterval(intervalId);
+        globalThis.clearInterval(intervalId);
       }
     };
   }, [stream, displayedText]);

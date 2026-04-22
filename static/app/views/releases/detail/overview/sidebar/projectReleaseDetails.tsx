@@ -97,7 +97,7 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                       onClick={() => {
                         finalizeRelease.mutate([release], {
                           onSettled() {
-                            window.location.reload();
+                            globalThis.location.reload();
                           },
                         });
                       }}

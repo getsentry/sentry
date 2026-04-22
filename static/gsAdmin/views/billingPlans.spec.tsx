@@ -14,8 +14,8 @@ import {BillingPlans, type BillingPlansResponse} from './billingPlans';
 jest.mock('@sentry/react');
 
 // Mock URL.createObjectURL and URL.revokeObjectURL
-global.URL.createObjectURL = jest.fn(() => 'blob:http://localhost/fake-url');
-global.URL.revokeObjectURL = jest.fn();
+globalThis.URL.createObjectURL = jest.fn(() => 'blob:http://localhost/fake-url');
+globalThis.URL.revokeObjectURL = jest.fn();
 
 // We'll use this to hold a reference to the created <a> element
 let downloadLink: HTMLAnchorElement | null = null;
@@ -159,7 +159,7 @@ describe('BillingPlans Component', () => {
     const TEST_BLOB_CONSTRUCTOR = jest.fn();
 
     jest
-      .spyOn(global, 'Blob')
+      .spyOn(globalThis, 'Blob')
       .mockImplementationOnce((...args) => TEST_BLOB_CONSTRUCTOR(...args));
 
     render(<BillingPlans />);

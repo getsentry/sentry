@@ -270,7 +270,7 @@ export function ClippedBox(props: ClippedBoxProps) {
         setClipped(_clipped);
       };
 
-      if (supportsResizeObserver(window.ResizeObserver)) {
+      if (supportsResizeObserver(globalThis.ResizeObserver)) {
         observerRef.current = new ResizeObserver(onResize);
         observerRef.current.observe(contentRef.current);
         return;

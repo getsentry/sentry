@@ -158,8 +158,8 @@ export function escapeDoubleQuotes(str: string) {
 }
 
 export function generateOrgSlugUrl(orgSlug: any) {
-  const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
-  return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
+  const sentryDomain = globalThis.__initialData.links.sentryUrl.split('/')[2];
+  return `${globalThis.location.protocol}//${orgSlug}.${sentryDomain}${globalThis.location.pathname}`;
 }
 
 /**

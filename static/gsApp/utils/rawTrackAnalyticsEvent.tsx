@@ -72,7 +72,7 @@ const hasAnalyticsDebug = () =>
 const getCustomReferrer = () => {
   try {
     // pull the referrer from the query parameter of the page
-    const {referrer} = qs.parse(window.location.search) || {};
+    const {referrer} = qs.parse(globalThis.location.search) || {};
     // pull the referrer from session storage.
     const storedReferrer = readStorageValue(CUSTOM_REFERRER_KEY, null) as string | null;
     // ?referrer takes precedence, but still unset session stored referrer.
@@ -228,7 +228,7 @@ export function rawTrackAnalyticsEvent(
 
       // add in url for amplitude events as reload has it automatically added
       const dataWithUrl = {
-        url: window.location.href,
+        url: globalThis.location.href,
         user_age: userAge,
         organization_age: orgAge,
         ...data,

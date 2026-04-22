@@ -13,7 +13,7 @@ export function getLocationHref(to: LocationDescriptor): string {
 }
 
 export function isExternalLocation(to: LocationDescriptor): boolean {
-  const currentUrl = new URL(window.location.href);
+  const currentUrl = new URL(globalThis.location.href);
   const targetUrl = new URL(getLocationHref(to), currentUrl.href);
   return targetUrl.origin !== currentUrl.origin;
 }

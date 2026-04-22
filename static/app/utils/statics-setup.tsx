@@ -17,4 +17,4 @@ declare var __webpack_public_path__: string; // eslint-disable-line no-var
  * for now as a quick workaround for the index.html being aware of versioned
  * asset paths.
  */
-__webpack_public_path__ = window.__initialData?.distPrefix || '/_assets/';
+__webpack_public_path__ = globalThis.__initialData?.distPrefix || '/_assets/';

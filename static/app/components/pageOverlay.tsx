@@ -180,7 +180,7 @@ export function PageOverlay({
     let bgResizeObserver: ResizeObserver | null = null;
 
     // Observe changes to the upsell container to reanchor if available
-    if (window.ResizeObserver) {
+    if (globalThis.ResizeObserver) {
       bgResizeObserver = new ResizeObserver(anchorWrapper);
       bgResizeObserver.observe(contentRef.current);
     }

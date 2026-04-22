@@ -156,7 +156,7 @@ export function isOverflown(el: Element): boolean {
 
 function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
   if (typeof ref.current === 'number') {
-    window.clearTimeout(ref.current);
+    globalThis.clearTimeout(ref.current);
     ref.current = undefined;
   }
 }
@@ -257,7 +257,7 @@ function useHoverOverlay({
       return;
     }
 
-    delayOpenTimeoutRef.current = window.setTimeout(
+    delayOpenTimeoutRef.current = globalThis.setTimeout(
       () => setIsVisible(true),
       delay ?? OPEN_DELAY
     );
@@ -272,7 +272,7 @@ function useHoverOverlay({
       return;
     }
 
-    delayHideTimeoutRef.current = window.setTimeout(() => {
+    delayHideTimeoutRef.current = globalThis.setTimeout(() => {
       setIsVisible(false);
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout]);

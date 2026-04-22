@@ -3,7 +3,7 @@ import {createContext, useContext} from 'react';
 import type {DO_NOT_USE_ButtonProps as ButtonProps} from './button/types';
 
 const defaultButtonTracking = (props: ButtonProps) => {
-  const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+  const hasAnalyticsDebug = globalThis.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
   return () => {
     const hasCustomAnalytics =
       props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;

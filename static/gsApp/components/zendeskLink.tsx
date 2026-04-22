@@ -44,7 +44,7 @@ function ZendeskLink({
 
   let mailto = `mailto:${address ?? 'support'}@sentry.io`;
   if (subject) {
-    mailto = `${mailto}?subject=${window.encodeURIComponent(subject)}`;
+    mailto = `${mailto}?subject=${globalThis.encodeURIComponent(subject)}`;
   }
 
   const LinkComponent = Component ?? ExternalLink;

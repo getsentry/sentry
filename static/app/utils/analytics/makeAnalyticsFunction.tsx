@@ -13,7 +13,8 @@ import type {Organization} from 'sentry/types/organization';
 const rawTrackAnalyticsEvent: Hooks['analytics:raw-track-event'] = (data, options) =>
   HookStore.get('analytics:raw-track-event').forEach(cb => cb(data, options));
 
-const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
+const hasAnalyticsDebug = () =>
+  globalThis.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
 type OptionalOrg = {
   organization: Organization | string | null;

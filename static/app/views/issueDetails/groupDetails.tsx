@@ -181,10 +181,10 @@ function useRefetchGroupForReprocessing({
   refetchGroup,
 }: Pick<FetchGroupDetailsState, 'refetchGroup'>) {
   useEffect(() => {
-    const refetchInterval = window.setInterval(refetchGroup, 30000);
+    const refetchInterval = globalThis.setInterval(refetchGroup, 30000);
 
     return () => {
-      window.clearInterval(refetchInterval);
+      globalThis.clearInterval(refetchInterval);
     };
   }, [refetchGroup]);
 }
@@ -356,7 +356,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
 
   useEffect(() => {
-    const locationQuery = qs.parse(window.location.search) || {};
+    const locationQuery = qs.parse(globalThis.location.search) || {};
     const allProjectsFlag = locationQuery._allp;
 
     // We use _allp as a temporary measure to know they came from the
@@ -378,7 +378,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       group?.project.id
     ) {
       locationQuery.project = group?.project.id;
-      navigate({...window.location, query: locationQuery}, {replace: true});
+      navigate({...globalThis.location, query: locationQuery}, {replace: true});
     }
 
     if (allProjectsFlag && !allProjectChanged) {
@@ -387,7 +387,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // this is not an ideal solution and will ultimately be replaced with
       // something smarter.
       delete locationQuery._allp;
-      navigate({...window.location, query: locationQuery}, {replace: true});
+      navigate({...globalThis.location, query: locationQuery}, {replace: true});
       setAllProjectChanged(true);
     }
   }, [group?.project.id, allProjectChanged, navigate]);

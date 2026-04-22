@@ -115,7 +115,7 @@ describe('CommandPalette', () => {
 
   it('shift-enter on an internal link opens in a new tab and closes modal', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null);
+    const openSpy = jest.spyOn(globalThis, 'open').mockReturnValue(null);
 
     render(
       <GlobalActionsComponent>

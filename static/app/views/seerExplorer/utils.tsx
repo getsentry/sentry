@@ -965,11 +965,11 @@ function formatSessionData(
 function locationToUrl(location: LocationDescriptor): string | null {
   if (typeof location === 'string') {
     const hasOrigin = /^https?:\/\//.test(location);
-    return hasOrigin ? location : `${window.location.origin}${location}`;
+    return hasOrigin ? location : `${globalThis.location.origin}${location}`;
   }
 
   const {pathname = '', hash, query} = location;
-  const base = `${window.location.origin}${pathname}`;
+  const base = `${globalThis.location.origin}${pathname}`;
 
   const queryPart = query ? `?${queryString.stringify(query)}` : '';
 
@@ -984,7 +984,7 @@ const RUN_ID_QUERY_PARAM = 'explorerRunId';
  * Returns the URL of the current window with the run ID query param set.
  */
 export function getExplorerUrl(runId: number | string): string {
-  const url = new URL(window.location.href);
+  const url = new URL(globalThis.location.href);
   url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
   return url.toString();
 }

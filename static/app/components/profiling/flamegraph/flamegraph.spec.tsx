@@ -8,8 +8,8 @@ import {FlamegraphRendererDOM as mockFlameGraphRenderer} from 'sentry/utils/prof
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/transactionProfileProvider';
 
-window.ResizeObserver =
-  window.ResizeObserver ||
+globalThis.ResizeObserver =
+  globalThis.ResizeObserver ||
   jest.fn().mockImplementation(() => ({
     disconnect: jest.fn(),
     observe: jest.fn(),

@@ -607,7 +607,7 @@ export function AutofixHighlightPopup(props: Props) {
     popupObserver.observe(popupRef.current);
 
     // Track scroll events
-    const scrollElements = [window, ...getScrollParents(referenceElement)];
+    const scrollElements = [globalThis, ...getScrollParents(referenceElement)];
     scrollElements.forEach(element => {
       element.addEventListener('scroll', updatePosition, {passive: true});
     });
@@ -878,7 +878,7 @@ function getScrollParents(element: HTMLElement): Element[] {
   let currentElement = element.parentElement;
 
   while (currentElement) {
-    const overflow = window.getComputedStyle(currentElement).overflow;
+    const overflow = globalThis.getComputedStyle(currentElement).overflow;
     if (overflow.includes('scroll') || overflow.includes('auto')) {
       scrollParents.push(currentElement);
     }
