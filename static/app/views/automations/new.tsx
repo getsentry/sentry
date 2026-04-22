@@ -294,6 +294,8 @@ export default function AutomationNewSettings() {
           <Flex
             width="100%"
             maxWidth={
+              // Layout.Body uses `lg xl` page-frame padding, so subtract the left/right `xl`
+              // gutters to align the footer actions with the inner content column.
               hasPageFrameFeature
                 ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
                 : maxWidth
