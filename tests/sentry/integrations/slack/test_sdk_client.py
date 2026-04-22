@@ -24,8 +24,10 @@ class SlackClientTest(TestCase):
         )
 
     def test_no_integration_found_error(self) -> None:
+        # Use an ID well above the current maximum to ensure it doesn't exist
+        # regardless of how many integrations other tests have created.
         with pytest.raises(ValueError):
-            SlackSdkClient(integration_id=2)
+            SlackSdkClient(integration_id=self.integration.id + 1_000_000)
 
     def test_inactive_integration_error(self) -> None:
         with assume_test_silo_mode_of(Integration):
