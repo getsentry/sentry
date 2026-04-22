@@ -663,16 +663,6 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
 
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        # Create a second dashboard so tests can delete self.dashboard without hitting
-        # the "cannot delete last dashboard" guard.
-        self.dashboard_2 = Dashboard.objects.create(
-            title="Dashboard 2",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
-
     def test_delete(self) -> None:
         response = self.do_request("delete", self.url(self.dashboard.id))
         assert response.status_code == 204
@@ -696,13 +686,6 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
         # assign a project to a dashboard
         self.dashboard.projects.set([self.project])
-
-        # create a second dashboard so there is still one left after deletion
-        Dashboard.objects.create(
-            title="Second Dashboard",
-            created_by_id=self.user.id,
-            organization=self.organization,
-        )
 
         # user has no access to the above project
         user_no_team = self.create_user(is_superuser=False)
@@ -780,10 +763,9 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         assert response.data == {"detail": "The requested resource does not exist"}
 
     def test_delete_last_dashboard(self) -> None:
-        # Delete dashboard_2 first, leaving only self.dashboard
-        self.do_request("delete", self.url(self.dashboard_2.id))
         response = self.do_request("delete", self.url(self.dashboard.id))
-        assert response.status_code == 409
+        assert response.status_code == 204
+        assert not Dashboard.objects.filter(id=self.dashboard.id).exists()
 
     def test_features_required(self) -> None:
         with self.feature({"organizations:dashboards-edit": False}):

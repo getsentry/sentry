@@ -142,16 +142,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if dashboard.prebuilt_id is not None:
             return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
-        # Legacy behavior from when the hardcoded "default-overview" dashboard was
-        # always present as a fallback — blocking deletion of the last dashboard
-        # guaranteed the UI always had something to render. Now that prebuilt
-        # dashboards are real DB rows, we can likely drop this once the empty
-        # state is verified to render correctly.
-        num_dashboards = Dashboard.objects.filter(organization=organization).count()
-        if num_dashboards > 1:
-            dashboard.delete()
-        else:
-            return self.respond({"detail": "Cannot delete last Dashboard."}, status=409)
+        dashboard.delete()
 
         return self.respond(status=204)
 
