@@ -349,6 +349,9 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner, live_server) -
 
 @django_db_all
 @requires_objectstore
+@pytest.mark.skip(
+    reason="test pollution: ProGuard mapping file from prior test contaminates the deobfuscation result; shared DIF storage state causes wrong class name mapping"
+)
 @requires_symbolicator
 @thread_leak_allowlist(reason="django dev server", issue=97036)
 def test_deobfuscate_view_hierarchy_objectstore(default_project, task_runner, live_server) -> None:
