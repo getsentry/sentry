@@ -481,7 +481,9 @@ export function BlockComponent({
                               </ToolCallText>
                               <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
                                 {isFailed ? (
-                                  <ToolCallBrokenLinkIcon size="xs" />
+                                  <Tooltip title={t('Tool call failed')}>
+                                    <ToolCallBrokenLinkIcon size="xs" />
+                                  </Tooltip>
                                 ) : (
                                   <ToolCallLinkIcon
                                     size="xs"
@@ -726,7 +728,6 @@ const UserBlockContent = styled('div')`
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
-  max-width: 100%;
   min-width: 0;
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.tokens.background.secondary};
