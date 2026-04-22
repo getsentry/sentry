@@ -278,25 +278,30 @@ export function InputSection({
           />
         </StyledInputGroup>
         {canInterrupt || waitingForInterrupt ? (
-          <PauseButton
-            icon={<IconPause />}
-            onClick={onInterrupt}
-            size="md"
-            priority="primary"
-            disabled={waitingForInterrupt}
-            aria-label={t('Interrupt button')}
-            tooltipProps={{
-              title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
-            }}
-          />
+          <ActionButtonSlot>
+            <Button
+              icon={<IconPause />}
+              onClick={onInterrupt}
+              size="md"
+              priority="primary"
+              disabled={waitingForInterrupt}
+              aria-label={t('Interrupt button')}
+              tooltipProps={{
+                title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+              }}
+            />
+          </ActionButtonSlot>
         ) : (
-          <SendButton
-            icon={<IconArrow direction="right" />}
-            onClick={onSend}
-            size="md"
-            disabled={!inputValue.trim()}
-            aria-label={t('Send message')}
-          />
+          <ActionButtonSlot>
+            <Button
+              icon={<IconArrow direction="right" />}
+              onClick={onSend}
+              size="md"
+              priority="default"
+              disabled={!inputValue.trim()}
+              aria-label={t('Send message')}
+            />
+          </ActionButtonSlot>
         )}
         {enabled && hasCodeChanges && (
           <PRWidget
@@ -351,27 +356,14 @@ const ActionBar = styled(motion.div)`
   bottom: 0;
 `;
 
-const SendButton = styled(Button)`
+const ActionButtonSlot = styled('div')`
   width: ${p => p.theme.form.md.height};
+  height: ${p => p.theme.form.md.height};
   flex-shrink: 0;
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
 
-  &:hover:not(:disabled),
-  &:focus-visible:not(:disabled) {
-    background: ${p => p.theme.tokens.background.primary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-`;
-
-const PauseButton = styled(Button)`
-  width: ${p => p.theme.form.md.height};
-  flex-shrink: 0;
-  background: ${p => p.theme.tokens.background.promotion.vibrant};
-  border-color: ${p => p.theme.tokens.border.promotion.vibrant};
-
-  &:disabled {
-    opacity: 0.5;
+  > button {
+    width: 100%;
+    height: 100%;
   }
 `;
 
