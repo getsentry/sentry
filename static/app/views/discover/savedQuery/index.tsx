@@ -93,13 +93,7 @@ function SaveAsDropdown({
 
   return (
     <div>
-      <Button
-        {...triggerProps}
-        size="sm"
-        priority="primary"
-        aria-label={t('Save as')}
-        disabled={disabled}
-      >
+      <Button {...triggerProps} size="sm" aria-label={t('Save as')} disabled={disabled}>
         {t('Save as')}
       </Button>
       <AnimatePresence>

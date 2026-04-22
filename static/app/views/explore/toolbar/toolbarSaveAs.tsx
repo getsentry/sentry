@@ -308,7 +308,7 @@ export function ToolbarSaveAs() {
                   triggerProps.onClick?.(e);
                 }}
               >
-                {t('Save as')}
+                {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
               </SaveAsButton>
             )}
           />

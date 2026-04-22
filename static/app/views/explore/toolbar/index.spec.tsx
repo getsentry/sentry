@@ -818,7 +818,7 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('keeps the save-as button label when a saved query is changed', async () => {
+  it('shows Save when a saved query is changed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/`,
       method: 'GET',
@@ -880,9 +880,9 @@ describe('ExploreToolbar', () => {
       })
     );
 
-    // After navigation, the save action should keep the normalized save-as label.
+    // After navigation, the save action should switch to the update state.
     await waitFor(() => {
-      expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
+      expect(screen.getByText(/^save$/i)).toBeInTheDocument();
     });
   });
 
