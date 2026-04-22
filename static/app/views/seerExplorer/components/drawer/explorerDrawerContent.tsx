@@ -421,9 +421,6 @@ export function ExplorerDrawerContent({
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
-                isLast={
-                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
-                }
                 isFocused={focusedBlockIndex === index}
                 readOnly={readOnly}
                 onDelete={() => {
@@ -441,7 +438,6 @@ export function ExplorerDrawerContent({
               fileApprovalIndex < fileApprovalTotalPatches && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
-                  isLast
                   pendingInput={pendingInput!}
                 />
               )}
@@ -449,7 +445,6 @@ export function ExplorerDrawerContent({
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
-                isLast
                 isOtherSelected={isOtherSelected}
                 onCustomTextChange={handleQuestionCustomTextChange}
                 onSelectOption={handleQuestionSelectOption}

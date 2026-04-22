@@ -400,7 +400,7 @@ function MetricToolbar({
               environments={environments}
             />
           </Flex>
-          <AggregateDropdown traceMetric={traceMetric} />
+          <AggregateDropdown traceMetric={traceMetric} singleSelect />
           <Filter traceMetric={traceMetric} />
           <DeleteMetricButton disabled={!canDelete} />
         </Fragment>
