@@ -36,7 +36,7 @@ export function ErrorsCharts() {
   );
 }
 
-export function Chart() {
+function Chart() {
   const [chartVisible, setChartVisible] = useState(true);
   const [interval, setInterval, intervalOptions] = useChartInterval();
 
