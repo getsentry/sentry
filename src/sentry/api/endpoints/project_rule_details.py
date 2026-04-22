@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 import sentry_sdk
 from django.db import router, transaction
 from drf_spectacular.utils import extend_schema
@@ -47,6 +49,8 @@ from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
@@ -341,6 +345,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                         serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
                     )
                 except AlertRuleWorkflow.DoesNotExist:
+                    logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
                     return Response(serialize(updated_rule, request.user))
 
             return Response(serialize(updated_rule, request.user))
