@@ -136,6 +136,13 @@ function warmUpGroup(group: DelayGroup) {
 }
 
 function startGroupCoolDown(group: DelayGroup) {
+  // In test mode the open path bypasses the warm-up delay entirely, so a
+  // cooldown timer would only serve to leak onto the default group (which has
+  // no provider cleaning it up). Match the open-path bypass and no-op here.
+  if (NODE_ENV === 'test') {
+    group.isWarm = false;
+    return;
+  }
   if (group.coolDownTimer !== undefined) {
     window.clearTimeout(group.coolDownTimer);
   }
