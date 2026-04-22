@@ -18,7 +18,7 @@ export function AskSeerButton() {
   const {isOpen, toggleSeerExplorer} = useSeerExplorerContext();
   const {sessionData, isPolling} = useSeerExplorer();
 
-  if (organization && !isSeerExplorerEnabled(organization)) {
+  if (!organization || !isSeerExplorerEnabled(organization)) {
     return null;
   }
 
