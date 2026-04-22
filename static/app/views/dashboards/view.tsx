@@ -28,7 +28,7 @@ export default function ViewEditDashboard() {
   const orgSlug = organization.slug;
 
   useEffect(() => {
-    if (dashboardId && dashboardId !== 'default-overview') {
+    if (dashboardId) {
       updateDashboardVisit(api, orgSlug, dashboardId);
     }
   }, [api, orgSlug, dashboardId]);

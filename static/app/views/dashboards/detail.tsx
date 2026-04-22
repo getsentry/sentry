@@ -1175,7 +1175,6 @@ class DashboardDetail extends Component<Props, State> {
     } = this.state;
 
     const hasUnsavedFilters =
-      dashboard.id !== 'default-overview' &&
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
