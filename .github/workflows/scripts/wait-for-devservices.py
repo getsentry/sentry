@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run devservices up and verify all containers are healthy.
 
-Usage: wait.py <mode> [timeout_seconds]
+Usage: wait-for-devservices.py <mode> [timeout_seconds]
 
 Writes: $GITHUB_ENV  (DJANGO_LIVE_TEST_SERVER_ADDRESS)
 """
@@ -90,6 +90,6 @@ def run(mode: str, timeout: int = TIMEOUT) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: wait.py <mode> [timeout_seconds]", file=sys.stderr)
+        print("Usage: wait-for-devservices.py <mode> [timeout_seconds]", file=sys.stderr)
         sys.exit(1)
     run(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else TIMEOUT)

@@ -12,7 +12,7 @@ Phase 2 (after devservices): Stop snuba-snuba-1 and start per-worker
   cause a timeout.
 
 Requires: XDIST_WORKERS env var
-Reads:    /tmp/ds-exit (written by setup-devservices/wait.py)
+Reads:    /tmp/ds-exit (written by workflows/scripts/wait-for-devservices.py)
 Writes:   /tmp/snuba-bootstrap-exit
 """
 
