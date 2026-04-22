@@ -1,8 +1,11 @@
 import logging
 import re
+from collections.abc import Iterator
 from gzip import GzipFile
 from io import BytesIO
+from typing import IO
 
+import zstandard
 from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
@@ -48,12 +51,54 @@ CHUNK_UPLOAD_ACCEPT = (
     "dartsymbolmap",  # Dart/Flutter symbol mapping files
 )
 
+# Compression codecs advertised to clients via the `compression` field of the
+# chunk-upload options response. Clients use this list to decide how to encode
+# chunks on upload. New codecs must:
+#   - be detectable via the HTTP `Content-Encoding` request header on POST, AND
+#   - decompress with a hard cap of `settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE` to
+#     prevent decompression bombs.
+CHUNK_UPLOAD_COMPRESSION = ("gzip", "zstd")
+
+
+class ChunkTooLarge(OSError):
+    """Raised when a (possibly decompressed) chunk exceeds the per-chunk size limit."""
+
+
+def _read_bounded(reader: IO[bytes], limit: int) -> bytes:
+    """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
+
+    We ask for ``limit + 1`` bytes and let the stream produce as much as it can within
+    that budget. If any more bytes are available after that read, the stream exceeds
+    the cap and we bail. This keeps memory bounded at ``limit + 1`` bytes regardless
+    of how well-compressed the input is (protects against zstd/gzip decompression
+    bombs where a small compressed payload expands to hundreds of megabytes).
+    """
+    data = reader.read(limit + 1)
+    if len(data) > limit:
+        raise ChunkTooLarge("Chunk size too large")
+    # Guard against streams that returned short and still have more data available
+    # after a short read (shouldn't happen with BufferedReader but be defensive).
+    extra = reader.read(1)
+    if extra:
+        raise ChunkTooLarge("Chunk size too large")
+    return data
+
 
 class GzipChunk(BytesIO):
-    def __init__(self, file):
-        data = GzipFile(fileobj=file, mode="rb").read()
+    def __init__(self, file: IO[bytes]) -> None:
+        reader = GzipFile(fileobj=file, mode="rb")
+        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
         self.size = len(data)
-        self.name = file.name
+        self.name = getattr(file, "name", "")
+        super().__init__(data)
+
+
+class ZstdChunk(BytesIO):
+    def __init__(self, file: IO[bytes]) -> None:
+        reader = zstandard.ZstdDecompressor().stream_reader(file)
+        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
+        self.size = len(data)
+        self.name = getattr(file, "name", "")
         super().__init__(data)
 
 
@@ -145,8 +190,10 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
-        compression = (
-            [] if organization.id in options.get("chunk-upload.no-compression") else ["gzip"]
+        compression: list[str] = (
+            []
+            if organization.id in options.get("chunk-upload.no-compression")
+            else list(CHUNK_UPLOAD_COMPRESSION)
         )
         accept = CHUNK_UPLOAD_ACCEPT
 
@@ -176,9 +223,21 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         Requests to this endpoint should use the region-specific domain
         eg. `us.sentry.io` or `de.sentry.io`
 
-        :pparam file file: The filename should be sha1 hash of the content.
-                            Also not you can add up to MAX_CHUNKS_PER_REQUEST files
-                            in this request.
+        Compression is negotiated via the HTTP ``Content-Encoding`` request
+        header. Supported values are listed in the ``compression`` field of the
+        ``GET`` response (currently ``gzip`` and ``zstd``). When set, every
+        chunk delivered under the ``file`` multipart field is decoded using
+        that codec.
+
+        The legacy ``file_gzip`` multipart field is still accepted for
+        backwards compatibility with older clients, but is deprecated in favor
+        of ``Content-Encoding: gzip`` on the ``file`` field. Requests that mix
+        ``Content-Encoding`` with a ``file_gzip`` entry are rejected with 400
+        to avoid ambiguity -- clients must pick one mechanism per request.
+
+        :pparam file file: The filename should be sha1 hash of the (decoded)
+                            content. Also note you can add up to
+                            MAX_CHUNKS_PER_REQUEST files in this request.
 
         :auth: required
         """
@@ -187,12 +246,33 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger = logging.getLogger("sentry.files")
         logger.info("chunkupload.start")
 
-        files = []
-        checksums = []
+        encoding = request.headers.get("Content-Encoding", "").strip().lower()
+        if encoding and encoding not in CHUNK_UPLOAD_COMPRESSION:
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response(
+                {"error": "Unsupported Content-Encoding"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        files_plain = request.FILES.getlist("file")
+        files_gzip_legacy = request.FILES.getlist("file_gzip")
+
+        # Mixing the new Content-Encoding mechanism with the deprecated
+        # `file_gzip` field is ambiguous: the legacy field always means gzip
+        # regardless of the header, so a request with both is asking the server
+        # to apply two different codecs in one upload. Reject up front.
+        if encoding and files_gzip_legacy:
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response(
+                {"error": "Cannot combine Content-Encoding with file_gzip field"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        files: list[IO[bytes]] = []
+        checksums: list[str] = []
         total_size = 0
 
         # Validate if chunks exceed the maximum chunk limit before attempting to decompress them.
-        num_files = len(request.FILES.getlist("file")) + len(request.FILES.getlist("file_gzip"))
+        num_files = len(files_plain) + len(files_gzip_legacy)
 
         if num_files > MAX_CHUNKS_PER_REQUEST:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
@@ -203,20 +283,29 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
-        for chunk, name in get_files(request):
-            if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
-                logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-                return Response(
-                    {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
-                )
+        try:
+            for chunk, name in get_files(request, encoding):
+                if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
+                    logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    return Response(
+                        {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            total_size += chunk.size
-            if total_size > MAX_REQUEST_SIZE:
-                logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-                return Response({"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST)
+                total_size += chunk.size
+                if total_size > MAX_REQUEST_SIZE:
+                    logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    return Response(
+                        {"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            files.append(chunk)
-            checksums.append(name)
+                files.append(chunk)
+                checksums.append(name)
+        except ChunkTooLarge:
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST)
+        except zstandard.ZstdError:
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Invalid zstd payload"}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.post.files", extra={"len": len(files)})
 
@@ -230,10 +319,28 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request):
-    for chunk in request.FILES.getlist("file"):
-        yield chunk, chunk.name
+def get_files(request: Request, encoding: str) -> Iterator[tuple[IO[bytes], str]]:
+    """Yield ``(chunk, checksum)`` tuples for every uploaded chunk.
 
+    ``encoding`` is the (lowercased) value of the request's ``Content-Encoding``
+    header and must be ``""``, ``"gzip"``, or ``"zstd"`` (validated by the
+    caller). When non-empty, every chunk under the ``file`` multipart field is
+    decoded using that codec.
+
+    The legacy ``file_gzip`` multipart field is always decoded as gzip
+    independent of the header. It is deprecated in favor of
+    ``Content-Encoding: gzip`` on the ``file`` field.
+    """
+    for chunk in request.FILES.getlist("file"):
+        if encoding == "gzip":
+            yield GzipChunk(chunk), chunk.name
+        elif encoding == "zstd":
+            yield ZstdChunk(chunk), chunk.name
+        else:
+            yield chunk, chunk.name
+
+    # Deprecated: prefer `Content-Encoding: gzip` on the `file` field. Retained
+    # for backwards compatibility with older sentry-cli versions that always
+    # dispatch gzipped chunks under this field name.
     for chunk in request.FILES.getlist("file_gzip"):
-        decompressed_chunk = GzipChunk(chunk)
-        yield decompressed_chunk, chunk.name
+        yield GzipChunk(chunk), chunk.name
