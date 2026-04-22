@@ -284,6 +284,18 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "float - postive, too many segments",
+        "1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
+        "float - negative, too many segments",
+        "-1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
