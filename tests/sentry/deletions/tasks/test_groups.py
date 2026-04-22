@@ -3,7 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from sentry import deletions, nodestore
+from sentry import deletions, eventstream, nodestore
 from sentry.deletions.tasks.groups import delete_groups_for_project
 from sentry.exceptions import DeleteAborted
 from sentry.models.group import Group, GroupStatus
@@ -15,6 +15,7 @@ from sentry.models.groupredirect import GroupRedirect
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.clickhouse import optimize_snuba_table
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
@@ -66,10 +67,22 @@ class DeleteGroupTest(TestCase):
         assert nodestore.backend.get(node_id)
         assert nodestore.backend.get(node_id_2)
 
-        with self.tasks():
-            delete_groups_for_project(
-                object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
-            )
+        with (
+            patch.object(
+                eventstream.backend,
+                "start_delete_groups",
+                wraps=eventstream.backend.start_delete_groups,
+            ) as mock_start,
+            patch.object(
+                eventstream.backend,
+                "end_delete_groups",
+                wraps=eventstream.backend.end_delete_groups,
+            ) as mock_end,
+        ):
+            with self.tasks():
+                delete_groups_for_project(
+                    object_ids=[group.id], transaction_id=uuid4().hex, project_id=self.project.id
+                )
 
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
@@ -78,7 +91,13 @@ class DeleteGroupTest(TestCase):
         assert not nodestore.backend.get(node_id)
         assert not nodestore.backend.get(node_id_2)
 
-        # Ensure events are deleted from Snuba
+        # Verify the correct Snuba delete API calls were made — our code's
+        # responsibility. Then force ClickHouse to immediately deduplicate so
+        # tombstoned rows are removed without waiting for background merge.
+        mock_start.assert_called_once_with(self.project.id, [group.id])
+        mock_end.assert_called_once()
+
+        optimize_snuba_table("events")
         events = eventstore.backend.get_events(conditions, tenant_ids=tenant_ids)
         assert len(events) == 0
 
