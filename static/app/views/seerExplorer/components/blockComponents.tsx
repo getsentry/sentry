@@ -11,7 +11,14 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
-import {IconCopy, IconLink, IconThumb} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconClose,
+  IconCopy,
+  IconExclamation,
+  IconLink,
+  IconThumb,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';

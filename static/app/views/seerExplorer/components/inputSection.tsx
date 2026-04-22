@@ -301,7 +301,7 @@ export function InputSection({
             onClick={onInputClick}
             placeholder={
               isFocused
-                ? t('Ask Seer a question, or press / for commands.')
+                ? t('Ask Seer a question and press Enter ↵, or press / for commands.')
                 : t('Press Tab ⇥ to return here')
             }
             rows={1}
