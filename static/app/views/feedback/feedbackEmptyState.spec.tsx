@@ -1,8 +1,10 @@
+import * as Sentry from '@sentry/react';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {DEMO_CRASH_REPORT_MODAL_DSN} from 'sentry/utils/openDemoCrashReportModal';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 
 describe('FeedbackEmptyState', () => {
@@ -82,5 +84,18 @@ describe('FeedbackEmptyState', () => {
     expect(
       screen.getByRole('heading', {name: 'What do users think?'})
     ).toBeInTheDocument();
+  });
+
+  it('opens the crash report modal example with the demo dsn', async () => {
+    act(() => ProjectsStore.loadInitialData([project]));
+
+    render(<FeedbackEmptyState />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'See an example'}));
+
+    expect(Sentry.showReportDialog).toHaveBeenCalledWith({
+      dsn: DEMO_CRASH_REPORT_MODAL_DSN,
+      eventId: '00000000000000000000000000000000',
+    });
   });
 });

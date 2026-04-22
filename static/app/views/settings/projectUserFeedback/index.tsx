@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import * as Sentry from '@sentry/react';
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -16,6 +15,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {openDemoCrashReportModal} from 'sentry/utils/openDemoCrashReportModal';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -35,13 +35,6 @@ export default function ProjectUserFeedback() {
   const {project} = useProjectSettingsOutlet();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
   const hasAiEnabled = areAiFeaturesAllowed;
-
-  const handleClick = () => {
-    Sentry.showReportDialog({
-      // should never make it to the Sentry API, but just in case, use throwaway id
-      eventId: '00000000000000000000000000000000',
-    });
-  };
 
   const features = new Set(organization.features);
 
@@ -92,7 +85,7 @@ export default function ProjectUserFeedback() {
               <LinkButton href="https://docs.sentry.io/product/user-feedback/" external>
                 {t('Read the Docs')}
               </LinkButton>
-              <Button priority="primary" onClick={handleClick}>
+              <Button priority="primary" onClick={openDemoCrashReportModal}>
                 {t('Open the Crash Report Modal')}
               </Button>
             </Flex>

@@ -1,6 +1,5 @@
 import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
@@ -12,6 +11,7 @@ import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useF
 import {OnboardingPanel} from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {openDemoCrashReportModal} from 'sentry/utils/openDemoCrashReportModal';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -115,10 +115,7 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
         </Button>
         <Button
           onClick={() => {
-            Sentry.showReportDialog({
-              // should never make it to the Sentry API, but just in case, use throwaway id
-              eventId: '00000000000000000000000000000000',
-            });
+            openDemoCrashReportModal();
             trackAnalyticsInternal('user_feedback.dialog_opened');
           }}
         >

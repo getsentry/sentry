@@ -1,6 +1,9 @@
+import * as Sentry from '@sentry/react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DEMO_CRASH_REPORT_MODAL_DSN} from 'sentry/utils/openDemoCrashReportModal';
 import ProjectUserFeedback from 'sentry/views/settings/projectUserFeedback';
 
 describe('ProjectUserFeedback', () => {
@@ -69,6 +72,22 @@ describe('ProjectUserFeedback', () => {
     expect(
       screen.getByRole('checkbox', {name: 'Enable Crash Report Notifications'})
     ).toBeInTheDocument();
+  });
+
+  it('opens the crash report modal with the demo dsn', async () => {
+    render(<ProjectUserFeedback />, {
+      organization,
+      outletContext: {project},
+    });
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Open the Crash Report Modal'})
+    );
+
+    expect(Sentry.showReportDialog).toHaveBeenCalledWith({
+      dsn: DEMO_CRASH_REPORT_MODAL_DSN,
+      eventId: '00000000000000000000000000000000',
+    });
   });
 
   it('can toggle crash report notifications', async () => {
