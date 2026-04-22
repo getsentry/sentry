@@ -41,6 +41,11 @@ export function useBlockNavigation({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
+      // Disable when textarea is focused
+      if (textareaRef.current === document.activeElement) {
+        return;
+      }
+
       // Don't handle Enter when file approval or question is pending (it's used for approve/submit)
       // or when the run is loading/polling
       if ((isFileApprovalPending || isQuestionPending) && e.key === 'Enter') {
@@ -55,8 +60,6 @@ export function useBlockNavigation({
           const newIndex = blocks.length - 1;
           const blockElement = blockRefs.current[newIndex];
           if (blockElement) {
-            // Blur textarea when navigating to a block
-            textareaRef.current?.blur();
             setFocusedBlockIndex(newIndex);
             scrollToElement(blockElement);
           }
@@ -74,23 +77,31 @@ export function useBlockNavigation({
       } else if (e.key === 'ArrowDown') {
         if (isMinimized) return;
         e.preventDefault();
-        if (focusedBlockIndex === -1) return;
         onNavigate?.();
-        const handled = onKeyPress?.(focusedBlockIndex, 'ArrowDown');
-        if (!handled) {
-          if (focusedBlockIndex < blocks.length - 1) {
-            const newIndex = focusedBlockIndex + 1;
-            const blockElement = blockRefs.current[newIndex];
-            if (blockElement) {
-              setFocusedBlockIndex(newIndex);
-              scrollToElement(blockElement);
-            }
-          } else {
-            setFocusedBlockIndex(-1);
-            const textareaElement = textareaRef.current;
-            if (textareaElement) {
-              textareaElement.focus();
-              scrollToElement(textareaElement);
+        if (focusedBlockIndex === -1) {
+          const newIndex = 0;
+          const blockElement = blockRefs.current[newIndex];
+          if (blockElement) {
+            setFocusedBlockIndex(newIndex);
+            scrollToElement(blockElement);
+          }
+        } else {
+          const handled = onKeyPress?.(focusedBlockIndex, 'ArrowDown');
+          if (!handled) {
+            if (focusedBlockIndex < blocks.length - 1) {
+              const newIndex = focusedBlockIndex + 1;
+              const blockElement = blockRefs.current[newIndex];
+              if (blockElement) {
+                setFocusedBlockIndex(newIndex);
+                scrollToElement(blockElement);
+              }
+            } else {
+              setFocusedBlockIndex(-1);
+              const textareaElement = textareaRef.current;
+              if (textareaElement) {
+                textareaElement.focus();
+                scrollToElement(textareaElement);
+              }
             }
           }
         }
