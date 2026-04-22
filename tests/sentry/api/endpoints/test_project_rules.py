@@ -640,7 +640,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             frequency=5,
             actions=actions,
             conditions=self.first_seen_condition,
-            status_code=status.HTTP_200_OK,
+            status_code=status.HTTP_201_CREATED,
         )
         rule = Rule.objects.get(id=response.data.get("id"))
         assert rule.data["actions"][0] == {
@@ -788,7 +788,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actions=self.notify_event_action,
             conditions=self.first_seen_condition,
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.data["owner"] == f"team:{team.id}"
 
         rule = Rule.objects.get(id=response.data["id"])
@@ -846,7 +846,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actions=self.notify_event_action,
             conditions=self.first_seen_condition,
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.data["owner"] == f"team:{team.id}"
 
         rule = Rule.objects.get(id=response.data["id"])
@@ -877,7 +877,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actions=self.notify_event_action,
             conditions=self.first_seen_condition,
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         assert response.data["owner"] == f"user:{other_user.id}"
 
         rule = Rule.objects.get(id=response.data["id"])
@@ -919,7 +919,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             filterMatch="any",
             actions=self.notify_event_action,
             conditions=[condition],
-            status_code=status.HTTP_200_OK,
+            status_code=status.HTTP_201_CREATED,
         )
 
     def test_match_values(self) -> None:
@@ -1271,7 +1271,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             **payload,
-            status_code=status.HTTP_200_OK,
+            status_code=status.HTTP_201_CREATED,
         )
         new_rule_id = response.data["id"]
         assert new_rule_id is not None

@@ -1073,6 +1073,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     status=201,
                 )
             except AlertRuleWorkflow.DoesNotExist:
-                return Response(serialize(rule, request.user))
+                return Response(serialize(rule, request.user), status=201)
 
-        return Response(serialize(rule, request.user))
+        return Response(serialize(rule, request.user), status=201)

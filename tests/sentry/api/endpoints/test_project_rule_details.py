@@ -1926,11 +1926,7 @@ class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):
         assert legacy_response.data["id"] == str(rule.id)
         assert legacy_response.data["snooze"]
         assert legacy_response.data["snoozeForEveryone"]
-        assert_serializer_parity(
-            old=legacy_response.data,
-            new=we_response.data,
-            known_differences={"snoozeCreatedBy"},
-        )
+        assert_serializer_parity(old=legacy_response.data, new=we_response.data)
 
     def test_dual_written_rule_with_filters_parity(self) -> None:
         rule = self.create_project_rule(
