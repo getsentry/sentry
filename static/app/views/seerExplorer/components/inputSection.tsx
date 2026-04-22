@@ -274,6 +274,8 @@ export function InputSection({
                 : t('Press Tab ⇥ to return here')
             }
             rows={1}
+            maxRows={5}
+            autosize
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
@@ -333,20 +335,6 @@ const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
 
   textarea {
     resize: none;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-
-    &[data-overflowing='true'] {
-      scrollbar-width: auto;
-      overflow-y: scroll;
-
-      &::-webkit-scrollbar {
-        display: block;
-      }
-    }
 
     &::placeholder {
       color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};

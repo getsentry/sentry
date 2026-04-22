@@ -39,7 +39,6 @@ export function ExplorerDrawerContent({
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const textareaMinHeightRef = useRef<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const blockEnterHandlers = useRef<
@@ -210,10 +209,6 @@ export function ExplorerDrawerContent({
     sendMessage(inputValue.trim());
     setInputValue('');
     userScrolledUpRef.current = false;
-    if (textareaRef.current) {
-      textareaRef.current.style.height = textareaMinHeightRef.current + 'px';
-      textareaRef.current.dataset.overflowing = '';
-    }
   }, [readOnly, inputValue, isPolling, sendMessage]);
 
   const canInterrupt = sessionData?.status === 'processing';
@@ -241,23 +236,6 @@ export function ExplorerDrawerContent({
       setFocusedBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    // Reset to the minimum first so scrollHeight reflects the content size, not
-    // the previous expanded size (otherwise the textarea never shrinks).
-    e.target.style.height = textareaMinHeightRef.current + 'px';
-    // scrollHeight is content + padding but excludes borders. On border-box
-    // elements, style.height sets the full box size, so we add the borders back
-    // to avoid the textarea ending up 2px shorter than its initial rows=1 height.
-    const borderH = e.target.offsetHeight - e.target.clientHeight;
-    const newHeight = Math.max(
-      Math.min(e.target.scrollHeight + borderH, 120),
-      textareaMinHeightRef.current
-    );
-    e.target.style.height = newHeight + 'px';
-    if (newHeight >= 120) {
-      e.target.dataset.overflowing = 'true';
-    } else {
-      e.target.dataset.overflowing = '';
-    }
   };
 
   const handleInputClick = useCallback(() => {
@@ -268,11 +246,6 @@ export function ExplorerDrawerContent({
   // - Scroll effects ---------------------------------------------------------
 
   useEffect(() => {
-    // Capture offsetHeight (not scrollHeight) so the minimum includes borders,
-    // matching the rows=1 rendered size exactly.
-    if (textareaRef.current) {
-      textareaMinHeightRef.current = textareaRef.current.offsetHeight;
-    }
     // Scroll to bottom and focus input when drawer opens
     setTimeout(() => {
       if (scrollContainerRef.current) {
