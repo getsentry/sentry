@@ -31,7 +31,7 @@ function TopBarContent() {
   const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
 
-  const {openSeerExplorer} = useSeerExplorerContext();
+  const {toggleSeerExplorer} = useSeerExplorerContext();
 
   useEffect(() => {
     if (!hasPageFrame) {
@@ -76,7 +76,7 @@ function TopBarContent() {
           </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openSeerExplorer}>
+            <Button icon={<IconSeer />} onClick={toggleSeerExplorer}>
               {t('Ask Seer')}
             </Button>
           ) : null}
