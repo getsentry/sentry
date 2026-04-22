@@ -363,7 +363,7 @@ export function BlockComponent({
   const blockStatus = getToolStatus(block);
 
   return (
-    <Block ref={ref} isFocused={isFocused} isLast={isLast} onClick={onClick}>
+    <Block ref={ref} isFocused={isFocused} onClick={onClick}>
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
           <Flex align="start" justify="end" width="100%" padding="xl">
