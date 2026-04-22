@@ -269,11 +269,11 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 }
 
 const AggregatesSimpleTable = styled(StyledSimpleTable)`
-  overflow: auto;
+  overflow: hidden;
 `;
 
 const AggregatesTableBody = styled(StyledSimpleTableBody)`
-  overflow: unset;
+  overflow-y: auto;
 `;
 
 const AggregatesStyledHeader = styled(StyledSimpleTableHeader)`
