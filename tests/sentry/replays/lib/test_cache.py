@@ -64,7 +64,8 @@ def test_time_limited_cache() -> None:
     with pytest.raises(KeyError):
         str_cache["hello"]
 
-    int_cache: TimeLimitedCache[int, int] = TimeLimitedCache(BoundedFifoCache(maxlen=3), maxage=1)
+    # maxage=60 to avoid expiry under slow CI (original 1s expired keys before assertion).
+    int_cache: TimeLimitedCache[int, int] = TimeLimitedCache(BoundedFifoCache(maxlen=3), maxage=60)
     int_cache[0] = 0
     int_cache[1] = 1
     int_cache[2] = 2
