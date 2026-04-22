@@ -226,3 +226,31 @@ def test_delete_project_idempotent_on_second_call() -> None:
         app_label="sentry", model_name="Project", object_id=project.id
     )
     assert schedules.count() == 1
+
+
+@django_db_all(transaction=True)
+def test_delete_project_rolls_back_on_failure() -> None:
+    """If ``rename_on_pending_deletion`` or ``CellScheduledDeletion.schedule``
+    raises, the status update must roll back so a retry can succeed.
+    Without the transaction wrapper the row would be stuck in
+    PENDING_DELETION with no scheduled deletion -- a replay would find
+    status != ACTIVE and skip the whole block, orphaning the project."""
+    from unittest import mock
+
+    from sentry.constants import ObjectStatus
+
+    org = Factories.create_organization()
+    project = Factories.create_project(organization=org)
+
+    with mock.patch.object(
+        Project,
+        "rename_on_pending_deletion",
+        side_effect=RuntimeError("simulated downstream failure"),
+    ):
+        with pytest.raises(RuntimeError):
+            project_service.delete_project(organization_id=org.id, project_id=project.id)
+
+    # The transaction must have rolled back the status update; the
+    # project is still ACTIVE and a retry can succeed.
+    project.refresh_from_db()
+    assert project.status == ObjectStatus.ACTIVE

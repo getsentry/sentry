@@ -65,11 +65,20 @@ class DatabaseBackedProjectKeyService(ProjectKeyService):
         # bypasses the per-instance override that emits the outbox for
         # cross-silo replica cleanup. Fetch the row first so the
         # model-level delete() runs and outboxes correctly.
+        #
+        # ``use_case=UseCase.USER`` matches the HTTP endpoint's
+        # ``for_request`` filter (models/projectkey.py), which protects
+        # internal keys (PROFILING, TEMPEST, DEMO) from deletion by
+        # non-superusers. Stripe Projects only ever creates USER keys
+        # via ``create_project_key``, so this filter is both correct
+        # and hardening against a caller that supplies an unexpected
+        # public_key value.
         try:
             key = ProjectKey.objects.get(
                 project__organization_id=organization_id,
                 project_id=project_id,
                 public_key=public_key,
+                use_case=UseCase.USER.value,
             )
         except ProjectKey.DoesNotExist:
             return False

@@ -156,3 +156,29 @@ def test_delete_project_key_wrong_org_returns_false() -> None:
 
     assert result is False
     assert ProjectKey.objects.filter(id=key.id).exists()
+
+
+@django_db_all(transaction=True)
+def test_delete_project_key_refuses_internal_keys() -> None:
+    """Internal keys (PROFILING, TEMPEST, DEMO) must be protected from
+    RPC deletion to match the HTTP endpoint's ``for_request`` filter.
+    Stripe Projects only ever creates USER keys via create_project_key,
+    so this is hardening against a caller that somehow supplies a known
+    internal key's public_key."""
+    from sentry.models.projectkey import UseCase
+
+    org = Factories.create_organization()
+    project = Factories.create_project(organization=org)
+    # Manually create an internal key since Factories.create_project_key
+    # defaults to USER.
+    internal_key = Factories.create_project_key(project=project)
+    internal_key.update(use_case=UseCase.PROFILING.value)
+
+    result = project_key_service.delete_project_key(
+        organization_id=org.id,
+        project_id=project.id,
+        public_key=internal_key.public_key,
+    )
+
+    assert result is False
+    assert ProjectKey.objects.filter(id=internal_key.id).exists()

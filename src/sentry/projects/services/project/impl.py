@@ -217,19 +217,30 @@ class DatabaseBackedProjectService(ProjectService):
             # defensive.
             return False
 
-        # Atomic ACTIVE → PENDING_DELETION guards against double-delete races;
-        # if the row is already PENDING_DELETION, ``updated`` is 0 and we
-        # short-circuit (the earlier call already scheduled deletion).
-        updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
-            status=ObjectStatus.PENDING_DELETION
-        )
-        if updated:
-            # Rename the slug so a recreated project with the same slug
-            # doesn't collide with the pending-deletion row during its
-            # 30-day retention window. The endpoint (project_details.py)
-            # does this step immediately after scheduling; without it,
-            # deleting+recreating a Stripe Projects resource in quick
-            # succession would fail with a uniqueness error.
-            project.rename_on_pending_deletion()
-            CellScheduledDeletion.schedule(project, days=0)
+        # Wrap the three-step deletion in a transaction so a failure on
+        # ``CellScheduledDeletion.schedule`` or ``rename_on_pending_deletion``
+        # doesn't leave the row in PENDING_DELETION with no actual
+        # deletion scheduled -- a subsequent retry would find the row
+        # already PENDING_DELETION and skip the whole block, orphaning
+        # it forever.
+        with transaction.atomic(router.db_for_write(Project)):
+            # Atomic ACTIVE → PENDING_DELETION guards against
+            # double-delete races; if the row is already
+            # PENDING_DELETION, ``updated`` is 0 and we short-circuit
+            # (the earlier call already scheduled deletion).
+            updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
+                status=ObjectStatus.PENDING_DELETION
+            )
+            if updated:
+                # Schedule first (matches the endpoint's order in
+                # project_details.py); if rename fails after this, the
+                # deletion task still runs and the row gets cleaned up
+                # on its normal schedule.
+                CellScheduledDeletion.schedule(project, days=0)
+                # Rename the slug so a recreated project with the same
+                # slug doesn't collide with the pending-deletion row
+                # during its retention window. Without this,
+                # deleting+recreating a Stripe Projects resource in
+                # quick succession would fail with a uniqueness error.
+                project.rename_on_pending_deletion()
         return True
