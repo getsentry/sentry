@@ -116,6 +116,9 @@ function WidgetBuilderSlideoutInner({
   useLLMContext({
     contextHint:
       'Sentry widget builder. The user is configuring a dashboard widget. visualize is the y-axis metrics (timeseries) or the aggregate (big number/table). fields are group-by columns (timeseries) or visible columns (table). query filters the data and sort controls ordering.',
+    dashboardTitle: dashboard.title,
+    dashboardWidgetCount: dashboard.widgets.length,
+    dashboardFilters: dashboard.filters,
     mode: isEditing ? 'editing' : 'creating',
     title: state.title,
     description: state.description,
