@@ -152,4 +152,9 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    * e.g. For the errors dataset, count() will be formatted as 'Number of errors'
    */
   formatAggregateForTitle?: (aggregate: string) => string;
+
+  /**
+   * Whether the dataset supports equations
+   */
+  supportsEquations?: boolean;
 }
