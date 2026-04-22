@@ -187,6 +187,7 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (response, params) => {
+      setHasSentMessage(true);
       if (params.runId) {
         // invalidate the query so fresh data is fetched
         queryClient.invalidateQueries({
@@ -445,7 +446,6 @@ export const useSeerExplorer = () => {
         baselineUpdatedAt: apiData?.session?.updated_at,
       });
 
-      setHasSentMessage(true);
       sendMessageMutate({
         query,
         insertIndex: calculatedInsertIndex,
