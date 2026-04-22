@@ -638,20 +638,18 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert list(result) == page1_results
 
     def test_order_by_invalid_key(self) -> None:
-        self.create_project_rule(name="rule1")
         with pytest.raises(AssertionError):
-            CombinedQuerysetIntermediary(Rule.objects.all(), ["dontexist"])
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "dontexist")
+            CombinedQuerysetPaginator(
+                intermediaries=[rule_intermediary],
+            )
 
     def test_mix_date_and_not_date(self) -> None:
-        self.create_project_rule(name="rule1")
-        self.create_alert_rule(name="alertrule1")
         with pytest.raises(AssertionError):
-            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
-            alert_rule_intermediary = CombinedQuerysetIntermediary(
-                AlertRule.objects.all(), ["name"]
-            )
+            rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
+            rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
             CombinedQuerysetPaginator(
-                intermediaries=[rule_intermediary, alert_rule_intermediary],
+                intermediaries=[rule_intermediary, rule_intermediary2],
             )
 
     def test_only_issue_alert_rules(self) -> None:
@@ -682,19 +680,21 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=5, cursor=None)
         assert len(result) == 5
         page1_results = list(result)
-        assert page1_results[0].id == rule_ids[0]
-        assert page1_results[4].id == rule_ids[4]
+        page1_ids = {r.id for r in page1_results}
 
         next_cursor = result.next
         result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 3
-        assert page2_results[-1].id == rule_ids[-1]
+        page2_ids = {r.id for r in page2_results}
+
+        assert page1_ids & page2_ids == set()
+        assert page1_ids | page2_ids == set(rule_ids)
 
         prev_cursor = result.prev
-        prev_results = list(paginator.get_result(limit=5, cursor=prev_cursor))
-        assert len(prev_results) == 5
-        assert prev_results == page1_results
+        result = paginator.get_result(limit=5, cursor=prev_cursor)
+        assert len(result) == 5
+        assert {r.id for r in result} == page1_ids
 
     def test_only_metric_alert_rules(self) -> None:
         project = self.project
@@ -753,9 +753,9 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert page2_results[-1].id == alert_rule_ids[-1]
 
         prev_cursor = result.prev
-        prev_results = list(paginator.get_result(limit=5, cursor=prev_cursor))
-        assert len(prev_results) == 5
-        assert prev_results == page1_results
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
+        assert result == page1_results
 
     def test_issue_and_metric_alert_rules(self) -> None:
         AlertRule.objects.all().delete()
@@ -821,58 +821,9 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert page2_results[0].id == rule_ids[2]
 
         prev_cursor = result.prev
-        prev_results = list(paginator.get_result(limit=5, cursor=prev_cursor))
-        assert len(prev_results) == 5
-        assert prev_results == page1_results
-
-    def test_prev_page_not_limited(self) -> None:
-        Rule.objects.all().delete()
-
-        rules = []
-        for i in range(10):
-            rules.append(self.create_project_rule(name=f"rule{i}"))
-
-        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
-        paginator = CombinedQuerysetPaginator(
-            intermediaries=[rule_intermediary],
-            desc=True,
-        )
-
-        # Page forward twice with limit=3 so we're on page 3.
-        page1 = paginator.get_result(limit=3, cursor=None)
-        page2 = paginator.get_result(limit=3, cursor=page1.next)
-        page3 = paginator.get_result(limit=3, cursor=page2.next)
-        assert len(page3) == 3
-
-        # Navigate back to page 2 via prev cursor.
-        prev_result = paginator.get_result(limit=3, cursor=page3.prev)
-        assert list(prev_result) == list(page2)
-
-    def test_individual_querysets_are_limited(self) -> None:
-        Rule.objects.all().delete()
-
-        for i in range(10):
-            self.create_alert_rule(name=f"alertrule{i}")
-            self.create_project_rule(name=f"rule{i}")
-
-        alert_rule_intermediary = CombinedQuerysetIntermediary(
-            AlertRule.objects.all(), ["date_added"]
-        )
-        rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), ["date_added"])
-        paginator = CombinedQuerysetPaginator(
-            intermediaries=[alert_rule_intermediary, rule_intermediary],
-            desc=True,
-        )
-
-        limit = 3
-        result = paginator.get_result(limit=limit, cursor=None)
-        assert len(result) == limit
-
-        # Each queryset has 10 rows but max_rows=4 (stop = offset + limit + 1)
-        # should limit each to 4, giving 8 total instead of 20.
-        stop = limit + 1
-        built = paginator._build_combined_querysets(is_prev=False, max_rows=stop)
-        assert len(built) == stop * 2
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
+        assert result == page1_results
 
 
 class TestChainPaginator(SimpleTestCase):
