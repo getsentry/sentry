@@ -27,7 +27,6 @@ import {
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type TokenResponse = {
@@ -136,12 +135,12 @@ export default function ProjectReleaseTracking() {
   return (
     <div>
       <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug} />
-      <SettingsPageHeader title={t('Release Tracking')} />
-      <TextBlock>
-        {t(
+      <SettingsPageHeader
+        title={t('Release Tracking')}
+        subtitle={t(
           'Configure release tracking for this project to automatically record new releases of your application.'
         )}
-      </TextBlock>
+      />
 
       {!hasWrite && (
         <Alert.Container>

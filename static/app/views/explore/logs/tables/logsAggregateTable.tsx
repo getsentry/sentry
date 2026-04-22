@@ -151,6 +151,7 @@ export function LogsAggregateTable({
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
+              caseSensitiveHighlighting: false,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

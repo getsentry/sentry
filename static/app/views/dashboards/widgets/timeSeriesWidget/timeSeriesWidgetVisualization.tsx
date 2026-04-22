@@ -90,6 +90,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   legendSelection?: LegendSelection;
 
   /**
+   * Whether new options fully replace previous chart options.
+   */
+  notMerge?: boolean;
+
+  /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -400,10 +405,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
-  // find min/max timestamp of *all* timeSeries
+  // find min/max timestamp of *all* timeSeries. Drop null boundaries from
+  // non-time-bounded plottables (e.g. `Thresholds`) before sorting —
+  // `Array.prototype.sort`'s default lexicographic comparator stringifies
+  // `null` to `"null"`, which sorts after any timestamp and would end up as
+  // `latestTimeStamp`, leaving release bubbles with no `maxTime` to bucket.
   const allBoundaries = props.plottables
     .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
+    .filter(defined)
+    .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
 
@@ -687,6 +697,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          notMerge={props.notMerge}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from

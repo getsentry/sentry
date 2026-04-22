@@ -34,6 +34,7 @@ interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
   inputValue: string;
+  isFocused: boolean;
   isPolling: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
@@ -56,6 +57,7 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
+  isFocused,
   isMinimized = false,
   isPolling,
   waitingForInterrupt,
@@ -290,7 +292,11 @@ export function InputSection({
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={t('Type your message or / command and press Enter ↵')}
+            placeholder={
+              isFocused
+                ? t('Type your message or / command and press Enter ↵')
+                : t('Press Tab ⇥ to return here')
+            }
             rows={1}
             data-test-id="seer-explorer-input"
           />

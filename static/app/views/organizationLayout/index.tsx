@@ -1,13 +1,13 @@
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import {Footer} from 'sentry/components/footer';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import Hook from 'sentry/components/hook';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -31,6 +31,8 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
+import {ExplorerFloatingActionButton} from 'sentry/views/seerExplorer/components/panel/explorerFAB';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
 
@@ -43,6 +45,7 @@ export function OrganizationLayout() {
   // oganization is loaded before rendering children. Organization may not be
   // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
+  const hasPageFrame = useHasPageFrameFeature();
 
   useInitSentryToolbar(organization);
 
@@ -51,7 +54,10 @@ export function OrganizationLayout() {
       <GlobalAnalytics />
       <OrganizationContainer>
         <GlobalDrawer>
-          <AppLayout organization={organization} />
+          <SeerExplorerContextProvider>
+            {hasPageFrame ? null : <ExplorerFloatingActionButton />}
+            <AppLayout organization={organization} />
+          </SeerExplorerContextProvider>
         </GlobalDrawer>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />

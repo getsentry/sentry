@@ -329,6 +329,16 @@ function MetricToolbar({
     }
   };
 
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
+
+  const projectIds = useMemo(() => {
+    if (projectId) {
+      return [Number(projectId)];
+    }
+    return [];
+  }, [projectId]);
+
   return (
     <Grid
       width="100%"
@@ -356,7 +366,12 @@ function MetricToolbar({
       />
       {isVisualizeFunction(visualize) ? (
         <Fragment>
-          <MetricSelector traceMetric={traceMetric} onChange={setTraceMetric} />
+          <MetricSelector
+            traceMetric={traceMetric}
+            onChange={setTraceMetric}
+            projectIds={projectIds}
+            environments={environment ? [environment] : undefined}
+          />
           <AggregateDropdown traceMetric={traceMetric} />
           <Filter traceMetric={traceMetric} />
           <DeleteMetricButton disabled={!canDelete} />
