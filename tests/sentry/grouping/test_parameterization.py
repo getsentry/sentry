@@ -308,6 +308,18 @@ incorrect_cases = [
         "<float>.<int>",
     ),
     (
+        "hex without prefix - leading underscore",
+        "img_3f26.jpg",
+        "img_<hex>.jpg",
+        "img_3f26.jpg",
+    ),
+    (
+        "hex without prefix - trailing underscore",
+        "3f26_thumbnail.jpg",
+        "<hex>_thumbnail.jpg",
+        "3f26_thumbnail.jpg",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
