@@ -369,6 +369,8 @@ export function BlockComponent({
   const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
+  const isLoadingPlaceholder =
+    (blockStatus === 'loading' || blockStatus === 'pending') && !hasTools;
 
   return (
     <Block
@@ -383,21 +385,15 @@ export function BlockComponent({
           <Flex align="start" justify="end" width="100%" padding="xl">
             <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
           </Flex>
+        ) : isLoadingPlaceholder ? (
+          <Flex align="center" gap="md" padding="xl" width="100%">
+            <ToolStatusSlot>
+              <BlockStatusIndicator status={blockStatus} />
+            </ToolStatusSlot>
+            <Text variant="muted">{block.message.content ?? ''}</Text>
+          </Flex>
         ) : (
           <Flex align="start" width="100%">
-            {(blockStatus === 'loading' || blockStatus === 'pending') && !hasTools && (
-              <BlockIndicatorSlot hasOnlyTools={false}>
-                <Tooltip
-                  title={
-                    blockStatus === 'pending'
-                      ? t('Waiting for approval')
-                      : t('Running...')
-                  }
-                >
-                  <BlockSpinner />
-                </Tooltip>
-              </BlockIndicatorSlot>
-            )}
             <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
               {hasContent && (
                 <BlockContent
@@ -603,21 +599,6 @@ const Spinner = styled('div')`
   flex-shrink: 0;
 `;
 
-const BlockSpinner = styled(Spinner)`
-  width: 18px;
-  height: 18px;
-`;
-
-const BlockIndicatorSlot = styled('div')<{hasOnlyTools?: boolean}>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  margin-top: ${p => (p.hasOnlyTools ? '10px' : '16px')};
-  margin-left: ${p => p.theme.space.xl};
-  flex-shrink: 0;
-`;
-
 const StatusIconContainer = styled('span')`
   display: inline-flex;
   align-items: center;
@@ -718,8 +699,8 @@ const ToolCallStack = styled(Stack)`
 
 const ToolCallTextContainer = styled('div')`
   display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
 `;
 
@@ -728,7 +709,7 @@ const ToolStatusSlot = styled('span')`
   align-items: center;
   justify-content: center;
   width: 12px;
-  height: 1lh;
+  height: 12px;
   flex-shrink: 0;
 `;
 
@@ -747,7 +728,7 @@ const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
 const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
   background: none;
   border: none;
@@ -803,7 +784,7 @@ const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
 const ToolCallPlainRow = styled('span')`
   display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
 `;
 
