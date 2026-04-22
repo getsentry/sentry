@@ -127,14 +127,7 @@ export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
 `;
 
 export const StyledTabPanels = styled(TabPanels)`
-  display: flex;
-  min-height: 0;
-  overflow: hidden;
-
-  > * {
-    flex: 1;
-    min-height: 0;
-  }
+  overflow: auto;
 `;
 
 export const TableRowContainer = styled('div')`
