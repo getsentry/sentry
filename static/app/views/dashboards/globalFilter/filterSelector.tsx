@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
@@ -22,7 +23,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {
-  escapeTagValue,
+  escapeTagValueForSearch,
   getFilterValueType,
   OP_LABELS,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -92,7 +93,7 @@ export function FilterSelector({
     const initialValue = globalFilter.value
       ? getInitialInputValue(filterToken, true)
       : '';
-    const selectedValues = getSelectedValuesFromText(initialValue, {escaped: false});
+    const selectedValues = getSelectedValuesFromText(initialValue);
     return selectedValues.map(item => item.value);
   }, [filterToken, globalFilter.value]);
 
@@ -210,6 +211,16 @@ export function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
+      if (typeof value !== 'string') {
+        Sentry.withScope(scope => {
+          scope.setExtra('value', value);
+          scope.setExtra('filterKey', globalFilter.tag.key);
+          Sentry.captureException(
+            new Error('Dashboard filter addOption received a non-string value')
+          );
+        });
+        return;
+      }
       const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
@@ -261,6 +272,7 @@ export function FilterSelector({
     stagedFilterValues,
     searchQuery,
     canSelectMultipleValues,
+    globalFilter.tag.key,
   ]);
 
   const translatedOptions = translateKnownFilterOptions(options, globalFilter);
@@ -287,7 +299,7 @@ export function FilterSelector({
     if (opts.length !== 0) {
       const cleanedValue = prepareInputValueForSaving(
         getFilterValueType(filterToken, fieldDefinition),
-        opts.map(opt => escapeTagValue(opt, {allowArrayValue: false})).join(',')
+        opts.map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false})).join(',')
       );
       newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
     }

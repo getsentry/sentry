@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
@@ -545,7 +546,11 @@ async function simpleTestSetup() {
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
-async function completeTestSetup() {
+async function completeTestSetup({
+  organization,
+}: {
+  organization?: ReturnType<typeof OrganizationFixture>;
+} = {}) {
   mockPerformanceSubscriptionDetailsResponse();
   mockProjectDetailsResponse();
   const start = Date.now() / 1e3;
@@ -746,6 +751,7 @@ async function completeTestSetup() {
 
   const value = render(<TraceView />, {
     initialRouterConfig,
+    organization,
   });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
@@ -976,6 +982,15 @@ describe('trace view', () => {
         /We're still processing this trace. Please try refreshing after a minute/i
       )
     ).toBeInTheDocument();
+  });
+
+  it('does not render the summary tab even when the legacy feature flag is enabled', async () => {
+    const organization = OrganizationFixture({features: ['single-trace-summary']});
+
+    await completeTestSetup({organization});
+
+    expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
   });
 
   describe('pageload', () => {

@@ -95,7 +95,7 @@ preprod_project_urlpatterns = [
         name="sentry-api-0-installable-preprod-artifact-download",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/images/(?P<image_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/files/images/(?P<image_id>.+)/$",
         ProjectPreprodArtifactImageEndpoint.as_view(),
         name="sentry-api-0-project-preprod-artifact-image",
     ),

@@ -252,7 +252,11 @@ export default function CronDetectorsList() {
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
-          <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <DetectorListHeader
+            detectorType="monitor_check_in_failure"
+            showTimeRangeSelector
+            showTypeFilter={false}
+          />
           <GlobalMonitorProcessingErrors project={selectedProjects} />
           <DetectorListContent
             isError={detectorListQuery.isError}

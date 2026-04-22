@@ -32,9 +32,11 @@ def bulk_fetch_enabled_detectors(source_id: str, query_type: str) -> list[Detect
         return []
 
     if features.has("organizations:cache-detectors-by-data-source", organization):
-        return get_detectors_by_data_source(source_id, query_type)
+        detectors = get_detectors_by_data_source(source_id, query_type)
     else:
-        return _query_detectors(source_id, query_type)
+        detectors = _query_detectors(source_id, query_type)
+    # Limit to enabled here so our cache layer doesn't need to.
+    return [d for d in detectors if d.enabled]
 
 
 # TODO - @saponifi3d - make query_type optional override, otherwise infer from the data packet.

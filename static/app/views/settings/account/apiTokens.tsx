@@ -1,4 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -10,6 +11,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -22,15 +24,16 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const PAGE_TITLE = t('Personal Tokens');
 const API_TOKEN_QUERY_KEY = [getApiUrl('/api-tokens/')] as const;
 
 function ApiTokens() {
   const api = useApi();
+  const hasPageFrame = useHasPageFrameFeature();
   const queryClient = useQueryClient();
 
   const {
@@ -101,7 +104,8 @@ function ApiTokens() {
   const action = (
     <LinkButton
       priority="primary"
-      size="sm"
+      size={hasPageFrame ? 'md' : 'sm'}
+      icon={<IconAdd />}
       to="/settings/account/api/auth-tokens/new-token/"
     >
       {t('Create New Token')}
@@ -110,20 +114,48 @@ function ApiTokens() {
 
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
-      <SettingsPageHeader title={PAGE_TITLE} action={action} />
-      <TextBlock>
-        {t(
-          "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-        )}
-      </TextBlock>
-      <TextBlock>
-        {tct(
-          'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
-        )}
-      </TextBlock>
+      <SettingsPageHeader
+        title={PAGE_TITLE}
+        action={hasPageFrame ? undefined : action}
+        subtitle={
+          hasPageFrame ? (
+            <Flex justify="between" align="center" gap="md">
+              <Stack gap="md">
+                <div>
+                  {t(
+                    "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+                  )}
+                </div>
+                <div>
+                  {tct(
+                    'For more information on how to use the web API, see our [link:documentation].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                    }
+                  )}
+                </div>
+              </Stack>
+              {action}
+            </Flex>
+          ) : (
+            <Stack gap="md">
+              <div>
+                {t(
+                  "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+                )}
+              </div>
+              <div>
+                {tct(
+                  'For more information on how to use the web API, see our [link:documentation].',
+                  {
+                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                  }
+                )}
+              </div>
+            </Stack>
+          )
+        }
+      />
       <PanelTable
         headers={[t('Token'), t('Created On'), t('Scopes'), '']}
         isEmpty={isEmpty}

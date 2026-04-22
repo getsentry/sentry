@@ -11,10 +11,10 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {
   getProjectAgentMutationOptions,
-  useCodingAgentSelectOptions,
+  getCodingAgentSelectQueryOptions,
   getSelectedAgentForProject,
 } from 'sentry/utils/seer/preferredAgent';
 import {
@@ -34,7 +34,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const agentOptions = useCodingAgentSelectOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
 
   // Derive the integration objects from the options data for the agent selector
   const integrations = useMemo(

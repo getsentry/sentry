@@ -9,13 +9,16 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import ProjectContext from 'sentry/views/projects/projectContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
+import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 
 type ProjectSettingsOutletContext = {
   project: Project;
@@ -29,7 +32,13 @@ export function useProjectSettingsOutlet() {
   return useOutletContext<ProjectSettingsOutletContext>();
 }
 
-function InnerProjectSettingsLayout({project}: {project: Project}) {
+function InnerProjectSettingsLayout({
+  organization,
+  project,
+}: {
+  organization: Organization;
+  project: Project;
+}) {
   // set analytics params for route based analytics
   useRouteAnalyticsParams({
     project_id: project.id,
@@ -38,12 +47,17 @@ function InnerProjectSettingsLayout({project}: {project: Project}) {
 
   return (
     <SettingsLayout>
+      <ProjectSettingsCommandPaletteActions
+        organization={organization}
+        project={project}
+      />
       <ProjectSettingsOutlet project={project} />
     </SettingsLayout>
   );
 }
 
 export default function ProjectSettingsLayout() {
+  const organization = useOrganization();
   const params = useParams<{projectId: string}>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -84,7 +98,9 @@ export default function ProjectSettingsLayout() {
   return (
     <AnalyticsArea name="project">
       <ProjectContext projectSlug={params.projectId}>
-        {({project}) => <InnerProjectSettingsLayout project={project} />}
+        {({project}) => (
+          <InnerProjectSettingsLayout organization={organization} project={project} />
+        )}
       </ProjectContext>
     </AnalyticsArea>
   );

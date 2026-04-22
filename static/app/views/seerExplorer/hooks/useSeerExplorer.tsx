@@ -13,19 +13,12 @@ import {
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {
-  makeSeerExplorerQueryKey,
-  RUN_ID_QUERY_PARAM,
-  usePageReferrer,
-} from 'sentry/views/seerExplorer/utils';
+import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -57,11 +50,24 @@ type SeerExplorerUpdateResponse = {
 const POLL_INTERVAL = 500; // Poll every 500ms
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set([
-  '/dashboard/:dashboardId/',
+const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
+/** New experimental routes where the LLMContext tree provides structured page context. */
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
 ]);
+
+function supportsStructuredContext(
+  referrer: string,
+  organization: {features: string[]} | null | undefined
+): boolean {
+  return (
+    (STRUCTURED_CONTEXT_ROUTES.has(referrer) &&
+      organization?.features.includes('seer-explorer-context-engine') === true) ||
+    (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer) &&
+      organization?.features.includes('context-engine-structured-page-context') === true)
+  );
+}
 
 const OPTIMISTIC_ASSISTANT_TEXTS = [
   'Looking around...',
@@ -145,24 +151,7 @@ export const useSeerExplorer = () => {
   );
 
   // Support deep links that carry a run id; set it once and clean the URL.
-  const {openSeerExplorer} = useSeerExplorerContext();
   const {getPageReferrer} = usePageReferrer();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (typeof paramValue !== 'string') {
-      return;
-    }
-    const parsedRunId = Number(paramValue);
-    if (!Number.isNaN(parsedRunId)) {
-      openSeerExplorer();
-      setRunId(parsedRunId);
-      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
-      navigate({...location, query: restQuery}, {replace: true});
-    }
-  }, [location, navigate, openSeerExplorer, setRunId]);
 
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
@@ -406,10 +395,7 @@ export const useSeerExplorer = () => {
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
-      if (
-        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer()) &&
-        organization?.features.includes('context-engine-structured-page-context')
-      ) {
+      if (supportsStructuredContext(getPageReferrer(), organization)) {
         try {
           screenshot = JSON.stringify(getLLMContext());
         } catch (e) {
@@ -558,11 +544,14 @@ export const useSeerExplorer = () => {
   }, [apiData?.session?.blocks, apiData?.session?.updated_at, optimistic]);
 
   // On any completed state
+  const isComplete = isSessionComplete(apiData?.session);
   useEffect(() => {
-    if (isSessionComplete(apiData?.session)) {
+    if (isComplete) {
       setWaitingForInterrupt(false);
+      setOptimistic(null);
+      setDeletedFromIndex(null);
     }
-  }, [apiData?.session]);
+  }, [isComplete]);
 
   // Detect PR creation errors and show error messages
   useEffect(() => {

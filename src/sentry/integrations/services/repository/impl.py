@@ -13,7 +13,10 @@ from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
-from sentry.tasks.seer.cleanup import bulk_cleanup_seer_repository_preferences
+from sentry.tasks.seer.cleanup import (
+    bulk_cleanup_seer_repository_preferences,
+    cleanup_seer_automation_handoffs_for_integration,
+)
 from sentry.users.services.user.model import RpcUser
 
 
@@ -253,3 +256,14 @@ class DatabaseBackedRepositoryService(RepositoryService):
             RepositoryProjectPathConfig.objects.filter(
                 organization_integration_id=organization_integration_id
             ).delete()
+
+            # Delete Seer project preference handoffs associated with this integration
+            transaction.on_commit(
+                lambda: cleanup_seer_automation_handoffs_for_integration.apply_async(
+                    kwargs={
+                        "organization_id": organization_id,
+                        "integration_id": integration_id,
+                    }
+                ),
+                using=router.db_for_write(Repository),
+            )
