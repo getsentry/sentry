@@ -151,7 +151,14 @@ function OrganizationDeveloperSettings() {
     }
   };
 
-  const actions = (
+  const headerActions = (
+    <Flex gap="md">
+      <ExampleIntegrationButton analyticsView={analyticsView} />
+      <CreateIntegrationButton analyticsView={analyticsView} />
+    </Flex>
+  );
+
+  const inlineActions = (
     <Flex gap="md">
       <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
       <CreateIntegrationButton analyticsView={analyticsView} size="md" />
@@ -184,7 +191,7 @@ function OrganizationDeveloperSettings() {
             })}
           </Fragment>
         }
-        action={hasPageFrame ? undefined : actions}
+        action={hasPageFrame ? undefined : headerActions}
       />
       <TabsContainer>
         <Flex align="center" justify="between" gap="md">
@@ -195,7 +202,7 @@ function OrganizationDeveloperSettings() {
               ))}
             </TabList>
           </Tabs>
-          {hasPageFrame && actions}
+          {hasPageFrame && inlineActions}
         </Flex>
       </TabsContainer>
       {renderTabContent()}
