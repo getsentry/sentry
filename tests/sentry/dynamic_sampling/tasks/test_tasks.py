@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+import time_machine
 from django.utils import timezone
 
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
@@ -411,26 +412,30 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
         self.orgs_info = []
         num_orgs = 3
         num_proj_per_org = 3
-        for org_idx in range(num_orgs):
-            org = self.create_old_organization(f"test-org{org_idx}")
-            org_info = {"org_id": org.id, "project_ids": []}
-            self.orgs_info.append(org_info)
-            for proj_idx in range(num_proj_per_org):
-                p = self.create_old_project(name=f"test-project-{proj_idx}", organization=org)
-                org_info["project_ids"].append(p.id)
-                # create 5 transaction types
-                for name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
-                    # make up some unique count
-                    idx = org_idx * num_orgs + proj_idx
-                    num_transactions = self.get_count_for_transaction(idx, name)
-                    self.store_performance_metric(
-                        name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-                        tags={"transaction": name, "is_segment": "true"},
-                        minutes_before_now=30,
-                        value=num_transactions,
-                        project_id=p.id,
-                        org_id=org.id,
-                    )
+        # Wrap create_old_project calls in time_machine.travel(tick=True) so each
+        # project.save() gets a unique millisecond timestamp, preventing
+        # MaxSnowflakeRetryError when multiple xdist workers share MOCK_DATETIME.
+        with time_machine.travel(MOCK_DATETIME, tick=True):
+            for org_idx in range(num_orgs):
+                org = self.create_old_organization(f"test-org{org_idx}")
+                org_info = {"org_id": org.id, "project_ids": []}
+                self.orgs_info.append(org_info)
+                for proj_idx in range(num_proj_per_org):
+                    p = self.create_old_project(name=f"test-project-{proj_idx}", organization=org)
+                    org_info["project_ids"].append(p.id)
+                    # create 5 transaction types
+                    for name in ["ts1", "ts2", "tm3", "tl4", "tl5"]:
+                        # make up some unique count
+                        idx = org_idx * num_orgs + proj_idx
+                        num_transactions = self.get_count_for_transaction(idx, name)
+                        self.store_performance_metric(
+                            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
+                            tags={"transaction": name, "is_segment": "true"},
+                            minutes_before_now=30,
+                            value=num_transactions,
+                            project_id=p.id,
+                            org_id=org.id,
+                        )
         self.org_ids = [org["org_id"] for org in self.orgs_info]
 
     def get_count_for_transaction(self, idx: int, name: str):
@@ -634,17 +639,19 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         self.orgs = []
         self.num_proj = 2
         self.orgs_sampling = [10, 20, 40]
-        # create some orgs, projects and transactions
-        for org_rate in self.orgs_sampling:
-            org = self.create_old_organization(f"test-org-{org_rate}")
-            org_info = {"org_id": org.id, "project_ids": [], "projects": []}
-            self.orgs_info.append(org_info)
-            self.orgs.append(org)
-            for proj_idx in range(self.num_proj):
-                p = self.create_old_project(name=f"test-project-{proj_idx}", organization=org)
-                org_info["projects"].append(p)
-                org_info["project_ids"].append(p.id)
-                self.add_metrics(org, p, org_rate)
+        # Wrap in tick=True so each create_old_project gets a unique millisecond,
+        # preventing MaxSnowflakeRetryError under @freeze_time with parallel workers.
+        with time_machine.travel(MOCK_DATETIME, tick=True):
+            for org_rate in self.orgs_sampling:
+                org = self.create_old_organization(f"test-org-{org_rate}")
+                org_info = {"org_id": org.id, "project_ids": [], "projects": []}
+                self.orgs_info.append(org_info)
+                self.orgs.append(org)
+                for proj_idx in range(self.num_proj):
+                    p = self.create_old_project(name=f"test-project-{proj_idx}", organization=org)
+                    org_info["projects"].append(p)
+                    org_info["project_ids"].append(p.id)
+                    self.add_metrics(org, p, org_rate)
 
     def add_metrics(self, org, project, sample_rate):
         base_tags = {"transaction": "trans-x", "is_segment": "true"}
@@ -767,6 +774,16 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 assert val is not None
                 # we sampled at 40% twice as much as we wanted we should adjust by 0.5
                 assert float(val) == 0.5
+
+        # Re-seed the sliding window cache and recalibration factors before the
+        # second run. A concurrent xdist worker's flushdb() can clear both
+        # between the first-run assertion loop and the second task invocation,
+        # which would cause the second run to see no prior factor (1.0) and the
+        # default blended rate (0.1) as target, producing adjusted_factor=1.0
+        # and deleting the key instead of doubling it.
+        self.set_sliding_window_org_sample_rate_for_all(0.2)
+        redis_client.set(generate_recalibrate_orgs_cache_key(self.orgs[0].id), 2.0)
+        redis_client.set(generate_recalibrate_orgs_cache_key(self.orgs[2].id), 0.5)
 
         # now if we run it again (with the same data in the database, the algorithm
         # should double down... the previous factor didn't do anything so apply it again)
