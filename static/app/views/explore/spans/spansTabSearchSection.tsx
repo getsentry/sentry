@@ -53,6 +53,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   useSpanItemAttributes,
   useTraceItemDatasetAttributes,
+  useTraceMetricItemAttributes,
 } from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
@@ -262,23 +263,11 @@ const SpansTabCrossEventMetricsSearchBar = memo(
     );
 
     const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-      useTraceItemDatasetAttributes(
-        TraceItemDataset.TRACEMETRICS,
-        attributeOptions,
-        'number'
-      );
+      useTraceMetricItemAttributes(attributeOptions, 'number');
     const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-      useTraceItemDatasetAttributes(
-        TraceItemDataset.TRACEMETRICS,
-        attributeOptions,
-        'string'
-      );
+      useTraceMetricItemAttributes(attributeOptions, 'string');
     const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-      useTraceItemDatasetAttributes(
-        TraceItemDataset.TRACEMETRICS,
-        attributeOptions,
-        'boolean'
-      );
+      useTraceMetricItemAttributes(attributeOptions, 'boolean');
 
     const onMetricChange = useCallback(
       (newMetric: TraceMetric) => {
