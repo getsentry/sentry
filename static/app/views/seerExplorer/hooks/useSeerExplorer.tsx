@@ -57,6 +57,12 @@ const NEW_STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
 ]);
 
+/** Widget builder routes — only the builder node is relevant, not the full dashboard tree. */
+const WIDGET_BUILDER_ROUTES = new Set([
+  '/dashboard/:dashboardId/widget-builder/widget/new/',
+  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+]);
+
 function supportsStructuredContext(
   referrer: string,
   organization: {features: string[]} | null | undefined
@@ -397,7 +403,14 @@ export const useSeerExplorer = () => {
       let screenshot: string | undefined;
       if (supportsStructuredContext(getPageReferrer(), organization)) {
         try {
-          screenshot = JSON.stringify(getLLMContext());
+          let snapshot = getLLMContext();
+          if (WIDGET_BUILDER_ROUTES.has(getPageReferrer())) {
+            snapshot = {
+              ...snapshot,
+              nodes: snapshot.nodes.filter(n => n.nodeType === 'widget-builder'),
+            };
+          }
+          screenshot = JSON.stringify(snapshot);
         } catch (e) {
           Sentry.captureException(e);
           screenshot = captureAsciiSnapshot?.();
