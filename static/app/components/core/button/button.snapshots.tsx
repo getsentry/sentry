@@ -53,7 +53,7 @@ const permutations: Permutation[] = [
 describe('Button', () => {
   describe.each(['light', 'dark'] as const)('%s', themeName => {
     it.snapshot.each<Permutation>(permutations)(
-      '%s',
+      '$label',
       ({priority, size, icon, label}) => (
         <ThemeProvider theme={themes[themeName]}>
           {/* Buttons need a bit of padding as rootElement.screenshot() clips to the
