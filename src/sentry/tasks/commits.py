@@ -22,7 +22,11 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
-from sentry.shared_integrations.exceptions import IntegrationError, IntegrationResourceNotFoundError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationError,
+    IntegrationResourceNotFoundError,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import issues_tasks
@@ -307,7 +311,7 @@ def fetch_commits_for_ref_with_lifecycle(
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                     handle_invalid_identity(identity=e.identity)
                     lifecycle.record_halt(e)
-                elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError)):
+                elif isinstance(e, (PluginError, InvalidIdentity, IntegrationError, ApiError)):
                     lifecycle.record_halt(e)
                 else:
                     lifecycle.record_failure(e)
