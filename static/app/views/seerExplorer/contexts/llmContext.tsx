@@ -68,9 +68,12 @@ function buildTree(
   const children: LLMContextNodeSnapshot[] = [];
   for (const [id, node] of nodes) {
     if (node.parentId === parentId) {
+      const raw = (nodeData.has(id) ? nodeData.get(id) : {}) as Record<string, unknown>;
+      const {priority, ...data} = raw;
       children.push({
         nodeType: node.nodeType,
-        data: nodeData.has(id) ? nodeData.get(id) : {},
+        priority: typeof priority === 'number' ? priority : 0,
+        data,
         children: buildTree(nodes, nodeData, id),
       });
     }
@@ -88,12 +91,18 @@ function serializeState(
     if (!node) {
       return {version: state.version, nodes: []};
     }
+    const raw = (nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {}) as Record<
+      string,
+      unknown
+    >;
+    const {priority, ...data} = raw;
     return {
       version: state.version,
       nodes: [
         {
           nodeType: node.nodeType,
-          data: nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {},
+          priority: typeof priority === 'number' ? priority : 0,
+          data,
           children: buildTree(state.nodes, nodeData, fromNodeId),
         },
       ],
