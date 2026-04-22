@@ -320,6 +320,18 @@ incorrect_cases = [
         "3f26_thumbnail.jpg",
     ),
     (
+        "int - leading underscore",
+        "img_1121.jpg",
+        "img_<int>.jpg",
+        "img_1121.jpg",
+    ),
+    (
+        "int - trailing underscore",
+        "1231_thumbnail.jpg",
+        "<int>_thumbnail.jpg",
+        "1231_thumbnail.jpg",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
