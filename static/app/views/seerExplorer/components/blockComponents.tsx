@@ -558,29 +558,39 @@ function BlockStatusIndicator({
   }
   if (status === 'loading' || status === 'pending') {
     return (
-      <Tooltip title={status === 'pending' ? t('Waiting for approval') : t('Running...')}>
-        <BlockSpinner hasOnlyTools={hasOnlyTools} />
-      </Tooltip>
+      <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+        <Tooltip
+          title={status === 'pending' ? t('Waiting for approval') : t('Running...')}
+        >
+          <BlockSpinner />
+        </Tooltip>
+      </BlockIndicatorSlot>
     );
   }
   if (status === 'failure') {
     return (
-      <Tooltip title={t('All tool calls failed')}>
-        <BlockFailureIcon hasOnlyTools={hasOnlyTools} size="sm" />
-      </Tooltip>
+      <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+        <Tooltip title={t('All tool calls failed')}>
+          <BlockFailureIcon size="sm" />
+        </Tooltip>
+      </BlockIndicatorSlot>
     );
   }
   if (status === 'mixed') {
     return (
-      <Tooltip title={t('Some tool calls succeeded and some failed')}>
-        <BlockPartialIcon hasOnlyTools={hasOnlyTools} size="sm" />
-      </Tooltip>
+      <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+        <Tooltip title={t('Some tool calls succeeded and some failed')}>
+          <BlockPartialIcon size="sm" />
+        </Tooltip>
+      </BlockIndicatorSlot>
     );
   }
   return (
-    <Tooltip title={t('All tool calls succeeded')}>
-      <BlockSuccessIcon hasOnlyTools={hasOnlyTools} size="sm" />
-    </Tooltip>
+    <BlockIndicatorSlot hasOnlyTools={hasOnlyTools}>
+      <Tooltip title={t('All tool calls succeeded')}>
+        <BlockSuccessIcon size="sm" />
+      </Tooltip>
+    </BlockIndicatorSlot>
   );
 }
 
@@ -598,11 +608,19 @@ const Spinner = styled('div')`
   flex-shrink: 0;
 `;
 
-const BlockSpinner = styled(Spinner)<{hasOnlyTools?: boolean}>`
+const BlockSpinner = styled(Spinner)`
   width: 18px;
   height: 18px;
+`;
+
+const BlockIndicatorSlot = styled('div')<{hasOnlyTools?: boolean}>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
   margin-top: ${p => (p.hasOnlyTools ? '10px' : '18px')};
   margin-left: ${p => p.theme.space.xl};
+  flex-shrink: 0;
 `;
 
 const BlockIndicatorSpacer = styled('div')`
@@ -611,25 +629,19 @@ const BlockIndicatorSpacer = styled('div')`
   flex-shrink: 0;
 `;
 
-const BlockSuccessIcon = styled(IconCheckmark)<{hasOnlyTools?: boolean}>`
+const BlockSuccessIcon = styled(IconCheckmark)`
   color: ${p => p.theme.tokens.content.success};
   flex-shrink: 0;
-  margin-top: ${p => (p.hasOnlyTools ? '10px' : '18px')};
-  margin-left: ${p => p.theme.space.xl};
 `;
 
-const BlockFailureIcon = styled(IconClose)<{hasOnlyTools?: boolean}>`
+const BlockFailureIcon = styled(IconClose)`
   color: ${p => p.theme.tokens.content.danger};
   flex-shrink: 0;
-  margin-top: ${p => (p.hasOnlyTools ? '10px' : '18px')};
-  margin-left: ${p => p.theme.space.xl};
 `;
 
-const BlockPartialIcon = styled(IconExclamation)<{hasOnlyTools?: boolean}>`
+const BlockPartialIcon = styled(IconExclamation)`
   color: ${p => p.theme.tokens.content.warning};
   flex-shrink: 0;
-  margin-top: ${p => (p.hasOnlyTools ? '10px' : '18px')};
-  margin-left: ${p => p.theme.space.xl};
 `;
 
 const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
