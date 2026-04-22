@@ -2615,7 +2615,9 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert "statsPeriod" not in params
         assert params["start"] == "2026-01-01T00:00:00"
         assert params["end"] == "2026-01-02T00:00:00"
-        assert params["utc"] == "True"
+        # utc is intentionally dropped - not consumed by events-timeseries and
+        # irrelevant for a cross-timezone Slack audience.
+        assert "utc" not in params
 
     def test_url_period_supersedes_dashboard_start_end(self) -> None:
         # When the URL carries any date info, the dashboard's date range is

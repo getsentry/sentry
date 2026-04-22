@@ -298,10 +298,11 @@ def _apply_page_filters(
 
     # Date range: treat as a single unit. If the URL carries any date info at
     # all, trust it holistically (don't mix URL start with dashboard period).
+    # ``utc`` is intentionally not forwarded: the events-timeseries endpoint
+    # doesn't consume it, and unfurls are shared across mixed-timezone audiences.
     url_start = url_params.get("start")
     url_end = url_params.get("end")
     url_stats_period = url_params.get("statsPeriod")
-    url_utc = url_params.get("utc")
 
     if url_stats_period or url_start or url_end:
         if url_stats_period:
@@ -310,18 +311,13 @@ def _apply_page_filters(
             params["start"] = url_start
         if url_end:
             params["end"] = url_end
-        if url_utc:
-            params["utc"] = url_utc
     else:
         dash_start = dashboard_filters.get("start")
         dash_end = dashboard_filters.get("end")
         dash_period = dashboard_filters.get("period")
-        dash_utc = dashboard_filters.get("utc")
         if dash_start and dash_end:
             params["start"] = str(dash_start)
             params["end"] = str(dash_end)
-            if dash_utc is not None:
-                params["utc"] = str(dash_utc)
         elif dash_period:
             params["statsPeriod"] = str(dash_period)
         else:
