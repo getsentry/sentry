@@ -258,11 +258,8 @@ export function InputSection({
     );
   }
 
-  const lastBlock = blocks[blocks.length - 1];
-  const isAwaitingResponse = Boolean(lastBlock?.loading);
-
   const renderActionButton = () => {
-    if (isPolling || waitingForInterrupt || isAwaitingResponse) {
+    if (isPolling || waitingForInterrupt) {
       return (
         <PauseButton
           icon={<IconPause />}
@@ -301,7 +298,7 @@ export function InputSection({
             onClick={onInputClick}
             placeholder={
               isFocused
-                ? t('Ask Seer a question and press Enter ↵, or press / for commands.')
+                ? t('Ask seer a question, or press / for commands.')
                 : t('Press Tab ⇥ to return here')
             }
             rows={1}
