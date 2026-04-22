@@ -260,8 +260,8 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
     preferences = bulk_read_preferences_from_sentry_db(organization_id, list(project_map.keys()))
 
     for project_id, project in project_map.items():
-        preference = preferences.get(project_id)
-        if preference is None:
+        existing_pref = preferences.get(project_id)
+        if existing_pref is None:
             continue
 
         autofix_repos = get_autofix_repos_from_project_code_mappings(project)
@@ -271,7 +271,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
             key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])
             language_map[key] = autofix_repo["languages"]
 
-        for repo in preference.repositories:
+        for repo in existing_pref.repositories:
             key = (repo.provider, repo.owner, repo.name)
             if key in org_repo_definitions:
                 repo_definition = org_repo_definitions[key]
