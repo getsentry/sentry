@@ -36,6 +36,40 @@ class _EventDataDict(TypedDict):
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
+    @pytest.fixture(autouse=True)
+    def _log_watermark_state(self, request):
+        """
+        DEBUG fixture: capture simulated_transaction_watermarks.state before and after
+        each test.  On failure, the error message shows exactly what the watermark state
+        was so we can determine which preceding test left it dirty.
+        """
+        import os
+
+        from django.db import connections
+
+        from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+
+        state_before = dict(simulated_transaction_watermarks.state)
+        depths_before = {
+            conn.alias: simulated_transaction_watermarks.get_transaction_depth(conn)
+            for conn in connections.all()
+        }
+        yield
+        if request.node.rep_call.failed if hasattr(request.node, "rep_call") else False:
+            import sys
+
+            state_after = dict(simulated_transaction_watermarks.state)
+            depths_after = {
+                conn.alias: simulated_transaction_watermarks.get_transaction_depth(conn)
+                for conn in connections.all()
+            }
+            sys.stderr.write(
+                f"\nDEBUG watermarks [{os.environ.get('PYTEST_XDIST_WORKER', 'main')}]"
+                f" test={request.node.name}\n"
+                f"  state_before={state_before}  depths_before={depths_before}\n"
+                f"  state_after={state_after}   depths_after={depths_after}\n"
+            )
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
@@ -92,13 +126,36 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     @pytest.mark.querybuilder
     def test_simple(self) -> None:
-        response = self.do_request(
-            {
-                "start": self.day_ago,
-                "end": self.day_ago + timedelta(hours=2),
-                "interval": "1h",
-            },
-        )
+        # DEBUG: capture watermark state at test entry to diagnose CrossTransactionAssertionError.
+        # The error fires when simulated_transaction_watermarks.state is stale from a previous test,
+        # making the checker think a cross-db transaction is open when it isn't.
+        import os
+
+        from django.db import connections
+
+        from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
+
+        _wm_state = dict(simulated_transaction_watermarks.state)
+        _depths = {
+            conn.alias: simulated_transaction_watermarks.get_transaction_depth(conn)
+            for conn in connections.all()
+        }
+        try:
+            response = self.do_request(
+                {
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "interval": "1h",
+                },
+            )
+        except Exception as exc:
+            raise AssertionError(
+                f"CrossTransactionAssertionError debug info:\n"
+                f"  watermark state at test start: {_wm_state}\n"
+                f"  actual transaction depths: {_depths}\n"
+                f"  xdist worker: {os.environ.get('PYTEST_XDIST_WORKER', 'none')}\n"
+                f"  original error: {exc}"
+            ) from exc
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
