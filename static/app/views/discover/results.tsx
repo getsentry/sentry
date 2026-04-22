@@ -1038,52 +1038,54 @@ function DiscoverContextMenu({
     });
   }
 
-  if (isDefault) {
-    items.push({
-      key: 'remove-default',
-      label: t('Remove Default'),
-      onAction: async () => {
-        await handleResetHomepageQuery(api, organization);
-        trackAnalytics('discover_v2.remove_default', {
-          organization,
-          source: analyticsEventSource,
-        });
-        setApiQueryData(queryClient, homepageQueryKey, undefined);
-        if (isHomepage) {
-          setSavedQuery(undefined);
-          const nextEventView = EventView.fromNewQueryWithLocation(
-            DEFAULT_EVENT_VIEW,
-            location
-          );
-          browserHistory.push({
-            pathname: location.pathname,
-            query: nextEventView.generateQueryStringObject(),
+  if (organization.features.includes('discover-query')) {
+    if (isDefault) {
+      items.push({
+        key: 'remove-default',
+        label: t('Remove Default'),
+        onAction: async () => {
+          await handleResetHomepageQuery(api, organization);
+          trackAnalytics('discover_v2.remove_default', {
+            organization,
+            source: analyticsEventSource,
           });
-        }
-      },
-    });
-  } else {
-    items.push({
-      key: 'set-as-default',
-      label: t('Set as Default'),
-      onAction: async () => {
-        const updatedHomepageQuery = await handleUpdateHomepageQuery(
-          api,
-          organization,
-          eventView.toNewQuery()
-        );
-        trackAnalytics('discover_v2.set_as_default', {
-          organization,
-          source: analyticsEventSource,
-        });
-        if (updatedHomepageQuery) {
-          setApiQueryData(queryClient, homepageQueryKey, updatedHomepageQuery);
+          setApiQueryData(queryClient, homepageQueryKey, undefined);
           if (isHomepage) {
-            setSavedQuery(updatedHomepageQuery);
+            setSavedQuery(undefined);
+            const nextEventView = EventView.fromNewQueryWithLocation(
+              DEFAULT_EVENT_VIEW,
+              location
+            );
+            browserHistory.push({
+              pathname: location.pathname,
+              query: nextEventView.generateQueryStringObject(),
+            });
           }
-        }
-      },
-    });
+        },
+      });
+    } else {
+      items.push({
+        key: 'set-as-default',
+        label: t('Set as Default'),
+        onAction: async () => {
+          const updatedHomepageQuery = await handleUpdateHomepageQuery(
+            api,
+            organization,
+            eventView.toNewQuery()
+          );
+          trackAnalytics('discover_v2.set_as_default', {
+            organization,
+            source: analyticsEventSource,
+          });
+          if (updatedHomepageQuery) {
+            setApiQueryData(queryClient, homepageQueryKey, updatedHomepageQuery);
+            if (isHomepage) {
+              setSavedQuery(updatedHomepageQuery);
+            }
+          }
+        },
+      });
+    }
   }
 
   if (!isHomepage && savedQuery) {
