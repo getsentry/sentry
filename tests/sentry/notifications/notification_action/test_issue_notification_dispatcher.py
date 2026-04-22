@@ -83,7 +83,9 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
             group=group,
         )
         action = Action.objects.get(id=self.action.id)
-        action.workflow_id = self.workflow.id  # Normally annotated by queryset in production
+        setattr(
+            action, "workflow_id", self.workflow.id
+        )  # Normally annotated by queryset in production
         return ActionInvocation(
             event_data=event_data,
             action=action,
@@ -276,6 +278,7 @@ class TestIssueNotificationDispatcher(MetricAlertHandlerBase):
         invocation = self._create_metric_alert_invocation()
         dispatcher = IssueNotificationDispatcher(invocation)
         target = dispatcher._extract_notification_target()
+        assert isinstance(target, IntegrationNotificationTarget)
         self._assert_integration_target(
             target, NotificationProviderKey.SLACK, "C12345", self.integration.id
         )
