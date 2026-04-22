@@ -453,7 +453,12 @@ class TestIsSeerSeatBasedTierEnabled(TestCase):
 class TestHasProjectConnectedRepos(TestCase):
     """Test the has_project_connected_repos function."""
 
-    def _add_repo(self) -> None:
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+
+    def _make_repo_and_projectrepo(self) -> None:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -466,7 +471,7 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_returns_true_when_repos_exist(self, mock_cache):
         """Test returns True when project has connected repositories."""
         mock_cache.get.return_value = None
-        self._add_repo()
+        self._make_repo_and_projectrepo()
 
         result = has_project_connected_repos(self.organization, self.project)
 
@@ -495,7 +500,7 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_returns_cached_value_true(self, mock_cache):
         """Cached True is returned without consulting the DB, even if DB has no repos."""
         mock_cache.get.return_value = True
-        # Intentionally no repos in DB — cache hit should win.
+        # No SeerProjectRepository rows--should return True via cache without consulting DB.
 
         result = has_project_connected_repos(self.organization, self.project)
 
@@ -506,7 +511,7 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_returns_cached_value_false(self, mock_cache):
         """Cached False is returned without consulting the DB, even if DB has repos."""
         mock_cache.get.return_value = False
-        self._add_repo()
+        self._make_repo_and_projectrepo()
 
         result = has_project_connected_repos(self.organization, self.project)
 
@@ -517,7 +522,7 @@ class TestHasProjectConnectedRepos(TestCase):
     def test_skip_cache_bypasses_cached_value(self, mock_cache):
         """skip_cache=True ignores the cached False and re-reads from DB."""
         mock_cache.get.return_value = False  # Cache has False
-        self._add_repo()
+        self._make_repo_and_projectrepo()
 
         result = has_project_connected_repos(self.organization, self.project, skip_cache=True)
 
