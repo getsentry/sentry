@@ -115,16 +115,11 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     }
   }, [dashboardId, selectedDashboard?.id]);
 
-  // If we don't have a selected dashboard, and one isn't going to arrive
-  // we can redirect to the first dashboard in the list.
   useEffect(() => {
     if (!dashboardId) {
-      const firstDashboardId = dashboards?.length
-        ? dashboards[0]?.id
-        : 'default-overview';
       navigate(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${firstDashboardId}/`,
+          pathname: `/organizations/${organization.slug}/dashboards/`,
           query: {
             ...location.query,
           },
@@ -132,7 +127,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
         {replace: true}
       );
     }
-  }, [dashboards, dashboardId, organization.slug, location.query, navigate]);
+  }, [dashboardId, organization.slug, location.query, navigate]);
 
   useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
