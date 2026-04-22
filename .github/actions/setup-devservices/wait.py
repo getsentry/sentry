@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Wait for the background devservices process started by the setup-devservices action.
+"""Run devservices up and verify all containers are healthy.
 
-Usage: wait.py [timeout_seconds]
+Usage: wait.py <mode> [timeout_seconds]
 
-Reads:  /tmp/ds-exit, /tmp/ds.log  (written by the setup-devservices action)
 Writes: $GITHUB_ENV  (DJANGO_LIVE_TEST_SERVER_ADDRESS)
 """
 
@@ -13,12 +12,8 @@ import json
 import os
 import subprocess
 import sys
-import time
-from pathlib import Path
 
-DS_EXIT = Path("/tmp/ds-exit")
-DS_LOG = Path("/tmp/ds.log")
-TIMEOUT = 300
+TIMEOUT = 600
 
 
 def log(msg: str) -> None:
@@ -27,19 +22,6 @@ def log(msg: str) -> None:
 
 def docker(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["docker", *args], capture_output=True, text=True)
-
-
-def stream_log(pos: int) -> int:
-    """Print any new content written to DS_LOG since pos. Returns the new position."""
-    if not DS_LOG.exists():
-        return pos
-    with DS_LOG.open() as f:
-        f.seek(pos)
-        chunk = f.read()
-        if chunk:
-            sys.stdout.write(chunk)
-            sys.stdout.flush()
-        return f.tell()
 
 
 def container_inspect_dump() -> None:
@@ -70,27 +52,17 @@ def container_inspect_dump() -> None:
             log(f"  exit={entry['ExitCode']}  {entry['Output'].strip()}")
 
 
-def wait(timeout: int = TIMEOUT) -> None:
-    start = time.monotonic()
-    log_pos = 0
+def run(mode: str, timeout: int = TIMEOUT) -> None:
+    try:
+        r = subprocess.run(["devservices", "up", "--mode", mode], timeout=timeout)
+    except subprocess.TimeoutExpired:
+        log(f"::error::devservices up timed out after {timeout}s")
+        log("--- container health on timeout ---")
+        container_inspect_dump()
+        sys.exit(1)
 
-    while not DS_EXIT.exists():
-        elapsed = time.monotonic() - start
-        if elapsed > timeout:
-            log_pos = stream_log(log_pos)
-            log(f"::error::Timed out waiting for devservices after {timeout}s")
-            log("--- container health on timeout ---")
-            container_inspect_dump()
-            sys.exit(1)
-        log_pos = stream_log(log_pos)
-        time.sleep(2)
-
-    # Drain any remaining log output.
-    stream_log(log_pos)
-
-    rc = int(DS_EXIT.read_text().strip())
-    if rc != 0:
-        log(f"::error::devservices up failed (exit {rc})")
+    if r.returncode != 0:
+        log(f"::error::devservices up failed (exit {r.returncode})")
         log("--- container health on failure ---")
         container_inspect_dump()
         sys.exit(1)
@@ -117,4 +89,7 @@ def wait(timeout: int = TIMEOUT) -> None:
 
 
 if __name__ == "__main__":
-    wait(int(sys.argv[1]) if len(sys.argv) > 1 else TIMEOUT)
+    if len(sys.argv) < 2:
+        print("Usage: wait.py <mode> [timeout_seconds]", file=sys.stderr)
+        sys.exit(1)
+    run(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else TIMEOUT)
