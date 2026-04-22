@@ -1021,10 +1021,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
     },
-    "prune-old-open-period-activity": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_open_period_activity",
-        "schedule": timedelta(minutes=2),
-    },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1216,7 +1212,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-issue-detection": {
         "task": "issues:sentry.tasks.llm_issue_detection.run_llm_issue_detection",
-        "schedule": timedelta(minutes=15),
+        "schedule": timedelta(minutes=5),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -2240,7 +2236,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.4.0"
+SELF_HOSTED_STABLE_VERSION = "26.4.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

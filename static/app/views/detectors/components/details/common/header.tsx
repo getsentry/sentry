@@ -22,6 +22,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 type DetectorDetailsHeaderProps = {
   detector: Detector;
   project: Project;
+  useLocalDetailActions?: boolean;
 };
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
@@ -68,15 +69,30 @@ export function DetectorDetailsDefaultHeaderContent({
   );
 }
 
-function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
+function DetectorDetailsDefaultActions({
+  detector,
+  useLocalDetailActions = false,
+}: {
+  detector: Detector;
+  useLocalDetailActions?: boolean;
+}) {
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const shouldUseLocalDetailActions =
+    hasPageFrameFeature &&
+    (useLocalDetailActions ||
+      detector.type === 'monitor_check_in_failure' ||
+      detector.type === 'metric_issue' ||
+      detector.type === 'uptime_domain_failure' ||
+      detector.type === 'preprod_size_analysis');
 
   return hasPageFrameFeature ? (
     <Fragment>
-      <TopBar.Slot name="actions">
-        <DisableDetectorAction detector={detector} />
-        <EditDetectorAction detector={detector} />
-      </TopBar.Slot>
+      {shouldUseLocalDetailActions ? null : (
+        <TopBar.Slot name="actions">
+          <DisableDetectorAction detector={detector} />
+          <EditDetectorAction detector={detector} />
+        </TopBar.Slot>
+      )}
       <MonitorFeedbackButton />
     </Fragment>
   ) : (
@@ -88,14 +104,21 @@ function DetectorDetailsDefaultActions({detector}: {detector: Detector}) {
   );
 }
 
-export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeaderProps) {
+export function DetectorDetailsHeader({
+  detector,
+  project,
+  useLocalDetailActions = false,
+}: DetectorDetailsHeaderProps) {
   const hasPageFrameFeature = useHasPageFrameFeature();
 
   if (hasPageFrameFeature) {
     return (
       <Fragment>
         <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-        <DetectorDetailsDefaultActions detector={detector} />
+        <DetectorDetailsDefaultActions
+          detector={detector}
+          useLocalDetailActions={useLocalDetailActions}
+        />
       </Fragment>
     );
   }
@@ -103,7 +126,10 @@ export function DetectorDetailsHeader({detector, project}: DetectorDetailsHeader
   return (
     <DetailLayout.Header>
       <DetectorDetailsDefaultHeaderContent detector={detector} project={project} />
-      <DetectorDetailsDefaultActions detector={detector} />
+      <DetectorDetailsDefaultActions
+        detector={detector}
+        useLocalDetailActions={useLocalDetailActions}
+      />
     </DetailLayout.Header>
   );
 }

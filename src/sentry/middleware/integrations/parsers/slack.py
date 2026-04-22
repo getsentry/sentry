@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any, TypeGuard
+from typing import Any
 from urllib.parse import parse_qs
 
 import orjson
@@ -42,10 +42,7 @@ from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.middleware.integrations.tasks import (
-    convert_to_async_slack_response,
-    route_slack_seer_event,
-)
+from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.types.cell import Cell
 from sentry.utils import json
 from sentry.utils.signing import unsign
@@ -294,16 +291,45 @@ class SlackRequestParser(BaseRequestParser):
                 )
                 return [action_organization]
 
-        return organizations
+        return self._filter_organizations_for_seer_event(organizations)
 
-    def _is_seer_agent_request(
-        self, slack_request: SlackRequest | None
-    ) -> TypeGuard[SlackEventRequest]:
-        return (
-            self.view_class == SlackEventEndpoint
-            and isinstance(slack_request, SlackEventRequest)
-            and slack_request.is_seer_agent_request
-        )
+    def _filter_organizations_for_seer_event(
+        self, organizations: list[RpcOrganizationMapping]
+    ) -> list[RpcOrganizationMapping]:
+        """
+        If the request is a Seer Agent event, attempt to resolve a specific organization.
+        Fallback to the original organizations if there's no resolution.
+        """
+        if not self.slack_request:
+            return organizations
+
+        if self.view_class != SlackEventEndpoint or not isinstance(
+            self.slack_request, SlackEventRequest
+        ):
+            return organizations
+
+        if not self.slack_request.is_seer_agent_request:
+            return organizations
+
+        organization_id, error_reason = self.slack_request.resolve_seer_organization()
+        logger_ctx = {"organization_id": organization_id, "error_reason": error_reason}
+
+        if not organization_id or error_reason:
+            logger.info(
+                "slack.control.filter_seer_event.organization_not_resolved", extra=logger_ctx
+            )
+            return organizations
+
+        mapping = next((org for org in organizations if org.id == organization_id), None)
+        if not mapping:
+            logger.info(
+                "slack.control.filter_seer_event.organization_mapping_not_found",
+                extra=logger_ctx,
+            )
+            return organizations
+
+        logger.info("slack.control.filter_seer_event.routed", extra=logger_ctx)
+        return [mapping]
 
     def get_response(self) -> HttpResponseBase:
         """
@@ -333,25 +359,6 @@ class SlackRequestParser(BaseRequestParser):
             # their org's slack integration, and slack will continue to retry
             # this request until it succeeds.
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
-
-        if self._is_seer_agent_request(self.slack_request):
-            route_slack_seer_event.apply_async(
-                kwargs={
-                    "payload": create_async_request_payload(self.request),
-                    "integration_id": self.slack_request.integration.id,
-                    "slack_user_id": self.slack_request.user_id,
-                    "channel_id": self.slack_request.channel_id,
-                    "thread_ts": self.slack_request.thread_ts,
-                }
-            )
-            logger.info(
-                "slack.control.seer_event.routing_scheduled",
-                extra={
-                    "integration_id": self.slack_request.integration.id,
-                    "event_type": self.slack_request.type,
-                },
-            )
-            return HttpResponse(status=status.HTTP_200_OK)
 
         if self.view_class == SlackActionEndpoint and isinstance(
             self.slack_request, SlackActionRequest

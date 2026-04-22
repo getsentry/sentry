@@ -1,12 +1,11 @@
 import {createContext, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
-import type {Transition} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
+import type {DrawerOptions} from '@sentry/scraps/drawer';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
-import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
@@ -21,10 +20,7 @@ import {
 
 const DrawerWidthContext = createContext<number | undefined>(undefined);
 
-interface DrawerContentContextType {
-  ariaLabel: string;
-  onClose: DrawerOptions['onClose'];
-}
+type DrawerContentContextType = Pick<DrawerOptions, 'ariaLabel' | 'onClose'>;
 
 const DrawerContentContext = createContext<DrawerContentContextType>({
   onClose: () => {},
@@ -35,29 +31,31 @@ export function useDrawerContentContext() {
   return useContext(DrawerContentContext);
 }
 
-interface DrawerPanelProps {
-  ariaLabel: DrawerContentContextType['ariaLabel'];
+/**
+ * Rendering props for the inner DrawerPanel component. Inherits the shared
+ * panel-configuration props directly from DrawerOptions so the two interfaces
+ * can't drift. GlobalDrawer-only options (onOpen, shouldClose*, onClose
+ * callback) are consumed before reaching this component.
+ */
+interface DrawerPanelProps extends Pick<
+  DrawerOptions,
+  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'resizable' | 'onClose'
+> {
   children: React.ReactNode;
-  headerContent: React.ReactNode;
-  onClose: DrawerContentContextType['onClose'];
-  drawerCss?: DrawerOptions['drawerCss'];
-  drawerKey?: string;
-  drawerWidth?: DrawerOptions['drawerWidth'];
+  /** Required — GlobalDrawer applies the default before passing it down. */
+  mode: NonNullable<DrawerOptions['mode']>;
   ref?: React.Ref<HTMLDivElement>;
-  resizable?: DrawerOptions['resizable'];
-  transitionProps?: Transition;
 }
 
 function DrawerPanel({
   ref,
+  mode,
   ariaLabel,
   children,
-  transitionProps,
   onClose,
   drawerWidth,
   drawerKey,
   resizable = true,
-  drawerCss,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
     useDrawerResizing({
@@ -74,13 +72,12 @@ function DrawerPanel({
     <DrawerContainer>
       <DrawerWidthContext.Provider value={actualDrawerWidth}>
         <DrawerSlidePanel
+          mode={mode}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref)}
-          transitionProps={transitionProps}
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
-          css={drawerCss}
         >
           {drawerKey && enabled && (
             <ResizeHandle
@@ -117,6 +114,10 @@ interface DrawerHeaderProps {
    * If true, hides the close button
    */
   hideCloseButton?: boolean;
+  /**
+   * If true, hides the label of the close button
+   */
+  hideCloseButtonText?: boolean;
   ref?: React.Ref<HTMLHeadingElement>;
 }
 
@@ -126,6 +127,7 @@ export function DrawerHeader({
   children = null,
   hideBar = false,
   hideCloseButton = false,
+  hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -147,7 +149,7 @@ export function DrawerHeader({
             icon={<IconClose />}
             onClick={onClose}
           >
-            {t('Close')}
+            {!hideCloseButtonText && t('Close')}
           </Button>
           {!hideBar && <HeaderBar />}
         </Fragment>
@@ -180,7 +182,7 @@ const Header = styled('header')<{
   padding: ${p => p.theme.space.lg};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
-  padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
+  padding-left: ${p => p.theme.space.lg};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   ${p =>

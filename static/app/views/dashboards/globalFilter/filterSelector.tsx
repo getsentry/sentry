@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import xor from 'lodash/xor';
 
@@ -210,6 +211,16 @@ export function FilterSelector({
     const optionMap = new Map<string, SelectOption<string>>();
     const fixedOptionMap = new Map<string, SelectOption<string>>();
     const addOption = (value: string, map: Map<string, SelectOption<string>>) => {
+      if (typeof value !== 'string') {
+        Sentry.withScope(scope => {
+          scope.setExtra('value', value);
+          scope.setExtra('filterKey', globalFilter.tag.key);
+          Sentry.captureException(
+            new Error('Dashboard filter addOption received a non-string value')
+          );
+        });
+        return;
+      }
       const option: SelectOption<string> = {
         label: middleEllipsis(value, 70, /[\s-_:]/),
         value,
@@ -261,6 +272,7 @@ export function FilterSelector({
     stagedFilterValues,
     searchQuery,
     canSelectMultipleValues,
+    globalFilter.tag.key,
   ]);
 
   const translatedOptions = translateKnownFilterOptions(options, globalFilter);

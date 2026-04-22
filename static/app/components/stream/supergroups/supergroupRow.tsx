@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -8,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';

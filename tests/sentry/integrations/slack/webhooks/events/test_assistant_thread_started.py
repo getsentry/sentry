@@ -54,13 +54,16 @@ class AssistantThreadStartedEventTest(BaseEventTest):
             assert prompt["message"]
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.webhooks.event.send_identity_link_prompt")
     @patch("sentry.integrations.slack.integration.SlackIntegration.set_suggested_prompts")
-    def test_identity_not_linked(self, mock_set_prompts, mock_record):
+    def test_identity_not_linked(self, mock_set_prompts, mock_send_link, mock_record):
         self.unlink_identity()
         resp = self.post_webhook(event_data=ASSISTANT_THREAD_STARTED_EVENT)
 
         assert resp.status_code == 200
         mock_set_prompts.assert_not_called()
+        mock_send_link.assert_called_once()
+        assert mock_send_link.call_args[1]["is_welcome_message"] is True
         assert_halt_metric(mock_record, SeerSlackHaltReason.IDENTITY_NOT_LINKED)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

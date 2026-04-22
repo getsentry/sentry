@@ -117,7 +117,7 @@ def _triage_candidates(
             "night_shift.triage_explorer_error",
             extra={"organization_id": organization.id},
         )
-        return [], None
+        raise
 
     logger.info(
         "night_shift.triage_verdicts",

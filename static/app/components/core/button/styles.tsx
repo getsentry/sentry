@@ -9,7 +9,7 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
   NonNullable<CommonButtonProps['size']>,
   SVGIconProps['size']
 > = {
-  zero: undefined,
+  zero: 'xs',
   xs: 'xs',
   sm: 'sm',
   md: 'sm',

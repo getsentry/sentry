@@ -22,10 +22,6 @@ class SlackAction(StrEnum):
     ASSIGN = "assign"
     # Older, /sentry link workflows send a hyperlink. Newer ones use a button block.
     LINK_IDENTITY = "link_identity"
-    # Hyperlinks to specific sentry pages
-    LINK_TO_INTEGRATION = "link_to_integration"
-    LINK_TO_SEER = "link_to_seer"
-
     SEER_AUTOFIX_START = "seer_autofix_start"
     SEER_AUTOFIX_VIEW_IN_SENTRY = "seer_autofix_view_in_sentry"
     SEER_AUTOFIX_VIEW_PR = "seer_autofix_view_pr"

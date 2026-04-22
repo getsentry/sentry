@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict, cast
 from urllib.parse import urlparse
 
+from django.db.models import Prefetch
 from django.http.request import QueryDict
 
 from sentry import analytics, features
@@ -14,6 +15,7 @@ from sentry.api import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
+from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -47,7 +49,10 @@ class DashboardsUnfurlArgs(TypedDict):
 
 _logger = logging.getLogger(__name__)
 
-DEFAULT_PERIOD = "14d"
+# Matches the dashboards-specific DEFAULT_STATS_PERIOD in
+# static/app/views/dashboards/data.tsx so unfurls show the same window the
+# dashboard UI does when no period is set anywhere.
+DEFAULT_PERIOD = "24h"
 TOP_N = 5
 
 DASHBOARDS_CHART_SIZE: ChartSize = {"width": 1200, "height": 400}
@@ -60,6 +65,14 @@ _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.STACKED_AREA_CHART: "area",
     DashboardWidgetDisplayTypes.BAR_CHART: "bar",
     DashboardWidgetDisplayTypes.TOP_N: "area",
+}
+
+# Widget types that map to EAP trace-item datasets on the events-timeseries
+# endpoint. Other widget types (discover, issue, metrics, etc.) are skipped.
+_WIDGET_TYPE_TO_DATASET = {
+    DashboardWidgetTypes.SPANS: SupportedTraceItemType.SPANS,
+    DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS,
+    DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS,
 }
 
 
@@ -110,25 +123,21 @@ def _unfurl_dashboards(
         if widget is None:
             continue
 
-        # Only spans are supported for the initial rollout.
-        if widget.widget_type != DashboardWidgetTypes.SPANS:
+        is_supported_dataset = widget.widget_type in _WIDGET_TYPE_TO_DATASET
+        if not is_supported_dataset:
             continue
 
         display_type = _TIMESERIES_DISPLAY_TYPES.get(widget.display_type)
         if display_type is None:
             continue
 
-        widget_queries = list(
-            DashboardWidgetQuery.objects.filter(widget_id=widget.id).order_by("order")
-        )
-        if not widget_queries:
+        per_query_params = build_widget_timeseries_params(widget, args["query"])
+        if not per_query_params:
             continue
 
         combined_time_series: list[TimeSeries] = []
         request_failed = False
-        for widget_query in widget_queries:
-            params = _build_timeseries_params(widget_query, args["query"])
-
+        for params in per_query_params:
             try:
                 resp = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
@@ -184,28 +193,50 @@ def _get_widget(
 
     The URL's widget segment is the 0-based position in the dashboard's
     widget list as returned by the API (ordered by id), matching the
-    frontend's ``dashboard.widgets[widgetId]`` lookup.
+    frontend's ``dashboard.widgets[widgetId]`` lookup. Widget queries are
+    prefetched in ``order`` so the downstream helper doesn't need DB access.
     """
     widgets = list(
         DashboardWidget.objects.filter(
             dashboard_id=dashboard_id,
             dashboard__organization_id=organization_id,
-        ).order_by("id")
+        )
+        .select_related("dashboard")
+        .prefetch_related(
+            Prefetch(
+                "dashboardwidgetquery_set",
+                queryset=DashboardWidgetQuery.objects.order_by("order"),
+            )
+        )
+        .order_by("id")
     )
     if widget_index >= len(widgets):
         return None
     return widgets[widget_index]
 
 
-def _build_timeseries_params(
-    widget_query: DashboardWidgetQuery, url_params: QueryDict
-) -> dict[str, str | list[str]]:
-    """Build events-timeseries API params from a widget query + URL params.
+def build_widget_timeseries_params(
+    widget: DashboardWidget, url_params: QueryDict
+) -> list[dict[str, str | list[str]]]:
+    """Build one events-timeseries param dict per widget query."""
+    dataset = _WIDGET_TYPE_TO_DATASET.get(widget.widget_type)
+    if dataset is None:
+        raise ValueError(f"Unsupported widget type: {widget.widget_type}")
 
-    Returns a plain dict with list values for multi-valued params. ``client.get``
-    iterates ``params.items()`` and only honors multiple values when the value
-    is a ``list``; a ``QueryDict`` would silently drop all but the last value.
-    """
+    dashboard_filters = widget.dashboard.get_filters()
+
+    return [
+        _params_for_widget_query(wq, url_params, dataset, dashboard_filters)
+        for wq in widget.dashboardwidgetquery_set.all()
+    ]
+
+
+def _params_for_widget_query(
+    widget_query: DashboardWidgetQuery,
+    url_params: QueryDict,
+    dataset: SupportedTraceItemType,
+    dashboard_filters: Mapping[str, Any],
+) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {}
 
     aggregates = list(widget_query.aggregates or [])
@@ -227,18 +258,74 @@ def _build_timeseries_params(
         # when grouping without an explicit sort.
         params["sort"] = f"-{aggregates[0]}"
 
-    for param in ("project", "environment", "statsPeriod", "start", "end", "interval"):
-        values = url_params.getlist(param)
-        if values:
-            params[param] = values if len(values) > 1 else values[0]
+    _apply_page_filters(params, url_params, dashboard_filters)
 
-    if "statsPeriod" not in params and "start" not in params:
-        params["statsPeriod"] = DEFAULT_PERIOD
-
-    params["dataset"] = SupportedTraceItemType.SPANS.value
+    params["dataset"] = dataset.value
     params["referrer"] = Referrer.DASHBOARDS_SLACK_UNFURL.value
 
     return params
+
+
+def _apply_page_filters(
+    params: dict[str, str | list[str]],
+    url_params: QueryDict,
+    dashboard_filters: Mapping[str, Any],
+) -> None:
+    """Resolve page filters (project, environment, date range, interval).
+
+    Precedence mirrors the dashboard UI's PageFilters resolution:
+      URL query params -> dashboard-saved filters -> hardcoded FE defaults.
+    localStorage-pinned filters are deliberately not replicated; they aren't
+    reachable from a webhook context.
+    """
+    # project: URL wins. Otherwise fall back to the dashboard's projects.
+    # An unconfigured dashboard (no projects, no all_projects) falls through
+    # to "All Projects" so the unfurl shows data instead of an empty chart.
+    project_values = url_params.getlist("project")
+    if not project_values:
+        project_values = [str(p) for p in dashboard_filters.get("projects") or []]
+    if not project_values:
+        project_values = [str(ALL_ACCESS_PROJECT_ID)]
+    params["project"] = project_values if len(project_values) > 1 else project_values[0]
+
+    # environment: URL wins. Otherwise fall back to dashboard, or omit (no
+    # filter) to match the FE default of "All Environments".
+    env_values = url_params.getlist("environment")
+    if not env_values:
+        env_values = list(dashboard_filters.get("environment") or [])
+    if env_values:
+        params["environment"] = env_values if len(env_values) > 1 else env_values[0]
+
+    # Date range: treat as a single unit. If the URL carries any date info at
+    # all, trust it holistically (don't mix URL start with dashboard period).
+    # ``utc`` is intentionally not forwarded: the events-timeseries endpoint
+    # doesn't consume it, and unfurls are shared across mixed-timezone audiences.
+    url_start = url_params.get("start")
+    url_end = url_params.get("end")
+    url_stats_period = url_params.get("statsPeriod")
+
+    if url_stats_period or url_start or url_end:
+        if url_stats_period:
+            params["statsPeriod"] = url_stats_period
+        if url_start:
+            params["start"] = url_start
+        if url_end:
+            params["end"] = url_end
+    else:
+        dash_start = dashboard_filters.get("start")
+        dash_end = dashboard_filters.get("end")
+        dash_period = dashboard_filters.get("period")
+        if dash_start and dash_end:
+            params["start"] = str(dash_start)
+            params["end"] = str(dash_end)
+        elif dash_period:
+            params["statsPeriod"] = str(dash_period)
+        else:
+            params["statsPeriod"] = DEFAULT_PERIOD
+
+    interval_value = url_params.get("interval")
+    if interval_value:
+        params["interval"] = interval_value
 
 
 def map_dashboards_query_args(url: str, args: Mapping[str, str | None]) -> DashboardsUnfurlArgs:

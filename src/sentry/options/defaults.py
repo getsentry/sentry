@@ -3715,12 +3715,6 @@ register(
 
 # Bug fix for prev/next event navigation
 register(
-    "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "eventstore.adjacent_event_ids_apply_query_conditions",
     type=Bool,
     default=False,

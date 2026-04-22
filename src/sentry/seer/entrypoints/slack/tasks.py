@@ -15,12 +15,12 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
-from sentry.seer.entrypoints.operator import SeerExplorerOperator
+from sentry.seer.entrypoints.operator import SeerAgentOperator
 from sentry.seer.entrypoints.slack.analytics import (
     SlackSeerAgentConversation,
     SlackSeerAgentResponded,
 )
-from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackExplorerEntrypoint
+from sentry.seer.entrypoints.slack.entrypoint import EntrypointSetupError, SlackAgentEntrypoint
 from sentry.seer.entrypoints.slack.mention import build_thread_context, extract_prompt
 from sentry.seer.entrypoints.slack.metrics import (
     ProcessMentionFailureReason,
@@ -53,10 +53,10 @@ def process_mention_for_slack(
     conversation_type: SlackSeerAgentConversation = SlackSeerAgentConversation.DIRECT_MESSAGE,
 ) -> None:
     """
-    Process a Slack @mention for Seer Explorer.
+    Process a Slack @mention for Seer Agent.
 
     Parses the mention, extracts thread context,
-    and triggers an Explorer run via SeerExplorerOperator.
+    and triggers an Agent run via SeerAgentOperator.
 
     ``ts`` is the message's own timestamp (always present).
     ``thread_ts`` is the parent thread's timestamp (None for top-level messages).
@@ -87,12 +87,12 @@ def process_mention_for_slack(
             lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.ORG_NOT_FOUND)
             return
 
-        if not SlackExplorerEntrypoint.has_access(organization):
-            lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.NO_EXPLORER_ACCESS)
+        if not SlackAgentEntrypoint.has_access(organization):
+            lifecycle.record_failure(failure_reason=ProcessMentionFailureReason.NO_AGENT_ACCESS)
             return
 
         try:
-            entrypoint = SlackExplorerEntrypoint(
+            entrypoint = SlackAgentEntrypoint(
                 integration_id=integration_id,
                 organization_id=organization_id,
                 channel_id=channel_id,
@@ -146,8 +146,8 @@ def process_mention_for_slack(
             )
             thread_context = build_thread_context(messages) or None
 
-        operator = SeerExplorerOperator(entrypoint=entrypoint)
-        run_id = operator.trigger_explorer(
+        operator = SeerAgentOperator(entrypoint=entrypoint)
+        run_id = operator.trigger_agent(
             organization=organization,
             user=user,
             prompt=prompt,
@@ -247,7 +247,7 @@ def _count_linked_users(
 
 def _send_link_identity_prompt(
     *,
-    entrypoint: SlackExplorerEntrypoint,
+    entrypoint: SlackAgentEntrypoint,
     thread_ts: str,
 ) -> None:
     """Send an ephemeral message prompting the user to link their Slack identity to Sentry."""
@@ -268,7 +268,7 @@ def _send_link_identity_prompt(
 
 def _build_link_identity_renderable(associate_url: str) -> SlackRenderable:
     """Build a SlackRenderable prompting the user to link their Slack identity to Sentry."""
-    message = "Link your Slack identity to Sentry to use Seer Explorer in Slack."
+    message = "Link your Slack identity to Sentry to use Seer Agent in Slack."
     return SlackRenderable(
         blocks=[
             MarkdownBlock(text=message),
@@ -285,12 +285,14 @@ def _build_link_identity_renderable(associate_url: str) -> SlackRenderable:
 
 def _send_not_org_member_message(
     *,
-    entrypoint: SlackExplorerEntrypoint,
+    entrypoint: SlackAgentEntrypoint,
     thread_ts: str,
     org_name: str,
 ) -> None:
     """Send an ephemeral message informing the user they are not a member of the organization."""
-    message = f"You must be a member of the *{org_name}* Sentry organization to use Seer Explorer in Slack."
+    message = (
+        f"You must be a member of the *{org_name}* Sentry organization to use Seer Agent in Slack."
+    )
     renderable = SlackRenderable(
         blocks=[MarkdownBlock(text=message)],
         text=message,

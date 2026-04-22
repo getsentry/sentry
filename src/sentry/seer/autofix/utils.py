@@ -559,11 +559,21 @@ def resolve_repository_ids(
     def _resolve_repo(repo: SeerRepoDefinition) -> SeerRepoDefinition:
         if repo.repository_id is not None:
             return repo
+
         resolved_id = resolved_ids.get(
             (repo.external_id, repo.provider.removeprefix("integrations:"))
         )
         if resolved_id is not None:
             return repo.copy(update={"repository_id": resolved_id})
+
+        logger.warning(
+            "seer.resolve_repository_ids.unresolved",
+            extra={
+                "organization_id": organization_id,
+                "external_id": repo.external_id,
+                "provider": repo.provider,
+            },
+        )
         return repo
 
     return [

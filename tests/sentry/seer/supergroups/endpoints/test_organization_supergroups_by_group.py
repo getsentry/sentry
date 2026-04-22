@@ -74,28 +74,10 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
             )
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_rca_source_defaults_to_explorer(self, mock_seer):
+    def test_rca_source_is_lightweight(self, mock_seer):
         mock_seer.return_value = mock_seer_response({"data": []})
 
         with self.feature("organizations:top-issues-ui"):
-            self.get_success_response(
-                self.organization.slug,
-                group_id=[self.unresolved_group.id],
-            )
-
-        body = mock_seer.call_args.args[0]
-        assert body["rca_source"] == "EXPLORER"
-
-    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_rca_source_lightweight_when_flag_enabled(self, mock_seer):
-        mock_seer.return_value = mock_seer_response({"data": []})
-
-        with self.feature(
-            {
-                "organizations:top-issues-ui": True,
-                "organizations:supergroups-lightweight-rca-clustering-read": True,
-            }
-        ):
             self.get_success_response(
                 self.organization.slug,
                 group_id=[self.unresolved_group.id],
