@@ -7,14 +7,19 @@
  * Only flags PascalCase functions that are imported or declared in the current
  * file, so built-in constructors and globals are naturally ignored.
  */
+/* eslint-disable import/no-nodejs-modules */
+import path from 'node:path';
+
 import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
 import type {TSESTree} from '@typescript-eslint/utils';
 import type {RuleFix, RuleFixer} from '@typescript-eslint/utils/ts-eslint';
 
 const IGNORED_NAMES = new Set(['HookOrDefault']);
 
-// Matches SCREAMING_SNAKE_CASE prefixes like DO_NOT_USE_ or DANGEROUS_
-const SCREAMING_SNAKE_RE = /^[A-Z][A-Z0-9]*_/;
+// Matches names that are clearly not PascalCase components:
+// - SCREAMING_SNAKE prefix: DO_NOT_USE_foo, DANGEROUS_SET_REACT_ROUTER_6_HISTORY
+// - All-caps constants: BREAKPOINTS, MOBILE
+const NOT_PASCAL_CASE_RE = /^[A-Z][A-Z0-9]*_|^[A-Z][A-Z0-9_]*$/;
 
 function shouldSkip(name: string): boolean {
   if (IGNORED_NAMES.has(name)) {
@@ -23,9 +28,38 @@ function shouldSkip(name: string): boolean {
   if (name.endsWith('Fixture')) {
     return true;
   }
-  if (SCREAMING_SNAKE_RE.test(name)) {
+  if (NOT_PASCAL_CASE_RE.test(name)) {
     return true;
   }
+  return false;
+}
+
+const IGNORED_IMPORT_PREFIXES = [
+  'sentry-fixture/',
+  'sentry/components/charts/components/',
+  'sentry/components/charts/series/',
+];
+
+function isIgnoredImportSource(source: string, filename: string): boolean {
+  // Check absolute import paths directly
+  if (IGNORED_IMPORT_PREFIXES.some(prefix => source.startsWith(prefix))) {
+    return true;
+  }
+
+  // Resolve relative imports against the file's directory
+  if (source.startsWith('.')) {
+    const dir = path.dirname(filename);
+    const resolved = path.resolve(dir, source);
+    // Normalize to forward slashes and check for chart paths
+    const normalized = resolved.replace(/\\/g, '/');
+    if (
+      normalized.includes('/components/charts/components/') ||
+      normalized.includes('/components/charts/series/')
+    ) {
+      return true;
+    }
+  }
+
   return false;
 }
 
@@ -51,16 +85,7 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
       ImportDeclaration(node) {
         const source = typeof node.source.value === 'string' ? node.source.value : '';
 
-        // Skip fixture imports — these are data factories, not components
-        if (source.startsWith('sentry-fixture/')) {
-          return;
-        }
-
-        // Skip ECharts config builder imports — not React components
-        if (
-          source.startsWith('sentry/components/charts/components/') ||
-          source.startsWith('sentry/components/charts/series/')
-        ) {
+        if (isIgnoredImportSource(source, context.filename)) {
           return;
         }
 

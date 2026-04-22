@@ -45,16 +45,28 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     {
       code: 'import {XAxis} from "sentry/components/charts/components/xAxis"; const x = XAxis({type: "category"});',
     },
+    // Relative imports from chart dirs — also skipped
+    {
+      code: 'import {LineSeries} from "./series/lineSeries"; const x = LineSeries({color: "red"});',
+      filename: '/project/static/app/components/charts/baseChart.tsx',
+    },
+    {
+      code: 'import {MarkLine} from "../components/markLine"; const x = MarkLine({data: []});',
+      filename: '/project/static/app/components/charts/series/test.tsx',
+    },
     // Known utility — even if imported, skip
     {
       code: 'import {HookOrDefault} from "sentry/utils/hook"; const x = HookOrDefault({hookName: "x"});',
     },
-    // SCREAMING_SNAKE_CASE — not a component
+    // All-uppercase names — constants, not components
     {
       code: 'import {DO_NOT_USE_getButtonStyles} from "./styles"; const x = DO_NOT_USE_getButtonStyles({size: "md"});',
     },
     {
       code: 'import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from "./router"; DANGEROUS_SET_REACT_ROUTER_6_HISTORY({history});',
+    },
+    {
+      code: 'const BREAKPOINTS = (theme) => ({ mobile: 0 }); const x = BREAKPOINTS(theme);',
     },
     // Multiple arguments — not a component call pattern
     {
