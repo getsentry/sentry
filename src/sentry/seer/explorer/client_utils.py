@@ -305,10 +305,12 @@ def collect_user_org_context(
 def get_proxy_headers() -> dict[str, str] | None:
     """Build auth headers for Seer to echo back to Sentry on callbacks.
 
-    Returns a dict of headers (X-Viewer-Context + signature) or None.
+    Returns a single ``X-Viewer-Context`` JWT header, or ``None`` when no
+    ViewerContext is set. Matches the format used by the standard inbound
+    Seer → Sentry path (``X-Viewer-Context`` JWT, no separate signature
+    header), so Sentry's middleware decodes both with the same code path.
     """
-    from sentry.seer.signed_seer_api import sign_viewer_context
-    from sentry.viewer_context import get_viewer_context
+    from sentry.viewer_context import encode_viewer_context, get_viewer_context
 
     ctx = get_viewer_context()
     if ctx is None or ctx.user_id is None:
@@ -317,12 +319,11 @@ def get_proxy_headers() -> dict[str, str] | None:
     if not settings.SEER_API_SHARED_SECRET:
         return None
 
-    context_bytes = orjson.dumps(ctx.serialize())
-    signature = sign_viewer_context(context_bytes)
-    return {
-        "X-Viewer-Context": context_bytes.decode("utf-8"),
-        "X-Viewer-Context-Signature": signature,
-    }
+    try:
+        return {"X-Viewer-Context": encode_viewer_context(ctx)}
+    except Exception:
+        logger.exception("Failed to encode viewer context JWT for proxy headers")
+        return None
 
 
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
