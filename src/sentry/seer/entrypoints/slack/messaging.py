@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, assert_never
 
 from pydantic import ValidationError
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, MarkdownBlock
@@ -10,6 +10,7 @@ from slack_sdk.models.blocks.blocks import Block
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.notifications.platform.registry import provider_registry, template_registry
@@ -32,6 +33,7 @@ from sentry.shared_integrations.exceptions import IntegrationConfigurationError,
 from sentry.silo.base import all_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks
+from sentry.utils.http import absolute_uri
 from sentry.utils.registry import NoRegistrationExistsError
 
 if TYPE_CHECKING:
@@ -267,46 +269,77 @@ def update_existing_message(
 
 
 @all_silo_function
-def send_identity_link_prompt(
+def send_halt_message(
     *,
     integration: RpcIntegration,
     slack_user_id: str,
     channel_id: str,
     thread_ts: str | None,
-    is_welcome_message: bool = False,
+    halt_reason: SeerSlackHaltReason,
 ) -> None:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.message_builder.types import SlackAction
     from sentry.integrations.slack.views.link_identity import build_linking_url
 
-    # TODO(leander): We'll need to revisit the UX around linking. We can't pass threads here so while
-    # the linking start message is correctly located and ephemeral, the success message afterwards is not.
-    # By omitting the response_url here, it will arrive as a DM, but it doesn't accept threads so this is the best we can do for now.
-    associate_url = build_linking_url(
-        integration=integration,
-        slack_id=slack_user_id,
-        channel_id=channel_id,
-        response_url=None,
-    )
-    message = (
-        "Link your Slack account to Sentry — so bugs find you, not the other way around."
-        if is_welcome_message
-        else "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
-    )
+    link_button: LinkButtonElement
+    message: str
+    logging_ctx = {
+        "integration_id": integration.id,
+        "channel_id": channel_id,
+        "thread_ts": thread_ts,
+        "slack_user_id": slack_user_id,
+        "halt_reason": halt_reason,
+    }
+
+    match halt_reason:
+        case SeerSlackHaltReason.IDENTITY_NOT_LINKED:
+            message = "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
+            # TODO(leander): We'll need to revisit the UX around linking. We can't pass threads here so while
+            # the linking start message is correctly located and ephemeral, the success message afterwards is not.
+            # By omitting the response_url here, it will arrive as a DM, but it doesn't accept threads so this is the best we can do for now.
+            associate_url = build_linking_url(
+                integration=integration,
+                slack_id=slack_user_id,
+                channel_id=channel_id,
+                response_url=None,
+            )
+            link_button = LinkButtonElement(
+                text="Connect to Sentry",
+                url=associate_url,
+                style="primary",
+                action_id=SlackAction.LINK_IDENTITY.value,
+            )
+        case SeerSlackHaltReason.NO_VALID_ORGANIZATION:
+            message = "Couldn't find an organization you belong to with Seer Agent access."
+            reinstall_url = absolute_uri("/settings/seer/")
+            link_button = LinkButtonElement(
+                text="Check Settings",
+                url=reinstall_url,
+                style="primary",
+                action_id=SlackAction.LINK_TO_SEER.value,
+            )
+        case SeerSlackHaltReason.NO_VALID_INTEGRATION:
+            message = (
+                "It doesn't look like things are set up correctly, try re-installing from Sentry."
+            )
+            reinstall_url = absolute_uri(f"/settings/integrations/{integration.provider}/")
+            link_button = LinkButtonElement(
+                text="Re-Install",
+                style="primary",
+                url=reinstall_url,
+                action_id=SlackAction.LINK_TO_INTEGRATION.value,
+            )
+        case SeerSlackHaltReason.MISSING_EVENT_DATA:
+            # This assumes the slack event is malformed, or unexpected.
+            # Avoid sending irrelevant messages for what could be inconsequential.
+            return
+        case _:
+            assert_never(halt_reason)
+
     renderable = SlackRenderable(
         blocks=[
             MarkdownBlock(text=message),
-            ActionsBlock(
-                elements=[
-                    ButtonElement(text="Cancel", value="ignore"),
-                    LinkButtonElement(
-                        text="Link",
-                        url=associate_url,
-                        style="primary",
-                        action_id=SlackAction.LINK_IDENTITY.value,
-                    ),
-                ]
-            ),
+            ActionsBlock(elements=[ButtonElement(text="Cancel", value="ignore"), link_button]),
         ],
         text=message,
     )
@@ -319,12 +352,6 @@ def send_identity_link_prompt(
             slack_user_id=slack_user_id,
         )
     except Exception:
-        logger.exception(
-            "send_identity_link_prompt.error",
-            extra={
-                "integration_id": integration.id,
-                "channel_id": channel_id,
-                "thread_ts": thread_ts,
-                "slack_user_id": slack_user_id,
-            },
-        )
+        logger.exception("send_halt_message.error", extra=logging_ctx)
+    else:
+        logger.info("send_halt_message.success", extra=logging_ctx)
