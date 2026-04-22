@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
@@ -35,7 +34,6 @@ import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 const MILLISECONDS_PER_SECOND = 1000;
 
 interface UseMetricSamplesTableOptions {
@@ -119,8 +117,8 @@ function useMetricsQueryKey({
     return newSearch.formatString();
   }, [userSearch, frozenSearch, traceMetric]);
 
-  const adjustedDatetime = useMemo(() => {
-    const baseDatetime = frozenTracePeriod
+  const baseDatetime = useMemo(() => {
+    const datetime = frozenTracePeriod
       ? {
           start: frozenTracePeriod.start ?? null,
           end: frozenTracePeriod.end ?? null,
@@ -129,28 +127,26 @@ function useMetricsQueryKey({
         }
       : selection.datetime;
 
-    const {start, end, period, utc} = baseDatetime;
+    return datetime;
+  }, [selection.datetime, frozenTracePeriod]);
 
+  const delayedRelativePeriod = useMemo(() => {
+    const {end, period} = baseDatetime;
     const periodMs = period ? intervalToMilliseconds(period) : 0;
 
     if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
-      const startTime = moment().subtract(periodMs, 'milliseconds');
-      const delayedEndTime = moment().subtract(ingestionDelaySeconds, 'seconds');
-
       return {
-        start: startTime.format(DATE_FORMAT),
-        end: delayedEndTime.format(DATE_FORMAT),
-        period: null,
-        utc,
+        statsPeriodStart: period,
+        statsPeriodEnd: `${ingestionDelaySeconds}s`,
       };
     }
 
-    return {start, end, period, utc};
-  }, [selection.datetime, frozenTracePeriod, ingestionDelaySeconds]);
+    return undefined;
+  }, [baseDatetime, ingestionDelaySeconds]);
 
   const pageFilters = {
     ...selection,
-    datetime: adjustedDatetime,
+    datetime: baseDatetime,
   };
   const dataset = DiscoverDatasets.TRACEMETRICS;
 
@@ -174,6 +170,15 @@ function useMetricsQueryKey({
   const params = {
     query: {
       ...eventViewPayload,
+      ...(delayedRelativePeriod
+        ? {
+            start: undefined,
+            end: undefined,
+            statsPeriod: undefined,
+            statsPeriodStart: delayedRelativePeriod.statsPeriodStart,
+            statsPeriodEnd: delayedRelativePeriod.statsPeriodEnd,
+          }
+        : {}),
       orderby: orderby.length > 0 ? orderby : undefined,
       per_page: limit,
       referrer,
