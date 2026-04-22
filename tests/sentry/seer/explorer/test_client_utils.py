@@ -284,7 +284,8 @@ class SnapshotToMarkdownTest(TestCase):
                 },
                 {
                     "nodeType": "widget-builder",
-                    "data": {"priority": 1, "mode": "creating"},
+                    "priority": 1,
+                    "data": {"mode": "creating"},
                     "children": [],
                 },
             ],
@@ -293,7 +294,6 @@ class SnapshotToMarkdownTest(TestCase):
         assert "# Widget-builder" in result
         assert '- **mode**: "creating"' in result
         assert "Dashboard" not in result
-        assert "priority" not in result
 
     def test_priority_equal_renders_all(self) -> None:
         snapshot = {
@@ -310,8 +310,8 @@ class SnapshotToMarkdownTest(TestCase):
         snapshot = {
             "version": 1,
             "nodes": [
-                {"nodeType": "a", "data": {"priority": None}, "children": []},
-                {"nodeType": "b", "data": {"priority": 1}, "children": []},
+                {"nodeType": "a", "priority": None, "data": {}, "children": []},
+                {"nodeType": "b", "priority": 1, "data": {}, "children": []},
             ],
         }
         result = snapshot_to_markdown(snapshot)
@@ -322,9 +322,9 @@ class SnapshotToMarkdownTest(TestCase):
         snapshot = {
             "version": 1,
             "nodes": [
-                {"nodeType": "a", "data": {"priority": 1}, "children": []},
-                {"nodeType": "b", "data": {"priority": 1}, "children": []},
-                {"nodeType": "c", "data": {"priority": 0}, "children": []},
+                {"nodeType": "a", "priority": 1, "data": {}, "children": []},
+                {"nodeType": "b", "priority": 1, "data": {}, "children": []},
+                {"nodeType": "c", "data": {}, "children": []},
             ],
         }
         result = snapshot_to_markdown(snapshot)

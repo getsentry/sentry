@@ -379,8 +379,6 @@ def _render_node(node: dict[str, Any], depth: int) -> str:
     data = node.get("data")
     if isinstance(data, dict):
         for key, value in data.items():
-            if key == "priority":
-                continue
             lines.append(f"- **{key}**: {orjson.dumps(value).decode()}")
     elif data is not None:
         lines.append(f"- {orjson.dumps(data).decode()}")
@@ -395,8 +393,7 @@ _MAX_ROOT_NODES = 10
 
 
 def _get_priority(node: dict[str, Any]) -> int:
-    data = node.get("data")
-    priority = data.get("priority") if isinstance(data, dict) else None
+    priority = node.get("priority")
     return priority if isinstance(priority, int) else 0
 
 
