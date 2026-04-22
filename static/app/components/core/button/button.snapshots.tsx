@@ -32,48 +32,52 @@ describe('Button', () => {
       );
     }
 
-    it.snapshot.each(allPriorities)(
-      '%s',
-      priority => (
-        <Wrapper>
-          <Button priority={priority}>{priority}</Button>
-        </Wrapper>
-      ),
-      priority => ({theme: themeName, priority: String(priority)})
-    );
+    describe.each(allPriorities)('priority %s', priority => {
+      describe.each(allSizes)('size %s', size => {
+        it.snapshot(
+          'without icon',
+          () => (
+            <Wrapper>
+              <Button priority={priority} size={size}>
+                Button
+              </Button>
+            </Wrapper>
+          ),
+          {theme: themeName, priority: String(priority), size: String(size), icon: 'no'}
+        );
 
-    describe.each(allSizes)('size %s', size => {
-      it.snapshot(
-        'without icon',
-        () => (
-          <Wrapper>
-            <Button size={size}>Button</Button>
-          </Wrapper>
-        ),
-        {theme: themeName, size: String(size), icon: 'no'}
-      );
+        it.snapshot(
+          'with icon',
+          () => (
+            <Wrapper>
+              <Button priority={priority} size={size} icon={<IconEdit />}>
+                Button
+              </Button>
+            </Wrapper>
+          ),
+          {theme: themeName, priority: String(priority), size: String(size), icon: 'yes'}
+        );
 
-      it.snapshot(
-        'with icon',
-        () => (
-          <Wrapper>
-            <Button size={size} icon={<IconEdit />}>
-              Button
-            </Button>
-          </Wrapper>
-        ),
-        {theme: themeName, size: String(size), icon: 'yes'}
-      );
-
-      it.snapshot(
-        'icon-only',
-        () => (
-          <Wrapper>
-            <Button size={size} icon={<IconEdit />} aria-label="Edit" />
-          </Wrapper>
-        ),
-        {theme: themeName, size: String(size), icon: 'only'}
-      );
+        it.snapshot(
+          'icon-only',
+          () => (
+            <Wrapper>
+              <Button
+                priority={priority}
+                size={size}
+                icon={<IconEdit />}
+                aria-label="Edit"
+              />
+            </Wrapper>
+          ),
+          {
+            theme: themeName,
+            priority: String(priority),
+            size: String(size),
+            icon: 'only',
+          }
+        );
+      });
     });
   });
 });
