@@ -213,9 +213,7 @@ class ResultsHeader extends Component<Props, State> {
               </Fragment>
             ) : (
               // Only has discover-basic
-              <Fragment>
-                <Layout.Title>{title}</Layout.Title>
-              </Fragment>
+              <Layout.Title>{title}</Layout.Title>
             )}
             {this.renderAuthor()}
           </Layout.HeaderContent>
