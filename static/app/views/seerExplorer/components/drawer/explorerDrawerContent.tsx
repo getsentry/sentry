@@ -215,6 +215,8 @@ export function ExplorerDrawerContent({
     }
   }, [readOnly, inputValue, isPolling, sendMessage]);
 
+  const canInterrupt = sessionData?.status === 'processing';
+
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (readOnly || e.nativeEvent.isComposing) {
@@ -224,9 +226,12 @@ export function ExplorerDrawerContent({
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
+      } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
+        e.preventDefault();
+        interruptRun();
       }
     },
-    [readOnly, handleSend]
+    [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -460,7 +465,7 @@ export function ExplorerDrawerContent({
         enabled={!readOnly}
         inputValue={inputValue}
         isFocused={focusedBlockIndex === -1}
-        canInterrupt={sessionData?.status === 'processing'} // TODO: update when adding timeouts
+        canInterrupt={canInterrupt} // TODO: update when adding timeouts
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isVisible // Drawer content is always visible when rendered
