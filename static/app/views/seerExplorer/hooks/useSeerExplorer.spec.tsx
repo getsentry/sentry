@@ -117,7 +117,7 @@ describe('useSeerExplorer', () => {
         getPageReferrer: () => '/dashboard/:dashboardId/',
       });
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'context-engine-structured-page-context'],
+        features: ['seer-explorer', 'seer-explorer-context-engine'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -150,7 +150,7 @@ describe('useSeerExplorer', () => {
 
     it('falls back to ASCII screenshot on non-dashboard page', async () => {
       const org = OrganizationFixture({
-        features: ['seer-explorer', 'context-engine-structured-page-context'],
+        features: ['seer-explorer', 'seer-explorer-context-engine'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,

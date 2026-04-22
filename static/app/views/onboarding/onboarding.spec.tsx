@@ -1031,6 +1031,72 @@ describe('Onboarding', () => {
       expect(stored.createdProjectSlug).toBeUndefined();
     });
 
+    describe('setup-docs analytics', () => {
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      function renderSetupDocs(project: ReturnType<typeof ProjectFixture>) {
+        jest
+          .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+          .mockImplementation(() => ({project, isProjectActive: false}));
+
+        MockApiClient.addMockResponse({
+          url: `/organizations/${scmOrganization.slug}/sdks/`,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${project.slug}/keys/`,
+          body: [ProjectKeysFixture()[0]],
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${project.slug}/issues/`,
+          body: [],
+        });
+
+        return render(
+          <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
+            <OnboardingWithoutContext />
+          </OnboardingContextProvider>,
+          {
+            organization: scmOrganization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+              },
+              route: '/onboarding/:orgId/:step/',
+            },
+          }
+        );
+      }
+
+      it('fires scm_take_to_error_clicked on Take me to my error click', async () => {
+        const project = ProjectFixture({
+          platform: 'javascript-nextjs',
+          slug: 'javascript-nextjs',
+          firstEvent: '2026-04-21T00:00:00.000Z',
+        });
+
+        renderSetupDocs(project);
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Take me to my error'})
+        );
+
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'onboarding.scm_take_to_error_clicked',
+          expect.objectContaining({
+            organization: scmOrganization,
+            platform: 'javascript-nextjs',
+          })
+        );
+        expect(trackAnalytics).not.toHaveBeenCalledWith(
+          'growth.onboarding_take_to_error',
+          expect.anything()
+        );
+      });
+    });
+
     it('clears derived state but preserves integration and repo on repo change', () => {
       const initialContext = {
         selectedIntegration: OrganizationIntegrationsFixture({

@@ -114,6 +114,10 @@ interface DrawerHeaderProps {
    * If true, hides the close button
    */
   hideCloseButton?: boolean;
+  /**
+   * If true, hides the label of the close button
+   */
+  hideCloseButtonText?: boolean;
   ref?: React.Ref<HTMLHeadingElement>;
 }
 
@@ -123,6 +127,7 @@ export function DrawerHeader({
   children = null,
   hideBar = false,
   hideCloseButton = false,
+  hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
   const hasPageFrameFeature = useHasPageFrameFeature();
@@ -144,7 +149,7 @@ export function DrawerHeader({
             icon={<IconClose />}
             onClick={onClose}
           >
-            {t('Close')}
+            {!hideCloseButtonText && t('Close')}
           </Button>
           {!hideBar && <HeaderBar />}
         </Fragment>
