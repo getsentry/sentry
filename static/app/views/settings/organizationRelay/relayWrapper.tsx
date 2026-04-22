@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -77,11 +78,25 @@ export function RelayWrapper() {
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
         title={t('Relay')}
-        subtitle={tct(
-          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-        )}
-        action={hasPageFrame && relays.length > 0 ? undefined : registerKeyAction}
+        subtitle={
+          hasPageFrame ? (
+            <Flex justify="between" align="center" gap="md">
+              <span>
+                {tct(
+                  'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+                  {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+                )}
+              </span>
+              {registerKeyAction}
+            </Flex>
+          ) : (
+            tct(
+              'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+              {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+            )
+          )
+        }
+        action={hasPageFrame ? undefined : registerKeyAction}
       />
       <OrganizationPermissionAlert />
       {organization.features.includes('ingest-through-trusted-relays-only') && (
@@ -138,7 +153,7 @@ export function RelayWrapper() {
           disabled={disabled}
           relays={relays}
           api={api}
-          registerKeyAction={hasPageFrame ? registerKeyAction : undefined}
+          registerKeyAction={hasPageFrame ? undefined : registerKeyAction}
           onRelaysChange={setRelays}
         />
       )}

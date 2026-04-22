@@ -80,6 +80,13 @@ export default function ProjectAlertSettings() {
         <LoadingIndicator />
       ) : (
         <Fragment>
+          {hasPageFrameFeature && (
+            <Flex justify="flex-end" paddingBottom="sm">
+              <LinkButton to={alertRulesTo} size="sm">
+                {t('View Alert Rules')}
+              </LinkButton>
+            </Flex>
+          )}
           <Form
             saveOnBlur
             allowUndo
@@ -93,18 +100,7 @@ export default function ProjectAlertSettings() {
           >
             <JsonForm
               disabled={!canEditRule}
-              title={
-                hasPageFrameFeature ? (
-                  <Flex justify="between" align="center" width="100%">
-                    {t('Email Settings')}
-                    <LinkButton to={alertRulesTo} size="sm">
-                      {t('View Alert Rules')}
-                    </LinkButton>
-                  </Flex>
-                ) : (
-                  t('Email Settings')
-                )
-              }
+              title={t('Email Settings')}
               fields={[fields.subjectTemplate]}
               renderHeader={() => (
                 <PanelAlert variant="info">

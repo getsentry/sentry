@@ -11,6 +11,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -104,6 +105,7 @@ function ApiTokens() {
     <LinkButton
       priority="primary"
       size="sm"
+      icon={<IconAdd />}
       to="/settings/account/api/auth-tokens/new-token/"
     >
       {t('Create New Token')}
@@ -116,28 +118,44 @@ function ApiTokens() {
         title={PAGE_TITLE}
         action={hasPageFrame ? undefined : action}
         subtitle={
-          <Stack gap="md">
-            <div>
-              {t(
-                "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-              )}
-            </div>
-            <div>
-              {tct(
-                'For more information on how to use the web API, see our [link:documentation].',
-                {
-                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                }
-              )}
-            </div>
-          </Stack>
+          hasPageFrame ? (
+            <Flex justify="between" align="center" gap="md">
+              <Stack gap="md">
+                <div>
+                  {t(
+                    "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+                  )}
+                </div>
+                <div>
+                  {tct(
+                    'For more information on how to use the web API, see our [link:documentation].',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                    }
+                  )}
+                </div>
+              </Stack>
+              {action}
+            </Flex>
+          ) : (
+            <Stack gap="md">
+              <div>
+                {t(
+                  "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+                )}
+              </div>
+              <div>
+                {tct(
+                  'For more information on how to use the web API, see our [link:documentation].',
+                  {
+                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                  }
+                )}
+              </div>
+            </Stack>
+          )
         }
       />
-      {hasPageFrame && (
-        <Flex justify="end" marginBottom="xl">
-          {action}
-        </Flex>
-      )}
       <PanelTable
         headers={[t('Token'), t('Created On'), t('Scopes'), '']}
         isEmpty={isEmpty}
