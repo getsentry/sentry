@@ -42,14 +42,34 @@ const userFeedbackFeedbackOptions = {
 };
 
 function PageContent({
+  feedbackProjectSlug,
   hideTop,
   hasFeedbackContent,
   content,
 }: {
   content: ReactNode;
+  feedbackProjectSlug: string;
   hasFeedbackContent: boolean;
   hideTop: boolean;
 }) {
+  const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const createAlertAction = {
+    icon: <IconSiren />,
+    to: {
+      pathname: makeAlertsPathname({
+        path: '/new/issue/',
+        organization,
+      }),
+      query: {
+        alert_option: 'issues',
+        referrer: 'feedback-list-page',
+        detectorType: 'metric_issue',
+        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+      },
+    },
+  };
+
   return (
     <PageFiltersContainer>
       <ErrorBoundary>
@@ -64,9 +84,21 @@ function PageContent({
                 align={{xs: 'stretch', sm: 'start'}}
               >
                 <FeedbackFilters />
-                <SearchContainer>
-                  <FeedbackSearch />
-                </SearchContainer>
+                <Flex
+                  flexGrow={1}
+                  gap="md"
+                  direction={{xs: 'column', md: 'row'}}
+                  align={{xs: 'stretch', md: 'center'}}
+                >
+                  <SearchContainer>
+                    <FeedbackSearch />
+                  </SearchContainer>
+                  {hasPageFrameFeature ? (
+                    <LinkButton {...createAlertAction} priority="primary">
+                      {t('Create Alert')}
+                    </LinkButton>
+                  ) : null}
+                </Flex>
               </Stack>
             )}
             {hasFeedbackContent ? (
@@ -222,9 +254,6 @@ export default function FeedbackListPage() {
         <Stack flex={1} contain="size">
           <FeedbackQueryKeys organization={organization}>
             <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
-            <TopBar.Slot name="actions">
-              <LinkButton {...createAlertAction}>{t('Create Alert')}</LinkButton>
-            </TopBar.Slot>
             <TopBar.Slot name="feedback">
               <FeedbackButton
                 size="sm"
@@ -236,6 +265,7 @@ export default function FeedbackListPage() {
               </FeedbackButton>
             </TopBar.Slot>
             <PageContent
+              feedbackProjectSlug={feedbackProjectSlug}
               hideTop={hideTop}
               hasFeedbackContent={hasFeedbackContent}
               content={pageContent}
@@ -264,6 +294,7 @@ export default function FeedbackListPage() {
             </Layout.HeaderActions>
           </Layout.Header>
           <PageContent
+            feedbackProjectSlug={feedbackProjectSlug}
             hideTop={hideTop}
             hasFeedbackContent={hasFeedbackContent}
             content={pageContent}

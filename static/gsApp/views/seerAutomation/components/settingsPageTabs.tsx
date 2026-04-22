@@ -7,26 +7,32 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {orgHasCodeReviewFeature} from 'getsentry/views/seerAutomation/utils';
+
 export function SettingsPageTabs() {
   const organization = useOrganization();
   const {pathname} = useLocation();
 
   const prefix = `/settings/${organization.slug}`;
-  const tabs = (
-    showNewSeer(organization)
-      ? [
-          [t('Overview'), '/seer/'],
-          [t('Repositories'), '/seer/scm/'],
-          [t('Autofix'), '/seer/projects/'],
-          [t('Code Review'), '/seer/repos/'],
-          [t('Advanced Settings'), '/seer/advanced/'],
-        ]
-      : [
-          [t('Autofix'), '/seer/'],
-          [t('Code Review'), '/seer/repos/'],
-          [t('Repositories'), '/seer/scm/'],
-        ]
-  ) satisfies Array<[string, string]>;
+  const hasCodeReviewAccess = orgHasCodeReviewFeature(organization);
+
+  const tabsData = showNewSeer(organization)
+    ? [
+        [t('Overview'), '/seer/'],
+        [t('Repositories'), '/seer/scm/'],
+        [t('Autofix'), '/seer/projects/'],
+        [t('Code Review'), '/seer/repos/'],
+        [t('Advanced Settings'), '/seer/advanced/'],
+      ]
+    : ([
+        [t('Autofix'), '/seer/'],
+        [t('Code Review'), '/seer/repos/'],
+        [t('Repositories'), '/seer/scm/'],
+      ] satisfies Array<[string, string]>);
+
+  const tabs = hasCodeReviewAccess
+    ? tabsData
+    : tabsData.filter(([label]) => label !== t('Code Review'));
 
   return (
     <Container borderBottom="primary">
