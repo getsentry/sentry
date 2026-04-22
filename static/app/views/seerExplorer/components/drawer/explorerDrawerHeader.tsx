@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconAdd} from 'sentry/icons';
+import {IconEllipsis, IconAdd, IconTimer, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
@@ -67,26 +67,20 @@ export function ExplorerDrawerHeader({
       {
         key: 'session-history',
         label: t('History'),
-        tooltipProps: {title: t('Resume a previous chat (/resume)')},
-        hidden: false,
-        disabled: false,
+        leadingItems: <IconTimer />,
         onAction: () => {
           refetchSessionHistory();
           setMode('session-history');
         },
         closeOnSelect: false,
       },
-      ...(copySessionEnabled
-        ? [
-            {
-              key: 'copy-conversation',
-              label: t('Copy conversation to clipboard'),
-              hidden: false,
-              disabled: false,
-              onAction: onCopySessionClick,
-            },
-          ]
-        : []),
+      {
+        key: 'copy-conversation',
+        label: t('Copy conversation to clipboard'),
+        leadingItems: <IconCopy />,
+        onAction: onCopySessionClick,
+        disabled: !copySessionEnabled,
+      },
     ],
     [onCopySessionClick, copySessionEnabled, refetchSessionHistory]
   );
@@ -170,7 +164,7 @@ export function ExplorerDrawerHeader({
         )}
         <DropdownMenu
           items={menuItems}
-          size="sm"
+          size="xs"
           position="bottom-end"
           onOpenChange={onOpenChange}
           triggerProps={{

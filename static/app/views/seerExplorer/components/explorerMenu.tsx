@@ -107,14 +107,8 @@ export function useExplorerMenu({
         }
       }
 
-      if (item.key === '/resume') {
-        // Handle /resume command here - avoid changing menu state from item handlers.
-        // TODO: maybe add in /resume handler instead?
-        // refetchSessions();
-      } else {
-        // Default to closing the menu after an item is selected and handled.
-        closeAndFocusInput();
-      }
+      // Default to closing the menu after an item is selected and handled.
+      closeAndFocusInput();
     },
     // clearInput and textAreaRef are both expected to be stable.
     [menuMode, clearInput, textAreaRef, closeAndFocusInput]
@@ -301,12 +295,6 @@ function useSlashCommands({
         key: '/new',
         description: 'Start a new session',
         handler: onNew,
-      },
-      {
-        title: '/resume',
-        key: '/resume',
-        description: 'View your session history to resume past sessions',
-        handler: () => {}, // Handled by parent onSelect callback.
       },
       ...(onMaxSize
         ? [
