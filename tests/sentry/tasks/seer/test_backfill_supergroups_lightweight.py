@@ -259,6 +259,90 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
     @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_batch_lightweight_rca_cluster_request"
+    )
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_batch_mode_sends_single_request(self, mock_per_group, mock_batch):
+        mock_batch.return_value = MagicMock(status=200)
+
+        for i in range(2):
+            evt = self.store_event(
+                data={"message": f"err {i}", "level": "error", "fingerprint": [f"batch-{i}"]},
+                project_id=self.project.id,
+            )
+            assert evt.group is not None
+            evt.group.substatus = GroupSubStatus.NEW
+            evt.group.save(update_fields=["substatus"])
+
+        with self.options({"seer.supergroups_backfill_lightweight.use_batch_endpoint": True}):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_per_group.assert_not_called()
+        mock_batch.assert_called_once()
+        body = mock_batch.call_args.args[0]
+        assert body["organization_id"] == self.organization.id
+        assert len(body["items"]) == 3
+        for item in body["items"]:
+            assert item["project_id"] == self.project.id
+            assert "events" in item["issue"]
+            assert item["trace_tree"] is None
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_batch_lightweight_rca_cluster_request"
+    )
+    def test_batch_mode_counts_all_items_as_failed_on_http_error(self, mock_batch):
+        mock_batch.return_value = MagicMock(status=500)
+
+        for i in range(2):
+            evt = self.store_event(
+                data={"message": f"err {i}", "level": "error", "fingerprint": [f"batch-err-{i}"]},
+                project_id=self.project.id,
+            )
+            assert evt.group is not None
+            evt.group.substatus = GroupSubStatus.NEW
+            evt.group.save(update_fields=["substatus"])
+
+        with (
+            self.options(
+                {
+                    "seer.supergroups_backfill_lightweight.use_batch_endpoint": True,
+                    "seer.supergroups_backfill_lightweight.max_failures_per_batch": 2,
+                }
+            ),
+            patch(
+                "sentry.tasks.seer.backfill_supergroups_lightweight.backfill_supergroups_lightweight_for_org.apply_async"
+            ) as mock_chain,
+        ):
+            backfill_supergroups_lightweight_for_org(self.organization.id)
+
+            mock_batch.assert_called_once()
+            # Batch failure count (3 items) exceeds max_failures_per_batch (2), so no chaining
+            mock_chain.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_batch_lightweight_rca_cluster_request"
+    )
+    def test_batch_mode_skips_seer_call_when_no_events(self, mock_batch):
+        self.group.last_seen = datetime.now(UTC) - timedelta(days=91)
+        self.group.save(update_fields=["last_seen"])
+
+        with (
+            self.options({"seer.supergroups_backfill_lightweight.use_batch_endpoint": True}),
+            patch(
+                "sentry.tasks.seer.backfill_supergroups_lightweight.bulk_snuba_queries"
+            ) as mock_snuba,
+        ):
+            mock_snuba.return_value = [{"data": []}]
+            backfill_supergroups_lightweight_for_org(self.organization.id)
+
+        mock_batch.assert_not_called()
+
+    @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
+    @patch(
         "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
     )
     def test_chains_then_completes_on_exact_batch_boundary(self, mock_request):

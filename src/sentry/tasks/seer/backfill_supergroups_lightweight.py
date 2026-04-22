@@ -11,8 +11,11 @@ from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import (
+    BatchLightweightRCAClusterItem,
+    BatchLightweightRCAClusterRequest,
     LightweightRCAClusterRequest,
     SeerViewerContext,
+    make_batch_lightweight_rca_cluster_request,
     make_lightweight_rca_cluster_request,
 )
 from sentry.services.eventstore.models import Event
@@ -153,61 +156,16 @@ def _backfill_org(
     # Phase 1: Batch fetch event data
     group_event_pairs = _batch_fetch_events(groups, organization_id)
 
-    # Phase 2: Send to Seer (per-group for now, bulk-ready)
-    failure_count = 0
-    success_count = 0
-    last_processed_group_id = last_group_id
+    # Phase 2: Send to Seer
     viewer_context = SeerViewerContext(organization_id=organization_id)
+    use_batch_endpoint = options.get("seer.supergroups_backfill_lightweight.use_batch_endpoint")
 
-    for group, serialized_event in group_event_pairs:
-        try:
-            body = LightweightRCAClusterRequest(
-                group_id=group.id,
-                issue={
-                    "id": group.id,
-                    "title": group.title,
-                    "short_id": group.qualified_short_id,
-                    "events": [serialized_event],
-                },
-                organization_slug=organization.slug,
-                organization_id=organization_id,
-                project_id=group.project_id,
-            )
-            response = make_lightweight_rca_cluster_request(
-                body, timeout=30, viewer_context=viewer_context
-            )
-            if response.status >= 400:
-                logger.warning(
-                    "supergroups_backfill_lightweight.seer_error",
-                    extra={
-                        "group_id": group.id,
-                        "project_id": group.project_id,
-                        "status": response.status,
-                    },
-                )
-                failure_count += 1
-            else:
-                success_count += 1
-        except Exception:
-            logger.exception(
-                "supergroups_backfill_lightweight.group_failed",
-                extra={"group_id": group.id, "project_id": group.project_id},
-            )
-            failure_count += 1
-
-        last_processed_group_id = group.id
-
-        if max_failures_per_batch > 0 and failure_count >= max_failures_per_batch:
-            logger.error(
-                "supergroups_backfill_lightweight.max_failures_reached",
-                extra={
-                    "organization_id": organization_id,
-                    "project_id": project.id,
-                    "failure_count": failure_count,
-                    "last_processed_group_id": last_processed_group_id,
-                },
-            )
-            break
+    if use_batch_endpoint:
+        success_count, failure_count = _send_batch(group_event_pairs, organization, viewer_context)
+    else:
+        success_count, failure_count = _send_per_group(
+            group_event_pairs, organization, viewer_context, max_failures_per_batch, project.id
+        )
 
     metrics.incr(
         "seer.supergroups_backfill_lightweight.groups_processed",
@@ -332,3 +290,119 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
         for group, serialized_event in zip(valid_groups, serialized_events)
         if serialized_event
     ]
+
+
+def _send_per_group(
+    group_event_pairs: Sequence[tuple[Group, dict]],
+    organization: Organization,
+    viewer_context: SeerViewerContext,
+    max_failures_per_batch: int,
+    project_id: int,
+) -> tuple[int, int]:
+    success_count = 0
+    failure_count = 0
+    last_processed_group_id = 0
+
+    for group, serialized_event in group_event_pairs:
+        try:
+            body = LightweightRCAClusterRequest(
+                group_id=group.id,
+                issue={
+                    "id": group.id,
+                    "title": group.title,
+                    "short_id": group.qualified_short_id,
+                    "events": [serialized_event],
+                },
+                organization_slug=organization.slug,
+                organization_id=organization.id,
+                project_id=group.project_id,
+            )
+            response = make_lightweight_rca_cluster_request(
+                body, timeout=30, viewer_context=viewer_context
+            )
+            if response.status >= 400:
+                logger.warning(
+                    "supergroups_backfill_lightweight.seer_error",
+                    extra={
+                        "group_id": group.id,
+                        "project_id": group.project_id,
+                        "status": response.status,
+                    },
+                )
+                failure_count += 1
+            else:
+                success_count += 1
+        except Exception:
+            logger.exception(
+                "supergroups_backfill_lightweight.group_failed",
+                extra={"group_id": group.id, "project_id": group.project_id},
+            )
+            failure_count += 1
+
+        last_processed_group_id = group.id
+
+        if max_failures_per_batch > 0 and failure_count >= max_failures_per_batch:
+            logger.error(
+                "supergroups_backfill_lightweight.max_failures_reached",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": project_id,
+                    "failure_count": failure_count,
+                    "last_processed_group_id": last_processed_group_id,
+                },
+            )
+            break
+
+    return success_count, failure_count
+
+
+def _send_batch(
+    group_event_pairs: Sequence[tuple[Group, dict]],
+    organization: Organization,
+    viewer_context: SeerViewerContext,
+) -> tuple[int, int]:
+    if not group_event_pairs:
+        return 0, 0
+
+    items: list[BatchLightweightRCAClusterItem] = [
+        BatchLightweightRCAClusterItem(
+            group_id=group.id,
+            project_id=group.project_id,
+            issue={
+                "id": group.id,
+                "title": group.title,
+                "short_id": group.qualified_short_id,
+                "events": [serialized_event],
+            },
+            trace_tree=None,
+        )
+        for group, serialized_event in group_event_pairs
+    ]
+    batch_len = len(items)
+    body = BatchLightweightRCAClusterRequest(
+        organization_id=organization.id,
+        items=items,
+    )
+
+    try:
+        response = make_batch_lightweight_rca_cluster_request(
+            body, timeout=30, viewer_context=viewer_context
+        )
+        if response.status >= 400:
+            logger.warning(
+                "supergroups_backfill_lightweight.seer_error",
+                extra={
+                    "organization_id": organization.id,
+                    "status": response.status,
+                    "batch_size": batch_len,
+                    "mode": "batch",
+                },
+            )
+            return 0, batch_len
+        return batch_len, 0
+    except Exception:
+        logger.exception(
+            "supergroups_backfill_lightweight.batch_failed",
+            extra={"organization_id": organization.id, "batch_size": batch_len},
+        )
+        return 0, batch_len

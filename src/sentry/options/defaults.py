@@ -1419,6 +1419,12 @@ register(
     default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.supergroups_backfill_lightweight.use_batch_endpoint",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # ## sentry.killswitches
 #

@@ -433,6 +433,18 @@ class LightweightRCAClusterRequest(TypedDict):
     project_id: int
 
 
+class BatchLightweightRCAClusterItem(TypedDict):
+    group_id: int
+    project_id: int
+    issue: dict[str, Any]
+    trace_tree: NotRequired[dict[str, Any] | None]
+
+
+class BatchLightweightRCAClusterRequest(TypedDict):
+    organization_id: int
+    items: list[BatchLightweightRCAClusterItem]
+
+
 class SupergroupsGetRequest(TypedDict):
     organization_id: int
     supergroup_id: int
@@ -568,6 +580,20 @@ def make_lightweight_rca_cluster_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v0/issues/supergroups/cluster-lightweight",
+        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_batch_lightweight_rca_cluster_request(
+    body: BatchLightweightRCAClusterRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v0/issues/supergroups/cluster-lightweight/batch",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
