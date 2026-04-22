@@ -35,6 +35,16 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     {
       code: 'import {AutofixCodebaseChangeData} from "sentry-fixture/autofixCodebaseChangeData"; const x = AutofixCodebaseChangeData();',
     },
+    // ECharts config builder imports — not components
+    {
+      code: 'import {AreaSeries} from "sentry/components/charts/series/areaSeries"; const x = AreaSeries({data: []});',
+    },
+    {
+      code: 'import {LineSeries} from "sentry/components/charts/series/lineSeries"; const x = LineSeries({color: "red"});',
+    },
+    {
+      code: 'import {XAxis} from "sentry/components/charts/components/xAxis"; const x = XAxis({type: "category"});',
+    },
     // Known utility — even if imported, skip
     {
       code: 'import {HookOrDefault} from "sentry/utils/hook"; const x = HookOrDefault({hookName: "x"});',

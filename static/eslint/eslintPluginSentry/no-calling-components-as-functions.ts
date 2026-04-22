@@ -56,6 +56,14 @@ export const noCallingComponentsAsFunctions = ESLintUtils.RuleCreator.withoutDoc
           return;
         }
 
+        // Skip ECharts config builder imports — not React components
+        if (
+          source.startsWith('sentry/components/charts/components/') ||
+          source.startsWith('sentry/components/charts/series/')
+        ) {
+          return;
+        }
+
         for (const specifier of node.specifiers) {
           if (/^[A-Z]/.test(specifier.local.name)) {
             knownComponents.add(specifier.local.name);
