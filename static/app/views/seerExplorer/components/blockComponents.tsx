@@ -691,6 +691,9 @@ const UserBlockContent = styled('div')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-width: 0;
   color: ${p => p.theme.tokens.content.primary};
   background: ${p => p.theme.tokens.background.secondary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
