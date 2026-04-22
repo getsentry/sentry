@@ -13,6 +13,7 @@ import {
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {
@@ -110,13 +111,7 @@ const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse =
   },
 });
 
-export const useSeerExplorer = ({
-  runId,
-  setRunId,
-}: {
-  runId: number | null;
-  setRunId: (runId: number | null) => void;
-}) => {
+export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
@@ -129,7 +124,11 @@ export const useSeerExplorer = ({
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
 
-  // Support deep links that carry a run id; set it once and clean the URL.
+  const [runId, setRunId] = useSessionStorage<number | null>(
+    'seer-explorer-run-id',
+    null
+  );
+
   const {getPageReferrer} = usePageReferrer();
 
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
@@ -315,11 +314,7 @@ export const useSeerExplorer = ({
 
   const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
 
-  const {
-    apiData,
-    isError,
-    isPolling: isPollingNow,
-  } = useSeerExplorerPolling({runId, isMutatePending});
+  const {apiData, isError, isPolling} = useSeerExplorerPolling({runId, isMutatePending});
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -327,6 +322,7 @@ export const useSeerExplorer = ({
       if (newRunId === runId) {
         return;
       }
+
       // Set the new run ID
       setRunId(newRunId);
 
@@ -581,7 +577,7 @@ export const useSeerExplorer = ({
 
   return {
     sessionData: filteredSessionData,
-    isPolling: isPollingNow,
+    isPolling,
     isError,
     sendMessage,
     runId,

@@ -55,7 +55,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen,
-  } = useSeerExplorerDrawer({runId, setRunId});
+  } = useSeerExplorerDrawer();
 
   // Observes the shared session query so the button can reflect activity even
   // when the drawer is closed. Shares the underlying query with
