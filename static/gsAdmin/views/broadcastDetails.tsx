@@ -319,7 +319,7 @@ export function BroadcastDetails() {
       help: data.isActive
         ? 'Hide this broadcast from users.'
         : "Show this broadcast to users (if it hasn't expired).",
-      visible: isAdmin,
+      visible: isAdmin && !isEditing,
       onAction: () => onUpdate({isActive: !data.isActive}),
     },
     {
