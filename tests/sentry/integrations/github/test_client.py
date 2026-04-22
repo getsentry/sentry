@@ -105,6 +105,19 @@ class GitHubApiClientTest(TestCase):
         with pytest.raises(AssertionError):
             self.github_client.get_rate_limit("foo")
 
+    def test_organization_id_is_cached(self) -> None:
+        org_integration = mock.Mock(organization_id=self.organization.id)
+        with mock.patch(
+            "sentry.integrations.github.client.integration_service.get_organization_integrations",
+            return_value=[org_integration],
+        ) as mock_get_org_integrations:
+            assert self.github_client.organization_id == self.organization.id
+            assert self.github_client.organization_id == self.organization.id
+
+        mock_get_org_integrations.assert_called_once_with(
+            org_integration_ids=[self.install.org_integration.id], limit=1
+        )
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
     def test_check_file(self, get_jwt) -> None:

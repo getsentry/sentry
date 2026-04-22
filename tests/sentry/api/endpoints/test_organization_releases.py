@@ -1818,6 +1818,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name},
                 ],
                 "prev_release_id": Release.objects.get(version="1", organization=org).id,
+                "integration_name": "dummy",
             }
         )
 
@@ -1879,6 +1880,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name, "previousCommit": None},
                 ],
                 "prev_release_id": Release.objects.get(version="1", organization=org).id,
+                "integration_name": "dummy",
             }
         )
         assert response.status_code == 201
@@ -2176,6 +2178,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name},
                 ],
                 "prev_release_id": release1.id,
+                "integration_name": "dummy",
             }
         )
 
@@ -2206,6 +2209,70 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         assert response.status_code == 400
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
+
+    def test_mixed_repo_providers_in_refs(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        Repository.objects.create(
+            name="example-github", provider="integrations:github", organization_id=org.id
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        response = self.client.post(
+            url,
+            data={
+                "version": "1.2.1",
+                "projects": [project.slug],
+                "refs": [
+                    {"repository": "example", "commit": "a" * 40},
+                    {"repository": "example-github", "commit": "b" * 40},
+                ],
+            },
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            "refs": ["All refs must belong to repositories from the same provider"]
+        }
+
+    def test_repo_without_provider_in_refs(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        Repository.objects.create(name="example", provider=None, organization_id=org.id)
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        response = self.client.post(
+            url,
+            data={
+                "version": "1.2.1",
+                "projects": [project.slug],
+                "refs": [{"repository": "example", "commit": "a" * 40}],
+            },
+        )
+        assert response.status_code == 400
+        assert response.data == {"refs": ["Repository provider is missing: example"]}
 
     def test_project_ids_as_strings(self) -> None:
         """

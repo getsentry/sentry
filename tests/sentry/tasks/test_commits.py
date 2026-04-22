@@ -18,6 +18,7 @@ from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
     fetch_commits,
     get_github_compare_commits_cache_key,
+    get_integration_name,
     handle_invalid_identity,
 )
 from sentry.testutils.asserts import assert_slo_metric
@@ -66,6 +67,13 @@ class FetchCommitsTest(TestCase):
         key_two = get_github_compare_commits_cache_key(12, 3, "integrations:github", "a", "b")
 
         assert key_one != key_two
+
+    def test_get_integration_name_normalizes_provider_keys(self, mock_record: MagicMock) -> None:
+        assert get_integration_name("github") == "github"
+        assert get_integration_name("github_enterprise") == "github_enterprise"
+        assert get_integration_name("integrations:gitlab") == "gitlab"
+        assert get_integration_name("integrations:bitbucket") == "bitbucket"
+        assert get_integration_name("foo") == "foo"
 
     def _test_simple_action(self, user, org):
         repo = Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
@@ -148,6 +156,58 @@ class FetchCommitsTest(TestCase):
         )
         Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
         self._test_simple_action(user=self.user, org=org)
+
+    @patch("sentry.tasks.commits.fetch_commits_for_ref_with_lifecycle", return_value=None)
+    def test_tracks_integration_name_in_task_extra(
+        self, mock_fetch_for_ref: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        Repository.objects.create(name="example", provider="dummy", organization_id=org.id)
+        Repository.objects.create(name="example-two", provider="dummy", organization_id=org.id)
+        refs = [
+            {"repository": "example", "commit": "b" * 40},
+            {"repository": "example-two", "commit": "c" * 40},
+        ]
+
+        fetch_commits(
+            release_id=release.id,
+            user_id=self.user.id,
+            refs=refs,
+            prev_release_id=None,
+            integration_name="dummy",
+        )
+
+        assert mock_fetch_for_ref.call_count == 2
+        task_extra = mock_fetch_for_ref.call_args.kwargs["task_extra"]
+        assert task_extra["integration_name"] == "dummy"
+
+    @patch("sentry.tasks.commits.fetch_commits_for_ref_with_lifecycle", return_value=None)
+    def test_does_not_short_circuit_when_first_ref_is_unresolvable(
+        self, mock_fetch_for_ref: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self.login_as(user=self.user)
+        org = self.create_organization(owner=self.user, name="baz")
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        valid_repo = Repository.objects.create(
+            name="example", provider="dummy", organization_id=org.id
+        )
+        refs = [
+            {"repository": "missing", "commit": "b" * 40},
+            {"repository": valid_repo.name, "commit": "c" * 40},
+        ]
+
+        fetch_commits(
+            release_id=release.id,
+            user_id=self.user.id,
+            refs=refs,
+            prev_release_id=None,
+            integration_name="dummy",
+        )
+
+        assert mock_fetch_for_ref.call_count == 1
+        assert mock_fetch_for_ref.call_args.kwargs["resolved"].repo == valid_repo
 
     @patch(
         "sentry.integrations.github.repository.GitHubRepositoryProvider.fetch_commits_for_compare_range"

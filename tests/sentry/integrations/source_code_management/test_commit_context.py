@@ -84,6 +84,22 @@ class TestCommitContextIntegrationSLO(TestCase):
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, IdentityNotValid())
 
+    @patch("sentry.integrations.utils.metrics.logger.warning")
+    def test_get_blame_for_files_failure_logs_organization_id(
+        self, mock_logger_warning: MagicMock
+    ) -> None:
+        from sentry.auth.exceptions import IdentityNotValid
+
+        self.integration.organization_id = self.organization.id
+        self.integration.client.get_blame_for_files = Mock(side_effect=IdentityNotValid())
+
+        result = self.integration.get_blame_for_files([self.source_line], {})
+
+        assert result == []
+        mock_logger_warning.assert_called_once()
+        _, kwargs = mock_logger_warning.call_args
+        assert kwargs["extra"]["organization_id"] == self.organization.id
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_rate_limited(self, mock_record: MagicMock) -> None:
         """Test rate limited requests record halt"""

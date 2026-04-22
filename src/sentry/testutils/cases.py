@@ -2569,7 +2569,9 @@ class SetRefsTestCase(APITestCase):
         self.group = self.create_group(project=self.project)
         self.repo = Repository.objects.create(organization_id=self.org.id, name="test/repo")
 
-    def assert_fetch_commits(self, mock_fetch_commit, prev_release_id, release_id, refs):
+    def assert_fetch_commits(
+        self, mock_fetch_commit, prev_release_id, release_id, refs, integration_name=None
+    ):
         assert len(mock_fetch_commit.method_calls) == 1
         kwargs = mock_fetch_commit.method_calls[0][2]["kwargs"]
         assert kwargs == {
@@ -2577,6 +2579,7 @@ class SetRefsTestCase(APITestCase):
             "refs": refs,
             "release_id": release_id,
             "user_id": self.user.id,
+            "integration_name": integration_name,
         }
 
     def assert_head_commit(self, head_commit, commit_key, release_id=None):

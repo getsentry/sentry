@@ -15,6 +15,7 @@ from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.source_code_management.providers import get_integration_name
 from sentry.models.deploy import Deploy
 from sentry.models.latestreporeleaseenvironment import LatestRepoReleaseEnvironment
 from sentry.models.release import Release
@@ -259,6 +260,7 @@ def fetch_commits_for_ref_with_lifecycle(
         "repository": repo.name,
         "start_sha": start_sha,
         "end_sha": end_sha,
+        "provider": resolved.provider.id,
     }
     logger.info("fetch_commits.loop.start", extra=loop_extra)
     repo_commits: list[dict[str, Any]] | None = None
@@ -269,16 +271,7 @@ def fetch_commits_for_ref_with_lifecycle(
             organization_id=repo.organization_id,
             integration_id=repo.integration_id,
         ).capture() as lifecycle:
-            lifecycle.add_extras(
-                {
-                    "organization_id": repo.organization_id,
-                    "user_id": user_id,
-                    "repository": repo.name,
-                    "provider": resolved.provider.id,
-                    "end_sha": end_sha,
-                    "start_sha": start_sha,
-                }
-            )
+            lifecycle.add_extras(loop_extra)
             try:
                 if start_sha is None:
                     repo_commits = fetch_recent_commits(
@@ -333,6 +326,7 @@ def fetch_commits(
     user_id: int,
     refs: Sequence[Mapping[str, str]],
     prev_release_id: int | None = None,
+    integration_name: str | None = None,
     **kwargs: Any,
 ) -> None:
     commit_list: list[dict[str, Any]] = []
@@ -355,6 +349,8 @@ def fetch_commits(
         "num_refs": len(refs),
         "prev_release_id": prev_release_id,
     }
+    if integration_name is not None:
+        extra["integration_name"] = get_integration_name(integration_name)
     logger.info("fetch_commits.start", extra=extra)
 
     for ref in refs:

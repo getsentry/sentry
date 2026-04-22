@@ -31,9 +31,11 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.source_code_management.providers import normalize_integration_provider_key
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -42,6 +44,7 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
+from sentry.models.repository import Repository
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -627,8 +630,6 @@ class Release(Model):
     def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
-            from sentry.models.releaseheadcommit import ReleaseHeadCommit
-            from sentry.models.repository import Repository
             from sentry.tasks.commits import fetch_commits
 
             names = {r["repository"] for r in refs}
@@ -639,6 +640,26 @@ class Release(Model):
             invalid_repos = names - set(repos_by_name.keys())
             if invalid_repos:
                 raise InvalidRepository(f"Invalid repository names: {','.join(invalid_repos)}")
+
+            providers: set[str] = set()
+            repos_missing_provider: list[str] = []
+            for ref in refs:
+                provider = repos_by_name[ref["repository"]].provider
+                if provider is None:
+                    repos_missing_provider.append(ref["repository"])
+                    continue
+                providers.add(normalize_integration_provider_key(provider))
+
+            if repos_missing_provider:
+                raise InvalidRepository(
+                    f"Repository provider is missing: {','.join(repos_missing_provider)}"
+                )
+
+            if len(providers) > 1:
+                raise InvalidRepository(
+                    "All refs must belong to repositories from the same provider"
+                )
+            integration_name = next(iter(providers), None) or None
 
             self.handle_commit_ranges(refs)
 
@@ -663,6 +684,7 @@ class Release(Model):
                         "user_id": user_id,
                         "refs": refs,
                         "prev_release_id": prev_release and prev_release.id,
+                        "integration_name": integration_name,
                     }
                 )
 
