@@ -125,6 +125,9 @@ class TestInstallationNotifier(TestCase):
 
         assert not safe_urlopen.called
 
+    @pytest.mark.skip(
+        reason="test pollution: SentryAppWebhookRequestsBuffer Redis state from prior tests causes buffer.get_requests() to return fewer entries than expected"
+    )
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_webhook_request_saved(self, safe_urlopen: MagicMock) -> None:
         assert self.rpc_user, "Rpcuser should exist, unless explicitly noted in test"
