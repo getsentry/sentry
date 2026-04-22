@@ -112,21 +112,21 @@ describe('useExperiment (gsApp)', () => {
 
     render(<TestComponent feature="onboarding-scm-experiment" />, {organization: org});
 
-    await waitFor(() => {
-      expect(Amplitude.groupIdentify).toHaveBeenCalledWith(
-        'organization_id',
-        org.id,
-        expect.anything()
-      );
-    });
+    await waitFor(() => expect(Amplitude.groupIdentify).toHaveBeenCalled());
 
-    // Verify hyphens in the experiment name are normalized to underscores,
-    // matching the transform in getsentry/experiments/tasks.py so both the FE
-    // and the BE write the same Amplitude property name.
+    // The property name and value live on the Identify instance's .set call;
+    // groupIdentify just routes that instance to the right group. Asserting
+    // both together verifies the full wiring and the hyphen-to-underscore
+    // transform matches getsentry/experiments/tasks.py.
     const identifyInstance = jest.mocked(Amplitude.Identify).mock.results[0]!.value;
     expect(identifyInstance.set).toHaveBeenCalledWith(
       'experiment_onboarding_scm_experiment',
       'active'
+    );
+    expect(Amplitude.groupIdentify).toHaveBeenCalledWith(
+      'organization_id',
+      org.id,
+      identifyInstance
     );
   });
 
