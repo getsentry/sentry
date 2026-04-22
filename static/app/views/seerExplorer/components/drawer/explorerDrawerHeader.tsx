@@ -1,5 +1,6 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {DrawerHeader} from '@sentry/scraps/drawer';
@@ -9,16 +10,20 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
   copySessionEnabled: boolean;
+  onChangeSession: (runId: number) => void;
   onCopySessionClick: () => void;
   onNewChatClick: () => void;
   onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
-  onSessionHistoryClick: () => void;
   overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
   showCodeModeToggle: boolean;
@@ -27,7 +32,7 @@ interface ExplorerDrawerHeaderProps {
 
 export function ExplorerDrawerHeader({
   onNewChatClick,
-  onSessionHistoryClick,
+  onChangeSession,
   copySessionEnabled,
   onCopySessionClick,
   showContextEngineToggle,
@@ -37,7 +42,27 @@ export function ExplorerDrawerHeader({
   overrideCodeModeEnable,
   onOverrideCodeModeEnableToggle,
 }: ExplorerDrawerHeaderProps) {
-  const menuItems: MenuItemProps[] = useMemo(
+  const [mode, setMode] = useState<'more-actions' | 'session-history'>('more-actions');
+
+  // Session history query
+  const {
+    sessionMenuItems: rawSessionMenuItems,
+    isPending,
+    isError,
+    refetch: refetchSessionHistory,
+  } = useSessionMenuItems({
+    onChangeSession,
+  });
+
+  const onOpenChange = useCallback((isOpen: boolean) => {
+    if (!isOpen) {
+      // Switch back to default actions on menu close
+      setMode('more-actions');
+    }
+  }, []);
+
+  // Default menu items
+  const moreActions: MenuItemProps[] = useMemo(
     () => [
       {
         key: 'session-history',
@@ -45,7 +70,11 @@ export function ExplorerDrawerHeader({
         tooltipProps: {title: t('Resume a previous chat (/resume)')},
         hidden: false,
         disabled: false,
-        onAction: onSessionHistoryClick,
+        onAction: () => {
+          refetchSessionHistory();
+          setMode('session-history');
+        },
+        closeOnSelect: false,
       },
       ...(copySessionEnabled
         ? [
@@ -59,8 +88,40 @@ export function ExplorerDrawerHeader({
           ]
         : []),
     ],
-    [onCopySessionClick, copySessionEnabled, onSessionHistoryClick]
+    [onCopySessionClick, copySessionEnabled, refetchSessionHistory]
   );
+
+  // Session history menu items
+  const sessionMenuItems = useMemo(() => {
+    if (isError) {
+      return [
+        {
+          key: 'session-history-error',
+          label: t('Error loading session history.'),
+          disabled: true,
+        },
+      ];
+    }
+    return [
+      ...rawSessionMenuItems,
+      ...(isPending
+        ? [
+            {
+              key: 'session-history-loading',
+              label: t('Loading...'),
+              disabled: true,
+            },
+          ]
+        : []),
+    ];
+  }, [rawSessionMenuItems, isPending, isError]);
+
+  const menuItems = useMemo(() => {
+    if (mode === 'session-history') {
+      return sessionMenuItems;
+    }
+    return moreActions;
+  }, [mode, sessionMenuItems, moreActions]);
 
   return (
     <DrawerHeader hideBar hideCloseButtonText>
@@ -108,8 +169,10 @@ export function ExplorerDrawerHeader({
           </Tooltip>
         )}
         <DropdownMenu
-          size="sm"
           items={menuItems}
+          size="sm"
+          position="bottom-end"
+          onOpenChange={onOpenChange}
           triggerProps={{
             'aria-label': t('More actions'),
             tooltipProps: {title: t('More actions')},
@@ -132,6 +195,57 @@ export function ExplorerDrawerHeader({
       </RightAlignedContent>
     </DrawerHeader>
   );
+}
+
+function useSessionMenuItems({
+  onChangeSession,
+  enabled = true,
+}: {
+  onChangeSession: (runId: number) => void;
+  enabled?: boolean;
+}): {
+  isError: boolean;
+  isPending: boolean;
+  refetch: () => void;
+  sessionMenuItems: MenuItemProps[];
+} {
+  const organization = useOrganization({allowNull: true});
+  const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
+
+  const {data, isPending, isError, refetch} = useExplorerSessions({
+    limit: 20,
+    enabled: enabled && hasFeature,
+  });
+
+  const sessionMenuItems = useMemo(() => {
+    return (
+      data?.data.map(
+        (session: {
+          last_triggered_at: moment.MomentInput;
+          run_id: number;
+          title: any;
+        }) => ({
+          key: 'session-' + session.run_id.toString(),
+          label: session.title,
+          details: (
+            <TimeSince
+              tooltipPrefix="Last updated"
+              date={moment.utc(session.last_triggered_at).toDate()}
+              suffix="ago"
+            />
+          ),
+          onAction: () => onChangeSession(session.run_id),
+        })
+      ) ?? []
+    );
+  }, [data, onChangeSession]);
+
+  return {
+    sessionMenuItems,
+    isPending,
+    isError,
+    refetch,
+  };
 }
 
 const RightAlignedContent = styled('div')`

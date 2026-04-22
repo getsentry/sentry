@@ -35,69 +35,6 @@ export interface MenuItemProps {
   title: string;
 }
 
-// const { sessionItems, refetchSessions, isSessionsPending, isSessionsError } = useSessions(
-//   { onChangeSession, enabled: panelVisible }
-// );
-
-// {menuMode === 'session-history' && menuItems.length === 0 && (
-//   <MenuItem key="empty-state" isSelected={false}>
-//     <ItemName>
-//       {isSessionsPending
-//         ? 'Loading sessions...'
-//         : isSessionsError
-//           ? 'Error loading sessions.'
-//           : 'No session history found.'}
-//     </ItemName>
-//   </MenuItem>
-// )}
-
-// function useSessions({
-//   onChangeSession,
-//   enabled,
-// }: {
-//   onChangeSession: (runId: number) => void;
-//   enabled?: boolean;
-// }) {
-//   const organization = useOrganization({ allowNull: true });
-//   const hasFeature = organization ? isSeerExplorerEnabled(organization) : false;
-
-//   const { data, isPending, isError, refetch } = useExplorerSessions({
-//     limit: 20,
-//     enabled: enabled && hasFeature,
-//   });
-
-//   const sessionItems = useMemo(() => {
-//     if (isPending || isError) {
-//       return [];
-//     }
-
-//     return data.data.map(
-//       (session: { last_triggered_at: moment.MomentInput; run_id: number; title: any }) => ({
-//         title: session.title,
-//         key: session.run_id.toString(),
-//         description: (
-//           <TimeSince
-//             tooltipPrefix="Last updated"
-//             date={moment.utc(session.last_triggered_at).toDate()}
-//             suffix="ago"
-//           />
-//         ),
-//         handler: () => {
-//           onChangeSession(session.run_id);
-//         },
-//       })
-//     );
-//   }, [data, isPending, isError, onChangeSession]);
-
-//   return {
-//     sessionItems,
-//     isSessionsPending: isPending,
-//     isSessionsError: isError,
-//     isError,
-//     refetchSessions: refetch,
-//   };
-// }
-
 export function useExplorerMenu({
   clearInput,
   inputValue,

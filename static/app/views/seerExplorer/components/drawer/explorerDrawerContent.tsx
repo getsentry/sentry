@@ -385,9 +385,7 @@ export function ExplorerDrawerContent({
           startNewSession();
           focusInput();
         }}
-        onSessionHistoryClick={() => {
-          /* TODO: open session history */
-        }}
+        onChangeSession={switchToRun}
         copySessionEnabled={copySessionEnabled}
         onCopySessionClick={copySessionToClipboard}
         overrideCtxEngEnable={overrideCtxEngEnable}
@@ -451,7 +449,7 @@ export function ExplorerDrawerContent({
                   deleteFromIndex(index);
                   focusInput();
                 }}
-                onNavigate={undefined} // TODO: close drawer on link navigate?
+                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
                 }}
