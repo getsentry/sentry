@@ -46,7 +46,7 @@ function SegmentedIssueViewSaveButton({
   const canEdit = view
     ? canEditIssueView({user, groupSearchView: view, organization})
     : false;
-  const buttonPriority = hasUnsavedChanges || !canEdit ? 'primary' : 'default';
+  const buttonPriority = hasUnsavedChanges ? 'primary' : 'default';
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
