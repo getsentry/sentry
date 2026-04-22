@@ -59,7 +59,6 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -363,7 +362,6 @@ export function ExplorerDrawerContent({
     setFocusedBlockIndex,
     isFileApprovalPending,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
