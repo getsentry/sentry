@@ -295,7 +295,7 @@ export function InputSection({
             placeholder={
               isFocused
                 ? t('Type your message or / command and press Enter ↵')
-                : t('Press Tab to return here')
+                : t('Press Tab ⇥ to return here')
             }
             rows={1}
             data-test-id="seer-explorer-input"
