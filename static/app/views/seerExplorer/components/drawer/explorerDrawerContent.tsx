@@ -338,7 +338,7 @@ export function ExplorerDrawerContent({
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
           setInputValue(prev => prev + e.key);
-        } else if {
+        } else if (e.key === 'Tab') {
           // Focus input when user presses tab
           e.preventDefault();
           setFocusedBlockIndex(-1);
