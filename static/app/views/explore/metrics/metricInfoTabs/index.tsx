@@ -44,7 +44,7 @@ export function MetricInfoTabs({
     >
       <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
         {visualize.visible ? (
-          <Flex direction="row" justify="between" align="center" paddingRight="xl">
+          <Flex direction="row" justify="between" align="center">
             <TabListWrapper>
               <TabList variant="floating">
                 <TabList.Item
