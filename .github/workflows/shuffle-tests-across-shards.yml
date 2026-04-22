@@ -45,17 +45,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Start devservices early
-        uses: ./.github/actions/setup-devservices
-        with:
-          mode: backend-ci
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
-          skip-devservices: 'true'
 
       - name: Download odiff binary
         run: |
@@ -64,32 +58,9 @@ jobs:
           sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
           rm odiff-linux-x64
 
-      - name: Wait for devservices
-        run: |
-          sentry init
-          # Start Snuba per-worker bootstrap in background — it polls for ClickHouse
-          # readiness itself, overlapping with the remaining devservices health checks.
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            python3 .github/actions/setup-devservices/bootstrap-snuba.py &
-          fi
-          python3 .github/actions/setup-devservices/wait.py
-
-      - name: Wait for Snuba bootstrap
+      - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: |
-          SECONDS=0
-          while [ ! -f /tmp/snuba-bootstrap-exit ]; do
-            if [ $SECONDS -gt 600 ]; then
-              echo "::error::Timed out waiting for Snuba bootstrap after 600s"
-              exit 1
-            fi
-            sleep 2
-          done
-          SNUBA_RC=$(cat /tmp/snuba-bootstrap-exit)
-          if [ "$SNUBA_RC" -ne 0 ]; then
-            echo "::error::Snuba per-worker bootstrap failed"
-            exit 1
-          fi
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         id: run-tests
