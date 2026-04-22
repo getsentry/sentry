@@ -90,13 +90,9 @@ describe('ExplorerDrawerContent', () => {
         sendMessage,
       });
 
-      render(
-        <ExplorerDrawerContent
-          onClose={mockOnClose}
-          getPageReferrer={mockGetPageReferrer}
-        />,
-        {organization}
-      );
+      render(<ExplorerDrawerContent getPageReferrer={mockGetPageReferrer} />, {
+        organization,
+      });
 
       const suggestion = await screen.findByRole('button', {
         name: 'Which of my open issues are getting worse, not better?',
