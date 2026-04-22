@@ -1047,7 +1047,7 @@ class DashboardDetail extends Component<Props, State> {
   };
 
   renderDefaultDashboardDetail() {
-    const {pageAlerts, organization, dashboard, dashboards, location} = this.props;
+    const {pageAlerts, organization, dashboard, location} = this.props;
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     return (
       <PageFiltersContainer
@@ -1075,7 +1075,6 @@ class DashboardDetail extends Component<Props, State> {
                   </Layout.Title>
                   <Controls
                     organization={organization}
-                    dashboards={dashboards}
                     dashboard={dashboard}
                     onEdit={this.onEdit}
                     onCancel={this.onCancel}
@@ -1161,7 +1160,6 @@ class DashboardDetail extends Component<Props, State> {
       api,
       organization,
       dashboard,
-      dashboards,
       location,
       onDashboardUpdate,
       pageAlerts,
@@ -1236,7 +1234,6 @@ class DashboardDetail extends Component<Props, State> {
                     <TopBar.Slot name="actions">
                       <Controls
                         organization={organization}
-                        dashboards={dashboards}
                         dashboard={dashboard}
                         hideAddWidget
                         hasUnsavedFilters={hasUnsavedFilters}
@@ -1255,7 +1252,6 @@ class DashboardDetail extends Component<Props, State> {
                     <Layout.HeaderActions>
                       <Controls
                         organization={organization}
-                        dashboards={dashboards}
                         dashboard={dashboard}
                         hasUnsavedFilters={hasUnsavedFilters}
                         onEdit={this.onEdit}

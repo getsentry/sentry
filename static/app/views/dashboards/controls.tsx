@@ -35,13 +35,12 @@ import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {DashboardRevisionsButton} from './dashboardRevisions';
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
 import {exportDashboard} from './exportDashboard';
-import type {DashboardDetails, DashboardListItem, DashboardPermissions} from './types';
+import type {DashboardDetails, DashboardPermissions} from './types';
 import {DashboardState, MAX_WIDGETS, PREBUILT_DASHBOARD_LABEL} from './types';
 
 type Props = {
   dashboard: DashboardDetails;
   dashboardState: DashboardState;
-  dashboards: DashboardListItem[];
   onAddWidget: (dataset: DataSet, openWidgetTemplates: boolean) => void;
   onCancel: () => void;
   onCommit: () => void;
@@ -58,7 +57,6 @@ type Props = {
 export function Controls({
   dashboardState,
   dashboard,
-  dashboards,
   hasUnsavedFilters,
   hideAddWidget = false,
   widgetLimitReached,
@@ -114,7 +112,6 @@ export function Controls({
           priority="danger"
           message={t('Are you sure you want to delete this dashboard?')}
           onConfirm={onDelete}
-          disabled={dashboards.length <= 1}
         >
           <Button size="sm" data-test-id="dashboard-delete" priority="danger">
             {t('Delete')}
