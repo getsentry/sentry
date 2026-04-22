@@ -102,6 +102,10 @@ jobs:
         with:
           mode: acceptance-ci
 
+      - name: Bootstrap per-worker Snuba instances
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
