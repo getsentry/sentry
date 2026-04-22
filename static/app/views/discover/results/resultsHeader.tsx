@@ -15,6 +15,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {withApi} from 'sentry/utils/withApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
+import {EventInputName} from 'sentry/views/discover/eventInputName';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
@@ -164,13 +165,31 @@ class ResultsHeader extends Component<Props, State> {
       </Fragment>
     );
 
-    const breadcrumbAndInput = (
+    const legacyBreadcrumbAndInput = (
+      <Fragment>
+        <DiscoverBreadcrumb
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          isHomepage={isHomepage}
+        />
+        <EventInputName
+          savedQuery={savedQuery}
+          organization={organization}
+          eventView={eventView}
+          isHomepage={isHomepage}
+        />
+      </Fragment>
+    );
+
+    const pageFrameBreadcrumb = (
       <DiscoverBreadcrumb
         eventView={eventView}
         organization={organization}
         location={location}
         isHomepage={isHomepage}
         savedQuery={savedQuery}
+        embedEditableName
       />
     );
 
@@ -182,7 +201,7 @@ class ResultsHeader extends Component<Props, State> {
               {isHomepage ? (
                 <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
               ) : hasDiscoverQueryFeature ? (
-                breadcrumbAndInput
+                pageFrameBreadcrumb
               ) : (
                 title
               )}
@@ -197,7 +216,7 @@ class ResultsHeader extends Component<Props, State> {
                   <Layout.Title>{title}</Layout.Title>
                 </GuideAnchor>
               ) : hasDiscoverQueryFeature ? (
-                breadcrumbAndInput
+                legacyBreadcrumbAndInput
               ) : (
                 // Only has discover-basic
                 <Layout.Title>{title}</Layout.Title>
