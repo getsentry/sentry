@@ -7,7 +7,6 @@ import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {
   fetchMutation,
   setApiQueryData,
-  useApiQuery,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
@@ -17,6 +16,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import {
+  isSessionComplete,
+  useSeerExplorerPolling,
+} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
@@ -46,8 +49,6 @@ type SeerExplorerChatResponse = {
 type SeerExplorerUpdateResponse = {
   run_id: number;
 };
-
-const POLL_INTERVAL = 500; // Poll every 500ms
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
@@ -110,34 +111,6 @@ const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse =
   },
 });
 
-/**
- * Checks if session is in a terminal state where the agent is done processing.
- */
-const isSessionComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
-  sessionData &&
-  sessionData.status !== 'processing' &&
-  sessionData.blocks.every((block: Block) => !block.loading) &&
-  Object.values(sessionData?.repo_pr_states ?? {}).every(
-    state => state.pr_creation_status !== 'creating'
-  );
-
-/**
- * Checks if we should poll for state updates.
- */
-const isPolling = (
-  runId: number | null,
-  sessionData: SeerExplorerResponse['session'] | undefined,
-  isMutatePending: boolean
-) => {
-  if (isMutatePending) {
-    return true;
-  }
-  if (!runId) {
-    return false;
-  }
-  return !isSessionComplete(sessionData);
-};
-
 export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
@@ -156,7 +129,6 @@ export const useSeerExplorer = () => {
     null
   );
 
-  // Support deep links that carry a run id; set it once and clean the URL.
   const {getPageReferrer} = usePageReferrer();
 
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
@@ -340,26 +312,9 @@ export const useSeerExplorer = () => {
     },
   });
 
-  const {data: apiData, isError} = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(orgSlug || '', runId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: !!runId && !!orgSlug,
-      refetchInterval: query => {
-        if (
-          isPolling(
-            runId,
-            query.state.data?.[0]?.session,
-            isPendingSendMessage || isPendingUserInput || isPendingCreatePR
-          )
-        ) {
-          return POLL_INTERVAL;
-        }
-        return false;
-      },
-    }
-  );
+  const isMutatePending = isPendingSendMessage || isPendingUserInput || isPendingCreatePR;
+
+  const {apiData, isError, isPolling} = useSeerExplorerPolling({runId, isMutatePending});
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -367,6 +322,7 @@ export const useSeerExplorer = () => {
       if (newRunId === runId) {
         return;
       }
+
       // Set the new run ID
       setRunId(newRunId);
 
@@ -621,11 +577,7 @@ export const useSeerExplorer = () => {
 
   return {
     sessionData: filteredSessionData,
-    isPolling: isPolling(
-      runId,
-      apiData?.session,
-      isPendingSendMessage || isPendingUserInput || isPendingCreatePR
-    ),
+    isPolling,
     isError,
     sendMessage,
     runId,

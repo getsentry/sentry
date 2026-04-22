@@ -303,7 +303,9 @@ describe('useSeerExplorer', () => {
         body: {runId, session: {status: 'processing'}},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
       act(() => {
         result.current.switchToRun(runId);
       });
@@ -319,7 +321,9 @@ describe('useSeerExplorer', () => {
         body: {runId, session: {blocks: [{loading: true}]}},
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
       act(() => {
         result.current.switchToRun(runId);
       });
@@ -338,7 +342,9 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
       act(() => {
         result.current.switchToRun(runId);
       });
@@ -361,7 +367,9 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
       act(() => {
         result.current.switchToRun(runId);
       });
@@ -397,7 +405,9 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       act(() => {
         result.current.sendMessage('Test');
@@ -437,7 +447,9 @@ describe('useSeerExplorer', () => {
         },
       });
 
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {organization});
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+      });
 
       act(() => {
         result.current.sendMessage('Test');
