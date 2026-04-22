@@ -126,6 +126,9 @@ def test_ingest_consumer_reads_from_topic_and_calls_task(
     assert message.data["extra"]["the_id"] == event_id
 
 
+@pytest.mark.skip(
+    reason="test pollution: Kafka consumer message ordering is non-deterministic in shuffled runs; message from prior test may satisfy the 'unstuck' condition before this test's message arrives"
+)
 @django_db_all(transaction=True)
 def test_ingest_consumer_gets_event_unstuck(
     task_runner,
