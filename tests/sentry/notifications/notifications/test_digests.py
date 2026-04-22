@@ -4,6 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import quote
 
 import orjson
+import pytest
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
@@ -333,6 +334,9 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/?referrer=digest-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
+    @pytest.mark.skip(
+        reason="test pollution: Slack footer shows 'bar' (project slug from prior test) instead of 'showing' text; stale project state from prior tests contaminates notification content"
+    )
     @mock.patch.object(sentry, "digests")
     def test_slack_digest_notification_truncates_at_48_blocks(self, digests: MagicMock) -> None:
         """
