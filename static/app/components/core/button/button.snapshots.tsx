@@ -43,7 +43,10 @@ describe('Button', () => {
               </Button>
             </Wrapper>
           ),
-          {group: `${themeName} – without icon`}
+          {
+            group: `${themeName} – without icon`,
+            display_name: `${themeName} / ${priority} / ${size} / without icon`,
+          }
         );
 
         it.snapshot(
@@ -55,7 +58,10 @@ describe('Button', () => {
               </Button>
             </Wrapper>
           ),
-          {group: `${themeName} – with icon`}
+          {
+            group: `${themeName} – with icon`,
+            display_name: `${themeName} / ${priority} / ${size} / with icon`,
+          }
         );
 
         it.snapshot(
@@ -70,7 +76,10 @@ describe('Button', () => {
               />
             </Wrapper>
           ),
-          {group: `${themeName} – icon-only`}
+          {
+            group: `${themeName} – icon-only`,
+            display_name: `${themeName} / ${priority} / ${size} / icon-only`,
+          }
         );
       });
     });
