@@ -190,6 +190,8 @@ class RepoTreesIntegration(ABC):
 
         repo_full_name: e.g. getsentry/sentry
         tree_sha: A branch or a commit sha
+        shifted_seconds: Staggers cache expiration times across repositories
+            so cache misses and API refreshes are spread out over time.
         only_source_code_files: Include all files or just the source code files
         only_use_cache: Do not hit the network but use the value from the cache
             if any. This is useful if the remaining API requests are low
@@ -199,6 +201,7 @@ class RepoTreesIntegration(ABC):
         use_api = not cache_hit and not only_use_cache
         repo_files: list[str] = cache.get(key, [])
         if use_api:
+            tree = None
             # Cache miss – fetch from API
             try:
                 tree = self.get_client().get_tree(repo_full_name, tree_sha)
@@ -209,8 +212,16 @@ class RepoTreesIntegration(ABC):
                     "Caching empty files result for repo",
                     extra={"repo": repo_full_name},
                 )
-                cache.set(key, [], self.CACHE_SECONDS + shifted_seconds)
-                tree = None
+            except ApiError as error:
+                if _is_not_found_error(error):
+                    # Keep visibility when transient 404s happen while still
+                    # caching an empty result to avoid repeated API calls.
+                    logger.warning(
+                        "Caching empty files result for missing repo or ref",
+                        extra={"repo": repo_full_name, "error_code": error.code},
+                    )
+                else:
+                    raise
             if tree:
                 # Keep files; discard directories
                 repo_files = [node["path"] for node in tree if node["type"] == "blob"]
@@ -225,6 +236,8 @@ class RepoTreesIntegration(ABC):
                 # repositories is a single API network request, thus,
                 # being acceptable to sometimes not having everything cached
                 cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
+            else:
+                cache.set(key, [], self.CACHE_SECONDS + shifted_seconds)
 
             metrics.incr(
                 f"{METRICS_KEY_PREFIX}.get_tree",
@@ -296,3 +309,13 @@ def should_include(file_path: str) -> bool:
     if any(file_path.startswith(path) for path in EXCLUDED_PATHS):
         return False
     return True
+
+
+def _is_not_found_error(error: ApiError) -> bool:
+    if error.code == 404:
+        return True
+    if error.code is not None:
+        return False
+
+    error_message = error.json.get("message") if error.json else error.text
+    return error_message in ("Not Found", "Not Found.")

@@ -1,9 +1,10 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -51,15 +52,24 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
   return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
-function AutomationBreadcrumbs({automationId}: {automationId: string}) {
+function AutomationBreadcrumbs({
+  automationId,
+  automationName,
+}: {
+  automationId: string;
+  automationName: string;
+}) {
   const title = useFormField('name');
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -68,7 +78,7 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
           to: makeAutomationBasePathname(organization.slug),
         },
         {
-          label: title,
+          label: hasPageFrameFeature ? automationName : title,
           to: makeAutomationDetailsPathname(organization.slug, automationId),
         },
         {label: t('Configure')},
@@ -105,6 +115,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -230,20 +241,43 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <StyledLayoutHeader>
+          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                <AutomationBreadcrumbs automationId={params.automationId} />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
+                {hasPageFrameFeature ? (
+                  <Fragment>
+                    <TopBar.Slot name="title">
+                      <AutomationBreadcrumbs
+                        automationId={params.automationId}
+                        automationName={automation.name}
+                      />
+                    </TopBar.Slot>
+                    <Heading as="h1" ellipsis>
+                      <EditableAutomationName />
+                    </Heading>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <AutomationBreadcrumbs
+                      automationId={params.automationId}
+                      automationName={automation.name}
+                    />
+                    <Layout.Title>
+                      <EditableAutomationName />
+                    </Layout.Title>
+                  </Fragment>
+                )}
               </Layout.HeaderContent>
               <div>
                 <AutomationFeedbackButton />
               </div>
             </HeaderInner>
-          </StyledLayoutHeader>
-          <StyledBody maxWidth={maxWidth}>
+          </Layout.Header>
+          <Layout.Body
+            maxWidth={maxWidth}
+            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
+            {...(hasPageFrameFeature ? {} : {padding: '0'})}
+          >
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
                 value={{
@@ -265,10 +299,22 @@ function AutomationEditForm({automation}: {automation: Automation}) {
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
-          </StyledBody>
+          </Layout.Body>
         </Stack>
         <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+          <Flex
+            width="100%"
+            maxWidth={
+              // Layout.Body uses `lg xl` page-frame padding, so subtract the left/right `xl`
+              // gutters to align the footer actions with the inner content column.
+              hasPageFrameFeature
+                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
+                : maxWidth
+            }
+            align="center"
+            gap="md"
+            justify="end"
+          >
             <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>
@@ -276,10 +322,6 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     </FullHeightForm>
   );
 }
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.tokens.background.primary};
-`;
 
 const HeaderInner = styled('div')<{maxWidth?: string}>`
   display: contents;
@@ -289,19 +331,5 @@ const HeaderInner = styled('div')<{maxWidth?: string}>`
     grid-template-columns: minmax(0, 1fr) auto;
     max-width: ${p => p.maxWidth};
     width: 100%;
-  }
-`;
-
-const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
-  max-width: ${p => p.maxWidth};
-  padding: 0;
-  margin: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-    margin: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 `;

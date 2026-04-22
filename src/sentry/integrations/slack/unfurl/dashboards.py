@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict, cast
 from urllib.parse import urlparse
 
+from django.db.models import Prefetch
 from django.http.request import QueryDict
 
 from sentry import analytics, features
@@ -62,6 +63,14 @@ _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.TOP_N: "area",
 }
 
+# Widget types that map to EAP trace-item datasets on the events-timeseries
+# endpoint. Other widget types (discover, issue, metrics, etc.) are skipped.
+_WIDGET_TYPE_TO_DATASET = {
+    DashboardWidgetTypes.SPANS: SupportedTraceItemType.SPANS,
+    DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS,
+    DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS,
+}
+
 
 def unfurl_dashboards(
     integration: Integration | RpcIntegration,
@@ -110,25 +119,21 @@ def _unfurl_dashboards(
         if widget is None:
             continue
 
-        # Only spans are supported for the initial rollout.
-        if widget.widget_type != DashboardWidgetTypes.SPANS:
+        is_supported_dataset = widget.widget_type in _WIDGET_TYPE_TO_DATASET
+        if not is_supported_dataset:
             continue
 
         display_type = _TIMESERIES_DISPLAY_TYPES.get(widget.display_type)
         if display_type is None:
             continue
 
-        widget_queries = list(
-            DashboardWidgetQuery.objects.filter(widget_id=widget.id).order_by("order")
-        )
-        if not widget_queries:
+        per_query_params = build_widget_timeseries_params(widget, args["query"])
+        if not per_query_params:
             continue
 
         combined_time_series: list[TimeSeries] = []
         request_failed = False
-        for widget_query in widget_queries:
-            params = _build_timeseries_params(widget_query, args["query"])
-
+        for params in per_query_params:
             try:
                 resp = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
@@ -184,28 +189,46 @@ def _get_widget(
 
     The URL's widget segment is the 0-based position in the dashboard's
     widget list as returned by the API (ordered by id), matching the
-    frontend's ``dashboard.widgets[widgetId]`` lookup.
+    frontend's ``dashboard.widgets[widgetId]`` lookup. Widget queries are
+    prefetched in ``order`` so the downstream helper doesn't need DB access.
     """
     widgets = list(
         DashboardWidget.objects.filter(
             dashboard_id=dashboard_id,
             dashboard__organization_id=organization_id,
-        ).order_by("id")
+        )
+        .prefetch_related(
+            Prefetch(
+                "dashboardwidgetquery_set",
+                queryset=DashboardWidgetQuery.objects.order_by("order"),
+            )
+        )
+        .order_by("id")
     )
     if widget_index >= len(widgets):
         return None
     return widgets[widget_index]
 
 
-def _build_timeseries_params(
-    widget_query: DashboardWidgetQuery, url_params: QueryDict
-) -> dict[str, str | list[str]]:
-    """Build events-timeseries API params from a widget query + URL params.
+def build_widget_timeseries_params(
+    widget: DashboardWidget, url_params: QueryDict
+) -> list[dict[str, str | list[str]]]:
+    """Build one events-timeseries param dict per widget query."""
+    dataset = _WIDGET_TYPE_TO_DATASET.get(widget.widget_type)
+    if dataset is None:
+        raise ValueError(f"Unsupported widget type: {widget.widget_type}")
 
-    Returns a plain dict with list values for multi-valued params. ``client.get``
-    iterates ``params.items()`` and only honors multiple values when the value
-    is a ``list``; a ``QueryDict`` would silently drop all but the last value.
-    """
+    return [
+        _params_for_widget_query(wq, url_params, dataset)
+        for wq in widget.dashboardwidgetquery_set.all()
+    ]
+
+
+def _params_for_widget_query(
+    widget_query: DashboardWidgetQuery,
+    url_params: QueryDict,
+    dataset: SupportedTraceItemType,
+) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {}
 
     aggregates = list(widget_query.aggregates or [])
@@ -235,7 +258,7 @@ def _build_timeseries_params(
     if "statsPeriod" not in params and "start" not in params:
         params["statsPeriod"] = DEFAULT_PERIOD
 
-    params["dataset"] = SupportedTraceItemType.SPANS.value
+    params["dataset"] = dataset.value
     params["referrer"] = Referrer.DASHBOARDS_SLACK_UNFURL.value
 
     return params

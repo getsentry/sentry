@@ -746,7 +746,7 @@ describe('ExploreToolbar', () => {
 
     const section = screen.getByTestId('section-save-as');
 
-    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
     await userEvent.hover(
       within(section).getByRole('menuitemradio', {name: 'Alert for'})
     );
@@ -791,7 +791,7 @@ describe('ExploreToolbar', () => {
 
     const section = screen.getByTestId('section-save-as');
 
-    await userEvent.click(within(section).getByText(/Save as/));
+    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
     await userEvent.click(within(section).getByText('Dashboard widget'));
     await waitFor(() => {
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
@@ -870,7 +870,7 @@ describe('ExploreToolbar', () => {
         },
       }
     );
-    screen.getByText('Save as\u2026');
+    screen.getByRole('button', {name: /save as/i});
     const section = screen.getByTestId('section-sort-by');
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
@@ -880,9 +880,9 @@ describe('ExploreToolbar', () => {
       })
     );
 
-    // After navigation, the UI should update to show "Save" instead of "Save as…"
+    // After navigation, the save action should switch to the update state.
     await waitFor(() => {
-      expect(screen.getByText('Save')).toBeInTheDocument();
+      expect(screen.getByText(/^save$/i)).toBeInTheDocument();
     });
   });
 
@@ -902,8 +902,8 @@ describe('ExploreToolbar', () => {
 
     const section = await screen.findByTestId('section-save-as');
 
-    // Save As button should be disabled
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeDisabled();
+    // Save-as button should be disabled
+    expect(within(section).getByRole('button', {name: /save as/i})).toBeDisabled();
 
     // Compare Queries button should be disabled (LinkButton renders with role="button")
     expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(

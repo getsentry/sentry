@@ -403,13 +403,7 @@ export function FiltersBar({
           value={interval}
           onChange={option => setInterval(option.value)}
           trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              icon={<IconClock />}
-              priority={hasPageFrameFeature ? 'default' : 'transparent'}
-              showChevron={false}
-              size={hasPageFrameFeature ? 'md' : 'xs'}
-            />
+            <OverlayTrigger.Button {...triggerProps} icon={<IconClock />} />
           )}
           menuTitle={t('Interval')}
           options={intervalOptions}
