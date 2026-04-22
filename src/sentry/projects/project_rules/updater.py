@@ -45,14 +45,14 @@ class ProjectRuleUpdater:
             # Mark that we're using legacy Rule models
             report_used_legacy_models()
 
-        # Called outside the transaction so RPC calls in dual-write are allowed
-        workflow = update_migrated_issue_alert(self.rule)
-        if workflow:
-            logger.info(
-                "workflow_engine.issue_alert.updated",
-                extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
-            )
-        return self.rule
+            # uncaught errors will rollback the transaction
+            workflow = update_migrated_issue_alert(self.rule)
+            if workflow:
+                logger.info(
+                    "workflow_engine.issue_alert.updated",
+                    extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                )
+            return self.rule
 
     def _update_name(self) -> None:
         if self.name:

@@ -1522,20 +1522,30 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "conditions": [],
             "filters": [],
         }
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
-        )
-        assert_rule_from_payload(self.rule, payload)
-        assert len(responses.calls) == 1
-
-        with self.feature("organizations:workflow-engine-rule-serializers"):
-            workflow_response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                self.rule.id,
-                status_code=status.HTTP_200_OK,
-                **payload,
+        mock_install = MagicMock()
+        mock_install.sentry_app.id = self.sentry_app.id
+        mock_app_service = MagicMock()
+        mock_app_service.get_many.return_value = [mock_install]
+        # Patch app_service by name in notification_action's namespace only, so validation
+        # calls in notify_event.py still use the real service (outside the transaction).
+        with patch(
+            "sentry.workflow_engine.typings.notification_action.app_service",
+            new=mock_app_service,
+        ):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
             )
+            assert_rule_from_payload(self.rule, payload)
+            assert len(responses.calls) == 1
+
+            with self.feature("organizations:workflow-engine-rule-serializers"):
+                workflow_response = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    self.rule.id,
+                    status_code=status.HTTP_200_OK,
+                    **payload,
+                )
         assert_serializer_results_match(response.data, workflow_response.data)
 
     @responses.activate
