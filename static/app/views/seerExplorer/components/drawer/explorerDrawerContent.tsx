@@ -28,8 +28,12 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
+  runId,
+  setRunId,
 }: {
   getPageReferrer: () => string;
+  runId: number | null;
+  setRunId: (value: number | null) => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -54,7 +58,6 @@ export function ExplorerDrawerContent({
 
   // - Session data and mutators ----------------------------------------------
   const {
-    runId,
     sessionData,
     isPolling,
     isError,
@@ -69,7 +72,7 @@ export function ExplorerDrawerContent({
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
-  } = useSeerExplorer();
+  } = useSeerExplorer({runId, setRunId});
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&

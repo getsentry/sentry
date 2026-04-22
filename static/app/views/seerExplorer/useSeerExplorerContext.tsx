@@ -1,8 +1,15 @@
-import {createContext, useContext, useMemo, type ReactNode} from 'react';
+import {
+  createContext,
+  useContext,
+  useMemo,
+  type ReactNode,
+  type SetStateAction,
+} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
@@ -10,29 +17,34 @@ import {
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
-  isMinimized: boolean; // for backward compatibility with ExplorerPanel.
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
-  setIsMinimized: (value: boolean) => void; // for backward compatibility with ExplorerPanel.
+  runId: number | null;
+  setRunId: (value: SetStateAction<number | null>) => void;
   toggleSeerExplorer: () => void;
 };
 
 export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
-  isMinimized: false,
   isOpen: false,
   openSeerExplorer: () => {},
-  setIsMinimized: () => {},
+  runId: null,
+  setRunId: () => {},
   toggleSeerExplorer: () => {},
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
+  const [runId, setRunId] = useSessionStorage<number | null>(
+    'seer-explorer-run-id',
+    null
+  );
+
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen,
-  } = useSeerExplorerDrawer();
+  } = useSeerExplorerDrawer({runId, setRunId});
 
   const contextValue = useMemo(
     () => ({
@@ -42,8 +54,17 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       openSeerExplorer: openSeerExplorerDrawer,
       closeSeerExplorer: closeSeerExplorerDrawer,
       toggleSeerExplorer: toggleSeerExplorerDrawer,
+      runId,
+      setRunId,
     }),
-    [isOpen, openSeerExplorerDrawer, closeSeerExplorerDrawer, toggleSeerExplorerDrawer]
+    [
+      isOpen,
+      openSeerExplorerDrawer,
+      closeSeerExplorerDrawer,
+      toggleSeerExplorerDrawer,
+      runId,
+      setRunId,
+    ]
   );
 
   const {visible: isModalOpen} = useGlobalModal();
