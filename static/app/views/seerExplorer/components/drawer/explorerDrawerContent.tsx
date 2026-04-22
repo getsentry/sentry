@@ -64,6 +64,7 @@ export function ExplorerDrawerContent({
     sessionData,
     isPolling,
     isError,
+    hasSentMessage,
     sendMessage,
     deleteFromIndex,
     startNewSession,
@@ -495,6 +496,7 @@ export function ExplorerDrawerContent({
       <InputSection
         blocks={blocks}
         enabled={!readOnly}
+        hasSentMessage={hasSentMessage}
         inputValue={inputValue}
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state

@@ -140,6 +140,7 @@ export const useSeerExplorer = () => {
   // Support deep links that carry a run id; set it once and clean the URL.
   const {getPageReferrer} = usePageReferrer();
 
+  const [hasSentMessage, setHasSentMessage] = useState<boolean>(false);
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
   const [optimistic, setOptimistic] = useState<{
@@ -356,6 +357,7 @@ export const useSeerExplorer = () => {
       setOptimistic(null);
       setDeletedFromIndex(null);
       setWaitingForInterrupt(false);
+      setHasSentMessage(false);
 
       // Invalidate the query to force a fresh fetch
       if (orgSlug && newRunId !== null) {
@@ -443,6 +445,7 @@ export const useSeerExplorer = () => {
         baselineUpdatedAt: apiData?.session?.updated_at,
       });
 
+      setHasSentMessage(true);
       sendMessageMutate({
         query,
         insertIndex: calculatedInsertIndex,
@@ -619,6 +622,7 @@ export const useSeerExplorer = () => {
   }, [apiData?.session, deletedFromIndex, optimistic, runId]);
 
   return {
+    hasSentMessage,
     sessionData: filteredSessionData,
     isPolling: isPolling(
       runId,

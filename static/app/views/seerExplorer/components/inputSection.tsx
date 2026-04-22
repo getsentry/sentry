@@ -33,6 +33,7 @@ interface QuestionActions {
 interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
+  hasSentMessage: boolean;
   inputValue: string;
   isPolling: boolean;
   onClear: () => void;
@@ -55,6 +56,7 @@ interface InputSectionProps {
 export function InputSection({
   blocks,
   enabled,
+  hasSentMessage,
   inputValue,
   isMinimized = false,
   isPolling,
@@ -264,7 +266,7 @@ export function InputSection({
       );
     }
 
-    if (isPolling) {
+    if (isPolling && hasSentMessage) {
       return (
         <Button
           icon={<IconPause variant="muted" />}
