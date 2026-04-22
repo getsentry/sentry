@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
+import {isCompleteTraceMetric} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -34,7 +35,7 @@ export function useCrossEventQueries() {
           break;
         case 'metrics': {
           const {metric} = crossEvent;
-          if (!metric.name) {
+          if (!isCompleteTraceMetric(metric)) {
             break;
           }
           const identity = new MutableSearch('');

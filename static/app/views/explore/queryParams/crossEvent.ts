@@ -25,11 +25,12 @@ export function getCrossEventsFromLocation(
     return undefined;
   }
 
-  if (Array.isArray(json) && json.every(isCrossEvent)) {
-    return json;
+  if (!Array.isArray(json)) {
+    return undefined;
   }
 
-  return undefined;
+  const crossEvents = json.filter(isCrossEvent);
+  return crossEvents.length > 0 ? crossEvents : undefined;
 }
 
 export function isCrossEventType(value: string): value is CrossEventType {

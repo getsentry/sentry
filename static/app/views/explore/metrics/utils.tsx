@@ -231,6 +231,10 @@ export function isEmptyTraceMetric(traceMetric: TraceMetric): boolean {
   return traceMetric.name === '';
 }
 
+export function isCompleteTraceMetric(traceMetric: TraceMetric): boolean {
+  return Boolean(traceMetric.name && traceMetric.type);
+}
+
 const DURATION_UNIT_VALUES = new Set<string>(Object.values(DurationUnit));
 const SIZE_UNIT_VALUES = new Set<string>(Object.values(SizeUnit));
 const PERCENTAGE_UNIT_VALUES = new Set<string>(['ratio', 'percent']);
