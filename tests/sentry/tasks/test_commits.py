@@ -158,7 +158,7 @@ class FetchCommitsTest(TestCase):
         self._test_simple_action(user=self.user, org=org)
 
     @patch("sentry.tasks.commits.fetch_commits_for_ref_with_lifecycle", return_value=None)
-    def test_tracks_integration_name_in_task_extra(
+    def test_does_not_track_integration_name_in_task_extra(
         self, mock_fetch_for_ref: MagicMock, mock_record: MagicMock
     ) -> None:
         self.login_as(user=self.user)
@@ -176,12 +176,11 @@ class FetchCommitsTest(TestCase):
             user_id=self.user.id,
             refs=refs,
             prev_release_id=None,
-            integration_name="dummy",
         )
 
         assert mock_fetch_for_ref.call_count == 2
         task_extra = mock_fetch_for_ref.call_args.kwargs["task_extra"]
-        assert task_extra["integration_name"] == "dummy"
+        assert "integration_name" not in task_extra
 
     @patch("sentry.tasks.commits.fetch_commits_for_ref_with_lifecycle", return_value=None)
     def test_does_not_short_circuit_when_first_ref_is_unresolvable(
@@ -203,7 +202,6 @@ class FetchCommitsTest(TestCase):
             user_id=self.user.id,
             refs=refs,
             prev_release_id=None,
-            integration_name="dummy",
         )
 
         assert mock_fetch_for_ref.call_count == 1

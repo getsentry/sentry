@@ -789,7 +789,6 @@ class UpdateReleaseDetailsTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name},
                 ],
                 "prev_release_id": base_release.id,
-                "integration_name": "dummy",
             }
         )
 
@@ -878,7 +877,6 @@ class UpdateReleaseDetailsTest(APITestCase):
                     {"commit": "b" * 40, "previousCommit": None, "repository": repo2.name},
                 ],
                 "prev_release_id": base_release.id,
-                "integration_name": "dummy",
             }
         )
 
@@ -1493,8 +1491,7 @@ class ReleaseDeleteTest(APITestCase):
                 "refs": [{"repository": "example", "commit": "a" * 40}],
             },
         )
-        assert response.status_code == 400
-        assert response.data == {"refs": ["Repository provider is missing: example"]}
+        assert response.status_code == 200
 
     def test_bad_commit_list(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)

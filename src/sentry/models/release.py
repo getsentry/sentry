@@ -31,7 +31,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
-from sentry.integrations.source_code_management.providers import normalize_integration_provider_key
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -641,21 +640,6 @@ class Release(Model):
             if invalid_repos:
                 raise InvalidRepository(f"Invalid repository names: {','.join(invalid_repos)}")
 
-            providers: set[str] = set()
-            repos_missing_provider: list[str] = []
-            for ref in refs:
-                provider = repos_by_name[ref["repository"]].provider
-                if provider is None:
-                    repos_missing_provider.append(ref["repository"])
-                    continue
-                providers.add(normalize_integration_provider_key(provider))
-
-            if repos_missing_provider:
-                raise InvalidRepository(
-                    f"Repository provider is missing: {','.join(repos_missing_provider)}"
-                )
-            integration_name = next(iter(providers), None) or None
-
             self.handle_commit_ranges(refs)
 
             for ref in refs:
@@ -679,7 +663,6 @@ class Release(Model):
                         "user_id": user_id,
                         "refs": refs,
                         "prev_release_id": prev_release and prev_release.id,
-                        "integration_name": integration_name,
                     }
                 )
 

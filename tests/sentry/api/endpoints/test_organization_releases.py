@@ -1818,7 +1818,6 @@ class OrganizationReleaseCreateTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name},
                 ],
                 "prev_release_id": Release.objects.get(version="1", organization=org).id,
-                "integration_name": "dummy",
             }
         )
 
@@ -1880,7 +1879,6 @@ class OrganizationReleaseCreateTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name, "previousCommit": None},
                 ],
                 "prev_release_id": Release.objects.get(version="1", organization=org).id,
-                "integration_name": "dummy",
             }
         )
         assert response.status_code == 201
@@ -2178,7 +2176,6 @@ class OrganizationReleaseCreateTest(APITestCase):
                     {"commit": "b" * 40, "repository": repo2.name},
                 ],
                 "prev_release_id": release1.id,
-                "integration_name": "dummy",
             }
         )
 
@@ -2268,8 +2265,7 @@ class OrganizationReleaseCreateTest(APITestCase):
                 "refs": [{"repository": "example", "commit": "a" * 40}],
             },
         )
-        assert response.status_code == 400
-        assert response.data == {"refs": ["Repository provider is missing: example"]}
+        assert response.status_code == 201
 
     def test_project_ids_as_strings(self) -> None:
         """

@@ -346,7 +346,6 @@ def fetch_commits(
     user_id: int,
     refs: Sequence[Mapping[str, str]],
     prev_release_id: int | None = None,
-    integration_name: str | None = None,
     **kwargs: Any,
 ) -> None:
     commit_list: list[dict[str, Any]] = []
@@ -369,8 +368,6 @@ def fetch_commits(
         "num_refs": len(refs),
         "prev_release_id": prev_release_id,
     }
-    if integration_name is not None:
-        extra["integration_name"] = get_integration_name(integration_name)
     logger.info("fetch_commits.start", extra=extra)
 
     for ref in refs:

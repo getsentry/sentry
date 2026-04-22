@@ -121,7 +121,6 @@ class SetRefsTest(TestCase):
                 "user_id": user.id,
                 "refs": [{"commit": "bbee5b51f84611e4b14834363b8514c2", "repository": repo.name}],
                 "prev_release_id": old_release.id,
-                "integration_name": "dummy",
             }
         )
 
