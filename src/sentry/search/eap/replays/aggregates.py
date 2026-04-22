@@ -32,7 +32,8 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
     ),
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
-        default_search_type="duration",
+        infer_search_type_from_arguments=True,
+        default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
                 attribute_types={
