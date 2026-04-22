@@ -622,7 +622,6 @@ export const useSeerExplorer = () => {
   }, [apiData?.session, deletedFromIndex, optimistic, runId]);
 
   return {
-    hasSentMessage,
     sessionData: filteredSessionData,
     isPolling: isPolling(
       runId,
@@ -631,6 +630,7 @@ export const useSeerExplorer = () => {
     ),
     isError,
     sendMessage,
+    hasSentMessage,
     runId,
     /** Switches to a different run and fetches its latest state. */
     switchToRun,
