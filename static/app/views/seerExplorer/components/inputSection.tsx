@@ -329,9 +329,11 @@ const InputRow = styled('div')`
 
 const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
   flex: 1;
+  min-width: 0;
 
   textarea {
     resize: none;
+    overflow-y: hidden;
 
     &::placeholder {
       color: ${p => (p.interrupted ? p.theme.tokens.content.warning : undefined)};
@@ -340,6 +342,12 @@ const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`
 
   [data-test-id='input-trailing-items'] {
     right: ${p => p.theme.space.xs};
+  }
+
+  @container (max-width: 480px) {
+    textarea {
+      font-size: ${p => p.theme.font.size.sm};
+    }
   }
 `;
 

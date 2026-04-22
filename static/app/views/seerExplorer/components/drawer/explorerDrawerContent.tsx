@@ -210,9 +210,6 @@ export function ExplorerDrawerContent({
     sendMessage(inputValue.trim());
     setInputValue('');
     userScrolledUpRef.current = false;
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
   }, [readOnly, inputValue, isPolling, sendMessage]);
 
   const canInterrupt = sessionData?.status === 'processing';
@@ -234,15 +231,47 @@ export function ExplorerDrawerContent({
     [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
   );
 
+  const resizeTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) {
+      return;
+    }
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
     if (focusedBlockIndex !== -1) {
       setFocusedBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [inputValue, resizeTextarea]);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') {
+      return undefined;
+    }
+    let lastWidth = el.clientWidth;
+    const observer = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (!entry) {
+        return;
+      }
+      const width = entry.contentRect.width;
+      if (width !== lastWidth) {
+        lastWidth = width;
+        resizeTextarea();
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [resizeTextarea]);
 
   const handleInputClick = useCallback(() => {
     focusInput();
@@ -522,4 +551,5 @@ const DrawerContentContainer = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  container-type: inline-size;
 `;
