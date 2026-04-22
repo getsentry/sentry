@@ -16,6 +16,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
@@ -100,6 +101,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: traceMetricFilter,
+      staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
     }),
     enabled: Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
