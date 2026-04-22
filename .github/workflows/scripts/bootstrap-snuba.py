@@ -6,13 +6,9 @@ health-check wait.
 
 Phase 1 (early): As soon as ClickHouse is accepting queries, create
   per-worker databases and run ``snuba bootstrap --force``.
-Phase 2 (after devservices): Stop snuba-snuba-1 and start per-worker
-  API containers.  We must wait for devservices to finish first —
-  stopping the container while devservices is health-checking it would
-  cause a timeout.
+Phase 2: Stop snuba-snuba-1 and start per-worker API containers.
 
 Requires: XDIST_WORKERS env var
-Reads:    /tmp/ds-exit (written by workflows/scripts/wait-for-devservices.py)
 Writes:   /tmp/snuba-bootstrap-exit
 """
 
@@ -30,7 +26,6 @@ from typing import Any, Callable
 from urllib.error import URLError
 from urllib.request import urlopen
 
-DS_EXIT = Path("/tmp/ds-exit")
 SNUBA_EXIT = Path("/tmp/snuba-bootstrap-exit")
 
 SNUBA_ENV = {
@@ -144,17 +139,6 @@ def wait_for_prerequisites(timeout: int = 300) -> None:
     log(f"Prerequisites ready ({time.monotonic() - start:.0f}s)")
 
 
-def wait_for_devservices(timeout: int = 600) -> None:
-    start = time.monotonic()
-    while not DS_EXIT.exists():
-        if time.monotonic() - start > timeout:
-            fail("Timed out waiting for devservices to finish")
-        time.sleep(1)
-    rc = int(DS_EXIT.read_text().strip())
-    if rc != 0:
-        fail(f"devservices failed (exit {rc}), skipping Phase 2")
-
-
 def bootstrap_worker(worker_id: int, *, image: str, network: str) -> None:
     """Create a ClickHouse database and run snuba bootstrap."""
     db = f"default_gw{worker_id}"
@@ -242,7 +226,6 @@ def main() -> None:
     run_parallel(partial(bootstrap_worker, image=image, network=network), workers)
     log(f"Phase 1 done ({time.monotonic() - start:.0f}s)")
 
-    wait_for_devservices()
     try:
         docker("stop", "snuba-snuba-1", timeout=30)
     except subprocess.TimeoutExpired:
