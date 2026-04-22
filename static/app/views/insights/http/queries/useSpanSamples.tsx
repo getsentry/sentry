@@ -28,14 +28,7 @@ interface UseSpanSamplesOptions<Fields> {
 export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
   options: UseSpanSamplesOptions<Fields> = {}
 ) => {
-  const {
-    fields = [],
-    search = undefined,
-    referrer,
-    enabled,
-    min = undefined,
-    max = undefined,
-  } = options;
+  const {fields = [], search, referrer, enabled, min, max} = options;
 
   const {selection} = usePageFilters();
   const organization = useOrganization();

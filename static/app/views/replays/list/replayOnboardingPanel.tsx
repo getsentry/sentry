@@ -114,10 +114,7 @@ interface SetupReplaysCTAProps {
   disabled?: boolean;
 }
 
-export function SetupReplaysCTA({
-  disabled,
-  primaryAction = 'setup',
-}: SetupReplaysCTAProps) {
+export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
   const {allMobileProj} = useAllMobileProj({});

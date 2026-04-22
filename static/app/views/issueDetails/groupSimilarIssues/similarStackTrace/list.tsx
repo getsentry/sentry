@@ -44,7 +44,7 @@ export function List({
   groupId,
   project,
   items,
-  filteredItems = [],
+  filteredItems,
   pageLinks,
   onMerge,
   onToggle,

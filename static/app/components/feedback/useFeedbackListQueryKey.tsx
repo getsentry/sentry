@@ -40,7 +40,6 @@ export function useFeedbackListQueryKey({
   const fixedQueryView = useMemo(
     () =>
       coaleseIssueStatsPeriodQuery({
-        defaultStatsPeriod: '0d',
         listHeadTime,
         prefetch,
         queryView,

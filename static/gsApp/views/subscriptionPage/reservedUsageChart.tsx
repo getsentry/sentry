@@ -332,7 +332,7 @@ function defaultChartData(): ChartStats {
 }
 
 export function mapStatsToChart({
-  stats = [],
+  stats,
   transform,
 }: {
   stats: BillingStats;
@@ -396,7 +396,7 @@ export function mapStatsToChart({
 }
 
 export function mapCostStatsToChart({
-  stats = [],
+  stats,
   transform,
   subscription,
   category,
@@ -459,7 +459,7 @@ export function mapCostStatsToChart({
 }
 
 export function mapReservedBudgetStatsToChart({
-  statsByDateAndCategory = {},
+  statsByDateAndCategory,
   transform,
   subscription,
   reservedBudgetCategoryInfo,

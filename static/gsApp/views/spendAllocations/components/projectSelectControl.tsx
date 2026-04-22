@@ -23,7 +23,7 @@ export function ProjectSelectControl({
   disabled,
   onChange,
   value: valueProp,
-  filteredIdList = [],
+  filteredIdList,
 }: Props) {
   const {projects} = useProjects();
   const options = useMemo(() => {
