@@ -456,7 +456,7 @@ def _call_autofix(
     *,
     user: User | AnonymousUser | RpcUser,
     group: Group,
-    repos: list[dict],
+    preference: SeerProjectPreference,
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
@@ -469,13 +469,13 @@ def _call_autofix(
     auto_run_source: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
-    preference: SeerProjectPreference | None = None,
 ):
     body = orjson.dumps(
         {
             "organization_id": group.organization.id,
             "project_id": group.project.id,
-            "repos": repos,
+            "preference": preference.dict(),
+            "repos": [repo.dict() for repo in preference.repositories],
             "issue": {
                 "id": group.id,
                 "title": group.title,
@@ -508,7 +508,6 @@ def _call_autofix(
                 ),
                 "stopping_point": stopping_point.value if stopping_point else None,
             },
-            "preference": preference.dict() if preference else None,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -681,7 +680,6 @@ def trigger_autofix(
 
     # Preference repos are the source of truth (even if empty).
     preference = read_preference_from_sentry_db(group.project)
-    repos = [repo.dict() for repo in preference.repositories]
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
@@ -727,7 +725,7 @@ def trigger_autofix(
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -740,7 +738,6 @@ def trigger_autofix(
             auto_run_source=auto_run_source,
             stopping_point=stopping_point,
             github_username=github_username,
-            preference=preference,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")

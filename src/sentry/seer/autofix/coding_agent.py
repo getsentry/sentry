@@ -231,6 +231,7 @@ def _launch_agents_for_repos(
         Dictionary with 'successes' and 'failures' lists
     """
 
+    # Get auto_create_pr setting from automation_handoff
     auto_create_pr = False
     try:
         project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
