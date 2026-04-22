@@ -1,7 +1,10 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
+  useState,
   type ReactNode,
   type SetStateAction,
 } from 'react';
@@ -14,12 +17,16 @@ import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+
+type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   runId: number | null;
+  sessionState: SeerExplorerSessionState;
   /**
    * XXX: For useSeerExplorer hook only. Do not manually call this to update the drawer UI.
    */
@@ -32,6 +39,7 @@ export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   isOpen: false,
   openSeerExplorer: () => {},
   runId: null,
+  sessionState: 'inactive',
   setRunId: () => {},
   toggleSeerExplorer: () => {},
 });
@@ -49,16 +57,46 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     isOpen,
   } = useSeerExplorerDrawer({runId, setRunId});
 
-  const contextValue = useMemo(
+  // Observes the shared session query so the button can reflect activity even
+  // when the drawer is closed. Shares the underlying query with
+  // `useSeerExplorer` via key-dedup, so there's no double polling.
+  const {isPolling} = useSeerExplorerPolling({runId});
+
+  // Sticky flag: session transitioned from polling → not-polling while the
+  // drawer was closed. Cleared when the drawer opens (user has seen the
+  // result) or when there's no active session.
+  const [isDoneThinking, setIsDoneThinking] = useState(false);
+  const wasPollingRef = useRef(false);
+
+  useEffect(() => {
+    const wasPolling = wasPollingRef.current;
+    wasPollingRef.current = isPolling;
+    if (wasPolling && !isPolling && !isOpen && runId !== null) {
+      setIsDoneThinking(true);
+    }
+  }, [isPolling, isOpen, runId]);
+
+  useEffect(() => {
+    if (isOpen || runId === null) {
+      setIsDoneThinking(false);
+    }
+  }, [isOpen, runId]);
+
+  const sessionState = isDoneThinking
+    ? 'done-thinking'
+    : isPolling
+      ? 'thinking'
+      : 'inactive';
+
+  const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
-      isMinimized: false,
-      setIsMinimized: () => {},
       openSeerExplorer: openSeerExplorerDrawer,
       closeSeerExplorer: closeSeerExplorerDrawer,
       toggleSeerExplorer: toggleSeerExplorerDrawer,
       runId,
       setRunId,
+      sessionState,
     }),
     [
       isOpen,
@@ -67,6 +105,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       toggleSeerExplorerDrawer,
       runId,
       setRunId,
+      sessionState,
     ]
   );
 

@@ -9,21 +9,19 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 export function AskSeerButton() {
   const organization = useOrganization({allowNull: true});
-  const {isOpen, toggleSeerExplorer} = useSeerExplorerContext();
-  const {sessionData, isPolling} = useSeerExplorer();
+  const {isOpen, toggleSeerExplorer, sessionState} = useSeerExplorerContext();
 
   if (!organization || !isSeerExplorerEnabled(organization)) {
     return null;
   }
 
   const icon =
-    sessionData?.status === 'awaiting_user_input' && !isOpen ? (
+    !isOpen && sessionState === 'done-thinking' ? (
       <StatusIndicator variant="accent" />
     ) : (
       <IconSeer />
@@ -31,8 +29,8 @@ export function AskSeerButton() {
   const props: ButtonProps = {
     'aria-label': t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
-    busy: isPolling ? true : undefined,
-    priority: isPolling && !isOpen ? 'primary' : 'default',
+    busy: sessionState === 'thinking' ? true : undefined,
+    priority: sessionState === 'thinking' ? 'primary' : 'default',
     icon: <IconWrapper>{icon}</IconWrapper>,
   };
 
