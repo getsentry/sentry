@@ -64,12 +64,10 @@ jobs:
         id: setup
         with:
           mode: default
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py default
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Run API docs tests
         run: |
@@ -245,12 +243,10 @@ jobs:
         id: setup
         with:
           mode: backend-ci
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py backend-ci
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Download odiff binary
         run: |
@@ -393,12 +389,10 @@ jobs:
         id: setup
         with:
           mode: default
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py default
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: run tests
         run: |
@@ -437,12 +431,10 @@ jobs:
         id: setup
         with:
           mode: migrations
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py migrations
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Run test
         env:
@@ -518,12 +510,10 @@ jobs:
         uses: ./.github/actions/setup-sentry
         with:
           mode: backend-ci
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py backend-ci
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Sync API Urls to TypeScript
         run: |
@@ -551,12 +541,10 @@ jobs:
         id: setup
         with:
           mode: migrations
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py migrations
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Migration & lockfile checks
         env:
@@ -591,12 +579,10 @@ jobs:
         id: setup
         with:
           mode: migrations
-          skip-devservices: 'true'
 
       - name: Wait for devservices
         run: |
-          sentry init
-          ./.github/workflows/scripts/wait-for-devservices.py migrations
+          ./.github/workflows/scripts/wait-for-devservices.py
 
       - name: Run test
         run: |

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Run devservices up and verify all containers are healthy.
+"""Log container health after devservices up and set DJANGO_LIVE_TEST_SERVER_ADDRESS.
 
-Usage: wait-for-devservices.py <mode> [timeout_seconds]
+Usage: wait-for-devservices.py
 
 Writes: $GITHUB_ENV  (DJANGO_LIVE_TEST_SERVER_ADDRESS)
 """
@@ -12,8 +12,6 @@ import json
 import os
 import subprocess
 import sys
-
-TIMEOUT = 300
 
 
 def log(msg: str) -> None:
@@ -52,20 +50,8 @@ def container_inspect_dump() -> None:
             log(f"  exit={entry['ExitCode']}  {entry['Output'].strip()}")
 
 
-def run(mode: str, timeout: int = TIMEOUT) -> None:
-    try:
-        r = subprocess.run(["devservices", "up", "--mode", mode], timeout=timeout)
-    except subprocess.TimeoutExpired:
-        log(f"::error::devservices up timed out after {timeout}s")
-        log("--- container health on timeout ---")
-        container_inspect_dump()
-        sys.exit(1)
-
-    if r.returncode != 0:
-        log(f"::error::devservices up failed (exit {r.returncode})")
-        log("--- container health on failure ---")
-        container_inspect_dump()
-        sys.exit(1)
+def run() -> None:
+    container_inspect_dump()
 
     r = docker(
         "network",
@@ -83,13 +69,6 @@ def run(mode: str, timeout: int = TIMEOUT) -> None:
         with open(github_env, "a") as f:
             f.write(f"DJANGO_LIVE_TEST_SERVER_ADDRESS={gateway}\n")
 
-    r2 = docker("ps", "-a")
-    if r2.stdout.strip():
-        log(r2.stdout.strip())
-
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: wait-for-devservices.py <mode> [timeout_seconds]", file=sys.stderr)
-        sys.exit(1)
-    run(sys.argv[1], int(sys.argv[2]) if len(sys.argv) > 2 else TIMEOUT)
+    run()
