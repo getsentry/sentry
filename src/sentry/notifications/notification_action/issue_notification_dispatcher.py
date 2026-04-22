@@ -76,6 +76,7 @@ class IssueNotificationDispatcher:
             self.threading_options = ThreadingOptions(
                 thread_key=self.thread_key, reply_broadcast=False
             )
+        self._prepared = True
 
     def dispatch(self) -> None:
         if not self._prepared:
