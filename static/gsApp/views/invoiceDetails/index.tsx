@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -9,7 +10,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconSentry} from 'sentry/icons';
+import {IconNext, IconPrevious, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -18,7 +19,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {InvoiceStatus} from 'getsentry/types';
-import type {BillingDetails, Invoice} from 'getsentry/types';
+import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
@@ -29,6 +30,36 @@ function InvoiceDetails() {
   const {invoiceGuid} = useParams<{invoiceGuid: string}>();
 
   const organization = useOrganization();
+
+  const {data: invoiceList} = useApiQuery<InvoiceBase[]>(
+    [
+      getApiUrl('/customers/$organizationIdOrSlug/invoices/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      // Use a long staleTime so we share the cache with the list page
+      // without refetching on every receipt navigation.
+      staleTime: 60_000,
+    }
+  );
+
+  const currentIndex = invoiceList
+    ? invoiceList.findIndex(inv => inv.id === invoiceGuid)
+    : -1;
+  // The list is newest-first, so "previous" is the older receipt (higher index)
+  // and "next" is the more recent receipt (lower index).
+  const prevId =
+    invoiceList && currentIndex < invoiceList.length - 1
+      ? invoiceList[currentIndex + 1]!.id
+      : null;
+  const nextId =
+    invoiceList && currentIndex > 0 ? invoiceList[currentIndex - 1]!.id : null;
+
+  function receiptUrl(id: string) {
+    return `/settings/${organization.slug}/billing/receipts/${id}/`;
+  }
+
   const {
     data: billingDetails,
     isPending: isBillingDetailsLoading,
@@ -76,9 +107,31 @@ function InvoiceDetails() {
 
   return (
     <SubscriptionPageContainer background="secondary">
-      <SettingsPageHeader title={t('Receipt Details')}>
-        {t('Receipt Details')}
-      </SettingsPageHeader>
+      <SettingsPageHeader
+        title={t('Receipt Details')}
+        action={
+          invoiceList && (
+            <ButtonBar>
+              <LinkButton
+                size="sm"
+                to={prevId ? receiptUrl(prevId) : ''}
+                disabled={!prevId}
+                icon={<IconPrevious />}
+              >
+                {t('Previous')}
+              </LinkButton>
+              <LinkButton
+                size="sm"
+                to={nextId ? receiptUrl(nextId) : ''}
+                disabled={!nextId}
+                icon={<IconNext />}
+              >
+                {t('Next')}
+              </LinkButton>
+            </ButtonBar>
+          )
+        }
+      />
       <Panel>
         {isInvoiceLoading || isBillingDetailsLoading ? (
           <PanelBody withPadding>
