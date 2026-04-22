@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from sentry.lang.java.exceptions import Exceptions
 
@@ -99,7 +100,7 @@ def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values() ->
 def test_deobfuscate_and_save_root_package_exception() -> None:
     # R8 aggressive mode produces root-package classes with no module;
     # raw_module must be preserved as None when originally absent.
-    exc = {"type": "kj", "value": "compose boom"}
+    exc: dict[str, Any] = {"type": "kj", "value": "compose boom"}
     data = build_event([exc])
 
     excs = Exceptions(data)
