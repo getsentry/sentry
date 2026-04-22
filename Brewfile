@@ -6,10 +6,6 @@ brew 'uv'
 brew 'docker'
 brew 'docker-buildx'
 
-# required for make test-selective
-# greedy forces cask updates
-cask 'gcloud-cli', greedy: true
-
 ### If updating below this line, please also update REQUIRED_APT_PKGS in devenv/post_fetch.py ###
 
 # required for pnpm test -u
