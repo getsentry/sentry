@@ -69,7 +69,7 @@ function AutomationBreadcrumbs({
 }) {
   const title = useFormField('name');
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -78,7 +78,7 @@ function AutomationBreadcrumbs({
           to: makeAutomationBasePathname(organization.slug),
         },
         {
-          label: hasPageFrame ? automationName : title,
+          label: hasPageFrameFeature ? automationName : title,
           to: makeAutomationDetailsPathname(organization.slug, automationId),
         },
         {label: t('Configure')},
@@ -115,7 +115,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
   const params = useParams<{automationId: string}>();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
-  const hasPageFrame = useHasPageFrameFeature();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const initialData = useMemo((): Record<string, FieldValue> | undefined => {
     if (!automation) {
@@ -241,10 +241,10 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <Layout.Header {...(hasPageFrame ? {} : {background: 'primary'})}>
+          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                {hasPageFrame ? (
+                {hasPageFrameFeature ? (
                   <Fragment>
                     <TopBar.Slot name="title">
                       <AutomationBreadcrumbs
@@ -275,8 +275,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Layout.Header>
           <Layout.Body
             maxWidth={maxWidth}
-            margin={hasPageFrame ? '0' : {sm: 'xl', md: '2xl 3xl'}}
-            {...(hasPageFrame ? {} : {padding: '0'})}
+            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
+            {...(hasPageFrameFeature ? {} : {padding: '0'})}
           >
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
@@ -305,7 +305,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           <Flex
             width="100%"
             maxWidth={
-              hasPageFrame
+              hasPageFrameFeature
                 ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
                 : maxWidth
             }

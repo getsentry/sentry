@@ -61,7 +61,7 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
-  const hasPageFrame = useHasPageFrameFeature();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -69,7 +69,7 @@ function AutomationBreadcrumbs() {
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {label: hasPageFrame ? t('New Alert') : title || t('New Alert')},
+        {label: hasPageFrameFeature ? t('New Alert') : title || t('New Alert')},
       ]}
     />
   );
@@ -137,7 +137,7 @@ export default function AutomationNewSettings() {
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
-  const hasPageFrame = useHasPageFrameFeature();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const initialData = useInitialFormData();
 
   const {
@@ -237,10 +237,10 @@ export default function AutomationNewSettings() {
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <Layout.Header {...(hasPageFrame ? {} : {background: 'primary'})}>
+          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                {hasPageFrame ? (
+                {hasPageFrameFeature ? (
                   <Fragment>
                     <TopBar.Slot name="title">
                       <AutomationBreadcrumbs />
@@ -265,8 +265,8 @@ export default function AutomationNewSettings() {
           </Layout.Header>
           <Layout.Body
             maxWidth={maxWidth}
-            margin={hasPageFrame ? '0' : {sm: 'xl', md: '2xl 3xl'}}
-            {...(hasPageFrame ? {} : {padding: '0'})}
+            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
+            {...(hasPageFrameFeature ? {} : {padding: '0'})}
           >
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
@@ -294,7 +294,7 @@ export default function AutomationNewSettings() {
           <Flex
             width="100%"
             maxWidth={
-              hasPageFrame
+              hasPageFrameFeature
                 ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
                 : maxWidth
             }
