@@ -14,7 +14,7 @@ import {HoverOverlayGroupProvider, useHoverOverlay} from 'sentry/utils/useHoverO
 
 const OPEN_DELAY = 400;
 const CLOSE_DELAY = 150;
-const SKIP_DELAY_WINDOW = 500;
+const SKIP_DELAY_WINDOW = 600;
 
 function Trigger({
   label,
