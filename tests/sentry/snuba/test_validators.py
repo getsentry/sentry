@@ -292,6 +292,23 @@ class SnubaQueryValidatorTest(TestCase):
             "user",
         ]
 
+    def test_eap_rejects_seven_day_time_window(self) -> None:
+        # 7 days (604800s) is a valid dashboards granularity but must not be accepted as an
+        # EAP alert time window — alerts are capped at 1 day.
+        data = {
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "",
+            "aggregate": "count()",
+            "timeWindow": 7 * 24 * 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context, timeWindowSeconds=True)
+        assert not validator.is_valid()
+        assert any(
+            "Invalid Time Window" in str(err) for errs in validator.errors.values() for err in errs
+        )
+
     def test_eap_user_misery_aggregate(self) -> None:
         data = {
             "dataset": Dataset.EventsAnalyticsPlatform.value,

@@ -150,6 +150,7 @@ VALID_GRANULARITIES = frozenset(
         6 * 3600,
         12 * 3600,
         24 * 3600,  # hours
+        7 * 24 * 3600,  # days
     }
 )
 TRUTHY_VALUES = {"1", "true"}

@@ -963,6 +963,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}], [{"count": 1}]]
 
+    def test_seven_day_interval_over_thirty_day_range(self) -> None:
+        response = self.do_request(
+            data={
+                "project": self.project.id,
+                "end": self.day_ago,
+                "start": self.day_ago - timedelta(days=30),
+                "interval": "7d",
+                "yAxis": "count()",
+            },
+        )
+        assert response.status_code == 200, response.content
+        # 30d at 7d buckets is ~5 points (rollup may emit a partial leading/trailing bucket);
+        # assert it's bounded so we catch regressions in the bucket-count cap.
+        assert 4 <= len(response.data["data"]) <= 6
+
     @mock.patch("sentry.snuba.discover.timeseries_query", return_value={})
     def test_multiple_yaxis_only_one_query(self, mock_query: mock.MagicMock) -> None:
         self.do_request(
