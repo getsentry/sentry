@@ -518,7 +518,7 @@ const Header = styled(Grid)`
   align-items: center;
   top: 0;
   z-index: 100;
-  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const LogoSvg = styled(LogoSentry)`
