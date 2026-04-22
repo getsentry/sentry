@@ -7,6 +7,7 @@ from uuid import uuid4
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
+from sentry import audit_log
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.config_producer import produce_config, produce_config_removal
@@ -17,6 +18,7 @@ from sentry.uptime.models import (
 )
 from sentry.uptime.types import CheckConfig
 from sentry.utils import metrics
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
@@ -209,12 +211,20 @@ def broken_monitor_checker(**kwargs):
         detector__type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
         detector__config__mode=UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
         detector__enabled=True,
-    ).select_related("detector")
+    ).select_related("detector", "detector__project__organization")
 
     for detector_state in RangeQuerySetWrapper(queryset):
         detector = detector_state.detector
         try:
             disable_uptime_detector(detector)
+
+            create_system_audit_entry(
+                organization=detector.project.organization,
+                target_object=detector.id,
+                event=audit_log.get_event_id("UPTIME_MONITOR_DISABLE_BROKEN"),
+                data={"date_updated": str(detector_state.date_updated)},
+            )
+
             count += 1
         except Exception:
             logger.exception("uptime.subscriptions.disable_broken_failed")
