@@ -327,22 +327,27 @@ export function ExplorerDrawerContent({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-      if (isPrintableChar) {
-        // If a block is focused, auto-focus input when user starts typing.
-        // Don't do this if file approval or question is pending (textarea isn't visible)
-        if (
-          !readOnly &&
-          focusedBlockIndex !== -1 &&
-          !isFileApprovalPending &&
-          !isQuestionPending
-        ) {
+
+      // If input is enabled and not focused
+      if (
+        focusedBlockIndex !== -1 &&
+        !readOnly &&
+        !isFileApprovalPending &&
+        !isQuestionPending
+      ) {
+        if (isPrintableChar) {
+          // Focus input when user starts typing
           e.preventDefault();
           setFocusedBlockIndex(-1);
           textareaRef.current?.focus();
           setInputValue(prev => prev + e.key);
+        } else if (e.key === 'Tab') {
+          // Focus input when user presses tab
+          e.preventDefault();
+          setFocusedBlockIndex(-1);
+          textareaRef.current?.focus();
         }
       }
-      // TODO: support pressing tab to focus input (info msg in placeholder when unfocused)
     };
 
     // Re-enable hover focus changes when mouse actually moves
@@ -499,6 +504,7 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
+        isFocused={focusedBlockIndex === -1}
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
         isPolling={isPolling}
