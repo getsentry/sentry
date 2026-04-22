@@ -97,7 +97,7 @@ class SlackEventRequest(SlackDMRequest):
             "slack_user_id": self.user_id,
             "channel_id": self.channel_id,
             "thread_ts": self.thread_ts,
-            "silo_mode": SiloMode.get_current_mode(),
+            "silo_mode": SiloMode.get_current_mode().value,
         }
         identity_user = self.get_identity_user()
         if not identity_user:
@@ -123,11 +123,11 @@ class SlackEventRequest(SlackDMRequest):
             )
             logging_ctx["current_organization_id"] = oi.organization_id
             if ctx is None:
-                logger.debug("resolve_seer_organization.no_rpc_response", extra=logging_ctx)
+                logger.info("resolve_seer_organization.no_rpc_response", extra=logging_ctx)
                 continue
 
             if ctx.organization.status != OrganizationStatus.ACTIVE:
-                logger.debug("resolve_seer_organization.inactive_org", extra=logging_ctx)
+                logger.info("resolve_seer_organization.inactive_org", extra=logging_ctx)
                 continue
 
             # Since the getsentry FeatureHandler does _not_ add subscription context to CONTROL
@@ -135,20 +135,20 @@ class SlackEventRequest(SlackDMRequest):
             # This is actually fine, since after routing, this method is rerun at the CELL.
             if SiloMode.get_current_mode() == SiloMode.CONTROL:
                 if not SlackExplorerEntrypoint.has_feature_flag(ctx.organization):
-                    logger.debug("resolve_seer_organization.no_feature_flag", extra=logging_ctx)
+                    logger.info("resolve_seer_organization.no_feature_flag", extra=logging_ctx)
                     continue
             else:
                 if not SlackExplorerEntrypoint.has_access(ctx.organization):
-                    logger.debug("resolve_seer_organization.no_access", extra=logging_ctx)
+                    logger.info("resolve_seer_organization.no_access", extra=logging_ctx)
                     continue
 
             if ctx.member is None:
-                logger.debug("resolve_seer_organization.missing_membership", extra=logging_ctx)
+                logger.info("resolve_seer_organization.missing_membership", extra=logging_ctx)
                 continue
 
             return SeerResolutionResult(organization_id=organization_id, error_reason=None)
 
-        logger.debug("resolve_seer_organization.no_organization", extra=logging_ctx)
+        logger.info("resolve_seer_organization.no_organization", extra=logging_ctx)
         return SeerResolutionResult(
             organization_id=None, error_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
         )

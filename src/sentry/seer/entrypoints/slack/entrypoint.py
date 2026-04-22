@@ -427,9 +427,10 @@ class SlackExplorerEntrypoint(
     @staticmethod
     def has_access(organization: Organization | RpcOrganization) -> bool:
         """
-        Determines access to Seer Agent, along with the Slack feature.
-        Requires an `Organization` since the `has_seer_explorer_access_with_detail` is incompatible
-        in a CONTROL silo call, as the getsentry FeatureHandler does _not_ add subscription context.
+        Determines access to Seer Agent, along with the Slack feature. Shouldn't be called from
+        the CONTROL silo since `has_explorer_access_with_detail` will not get populated with the
+        subscription context, and will return False every time. For slim, CONTROL calls, use
+        the `has_feature_flag` method instead.
         """
         has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
         return SlackExplorerEntrypoint.has_feature_flag(organization) and has_explorer_access
