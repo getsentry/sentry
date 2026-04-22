@@ -54,7 +54,7 @@ export type OnboardingLayoutProps = {
    * onProductSelectionChange. Used by SCM onboarding to keep its context in
    * sync when the user changes products on the setup-docs step.
    */
-  onProductsChange?: (products: ProductSolution[]) => void;
+  onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
 
 const EMPTY_ARRAY: never[] = [];
@@ -68,7 +68,7 @@ export function OnboardingLayout({
   newOrg,
   projectKeyId,
   configType = 'onboarding',
-  onProductsChange,
+  onProductSelectionSync,
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -169,9 +169,9 @@ export function OnboardingLayout({
   const handleProductSelectionChange = useCallback(
     (params: {previousProducts: ProductSolution[]; products: ProductSolution[]}) => {
       onProductSelectionChange?.(params);
-      onProductsChange?.(params.products);
+      onProductSelectionSync?.(params.products);
     },
-    [onProductSelectionChange, onProductsChange]
+    [onProductSelectionChange, onProductSelectionSync]
   );
 
   const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)

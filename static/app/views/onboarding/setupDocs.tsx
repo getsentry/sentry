@@ -63,7 +63,9 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                 organization={organization}
                 project={project}
                 activeProductSelection={products}
-                onProductsChange={hasScmOnboarding ? setSelectedFeatures : undefined}
+                onProductSelectionSync={
+                  hasScmOnboarding ? setSelectedFeatures : undefined
+                }
                 newOrg
               />
             )}
