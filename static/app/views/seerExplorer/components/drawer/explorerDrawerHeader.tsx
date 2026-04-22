@@ -103,7 +103,7 @@ export function ExplorerDrawerHeader({
     >
       <Flex align="center" gap="xs" height="100%">
         <Text size="md" weight="bold">
-          {t('Seer Explorer')}
+          {t('Seer Agent')}
         </Text>
         <FeatureBadge
           type="beta"
