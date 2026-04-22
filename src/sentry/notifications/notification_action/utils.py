@@ -166,7 +166,7 @@ def metric_alert_notification_data_factory(
         raise ValueError("Integration ID is None")
 
     if notification_context.target_identifier is None:
-        raise ValueError("Slack channel is None")
+        raise ValueError("Target identifier is None")
 
     referrer = f"metric_alert_{issue_notif_context.action_type}"
     attachment_info = incident_attachment_info(
