@@ -24,12 +24,11 @@ export function AskSeerButton() {
     !isOpen && sessionState === 'done-thinking' ? (
       <StatusIndicator variant="accent" />
     ) : (
-      <IconSeer />
+      <IconSeer animation={sessionState === 'thinking' ? 'loading' : undefined} />
     );
   const props: ButtonProps = {
     'aria-label': t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
-    busy: sessionState === 'thinking' ? true : undefined,
     priority: sessionState === 'thinking' ? 'primary' : 'default',
     icon: <IconWrapper>{icon}</IconWrapper>,
   };
