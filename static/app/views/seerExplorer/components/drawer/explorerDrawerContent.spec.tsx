@@ -4,9 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
-
-import {ExplorerDrawerContent} from './explorerDrawerContent';
 
 const mockOnClose = jest.fn();
 const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
