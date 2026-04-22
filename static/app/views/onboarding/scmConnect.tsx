@@ -60,7 +60,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
   );
 
   return (
-    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+    <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
       <ScmStepHeader
         heading={t('Connect a repo')}
         subtitle={t(
