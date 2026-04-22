@@ -278,30 +278,26 @@ export function InputSection({
           />
         </StyledInputGroup>
         {canInterrupt || waitingForInterrupt ? (
-          <ActionButtonSlot>
-            <Button
-              icon={<IconPause />}
-              onClick={onInterrupt}
-              size="md"
-              priority="primary"
-              disabled={waitingForInterrupt}
-              aria-label={t('Interrupt button')}
-              tooltipProps={{
-                title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
-              }}
-            />
-          </ActionButtonSlot>
+          <Button
+            icon={<IconPause />}
+            onClick={onInterrupt}
+            size="md"
+            priority="primary"
+            disabled={waitingForInterrupt}
+            aria-label={t('Interrupt button')}
+            tooltipProps={{
+              title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+            }}
+          />
         ) : (
-          <ActionButtonSlot>
-            <Button
-              icon={<IconArrow direction="right" />}
-              onClick={onSend}
-              size="md"
-              priority="default"
-              disabled={!inputValue.trim()}
-              aria-label={t('Send message')}
-            />
-          </ActionButtonSlot>
+          <Button
+            icon={<IconArrow direction="right" />}
+            onClick={onSend}
+            size="md"
+            priority="default"
+            disabled={!inputValue.trim()}
+            aria-label={t('Send message')}
+          />
         )}
         {enabled && hasCodeChanges && (
           <PRWidget
@@ -354,17 +350,6 @@ const ActionBar = styled(motion.div)`
   background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
-`;
-
-const ActionButtonSlot = styled('div')`
-  width: ${p => p.theme.form.md.height};
-  height: ${p => p.theme.form.md.height};
-  flex-shrink: 0;
-
-  > button {
-    width: 100%;
-    height: 100%;
-  }
 `;
 
 const Kbd = styled('span')`
