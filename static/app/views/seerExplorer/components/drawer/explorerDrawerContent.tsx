@@ -241,7 +241,12 @@ export function ExplorerDrawerContent({
       setFocusedBlockIndex(-1);
       textareaRef.current?.focus();
     }
+    // Reset to the minimum first so scrollHeight reflects the content size, not
+    // the previous expanded size (otherwise the textarea never shrinks).
     e.target.style.height = textareaMinHeightRef.current + 'px';
+    // scrollHeight is content + padding but excludes borders. On border-box
+    // elements, style.height sets the full box size, so we add the borders back
+    // to avoid the textarea ending up 2px shorter than its initial rows=1 height.
     const borderH = e.target.offsetHeight - e.target.clientHeight;
     const newHeight = Math.max(
       Math.min(e.target.scrollHeight + borderH, 120),
@@ -263,7 +268,8 @@ export function ExplorerDrawerContent({
   // - Scroll effects ---------------------------------------------------------
 
   useEffect(() => {
-    // Capture initial textarea height before any JS resizing
+    // Capture offsetHeight (not scrollHeight) so the minimum includes borders,
+    // matching the rows=1 rendered size exactly.
     if (textareaRef.current) {
       textareaMinHeightRef.current = textareaRef.current.offsetHeight;
     }
