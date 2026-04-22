@@ -62,6 +62,15 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   // `useSeerExplorer` via key-dedup, so there's no double polling.
   const {isPolling} = useSeerExplorerPolling({runId});
 
+  // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
+  // runId from sessionStorage flashes polling state before the user engages.
+  const [hasEverOpened, setHasEverOpened] = useState(false);
+  useEffect(() => {
+    if (isOpen) {
+      setHasEverOpened(true);
+    }
+  }, [isOpen]);
+
   // Sticky flag: session transitioned from polling → not-polling while the
   // drawer was closed. Cleared when the drawer opens (user has seen the
   // result) or when there's no active session.
@@ -71,10 +80,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   useEffect(() => {
     const wasPolling = wasPollingRef.current;
     wasPollingRef.current = isPolling;
-    if (wasPolling && !isPolling && !isOpen && runId !== null) {
+    if (hasEverOpened && wasPolling && !isPolling && !isOpen && runId !== null) {
       setIsDoneThinking(true);
     }
-  }, [isPolling, isOpen, runId]);
+  }, [isPolling, isOpen, runId, hasEverOpened]);
 
   useEffect(() => {
     if (isOpen || runId === null) {
@@ -82,11 +91,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     }
   }, [isOpen, runId]);
 
-  const sessionState = isDoneThinking
-    ? 'done-thinking'
-    : isPolling
-      ? 'thinking'
-      : 'inactive';
+  const sessionState = hasEverOpened
+    ? isDoneThinking
+      ? 'done-thinking'
+      : isPolling
+        ? 'thinking'
+        : 'inactive'
+    : 'inactive';
 
   const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
