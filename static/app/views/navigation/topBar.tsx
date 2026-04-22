@@ -34,7 +34,7 @@ function TopBarContent() {
 
   const {toggleSeerExplorer} = useSeerExplorerContext();
   // const {toggleSeerExplorer, isOpen: isSeerExplorerOpen, runId: seerExplorerRunId, setRunId: setSeerExplorerRunId} = useSeerExplorerContext();
-  // const {isSessionComplete} = useSeerExplorer({runId: seerExplorerRunId, setRunId: setSeerExplorerRunId});
+  // const {isPolling} = useSeerExplorer({runId: seerExplorerRunId, setRunId: setSeerExplorerRunId});
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
