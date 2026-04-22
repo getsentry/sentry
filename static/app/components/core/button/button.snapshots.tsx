@@ -43,7 +43,7 @@ describe('Button', () => {
               </Button>
             </Wrapper>
           ),
-          {theme: themeName, priority: String(priority), size: String(size), icon: 'no'}
+          {group: `${themeName} – without icon`}
         );
 
         it.snapshot(
@@ -55,7 +55,7 @@ describe('Button', () => {
               </Button>
             </Wrapper>
           ),
-          {theme: themeName, priority: String(priority), size: String(size), icon: 'yes'}
+          {group: `${themeName} – with icon`}
         );
 
         it.snapshot(
@@ -70,12 +70,7 @@ describe('Button', () => {
               />
             </Wrapper>
           ),
-          {
-            theme: themeName,
-            priority: String(priority),
-            size: String(size),
-            icon: 'only',
-          }
+          {group: `${themeName} – icon-only`}
         );
       });
     });
