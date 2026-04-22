@@ -299,7 +299,7 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
             )
         assert response.status_code == 201, response.content
         assert response.data["name"] == "New query"
-        assert response.data["projects"] == self.project_ids
+        assert sorted(response.data["projects"]) == sorted(self.project_ids)
         assert response.data["range"] == "24h"
         assert "start" not in response.data
         assert "end" not in response.data
