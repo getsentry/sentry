@@ -68,11 +68,19 @@ function buildTree(
   const children: LLMContextNodeSnapshot[] = [];
   for (const [id, node] of nodes) {
     if (node.parentId === parentId) {
-      const raw = (nodeData.has(id) ? nodeData.get(id) : {}) as Record<string, unknown>;
-      const {priority, ...data} = raw;
+      const raw = nodeData.has(id) ? nodeData.get(id) : {};
+      let priority = 0;
+      let data = raw;
+      if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+        const {priority: p, ...rest} = raw as Record<string, unknown>;
+        if (typeof p === 'number') {
+          priority = p;
+        }
+        data = rest;
+      }
       children.push({
         nodeType: node.nodeType,
-        priority: typeof priority === 'number' ? priority : 0,
+        priority,
         data,
         children: buildTree(nodes, nodeData, id),
       });
@@ -91,17 +99,22 @@ function serializeState(
     if (!node) {
       return {version: state.version, nodes: []};
     }
-    const raw = (nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {}) as Record<
-      string,
-      unknown
-    >;
-    const {priority, ...data} = raw;
+    const raw = nodeData.has(fromNodeId) ? nodeData.get(fromNodeId) : {};
+    let priority = 0;
+    let data = raw;
+    if (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) {
+      const {priority: p, ...rest} = raw as Record<string, unknown>;
+      if (typeof p === 'number') {
+        priority = p;
+      }
+      data = rest;
+    }
     return {
       version: state.version,
       nodes: [
         {
           nodeType: node.nodeType,
-          priority: typeof priority === 'number' ? priority : 0,
+          priority,
           data,
           children: buildTree(state.nodes, nodeData, fromNodeId),
         },
