@@ -13,19 +13,12 @@ import {
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {
-  makeSeerExplorerQueryKey,
-  RUN_ID_QUERY_PARAM,
-  usePageReferrer,
-} from 'sentry/views/seerExplorer/utils';
+import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type PendingUserInput = {
   data: Record<string, any>;
@@ -145,24 +138,7 @@ export const useSeerExplorer = () => {
   );
 
   // Support deep links that carry a run id; set it once and clean the URL.
-  const {openSeerExplorer} = useSeerExplorerContext();
   const {getPageReferrer} = usePageReferrer();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (typeof paramValue !== 'string') {
-      return;
-    }
-    const parsedRunId = Number(paramValue);
-    if (!Number.isNaN(parsedRunId)) {
-      openSeerExplorer();
-      setRunId(parsedRunId);
-      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
-      navigate({...location, query: restQuery}, {replace: true});
-    }
-  }, [location, navigate, openSeerExplorer, setRunId]);
 
   const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
   const [deletedFromIndex, setDeletedFromIndex] = useState<number | null>(null);
