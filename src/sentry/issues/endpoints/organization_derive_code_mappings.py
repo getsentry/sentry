@@ -123,6 +123,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             assert isinstance(installation, RepositoryIntegration)
             code_mapping = get_code_mapping_from_request(request, installation)
             new_code_mapping = create_code_mapping(organization, code_mapping, project)
+        except ValueError as e:
+            return self.respond({"text": str(e)}, status=status.HTTP_404_NOT_FOUND)
         except KeyError:
             return self.respond(
                 {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST

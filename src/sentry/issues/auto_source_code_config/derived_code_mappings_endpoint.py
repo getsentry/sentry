@@ -42,7 +42,7 @@ def get_code_mapping_from_request(
     repos = installation.get_repositories(query=repo_name)
     repo_info = RepositoryIntegration.find_repo_info(repos, repo_name)
     if not repo_info:
-        raise KeyError(f"Repository {repo_name} not found on provider")
+        raise ValueError(f"Repository {repo_name} not found on provider")
     external_id = repo_info["external_id"]
 
     return CodeMapping(
