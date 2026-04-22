@@ -5,10 +5,11 @@ import type {Crumb} from 'sentry/components/breadcrumbs';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
+import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 
 type Props = {
@@ -17,6 +18,7 @@ type Props = {
   organization: Organization;
   event?: Event;
   isHomepage?: boolean;
+  savedQuery?: SavedQuery;
 };
 
 export function DiscoverBreadcrumb({
@@ -25,6 +27,7 @@ export function DiscoverBreadcrumb({
   organization,
   location,
   isHomepage,
+  savedQuery,
 }: Props) {
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
@@ -57,8 +60,16 @@ export function DiscoverBreadcrumb({
       });
     }
     crumbs.push({
-      to: eventView.getResultsViewUrlTarget(organization, isHomepage),
-      label: eventView.name || '',
+      label: event ? (
+        eventView.name || ''
+      ) : (
+        <EventInputName
+          savedQuery={savedQuery}
+          organization={organization}
+          eventView={eventView}
+          isHomepage={isHomepage}
+        />
+      ),
     });
   }
 
