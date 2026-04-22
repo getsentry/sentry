@@ -9,6 +9,7 @@ from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
 from sentry.notifications.platform.types import (
+    NotificationData,
     NotificationProviderKey,
     NotificationSource,
     NotificationTarget,
@@ -29,9 +30,17 @@ NOTIFICATION_PLATFORM_ENABLED_PROVIDERS = {
 
 
 class IssueNotificationDispatcher:
+    invocation: ActionInvocation
+    issue_notification_context: IssueNotificationContext
+    notification_data: NotificationData | None
+    notification_target: NotificationTarget | None
+    threading_options: ThreadingOptions | None
+    _prepared: bool
+
     def __init__(self, invocation: ActionInvocation):
         self.invocation = invocation
         self.issue_notification_context = IssueNotificationContext(invocation)
+        self._prepared = False
 
     def should_send_via_notification_platform(self) -> bool:
         if not self.invocation.action.type:
@@ -44,36 +53,41 @@ class IssueNotificationDispatcher:
             self.issue_notification_context.organization, NotificationSource.METRIC_ALERT
         )
 
-    def dispatch(self) -> None:
+    def prepare_notification(self) -> None:
+        """
+        Sets NotificationData and ThreadingOptions, which require DB queries.
+        """
+        if self._prepared:
+            return
+
         if not self.should_send_via_notification_platform():
             raise NotificationDispatcherError("Notification platform not enabled for this action")
+        self.notification_target = self._extract_notification_target()
 
-        #  Handling for metric and issue alerts differ for now, but eventually
-        #  should have only a single notification type that handles all issue data.
         if self._is_metric_issue_action_invocation():
-            self._dispatch_metric_alert()
+            self.notification_data = metric_alert_notification_data_factory(
+                self.issue_notification_context
+            )
+            self.thread_key = self._get_metric_alert_thread_key()
+            self.threading_options = ThreadingOptions(thread_key=self.thread_key)
         else:
-            self._dispatch_issue_alert()
+            self.notification_data = issue_notification_data_factory(self.invocation)
+            self.thread_key = self._get_issue_alert_thread_key()
+            self.threading_options = ThreadingOptions(
+                thread_key=self.thread_key, reply_broadcast=False
+            )
 
-    # Dispatch methods for each notification type
-    def _dispatch_metric_alert(self) -> None:
-        metric_alert_notification_data = metric_alert_notification_data_factory(
-            self.issue_notification_context
-        )
-        notification_service = NotificationService(data=metric_alert_notification_data)
-        thread_key = self._get_metric_alert_thread_key()
-        threading_options = ThreadingOptions(thread_key=thread_key)
-        target = self._extract_notification_target()
-        notification_service.notify_sync(targets=[target], threading_options=threading_options)
+    def dispatch(self) -> None:
+        if not self._prepared:
+            self.prepare_notification()
 
-    def _dispatch_issue_alert(self) -> None:
-        issue_notification_data = issue_notification_data_factory(self.invocation)
-        notification_service = NotificationService(data=issue_notification_data)
-        target = self._extract_notification_target()
-        threading_options = ThreadingOptions(
-            thread_key=self._get_issue_alert_thread_key(), reply_broadcast=False
+        assert self.notification_data is not None
+        assert self.notification_target is not None
+
+        notification_service = NotificationService(data=self.notification_data)
+        notification_service.notify_sync(
+            targets=[self.notification_target], threading_options=self.threading_options
         )
-        notification_service.notify_sync(targets=[target], threading_options=threading_options)
 
     # General helper methods
     def _extract_notification_target(self) -> NotificationTarget:
