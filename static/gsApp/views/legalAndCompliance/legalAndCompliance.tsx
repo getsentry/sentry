@@ -23,7 +23,7 @@ export default function LegalAndCompliance() {
       <SentryDocumentTitle title={t('Legal & Compliance')} />
       <SettingsPageHeader
         title="Legal & Compliance"
-        action={OrganizationRegionAction({organization})}
+        action={<OrganizationRegionAction organization={organization} />}
       />
       <TermsAndConditions subscription={subscription} />
       <GDPRPanel subscription={subscription} />

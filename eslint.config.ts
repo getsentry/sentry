@@ -959,6 +959,13 @@ export default typescript.config([
     },
   },
   {
+    name: 'files/fixtures',
+    files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
+    rules: {
+      '@sentry/no-calling-components-as-functions': 'off',
+    },
+  },
+  {
     name: 'eslint',
     files: ['static/eslint/**/*.js'],
     languageOptions: {
