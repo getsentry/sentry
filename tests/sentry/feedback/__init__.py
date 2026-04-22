@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 from sentry.utils import json
 
@@ -21,7 +22,7 @@ def mock_feedback_event(
                 "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
             },
         },
-        "event_id": "56b08cf7852c42cbb95e4a6998c66ad6",
+        "event_id": uuid4().hex,
         "timestamp": dt.timestamp(),
         "received": dt.isoformat(),
         "first_seen": dt.isoformat(),
