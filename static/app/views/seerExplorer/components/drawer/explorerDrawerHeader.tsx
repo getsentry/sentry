@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -11,7 +11,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconAdd, IconTimer, IconCopy} from 'sentry/icons';
+import {IconAdd, IconClock, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExplorerSessions} from 'sentry/views/seerExplorer/hooks/useExplorerSessions';
@@ -42,8 +42,6 @@ export function ExplorerDrawerHeader({
   overrideCodeModeEnable,
   onOverrideCodeModeEnableToggle,
 }: ExplorerDrawerHeaderProps) {
-  const [mode, setMode] = useState<'more-actions' | 'session-history'>('more-actions');
-
   // Session history query
   const {
     sessionMenuItems: rawSessionMenuItems,
@@ -54,35 +52,13 @@ export function ExplorerDrawerHeader({
     onChangeSession,
   });
 
-  const onOpenChange = useCallback((isOpen: boolean) => {
-    if (!isOpen) {
-      // Switch back to default actions on menu close
-      setMode('more-actions');
-    }
-  }, []);
-
-  // Default menu items
-  const moreActions: MenuItemProps[] = useMemo(
-    () => [
-      {
-        key: 'session-history',
-        label: t('History'),
-        leadingItems: <IconTimer />,
-        onAction: () => {
-          refetchSessionHistory();
-          setMode('session-history');
-        },
-        closeOnSelect: false,
-      },
-      {
-        key: 'copy-conversation',
-        label: t('Copy conversation to clipboard'),
-        leadingItems: <IconCopy />,
-        onAction: onCopySessionClick,
-        disabled: !copySessionEnabled,
-      },
-    ],
-    [onCopySessionClick, copySessionEnabled, refetchSessionHistory]
+  const onHistoryOpenChange = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) {
+        refetchSessionHistory();
+      }
+    },
+    [refetchSessionHistory]
   );
 
   // Session history menu items
@@ -118,13 +94,6 @@ export function ExplorerDrawerHeader({
         : []),
     ];
   }, [rawSessionMenuItems, isPending, isError]);
-
-  const menuItems = useMemo(() => {
-    if (mode === 'session-history') {
-      return sessionMenuItems;
-    }
-    return moreActions;
-  }, [mode, sessionMenuItems, moreActions]);
 
   return (
     <DrawerHeader hideBar hideCloseButtonText>
@@ -176,18 +145,27 @@ export function ExplorerDrawerHeader({
             </Flex>
           </Tooltip>
         )}
+        <Button
+          icon={<IconCopy />}
+          onClick={onCopySessionClick}
+          disabled={!copySessionEnabled}
+          priority="default"
+          size="xs"
+          aria-label={t('Copy conversation to clipboard')}
+          tooltipProps={{title: t('Copy conversation to clipboard')}}
+        />
         <DropdownMenu
-          items={menuItems}
+          items={sessionMenuItems}
           size="xs"
           position="bottom-end"
-          onOpenChange={onOpenChange}
+          onOpenChange={onHistoryOpenChange}
           triggerProps={{
-            'aria-label': t('More actions'),
-            tooltipProps: {title: t('More actions')},
-            icon: <IconEllipsis />,
+            'aria-label': t('Chat history'),
+            tooltipProps: {title: t('Chat history')},
+            icon: <IconClock />,
             showChevron: false,
-            priority: 'transparent',
-            size: 'zero',
+            priority: 'default',
+            size: 'xs',
           }}
         />
         <Button
