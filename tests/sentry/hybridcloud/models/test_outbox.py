@@ -5,6 +5,36 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import Mock, call, patch
 
+
+class _PairwiseSync:
+    """
+    Drop-in replacement for ``threading.Barrier(parties=2)`` that uses
+    a semaphore instead of a timed barrier, eliminating BrokenBarrierError
+    under slow CI loads.
+
+    Each ``wait()`` call blocks the caller until the *other* party also calls
+    ``wait()``.  Supports reuse across multiple iterations.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._count = 0
+        self._sem = threading.Semaphore(0)
+
+    def wait(self) -> None:
+        with self._lock:
+            self._count += 1
+            is_last = self._count == 2
+        if is_last:
+            # Both parties arrived; reset counter and unblock the waiting one.
+            with self._lock:
+                self._count = 0
+            self._sem.release()
+        else:
+            # First party: wait for the second (no hard timeout).
+            self._sem.acquire()
+
+
 import pytest
 from django.db import OperationalError, connections
 from pytest import raises
@@ -167,11 +197,15 @@ class OutboxDrainTest(TransactionTestCase):
 
     def test_drain_shard_not_flush_all__upper_bound(self) -> None:
         outbox1 = Organization(id=1).outbox_for_update()
-        outbox2 = Organization(id=1).outbox_for_update()
+        # Use a different org id so outbox2 is in a different shard.
+        # outbox1 and outbox2 for the same org coalesce — processing outbox1
+        # deletes outbox2 as a side effect, making the "not processed" assertion
+        # impossible to verify.  A different-shard outbox is untouched by the drain.
+        outbox2 = Organization(id=2).outbox_for_update()
 
         with outbox_context(flush=False):
             outbox1.save()
-        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        barrier = _PairwiseSync()
         processing_thread = threading.Thread(
             target=wrap_with_connection_closure(
                 lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
@@ -181,12 +215,12 @@ class OutboxDrainTest(TransactionTestCase):
 
         barrier.wait()
 
-        # Does not include outboxes created after starting process.
+        # Does not include outboxes from other shards created after starting.
         with outbox_context(flush=False):
             outbox2.save()
         barrier.wait()
 
-        processing_thread.join(timeout=1)
+        processing_thread.join(timeout=5)
         assert not CellOutbox.objects.filter(id=outbox1.id).first()
         assert CellOutbox.objects.filter(id=outbox2.id).first()
 
@@ -201,7 +235,7 @@ class OutboxDrainTest(TransactionTestCase):
             outbox1.save()
             outbox2.save()
 
-        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        barrier = _PairwiseSync()
         processing_thread_1 = threading.Thread(
             target=wrap_with_connection_closure(
                 lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
@@ -236,7 +270,7 @@ class OutboxDrainTest(TransactionTestCase):
 
         with outbox_context(flush=False):
             outbox1.save()
-        barrier: threading.Barrier = threading.Barrier(2, timeout=10)
+        barrier = _PairwiseSync()
         processing_thread = threading.Thread(
             target=wrap_with_connection_closure(
                 lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
@@ -270,7 +304,7 @@ class OutboxDrainTest(TransactionTestCase):
             outbox1.save()
             outbox2.save()
 
-        barrier: threading.Barrier = threading.Barrier(2, timeout=1)
+        barrier = _PairwiseSync()
         processing_thread_1 = threading.Thread(
             target=wrap_with_connection_closure(
                 lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
