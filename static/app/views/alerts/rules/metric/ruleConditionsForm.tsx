@@ -532,8 +532,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </StyledListTitle>
         </StyledListItem>
         {this.useMetricsEquationEditor ? (
-          <Fragment>
-            <Flex gap="xs">
+          <FormRow>
+            <Flex gap="xs" width="100%">
               <WizardField
                 name="aggregate"
                 help={null}
@@ -560,7 +560,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               project={project}
               onFilterSearch={onFilterSearch}
             />
-          </Fragment>
+          </FormRow>
         ) : (
           <FormRow>
             <WizardField
@@ -719,7 +719,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
               disabled={!this.disableTransactionAlertType}
               isHoverable
             >
-              <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+              <FormRow
+                noMargin={!this.useMetricsEquationEditor}
+                columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}
+              >
                 {this.renderProjectSelector()}
                 <SelectField
                   name="environment"
