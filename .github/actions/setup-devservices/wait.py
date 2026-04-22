@@ -13,7 +13,7 @@ import os
 import subprocess
 import sys
 
-TIMEOUT = 600
+TIMEOUT = 300
 
 
 def log(msg: str) -> None:
