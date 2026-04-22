@@ -39,6 +39,7 @@ export function ExplorerDrawerContent({
   const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaMinHeightRef = useRef<number>(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const blockEnterHandlers = useRef<
@@ -210,7 +211,8 @@ export function ExplorerDrawerContent({
     setInputValue('');
     userScrolledUpRef.current = false;
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaMinHeightRef.current + 'px';
+      textareaRef.current.dataset.overflowing = '';
     }
   }, [readOnly, inputValue, isPolling, sendMessage]);
 
@@ -239,8 +241,18 @@ export function ExplorerDrawerContent({
       setFocusedBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+    e.target.style.height = textareaMinHeightRef.current + 'px';
+    const borderH = e.target.offsetHeight - e.target.clientHeight;
+    const newHeight = Math.max(
+      Math.min(e.target.scrollHeight + borderH, 120),
+      textareaMinHeightRef.current
+    );
+    e.target.style.height = newHeight + 'px';
+    if (newHeight >= 120) {
+      e.target.dataset.overflowing = 'true';
+    } else {
+      e.target.dataset.overflowing = '';
+    }
   };
 
   const handleInputClick = useCallback(() => {
@@ -251,6 +263,10 @@ export function ExplorerDrawerContent({
   // - Scroll effects ---------------------------------------------------------
 
   useEffect(() => {
+    // Capture initial textarea height before any JS resizing
+    if (textareaRef.current) {
+      textareaMinHeightRef.current = textareaRef.current.offsetHeight;
+    }
     // Scroll to bottom and focus input when drawer opens
     setTimeout(() => {
       if (scrollContainerRef.current) {
