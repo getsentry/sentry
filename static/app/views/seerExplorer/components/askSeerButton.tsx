@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
@@ -35,7 +36,10 @@ export function AskSeerButton() {
 
   return (
     <SeerButton {...props} onClick={toggleSeerExplorer}>
-      {t('Ask Seer')}
+      <Flex align="center" gap="sm">
+        {t('Ask Seer')}
+        <Hotkey value="command+/" variant="debossed" />
+      </Flex>
     </SeerButton>
   );
 }
