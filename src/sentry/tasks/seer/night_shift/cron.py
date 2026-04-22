@@ -4,6 +4,7 @@ import logging
 import time
 from collections.abc import Sequence
 from datetime import timedelta
+from typing import Any
 
 import sentry_sdk
 
@@ -47,7 +48,7 @@ FEATURE_NAMES = [
     namespace=seer_tasks,
     processing_deadline_duration=15 * 60,
 )
-def schedule_night_shift() -> None:
+def schedule_night_shift(**kwargs: Any) -> None:
     """
     Nightly scheduler: iterates active orgs in batches, checks feature flags
     in bulk, and dispatches per-org worker tasks with jitter.
@@ -91,6 +92,7 @@ def run_night_shift_for_org(
     organization_id: int,
     dry_run: bool = False,
     max_candidates: int | None = None,
+    **kwargs: Any,
 ) -> int | None:
     try:
         organization = Organization.objects.get(

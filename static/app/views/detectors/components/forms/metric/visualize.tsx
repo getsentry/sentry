@@ -12,7 +12,7 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
-import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
@@ -224,11 +224,8 @@ export function Visualize() {
   const organization = useOrganization();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
 
-  const aggregateFunction = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
   if (dataset === DetectorDataset.METRICS) {
-    if (canUseMetricsEquationsInAlerts(organization) && isEquation(aggregateFunction)) {
+    if (canUseMetricsEquationsInAlerts(organization)) {
       return <MetricsEquationVisualize />;
     }
     return <MetricsVisualize />;

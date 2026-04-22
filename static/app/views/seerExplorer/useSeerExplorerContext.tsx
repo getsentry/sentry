@@ -1,26 +1,23 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import {createContext, useContext, useMemo, type ReactNode} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {
+  type OpenSeerExplorerDrawerOptions,
+  useSeerExplorerDrawer,
+} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
-  isMinimized: boolean;
+  isMinimized: boolean; // for backward compatibility with ExplorerPanel.
   isOpen: boolean;
-  openSeerExplorer: () => void;
-  setIsMinimized: (value: boolean) => void;
+  openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
+  setIsMinimized: (value: boolean) => void; // for backward compatibility with ExplorerPanel.
   toggleSeerExplorer: () => void;
 };
 
-const SeerExplorerContext = createContext<SeerExplorerContextValue>({
+export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isMinimized: false,
   isOpen: false,
@@ -30,35 +27,25 @@ const SeerExplorerContext = createContext<SeerExplorerContextValue>({
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  // Initialize the global explorer panel state. Includes hotkeys.
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
-
-  const openSeerExplorer = useCallback(() => {
-    setIsOpen(true);
-  }, []);
-
-  const closeSeerExplorer = useCallback(() => {
-    setIsOpen(false);
-  }, []);
-
-  const toggleSeerExplorer = useCallback(() => {
-    setIsOpen(prev => !prev);
-  }, []);
+  const {
+    openSeerExplorerDrawer,
+    closeSeerExplorerDrawer,
+    toggleSeerExplorerDrawer,
+    isOpen,
+  } = useSeerExplorerDrawer();
 
   const contextValue = useMemo(
     () => ({
       isOpen,
-      isMinimized,
-      openSeerExplorer,
-      closeSeerExplorer,
-      setIsMinimized,
-      toggleSeerExplorer,
+      isMinimized: false,
+      setIsMinimized: () => {},
+      openSeerExplorer: openSeerExplorerDrawer,
+      closeSeerExplorer: closeSeerExplorerDrawer,
+      toggleSeerExplorer: toggleSeerExplorerDrawer,
     }),
-    [isOpen, isMinimized, openSeerExplorer, closeSeerExplorer, toggleSeerExplorer]
+    [isOpen, openSeerExplorerDrawer, closeSeerExplorerDrawer, toggleSeerExplorerDrawer]
   );
 
-  // Hot keys for toggling the explorer panel.
   const {visible: isModalOpen} = useGlobalModal();
 
   useHotkeys(
@@ -68,11 +55,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           {
             match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
             callback: () => {
-              if (isOpen && isMinimized) {
-                setIsMinimized(false);
-              } else {
-                toggleSeerExplorer();
-              }
+              toggleSeerExplorerDrawer();
             },
             includeInputs: true,
           },

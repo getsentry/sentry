@@ -31,18 +31,14 @@ function TopBarContent() {
   const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
 
-  const {openSeerExplorer} = useSeerExplorerContext();
+  const {toggleSeerExplorer} = useSeerExplorerContext();
 
   useEffect(() => {
-    if (!hasPageFrame) {
-      document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
-      return;
-    }
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
     return () => {
       document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
     };
-  }, [hasPageFrame, contentTop]);
+  }, [contentTop]);
 
   if (!hasPageFrame) {
     return null;
@@ -76,7 +72,7 @@ function TopBarContent() {
           </Slot.Outlet>
 
           {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openSeerExplorer}>
+            <Button icon={<IconSeer />} onClick={toggleSeerExplorer}>
               {t('Ask Seer')}
             </Button>
           ) : null}

@@ -68,9 +68,6 @@ from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
 from sentry.web.frontend.debug.debug_unable_to_delete_repository import (
     DebugUnableToDeleteRepository,
 )
-from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
-    DebugUnableToFetchCommitsEmailView,
-)
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
 from sentry.web.frontend.debug.debug_uptime_auto_detected_monitor_email import (
     DebugUptimeAutoDetectedMonitorEmailView,
@@ -130,7 +127,6 @@ urlpatterns = [
         r"^debug/mail/relocation-succeeded/$", sentry.web.frontend.debug.mail.relocation_succeeded
     ),
     re_path(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
-    re_path(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     re_path(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
     re_path(r"^debug/mail/weekly-reports/$", DebugWeeklyReportView.as_view()),
     re_path(r"^debug/mail/org-delete-confirm/$", sentry.web.frontend.debug.mail.org_delete_confirm),

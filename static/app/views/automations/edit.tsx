@@ -1,9 +1,10 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -51,6 +52,7 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
@@ -58,9 +60,16 @@ function AutomationDocumentTitle() {
   return <SentryDocumentTitle title={title ?? t('Edit Alert')} />;
 }
 
-function AutomationBreadcrumbs({automationId}: {automationId: string}) {
+function AutomationBreadcrumbs({
+  automationId,
+  automationName,
+}: {
+  automationId: string;
+  automationName: string;
+}) {
   const title = useFormField('name');
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -69,7 +78,7 @@ function AutomationBreadcrumbs({automationId}: {automationId: string}) {
           to: makeAutomationBasePathname(organization.slug),
         },
         {
-          label: title,
+          label: hasPageFrame ? automationName : title,
           to: makeAutomationDetailsPathname(organization.slug, automationId),
         },
         {label: t('Configure')},
@@ -235,10 +244,29 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           <Layout.Header {...(hasPageFrame ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                <AutomationBreadcrumbs automationId={params.automationId} />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
+                {hasPageFrame ? (
+                  <Fragment>
+                    <TopBar.Slot name="title">
+                      <AutomationBreadcrumbs
+                        automationId={params.automationId}
+                        automationName={automation.name}
+                      />
+                    </TopBar.Slot>
+                    <Heading as="h1" ellipsis>
+                      <EditableAutomationName />
+                    </Heading>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <AutomationBreadcrumbs
+                      automationId={params.automationId}
+                      automationName={automation.name}
+                    />
+                    <Layout.Title>
+                      <EditableAutomationName />
+                    </Layout.Title>
+                  </Fragment>
+                )}
               </Layout.HeaderContent>
               <div>
                 <AutomationFeedbackButton />
@@ -274,7 +302,17 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           </Layout.Body>
         </Stack>
         <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+          <Flex
+            width="100%"
+            maxWidth={
+              hasPageFrame
+                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
+                : maxWidth
+            }
+            align="center"
+            gap="md"
+            justify="end"
+          >
             <EditAutomationActions automation={automation} form={model} />
           </Flex>
         </StickyFooter>

@@ -233,7 +233,6 @@ const HIDDEN_ISSUE_TYPES: IssueType[] = [
 ];
 
 export const AI_DETECTED_ISSUE_TYPES = new Set<IssueType>([
-  IssueType.LLM_DETECTED_EXPERIMENTAL_V2,
   IssueType.AI_DETECTED_HTTP,
   IssueType.AI_DETECTED_DB,
   IssueType.AI_DETECTED_RUNTIME_PERFORMANCE,

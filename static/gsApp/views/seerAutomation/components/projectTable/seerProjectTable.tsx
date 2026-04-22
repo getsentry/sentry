@@ -27,6 +27,7 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getFilteredCodingAgentName,
   type PreferredAgentProvider,
@@ -43,7 +44,6 @@ import {
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
@@ -53,7 +53,7 @@ export function SeerProjectTable() {
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
-  const agentOptions = useFetchAgentOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
     filterCodingAgentQueryOptions({
       organization,
@@ -258,8 +258,9 @@ export function SeerProjectTable() {
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
-            projects={filteredProjects}
+            agentOptions={agentOptions}
             onSortClick={setSort}
+            projects={filteredProjects}
             sort={sort}
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />

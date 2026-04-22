@@ -220,12 +220,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/events/{event_id}/"
             return self.client.get(url, {"query": query}, format="json")
 
-        allowlist = {
-            "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids": [
-                self.organization.id
-            ]
-        }
-        with self.options(allowlist):
+        with self.options({"eventstore.adjacent_event_ids_apply_query_conditions": True}):
             # Middle matching event: prev/next hop past the non-matching
             # neighbors on both sides.
             middle = fetch(m2.event_id)
@@ -283,13 +278,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{blue.group.id}/events/{blue.event_id}/"
-        with self.options(
-            {
-                "eventstore.adjacent_event_ids_apply_query_conditions.organization_ids": [
-                    self.organization.id
-                ]
-            }
-        ):
+        with self.options({"eventstore.adjacent_event_ids_apply_query_conditions": True}):
             response = self.client.get(url, {"query": "color:[red, blue]"}, format="json")
 
         assert response.status_code == 200, response.content

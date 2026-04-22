@@ -98,7 +98,12 @@ export default function ProjectTags() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Tags & Context'), project.slug, false)}
       />
-      <SettingsPageHeader title={t('Tags & Context')} />
+      <SettingsPageHeader
+        title={t('Tags & Context')}
+        subtitle={t(
+          'Setup Highlights to promote your event data to the top of the issue page for quicker debugging.'
+        )}
+      />
       <ProjectPermissionAlert project={project} />
       <HighlightsSettingsForm projectSlug={project.slug} />
       <TextBlock>

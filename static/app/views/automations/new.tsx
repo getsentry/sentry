@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -8,6 +8,7 @@ import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -47,6 +48,7 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
@@ -59,6 +61,7 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -66,7 +69,7 @@ function AutomationBreadcrumbs() {
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {label: title ? title : t('New Alert')},
+        {label: hasPageFrame ? t('New Alert') : title || t('New Alert')},
       ]}
     />
   );
@@ -237,10 +240,23 @@ export default function AutomationNewSettings() {
           <Layout.Header {...(hasPageFrame ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                <AutomationBreadcrumbs />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
+                {hasPageFrame ? (
+                  <Fragment>
+                    <TopBar.Slot name="title">
+                      <AutomationBreadcrumbs />
+                    </TopBar.Slot>
+                    <Heading as="h1" ellipsis>
+                      <EditableAutomationName />
+                    </Heading>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <AutomationBreadcrumbs />
+                    <Layout.Title>
+                      <EditableAutomationName />
+                    </Layout.Title>
+                  </Fragment>
+                )}
               </Layout.HeaderContent>
               <div>
                 <AutomationFeedbackButton />
@@ -275,7 +291,17 @@ export default function AutomationNewSettings() {
           </Layout.Body>
         </Stack>
         <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+          <Flex
+            width="100%"
+            maxWidth={
+              hasPageFrame
+                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
+                : maxWidth
+            }
+            align="center"
+            gap="md"
+            justify="end"
+          >
             <Observer>
               {() => (
                 <Button priority="primary" type="submit" busy={model.isSaving}>

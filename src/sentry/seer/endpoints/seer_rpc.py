@@ -68,6 +68,7 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issue_filter_keys,
     get_issues_stats,
 )
+from sentry.seer.assisted_query.metrics_tools import get_metric_metadata
 from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
@@ -941,6 +942,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_metric_metadata": get_metric_metadata,
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
     "get_issues_stats": get_issues_stats,

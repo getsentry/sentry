@@ -16,7 +16,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 import {ProjectProguardRow} from './projectProguardRow';
@@ -98,6 +97,14 @@ export default function ProjectProguard() {
     <Fragment>
       <SettingsPageHeader
         title={t('ProGuard Mappings')}
+        subtitle={tct(
+          'ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].',
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/" />
+            ),
+          }
+        )}
         action={
           <SearchBar
             placeholder={t('Filter mappings')}
@@ -107,17 +114,6 @@ export default function ProjectProguard() {
           />
         }
       />
-
-      <TextBlock>
-        {tct(
-          'ProGuard mapping files are used to convert minified classes, methods and field names into a human readable format. To learn more about proguard mapping files, [link: read the docs].',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/android/proguard/" />
-            ),
-          }
-        )}
-      </TextBlock>
 
       <StyledPanelTable
         headers={[t('Mapping'), <SizeColumn key="size">{t('File Size')}</SizeColumn>, '']}
