@@ -87,7 +87,7 @@ export function MetricToolbar({
   );
 
   const dndGrid = dragListeners ? 'auto ' : '';
-  const removeMetric = canRemoveMetric ? '24px' : '0';
+  const removeMetric = canRemoveMetric ? '24px' : '';
   const columns = isVisualizeFunction(visualize)
     ? isNarrow
       ? `${dndGrid}auto 1fr 1fr ${removeMetric}`

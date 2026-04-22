@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -8,6 +8,7 @@ import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -47,6 +48,8 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -58,6 +61,7 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -65,7 +69,7 @@ function AutomationBreadcrumbs() {
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {label: title ? title : t('New Alert')},
+        {label: hasPageFrameFeature ? t('New Alert') : title || t('New Alert')},
       ]}
     />
   );
@@ -134,6 +138,7 @@ export default function AutomationNewSettings() {
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
   const initialData = useInitialFormData();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const {
     errors: automationBuilderErrors,
@@ -235,10 +240,23 @@ export default function AutomationNewSettings() {
           <StyledLayoutHeader>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                <AutomationBreadcrumbs />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
+                {hasPageFrameFeature ? (
+                  <Fragment>
+                    <TopBar.Slot name="title">
+                      <AutomationBreadcrumbs />
+                    </TopBar.Slot>
+                    <Heading as="h1" ellipsis>
+                      <EditableAutomationName />
+                    </Heading>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <AutomationBreadcrumbs />
+                    <Layout.Title>
+                      <EditableAutomationName />
+                    </Layout.Title>
+                  </Fragment>
+                )}
               </Layout.HeaderContent>
               <div>
                 <AutomationFeedbackButton />

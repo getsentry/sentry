@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {CaptureContext} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -28,11 +27,6 @@ import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/tr
 type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
-};
-
-type CaptureRule = {
-  messages: string[];
-  shouldCapture: boolean;
 };
 
 /**
@@ -171,57 +165,6 @@ function getAISpanAttributes({
         />
       ),
     });
-  }
-
-  const captureRules: CaptureRule[] = [
-    {
-      shouldCapture: Boolean(
-        model &&
-        (inputTokens || outputTokens) &&
-        (!totalCosts || Number(totalCosts) === 0)
-      ),
-      messages: [`Gen AI cost data missing for model: ${model?.toString()}`],
-    },
-    {
-      shouldCapture: Boolean(model && totalCosts && Number(totalCosts) < 0),
-      messages: [`Gen AI span with negative cost: ${model?.toString()}`],
-    },
-  ];
-  const shouldCapture = captureRules.some(rule => rule.shouldCapture);
-
-  if (shouldCapture && model) {
-    const integration = attributes['gen_ai.system'];
-    const platform = attributes.platform ?? attributes['sdk.name'];
-    const version = attributes['sdk.version'];
-    const orgId =
-      attributes['org.id'] ?? attributes['organization.id'] ?? attributes.organization_id;
-    const hasCost = totalCosts && Number(totalCosts) !== 0;
-    const contextData: CaptureContext = {
-      level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        span_type: 'gen_ai',
-        has_model: 'true',
-        has_cost: hasCost ? 'true' : 'false',
-        model: model.toString(),
-        integration: integration?.toString() ?? 'unknown',
-        platform: platform?.toString() ?? 'unknown',
-        version: version?.toString() ?? 'unknown',
-        org_id: orgId?.toString() ?? 'unknown',
-        ai_cost_warning: 'true', // we use this for assigning ownership
-      },
-      extra: {
-        total_costs: totalCosts,
-        attributes,
-      },
-    };
-
-    captureRules
-      .filter(rule => rule.shouldCapture)
-      .flatMap(rule => rule.messages)
-      .forEach(message => {
-        Sentry.captureMessage(message, contextData);
-      });
   }
 
   const toolName = attributes['gen_ai.tool.name'];

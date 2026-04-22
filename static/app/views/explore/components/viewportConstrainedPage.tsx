@@ -1,11 +1,10 @@
 import styled from '@emotion/styled';
 
-import type {FlexProps} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
-interface ViewportConstrainedPageProps extends FlexProps<'main'> {
+interface ViewportConstrainedPageProps extends FlexProps<'div'> {
   constrained?: boolean;
   hideFooter?: boolean;
 }
@@ -27,11 +26,12 @@ export function ViewportConstrainedPage({
   ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return <Layout.Page {...rest} />;
+    return <Stack flex="1" {...rest} />;
   }
 
   return (
     <ConstrainedPage
+      flex="1"
       minHeight="0"
       overflow="hidden"
       data-hide-footer={hideFooter ? '' : undefined}
@@ -40,7 +40,7 @@ export function ViewportConstrainedPage({
   );
 }
 
-const ConstrainedPage = styled(Layout.Page)`
+const ConstrainedPage = styled(Stack)`
   contain: size;
 
   @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {

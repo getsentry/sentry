@@ -31,7 +31,6 @@ import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQu
 import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
 import {
   MAX_METRICS_ALLOWED,
-  MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -40,6 +39,7 @@ import {
   StyledPageFilterBar,
 } from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
@@ -47,16 +47,6 @@ type MetricsTabProps = {
 };
 
 export function MetricsTabContent({datePageFilterProps}: MetricsTabProps) {
-  const organization = useOrganization();
-  const hasEquations = canUseMetricsEquations(organization);
-  return (
-    <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
-      <MetricsTabContentInner datePageFilterProps={datePageFilterProps} />
-    </MultiMetricsQueryParamsProvider>
-  );
-}
-
-function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
   const {referencedMetricLabels, onEquationLabelsChange} = useEquationReferencedLabels();
 
   return (
@@ -78,6 +68,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
   const addMetricQuery = useAddMetricQuery();
   const addEquationQuery = useAddMetricQuery({type: 'equation'});
   const hasEquations = canUseMetricsEquations(organization);
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   // Cannot add metric queries beyond Z
   const isAddMetricDisabled =
@@ -96,24 +87,25 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>
-          <Flex gap="sm" align="center">
-            <ToolbarVisualizeAddChart
-              add={addMetricQuery}
-              disabled={isAddMetricDisabled}
-              label={t('Add Metric')}
-              display="button"
-            />
-
-            {hasEquations && (
+          {hasPageFrameFeature ? null : (
+            <Flex gap="sm" align="center">
               <ToolbarVisualizeAddChart
+                add={addMetricQuery}
+                disabled={isAddMetricDisabled}
+                label={t('Add Metric')}
                 display="button"
-                add={addEquationQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-                label={t('Add Equation')}
               />
-            )}
-            <MetricSaveAs size="md" />
-          </Flex>
+              {hasEquations && (
+                <ToolbarVisualizeAddChart
+                  display="button"
+                  add={addEquationQuery}
+                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                  label={t('Add Equation')}
+                />
+              )}
+              <MetricSaveAs size="md" />
+            </Flex>
+          )}
         </FilterBarWithSaveAsContainer>
       </Layout.Main>
     </ExploreBodySearch>
@@ -130,6 +122,7 @@ function MetricsTabBodySection({
   onEquationLabelsChange,
 }: SectionProps) {
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const metricQueries = useMultiMetricsQueryParams();
   const addMetricQuery = useAddMetricQuery();
   const [interval] = useChartInterval();
@@ -193,22 +186,24 @@ function MetricsTabBodySection({
             referencedMetricLabels={referencedMetricLabels}
             onEquationLabelsChange={onEquationLabelsChange}
           />
-          <Flex gap="sm" direction="row">
-            <ToolbarVisualizeAddChart
-              add={addMetricQuery}
-              disabled={isAddMetricDisabled}
-              label={t('Add Metric')}
-              display="button"
-            />
-            {hasEquations && (
+          {hasPageFrameFeature ? null : (
+            <Flex gap="sm" direction="row">
               <ToolbarVisualizeAddChart
+                add={addMetricQuery}
+                disabled={isAddMetricDisabled}
+                label={t('Add Metric')}
                 display="button"
-                add={addEquationQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-                label={t('Add Equation')}
               />
-            )}
-          </Flex>
+              {hasEquations && (
+                <ToolbarVisualizeAddChart
+                  display="button"
+                  add={addEquationQuery}
+                  disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
+                  label={t('Add Equation')}
+                />
+              )}
+            </Flex>
+          )}
         </WidgetSyncContextProvider>
       </Stack>
     </ExploreContentSection>

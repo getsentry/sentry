@@ -1,4 +1,7 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -23,6 +26,7 @@ import {
   getGroupReprocessingStatus,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function GroupLayoutBody({children}: {children: React.ReactNode}) {
   const {isSidebarOpen} = useIssueDetails();
@@ -49,57 +53,68 @@ export function GroupDetailsLayout({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const theme = useTheme();
 
   return (
     <IssueDetailsContextProvider>
-      <StreamlinedGroupHeader group={group} event={event ?? null} project={project} />
-      <GroupLayoutBody>
-        <div>
-          <SharedTourElement<IssueDetailsTour>
-            id={IssueDetailsTour.AGGREGATES}
-            demoTourId={DemoTourStep.ISSUES_AGGREGATES}
-            tourContext={IssueDetailsTourContext}
-            title={t('See overall impact')}
-            description={t(
-              "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
-            )}
-            position="bottom"
-          >
-            {tourProps => (
-              <div {...tourProps}>
-                <EventDetailsHeader event={event} group={group} project={project} />
-              </div>
-            )}
-          </SharedTourElement>
-          <SharedTourElement<IssueDetailsTour>
-            id={IssueDetailsTour.EVENT_DETAILS}
-            demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
-            tourContext={IssueDetailsTourContext}
-            title={t('Investigate the issue')}
-            description={t(
-              'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
-            )}
-            position="top"
-          >
-            {tourProps => (
-              <div {...tourProps}>
-                <GroupContent>
-                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
-                    issueTypeConfig.header.eventNavigation.enabled && (
-                      <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
-                        <IssueEventNavigation event={event} group={group} />
-                        {/* Since the event details header is disabled, display the sidebar toggle here */}
-                        {!hasFilterBar && <ToggleSidebar size="sm" />}
-                      </NavigationSidebarWrapper>
-                    )}
-                  <ContentPadding>{children}</ContentPadding>
-                </GroupContent>
-              </div>
-            )}
-          </SharedTourElement>
-        </div>
-        <StreamlinedSidebar group={group} event={event} project={project} />
-      </GroupLayoutBody>
+      <Container
+        display="contents"
+        style={
+          hasPageFrameFeature
+            ? ({'--issue-details-inset': theme.space.xl} as React.CSSProperties)
+            : undefined
+        }
+      >
+        <StreamlinedGroupHeader group={group} event={event ?? null} project={project} />
+        <GroupLayoutBody>
+          <div>
+            <SharedTourElement<IssueDetailsTour>
+              id={IssueDetailsTour.AGGREGATES}
+              demoTourId={DemoTourStep.ISSUES_AGGREGATES}
+              tourContext={IssueDetailsTourContext}
+              title={t('See overall impact')}
+              description={t(
+                "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
+              )}
+              position="bottom"
+            >
+              {tourProps => (
+                <div {...tourProps}>
+                  <EventDetailsHeader event={event} group={group} project={project} />
+                </div>
+              )}
+            </SharedTourElement>
+            <SharedTourElement<IssueDetailsTour>
+              id={IssueDetailsTour.EVENT_DETAILS}
+              demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+              tourContext={IssueDetailsTourContext}
+              title={t('Investigate the issue')}
+              description={t(
+                'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
+              )}
+              position="top"
+            >
+              {tourProps => (
+                <div {...tourProps}>
+                  <GroupContent>
+                    {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                      issueTypeConfig.header.eventNavigation.enabled && (
+                        <NavigationSidebarWrapper hasToggleSidebar={!hasFilterBar}>
+                          <IssueEventNavigation event={event} group={group} />
+                          {/* Since the event details header is disabled, display the sidebar toggle here */}
+                          {!hasFilterBar && <ToggleSidebar size="sm" />}
+                        </NavigationSidebarWrapper>
+                      )}
+                    <ContentPadding>{children}</ContentPadding>
+                  </GroupContent>
+                </div>
+              )}
+            </SharedTourElement>
+          </div>
+          <StreamlinedSidebar group={group} event={event} project={project} />
+        </GroupLayoutBody>
+      </Container>
     </IssueDetailsContextProvider>
   );
 }
@@ -138,12 +153,12 @@ const NavigationSidebarWrapper = styled('div')<{
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
     p.hasToggleSidebar
-      ? `${p.theme.space.md} 0 ${p.theme.space.sm} ${p.theme.space['2xl']}`
-      : `${p.theme.space.sm} ${p.theme.space['2xl']} ${p.theme.space.xs} ${p.theme.space['2xl']}`};
+      ? `${p.theme.space.md} 0 ${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']})`
+      : `${p.theme.space.sm} var(--issue-details-inset, ${p.theme.space['2xl']}) ${p.theme.space.xs} var(--issue-details-inset, ${p.theme.space['2xl']})`};
 `;
 
 const ContentPadding = styled('div')`
   min-height: 100vh;
-  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['2xl']}
-    ${p => p.theme.space['2xl']};
+  padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
+    ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
 `;
