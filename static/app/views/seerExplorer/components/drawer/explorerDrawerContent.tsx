@@ -378,7 +378,6 @@ export function ExplorerDrawerContent({
     textareaRef,
     setFocusedBlockIndex,
     isFileApprovalPending,
-    isPolling,
     isQuestionPending,
     onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
@@ -445,7 +444,6 @@ export function ExplorerDrawerContent({
                   index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
                 }
                 isFocused={focusedBlockIndex === index}
-                isPolling={isPolling}
                 readOnly={readOnly}
                 onMouseEnter={() => {
                   // Don't change focus while menu is open, if already on this block, or if hover is disabled
@@ -505,9 +503,9 @@ export function ExplorerDrawerContent({
         enabled={!readOnly}
         inputValue={inputValue}
         isFocused={focusedBlockIndex === -1}
+        canInterrupt={sessionData?.status === 'processing'} // TODO: update when adding timeouts
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
-        isPolling={isPolling}
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
         onCreatePR={createPR}

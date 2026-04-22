@@ -47,7 +47,6 @@ interface BlockProps {
   isFocused?: boolean;
   isLast?: boolean;
   isLatestTodoBlock?: boolean;
-  isPolling?: boolean;
   onClick?: () => void;
   onDelete?: () => void;
   onMouseEnter?: () => void;
@@ -149,7 +148,6 @@ export function BlockComponent({
   isLast,
   isLatestTodoBlock,
   isFocused,
-  isPolling,
   onClick,
   onDelete,
   onMouseEnter,
@@ -361,7 +359,6 @@ export function BlockComponent({
 
   const showActions =
     isFocused &&
-    !isPolling &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&

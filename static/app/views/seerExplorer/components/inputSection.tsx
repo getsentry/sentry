@@ -31,10 +31,10 @@ interface QuestionActions {
 
 interface InputSectionProps {
   blocks: Block[];
+  canInterrupt: boolean;
   enabled: boolean;
   inputValue: string;
   isFocused: boolean;
-  isPolling: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -59,7 +59,7 @@ export function InputSection({
   inputValue,
   isFocused,
   isMinimized = false,
-  isPolling,
+  canInterrupt,
   waitingForInterrupt,
   isVisible = false,
   onCreatePR,
@@ -258,34 +258,6 @@ export function InputSection({
     );
   }
 
-  const renderActionButton = () => {
-    if (isPolling || waitingForInterrupt) {
-      return (
-        <PauseButton
-          icon={<IconPause />}
-          onClick={onInterrupt}
-          size="md"
-          priority="primary"
-          disabled={waitingForInterrupt}
-          aria-label={t('Interrupt')}
-          tooltipProps={{
-            title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
-          }}
-        />
-      );
-    }
-
-    return (
-      <SendButton
-        icon={<IconArrow direction="right" />}
-        onClick={onSend}
-        size="md"
-        disabled={!inputValue.trim()}
-        aria-label={t('Send message')}
-      />
-    );
-  };
-
   return (
     <InputBlock>
       <InputRow>
@@ -305,7 +277,27 @@ export function InputSection({
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
-        {renderActionButton()}
+        {canInterrupt || waitingForInterrupt ? (
+          <PauseButton
+            icon={<IconPause />}
+            onClick={onInterrupt}
+            size="md"
+            priority="primary"
+            disabled={waitingForInterrupt}
+            aria-label={t('Interrupt button')}
+            tooltipProps={{
+              title: waitingForInterrupt ? t('Winding down...') : t('Interrupt'),
+            }}
+          />
+        ) : (
+          <SendButton
+            icon={<IconArrow direction="right" />}
+            onClick={onSend}
+            size="md"
+            disabled={!inputValue.trim()}
+            aria-label={t('Send message')}
+          />
+        )}
         {enabled && hasCodeChanges && (
           <PRWidget
             ref={prWidgetButtonRef}
