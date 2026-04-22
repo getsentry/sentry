@@ -735,7 +735,7 @@ class WorkflowRuleSerializerTest(TestCase):
             )
         action_data = {**JIRA_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        action_data.pop("uuid")
+        action_data.pop("uuid", None)  # uuid may be absent if blob was mutated
 
         rule = self.create_project_rule(
             project=self.project,
@@ -756,7 +756,7 @@ class WorkflowRuleSerializerTest(TestCase):
             )
         action_data = {**JIRA_SERVER_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        action_data.pop("uuid")
+        action_data.pop("uuid", None)  # uuid may be absent if blob was mutated
 
         rule = self.create_project_rule(
             project=self.project,
@@ -777,7 +777,7 @@ class WorkflowRuleSerializerTest(TestCase):
             )
         action_data = {**GITHUB_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        action_data.pop("uuid")
+        action_data.pop("uuid", None)  # uuid may be absent if blob was mutated by another test
 
         rule = self.create_project_rule(
             project=self.project,
@@ -798,7 +798,7 @@ class WorkflowRuleSerializerTest(TestCase):
             )
         action_data = {**GITHUB_ACTION_DATA_BLOBS[3]}
         action_data["integration"] = integration.id
-        action_data.pop("uuid")
+        action_data.pop("uuid", None)  # uuid may be absent if the blob was mutated by another test
 
         rule = self.create_project_rule(
             project=self.project,
@@ -819,7 +819,7 @@ class WorkflowRuleSerializerTest(TestCase):
             )
         action_data = {**AZURE_DEVOPS_ACTION_DATA_BLOBS[0]}
         action_data["integration"] = integration.id
-        action_data.pop("uuid")
+        action_data.pop("uuid", None)  # uuid may be absent if blob was mutated
 
         rule = self.create_project_rule(
             project=self.project,
