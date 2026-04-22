@@ -84,7 +84,6 @@ class HasApiScopes(models.Model):
             "org:read": bool,
             "org:write": bool,
             "org:admin": bool,
-            "org:ci": bool,
             "member:read": bool,
             "member:write": bool,
             "member:admin": bool,
@@ -93,6 +92,7 @@ class HasApiScopes(models.Model):
             "alerts:write": bool,
             "member:invite": bool,
             "project:distribution": bool,
+            "org:ci": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())
