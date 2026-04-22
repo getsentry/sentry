@@ -11,7 +11,6 @@ const mockGetPageReferrer = jest.fn().mockReturnValue('/issues/');
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,
-  isSessionComplete: false,
   isPolling: false,
   isError: false,
   runId: null,
