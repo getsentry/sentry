@@ -128,7 +128,7 @@ export function ExplorerDrawerContent({
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = Boolean(runId && organization?.slug);
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
-    blocks: sessionData?.blocks,
+    blocks,
     status: sessionData?.status,
     organization,
     projects,
@@ -496,9 +496,9 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
+        showInterruptButton={isPolling && sessionData?.status === 'processing'}
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
-        isPolling={isPolling}
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
         onCreatePR={createPR}

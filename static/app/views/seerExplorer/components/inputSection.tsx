@@ -34,7 +34,6 @@ interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
   inputValue: string;
-  isPolling: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -44,6 +43,7 @@ interface InputSectionProps {
   onPRWidgetClick: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
+  showInterruptButton: boolean;
   textAreaRef: React.RefObject<HTMLTextAreaElement | null>;
   waitingForInterrupt: boolean;
   fileApprovalActions?: FileApprovalActions;
@@ -57,7 +57,7 @@ export function InputSection({
   enabled,
   inputValue,
   isMinimized = false,
-  isPolling,
+  showInterruptButton,
   waitingForInterrupt,
   isVisible = false,
   onCreatePR,
@@ -264,7 +264,7 @@ export function InputSection({
       );
     }
 
-    if (isPolling) {
+    if (showInterruptButton) {
       return (
         <Button
           icon={<IconPause variant="muted" />}
