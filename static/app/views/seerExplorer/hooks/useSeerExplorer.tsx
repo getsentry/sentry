@@ -14,7 +14,6 @@ import {
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
@@ -138,7 +137,13 @@ const isPolling = (
   return !isSessionComplete(sessionData);
 };
 
-export const useSeerExplorer = () => {
+export const useSeerExplorer = ({
+  runId,
+  setRunId,
+}: {
+  runId: number | null;
+  setRunId: (runId: number | null) => void;
+}) => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
@@ -150,11 +155,6 @@ export const useSeerExplorer = () => {
   );
   const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
     useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
-
-  const [runId, setRunId] = useSessionStorage<number | null>(
-    'seer-explorer-run-id',
-    null
-  );
 
   // Support deep links that carry a run id; set it once and clean the URL.
   const {getPageReferrer} = usePageReferrer();
