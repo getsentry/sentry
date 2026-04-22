@@ -363,7 +363,8 @@ export function BlockComponent({
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly;
+    !readOnly &&
+    block.message.role !== 'user';
   const showFeedbackButtons = block.message.role === 'assistant';
   const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
 

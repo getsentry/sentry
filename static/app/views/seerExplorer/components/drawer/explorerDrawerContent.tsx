@@ -311,7 +311,6 @@ export function ExplorerDrawerContent({
     blocks,
     blockRefs,
     textareaRef,
-    setFocusedBlockIndex: setHoveredBlockIndex,
     isFileApprovalPending,
     isQuestionPending,
     onKeyPress: (blockIndex, key) => {

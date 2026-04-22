@@ -7,7 +7,6 @@ interface UseBlockNavigationProps {
   blocks: Block[];
   focusedBlockIndex: number;
   isOpen: boolean;
-  setFocusedBlockIndex: (index: number) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   isFileApprovalPending?: boolean;
   isMinimized?: boolean;
@@ -22,7 +21,6 @@ export function useBlockNavigation({
   blocks,
   blockRefs,
   textareaRef,
-  setFocusedBlockIndex,
   isFileApprovalPending = false,
   isMinimized = false,
   isQuestionPending = false,
@@ -31,11 +29,6 @@ export function useBlockNavigation({
 }: UseBlockNavigationProps) {
   // Handle keyboard navigation
   useEffect(() => {
-    const scrollToElement = (element: HTMLElement | null) => {
-      if (!element) return;
-      element.scrollIntoView({block: 'nearest', behavior: 'smooth'});
-    };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
@@ -50,60 +43,7 @@ export function useBlockNavigation({
         return;
       }
 
-      if (e.key === 'ArrowUp') {
-        if (isMinimized) return;
-        e.preventDefault();
-        onNavigate?.();
-        if (focusedBlockIndex === -1) {
-          const newIndex = blocks.length - 1;
-          const blockElement = blockRefs.current[newIndex];
-          if (blockElement) {
-            setFocusedBlockIndex(newIndex);
-            scrollToElement(blockElement);
-          }
-        } else {
-          const handled = onKeyPress?.(focusedBlockIndex, 'ArrowUp');
-          if (!handled && focusedBlockIndex > 0) {
-            const newIndex = focusedBlockIndex - 1;
-            const blockElement = blockRefs.current[newIndex];
-            if (blockElement) {
-              setFocusedBlockIndex(newIndex);
-              scrollToElement(blockElement);
-            }
-          }
-        }
-      } else if (e.key === 'ArrowDown') {
-        if (isMinimized) return;
-        e.preventDefault();
-        onNavigate?.();
-        if (focusedBlockIndex === -1) {
-          const newIndex = 0;
-          const blockElement = blockRefs.current[newIndex];
-          if (blockElement) {
-            setFocusedBlockIndex(newIndex);
-            scrollToElement(blockElement);
-          }
-        } else {
-          const handled = onKeyPress?.(focusedBlockIndex, 'ArrowDown');
-          if (!handled) {
-            if (focusedBlockIndex < blocks.length - 1) {
-              const newIndex = focusedBlockIndex + 1;
-              const blockElement = blockRefs.current[newIndex];
-              if (blockElement) {
-                setFocusedBlockIndex(newIndex);
-                scrollToElement(blockElement);
-              }
-            } else {
-              setFocusedBlockIndex(-1);
-              const textareaElement = textareaRef.current;
-              if (textareaElement) {
-                textareaElement.focus();
-                scrollToElement(textareaElement);
-              }
-            }
-          }
-        }
-      } else if (e.key === 'Enter' && focusedBlockIndex >= 0) {
+      if (e.key === 'Enter' && focusedBlockIndex >= 0) {
         e.preventDefault();
         onKeyPress?.(focusedBlockIndex, 'Enter');
       }
@@ -117,7 +57,6 @@ export function useBlockNavigation({
     blocks.length,
     blockRefs,
     textareaRef,
-    setFocusedBlockIndex,
     isFileApprovalPending,
     isMinimized,
     isQuestionPending,
