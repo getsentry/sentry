@@ -97,7 +97,6 @@ function SaveAsDropdown({
         {...triggerProps}
         size="sm"
         priority="primary"
-        icon={<IconStar />}
         aria-label={t('Save as')}
         disabled={disabled}
       >
