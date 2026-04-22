@@ -59,7 +59,6 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -315,7 +314,6 @@ export function ExplorerDrawerContent({
     setFocusedBlockIndex: setHoveredBlockIndex,
     isFileApprovalPending,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
@@ -375,10 +373,6 @@ export function ExplorerDrawerContent({
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 readOnly={readOnly}
-                onDelete={() => {
-                  deleteFromIndex(index);
-                  focusInput();
-                }}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);

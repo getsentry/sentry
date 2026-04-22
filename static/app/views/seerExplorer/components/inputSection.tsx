@@ -272,7 +272,7 @@ export function InputSection({
           />
         </StyledInputGroup>
         {canInterrupt || waitingForInterrupt ? (
-          <PauseButton
+          <Button
             icon={<IconPause />}
             onClick={onInterrupt}
             size="md"
@@ -284,10 +284,11 @@ export function InputSection({
             }}
           />
         ) : (
-          <SendButton
+          <Button
             icon={<IconArrow direction="right" />}
             onClick={onSend}
             size="md"
+            priority="default"
             disabled={!inputValue.trim()}
             aria-label={t('Send message')}
           />
@@ -343,30 +344,6 @@ const ActionBar = styled(motion.div)`
   background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
-`;
-
-const SendButton = styled(Button)`
-  width: ${p => p.theme.form.md.height};
-  flex-shrink: 0;
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-
-  &:hover:not(:disabled),
-  &:focus-visible:not(:disabled) {
-    background: ${p => p.theme.tokens.background.primary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-`;
-
-const PauseButton = styled(Button)`
-  width: ${p => p.theme.form.md.height};
-  flex-shrink: 0;
-  background: ${p => p.theme.tokens.background.promotion.vibrant};
-  border-color: ${p => p.theme.tokens.border.promotion.vibrant};
-
-  &:disabled {
-    opacity: 0.5;
-  }
 `;
 
 const Kbd = styled('span')`

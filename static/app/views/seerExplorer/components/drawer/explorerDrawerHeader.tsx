@@ -97,10 +97,13 @@ export function ExplorerDrawerHeader({
 
   return (
     <DrawerHeader hideBar hideCloseButtonText>
-      <FeatureBadge
-        type="beta"
-        tooltipProps={{title: t('This feature is in beta and may change')}}
-      />
+      <Flex align="center" gap="xs" height="100%">
+        <Text size="md">{t('Seer Agent')}</Text>
+        <FeatureBadge
+          type="beta"
+          tooltipProps={{title: t('This feature is in beta and may change')}}
+        />
+      </Flex>
       <Flex flex="1" />
       <Flex gap="md">
         {showContextEngineToggle && (
