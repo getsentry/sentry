@@ -165,63 +165,55 @@ class ResultsHeader extends Component<Props, State> {
       </Fragment>
     );
 
+    const breadcrumbAndInput = (
+      <Fragment>
+        <DiscoverBreadcrumb
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          isHomepage={isHomepage}
+        />
+        <EventInputName
+          savedQuery={savedQuery}
+          organization={organization}
+          eventView={eventView}
+          isHomepage={isHomepage}
+        />
+      </Fragment>
+    );
+
     return (
       <Layout.Header>
         {hasPageFrameFeature ? (
-          <TopBar.Slot name="title">
-            {isHomepage ? (
-              <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-            ) : hasDiscoverQueryFeature ? (
-              <Fragment>
-                <DiscoverBreadcrumb
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  isHomepage={isHomepage}
-                />
-                <EventInputName
-                  savedQuery={savedQuery}
-                  organization={organization}
-                  eventView={eventView}
-                  isHomepage={isHomepage}
-                />
-              </Fragment>
-            ) : (
-              title
-            )}
-          </TopBar.Slot>
+          <Fragment>
+            <TopBar.Slot name="title">
+              {isHomepage ? (
+                <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+              ) : hasDiscoverQueryFeature ? (
+                breadcrumbAndInput
+              ) : (
+                title
+              )}
+            </TopBar.Slot>
+            <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
+          </Fragment>
         ) : (
-          <Layout.HeaderContent>
-            {isHomepage ? (
-              <GuideAnchor target="discover_landing_header">
+          <Fragment>
+            <Layout.HeaderContent>
+              {isHomepage ? (
+                <GuideAnchor target="discover_landing_header">
+                  <Layout.Title>{title}</Layout.Title>
+                </GuideAnchor>
+              ) : hasDiscoverQueryFeature ? (
+                breadcrumbAndInput
+              ) : (
+                // Only has discover-basic
                 <Layout.Title>{title}</Layout.Title>
-              </GuideAnchor>
-            ) : hasDiscoverQueryFeature ? (
-              <Fragment>
-                <DiscoverBreadcrumb
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  isHomepage={isHomepage}
-                />
-                <EventInputName
-                  savedQuery={savedQuery}
-                  organization={organization}
-                  eventView={eventView}
-                  isHomepage={isHomepage}
-                />
-              </Fragment>
-            ) : (
-              // Only has discover-basic
-              <Layout.Title>{title}</Layout.Title>
-            )}
-            {this.renderAuthor()}
-          </Layout.HeaderContent>
-        )}
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-        ) : (
-          <Layout.HeaderActions>{savedQueryButton}</Layout.HeaderActions>
+              )}
+              {this.renderAuthor()}
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>{savedQueryButton}</Layout.HeaderActions>
+          </Fragment>
         )}
         <DatasetSelectorTabs
           eventView={eventView}
