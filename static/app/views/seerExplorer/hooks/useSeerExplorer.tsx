@@ -646,6 +646,7 @@ export const useSeerExplorer = ({
 
   return {
     sessionData: filteredSessionData,
+    isSessionComplete: isComplete,
     isPolling: isPolling(
       runId,
       apiData?.session,
