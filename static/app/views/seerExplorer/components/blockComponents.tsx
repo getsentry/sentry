@@ -520,9 +520,6 @@ BlockComponent.displayName = 'BlockComponent';
 
 const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
   width: 100%;
-  border-top: 1px solid transparent;
-  border-bottom: ${p =>
-    p.isLast ? '1px solid transparent' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
 `;
