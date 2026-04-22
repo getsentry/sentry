@@ -98,9 +98,7 @@ export function ExplorerDrawerHeader({
   return (
     <DrawerHeader hideBar closeButtonLabel={t('Close')} hideCloseButtonText>
       <Flex align="center" gap="xs" height="100%">
-        <Text size="md" weight="bold">
-          {t('Seer Agent')}
-        </Text>
+        <Text size="md">{t('Seer Agent')}</Text>
         <FeatureBadge
           type="beta"
           tooltipProps={{title: t('This feature is in beta and may change')}}
