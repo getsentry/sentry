@@ -146,8 +146,8 @@ export function BlockComponent({
   isLatestTodoBlock,
   isHovered,
   onClick,
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
+  onMouseEnter,
+  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
   readOnly = false,
