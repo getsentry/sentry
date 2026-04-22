@@ -274,6 +274,8 @@ export function InputSection({
                 : t('Press Tab ⇥ to return here')
             }
             rows={1}
+            maxRows={5}
+            autosize
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>

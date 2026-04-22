@@ -28,12 +28,8 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
-  runId,
-  setRunId,
 }: {
   getPageReferrer: () => string;
-  runId: number | null;
-  setRunId: (value: number | null) => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -58,6 +54,7 @@ export function ExplorerDrawerContent({
 
   // - Session data and mutators ----------------------------------------------
   const {
+    runId,
     sessionData,
     isPolling,
     isError,
@@ -72,7 +69,7 @@ export function ExplorerDrawerContent({
     setOverrideCtxEngEnable,
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
-  } = useSeerExplorer({runId, setRunId});
+  } = useSeerExplorer();
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
@@ -212,9 +209,6 @@ export function ExplorerDrawerContent({
     sendMessage(inputValue.trim());
     setInputValue('');
     userScrolledUpRef.current = false;
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
   }, [readOnly, inputValue, isPolling, sendMessage]);
 
   const canInterrupt = sessionData?.status === 'processing';
@@ -242,8 +236,6 @@ export function ExplorerDrawerContent({
       setFocusedBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
 
   const handleInputClick = useCallback(() => {

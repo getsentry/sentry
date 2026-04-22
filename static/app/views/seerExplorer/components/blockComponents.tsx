@@ -639,10 +639,8 @@ const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
 const BlockContent = styled(MarkedText)`
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
-  white-space: pre-wrap;
   word-wrap: break-word;
   padding-bottom: 0;
-  margin-bottom: -${p => p.theme.space.md};
 
   code:not(pre code) {
     ${p => inlineCodeStyles(p.theme)};
@@ -652,7 +650,7 @@ const BlockContent = styled(MarkedText)`
   li,
   ul,
   ol {
-    margin: -${p => p.theme.space.md} 0;
+    margin: ${p => p.theme.space.md} 0;
   }
 
   h1,
@@ -661,7 +659,7 @@ const BlockContent = styled(MarkedText)`
   h4,
   h5,
   h6 {
-    margin: 0;
+    margin: ${p => p.theme.space.md} 0;
     font-size: ${p => p.theme.font.size.lg};
   }
 
@@ -683,16 +681,8 @@ const BlockContent = styled(MarkedText)`
     font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
-  p:first-child,
-  li:first-child,
-  ul:first-child,
-  h1:first-child,
-  h2:first-child,
-  h3:first-child,
-  h4:first-child,
-  h5:first-child,
-  h6:first-child {
-    margin-top: 0;
+  hr {
+    margin: ${p => p.theme.space.md} 0;
   }
 `;
 

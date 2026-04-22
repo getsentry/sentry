@@ -8,16 +8,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
-
-function useTestSeerExplorerDrawer() {
-  const [runId, setRunId] = useSessionStorage<number | null>(
-    'seer-explorer-run-id',
-    null
-  );
-  return useSeerExplorerDrawer({runId, setRunId});
-}
 
 jest.mock('sentry/views/seerExplorer/components/drawer/explorerDrawerContent', () => ({
   ExplorerDrawerContent: () => <div data-seer-explorer-root="" />,
@@ -51,7 +42,7 @@ describe('useSeerExplorerDrawer', () => {
 
   describe('openSeerExplorerDrawer', () => {
     it('opens the Seer Explorer drawer', async () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -62,7 +53,7 @@ describe('useSeerExplorerDrawer', () => {
     });
 
     it('sets isOpen to true after opening', async () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -72,7 +63,7 @@ describe('useSeerExplorerDrawer', () => {
     });
 
     it('seeds sessionStorage with runId when provided', () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -84,7 +75,7 @@ describe('useSeerExplorerDrawer', () => {
     it('clears runId when startNewRun is true', () => {
       sessionStorageWrapper.setItem('seer-explorer-run-id', '42');
 
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -99,7 +90,7 @@ describe('useSeerExplorerDrawer', () => {
     it('does not touch sessionStorage when no options provided', () => {
       sessionStorageWrapper.setItem('seer-explorer-run-id', '55');
 
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -111,7 +102,7 @@ describe('useSeerExplorerDrawer', () => {
 
   describe('closeSeerExplorerDrawer', () => {
     it('is a no-op when the drawer is not open', () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -124,7 +115,7 @@ describe('useSeerExplorerDrawer', () => {
     });
 
     it('closes the drawer when open', async () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -140,7 +131,7 @@ describe('useSeerExplorerDrawer', () => {
 
   describe('toggleSeerExplorerDrawer', () => {
     it('opens the drawer when closed', async () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 
@@ -150,7 +141,7 @@ describe('useSeerExplorerDrawer', () => {
     });
 
     it('closes the drawer when open', async () => {
-      const {result} = renderHookWithProviders(() => useTestSeerExplorerDrawer(), {
+      const {result} = renderHookWithProviders(() => useSeerExplorerDrawer(), {
         organization: enabledOrg,
       });
 

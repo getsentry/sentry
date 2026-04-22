@@ -284,6 +284,54 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "date - slashes, day-month-year",
+        "31/Dec/2012",
+        "<date>",
+        "<int>/Dec/<int>",
+    ),
+    (
+        "date - colon btwn date and time",
+        "21/Nov/2012:12:31:12",
+        "<date>",
+        "<int>/Nov/<int>:<date>",
+    ),
+    (
+        "float - postive, too many segments",
+        "1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
+        "float - negative, too many segments",
+        "-1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
+        "hex without prefix - leading underscore",
+        "img_3f26.jpg",
+        "img_<hex>.jpg",
+        "img_3f26.jpg",
+    ),
+    (
+        "hex without prefix - trailing underscore",
+        "3f26_thumbnail.jpg",
+        "<hex>_thumbnail.jpg",
+        "3f26_thumbnail.jpg",
+    ),
+    (
+        "int - leading underscore",
+        "img_1121.jpg",
+        "img_<int>.jpg",
+        "img_1121.jpg",
+    ),
+    (
+        "int - trailing underscore",
+        "1231_thumbnail.jpg",
+        "<int>_thumbnail.jpg",
+        "1231_thumbnail.jpg",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -294,6 +342,24 @@ incorrect_cases = [
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
+    ),
+    (
+        "ip - v4, leading zeros",
+        "11.21.12.001",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, segment > 255",
+        "12.31.12.908",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, too many segments",
+        "11.21.12.31.12",
+        "<int>.<int>.<int>.<int>.<int>",
+        "<ip>.<int>",
     ),
     (
         "ip - short double colon object property including only hex",

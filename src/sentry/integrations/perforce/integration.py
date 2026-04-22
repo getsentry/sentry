@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any, TypedDict, cast
 
-from django import forms
 from django.db import models
-from django.http import HttpRequest, HttpResponseBase
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework.fields import CharField, ChoiceField, URLField
@@ -36,8 +35,6 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
-from sentry.web.frontend.base import determine_active_organization
-from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
@@ -121,85 +118,6 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
                 {"ssl_fingerprint": "SSL fingerprint is required when P4PORT uses ssl"}
             )
         return attrs
-
-
-class PerforceInstallationForm(forms.Form):
-    """Form for Perforce installation configuration."""
-
-    p4port = forms.CharField(
-        label=_("P4PORT (Server Address)"),
-        help_text=_(
-            "Perforce server address in P4PORT format. "
-            "Examples: 'ssl:perforce.company.com:1666' (encrypted), "
-            "'perforce.company.com:1666' or 'tcp:perforce.company.com:1666' (plaintext). "
-            "SSL is strongly recommended for production use."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "ssl:perforce.company.com:1666"}),
-    )
-    user = forms.CharField(
-        label=_("Perforce Username"),
-        help_text=_(
-            "Username for authenticating with Perforce. "
-            "Required for both password and ticket authentication."
-        ),
-        widget=forms.TextInput(attrs={"placeholder": "sentry-bot"}),
-    )
-    auth_type = forms.ChoiceField(
-        label=_("Authentication Type"),
-        choices=[
-            ("password", _("Password")),
-            ("ticket", _("P4 Ticket")),
-        ],
-        initial="password",
-        help_text=_(
-            "Select whether you're providing a password or a P4 ticket. "
-            "Tickets are obtained via 'p4 login -p' and don't require re-authentication."
-        ),
-    )
-    password = forms.CharField(
-        label=_("Password / Ticket"),
-        help_text=_(
-            "Your Perforce password or P4 authentication ticket "
-            "(depending on the authentication type selected above)."
-        ),
-        widget=forms.PasswordInput(attrs={"placeholder": "••••••••"}),
-    )
-    client = forms.CharField(
-        label=_("Perforce Client/Workspace (Optional)"),
-        help_text=_("Optional: Specify a client workspace name"),
-        widget=forms.TextInput(attrs={"placeholder": "sentry-workspace"}),
-        required=False,
-    )
-    ssl_fingerprint = forms.CharField(
-        label=_("SSL Fingerprint (Required for SSL)"),
-        help_text=_(
-            "SSL fingerprint for secure connections. "
-            "Required when using 'ssl:' protocol. "
-            "Obtain with: p4 -p ssl:host:port trust -y"
-        ),
-        widget=forms.TextInput(
-            attrs={"placeholder": "AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89:AB:CD:EF:01"}
-        ),
-        required=False,
-    )
-    web_url = forms.URLField(
-        label=_("P4 Code Review URL (Optional)"),
-        help_text=_("Optional: URL to P4 Code Review web viewer for browsing files"),
-        widget=forms.URLInput(attrs={"placeholder": "https://swarm.company.com"}),
-        required=False,
-        assume_scheme="https",
-    )
-
-    def clean_p4port(self) -> str:
-        """Strip off trailing / and whitespace from p4port"""
-        return self.cleaned_data["p4port"].strip().rstrip("/")
-
-    def clean_web_url(self) -> str:
-        """Strip off trailing / from web_url"""
-        web_url = self.cleaned_data.get("web_url", "")
-        if web_url:
-            return web_url.rstrip("/")
-        return web_url
 
 
 class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIntegration):
@@ -596,9 +514,8 @@ class PerforceIntegrationProvider(IntegrationProvider):
     )
     requires_feature_flag = True
 
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        """Get pipeline views for installation flow."""
-        return [PerforceInstallationView()]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [PerforceInstallationApiStep()]
@@ -691,123 +608,6 @@ class PerforceIntegrationProvider(IntegrationProvider):
             "integration-repository.provider",
             PerforceRepositoryProvider,
             id="integrations:perforce",
-        )
-
-
-class PerforceInstallationView:
-    """
-    Installation view for Perforce configuration.
-    Collects and validates Perforce server credentials during installation.
-    """
-
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        """
-        Handle installation request with form validation.
-
-        Args:
-            request: HTTP request object
-            pipeline: Installation pipeline
-
-        Returns:
-            HTTP response (form render or redirect to next step)
-        """
-        if request.method == "POST":
-            form = PerforceInstallationForm(request.POST)
-            if form.is_valid():
-                form_data = form.cleaned_data
-
-                # Verify connection to Perforce server before completing installation
-                try:
-                    client = PerforceClient(
-                        integration=type(
-                            "obj",
-                            (object,),
-                            {
-                                "metadata": {
-                                    "p4port": form_data.get("p4port"),
-                                    "user": form_data.get("user"),
-                                    "password": form_data.get("password"),
-                                    "auth_type": form_data.get("auth_type", "password"),
-                                    "client": form_data.get("client"),
-                                    "ssl_fingerprint": form_data.get("ssl_fingerprint"),
-                                }
-                            },
-                        )(),
-                        org_integration=type("obj", (object,), {})(),
-                    )
-                    # Test connection by fetching depot list
-                    client.get_depots()
-
-                    pipeline.get_logger().info(
-                        "perforce.setup.connection-verified",
-                        extra={
-                            "p4port": form_data.get("p4port"),
-                            "user": form_data.get("user"),
-                        },
-                    )
-                except ApiUnauthorized as e:
-                    form.add_error(
-                        None,
-                        f"Authentication failed: {e}. Please check your username and password.",
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/perforce-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
-                except ApiError as e:
-                    form.add_error(
-                        None,
-                        f"Failed to connect to Perforce server: {e}. Please verify your server address and SSL fingerprint.",
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/perforce-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
-                except Exception as e:
-                    pipeline.get_logger().error(
-                        "perforce.setup.connection-verification-failed",
-                        extra={
-                            "p4port": form_data.get("p4port"),
-                            "error": str(e),
-                        },
-                        exc_info=True,
-                    )
-                    form.add_error(
-                        None,
-                        f"Unexpected error during connection verification: {e}",
-                    )
-                    return render_to_response(
-                        template="sentry/integrations/perforce-config.html",
-                        context={"form": form},
-                        request=request,
-                    )
-
-                # Bind configuration data to pipeline state
-                pipeline.bind_state("installation_data", form_data)
-                # Include organization_id to create unique external_id per org
-                active_org = determine_active_organization(request)
-                if active_org:
-                    pipeline.bind_state("organization_id", active_org.organization.id)
-
-                pipeline.get_logger().info(
-                    "perforce.setup.installation-config-view.success",
-                    extra={
-                        "p4port": form_data.get("p4port"),
-                        "user": form_data.get("user"),
-                        "has_ssl_fingerprint": bool(form_data.get("ssl_fingerprint")),
-                        "has_web_url": bool(form_data.get("web_url")),
-                    },
-                )
-                return pipeline.next_step()
-        else:
-            form = PerforceInstallationForm()
-
-        return render_to_response(
-            template="sentry/integrations/perforce-config.html",
-            context={"form": form},
-            request=request,
         )
 
 

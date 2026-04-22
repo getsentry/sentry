@@ -4,6 +4,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
@@ -21,13 +22,7 @@ export type OpenSeerExplorerDrawerOptions = {
   startNewRun?: boolean;
 };
 
-export const useSeerExplorerDrawer = ({
-  runId,
-  setRunId,
-}: {
-  runId: number | null;
-  setRunId: (value: number | null) => void;
-}) => {
+export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
 
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
@@ -59,37 +54,33 @@ export const useSeerExplorerDrawer = ({
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, startNewRun} = options ?? {};
-
       if (isDrawerOpenRef.current) {
-        // TODO: setting runId while drawer is open can lead to broken UI state, need to use switchToRun within DrawerContent
+        // runId seeding doesn't work when the drawer is already open
         return;
       }
 
-      if (openRunId !== undefined) {
-        setRunId(openRunId);
-      } else if (startNewRun) {
-        setRunId(null);
+      const {runId, startNewRun} = options ?? {};
+
+      // Seed runId state with sessionStorage, before rendering drawer
+      try {
+        if (runId !== undefined) {
+          sessionStorageWrapper.setItem('seer-explorer-run-id', JSON.stringify(runId));
+        } else if (startNewRun) {
+          sessionStorageWrapper.removeItem('seer-explorer-run-id');
+        }
+      } catch {
+        // Best effort
       }
 
-      openDrawer(
-        () => (
-          <ExplorerDrawerContent
-            getPageReferrer={getPageReferrer}
-            runId={runId}
-            setRunId={setRunId}
-          />
-        ),
-        {
-          ariaLabel: t('Seer Explorer Drawer'),
-          drawerKey: 'seer-explorer-drawer',
-          resizable: true,
-          mode: 'passive',
-          onOpen,
-        }
-      );
+      openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
+        ariaLabel: t('Seer Explorer Drawer'),
+        drawerKey: 'seer-explorer-drawer',
+        resizable: true,
+        mode: 'passive',
+        onOpen,
+      });
     },
-    [openDrawer, onOpen, getPageReferrer, runId, setRunId]
+    [openDrawer, onOpen, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
