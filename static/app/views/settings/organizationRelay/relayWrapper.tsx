@@ -153,7 +153,7 @@ export function RelayWrapper() {
           disabled={disabled}
           relays={relays}
           api={api}
-          registerKeyAction={hasPageFrame ? undefined : registerKeyAction}
+          registerKeyAction={undefined}
           onRelaysChange={setRelays}
         />
       )}
