@@ -1425,6 +1425,113 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "Cross event queries are limited to 7 days." in str(response.content)
 
+    def test_save_with_cross_events_metrics(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Cross event metrics query",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "crossEvents": [
+                        {
+                            "query": "",
+                            "type": "metrics",
+                            "metric": {
+                                "name": "http.response_time",
+                                "type": "distribution",
+                                "unit": "millisecond",
+                            },
+                        },
+                    ],
+                },
+            )
+        assert response.status_code == 201, response.content
+        data = response.data
+        assert data["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
+        ]
+
+        saved = ExploreSavedQuery.objects.get(id=data["id"])
+        assert saved.query["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
+        ]
+
+    def test_save_with_cross_events_metrics_missing_metric(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Metrics cross event missing descriptor",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "crossEvents": [
+                        {"query": "", "type": "metrics"},
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.content
+
+    def test_save_with_cross_events_metric_on_non_metrics_type(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Non-metrics cross event with metric",
+                    "projects": self.project_ids,
+                    "dataset": "spans",
+                    "query": [
+                        {
+                            "fields": ["span.op"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "crossEvents": [
+                        {
+                            "query": "span.op:db",
+                            "type": "spans",
+                            "metric": {
+                                "name": "http.response_time",
+                                "type": "distribution",
+                                "unit": "millisecond",
+                            },
+                        },
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.content
+
     def test_save_replay_query(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
