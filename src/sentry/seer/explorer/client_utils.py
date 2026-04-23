@@ -38,7 +38,6 @@ from sentry.users.models.user import User as SentryUser
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
-from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +257,7 @@ def _collect_repos_by_project_id(
 
     try:
         seer_prefs = bulk_get_project_preferences(organization.id, project_ids)
-    except (SeerApiError, HTTPError, JSONDecodeError):
+    except (SeerApiError, HTTPError, orjson.JSONDecodeError):
         logger.exception(
             "Failed to fetch Seer project preferences for explorer context",
             extra={"organization_id": organization.id},
