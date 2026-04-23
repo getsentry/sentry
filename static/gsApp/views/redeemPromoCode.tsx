@@ -79,7 +79,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
       return mutation
         .mutateAsync(value)
         .then(() => form.reset())
-        .catch(() => form.reset());
+        .catch();
     },
   });
 
