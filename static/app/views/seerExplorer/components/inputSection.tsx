@@ -321,7 +321,7 @@ const InputRow = styled('div')`
   display: flex;
   align-items: flex-end;
   gap: ${p => p.theme.space.sm};
-  margin: ${p => p.theme.space.sm};
+  margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`

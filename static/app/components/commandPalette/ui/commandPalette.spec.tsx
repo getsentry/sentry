@@ -157,6 +157,26 @@ describe('CommandPalette', () => {
     ).toHaveAttribute('data-link-type', 'external');
   });
 
+  it('renders both a custom trailingItem and the link indicator for a link action', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          to="/target/"
+          display={{
+            label: 'Action with trailing',
+            trailingItem: <span data-testid="custom-trailing">Badge</span>,
+          }}
+        />
+      </GlobalActionsComponent>
+    );
+
+    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
+    expect(
+      option.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toBeInTheDocument();
+  });
+
   it('clicking action with children shows sub-items, backspace returns', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     render(
