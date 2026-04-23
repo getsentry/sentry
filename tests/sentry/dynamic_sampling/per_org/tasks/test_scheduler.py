@@ -10,7 +10,6 @@ from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     _next_bucket_index,
     schedule_per_org_calculations,
     schedule_per_org_calculations_bucket,
-    schedule_per_org_calculations_bucket_task,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models.organization import Organization, OrganizationStatus
@@ -46,7 +45,7 @@ def _run_queued_bucket_tasks(burst) -> int:
     burst.queue.clear()
     for task, args, kwargs in pending:
         if _is_bucket_task(task):
-            schedule_per_org_calculations_bucket_task(*args, **kwargs)
+            schedule_per_org_calculations_bucket(*args, **kwargs)
             ran += 1
         else:
             remaining.append((task, args, kwargs))
@@ -347,7 +346,7 @@ class SchedulerRetrySafetyTest(TestCase):
         target = 4
 
         with BurstTaskRunner() as burst:
-            schedule_per_org_calculations_bucket_task(target)
+            schedule_per_org_calculations_bucket(target)
             dispatched = _drain_dispatched_org_ids(burst)
 
         for org_id in dispatched:
@@ -365,9 +364,9 @@ class SchedulerRetrySafetyTest(TestCase):
         cursor_before = self.redis.get(BUCKET_CURSOR_KEY)
 
         with BurstTaskRunner() as burst:
-            schedule_per_org_calculations_bucket_task(target)
+            schedule_per_org_calculations_bucket(target)
             first = _drain_dispatched_org_ids(burst)
-            schedule_per_org_calculations_bucket_task(target)
+            schedule_per_org_calculations_bucket(target)
             second = _drain_dispatched_org_ids(burst)
 
         cursor_after = self.redis.get(BUCKET_CURSOR_KEY)
@@ -417,8 +416,8 @@ class SchedulerRetrySafetyTest(TestCase):
             burst.queue.clear()
             for task, args, kwargs in queued_bucket_calls:
                 if _is_bucket_task(task):
-                    schedule_per_org_calculations_bucket_task(*args, **kwargs)
-                    schedule_per_org_calculations_bucket_task(*args, **kwargs)
+                    schedule_per_org_calculations_bucket(*args, **kwargs)
+                    schedule_per_org_calculations_bucket(*args, **kwargs)
             dispatched = _drain_dispatched_org_ids(burst)
 
         # Each org was dispatched twice because we intentionally retried every
@@ -481,7 +480,7 @@ class SchedulerKillswitchAndRolloutTest(TestCase):
         self._create_orgs_in_bucket(bucket=2, count=2)
 
         with BurstTaskRunner() as burst:
-            schedule_per_org_calculations_bucket_task(2)
+            schedule_per_org_calculations_bucket(2)
             dispatched = _drain_dispatched_org_ids(burst)
 
         assert dispatched == []
@@ -493,7 +492,7 @@ class SchedulerKillswitchAndRolloutTest(TestCase):
         self._create_orgs_in_bucket(bucket=5, count=3)
 
         with BurstTaskRunner() as burst:
-            schedule_per_org_calculations_bucket_task(5)
+            schedule_per_org_calculations_bucket(5)
             dispatched = _drain_dispatched_org_ids(burst)
 
         assert dispatched == []
@@ -503,7 +502,7 @@ class SchedulerKillswitchAndRolloutTest(TestCase):
         org_ids = self._create_orgs_in_bucket(bucket=8, count=3)
 
         with BurstTaskRunner() as burst:
-            schedule_per_org_calculations_bucket_task(8)
+            schedule_per_org_calculations_bucket(8)
             dispatched = _drain_dispatched_org_ids(burst)
 
         for org_id in org_ids:
@@ -517,9 +516,9 @@ class SchedulerKillswitchAndRolloutTest(TestCase):
 
         with override_options({"dynamic-sampling.per_org.rollout-rate": 0.5}):
             with BurstTaskRunner() as burst:
-                schedule_per_org_calculations_bucket_task(1)
+                schedule_per_org_calculations_bucket(1)
                 first = sorted(i for i in _drain_dispatched_org_ids(burst) if i in org_ids)
-                schedule_per_org_calculations_bucket_task(1)
+                schedule_per_org_calculations_bucket(1)
                 second = sorted(i for i in _drain_dispatched_org_ids(burst) if i in org_ids)
 
         assert first == second

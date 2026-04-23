@@ -51,7 +51,30 @@ JITTER_WINDOW_SECONDS = 60
 BUCKET_CURSOR_KEY = "ds::per_org:bucket_cursor"
 
 
+def _next_bucket_index() -> int:
+    redis_client = get_redis_client_for_ds()
+    try:
+        next_value = redis_client.incr(BUCKET_CURSOR_KEY)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return datetime.now(tz=timezone.utc).minute % BUCKET_COUNT
+    return (int(next_value) - 1) % BUCKET_COUNT
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=5 * 60,
+    retry=Retry(times=3, delay=5),
+    silo_mode=SiloMode.CELL,
+)
+@dynamic_sampling_task
 def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
+    """Fan out a single bucket of orgs to the orchestrator.
+
+    ``bucket_index`` is supplied by the beat entry so retries of this task
+    always re-process the same bucket instead of advancing the cursor.
+    """
     if is_killswitch_engaged():
         emit_status(SCHEDULER_BUCKET_STATUS_METRIC, "killswitched")
         return
@@ -71,11 +94,13 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
 
     dispatched = 0
     skipped = 0
-    for org in RangeQuerySetWrapper[Organization](
+    orgs = RangeQuerySetWrapper[Organization](
         queryset,
         step=1000,
         result_value_getter=lambda o: o.id,
-    ):
+    )
+
+    for org in orgs:
         if not is_org_in_rollout(org.id):
             skipped += 1
             continue
@@ -100,33 +125,6 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
     emit_status(SCHEDULER_BUCKET_STATUS_METRIC, "completed")
 
 
-def _next_bucket_index() -> int:
-    redis_client = get_redis_client_for_ds()
-    try:
-        next_value = redis_client.incr(BUCKET_CURSOR_KEY)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return datetime.now(tz=timezone.utc).minute % BUCKET_COUNT
-    return (int(next_value) - 1) % BUCKET_COUNT
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket",
-    namespace=telemetry_experience_tasks,
-    processing_deadline_duration=5 * 60,
-    retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.CELL,
-)
-@dynamic_sampling_task
-def schedule_per_org_calculations_bucket_task(bucket_index: int) -> None:
-    """Fan out a single bucket of orgs to the orchestrator.
-
-    ``bucket_index`` is supplied by the beat entry so retries of this task
-    always re-process the same bucket instead of advancing the cursor.
-    """
-    schedule_per_org_calculations_bucket(bucket_index)
-
-
 @instrumented_task(
     name="sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
     namespace=telemetry_experience_tasks,
@@ -149,5 +147,5 @@ def schedule_per_org_calculations() -> None:
         return
 
     bucket_index = _next_bucket_index()
-    schedule_per_org_calculations_bucket_task.apply_async(args=(bucket_index,))
+    schedule_per_org_calculations_bucket.apply_async(args=(bucket_index,))
     emit_status(SCHEDULER_BEAT_STATUS_METRIC, "dispatched")
