@@ -136,7 +136,7 @@ export function useSpansSeriesQuery(
           {
             path: {organizationIdOrSlug: organization.slug},
             method: 'GET' as const,
-            data: queryParams,
+            query: queryParams,
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
