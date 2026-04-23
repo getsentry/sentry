@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, isValidElement} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
@@ -50,17 +50,19 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
       {...props}
     >
       {crumbs.map((crumb, index) => {
+        const isLast = index === crumbs.length - 1;
+
         return (
           <Fragment key={index}>
             <BreadCrumbItem
-              crumb={{...crumb, to: index === crumbs.length - 1 ? undefined : crumb.to}}
-              variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
+              crumb={{...crumb, to: isLast ? undefined : crumb.to}}
+              variant={isLast ? 'primary' : 'muted'}
             />
-            {index < crumbs.length - 1 ? (
+            {isLast ? null : (
               <Flex align="center" justify="center" flexShrink={0}>
                 <IconSlashForward size="xs" variant="muted" />
               </Flex>
-            ) : null}
+            )}
           </Fragment>
         );
       })}
@@ -80,9 +82,19 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
     }
   }
 
+  const isCustomLabel = isValidElement(props.crumb.label);
+
   return (
     <Container maxWidth="400px" width="auto">
       {styleProps => {
+        if (isCustomLabel && !props.crumb.to) {
+          return (
+            <div data-test-id="breadcrumb-item" {...styleProps}>
+              {props.crumb.label}
+            </div>
+          );
+        }
+
         return props.crumb.to ? (
           <BreadcrumbLink
             to={props.crumb.to}
