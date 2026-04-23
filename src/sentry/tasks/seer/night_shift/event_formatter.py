@@ -535,5 +535,8 @@ def _get_exception_chain_message(platform: str | None, index: int) -> str:
     if p == "go":
         return "**Wrapped error:**"
     if p == "rust":
-        return f"**Caused by ({index}):**"
+        # `index` enumerates reversed(exceptions) starting at 0, but the first
+        # cause arrives here with index=1 (index=0 is the outermost, guarded out
+        # at the call site). Rust's anyhow numbers causes from 0, so subtract 1.
+        return f"**Caused by ({index - 1}):**"
     return default_msg

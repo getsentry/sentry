@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sentry.integrations.models.repository_project_path_config import (
     RepositoryProjectPathConfig,
 )
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool
 from sentry.seer.explorer.tools import get_event_details
@@ -78,14 +79,24 @@ class get_event_details_agentic_triage(  # noqa: N801
         organization: Organization,
         params: GetEventDetailsAgenticTriageParams,
     ) -> str:
-        result = get_event_details(
-            organization_id=organization.id,
-            event_id=params.event_id,
-            issue_id=params.issue_id,
-            start=params.start,
-            end=params.end,
-            project_slug=params.project_slug,
-        )
+        try:
+            result = get_event_details(
+                organization_id=organization.id,
+                event_id=params.event_id,
+                issue_id=params.issue_id,
+                start=params.start,
+                end=params.end,
+                project_slug=params.project_slug,
+            )
+        except Group.DoesNotExist:
+            return (
+                f"Issue not found: issue_id={params.issue_id!r}. "
+                "Check the ID and ensure the issue exists in this organization."
+            )
+        except ValueError as e:
+            # Raised by `uuid.UUID(event_id)` for malformed UUIDs, or by downstream
+            # parameter validation. Return the message so the agent can retry.
+            return f"Invalid input: {e}"
         if result is None:
             return "Event not found. Check the issue_id/event_id and time range."
 
