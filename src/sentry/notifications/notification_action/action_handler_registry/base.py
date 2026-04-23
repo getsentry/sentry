@@ -1,7 +1,9 @@
 import logging
 from abc import ABC
-from typing import override
+from typing import Any, override
 
+from sentry.api.serializers import Serializer
+from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
@@ -15,7 +17,23 @@ class IntegrationActionHandler(ActionHandler, ABC):
     provider_slug: IntegrationProviderSlug
 
 
+class TicketingActionDataSerializer(Serializer):
+    """
+    `additional_fields`, stores third-party form field names as object
+    keys which must be preserved. (e.g. {"my_field": "my value"})
+    """
+
+    def serialize(self, obj: dict[str, Any], *args: Any, **kwargs: Any) -> dict[str, Any]:
+        rest = {k: v for k, v in obj.items() if k != "additional_fields"}
+        result: dict[str, Any] = convert_dict_key_case(rest, snake_to_camel_case)
+        if "additional_fields" in obj:
+            result["additionalFields"] = obj["additional_fields"]
+        return result
+
+
 class TicketingActionHandler(IntegrationActionHandler, ABC):
+    data_serializer = TicketingActionDataSerializer
+
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The configuration schema for a Ticketing Action",

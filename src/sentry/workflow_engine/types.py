@@ -14,6 +14,7 @@ from sentry import features, options
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
+    from sentry.api.serializers import Serializer
     from sentry.deletions.base import ModelRelation
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
@@ -285,6 +286,10 @@ class ConfigTransformer(ABC):
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
+
+    # Optionally provide a custom serializer for Action.data
+    # If None, data will serialized with snake_to_camel_case
+    data_serializer: ClassVar[type[Serializer] | None] = None
 
     class Group(StrEnum):
         NOTIFICATION = "notification"

@@ -20,6 +20,7 @@ class ActionSerializer(Serializer):
     def serialize(self, obj: Action, *args: Any, **kwargs: Any) -> ActionSerializerResponse:
         # Get the action handler and config transformer if available
         action_handler = action_handler_registry.get(obj.type)
+
         config_transformer = action_handler.get_config_transformer()
 
         # Transform config if transformer is available
@@ -28,11 +29,16 @@ class ActionSerializer(Serializer):
         else:
             config = obj.config
 
+        if action_handler.data_serializer is not None:
+            data = action_handler.data_serializer().serialize(obj.data, *args, **kwargs)
+        else:
+            data = convert_dict_key_case(obj.data, snake_to_camel_case)
+
         return {
             "id": str(obj.id),
             "type": obj.type,
             "integrationId": str(obj.integration_id) if obj.integration_id else None,
-            "data": convert_dict_key_case(obj.data, snake_to_camel_case),
+            "data": data,
             "config": convert_dict_key_case(config, snake_to_camel_case),
             "status": obj.get_status_display(),
         }
