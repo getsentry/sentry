@@ -223,6 +223,10 @@ def create_metric_alert(
                     status=status.HTTP_201_CREATED,
                 )
             except Detector.DoesNotExist:
+                logger.error(
+                    "Alert rule was not dual written. Returning serialized rule instead of detector",
+                    extra={"rule_id": alert_rule.id},
+                )
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 

@@ -165,6 +165,10 @@ def update_alert_rule(
                         status=status.HTTP_200_OK,
                     )
                 except Detector.DoesNotExist:
+                    logger.error(
+                        "Alert rule was not dual written. Returning serialized rule instead of detector",
+                        extra={"rule_id": updated_rule.id},
+                    )
                     return Response(
                         serialize(updated_rule, request.user), status=status.HTTP_200_OK
                     )
