@@ -114,14 +114,8 @@ export function useIssuesSeriesQuery(
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
-                current: async () => {
-                  try {
-                    const result = await apiFetch<IssuesSeriesResponse>(context);
-                    resolve(result);
-                  } catch (error) {
-                    reject(error instanceof Error ? error : new Error(String(error)));
-                  }
-                },
+                current: () =>
+                  apiFetch<IssuesSeriesResponse>(context).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
