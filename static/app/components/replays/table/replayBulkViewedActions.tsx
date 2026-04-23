@@ -103,7 +103,7 @@ export function ReplayBulkViewedActions({
       addErrorMessage(
         t(
           'Updated %s of %s — some replays could not be updated. Try again or refresh the list.',
-          succeededIds,
+          succeededIds.size,
           selectedRows.length
         )
       );
