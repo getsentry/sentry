@@ -5,6 +5,7 @@ from sentry.integrations.slack.webhooks.command import (
     SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE,
     SET_DEFAULT_ORG_NOT_FOUND_MESSAGE,
     SET_DEFAULT_ORG_SUCCESS_MESSAGE,
+    UNSET_DEFAULT_ORG_SUCCESS_MESSAGE,
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
@@ -48,4 +49,33 @@ class SlackCommandsSetDefaultOrgTest(SlackCommandsTest):
         other = self.create_organization(slug="some-other-org")
         data = self.send_slack_message(f"set org {other.slug}")
         assert SET_DEFAULT_ORG_NOT_FOUND_MESSAGE.format(slug=other.slug) in get_response_text(data)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
+
+class SlackCommandsUnsetDefaultOrgTest(SlackCommandsTest):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_clears_preference(self, mock_record: MagicMock) -> None:
+        self.link_user()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity = Identity.objects.get(external_id=self.slack_id)
+            identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: self.organization.id})
+
+        data = self.send_slack_message("unset org")
+        assert UNSET_DEFAULT_ORG_SUCCESS_MESSAGE in get_response_text(data)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            identity.refresh_from_db()
+        assert PREFERRED_ORGANIZATION_ID_KEY not in identity.data
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_no_preference_set_is_success(self, mock_record: MagicMock) -> None:
+        self.link_user()
+        data = self.send_slack_message("unset org")
+        assert UNSET_DEFAULT_ORG_SUCCESS_MESSAGE in get_response_text(data)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_halts_when_identity_not_linked(self, mock_record: MagicMock) -> None:
+        data = self.send_slack_message("unset org")
+        assert "You must first link your identity" in get_response_text(data)
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)

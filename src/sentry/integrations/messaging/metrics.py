@@ -22,6 +22,7 @@ class MessagingInteractionType(StrEnum):
     LINK_TEAM = "LINK_TEAM"
     UNLINK_TEAM = "UNLINK_TEAM"
     SET_DEFAULT_ORG = "SET_DEFAULT_ORG"
+    UNSET_DEFAULT_ORG = "UNSET_DEFAULT_ORG"
 
     # Interactions on Issues
     STATUS = "STATUS"

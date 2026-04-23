@@ -97,6 +97,10 @@ SET_DEFAULT_ORG = MessagingIntegrationCommand(
     MessagingInteractionType.SET_DEFAULT_ORG,
     "set org",
 )
+UNSET_DEFAULT_ORG = MessagingIntegrationCommand(
+    MessagingInteractionType.UNSET_DEFAULT_ORG,
+    "unset org",
+)
 
 R = TypeVar("R")  # response
 

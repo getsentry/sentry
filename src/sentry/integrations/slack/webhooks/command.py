@@ -50,6 +50,7 @@ SET_DEFAULT_ORG_NOT_FOUND_MESSAGE = (
     SET_DEFAULT_ORG_NOT_FOUND_PREFIX + " `{slug}` that you're a member of."
 )
 SET_DEFAULT_ORG_SUCCESS_MESSAGE = "Default organization set to `{slug}`."
+UNSET_DEFAULT_ORG_SUCCESS_MESSAGE = "Default organization cleared."
 
 
 def get_orgs_with_teams_linked_to_channel(
@@ -219,6 +220,19 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         identity_service.update_data(identity_id=identity.id, data=new_data)
 
         return self.reply(slack_request, SET_DEFAULT_ORG_SUCCESS_MESSAGE.format(slug=slug))
+
+    def unset_default_org(self, slack_request: SlackDMRequest) -> Response:
+        identity = slack_request.get_identity()
+        if not identity:
+            return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
+
+        if PREFERRED_ORGANIZATION_ID_KEY in identity.data:
+            new_data = {
+                k: v for k, v in identity.data.items() if k != PREFERRED_ORGANIZATION_ID_KEY
+            }
+            identity_service.update_data(identity_id=identity.id, data=new_data)
+
+        return self.reply(slack_request, UNSET_DEFAULT_ORG_SUCCESS_MESSAGE)
 
     def post(self, request: Request) -> Response:
         try:

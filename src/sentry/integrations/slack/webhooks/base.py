@@ -115,6 +115,9 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
     def set_default_org(self, slack_request: SlackDMRequest, slug: str) -> Response:
         raise NotImplementedError
 
+    def unset_default_org(self, slack_request: SlackDMRequest) -> Response:
+        raise NotImplementedError
+
 
 @dataclass(frozen=True)
 class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
@@ -237,6 +240,21 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
             response=response,
         )
 
+    def unset_default_org_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        from sentry.integrations.slack.webhooks.command import LINK_USER_FIRST_MESSAGE
+
+        response = self.endpoint.unset_default_org(self.request)
+        if LINK_USER_FIRST_MESSAGE in str(response.data):
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.HALTED,
+                response=response,
+                outcome_reason=str(MessageCommandHaltReason.LINK_USER_FIRST),
+            )
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
     @property
     def command_handlers(
         self,
@@ -247,3 +265,4 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         yield commands.LINK_TEAM, self.link_team_handler
         yield commands.UNLINK_TEAM, self.unlink_team_handler
         yield commands.SET_DEFAULT_ORG, self.set_default_org_handler
+        yield commands.UNSET_DEFAULT_ORG, self.unset_default_org_handler
