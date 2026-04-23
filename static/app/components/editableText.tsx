@@ -239,7 +239,7 @@ export function EditableText({
   );
 }
 
-const Label = styled('div')<{isDisabled: boolean; isCompact?: boolean}>`
+const Label = styled('div')<{isCompact: boolean; isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
@@ -256,7 +256,7 @@ const Label = styled('div')<{isDisabled: boolean; isCompact?: boolean}>`
     `}
 `;
 
-const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
+const InnerLabel = styled(TextOverflow)<{isCompact: boolean}>`
   border-top: 1px solid transparent;
   border-bottom: ${p =>
     p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
@@ -267,7 +267,7 @@ const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
     `}
 `;
 
-const InputWrapper = styled('div')<{isEmpty: boolean; isCompact?: boolean}>`
+const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
   display: inline-block;
   background: ${p => (p.isCompact ? 'transparent' : p.theme.tokens.background.tertiary)};
   border-radius: ${p => (p.isCompact ? 0 : p.theme.radius.md)};
@@ -278,7 +278,7 @@ const InputWrapper = styled('div')<{isEmpty: boolean; isCompact?: boolean}>`
   min-width: ${p => (p.isCompact ? 0 : 'auto')};
 `;
 
-const StyledInput = styled(Input)<{isCompact?: boolean}>`
+const StyledInput = styled(Input)<{isCompact: boolean}>`
   border: none !important;
   background: transparent;
   height: auto;
@@ -308,9 +308,9 @@ const InputLabel = styled('div')`
 `;
 
 const Wrapper = styled('div')<{
+  isCompact: boolean;
   isDisabled: boolean;
   isEditing: boolean;
-  isCompact?: boolean;
 }>`
   display: flex;
 
