@@ -175,9 +175,9 @@ PREBUILT_SAVED_QUERIES = [
                     "timestamp",
                     "gen_ai.cost.total_tokens",
                     "gen_ai.response.model",
-                    "gen_ai.response.text",
+                    "gen_ai.output.messages",
                 ],
-                "query": "has:gen_ai.cost.total_tokens has:gen_ai.response.model has:gen_ai.response.text",
+                "query": "has:gen_ai.cost.total_tokens has:gen_ai.response.model has:gen_ai.output.messages",
                 "mode": "samples",
                 "visualize": [
                     {
