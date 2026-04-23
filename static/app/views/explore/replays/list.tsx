@@ -30,15 +30,15 @@ import {
   useQueryParamsId,
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
+import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
+import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
+import {ReplayIndexTimestampPrefPicker} from 'sentry/views/explore/replays/list/replayIndexTimestampPrefPicker';
+import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
+import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnboardingPanel';
+import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
-import {ReplayIndexContainer} from 'sentry/views/replays/list/replayIndexContainer';
-import {ReplayIndexTimestampPrefPicker} from 'sentry/views/replays/list/replayIndexTimestampPrefPicker';
-import {ReplayListControls} from 'sentry/views/replays/list/replayListControls';
-import {ReplayOnboardingPanel} from 'sentry/views/replays/list/replayOnboardingPanel';
-import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
 
 const ReplayListPageHeaderHook = HookOrDefault({
   hookName: 'component:replay-list-page-header',

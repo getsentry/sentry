@@ -5,16 +5,16 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {
   getOutputType,
   Output,
-} from 'sentry/views/replays/detail/network/details/getOutputType';
+} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 import {
   Setup,
   UnsupportedOp,
-} from 'sentry/views/replays/detail/network/details/onboarding';
-import type {SectionProps} from 'sentry/views/replays/detail/network/details/sections';
+} from 'sentry/views/explore/replays/detail/network/details/onboarding';
+import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
 import {
   GeneralSection,
   QueryParamsSection,
@@ -22,7 +22,7 @@ import {
   RequestPayloadSection,
   ResponseHeadersSection,
   ResponsePayloadSection,
-} from 'sentry/views/replays/detail/network/details/sections';
+} from 'sentry/views/explore/replays/detail/network/details/sections';
 
 type Props = Parameters<typeof getOutputType>[0] & SectionProps;
 

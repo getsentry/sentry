@@ -1,6 +1,6 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useRotatingMessage} from 'sentry/views/replays/detail/ai/useRotatingMessage';
+import {useRotatingMessage} from 'sentry/views/explore/replays/detail/ai/useRotatingMessage';
 
 describe('useRotatingMessage', () => {
   const messages = ['First', 'Second', 'Third', 'Fourth'];

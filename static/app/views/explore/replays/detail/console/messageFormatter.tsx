@@ -1,8 +1,8 @@
 import {defined} from 'sentry/utils';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
-import {Format} from 'sentry/views/replays/detail/console/format';
-import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {Format} from 'sentry/views/explore/replays/detail/console/format';
+import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 
 interface Props {
   frame: BreadcrumbFrame;

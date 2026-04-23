@@ -9,8 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ReplayQueryParamsProvider} from 'sentry/views/replays/list/replayQueryParamsProvider';
-import {SaveReplayQueryButton} from 'sentry/views/replays/list/saveReplayQueryButton';
+import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
+import {SaveReplayQueryButton} from 'sentry/views/explore/replays/list/saveReplayQueryButton';
 
 describe('SaveReplayQueryButton', () => {
   const organization = OrganizationFixture();

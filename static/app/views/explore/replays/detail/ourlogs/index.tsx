@@ -22,11 +22,11 @@ import {
   LogsInfiniteTable,
 } from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {rearrangedLogsReplayFields} from 'sentry/views/explore/logs/tables/logsTableUtils';
-import {FluidHeight} from 'sentry/views/replays/detail/layout/fluidHeight';
-import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
-import {OurLogFilters} from 'sentry/views/replays/detail/ourlogs/ourlogFilters';
-import {ourlogsAsFrames} from 'sentry/views/replays/detail/ourlogs/ourlogsAsFrames';
-import {useOurLogFilters} from 'sentry/views/replays/detail/ourlogs/useOurLogFilters';
+import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
+import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
+import {OurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/ourlogFilters';
+import {ourlogsAsFrames} from 'sentry/views/explore/replays/detail/ourlogs/ourlogsAsFrames';
+import {useOurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/useOurLogFilters';
 
 export function OurLogs() {
   const replay = useReplayReader();

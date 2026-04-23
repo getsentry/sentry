@@ -7,7 +7,7 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
-import {filterItems} from 'sentry/views/replays/detail/utils';
+import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
 type FilterFields = {
   f_b_search: string;

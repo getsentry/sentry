@@ -8,8 +8,8 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export function SelectorLink({
   value,

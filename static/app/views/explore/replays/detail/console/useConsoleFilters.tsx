@@ -9,7 +9,7 @@ import {
   type BreadcrumbFrame,
   type ConsoleFrame,
 } from 'sentry/utils/replays/types';
-import {filterItems} from 'sentry/views/replays/detail/utils';
+import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
 export type FilterFields = {
   f_c_logLevel: string[];

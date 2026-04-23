@@ -4,8 +4,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
-import {useTagFilters} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import type {FilterFields} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
+import {useTagFilters} from 'sentry/views/explore/replays/detail/tagPanel/useTagFilters';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');

@@ -21,23 +21,23 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FilterLoadingIndicator} from 'sentry/views/replays/detail/filterLoadingIndicator';
-import {NetworkDetails} from 'sentry/views/replays/detail/network/details';
-import {NetworkFilters} from 'sentry/views/replays/detail/network/networkFilters';
+import {FilterLoadingIndicator} from 'sentry/views/explore/replays/detail/filterLoadingIndicator';
+import {NetworkDetails} from 'sentry/views/explore/replays/detail/network/details';
+import {NetworkFilters} from 'sentry/views/explore/replays/detail/network/networkFilters';
 import {
   COLUMN_COUNT,
   NetworkHeaderCell,
-} from 'sentry/views/replays/detail/network/networkHeaderCell';
-import {NetworkTableCell} from 'sentry/views/replays/detail/network/networkTableCell';
-import {useNetworkFilters} from 'sentry/views/replays/detail/network/useNetworkFilters';
-import {useSortNetwork} from 'sentry/views/replays/detail/network/useSortNetwork';
-import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
-import {useVirtualizedGrid} from 'sentry/views/replays/detail/useVirtualizedGrid';
-import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
+} from 'sentry/views/explore/replays/detail/network/networkHeaderCell';
+import {NetworkTableCell} from 'sentry/views/explore/replays/detail/network/networkTableCell';
+import {useNetworkFilters} from 'sentry/views/explore/replays/detail/network/useNetworkFilters';
+import {useSortNetwork} from 'sentry/views/explore/replays/detail/network/useSortNetwork';
+import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
+import {useVirtualizedGrid} from 'sentry/views/explore/replays/detail/useVirtualizedGrid';
+import {VirtualTable} from 'sentry/views/explore/replays/detail/virtualizedTableLayout';
 import {
   getTimelineRowClassName,
   getVisibleRangeFromVirtualRows,
-} from 'sentry/views/replays/detail/virtualizedTableUtils';
+} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;

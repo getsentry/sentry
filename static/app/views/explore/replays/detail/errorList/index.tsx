@@ -14,21 +14,21 @@ import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import {ErrorFilters} from 'sentry/views/replays/detail/errorList/errorFilters';
+import {ErrorFilters} from 'sentry/views/explore/replays/detail/errorList/errorFilters';
 import {
   COLUMN_COUNT,
   ErrorHeaderCell,
-} from 'sentry/views/replays/detail/errorList/errorHeaderCell';
-import {ErrorTableCell} from 'sentry/views/replays/detail/errorList/errorTableCell';
-import {useErrorFilters} from 'sentry/views/replays/detail/errorList/useErrorFilters';
-import {useSortErrors} from 'sentry/views/replays/detail/errorList/useSortErrors';
-import {NoRowRenderer} from 'sentry/views/replays/detail/noRowRenderer';
-import {useVirtualizedGrid} from 'sentry/views/replays/detail/useVirtualizedGrid';
-import {VirtualTable} from 'sentry/views/replays/detail/virtualizedTableLayout';
+} from 'sentry/views/explore/replays/detail/errorList/errorHeaderCell';
+import {ErrorTableCell} from 'sentry/views/explore/replays/detail/errorList/errorTableCell';
+import {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
+import {useSortErrors} from 'sentry/views/explore/replays/detail/errorList/useSortErrors';
+import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
+import {useVirtualizedGrid} from 'sentry/views/explore/replays/detail/useVirtualizedGrid';
+import {VirtualTable} from 'sentry/views/explore/replays/detail/virtualizedTableLayout';
 import {
   getTimelineRowClassName,
   getVisibleRangeFromVirtualRows,
-} from 'sentry/views/replays/detail/virtualizedTableUtils';
+} from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
 const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;

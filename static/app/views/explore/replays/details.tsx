@@ -21,14 +21,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
+import {ReplayDetailsHeaderActions} from 'sentry/views/explore/replays/detail/header/replayDetailsHeaderActions';
+import {ReplayDetailsMetadata} from 'sentry/views/explore/replays/detail/header/replayDetailsMetadata';
+import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
+import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
+import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
-import {ReplayDetailsMetadata} from 'sentry/views/replays/detail/header/replayDetailsMetadata';
-import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/replays/detail/header/replayDetailsPageBreadcrumbs';
-import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
-import {ReplayDetailsPage} from 'sentry/views/replays/detail/page';
 
 export default function ReplayDetails() {
   const hasPageFrame = useHasPageFrameFeature();

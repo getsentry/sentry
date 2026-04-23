@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 
 import {useTraceMeta} from './useTraceMeta';
 

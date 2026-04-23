@@ -7,7 +7,7 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {
   ReplaySummaryStatus,
   ReplaySummaryTemp,
-} from 'sentry/views/replays/detail/ai/utils';
+} from 'sentry/views/explore/replays/detail/ai/utils';
 
 import {useReplaySummary} from './useReplaySummary';
 

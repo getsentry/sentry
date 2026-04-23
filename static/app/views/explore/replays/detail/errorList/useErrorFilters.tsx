@@ -6,7 +6,7 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {filterItems} from 'sentry/views/replays/detail/utils';
+import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
 export interface ErrorSelectOption extends SelectOption<string> {
   qs: 'f_e_level' | 'f_e_project';

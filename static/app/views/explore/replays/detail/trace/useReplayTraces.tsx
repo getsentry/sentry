@@ -9,7 +9,7 @@ import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 export type ReplayTrace = {
   timestamp: number | undefined;

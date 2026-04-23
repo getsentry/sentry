@@ -18,8 +18,8 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 export function ExampleReplaysList({
   location,

@@ -13,16 +13,16 @@ import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useLocation} from 'sentry/utils/useLocation';
+import {ExampleReplaysList} from 'sentry/views/explore/replays/selectors/exampleReplaysList';
+import {ProjectInfo} from 'sentry/views/explore/replays/selectors/projectInfo';
+import {SelectorLink} from 'sentry/views/explore/replays/selectors/selectorLink';
+import {transformSelectorQuery} from 'sentry/views/explore/replays/selectors/utils';
 import {
   HeaderContainer,
   HeaderTitleLegend,
   Subtitle,
   WidgetContainer,
 } from 'sentry/views/profiling/landing/styles';
-import {ExampleReplaysList} from 'sentry/views/replays/selectors/exampleReplaysList';
-import {ProjectInfo} from 'sentry/views/replays/selectors/projectInfo';
-import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';
-import {transformSelectorQuery} from 'sentry/views/replays/selectors/utils';
 
 export function DeadRageSelectorCards() {
   return (

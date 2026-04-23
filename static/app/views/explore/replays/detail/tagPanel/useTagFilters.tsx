@@ -2,8 +2,8 @@ import {useCallback, useMemo} from 'react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {filterItems} from 'sentry/views/replays/detail/utils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {filterItems} from 'sentry/views/explore/replays/detail/utils';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export type FilterFields = {
   f_t_search: string;

@@ -12,10 +12,10 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
+import ListPage from 'sentry/views/explore/replays/list';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
-import ListPage from 'sentry/views/replays/list';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');

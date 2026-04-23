@@ -17,12 +17,12 @@ import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
-import {BulkDeleteAlert} from 'sentry/views/replays/list/bulkDeleteAlert';
-import {ReplayListControls} from 'sentry/views/replays/list/replayListControls';
-import {useReplayIndexTableColumns} from 'sentry/views/replays/list/useReplayIndexTableColumns';
-import {DeadRageSelectorCards} from 'sentry/views/replays/selectors/deadRageSelectorCards';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
+import {BulkDeleteAlert} from 'sentry/views/explore/replays/list/bulkDeleteAlert';
+import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
+import {useReplayIndexTableColumns} from 'sentry/views/explore/replays/list/useReplayIndexTableColumns';
+import {DeadRageSelectorCards} from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   error: Error | null | undefined;

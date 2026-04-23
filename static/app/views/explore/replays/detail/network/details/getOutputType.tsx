@@ -1,6 +1,6 @@
 import {isRequestFrame} from 'sentry/utils/replays/resourceFrame';
-import type {SectionProps} from 'sentry/views/replays/detail/network/details/sections';
-import type {TabKey} from 'sentry/views/replays/detail/network/details/tabs';
+import type {SectionProps} from 'sentry/views/explore/replays/detail/network/details/sections';
+import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
 
 export enum Output {
   SETUP = 'setup',

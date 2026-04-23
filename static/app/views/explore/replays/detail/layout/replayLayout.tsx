@@ -17,10 +17,10 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
-import {FocusArea} from 'sentry/views/replays/detail/layout/focusArea';
-import {FocusTabs} from 'sentry/views/replays/detail/layout/focusTabs';
-import {ReplaySplitPanel as SplitPanel} from 'sentry/views/replays/detail/layout/splitPanel';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {FocusArea} from 'sentry/views/explore/replays/detail/layout/focusArea';
+import {FocusTabs} from 'sentry/views/explore/replays/detail/layout/focusTabs';
+import {ReplaySplitPanel as SplitPanel} from 'sentry/views/explore/replays/detail/layout/splitPanel';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;

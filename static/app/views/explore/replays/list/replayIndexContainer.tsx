@@ -13,7 +13,7 @@ import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplayIndexTable} from 'sentry/views/replays/list/replayIndexTable';
+import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
 
 interface Props {
   onToggleWidgets: () => void;

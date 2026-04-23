@@ -23,7 +23,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;

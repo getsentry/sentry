@@ -4,8 +4,8 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import {FiltersGrid} from 'sentry/views/replays/detail/filtersGrid';
-import type {useNetworkFilters} from 'sentry/views/replays/detail/network/useNetworkFilters';
+import {FiltersGrid} from 'sentry/views/explore/replays/detail/filtersGrid';
+import type {useNetworkFilters} from 'sentry/views/explore/replays/detail/network/useNetworkFilters';
 
 type Props = {
   networkFrames: undefined | unknown[];

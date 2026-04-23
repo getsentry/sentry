@@ -17,8 +17,8 @@ import {
   getResponseBodySize,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
-import {operationName} from 'sentry/views/replays/detail/utils';
+import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+import {operationName} from 'sentry/views/explore/replays/detail/utils';
 
 const EMPTY_CELL = '--';
 

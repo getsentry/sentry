@@ -19,8 +19,8 @@ import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import {type ReplayListQueryReferrer} from 'sentry/views/replays/types';
+import {ReplaySummaryContextProvider} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
+import {type ReplayListQueryReferrer} from 'sentry/views/explore/replays/types';
 
 interface Props {
   children: ReactNode;

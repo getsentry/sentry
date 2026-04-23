@@ -7,7 +7,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useReplaySummary,
   type UseReplaySummaryResult,
-} from 'sentry/views/replays/detail/ai/useReplaySummary';
+} from 'sentry/views/explore/replays/detail/ai/useReplaySummary';
 
 const ReplaySummaryContext = createContext<UseReplaySummaryResult>({
   summaryData: undefined,

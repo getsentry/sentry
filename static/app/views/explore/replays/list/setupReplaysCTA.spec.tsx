@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SetupReplaysCTA} from 'sentry/views/replays/list/replayOnboardingPanel';
+import {SetupReplaysCTA} from 'sentry/views/explore/replays/list/replayOnboardingPanel';
 
 describe('SetupReplaysCTA', () => {
   it('renders setup replay', () => {

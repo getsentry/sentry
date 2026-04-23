@@ -14,8 +14,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {ReplayDetailsUserBadge} from 'sentry/views/replays/detail/header/replayDetailsUserBadge';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 const {organization, project} = initializeOrg({
   organization: OrganizationFixture({}),

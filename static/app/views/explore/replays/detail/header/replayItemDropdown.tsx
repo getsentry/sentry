@@ -16,8 +16,8 @@ import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
   projectSlug: string | null;

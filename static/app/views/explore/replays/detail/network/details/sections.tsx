@@ -20,7 +20,7 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import type {KeyValueTuple} from 'sentry/views/replays/detail/network/details/components';
+import type {KeyValueTuple} from 'sentry/views/explore/replays/detail/network/details/components';
 import {
   Indent,
   InspectorMargin,
@@ -28,10 +28,10 @@ import {
   SectionItem,
   SizeTooltip,
   Warning,
-} from 'sentry/views/replays/detail/network/details/components';
-import {useDismissReqRespBodiesAlert} from 'sentry/views/replays/detail/network/details/onboarding';
-import {fixJson} from 'sentry/views/replays/detail/network/truncateJson/fixJson';
-import {TimestampButton} from 'sentry/views/replays/detail/timestampButton';
+} from 'sentry/views/explore/replays/detail/network/details/components';
+import {useDismissReqRespBodiesAlert} from 'sentry/views/explore/replays/detail/network/details/onboarding';
+import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
+import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
 
 export type SectionProps = {
   item: SpanFrame;

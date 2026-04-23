@@ -1,15 +1,15 @@
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {TabKey, useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {Ai} from 'sentry/views/replays/detail/ai/ai';
-import {Breadcrumbs} from 'sentry/views/replays/detail/breadcrumbs';
-import {Console} from 'sentry/views/replays/detail/console';
-import {ErrorList} from 'sentry/views/replays/detail/errorList/index';
-import {MemoryPanel} from 'sentry/views/replays/detail/memoryPanel/index';
-import {NetworkList} from 'sentry/views/replays/detail/network';
-import {OurLogs} from 'sentry/views/replays/detail/ourlogs';
-import {Playlist} from 'sentry/views/replays/detail/playlist';
-import {TagPanel} from 'sentry/views/replays/detail/tagPanel';
-import {TraceFeature} from 'sentry/views/replays/detail/trace/index';
+import {Ai} from 'sentry/views/explore/replays/detail/ai/ai';
+import {Breadcrumbs} from 'sentry/views/explore/replays/detail/breadcrumbs';
+import {Console} from 'sentry/views/explore/replays/detail/console';
+import {ErrorList} from 'sentry/views/explore/replays/detail/errorList/index';
+import {MemoryPanel} from 'sentry/views/explore/replays/detail/memoryPanel/index';
+import {NetworkList} from 'sentry/views/explore/replays/detail/network';
+import {OurLogs} from 'sentry/views/explore/replays/detail/ourlogs';
+import {Playlist} from 'sentry/views/explore/replays/detail/playlist';
+import {TagPanel} from 'sentry/views/explore/replays/detail/tagPanel';
+import {TraceFeature} from 'sentry/views/explore/replays/detail/trace/index';
 
 export function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});

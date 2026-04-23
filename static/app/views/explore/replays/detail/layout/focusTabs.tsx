@@ -16,7 +16,7 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {hasLogsOnReplays} from 'sentry/views/explore/logs/hasLogsOnReplays';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 function getReplayTabs({
   isVideoReplay,

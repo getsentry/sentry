@@ -14,7 +14,7 @@ import {
   ReplaySummaryStatus,
   ReplaySummaryTemp,
   type SummaryResponse,
-} from 'sentry/views/replays/detail/ai/utils';
+} from 'sentry/views/explore/replays/detail/ai/utils';
 
 const POLL_INTERVAL_MS = 500;
 const ERROR_POLL_INTERVAL_MS = 5000;

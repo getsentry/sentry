@@ -4,11 +4,11 @@ import {useQueryState} from 'nuqs';
 import {DetailsSplitDivider} from 'sentry/components/replays/virtualizedGrid/detailsSplitDivider';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {NetworkDetailsContent} from 'sentry/views/replays/detail/network/details/content';
+import {NetworkDetailsContent} from 'sentry/views/explore/replays/detail/network/details/content';
 import {
   networkDetailsTabParser,
   StyledNetworkDetailsTabs as NetworkDetailsTabs,
-} from 'sentry/views/replays/detail/network/details/tabs';
+} from 'sentry/views/explore/replays/detail/network/details/tabs';
 
 type Props = {
   isCaptureBodySetup: boolean;

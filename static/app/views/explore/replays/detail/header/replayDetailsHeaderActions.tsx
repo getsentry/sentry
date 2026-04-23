@@ -8,9 +8,9 @@ import {ConfigureReplayCard} from 'sentry/components/replays/header/configureRep
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayItemDropdown} from 'sentry/views/explore/replays/detail/header/replayItemDropdown';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {ReplayItemDropdown} from 'sentry/views/replays/detail/header/replayItemDropdown';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;

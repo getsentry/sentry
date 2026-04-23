@@ -1629,7 +1629,7 @@ function buildRoutes(): RouteObject[] {
   const replayChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/replays/list')),
+      component: make(() => import('sentry/views/explore/replays/list')),
     },
     {
       path: 'selectors/',
@@ -1637,12 +1637,12 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: ':replaySlug/',
-      component: make(() => import('sentry/views/replays/details')),
+      component: make(() => import('sentry/views/explore/replays/details')),
     },
   ];
   const replayRoutes: SentryRouteObject = {
     path: '/replays/',
-    component: make(() => import('sentry/views/replays/index')),
+    component: make(() => import('sentry/views/explore/replays/index')),
     withOrgPath: true,
     children: replayChildren,
   };
@@ -2282,7 +2282,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'replays/',
-      component: make(() => import('sentry/views/replays/index')),
+      component: make(() => import('sentry/views/explore/replays/index')),
       children: replayChildren,
     },
     {
