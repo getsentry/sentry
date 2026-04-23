@@ -165,7 +165,9 @@ def update_alert_rule(
                         status=status.HTTP_200_OK,
                     )
                 except Detector.DoesNotExist:
-                    Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
+                    return Response(
+                        serialize(updated_rule, request.user), status=status.HTTP_200_OK
+                    )
             return Response(serialize(updated_rule, request.user), status=status.HTTP_200_OK)
 
     return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
