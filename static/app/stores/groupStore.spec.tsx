@@ -70,6 +70,41 @@ describe('GroupStore', () => {
     });
   });
 
+  describe('pruneOlderThan()', () => {
+    it('removes items with lastSeen older than the floor', () => {
+      GroupStore.items = [
+        g('1', {lastSeen: '2026-04-23T12:00:00Z'}),
+        g('2', {lastSeen: '2026-04-23T11:00:00Z'}),
+        g('3', {lastSeen: '2026-04-23T10:00:00Z'}),
+      ];
+
+      GroupStore.pruneOlderThan(new Date('2026-04-23T11:30:00Z').getTime());
+
+      expect(GroupStore.getAllItemIds()).toEqual(['1']);
+    });
+
+    it('keeps items whose lastSeen equals the floor', () => {
+      const floor = new Date('2026-04-23T12:00:00Z').getTime();
+      GroupStore.items = [g('1', {lastSeen: '2026-04-23T12:00:00Z'})];
+
+      GroupStore.pruneOlderThan(floor);
+
+      expect(GroupStore.getAllItemIds()).toEqual(['1']);
+    });
+
+    it('keeps items with a missing or invalid lastSeen', () => {
+      GroupStore.items = [
+        g('1', {lastSeen: undefined as unknown as string}),
+        g('2', {lastSeen: 'not-a-date'}),
+        g('3', {lastSeen: '2026-04-23T10:00:00Z'}),
+      ];
+
+      GroupStore.pruneOlderThan(new Date('2026-04-23T11:00:00Z').getTime());
+
+      expect(GroupStore.getAllItemIds()).toEqual(['1', '2']);
+    });
+  });
+
   describe('remove()', () => {
     it('should remove entry', () => {
       GroupStore.items = [g('1'), g('2')];

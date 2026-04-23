@@ -29,6 +29,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -169,15 +170,54 @@ function IssueListOverview({
   const {data: supergroupLookup, isLoading: supergroupsLoading} =
     useSuperGroups(groupIds);
 
+  // The realtime poller only fetches NEW issues via the "previous" cursor; it
+  // never re-queries the current window, so items that age past the time range
+  // would otherwise linger until a full reload. Compute the floor so we can
+  // prune them ourselves.
+  const getRealtimeWindowStartMs = useCallback((): number | null => {
+    const {period, start} = selection.datetime;
+    if (start) {
+      const startMs = new Date(start).getTime();
+      return Number.isFinite(startMs) ? startMs : null;
+    }
+    if (!period) {
+      return null;
+    }
+    const hours = parsePeriodToHours(period);
+    if (hours <= 0) {
+      return null;
+    }
+    return Date.now() - hours * 60 * 60 * 1000;
+  }, [selection.datetime]);
+
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
       // Note: We do not update state with cursors from polling,
       // `CursorPoller` updates itself with new cursors
       GroupStore.addToFront(data);
+      const minLastSeenMs = getRealtimeWindowStartMs();
+      if (minLastSeenMs !== null) {
+        GroupStore.pruneOlderThan(minLastSeenMs);
+      }
       setQueryCount(newQueryCount);
     },
-    []
+    [getRealtimeWindowStartMs]
   );
+
+  // CursorPoller skips its success callback on empty polls, so prune on a
+  // timer to keep aging items out of the list even when no new issues arrive.
+  useEffect(() => {
+    if (!realtimeActive) {
+      return undefined;
+    }
+    const intervalId = window.setInterval(() => {
+      const minLastSeenMs = getRealtimeWindowStartMs();
+      if (minLastSeenMs !== null) {
+        GroupStore.pruneOlderThan(minLastSeenMs);
+      }
+    }, 30_000);
+    return () => window.clearInterval(intervalId);
+  }, [realtimeActive, getRealtimeWindowStartMs]);
 
   useEffect(() => {
     // Either cleanup or reuse the poller to prevent a resource leak.

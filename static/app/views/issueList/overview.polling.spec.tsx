@@ -40,9 +40,15 @@ describe('IssueList -> Polling', () => {
     MockApiClient.clearMockResponses();
   });
 
+  // Pin the fake clock and use a lastSeen inside the statsPeriod window so
+  // the realtime prune (which removes items older than the active
+  // statsPeriod) doesn't strip these fixtures.
+  const NOW = new Date('2026-04-23T12:00:00Z');
+  const RECENT_LAST_SEEN = '2026-04-23T11:00:00Z';
+
   const project = ProjectFixture();
-  const group = GroupFixture({project});
-  const group2 = GroupFixture({project, id: '2'});
+  const group = GroupFixture({project, lastSeen: RECENT_LAST_SEEN});
+  const group2 = GroupFixture({project, id: '2', lastSeen: RECENT_LAST_SEEN});
 
   /* helpers */
   const renderComponent = async () => {
@@ -61,6 +67,7 @@ describe('IssueList -> Polling', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    jest.setSystemTime(NOW);
 
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
@@ -116,7 +123,10 @@ describe('IssueList -> Polling', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
-      body: [GroupStatsFixture()],
+      body: [
+        GroupStatsFixture({lastSeen: RECENT_LAST_SEEN}),
+        GroupStatsFixture({id: '2', lastSeen: RECENT_LAST_SEEN}),
+      ],
     });
     pollRequest = MockApiClient.addMockResponse({
       url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
@@ -193,6 +203,31 @@ describe('IssueList -> Polling', () => {
     await screen.findByTestId('2');
 
     expect(screen.getByText(textWithMarkupMatcher('1-2 of 2'))).toBeInTheDocument();
+  });
+
+  it('drops issues whose lastSeen falls outside the active time range', async () => {
+    // Initial issue is within the default 14d window.
+    await renderComponent();
+    expect(await screen.findByTestId('1')).toBeInTheDocument();
+
+    // Enable real-time updates.
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
+
+    // Jump the fake clock 30 days into the future so the initial issue's
+    // lastSeen is now older than the 14d window.
+    jest.setSystemTime(new Date(NOW.getTime() + 30 * 24 * 60 * 60 * 1000));
+
+    // Advance past the 30s prune interval; CursorPoller's empty poll fires
+    // repeatedly, and the interval prunes the aged-out item even without
+    // new poll data.
+    jest.advanceTimersByTime(31_000);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('1')).not.toBeInTheDocument();
+    });
   });
 
   it('stops polling for new issues when endpoint returns a 401', async () => {

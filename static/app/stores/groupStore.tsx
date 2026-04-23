@@ -82,6 +82,8 @@ interface GroupStoreDefinition extends StrictStoreDefinition<Item[]>, InternalDe
   onUpdateError: (changeId: string, itemIds: ItemIds, silent: boolean) => void;
   onUpdateSuccess: (changeId: string, itemIds: ItemIds, response: Partial<Group>) => void;
 
+  pruneOlderThan: (minLastSeenMs: number) => void;
+
   remove: (itemIds: ItemIds) => void;
 
   reset: () => void;
@@ -208,6 +210,21 @@ const storeConfig: GroupStoreDefinition = {
     this.items = this.items.filter(item => !itemIds?.includes(item.id));
 
     this.updateItems(itemIds);
+  },
+
+  pruneOlderThan(minLastSeenMs) {
+    const removedIds: string[] = [];
+    this.items = this.items.filter(item => {
+      const lastSeenMs = item.lastSeen ? new Date(item.lastSeen).getTime() : NaN;
+      if (Number.isFinite(lastSeenMs) && lastSeenMs < minLastSeenMs) {
+        removedIds.push(item.id);
+        return false;
+      }
+      return true;
+    });
+    if (removedIds.length > 0) {
+      this.updateItems(removedIds);
+    }
   },
 
   addStatus(id, status) {
