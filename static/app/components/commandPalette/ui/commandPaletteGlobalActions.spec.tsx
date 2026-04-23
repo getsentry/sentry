@@ -48,9 +48,9 @@ function SlotOutlets() {
 
 describe('GlobalCommandPaletteActions - project settings ordering', () => {
   const organization = OrganizationFixture();
-  const projectA = ProjectFixture({slug: 'project-a', organization});
-  const projectB = ProjectFixture({slug: 'project-b', organization});
-  const projectC = ProjectFixture({slug: 'project-c', organization});
+  const projectA = ProjectFixture({id: '1', slug: 'project-a', organization});
+  const projectB = ProjectFixture({id: '2', slug: 'project-b', organization});
+  const projectC = ProjectFixture({id: '3', slug: 'project-c', organization});
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([projectA, projectB, projectC]);
@@ -86,6 +86,27 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     await screen.findByRole('textbox', {name: 'Search commands'});
   }
 
+  it('shows a "Current Project" tag on the active project entry', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/projects/project-b/`},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    expect(await screen.findByText('Current')).toBeInTheDocument();
+  });
+
   it('places the current route project first when on a :projectId route', async () => {
     render(
       <CommandPaletteProvider>
@@ -107,7 +128,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     const option = (await screen.findAllByRole('option')).find(
       el => !el.hasAttribute('aria-disabled')
     );
-    expect(option).toHaveAccessibleName('project-b');
+    expect(option).toHaveAccessibleName('project-b · General Settings');
   });
 
   it('does not duplicate the current project in the list', async () => {
@@ -128,8 +149,69 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
     await drillIntoGeneralSettings();
 
-    await screen.findByRole('option', {name: 'project-b'});
-    expect(screen.getAllByRole('option', {name: 'project-b'})).toHaveLength(1);
+    await screen.findByRole('option', {name: 'project-b · General Settings'});
+    expect(
+      screen.getAllByRole('option', {name: 'project-b · General Settings'})
+    ).toHaveLength(1);
+  });
+
+  it('places the project first when identified by a single ?project= query param', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: projectB.id},
+          },
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    const option = (await screen.findAllByRole('option')).find(
+      el => !el.hasAttribute('aria-disabled')
+    );
+    expect(option).toHaveAccessibleName('project-b · General Settings');
+    expect(screen.getByText('Current')).toBeInTheDocument();
+  });
+
+  it('highlights all projects when multiple ?project= params are set', async () => {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: [projectA.id, projectB.id]},
+          },
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    // Both selected projects should appear with the Current tag
+    expect(
+      await screen.findByRole('option', {name: 'project-a · General Settings'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'project-b · General Settings'})
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Current')).toHaveLength(2);
+    // Unselected project should still be present but without a tag
+    expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
   });
 
   it('shows all projects without priority when not on a :projectId route', async () => {

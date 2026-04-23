@@ -3,6 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -43,6 +44,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {decodeList} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -100,6 +103,7 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const {projects} = useProjects();
   const params = useParams();
+  const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
   const {starredViews} = useStarredIssueViews();
   const {data: starredDashboards = []} = useGetStarredDashboards();
@@ -115,6 +119,22 @@ export function GlobalCommandPaletteActions() {
   });
 
   const {openSeerExplorer} = useSeerExplorerContext();
+
+  const queryProjectIds = new Set(decodeList(location.query.project));
+  const currentProjects = params.projectId
+    ? projects.filter(p => p.slug === params.projectId)
+    : projects.filter(p => queryProjectIds.has(p.id));
+  const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
+  const visibleProjectSettingsNavItems = getNavigationConfiguration({
+    organization,
+  }).flatMap(section =>
+    section.items.filter(navItem => {
+      if (!navItem.show) return true;
+      return typeof navItem.show === 'function'
+        ? (navItem.show as () => boolean)()
+        : navItem.show;
+    })
+  );
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
@@ -378,74 +398,64 @@ export function GlobalCommandPaletteActions() {
         </CMDKAction>
 
         <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
-          {getNavigationConfiguration({organization}).flatMap(section =>
-            section.items
-              .filter(navItem => {
-                if (!navItem.show) return true;
-                return typeof navItem.show === 'function'
-                  ? (navItem.show as () => boolean)()
-                  : navItem.show;
-              })
-              .map(navItem => {
-                const suffix = navItem.path.replace(
-                  '/settings/:orgId/projects/:projectId/',
-                  ''
-                );
-                const currentProject = params.projectId
-                  ? projects.find(p => p.slug === params.projectId)
-                  : undefined;
-                return (
+          {visibleProjectSettingsNavItems.map(navItem => {
+            const suffix = navItem.path.replace(
+              '/settings/:orgId/projects/:projectId/',
+              ''
+            );
+            return (
+              <CMDKAction
+                key={navItem.path}
+                display={{label: navItem.title}}
+                keywords={navItem.keywords}
+                prompt={t('Select a project...')}
+                resource={(
+                  _query: string,
+                  {state}: CMDKResourceContext
+                ): CMDKQueryOptions =>
+                  // `projects` is intentionally omitted from the queryKey:
+                  // TanStack serializes the entire key for cache lookups, and
+                  // including the full projects array would be too costly —
+                  // some orgs have thousands of projects.
+                  // `params.projectId`/`queryProjectIds` bust the cache when
+                  // the active project changes.
+                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+                  cmdkQueryOptions({
+                    queryKey: [
+                      'project-settings',
+                      organization.slug,
+                      suffix,
+                      params.projectId ?? [...queryProjectIds].join(','),
+                    ],
+                    queryFn: () =>
+                      projects
+                        .filter(p => !currentProjectSlugs.has(p.slug))
+                        .map(project => ({
+                          display: {
+                            label: project.slug,
+                            icon: <ProjectAvatar project={project} size={16} />,
+                          },
+                          to: `/settings/${organization.slug}/projects/${project.slug}/${suffix}`,
+                        })),
+                    enabled: state === 'selected',
+                    staleTime: Infinity,
+                  })
+                }
+              >
+                {currentProjects.map(project => (
                   <CMDKAction
-                    key={navItem.path}
-                    display={{label: navItem.title}}
-                    keywords={navItem.keywords}
-                    prompt={t('Select a project...')}
-                    resource={(
-                      _query: string,
-                      {state}: CMDKResourceContext
-                    ): CMDKQueryOptions =>
-                      // `projects` is intentionally omitted from the queryKey:
-                      // TanStack serializes the entire key for cache lookups, and
-                      // including the full projects array would be too costly —
-                      // some orgs have thousands of projects.
-                      // `params.projectId` is sufficient to bust the cache when
-                      // the active project changes.
-                      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-                      cmdkQueryOptions({
-                        queryKey: [
-                          'project-settings',
-                          organization.slug,
-                          suffix,
-                          params.projectId,
-                        ],
-                        queryFn: () =>
-                          projects
-                            .filter(p => p.slug !== params.projectId)
-                            .map(project => ({
-                              display: {
-                                label: project.slug,
-                                icon: <ProjectAvatar project={project} size={16} />,
-                              },
-                              to: `/settings/${organization.slug}/projects/${project.slug}/${suffix}`,
-                            })),
-                        enabled: state === 'selected',
-                        staleTime: Infinity,
-                      })
-                    }
-                  >
-                    {currentProject && (
-                      <CMDKAction
-                        display={{
-                          label: currentProject.slug,
-                          icon: <ProjectAvatar project={currentProject} size={16} />,
-                        }}
-                        to={`/settings/${organization.slug}/projects/${currentProject.slug}/${suffix}`}
-                      />
-                    )}
-                  </CMDKAction>
-                );
-              })
-          )}
+                    key={project.id}
+                    display={{
+                      label: t('%s · %s', project.slug, navItem.title),
+                      icon: <ProjectAvatar project={project} size={16} />,
+                      trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+                    }}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/${suffix}`}
+                  />
+                ))}
+              </CMDKAction>
+            );
+          })}
         </CMDKAction>
       </CMDKAction>
 
