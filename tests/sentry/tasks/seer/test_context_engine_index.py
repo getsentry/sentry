@@ -396,7 +396,7 @@ class TestIndexRepos(TestCase):
         repos = body["repos"]
         assert len(repos) == 1
         assert repos[0]["name"] == "sentry"
-        assert repos[0]["project_ids"] == ["getsentry"]
+        assert repos[0]["project_ids"] == [self.project1.id]
 
 
 @django_db_all
