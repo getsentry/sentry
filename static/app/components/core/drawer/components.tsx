@@ -1,4 +1,4 @@
-import {createContext, Fragment, useContext, useRef} from 'react';
+import {createContext, Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -64,7 +64,7 @@ function DrawerPanel({
       drawerWidth,
       enabled: resizable,
     });
-  const tooltipContainerRef = useRef<HTMLDivElement>(null);
+  const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
 
   // Calculate actual drawer width in pixels
   const actualDrawerWidth =
@@ -77,7 +77,9 @@ function DrawerPanel({
           mode={mode}
           ariaLabel={ariaLabel}
           position="right"
-          ref={mergeRefs(panelRef, ref, tooltipContainerRef)}
+          ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
+            setTooltipContainer(node)
+          )}
           panelWidth="var(--drawer-width)" // Initial width only
           className="drawer-panel"
         >
@@ -96,7 +98,7 @@ function DrawerPanel({
             For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
             when it's button is pressed.
           */}
-          <TooltipContext value={{container: tooltipContainerRef.current}}>
+          <TooltipContext value={{container: tooltipContainer}}>
             <DrawerContentContext value={{onClose, ariaLabel}}>
               {children}
             </DrawerContentContext>
