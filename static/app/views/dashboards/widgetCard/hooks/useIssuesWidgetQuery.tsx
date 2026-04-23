@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {queryOptions} from '@tanstack/react-query';
+import {queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -9,7 +9,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {fetchDataQuery, useQueries, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';

@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +22,6 @@ import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';

@@ -269,5 +269,3 @@ export function fetchMutation<TResponseData = unknown>(
     data,
   });
 }
-
-export * from '@tanstack/react-query';

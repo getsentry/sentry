@@ -1,6 +1,7 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
 import type {UseTraceItemAttributeBaseProps} from 'sentry/views/explore/types';

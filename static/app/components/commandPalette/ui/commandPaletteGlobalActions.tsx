@@ -1,4 +1,5 @@
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -41,7 +42,7 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';

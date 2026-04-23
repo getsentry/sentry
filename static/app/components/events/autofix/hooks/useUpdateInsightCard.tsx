@@ -1,7 +1,8 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

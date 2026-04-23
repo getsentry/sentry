@@ -1,3 +1,5 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -14,7 +16,6 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface HighlightsSettingsFormProps {
