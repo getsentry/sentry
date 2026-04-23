@@ -4,6 +4,7 @@ import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -14,6 +15,7 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import type {
   Block,
   ToolCall,
@@ -998,6 +1000,23 @@ export function getExplorerUrl(runId: number | string): string {
 
 export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
+}
+
+export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+  return {
+    formTitle: 'Seer Agent Feedback',
+    messagePlaceholder: 'How can we make Seer better for you?',
+    tags: {
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      ...(runId === null
+        ? {}
+        : {['conversations_url']: getConversationsUrl('sentry', runId)}),
+    },
+  };
 }
 
 /**

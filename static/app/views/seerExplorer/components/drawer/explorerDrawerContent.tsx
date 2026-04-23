@@ -21,7 +21,7 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
-  getExplorerUrl,
+  getExplorerFeedbackOptions,
   getLangfuseUrl,
   useCopySessionDataToClipboard,
 } from 'sentry/views/seerExplorer/utils';
@@ -146,22 +146,12 @@ export function ExplorerDrawerContent({
   }, [conversationsUrl]);
 
   const openFeedbackForm = useFeedbackForm();
+  const feedbackOptions = useMemo(() => getExplorerFeedbackOptions(runId), [runId]);
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
-      openFeedbackForm({
-        formTitle: 'Seer Agent Feedback',
-        messagePlaceholder: 'How can we make Seer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-          ['feedback.owner']: 'ml-ai',
-          ...(runId === null ? {} : {['seer.run_id']: runId}),
-          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
-          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
-        },
-      });
+      openFeedbackForm(feedbackOptions);
     }
-  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
+  }, [openFeedbackForm, feedbackOptions]);
 
   // - Pop-up menu component --------------------------------------------------
 
