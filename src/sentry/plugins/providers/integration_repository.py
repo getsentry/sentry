@@ -186,27 +186,32 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 self.on_create_repository(new_repository, organization)
                 return result, new_repository
 
-            # Concurrent writer (e.g. link_all_repos) already created the row;
-            # reclaim it instead of raising. Skip on_create_repository — the
-            # winning writer already ran it, and provider hooks aren't
-            # uniformly idempotent (bitbucket_server duplicates its webhook).
-            # Non-ACTIVE matches (e.g. PENDING_DELETION) fall through to
-            # RepoExistsError so a repo on its way out isn't resurrected.
-            existing = repository_service.get_repositories(
+            # if possible update the repo with matching integration
+            repositories = repository_service.get_repositories(
                 organization_id=organization.id,
                 integration_id=integration_id,
                 external_id=external_id,
-                status=ObjectStatus.ACTIVE,
             )
-            if existing:
-                reclaimed = existing[0]
-                for field_name, field_value in repo_update_params.items():
-                    setattr(reclaimed, field_name, field_value)
-                repository_service.update_repository(
-                    organization_id=organization.id,
-                    update=reclaimed,
-                )
-                return result, reclaimed
+            active_repo: RpcRepository | None = None
+            if repositories:
+                # We anticipate to only update one repository, but we update any duplicates as well.
+                for repo in repositories:
+                    for field_name, field_value in repo_update_params.items():
+                        setattr(repo, field_name, field_value)
+                    repository_service.update_repository(
+                        organization_id=organization.id,
+                        update=repo,
+                    )
+                    if active_repo is None and repo.status == ObjectStatus.ACTIVE:
+                        active_repo = repo
+
+            # Concurrent writer (e.g. link_all_repos) already created the row;
+            # return it as a successful reclaim instead of raising. Skip
+            # on_create_repository — the winning writer already ran it and
+            # provider hooks aren't uniformly idempotent (bitbucket_server
+            # duplicates its webhook).
+            if active_repo is not None:
+                return result, active_repo
 
             raise RepoExistsError(repos=[result])
 
