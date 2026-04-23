@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
@@ -120,50 +119,6 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
-
-
-# Maps legacy organization-option keys to the (integration provider,
-# OrganizationIntegration.config key) they now mirror. Used by the Phase 1
-# dual-write during the VDY-110 migration of SCM toggles onto the
-# per-integration config.
-_SCM_OPTION_TO_OI_CONFIG: dict[str, tuple[str, str]] = {
-    "sentry:github_pr_bot": ("github", "pr_comments"),
-    "sentry:github_nudge_invite": ("github", "nudge_invite"),
-    "sentry:gitlab_pr_bot": ("gitlab", "pr_comments"),
-}
-
-
-def _mirror_scm_option_to_oi_config(organization_id: int, option_key: str, value: bool) -> None:
-    mapping = _SCM_OPTION_TO_OI_CONFIG.get(option_key)
-    if mapping is None:
-        return
-    provider, config_key = mapping
-
-    ois = integration_service.get_organization_integrations(
-        organization_id=organization_id,
-        providers=[provider],
-        status=ObjectStatus.ACTIVE,
-    )
-    for oi in ois:
-        merged = dict(oi.config or {})
-        if merged.get(config_key) == value:
-            continue
-        merged[config_key] = value
-        integration_service.update_organization_integration(org_integration_id=oi.id, config=merged)
-
-
-def _schedule_scm_option_mirror(org: Organization, option_key: str, value: object) -> None:
-    if option_key not in _SCM_OPTION_TO_OI_CONFIG:
-        return
-    transaction.on_commit(
-        functools.partial(
-            _mirror_scm_option_to_oi_config,
-            organization_id=org.id,
-            option_key=option_key,
-            value=bool(value),
-        ),
-        using=router.db_for_write(Organization),
-    )
 
 
 ORG_OPTIONS = (
@@ -683,14 +638,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
                 if data[key] != default_value:
                     changed_data[key] = f"to {data[key]}"
-                    _schedule_scm_option_mirror(org, option, data[key])
             else:
                 option_inst.value = data[key]
                 # check if ORG_OPTIONS changed
                 if has_changed(option_inst, "value"):
                     old_val = old_value(option_inst, "value")
                     changed_data[key] = f"from {old_val} to {option_inst.value}"
-                    _schedule_scm_option_mirror(org, option, data[key])
                 option_inst.save()
 
         trusted_relay_info = data.get("trustedRelays")
