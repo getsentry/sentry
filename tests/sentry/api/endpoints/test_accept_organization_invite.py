@@ -15,7 +15,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
@@ -36,26 +35,20 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
     def _get_paths(self, args):
         return (
-            reverse("sentry-api-0-accept-organization-invite", args=args),
             reverse(
                 "sentry-api-0-organization-accept-organization-invite",
                 args=[self.organization.slug] + args,
             ),
             reverse(
                 "sentry-api-0-organization-accept-organization-invite",
-                args=[self.organization.id] + args,
+                args=[str(self.organization.id)] + args,
             ),
         )
 
     def _get_urls(self):
-        return (
-            "sentry-api-0-accept-organization-invite",
-            "sentry-api-0-organization-accept-organization-invite",
-        )
+        return ("sentry-api-0-organization-accept-organization-invite",)
 
     def _get_path(self, url, args):
-        if url == self._get_urls()[0]:
-            return reverse(url, args=args)
         return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
@@ -187,27 +180,6 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
                 self._assert_pending_invite_details_in_session(om)
                 assert self.client.session["invite_organization_id"] == self.organization.id
-
-    def test_multi_region_organizationmember_id__non_monolith(self) -> None:
-        self._require_2fa_for_organization()
-        assert not self.user.has_2fa()
-
-        self.login_as(self.user)
-
-        with assume_test_silo_mode_of(OrganizationMember), outbox_context(flush=False):
-            om = OrganizationMember.objects.create(
-                email="newuser@example.com", token="abc", organization_id=self.organization.id
-            )
-        with unguarded_write(using=router.db_for_write(OrganizationMemberMapping)):
-            OrganizationMemberMapping.objects.create(
-                organization_id=self.organization.id, organizationmember_id=om.id
-            )
-
-        with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
-            resp = self.client.get(
-                reverse("sentry-api-0-accept-organization-invite", args=[om.id, om.token])
-            )
-        assert resp.status_code == 400
 
     def test_user_has_2fa(self) -> None:
         self._require_2fa_for_organization()

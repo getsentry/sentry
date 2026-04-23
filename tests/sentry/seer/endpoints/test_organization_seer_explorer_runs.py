@@ -63,6 +63,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
             category_value=None,
             offset=0,
             limit=101,  # Default per_page of 100 + 1 for has_more
+            only_current_user=True,
         )
 
     def test_get_cursor_pagination(self) -> None:
@@ -97,7 +98,7 @@ class TestOrganizationSeerExplorerRunsEndpoint(APITestCase):
         assert 'rel="next"; results="true"' in response.headers["Link"]
 
         self.mock_client.get_runs.assert_called_once_with(
-            category_key=None, category_value=None, offset=0, limit=3
+            category_key=None, category_value=None, offset=0, limit=3, only_current_user=True
         )
 
         # Second page - mock seer response for offset 2, limit 3.

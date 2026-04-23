@@ -196,7 +196,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const locationSort = decodeSorts(location?.query?.sort)[0];
   const numColumns = columns?.length ?? Object.keys(meta.fields).length;
 
-  let widths = new Array(numColumns).fill(COL_WIDTH_UNDEFINED);
+  let widths = Array.from<number>({length: numColumns}).fill(COL_WIDTH_UNDEFINED);
   const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {

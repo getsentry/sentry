@@ -2,6 +2,7 @@ import {Fragment, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
 import {motion, type MotionProps} from 'framer-motion';
 
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -226,33 +227,35 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </NavigationTourElement>
       </Feature>
 
-      <Feature features={['performance-view']}>
-        <NavigationTourElement
-          id={NavigationTour.INSIGHTS}
-          title={null}
-          description={null}
-        >
-          {tourProps => (
-            <PrimaryNavigation.ListItem>
-              <PrimaryNavigation.Link
-                to={`/${prefix}/insights/`}
-                analyticsKey="insights"
-                label={t('Insights')}
-                {...mergeProps(
-                  makeNavigationItemProps(
-                    'insights',
-                    `/${prefix}/insights/`,
-                    `/${prefix}/insights`
-                  ),
-                  tourProps
-                )}
-              >
-                <IconGraph type="area" />
-              </PrimaryNavigation.Link>
-            </PrimaryNavigation.ListItem>
-          )}
-        </NavigationTourElement>
-      </Feature>
+      {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
+        <Feature features={['performance-view']}>
+          <NavigationTourElement
+            id={NavigationTour.INSIGHTS}
+            title={null}
+            description={null}
+          >
+            {tourProps => (
+              <PrimaryNavigation.ListItem>
+                <PrimaryNavigation.Link
+                  to={`/${prefix}/insights/`}
+                  analyticsKey="insights"
+                  label={t('Insights')}
+                  {...mergeProps(
+                    makeNavigationItemProps(
+                      'insights',
+                      `/${prefix}/insights/`,
+                      `/${prefix}/insights`
+                    ),
+                    tourProps
+                  )}
+                >
+                  <IconGraph type="area" />
+                </PrimaryNavigation.Link>
+              </PrimaryNavigation.ListItem>
+            )}
+          </NavigationTourElement>
+        </Feature>
+      )}
 
       {hasPageFrame ? null : (
         <PrimaryNavigation.ListItem padding="0 md">
@@ -269,7 +272,6 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
             {...makeNavigationItemProps('monitors', `/${prefix}/monitors/`)}
           >
             <IconSiren />
-            <PrimaryNavigation.ButtonFeatureBadge type="alpha" />
           </PrimaryNavigation.Link>
         </PrimaryNavigation.ListItem>
       </Feature>
@@ -313,7 +315,16 @@ export function PrimaryNavigationFooterItems() {
     <Fragment>
       {hasPageFrame ? (
         <PrimaryNavigation.Button
-          label={t('Search support, docs and more')}
+          label={
+            organization.features.includes('cmd-k-supercharged') ? (
+              <Flex gap="xs" align="center">
+                {t('Open command palette')}
+                <Hotkey value="command+k" variant="debossed" />
+              </Flex>
+            ) : (
+              t('Search support, docs and more')
+            )
+          }
           analyticsKey="search"
           buttonProps={{
             icon: <IconSearch />,

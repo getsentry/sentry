@@ -4,8 +4,8 @@ from django.urls import reverse
 
 from sentry.models.repository import Repository
 from sentry.seer.models import PreferenceResponse, SeerProjectPreference, SeerRepoDefinition
-from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectSeerPreferencesEndpointTest(APITestCase):
@@ -704,9 +704,13 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 400
         mock_request.assert_not_called()
 
+    @with_feature("organizations:seer-project-settings-dual-write")
+    @patch("sentry.seer.endpoints.project_seer_preferences.write_preference_to_sentry_db")
     @patch("sentry.seer.endpoints.project_seer_preferences.make_set_project_preference_request")
-    def test_post_creates_seer_project_repository(self, mock_request: MagicMock) -> None:
-        """Test that POST writes to SeerProjectRepository when feature flag is enabled."""
+    def test_post_writes_to_sentry_db(
+        self, mock_request: MagicMock, mock_write_db: MagicMock
+    ) -> None:
+        """When feature flag enabled, writes to Sentry DB instead of Seer API."""
         mock_response = Mock()
         mock_response.status = 200
         mock_request.return_value = mock_response
@@ -727,11 +731,30 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             "automated_run_stopping_point": "open_pr",
         }
 
-        with self.feature("organizations:seer-project-settings-dual-write"):
-            response = self.client.post(self.url, data=request_data)
+        response = self.client.post(self.url, data=request_data)
 
         assert response.status_code == 204
 
-        seer_repo = SeerProjectRepository.objects.get(project=self.project)
-        assert seer_repo.repository_id == self.repository.id
-        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        mock_write_db.assert_called_once()
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.endpoints.project_seer_preferences.read_preference_from_sentry_db")
+    def test_get_reads_from_sentry_db(self, mock_read_db: MagicMock) -> None:
+        """When feature flag enabled, reads from Sentry DB instead of Seer API."""
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    provider="github", owner="getsentry", name="sentry", external_id="123"
+                )
+            ],
+            automated_run_stopping_point="open_pr",
+        )
+        mock_read_db.return_value = preference
+
+        response = self.client.get(self.url)
+
+        mock_read_db.assert_called_once()
+        assert response.status_code == 200
+        assert response.data["preference"] == preference.dict()

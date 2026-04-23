@@ -81,7 +81,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
 // inline elements cannot be transformed. The filter _must_ be inline to
 // support text wrapping.
 const shakeAnimation = keyframes`
-  ${new Array(4)
+  ${Array.from({length: 4})
     .fill(0)
     .map((_, i) => `${i * (100 / 4)}% { left: ${3 * (i % 2 === 0 ? 1 : -1)}px; }`)
     .join('\n')}

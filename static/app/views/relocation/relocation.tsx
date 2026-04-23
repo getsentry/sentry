@@ -190,15 +190,12 @@ export function RelocationOnboarding() {
     navigate(normalizeUrl(`/relocation/${step.id}/`));
   };
 
-  const goNextStep = useCallback(
-    (step: StepDescriptor) => {
-      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1]!;
+  const goNextStep = (step: StepDescriptor) => {
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
-      navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
-    },
-    [onboardingSteps, navigate]
-  );
+    navigate(normalizeUrl(`/relocation/${nextStep.id}/`));
+  };
 
   if (!stepObj || stepIndex === -1) {
     return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0]!.id}/`)} />;

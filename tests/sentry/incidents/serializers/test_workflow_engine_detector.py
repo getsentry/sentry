@@ -28,19 +28,12 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
     def setUp(self) -> None:
         super().setUp()
 
-    @staticmethod
-    def _sort_triggers(data: dict[str, Any]) -> dict[str, Any]:
-        """Sort triggers by id so ordering doesn't affect comparison."""
-        result = data.copy()
-        result["triggers"] = sorted(result.get("triggers", []), key=lambda t: t["id"])
-        return result
-
     def test_simple(self) -> None:
         self.add_warning_trigger()
         serialized_detector = serialize(
             self.detector, self.user, WorkflowEngineDetectorSerializer()
         )
-        assert self._sort_triggers(serialized_detector) == self._sort_triggers(self.expected)
+        assert serialized_detector == self.expected
 
     def test_latest_incident(self) -> None:
         self.add_warning_trigger()
@@ -188,7 +181,7 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
             self.user,
             WorkflowEngineDetectorSerializer(prepare_component_fields=True),
         )
-        assert self._sort_triggers(serialized_detector) == self._sort_triggers(sentry_app_expected)
+        assert serialized_detector == sentry_app_expected
 
     def test_snooze_enabled_detector(self) -> None:
         serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())

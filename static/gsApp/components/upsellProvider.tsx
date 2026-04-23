@@ -7,8 +7,8 @@ import type {Client} from 'sentry/api';
 import {Confirm} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
 
@@ -87,6 +87,7 @@ function UpsellProvider({
   showConfirmation,
   children,
 }: Props) {
+  const navigate = useNavigate();
   // if the org or subscription isn't loaded yet, don't render anything
   if (!organization || !subscription) {
     return null;
@@ -215,7 +216,7 @@ function UpsellProvider({
                 const baseUrl = subscription.canSelfServe
                   ? `/checkout/${organization.slug}/`
                   : `/settings/${organization.slug}/billing/overview/`;
-                browserHistory.push(`${normalizeUrl(baseUrl)}?referrer=upsell-${source}`);
+                navigate(`${normalizeUrl(baseUrl)}?referrer=upsell-${source}`);
               }
             } else {
               if (triggerMemberRequests) {

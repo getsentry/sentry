@@ -38,29 +38,6 @@ describe('SeerAutomation', () => {
     });
   });
 
-  it('shows no-active-subscription banner inline for legacy Seer cohorts', () => {
-    const organization = OrganizationFixture({
-      features: ['code-review-beta'],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      method: 'GET',
-      body: {
-        hasSupportedScmIntegration: true,
-        isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
-        isSeerConfigured: true,
-      },
-    });
-
-    render(<SeerAutomation />, {organization});
-
-    expect(
-      screen.getByText('You are using an older Seer experience.')
-    ).toBeInTheDocument();
-  });
-
   it('does not show legacy banner for orgs without legacy or beta Seer features', () => {
     const organization = OrganizationFixture({
       features: [],

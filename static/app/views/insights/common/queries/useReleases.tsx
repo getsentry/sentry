@@ -1,16 +1,17 @@
+import {useQuery, useQueries} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
@@ -29,26 +30,24 @@ export function useReleases(
   const api = useApi();
 
   const activeSort = sortBy ?? ReleasesSortOption.DATE;
-  const releaseResults = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          project: projects,
-          per_page: 50,
-          environment: environments,
-          query: searchTerm,
-          sort: activeSort,
-          // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
-          // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
-          flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
-        },
+  const releaseResults = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: projects,
+        per_page: 50,
+        environment: environments,
+        query: searchTerm,
+        sort: activeSort,
+        // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
+        // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
+        flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       },
-    ],
-    {staleTime: Infinity, enabled: isReady, retry: false}
-  );
+      staleTime: Infinity,
+    }),
+    enabled: isReady,
+    retry: false,
+  });
 
   const chunks = releaseResults.data?.length ? chunk(releaseResults.data, 10) : [];
 
@@ -79,11 +78,11 @@ export function useReleases(
       const {url, options} = parseQueryKey(queryKey);
       return {
         queryKey,
-        queryFn: () => {
+        queryFn: (): Promise<TableData> => {
           return api.requestPromise(url, {
             method: 'GET',
             query: options?.query,
-          }) as Promise<TableData>;
+          });
         },
         staleTime: Infinity,
         enabled: isReady && !releaseResults.isPending,
@@ -124,7 +123,6 @@ export function useReleases(
       : [];
 
   return {
-    ...releaseResults,
     data: releaseStats,
     isLoading: !metricsFetched || releaseResults.isPending,
   };

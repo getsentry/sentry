@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -19,7 +20,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -54,6 +55,12 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         required=False,
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
+    )
+    override_code_mode_enable = serializers.BooleanField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text="Override code mode tools flag from the frontend toggle.",
     )
 
 
@@ -113,6 +120,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            if e.status == 404:
+                return Response({"session": None}, status=404)
+            return Response(
+                {"detail": "Failed to fetch run state"},
+                status=500,
+            )
         except ValueError:
             logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
@@ -156,6 +171,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         on_page_context = validated_data.get("on_page_context")
         page_name = validated_data.get("page_name")
         override_ce_enable = validated_data["override_ce_enable"]
+        override_code_mode_enable = validated_data.get("override_code_mode_enable")
 
         # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
         if on_page_context:
@@ -172,11 +188,18 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
+            enable_code_mode_tools = features.has(
+                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
+            )
+            if override_code_mode_enable is not None and enable_code_mode_tools:
+                enable_code_mode_tools = override_code_mode_enable
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
                 enable_coding=enable_coding,
+                enable_code_mode_tools=enable_code_mode_tools,
+                reasoning_effort="medium",
             )
             if run_id:
                 # Continue existing conversation
@@ -186,6 +209,7 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     insert_index=insert_index,
                     on_page_context=on_page_context,
                     page_name=page_name,
+                    request=request,
                 )
             else:
                 # Start new conversation
@@ -194,8 +218,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     on_page_context=on_page_context,
                     page_name=page_name,
                     override_ce_enable=override_ce_enable,
+                    request=request,
                 )
 
             return Response({"run_id": result_run_id})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"detail": "Failed to start or continue chat session"},
+                status=500,
+            )

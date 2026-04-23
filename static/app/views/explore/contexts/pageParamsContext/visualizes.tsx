@@ -9,6 +9,7 @@ import {
   AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   ALLOWED_EXPLORE_VISUALIZE_FIELDS,
+  FieldValueType,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
@@ -117,12 +118,44 @@ export function updateVisualizeAggregate({
     return `${newAggregate}(${params?.join(',')})`;
   }
 
-  // switching away from count_unique means we need to reset the field
+  // switching away from count_unique or no-argument aggregates means we need
+  // to reset the field. For score functions, use their specific default value
+  // instead of the generic DEFAULT_VISUALIZATION_FIELD.
   if (
     oldAggregate === AggregationKey.COUNT_UNIQUE ||
     NO_ARGUMENT_SPAN_AGGREGATES.includes(oldAggregate as AggregationKey)
   ) {
+    if (
+      newAggregate === AggregationKey.PERFORMANCE_SCORE ||
+      newAggregate === AggregationKey.OPPORTUNITY_SCORE
+    ) {
+      const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
+      return `${newAggregate}(${params?.join(',')})`;
+    }
     return `${newAggregate}(${DEFAULT_VISUALIZATION_FIELD})`;
+  }
+
+  // Check if old arguments are valid for score functions with restricted columns
+  if (
+    newAggregate === AggregationKey.PERFORMANCE_SCORE ||
+    newAggregate === AggregationKey.OPPORTUNITY_SCORE
+  ) {
+    if (!oldArguments?.length) {
+      // No old arguments (e.g., switching from count()), use score defaults
+      const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');
+      return `${newAggregate}(${params?.join(',')})`;
+    }
+    const param = newFieldDefinition?.parameters?.[0];
+    if (param?.kind === 'column' && typeof param.columnTypes === 'function') {
+      const isValid = param.columnTypes({
+        key: oldArguments[0]!,
+        valueType: FieldValueType.NUMBER,
+      });
+      if (!isValid) {
+        const params = newFieldDefinition!.parameters!.map(p => p.defaultValue || '');
+        return `${newAggregate}(${params.join(',')})`;
+      }
+    }
   }
 
   return oldArguments

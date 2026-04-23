@@ -13,7 +13,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Collapsible} from 'sentry/components/collapsible';
-import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -128,7 +127,7 @@ export function ReleaseCard({
                 path: `/${encodeURIComponent(version)}/`,
               }),
               query: {
-                ...extractSelectionParameters(location.query),
+                environment: location.query.environment,
                 project: getReleaseProjectId(release, selection),
               },
             }}

@@ -15,6 +15,7 @@ type Props = Relay & {
   disabled: boolean;
   onDelete: (publicKey: Relay['publicKey']) => () => void;
   onEdit: (publicKey: Relay['publicKey']) => () => void;
+  extraAction?: React.ReactNode;
 };
 
 export function CardHeader({
@@ -23,6 +24,7 @@ export function CardHeader({
   description,
   created,
   disabled,
+  extraAction,
   onEdit,
   onDelete,
 }: Props) {
@@ -79,6 +81,7 @@ export function CardHeader({
             {deleteButton}
           </ConfirmDelete>
         )}
+        {extraAction}
       </StyledButtonBar>
     </Header>
   );

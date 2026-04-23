@@ -158,10 +158,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: '/accept/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
@@ -675,6 +671,11 @@ function buildRoutes(): RouteObject[] {
       path: 'mobile-builds/',
       name: t('Mobile Builds'),
       component: make(() => import('sentry/views/settings/project/preprod')),
+    },
+    {
+      path: 'snapshots/',
+      name: t('Snapshots'),
+      component: make(() => import('sentry/views/settings/project/preprod/snapshots')),
     },
     {
       path: 'keys/',
@@ -1350,17 +1351,6 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: '/dashboards/new/:templateId',
-      component: make(() => import('sentry/views/dashboards/create')),
-      withOrgPath: true,
-      children: [
-        {
-          path: 'widget/:widgetId/',
-          component: make(() => import('sentry/views/dashboards/create')),
-        },
-      ],
-    },
-    {
       path: '/organizations/:orgId/dashboards/:dashboardId/',
       redirectTo: '/organizations/:orgId/dashboard/:dashboardId/',
     },
@@ -1657,6 +1647,12 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
+  };
+
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/workflows/',
+    component: make(() => import('sentry/views/seerWorkflows')),
+    withOrgPath: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -2321,6 +2317,14 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/insights/pages/conversations/overview')
           ),
         },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
+          ),
+        },
+        transactionSummaryRoute,
+        traceView,
       ],
     },
     {
@@ -2517,6 +2521,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
+    },
+    {
+      path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
+      component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
       path: 'instrumentation/',
@@ -2783,6 +2791,7 @@ function buildRoutes(): RouteObject[] {
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,
+      seerRoutes,
       releasesRoutes,
       statsRoutes,
       discoverRoutes,

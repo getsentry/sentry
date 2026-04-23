@@ -1,8 +1,9 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -23,7 +24,6 @@ import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -79,44 +79,41 @@ export function BreadcrumbsDataSection({
     [summaryCrumbs, timeDisplay]
   );
 
-  const onViewAllBreadcrumbs = useCallback(
-    (focusControl?: BreadcrumbControlOptions) => {
-      trackAnalytics('breadcrumbs.issue_details.drawer_opened', {
-        control: focusControl ?? 'view all',
-        organization,
-      });
-      openDrawer(
-        () => (
-          <BreadcrumbsDrawer
-            breadcrumbs={enhancedCrumbs}
-            focusControl={focusControl}
-            project={project}
-            event={event}
-            group={group}
-          />
-        ),
-        {
-          ariaLabel: 'breadcrumb drawer',
-          drawerKey: 'breadcrumbs-drawer',
-          // We prevent a click on the 'View All' button from closing the drawer so that
-          // we don't reopen it immediately, and instead let the button handle this itself.
-          shouldCloseOnInteractOutside: element => {
-            const viewAllButton = viewAllButtonRef.current;
-            if (viewAllButton?.contains(element)) {
-              return false;
-            }
-            // Third-party packages (e.g. Pendo) use a container with id "pendo-guide-container".
-            // If the click is inside that container, treat it as an internal click.
-            if (element.closest('#pendo-guide-container')) {
-              return false;
-            }
-            return true;
-          },
-        }
-      );
-    },
-    [group, event, project, openDrawer, enhancedCrumbs, organization]
-  );
+  const onViewAllBreadcrumbs = (focusControl?: BreadcrumbControlOptions) => {
+    trackAnalytics('breadcrumbs.issue_details.drawer_opened', {
+      control: focusControl ?? 'view all',
+      organization,
+    });
+    openDrawer(
+      () => (
+        <BreadcrumbsDrawer
+          breadcrumbs={enhancedCrumbs}
+          focusControl={focusControl}
+          project={project}
+          event={event}
+          group={group}
+        />
+      ),
+      {
+        ariaLabel: 'breadcrumb drawer',
+        drawerKey: 'breadcrumbs-drawer',
+        // We prevent a click on the 'View All' button from closing the drawer so that
+        // we don't reopen it immediately, and instead let the button handle this itself.
+        shouldCloseOnInteractOutside: element => {
+          const viewAllButton = viewAllButtonRef.current;
+          if (viewAllButton?.contains(element)) {
+            return false;
+          }
+          // Third-party packages (e.g. Pendo) use a container with id "pendo-guide-container".
+          // If the click is inside that container, treat it as an internal click.
+          if (element.closest('#pendo-guide-container')) {
+            return false;
+          }
+          return true;
+        },
+      }
+    );
+  };
 
   if (enhancedCrumbs.length === 0) {
     return null;

@@ -27,6 +27,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
     def test_get_jwt_success(self) -> None:
         """With feature flag and secret configured, should return JWT and user data."""
         test_secret = "test-intercom-secret-key"
+        intercom_user_id = f"{self.user.id}-{self.organization.id}"
 
         with (
             self.feature("organizations:intercom-support"),
@@ -39,7 +40,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
 
         # Verify user data
         user_data = response.data["userData"]
-        assert user_data["userId"] == str(self.user.id)
+        assert user_data["userId"] == intercom_user_id
         assert user_data["email"] == self.user.email
         assert user_data["organizationId"] == str(self.organization.id)
         assert user_data["organizationName"] == self.organization.name
@@ -49,7 +50,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
         token = response.data["jwt"]
         decoded = jwt.decode(token, test_secret, algorithms=["HS256"], audience=False)
 
-        assert decoded["user_id"] == str(self.user.id)
+        assert decoded["user_id"] == intercom_user_id
         assert decoded["email"] == self.user.email
         assert "iat" in decoded
         assert "exp" in decoded

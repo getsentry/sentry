@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -23,7 +23,7 @@ export function CreateFromSeerPrompt() {
   const [isGenerating, setIsGenerating] = useState(false);
   const hasPageFrame = useHasPageFrameFeature();
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = async () => {
     if (!prompt.trim()) {
       return;
     }
@@ -59,7 +59,7 @@ export function CreateFromSeerPrompt() {
       setIsGenerating(false);
       addErrorMessage(t('Failed to start dashboard generation'));
     }
-  }, [prompt, organization.slug, location.query, navigate]);
+  };
 
   return (
     <Stack flex={1} padding="2xl 3xl" background={hasPageFrame ? undefined : 'secondary'}>

@@ -17,5 +17,7 @@ class WebhookIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+    def render_label(
+        cls, organization_id: int, blob: dict[str, Any], integration_cache: Any = None
+    ) -> str:
         return "Send a notification via webhooks"

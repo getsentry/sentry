@@ -75,12 +75,8 @@ export function ReleasesAdoptionChart({
 
     const diffInMinutes = getDiffInMinutes(datetimeObj);
 
-    // use high fidelity intervals when available
-    // limit on backend is set to six hour
-    if (
-      organization.features.includes('minute-resolution-sessions') &&
-      diffInMinutes < 360
-    ) {
+    // limit on backend is set to six hours
+    if (diffInMinutes < 360) {
       return '10m';
     }
 
@@ -88,7 +84,7 @@ export function ReleasesAdoptionChart({
       return '1d';
     }
     return '1h';
-  }, [organization, location]);
+  }, [location]);
 
   const getReleasesSeries = (response: SessionApiResponse | null) => {
     // If there are many releases, display releases with the highest number of sessions

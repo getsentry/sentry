@@ -258,7 +258,7 @@ export function filterYAxisAggregateParams(
 
     const functionName = fieldValue.function[0];
     const primaryOutput = errorsAndTransactionsAggregateFunctionOutputType(
-      functionName as string,
+      functionName,
       option.value.meta.name
     );
     if (primaryOutput) {

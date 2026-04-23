@@ -63,6 +63,110 @@ class BitbucketIntegrationTest(APITestCase):
         ]
 
     @responses.activate
+    def test_get_repositories_multiple_pages(self) -> None:
+        """get_repos aggregates all pages by following the 'next' URL."""
+        base_url = "https://api.bitbucket.org/2.0/repositories/sentryuser"
+        responses.add(
+            responses.GET,
+            base_url,
+            json={
+                "values": [{"full_name": "sentryuser/repo-1", "uuid": "{r1}"}],
+                "next": f"{base_url}?pagelen=100&page=2",
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{base_url}?pagelen=100&page=2",
+            json={
+                "values": [{"full_name": "sentryuser/repo-2", "uuid": "{r2}"}],
+                "next": f"{base_url}?pagelen=100&page=3",
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{base_url}?pagelen=100&page=3",
+            json={"values": [{"full_name": "sentryuser/repo-3", "uuid": "{r3}"}]},
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        result = installation.get_repositories()
+        assert result == [
+            {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
+            {"identifier": "sentryuser/repo-2", "name": "sentryuser/repo-2", "external_id": "{r2}"},
+            {"identifier": "sentryuser/repo-3", "name": "sentryuser/repo-3", "external_id": "{r3}"},
+        ]
+
+    @responses.activate
+    def test_get_repositories_respects_page_limit(self) -> None:
+        """Pagination stops at the page_number_limit."""
+        base_url = "https://api.bitbucket.org/2.0/repositories/sentryuser"
+        # Page 1 has a next link but we pass page_number_limit=1
+        responses.add(
+            responses.GET,
+            base_url,
+            json={
+                "values": [{"full_name": "sentryuser/repo-1", "uuid": "{r1}"}],
+                "next": f"{base_url}?pagelen=100&page=2",
+            },
+        )
+        # Page 2 should not be fetched
+        responses.add(
+            responses.GET,
+            f"{base_url}?pagelen=100&page=2",
+            json={"values": [{"full_name": "sentryuser/repo-2", "uuid": "{r2}"}]},
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        result = installation.get_repositories(page_number_limit=1)
+        assert result == [
+            {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
+        ]
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_get_repositories_zero_page_limit_returns_first_page(self) -> None:
+        """A page_number_limit of 0 still returns the first page but fetches no further."""
+        base_url = "https://api.bitbucket.org/2.0/repositories/sentryuser"
+        responses.add(
+            responses.GET,
+            base_url,
+            json={
+                "values": [{"full_name": "sentryuser/repo-1", "uuid": "{r1}"}],
+                "next": f"{base_url}?pagelen=100&page=2",
+            },
+        )
+        responses.add(
+            responses.GET,
+            f"{base_url}?pagelen=100&page=2",
+            json={"values": [{"full_name": "sentryuser/repo-2", "uuid": "{r2}"}]},
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        result = installation.get_repositories(page_number_limit=0)
+        assert result == [
+            {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
+        ]
+        assert len(responses.calls) == 1
+
+    @responses.activate
+    def test_get_repositories_clamps_excessive_page_limit(self) -> None:
+        """A page_number_limit above the class max is clamped to the default."""
+        base_url = "https://api.bitbucket.org/2.0/repositories/sentryuser"
+        responses.add(
+            responses.GET,
+            base_url,
+            json={"values": [{"full_name": "sentryuser/repo-1", "uuid": "{r1}"}]},
+        )
+
+        installation = self.integration.get_installation(self.organization.id)
+        client = installation.get_client()
+        result = installation.get_repositories(page_number_limit=client.page_number_limit + 100)
+        assert result == [
+            {"identifier": "sentryuser/repo-1", "name": "sentryuser/repo-1", "external_id": "{r1}"},
+        ]
+        assert len(responses.calls) == 1
+
+    @responses.activate
     def test_get_repositories_exact_match(self) -> None:
         querystring = urlencode({"q": 'name="stuf"'})
         responses.add(

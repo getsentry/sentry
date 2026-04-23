@@ -81,7 +81,9 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def render_label(cls, organization_id: int, blob: dict[str, Any]) -> str:
+    def render_label(
+        cls, organization_id: int, blob: dict[str, Any], integration_cache: Any = None
+    ) -> str:
         """
         blob: {
             'id': 'sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction',

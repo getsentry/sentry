@@ -1,217 +1,170 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
-import {
-  organizationIntegrationsCodingAgents,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {LoadingError} from 'sentry/components/loadingError';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 import {
+  getProjectAgentMutationOptions,
+  getCodingAgentSelectQueryOptions,
+  getSelectedAgentForProject,
+} from 'sentry/utils/seer/preferredAgent';
+import {
+  PROJECT_STOPPING_POINT_OPTIONS,
   getProjectStoppingPointMutationOptions,
   getProjectStoppingPointValue,
-  useFetchStoppingPointOptions,
-} from 'sentry/views/settings/seer/overview/utils/seerStoppingPoint';
-import {
-  useMutateSelectedAgent,
-  useSelectedAgentFromProjectSettings,
-} from 'sentry/views/settings/seer/seerAgentHooks';
-
-import {CodingAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/codingAgentSettings';
-import {SeerAgentSettings} from 'getsentry/views/seerAutomation/components/projectDetails/agentSettings/seerAgentSettings';
-
+} from 'sentry/utils/seer/stoppingPoint';
+import {useOrganization} from 'sentry/utils/useOrganization';
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
   project: Project;
 }
 
-function AgentSpecificFields({
-  integration,
-  ...props
-}: Props & {
-  integration: 'seer' | CodingAgentIntegration;
-}) {
-  if (integration === 'seer') {
-    return <SeerAgentSettings {...props} />;
-  }
-  if (integration.provider === 'cursor' || integration.provider === 'claude_code') {
-    return <CodingAgentSettings integration={integration} {...props} />;
-  }
-  return null;
-}
-
 export function AutofixAgent({canWrite, preference, project}: Props) {
   const organization = useOrganization();
-  const {
-    data: integrations,
-    isPending,
-    isError,
-  } = useQuery({
-    ...organizationIntegrationsCodingAgents(organization),
-    select: data => data.json.integrations ?? [],
+  const queryClient = useQueryClient();
+
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
+
+  // Derive the integration objects from the options data for the agent selector
+  const integrations = useMemo(
+    () =>
+      (agentOptions.data ?? [])
+        .filter(
+          (o): o is {label: string; value: CodingAgentIntegration} => o.value !== 'seer'
+        )
+        .map(o => o.value),
+    [agentOptions.data]
+  );
+
+  const selectedAgent = getSelectedAgentForProject({integrations, preference});
+
+  const agentMutationOptions = getProjectAgentMutationOptions({
+    organization,
+    project,
+    queryClient,
   });
-  const options = useFetchAgentOptions({organization});
-  const selected = useSelectedAgentFromProjectSettings({
-    preference,
-    integrations: integrations ?? [],
+
+  const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
+    organization,
+    queryClient,
   });
-  const mutateSelectedAgent = useMutateSelectedAgent({project});
+
+  const stoppingPointValue = getProjectStoppingPointValue(project, preference);
 
   const disabledReason = canWrite
     ? null
     : t('You do not have permission to update this setting.');
 
   return (
-    <PanelNoMargin>
-      <PanelHeader>{t('Autofix Handoff')}</PanelHeader>
-      <PanelBody>
-        {isPending ? (
-          <Flex justify="center" align="center" padding="xl">
-            <Placeholder height="52px" />
-          </Flex>
-        ) : isError ? (
-          <LoadingError />
-        ) : (
-          <Fragment>
-            {/* If the `agent` is undefined then we have a problem! Show an alert? */}
-            <SelectField
-              disabled={Boolean(disabledReason)}
-              disabledReason={disabledReason}
-              name="autofixAgent"
-              label={t('Autofix Handoff')}
-              help={tct(
-                'Seer will orchestrate the autofix process, and automatically hand off issue data to the coding agent for processing. You can choose to automatically process Issues, and which agent to use here. You can also manually trigger autofix with different agents from the Issue Details page. [docsLink:Read the docs] to learn more.',
-                {
-                  docsLink: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/" />
-                  ),
+    <FieldGroup>
+      <AutoSaveForm
+        name="agent"
+        schema={z.object({
+          agent: z.union([z.literal('seer'), z.custom<CodingAgentIntegration>()]),
+        })}
+        initialValue={selectedAgent}
+        mutationOptions={agentMutationOptions}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Preferred Coding Agent')}
+            hintText={
+              <Text>
+                {tct(
+                  'Select the coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
+                  {
+                    manageLink: (
+                      <Link
+                        to={{
+                          pathname: `/settings/${organization.slug}/integrations/`,
+                          query: {category: 'coding agent'},
+                        }}
+                      />
+                    ),
+                  }
+                )}
+              </Text>
+            }
+          >
+            {agentOptions.isPending ? (
+              <Placeholder height="36px" width="100%" />
+            ) : agentOptions.isError ? (
+              <LoadingError />
+            ) : (
+              <field.Select
+                disabled={Boolean(disabledReason)}
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={agentOptions.data}
+                isValueEqual={(a, b) =>
+                  a === b ||
+                  (typeof a === 'object' && typeof b === 'object' && a.id === b.id)
                 }
-              )}
-              options={options.data ?? []}
-              value={selected}
-              onChange={(integration: 'seer' | CodingAgentIntegration) => {
-                mutateSelectedAgent(integration, {
-                  onSuccess: () =>
-                    addSuccessMessage(
-                      tct('Started using [name] as coding agent', {
-                        name: (
-                          <strong>
-                            {integration === 'seer' ? t('Seer Agent') : integration.name}
-                          </strong>
-                        ),
-                      })
-                    ),
-                  onError: () =>
-                    addErrorMessage(
-                      tct('Failed to set [name] as coding agent', {
-                        name: (
-                          <strong>
-                            {integration === 'seer' ? t('Seer Agent') : integration.name}
-                          </strong>
-                        ),
-                      })
-                    ),
-                });
-              }}
-            />
-            {selected ? (
-              <AgentSpecificFields
-                integration={selected}
-                canWrite={canWrite}
-                preference={preference}
-                project={project}
               />
-            ) : null}
-
-            {selected ? (
-              <StoppingPointField
-                agent={selected}
-                canWrite={canWrite}
-                preference={preference}
-                project={project}
-              />
-            ) : null}
-          </Fragment>
+            )}
+          </field.Layout.Row>
         )}
-      </PanelBody>
-    </PanelNoMargin>
+      </AutoSaveForm>
+
+      <AutoSaveForm
+        name="stoppingPoint"
+        schema={z.object({
+          stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+        })}
+        initialValue={stoppingPointValue}
+        mutationOptions={{
+          mutationFn: (vars, fnCtx) =>
+            stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
+          onMutate: (vars, fnCtx) =>
+            stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
+          onError: (error, vars, mutateResult, fnCtx) =>
+            stoppingPointMutationOptions.onError?.(
+              error,
+              {...vars, project},
+              mutateResult,
+              fnCtx
+            ),
+          onSettled: (data, error, vars, mutateResult, fnCtx) =>
+            stoppingPointMutationOptions.onSettled?.(
+              data,
+              error,
+              {...vars, project},
+              mutateResult,
+              fnCtx
+            ),
+        }}
+      >
+        {field => (
+          <field.Layout.Row
+            label={t('Automation Steps')}
+            hintText={tct(
+              'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
+              {
+                actionable: (
+                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                ),
+              }
+            )}
+          >
+            <field.Select
+              disabled={Boolean(disabledReason)}
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={PROJECT_STOPPING_POINT_OPTIONS}
+            />
+          </field.Layout.Row>
+        )}
+      </AutoSaveForm>
+    </FieldGroup>
   );
 }
-
-function StoppingPointField({
-  agent,
-  canWrite,
-  preference,
-  project,
-}: {
-  agent: 'seer' | CodingAgentIntegration;
-  canWrite: boolean;
-  preference: ProjectSeerPreferences;
-  project: Project;
-}) {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  const stoppingPointMutationOpts = getProjectStoppingPointMutationOptions({
-    organization,
-    project,
-    preference,
-    queryClient,
-  });
-  const {mutate} = useMutation({
-    ...stoppingPointMutationOpts,
-    onSuccess: (data, variables, onMutateResult, context) => {
-      stoppingPointMutationOpts.onSuccess?.(data, variables, onMutateResult, context);
-      addSuccessMessage(t('Stopping point updated'));
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to update stopping point'));
-    },
-  });
-
-  const initialValue = getProjectStoppingPointValue(project, preference);
-  const options = useFetchStoppingPointOptions({
-    agent,
-    organization,
-  });
-
-  return (
-    <SelectField
-      name="stoppingPoint"
-      disabled={!canWrite}
-      value={initialValue}
-      onChange={value => {
-        mutate({stoppingPoint: value});
-      }}
-      options={options}
-      label={t('Automation Steps')}
-      help={tct(
-        'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
-        {
-          actionable: (
-            <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-          ),
-        }
-      )}
-    />
-  );
-}
-
-const PanelNoMargin = styled(Panel)`
-  margin-bottom: 0;
-`;

@@ -1542,6 +1542,27 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.status == AlertRuleStatus.PENDING.value
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @patch("sentry.seer.anomaly_detection.store_data.handle_send_historical_data_to_seer_legacy")
+    def test_update_static_to_dynamic_without_time_window_preserves_resolution(
+        self, mock_handle_seer: MagicMock
+    ) -> None:
+        time_window_minutes = 30
+        alert_rule = self.create_alert_rule(
+            time_window=time_window_minutes, detection_type=AlertRuleDetectionType.STATIC
+        )
+        expected_resolution_seconds = time_window_minutes * 60
+
+        update_alert_rule(
+            alert_rule,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        alert_rule.snuba_query.refresh_from_db()
+        assert alert_rule.snuba_query.resolution == expected_resolution_seconds
+
+    @with_feature("organizations:anomaly-detection-alerts")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -2240,7 +2261,7 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         )
         self.data_source.detectors.set([self.detector])
 
-    def assert_detector_enabled_disabled(self, detector: Detector, enabled: bool = True) -> None:
+    def assert_detector_status(self, detector: Detector, enabled: bool = True) -> None:
         detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
         query_subscription_status = (
             QuerySubscription.Status.ACTIVE.value
@@ -2249,7 +2270,6 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         )
 
         detector.refresh_from_db()
-        assert detector.enabled == enabled
         assert detector.status == detector_status
 
         query_subscriptions = QuerySubscription.objects.filter(
@@ -2262,18 +2282,18 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
+        self.assert_detector_status(detector=self.detector, enabled=False)
 
         with self.tasks():
             update_detector(detector=self.detector, enabled=True)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
+        self.assert_detector_status(detector=self.detector, enabled=True)
 
     def test_disable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
+        self.assert_detector_status(detector=self.detector, enabled=False)
 
     def test_multiple_data_sources_enable_disable(self) -> None:
         with self.tasks():
@@ -2300,12 +2320,12 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
+        self.assert_detector_status(detector=self.detector, enabled=False)
 
         with self.tasks():
             update_detector(detector=self.detector, enabled=True)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
+        self.assert_detector_status(detector=self.detector, enabled=True)
 
 
 class CreateAlertRuleTriggerTest(TestCase):
@@ -3670,28 +3690,28 @@ class TestGetAlertResolution(TestCase):
     def test_simple(self) -> None:
         time_window = 30
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window]
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[time_window])
 
     def test_low_range(self) -> None:
         time_window = 2
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
 
     def test_high_range(self) -> None:
         last_window = list(DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION.keys())[-1]
         time_window = last_window + 1000
         result = get_alert_resolution(time_window, self.organization)
 
-        assert result == DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window]
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION[last_window])
 
     def test_mid_range(self) -> None:
         time_window = 125
         result = get_alert_resolution(time_window, self.organization)
 
         # 125 is not part of the dict, will round down to the lower window of 120
-        assert result == 3
+        assert result == timedelta(minutes=3)
 
     def test_crazy_low_range(self) -> None:
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
-        assert result == DEFAULT_ALERT_RULE_RESOLUTION
+        assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)

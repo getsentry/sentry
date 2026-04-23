@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sentry.analytics.events.relocation_forked import RelocationForkedEvent
 from sentry.api.endpoints.organization_fork import (
-    ERR_CANNOT_FORK_FROM_REGION,
+    ERR_CANNOT_FORK_FROM_LOCALITY,
     ERR_CANNOT_FORK_INTO_SAME_REGION,
     ERR_DUPLICATE_ORGANIZATION_FORK,
     ERR_ORGANIZATION_INACTIVE,
@@ -394,7 +394,8 @@ class OrganizationForkTest(APITestCase):
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @assume_test_silo_mode(SiloMode.CELL, cell_name=REQUESTING_TEST_REGION)
     @patch(
-        "sentry.api.endpoints.organization_fork.CANNOT_FORK_FROM_REGION", {EXPORTING_TEST_REGION}
+        "sentry.api.endpoints.organization_fork.CANNOT_FORK_FROM_LOCALITY",
+        {EXPORTING_TEST_REGION},
     )
     def test_bad_organization_in_forbidden_region(
         self,
@@ -408,8 +409,8 @@ class OrganizationForkTest(APITestCase):
         response = self.get_error_response(self.existing_org.slug, status_code=403)
 
         assert response.data.get("detail") is not None
-        assert response.data.get("detail") == ERR_CANNOT_FORK_FROM_REGION.substitute(
-            region=EXPORTING_TEST_REGION,
+        assert response.data.get("detail") == ERR_CANNOT_FORK_FROM_LOCALITY.substitute(
+            locality=EXPORTING_TEST_REGION,
         )
         assert uploading_start_mock.call_count == 0
         assert analytics_record_mock.call_count == 0

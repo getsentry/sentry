@@ -6,25 +6,15 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import type {useConversationViewDrawer} from 'sentry/views/insights/pages/conversations/components/conversationDrawer';
-import type {Conversation} from 'sentry/views/insights/pages/conversations/hooks/useConversations';
 
 // Height for 2 rows of tags (22px per row + 6px gap)
 const TWO_ROW_HEIGHT = 50;
 
 interface ToolTagsProps {
-  conversation: Conversation;
-  openConversationViewDrawer: ReturnType<
-    typeof useConversationViewDrawer
-  >['openConversationViewDrawer'];
   toolNames: string[];
 }
 
-export function ToolTags({
-  toolNames,
-  conversation,
-  openConversationViewDrawer,
-}: ToolTagsProps) {
+export function ToolTags({toolNames}: ToolTagsProps) {
   const [expanded, setExpanded] = useState(false);
   const [hiddenCount, setHiddenCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,7 +50,7 @@ export function ToolTags({
   return (
     <ToolTagsContainer ref={containerRef} expanded={expanded}>
       {toolNames.map((toolName, index) => (
-        <ClickableTag
+        <Tag
           key={toolName}
           ref={el => {
             if (el) {
@@ -70,16 +60,9 @@ export function ToolTags({
             }
           }}
           variant="info"
-          onClick={() =>
-            openConversationViewDrawer({
-              conversation,
-              source: 'table_tool_tag',
-              focusedTool: toolName,
-            })
-          }
         >
           {toolName}
-        </ClickableTag>
+        </Tag>
       ))}
       {hiddenCount > 0 && !expanded && (
         <ToggleButtonWrapper>
@@ -114,13 +97,6 @@ const ToolTagsContainer = styled(Flex)<{expanded: boolean}>`
   position: relative;
   max-height: ${p => (p.expanded ? '500px' : `${TWO_ROW_HEIGHT}px`)};
   transition: max-height 0.2s ease-in-out;
-`;
-
-const ClickableTag = styled(Tag)`
-  cursor: pointer;
-  &:hover {
-    opacity: 0.8;
-  }
 `;
 
 const ToggleButtonWrapper = styled('div')`

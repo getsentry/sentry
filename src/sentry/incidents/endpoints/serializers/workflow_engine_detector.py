@@ -242,7 +242,7 @@ class WorkflowEngineDetectorSerializer(Serializer):
         detector_trigger_data_conditions = DataCondition.objects.filter(
             condition_group__in=detector_workflow_condition_group_ids,
             condition_result__in=[DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM],
-        )
+        ).order_by("-condition_result")
         workflow_dcg_ids = DataConditionGroup.objects.filter(
             workflowdataconditiongroup__workflow__in=Subquery(
                 DetectorWorkflow.objects.filter(detector__in=detector_ids).values_list(

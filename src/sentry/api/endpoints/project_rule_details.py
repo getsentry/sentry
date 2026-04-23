@@ -105,6 +105,7 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
 class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
     workflow_engine_method_flags = {
         "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
+        "DELETE": "organizations:workflow-engine-issue-alert-endpoints-delete",
     }
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -150,6 +151,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             )
             serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
         else:
+            report_used_legacy_models()
             # Serialize Rule object
             rule_serializer = RuleSerializer(
                 expand=request.GET.getlist("expand", []),
@@ -246,6 +248,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 status=200,
             )
 
+        report_used_legacy_models()
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
@@ -260,7 +263,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
                 "project": project,
                 "organization": project.organization,
                 "request": request,
-                "current_owner": current_owner,
             },
             data=request.data,
             partial=True,

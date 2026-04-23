@@ -54,7 +54,6 @@ export function ProjectSessionsAnrRequest({
     const baseParams = {
       field: [yAxis, 'count_unique(user)'],
       interval: getSessionsInterval(datetime, {
-        highFidelity: organization.features.includes('minute-resolution-sessions'),
         dailyInterval: true,
       }),
       project: projects[0],

@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import addIntegrationProvider from 'sentry-images/spot/add-integration-provider.svg';
@@ -32,7 +33,6 @@ import type {Project} from 'sentry/types/project';
 import {FieldKey} from 'sentry/utils/fields';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useHasIssueViews';
@@ -168,7 +168,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
     needsCursorIntegration,
   ];
 
-  const handleSetupCursorHandoff = useCallback(async () => {
+  const handleSetupCursorHandoff = async () => {
     if (!cursorIntegration?.id) {
       return;
     }
@@ -193,14 +193,7 @@ export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNotice
         integration_id: parseInt(cursorIntegration.id, 10),
       },
     });
-  }, [
-    cursorIntegration,
-    project.seerScannerAutomation,
-    project.autofixAutomationTuning,
-    updateProjectAutomation,
-    updateProjectSeerPreferences,
-    preference?.repositories,
-  ]);
+  };
 
   const handleSkipCursorStep = useCallback(() => {
     setCursorStepSkipped(true);

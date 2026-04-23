@@ -1,0 +1,196 @@
+---
+title: FeatureShowcase
+description: A multi-step modal tour for showcasing features.
+category: overlay
+source: sentry/components/featureShowcase
+---
+
+import {Fragment} from 'react';
+
+import tourAlertImage from 'sentry-images/spot/performance-tour-alert.svg';
+import tourCorrelateImage from 'sentry-images/spot/performance-tour-correlate.svg';
+import tourTraceImage from 'sentry-images/spot/performance-tour-trace.svg';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
+import {openModal} from 'sentry/actionCreators/modal';
+import {FeatureShowcase, useShowcaseContext} from 'sentry/components/featureShowcase';
+import {GlobalModal} from 'sentry/components/globalModal';
+import * as Storybook from 'sentry/stories';
+
+export function ReadTheDocsFooter() {
+  const {close} = useShowcaseContext();
+  return (
+    <Flex justify="end">
+      <LinkButton
+        external
+        href="https://docs.sentry.io"
+        onClick={close}
+        priority="primary"
+      >
+        Read the Docs
+      </LinkButton>
+    </Flex>
+  );
+}
+
+Render `<FeatureShowcase>` inside `openModal` with `<FeatureShowcase.Step>` children to create a multi-step modal tour.
+
+```jsx
+openModal(deps => (
+  <FeatureShowcase {...deps}>
+    <FeatureShowcase.Step>
+      <FeatureShowcase.Image src={image} alt="Step title" />
+      <FeatureShowcase.StepTitle>Step title</FeatureShowcase.StepTitle>
+      <FeatureShowcase.StepContent>Step description</FeatureShowcase.StepContent>
+      <FeatureShowcase.StepActions />
+    </FeatureShowcase.Step>
+  </FeatureShowcase>
+));
+```
+
+## Basic
+
+Each step can include an image, title, content, and navigation actions. The default `<FeatureShowcase.StepActions />` renders Back/Next/Done buttons automatically.
+
+<Storybook.Demo>
+  <Fragment>
+    <GlobalModal />
+    <Button
+      priority="primary"
+      onClick={() => {
+        openModal(deps => (
+          <FeatureShowcase {...deps}>
+            <FeatureShowcase.Step>
+              <FeatureShowcase.Image src={tourTraceImage} alt="Trace Errors" />
+              <FeatureShowcase.StepTitle>Trace Errors</FeatureShowcase.StepTitle>
+              <FeatureShowcase.StepContent>
+                Trace errors across your services to find the root cause.
+              </FeatureShowcase.StepContent>
+              <FeatureShowcase.StepActions />
+            </FeatureShowcase.Step>
+            <FeatureShowcase.Step>
+              <FeatureShowcase.Image src={tourAlertImage} alt="Set Alerts" />
+              <FeatureShowcase.StepTitle>Set Alerts</FeatureShowcase.StepTitle>
+              <FeatureShowcase.StepContent>
+                Get notified when things break before your users do.
+              </FeatureShowcase.StepContent>
+              <FeatureShowcase.StepActions />
+            </FeatureShowcase.Step>
+            <FeatureShowcase.Step>
+              <FeatureShowcase.Image src={tourCorrelateImage} alt="Correlate Data" />
+              <FeatureShowcase.StepTitle>Correlate Data</FeatureShowcase.StepTitle>
+              <FeatureShowcase.StepContent>
+                Correlate errors, transactions, and releases to find patterns.
+              </FeatureShowcase.StepContent>
+              <FeatureShowcase.StepActions />
+            </FeatureShowcase.Step>
+          </FeatureShowcase>
+        ));
+      }}
+    >
+      Open Tour
+    </Button>
+  </Fragment>
+</Storybook.Demo>
+```jsx
+openModal(deps => (
+  <FeatureShowcase {...deps}>
+    <FeatureShowcase.Step>
+      <FeatureShowcase.Image src={tourTraceImage} alt="Trace Errors" />
+      <FeatureShowcase.StepTitle>Trace Errors</FeatureShowcase.StepTitle>
+      <FeatureShowcase.StepContent>
+        Trace errors across your services to find the root cause.
+      </FeatureShowcase.StepContent>
+      <FeatureShowcase.StepActions />
+    </FeatureShowcase.Step>
+    <FeatureShowcase.Step>
+      <FeatureShowcase.Image src={tourAlertImage} alt="Set Alerts" />
+      <FeatureShowcase.StepTitle>Set Alerts</FeatureShowcase.StepTitle>
+      <FeatureShowcase.StepContent>
+        Get notified when things break before your users do.
+      </FeatureShowcase.StepContent>
+      <FeatureShowcase.StepActions />
+    </FeatureShowcase.Step>
+    <FeatureShowcase.Step>
+      <FeatureShowcase.Image src={tourCorrelateImage} alt="Correlate Data" />
+      <FeatureShowcase.StepTitle>Correlate Data</FeatureShowcase.StepTitle>
+      <FeatureShowcase.StepContent>
+        Correlate errors, transactions, and releases to find patterns.
+      </FeatureShowcase.StepContent>
+      <FeatureShowcase.StepActions />
+    </FeatureShowcase.Step>
+  </FeatureShowcase>
+));
+```
+
+## Custom Footer Buttons
+
+Pass custom children alongside `<FeatureShowcase.StepActions />`, or replace it entirely with your own footer. Use `useShowcaseContext()` to access `close` and `advance` from custom components.
+
+<Storybook.Demo>
+  <Fragment>
+    <GlobalModal />
+    <Button
+      priority="primary"
+      onClick={() => {
+        openModal(deps => (
+          <FeatureShowcase {...deps}>
+            <FeatureShowcase.Step>
+              <FeatureShowcase.Image src={tourTraceImage} alt="Trace Errors" />
+              <FeatureShowcase.StepTitle>Trace Errors</FeatureShowcase.StepTitle>
+              <FeatureShowcase.StepContent>
+                Trace errors across your services to find the root cause.
+              </FeatureShowcase.StepContent>
+              <FeatureShowcase.StepActions />
+            </FeatureShowcase.Step>
+            <FeatureShowcase.Step>
+              <FeatureShowcase.Image src={tourCorrelateImage} alt="Correlate Data" />
+              <FeatureShowcase.StepTitle>Correlate Data</FeatureShowcase.StepTitle>
+              <FeatureShowcase.StepContent>
+                Correlate errors, transactions, and releases to find patterns.
+              </FeatureShowcase.StepContent>
+              <ReadTheDocsFooter />
+            </FeatureShowcase.Step>
+          </FeatureShowcase>
+        ));
+      }}
+    >
+      Open Tour
+    </Button>
+  </Fragment>
+</Storybook.Demo>
+```jsx
+function ReadTheDocsFooter() {
+  const {close} = useShowcaseContext();
+  return (
+    <Flex justify="end">
+      <LinkButton external href="https://docs.sentry.io" onClick={close} priority="primary">
+        Read the Docs
+      </LinkButton>
+    </Flex>
+  );
+}
+
+openModal(deps => (
+
+<FeatureShowcase {...deps}>
+  <FeatureShowcase.Step>
+    <FeatureShowcase.Image src={tourTraceImage} alt="Trace Errors" />
+    <FeatureShowcase.StepTitle>Trace Errors</FeatureShowcase.StepTitle>
+    <FeatureShowcase.StepContent>
+      Trace errors across your services to find the root cause.
+    </FeatureShowcase.StepContent>
+    <FeatureShowcase.StepActions />
+  </FeatureShowcase.Step>
+  <FeatureShowcase.Step>
+    <FeatureShowcase.Image src={tourCorrelateImage} alt="Correlate Data" />
+    <FeatureShowcase.StepTitle>Correlate Data</FeatureShowcase.StepTitle>
+    <FeatureShowcase.StepContent>
+      Correlate errors, transactions, and releases to find patterns.
+    </FeatureShowcase.StepContent>
+    <ReadTheDocsFooter />
+  </FeatureShowcase.Step>
+</FeatureShowcase>
+)); ```

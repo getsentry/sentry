@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -36,41 +38,59 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Explore'),
-                },
-                {
-                  label: t('Traces'),
-                  to: makeTracesPathname({
-                    organization,
-                    path: '/',
-                  }),
-                },
-                {
-                  label: t('Compare Queries'),
-                },
-              ]}
-            />
-            <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={[
+                  {label: t('Explore')},
+                  {
+                    label: t('Traces'),
+                    to: makeTracesPathname({organization, path: '/'}),
+                  },
+                  {label: title ? title : t('Compare Queries')},
+                ]}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="actions">
               <StarSavedQueryButton />
               {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-              {hasPageFrameFeature ? (
-                <TopBar.Slot name="feedback">
-                  <FeedbackButton>{null}</FeedbackButton>
-                </TopBar.Slot>
-              ) : (
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.Header unified>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {label: t('Explore')},
+                  {
+                    label: t('Traces'),
+                    to: makeTracesPathname({organization, path: '/'}),
+                  },
+                  {label: t('Compare Queries')},
+                ]}
+              />
+              <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <StarSavedQueryButton />
+                {defined(id) && savedQuery?.isPrebuilt === false && (
+                  <SavedQueryEditMenu />
+                )}
                 <FeedbackButton />
-              )}
-            </Grid>
-          </Layout.HeaderActions>
-        </Layout.Header>
+              </Grid>
+            </Layout.HeaderActions>
+          </Layout.Header>
+        )}
         <Stack flex={1}>
           <MultiQueryModeContent />
         </Stack>

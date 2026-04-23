@@ -1,4 +1,5 @@
 import {useMutation} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -6,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AddIntegrationButton} from './addIntegrationButton';

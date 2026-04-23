@@ -1,12 +1,14 @@
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.utils import get_resolve_thresholds
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 OPSGENIE_METADATA = {
     "api_key": "1234-ABCD",
@@ -206,3 +208,61 @@ class WorkflowNameTest(APITestCase):
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert workflow.name == "Email [removed]"
+
+
+class GetResolveThresholdsTest(TestCase):
+    def test_empty_input(self) -> None:
+        assert get_resolve_thresholds([]) == {}
+
+    def test_single_group_with_resolve_condition(self) -> None:
+        dcg = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=dcg,
+            condition_result=DetectorPriorityLevel.OK,
+            comparison=5.0,
+            type="gte",
+        )
+
+        result = get_resolve_thresholds([dcg])
+        assert result == {dcg.id: 5.0}
+
+    def test_single_group_without_resolve_condition(self) -> None:
+        dcg = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=dcg,
+            condition_result=DetectorPriorityLevel.HIGH,
+            comparison=100.0,
+            type="gte",
+        )
+
+        result = get_resolve_thresholds([dcg])
+        assert result == {}
+
+    def test_multiple_groups_mixed(self) -> None:
+        dcg1 = self.create_data_condition_group(organization=self.organization)
+        dcg2 = self.create_data_condition_group(organization=self.organization)
+        dcg3 = self.create_data_condition_group(organization=self.organization)
+
+        self.create_data_condition(
+            condition_group=dcg1,
+            condition_result=DetectorPriorityLevel.OK,
+            comparison=10.0,
+            type="gte",
+        )
+        # dcg2 has no resolve condition
+        self.create_data_condition(
+            condition_group=dcg2,
+            condition_result=DetectorPriorityLevel.HIGH,
+            comparison=200.0,
+            type="gte",
+        )
+        self.create_data_condition(
+            condition_group=dcg3,
+            condition_result=DetectorPriorityLevel.OK,
+            comparison=25.0,
+            type="gte",
+        )
+
+        result = get_resolve_thresholds([dcg1, dcg2, dcg3])
+        assert result == {dcg1.id: 10.0, dcg3.id: 25.0}
+        assert dcg2.id not in result

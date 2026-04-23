@@ -9,21 +9,20 @@ import {
   type RefObject,
 } from 'react';
 import * as Sentry from '@sentry/react';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
-import {organizationRepositoriesInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useOrganizationRepositories';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
   RepositoryWithSettings,
 } from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {useInfiniteQuery} from 'sentry/utils/queryClient';
+import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
 import {useIntegrationProvider} from './useIntegrationProvider';
-
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
   addRootCauseAnalysisRepository: (repoId: string) => void;
@@ -91,7 +90,7 @@ export function SeerOnboardingProvider({children}: {children: React.ReactNode}) 
   const hasInitializedCodeReviewMap = useRef(false);
 
   const repositoriesResult = useInfiniteQuery({
-    ...organizationRepositoriesInfiniteOptions({
+    ...organizationRepositoriesWithSettingsInfiniteOptions({
       organization,
       query: {per_page: 100},
     }),

@@ -1,13 +1,15 @@
 import {useCallback, type ReactNode} from 'react';
 
-import {Pagination} from 'sentry/components/pagination';
+import {getPaginationCaption, Pagination} from 'sentry/components/pagination';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DetectorListTable} from 'sentry/views/detectors/components/detectorListTable';
+import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 
 interface DetectorListContentProps {
   data: ApiResponse<Detector[]> | undefined;
@@ -32,6 +34,8 @@ export function DetectorListContent({
   const maxHits = data?.headers['X-Max-Hits'] ?? Infinity;
   const pageLinks = data?.headers.Link;
 
+  const cursor = decodeScalar(location.query.cursor);
+
   const allResultsVisible = useCallback(() => {
     if (!pageLinks) {
       return false;
@@ -39,6 +43,16 @@ export function DetectorListContent({
     const links = parseLinkHeader(pageLinks);
     return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
+
+  const paginationCaption =
+    isLoading || !data?.json
+      ? undefined
+      : getPaginationCaption({
+          cursor,
+          limit: DETECTOR_LIST_PAGE_LIMIT,
+          pageLength: data.json.length,
+          total: hits,
+        });
 
   return (
     <div>
@@ -62,6 +76,7 @@ export function DetectorListContent({
       </VisuallyCompleteWithData>
       <Pagination
         pageLinks={pageLinks}
+        caption={paginationCaption}
         onCursor={newCursor => {
           navigate({
             pathname: location.pathname,

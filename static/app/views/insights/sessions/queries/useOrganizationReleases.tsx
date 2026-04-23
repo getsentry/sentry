@@ -1,10 +1,11 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldKey} from 'sentry/utils/fields';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -64,31 +65,26 @@ export function useOrganizationReleases({
     .join(' ')
     .trim();
 
-  const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
-          query: queryString,
-          adoptionStages: 1,
-          health: 1,
-          per_page: 10,
-          status,
-        },
+  const {data, isError, isPending} = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        ...pageFiltersToQueryParams(pageFilters || defaultPageFilters),
+        query: queryString,
+        adoptionStages: 1,
+        health: 1,
+        per_page: 10,
+        status,
       },
-    ],
-    {
       staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   const releaseData =
-    isPending || !data
+    isPending || !data?.json
       ? []
-      : data.map(release => {
+      : data.json.map(release => {
           const projSlug = release.projects[0]?.slug;
 
           return {
@@ -111,6 +107,6 @@ export function useOrganizationReleases({
     releaseData,
     isLoading: isPending,
     isError,
-    pageLinks: getResponseHeader?.('Link') ?? undefined,
+    pageLinks: data?.headers.Link,
   };
 }

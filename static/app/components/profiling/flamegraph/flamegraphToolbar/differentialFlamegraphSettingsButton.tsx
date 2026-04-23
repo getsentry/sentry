@@ -29,9 +29,9 @@ export function DifferentialFlamegraphSettingsButton(
 
   const contextMenu = useContextMenu({container: null});
 
-  const onToggleMenu = useCallback(() => {
+  const onToggleMenu = () => {
     contextMenu.setOpen(!contextMenu.open);
-  }, [contextMenu]);
+  };
 
   const onClose = useCallback(() => {
     contextMenu.setOpen(false);

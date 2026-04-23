@@ -5,7 +5,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import type {
   GenericPerformanceWidgetProps,
   WidgetDataConstraint,
@@ -26,7 +25,6 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
           ) : (
             <TextOverflow>{title}</TextOverflow>
           )}
-          <MEPTag />
         </StyledHeaderTitleLegend>
         {Subtitle ? <Subtitle {...props} /> : null}
       </Stack>

@@ -582,6 +582,7 @@ class Referrer(StrEnum):
     API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
     API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+    API_OCCURRENCES_FREQUENCY_STATS_RPC = "api.occurrences.fields-stats.rpc"
     API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
@@ -624,6 +625,7 @@ class Referrer(StrEnum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
+    DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
@@ -778,6 +780,7 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
+    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
@@ -785,6 +788,9 @@ class Referrer(StrEnum):
     SEER_EXPLORER_INDEX = "seer.explorer_index"
     SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
+    SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
+        "supergroups_backfill_lightweight.get_latest_events"
+    )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )

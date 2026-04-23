@@ -55,11 +55,11 @@ describe('RuleNode', () => {
       },
       exampleNumberChoiceField: {
         type: 'choice',
-        initial: 2,
+        initial: '2',
         choices: [
-          [1, 'label1'],
-          [2, 'label2'],
-          [3, 'label3'],
+          ['1', 'label1'],
+          ['2', 'label2'],
+          ['3', 'label3'],
         ],
       },
       exampleMailActionField: {
@@ -91,22 +91,21 @@ describe('RuleNode', () => {
     actionType: 'sentryapp',
     sentryAppInstallationUuid: '1027',
     formFields: {
-      exampleStringField: {
-        type: 'string',
-        placeholder: 'placeholder',
-      },
-      exampleNumberField: {
-        type: 'number',
-        placeholder: 100,
-      },
-      exampleStringChoiceField: {
-        type: 'choice',
-        choices: [
-          ['value1', 'label1'],
-          ['value2', 'label2'],
-          ['value3', 'label3'],
-        ],
-      },
+      uri: '/sentry-app/configure/',
+      required_fields: [
+        {type: 'text', label: 'Example String', name: 'exampleStringField'},
+      ],
+      optional_fields: [
+        {
+          type: 'select',
+          label: 'Example Choice',
+          name: 'exampleStringChoiceField',
+          choices: [
+            ['value1', 'label1'],
+            ['value2', 'label2'],
+          ],
+        },
+      ],
     },
   };
 
@@ -283,16 +282,16 @@ describe('RuleNode', () => {
             value: {
               type: 'choice',
               choices: [
-                [1, IssueCategory.ERROR],
-                [2, IssueCategory.PERFORMANCE],
-                [3, IssueCategory.DB_QUERY],
+                ['1', IssueCategory.ERROR],
+                ['2', IssueCategory.PERFORMANCE],
+                ['3', IssueCategory.DB_QUERY],
               ],
             },
           },
         },
         {
           id: IssueAlertFilterType.ISSUE_CATEGORY,
-          value: 1,
+          value: '1',
         }
       );
 
@@ -320,15 +319,15 @@ describe('RuleNode', () => {
           value: {
             type: 'choice',
             choices: [
-              [1, IssueCategory.ERROR],
-              [2, IssueCategory.PERFORMANCE],
+              ['1', IssueCategory.ERROR],
+              ['2', IssueCategory.PERFORMANCE],
             ],
           },
         },
       },
       {
         id: IssueAlertFilterType.ISSUE_CATEGORY,
-        value: 2,
+        value: '2',
       }
     );
 

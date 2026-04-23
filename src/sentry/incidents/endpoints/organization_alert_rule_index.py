@@ -916,7 +916,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
     }
     permission_classes = (OrganizationAlertRulePermission,)
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-orgalertruleindex-get",
+        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
     }
 
     @extend_schema(

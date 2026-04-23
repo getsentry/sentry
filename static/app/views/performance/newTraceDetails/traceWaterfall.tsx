@@ -667,6 +667,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     return null;
   }
 
+  let waterfallTraceId: string | undefined = props.traceSlug;
+  if (props.source === 'replay') {
+    waterfallTraceId = undefined;
+  }
+
   return (
     <Flex direction="column" flex={1}>
       <Flex gap="md">
@@ -711,7 +716,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               <Trace
                 trace={props.tree}
                 rerender={rerender}
-                trace_id={props.traceSlug}
+                trace_id={waterfallTraceId}
                 onRowClick={onRowClick}
                 onTraceSearch={onTraceSearch}
                 previouslyFocusedNodeRef={previouslyFocusedNodeRef}

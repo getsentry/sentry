@@ -10,4 +10,4 @@ class ProcessMentionHaltReason(StrEnum):
 
 class ProcessMentionFailureReason(StrEnum):
     ORG_NOT_FOUND = "org_not_found"
-    NO_EXPLORER_ACCESS = "no_explorer_access"
+    NO_AGENT_ACCESS = "no_agent_access"

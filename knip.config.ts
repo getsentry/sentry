@@ -7,7 +7,6 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
-  'static/app/views/integrationPipeline/index.tsx',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // this is imported with require.context
@@ -67,25 +66,22 @@ const config: KnipConfig = {
     // ignore eslint plugins in production
     '!static/eslint/**/*.ts!',
   ],
+  ignore: [
+    // api-docs has its own package.json with its own dependencies
+    'api-docs/**',
+  ],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
-    'jest-environment-jsdom', // used as testEnvironment in jest config
-    'swc-plugin-component-annotate', // used in rspack config, needs better knip plugin
-    '@swc/plugin-emotion', // used in rspack config, needs better knip plugin
     'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'process', // rspack.ProvidePlugin, needs better knip plugin
-    '@babel/preset-env', // Still used in jest
-    '@babel/preset-react', // Still used in jest
-    '@babel/preset-typescript', // Still used in jest
-    '@emotion/babel-plugin', // Still used in jest
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
+    '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {
     binaries: 'off',
     enumMembers: 'off',
-    unlisted: 'off',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {

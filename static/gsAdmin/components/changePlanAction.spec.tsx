@@ -126,7 +126,7 @@ describe('ChangePlanAction', () => {
     // Verify the tabs are rendered
     expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'AM2'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'MM2'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'MM2'})).not.toBeInTheDocument();
 
     // Verify at least one plan option is displayed
     expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
@@ -324,16 +324,6 @@ describe('ChangePlanAction', () => {
       const radios = document.querySelectorAll('input[type="radio"]');
       expect(radios.length).toBeGreaterThan(0);
     });
-
-    // Switch to MM2 tier
-    const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
-    await userEvent.click(mm2Tab);
-
-    // Again, verify we have plan options
-    await waitFor(() => {
-      const radios = document.querySelectorAll('input[type="radio"]');
-      expect(radios.length).toBeGreaterThan(0);
-    });
   });
 
   it('shows only test plans when using TEST tier', async () => {
@@ -446,25 +436,6 @@ describe('ChangePlanAction', () => {
       await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
 
       expect(screen.getByText('Seer')).toBeInTheDocument();
-    });
-
-    it('hides Seer budget checkbox for MM2 tier', async () => {
-      openAndLoadModal();
-
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-
-      const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
-      await userEvent.click(mm2Tab);
-
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
-
-      expect(
-        screen.queryByRole('checkbox', {
-          name: 'Seer',
-        })
-      ).not.toBeInTheDocument();
     });
 
     it('initializes Seer budget checkbox based on current subscription', async () => {

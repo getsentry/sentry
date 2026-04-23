@@ -5,20 +5,22 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 from sentry import features
 from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
+from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
     SeerAutofixError,
     SeerAutofixUpdate,
-    SeerExplorerError,
-    SeerExplorerResponse,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
+    agent_entrypoint_registry,
     autofix_entrypoint_registry,
-    explorer_entrypoint_registry,
 )
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
@@ -26,13 +28,14 @@ from sentry.seer.entrypoints.slack.messaging import (
     update_existing_message,
 )
 from sentry.seer.entrypoints.types import (
+    SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
-    SeerExplorerEntrypoint,
 )
 from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
@@ -62,10 +65,50 @@ class SlackAutofixCachePayload(TypedDict):
     threads: list[SlackThreadDetails]
 
 
-class SlackExplorerCachePayload(TypedDict):
+class SlackAgentCachePayload(TypedDict):
     organization_id: int
     integration_id: int
     thread: SlackThreadDetails
+
+
+MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
+
+
+def _get_missing_scope_settings_url(
+    *,
+    integration_id: int,
+    organization_id: int,
+    channel_id: str,
+    thread_ts: str,
+) -> str | None:
+    """
+    Returns a settings URL if the integration is missing history scopes for the channel,
+    and we haven't already shown the footer for this thread. Returns None otherwise.
+    """
+    from sentry.integrations.slack.integration import SlackIntegration
+
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if not integration:
+        return None
+
+    install = SlackIntegration(model=integration, organization_id=organization_id)
+    if install.has_history_scope(channel_id):
+        return None
+
+    try:
+        org = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        return None
+
+    cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    if not cache.add(cache_key, True, timeout=MISSING_SCOPE_FOOTER_CACHE_TIMEOUT):
+        return None
+
+    return org.absolute_url(f"/settings/{org.slug}/integrations/slack/")
 
 
 class SlackAutofixEntrypoint(
@@ -333,8 +376,8 @@ class SlackAutofixEntrypoint(
         )
 
 
-class SlackExplorerEntrypoint(
-    SeerExplorerEntrypoint[SlackExplorerCachePayload],
+class SlackAgentEntrypoint(
+    SeerAgentEntrypoint[SlackAgentCachePayload],
 ):
     key = SeerEntrypointKey.SLACK
 
@@ -378,52 +421,68 @@ class SlackExplorerEntrypoint(
         self.slack_user_id = slack_user_id
 
     @staticmethod
-    def has_access(organization: Organization) -> bool:
-        has_seer_slack_feature_flag = features.has(
-            "organizations:seer-slack-workflows", organization
-        )
-        has_explorer_access, _ = has_seer_explorer_access_with_detail(organization, None)
-        return has_seer_slack_feature_flag and has_explorer_access
+    def has_feature_flag(organization: Organization | RpcOrganization) -> bool:
+        return features.has("organizations:seer-slack-explorer", organization)
 
-    def on_trigger_explorer_error(self, *, error: str) -> None:
+    @staticmethod
+    def has_access(organization: Organization | RpcOrganization) -> bool:
+        """
+        Determines access to Seer Agent, along with the Slack feature. Shouldn't be called from
+        the CONTROL silo since `has_explorer_access_with_detail` will not get populated with the
+        subscription context, and will return False every time. For slim, CONTROL calls, use
+        the `has_feature_flag` method instead.
+        """
+        has_agent_access, _ = has_seer_explorer_access_with_detail(organization, None)
+        return SlackAgentEntrypoint.has_feature_flag(organization) and has_agent_access
+
+    def on_trigger_agent_error(self, *, error: str) -> None:
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerExplorerError(error_message=error),
+            data=SeerAgentError(error_message=error),
             ephemeral_user_id=self.slack_user_id,
         )
 
-    def on_trigger_explorer_success(self, *, run_id: int) -> None:
+    def on_trigger_agent_success(self, *, run_id: int) -> None:
         pass
 
-    def create_explorer_cache_payload(self) -> SlackExplorerCachePayload:
-        return SlackExplorerCachePayload(
+    def create_agent_cache_payload(self) -> SlackAgentCachePayload:
+        return SlackAgentCachePayload(
             thread=self.thread,
             organization_id=self.organization_id,
             integration_id=self.install.model.id,
         )
 
     @staticmethod
-    def on_explorer_update(
-        cache_payload: SlackExplorerCachePayload,
+    def on_agent_update(
+        cache_payload: SlackAgentCachePayload,
         summary: str | None,
         run_id: int,
     ) -> None:
         organization_id = cache_payload["organization_id"]
+        integration_id = cache_payload["integration_id"]
+        thread = cache_payload["thread"]
 
         if not summary:
-            data: SeerExplorerError | SeerExplorerResponse = SeerExplorerError(
+            data: SeerAgentError | SeerAgentResponse = SeerAgentError(
                 error_message="Seer was unable to generate a response."
             )
         else:
-            data = SeerExplorerResponse(
+            missing_scope_url = _get_missing_scope_settings_url(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                channel_id=thread["channel_id"],
+                thread_ts=thread["thread_ts"],
+            )
+            data = SeerAgentResponse(
                 run_id=run_id,
                 organization_id=organization_id,
                 summary=summary,
+                missing_scope_settings_url=missing_scope_url,
             )
         schedule_all_thread_updates(
-            threads=[cache_payload["thread"]],
-            integration_id=cache_payload["integration_id"],
+            threads=[thread],
+            integration_id=integration_id,
             organization_id=organization_id,
             data=data,
         )
@@ -503,4 +562,4 @@ def prepare_slack_thread_for_autofix_updates(
 
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
 autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
-explorer_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackExplorerEntrypoint)
+agent_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAgentEntrypoint)

@@ -12,9 +12,7 @@ class OrganizationMetricsCompatiblity(MetricsEnhancedPerformanceTestCase):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features: dict[str, bool] = {}
         self.login_as(user=self.user)
         # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
         self.bad_project = self.create_project()
@@ -126,9 +124,7 @@ class OrganizationEventsMetricsSums(MetricsEnhancedPerformanceTestCase):
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
-        self.features = {
-            "organizations:performance-use-metrics": True,
-        }
+        self.features: dict[str, bool] = {}
         self.login_as(user=self.user)
         # Don't create any txn on this, don't set its DS rules, it shouldn't show up anywhere
         self.create_project()

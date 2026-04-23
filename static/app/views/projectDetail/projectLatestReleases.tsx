@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -19,6 +20,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
@@ -166,23 +168,20 @@ export function ProjectLatestReleases({
     data: releases = null,
     isLoading,
     isError,
-  } = useApiQuery<Release[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<Release[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
       {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
         query: {
           ...pick(location.query, Object.values(URL_PARAM)),
           per_page: 5,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: isProjectStabilized,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: isProjectStabilized,
+  });
 
   return (
     <SidebarSection>

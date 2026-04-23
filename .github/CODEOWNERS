@@ -172,7 +172,6 @@ pyproject.toml                                           @getsentry/owners-pytho
 vercel.json                                              @getsentry/owners-js-build
 /.github/workflows/frontend.yml                          @getsentry/owners-js-build
 /.github/file-filters.yml                                @getsentry/owners-js-build
-babel.config.*                                           @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
 eslint.config.ts                                         @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
@@ -276,6 +275,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/data-browsing
 src/sentry/api/endpoints/organization_attribute_mappings.py                 @getsentry/data-browsing
 
+/src/sentry/integrations/slack/unfurl/explore.py                           @getsentry/data-browsing
+
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
@@ -354,6 +355,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
 /static/app/components/charts/                                            @getsentry/data-browsing
+/static/app/chartcuterie/timeseries.tsx                                   @getsentry/data-browsing
 
 /static/app/views/insights/                                               @getsentry/dashboards
 
@@ -439,6 +441,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/loading/                @getsentry/app-frontend
 /static/app/components/events/interfaces/      @getsentry/app-frontend
 /static/app/components/forms/                  @getsentry/app-frontend
+/static/app/components/featureShowcase.mdx     @getsentry/app-frontend
+/static/app/components/featureShowcase.spec.tsx @getsentry/app-frontend
+/static/app/components/featureShowcase.tsx     @getsentry/app-frontend
 /static/app/components/markdownTextArea.tsx    @getsentry/app-frontend
 /static/app/locale.tsx                         @getsentry/app-frontend
 ## End of Frontend
@@ -679,6 +684,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/tasks/clear_expired_rulesnoozes.py              @getsentry/issue-detection-backend
 /src/sentry/tasks/clear_expired_snoozes.py                  @getsentry/issue-detection-backend
 /src/sentry/tasks/codeowners/                               @getsentry/coding-workflows-sentry-backend
+/src/sentry/tasks/commits.py                                @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/commit_context.py                         @getsentry/coding-workflows-sentry-backend
 /src/sentry/tasks/seer/delete_seer_grouping_records.py      @getsentry/issue-detection-backend
 /src/sentry/tasks/embeddings_grouping/                      @getsentry/issue-detection-backend
@@ -883,7 +889,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/bitbucket_server/                              @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/vsts/                                          @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/vsts_extension/                                @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
-/src/sentry/integrations/perforce/                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/perforce/                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm @getsentry/gdx
 /tests/sentry/integrations/source_code_management/                      @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/repository/                                  @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/github_enterprise/                           @getsentry/ecosystem @getsentry/scm
@@ -892,7 +898,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/integrations/bitbucket_server/                            @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/vsts/                                        @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/vsts_extension/                              @getsentry/ecosystem @getsentry/scm
-/tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm @getsentry/gdx
 /tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
 

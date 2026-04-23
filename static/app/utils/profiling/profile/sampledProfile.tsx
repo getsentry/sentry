@@ -134,7 +134,7 @@ export class SampledProfile extends Profile {
     // and size of the stack to process. The size indicates how many items from the buffer we want
     // to process.
 
-    const resolvedStack: Frame[] = new Array(256); // stack size limit
+    const resolvedStack = Array.from<Frame>({length: 256}); // stack size limit
     let size = 0;
     let frame: Frame | null = null;
 

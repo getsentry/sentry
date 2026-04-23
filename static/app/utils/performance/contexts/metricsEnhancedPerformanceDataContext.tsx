@@ -1,8 +1,6 @@
 import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
-
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WIDGET_MAP_DENY_LIST} from 'sentry/views/performance/landing/widgets/utils';
@@ -110,28 +108,6 @@ export function getIsMetricsDataFromResults(
     results?.histograms?.meta?.isMetricsData ??
     results?.tableData?.meta?.isMetricsData;
   return isMetricsData;
-}
-
-export function MEPTag() {
-  const {isMetricsData} = useMEPDataContext();
-  const organization = useOrganization();
-
-  if (!organization.features.includes('performance-use-metrics')) {
-    // Separate if for easier flag deletion
-    return null;
-  }
-
-  if (isMetricsData === undefined) {
-    return <span data-test-id="no-metrics-data-tag" />;
-  }
-
-  const tagText = isMetricsData ? 'processed' : 'indexed';
-
-  return (
-    <Tag variant="muted" data-test-id="has-metrics-data-tag">
-      {tagText}
-    </Tag>
-  );
 }
 
 type ExtractionStatus = 'extracted' | 'not-extracted' | null;

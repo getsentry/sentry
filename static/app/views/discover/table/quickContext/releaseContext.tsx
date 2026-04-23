@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 
@@ -13,9 +14,8 @@ import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
 
 import {NoContext} from './quickContextWrapper';
@@ -33,18 +33,17 @@ import {ContextType, tenSecondInMs} from './utils';
 export function ReleaseContext(props: BaseContextProps) {
   const user = useUser();
   const {dataRow, organization} = props;
-  const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
+  const {isPending, isError, data} = useQuery(
+    apiOptions.as<ReleaseWithHealth>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           version: dataRow.release,
         },
-      }),
-    ],
-    {
-      staleTime: tenSecondInMs,
-    }
+        staleTime: tenSecondInMs,
+      }
+    )
   );
 
   const authors = useMemo(

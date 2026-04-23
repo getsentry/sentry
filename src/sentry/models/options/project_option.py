@@ -67,6 +67,7 @@ OPTION_KEYS = frozenset(
         "sentry:uptime_autodetection",
         "sentry:autofix_automation_tuning",
         "sentry:seer_scanner_automation",
+        "sentry:seer_nightshift_tweaks",
         "sentry:debug_files_role",
         "sentry:preprod_size_status_checks_enabled",
         "sentry:preprod_size_status_checks_rules",
@@ -88,7 +89,6 @@ OPTION_KEYS = frozenset(
         "mail:subject_template",
         "filters:react-hydration-errors",
         "filters:chunk-load-error",
-        "relay.cardinality-limiter.limits",
     ]
 )
 
@@ -130,16 +130,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
         self.filter(project=project, key=key).delete()
         self.reload_cache(project.id, "projectoption.unset_value", key)
 
-    def set_value(
-        self, project: int | Project, key: str, value: Any, reload_cache: bool = True
-    ) -> bool:
+    def set_value(self, project: int | Project, key: str, value: Any) -> bool:
         """
         Sets a project option for the given project.
-        :param reload_cache: Invalidate the project config and reload the
-        cache only if the value has changed and `reload_cache` is `True`.
-
-        Do not call this with `False` unless you know for sure that it's fine
-        to keep the cached project config.
         """
 
         if isinstance(project, models.Model):
@@ -161,7 +154,7 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
                 self.filter(id=obj.id).update(value=value)
                 is_value_changed = True
 
-        if reload_cache and is_value_changed:
+        if is_value_changed:
             # invalidate the cached project config only if the value has changed,
             # and reload_cache is set to True
             self.reload_cache(project_id, "projectoption.set_value", key)

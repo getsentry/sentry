@@ -73,3 +73,11 @@ export function formatBuildName(
 
   return `v${version} (${buildNumber})`;
 }
+
+export function getSnapshotPath(params: {
+  organizationSlug: string;
+  snapshotId: string;
+}): string {
+  const {organizationSlug, snapshotId} = params;
+  return `/organizations/${organizationSlug}/preprod/snapshots/${snapshotId}/`;
+}

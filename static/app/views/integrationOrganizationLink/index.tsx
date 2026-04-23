@@ -18,10 +18,11 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
+  isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -31,7 +32,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import RouteError from 'sentry/views/routeError';
-import {useAddIntegration} from 'sentry/views/settings/organizationIntegrations/addIntegration';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 interface GitHubIntegrationInstallation {
@@ -51,7 +51,7 @@ function trackExternalAnalytics({
   organization,
   provider,
 }: {
-  eventName: IntegrationAnalyticsKey;
+  eventName: 'integrations.installation_start';
   organization: Organization | null;
   provider: IntegrationProvider | null;
   startSession?: boolean;
@@ -65,6 +65,7 @@ function trackExternalAnalytics({
     {
       integration_type: 'first_party',
       integration: provider.key,
+      is_scm: isScmProvider(provider),
       // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
       already_installed: false,
       view: 'external_install',
@@ -421,7 +422,7 @@ function AddIntegrationButton({
   provider: IntegrationProvider;
   installationId?: string;
 }) {
-  const {startFlow} = useAddIntegration({provider, organization, onInstall});
+  const {startFlow} = useAddIntegration();
 
   return (
     <ButtonWrapper>
@@ -430,7 +431,12 @@ function AddIntegrationButton({
         disabled={!hasAccess || disabled}
         onClick={() =>
           installationId
-            ? startFlow({installation_id: installationId})
+            ? startFlow({
+                provider,
+                organization,
+                onInstall,
+                urlParams: {installation_id: installationId},
+              })
             : finishInstallation()
         }
       >

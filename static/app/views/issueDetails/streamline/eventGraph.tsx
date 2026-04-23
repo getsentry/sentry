@@ -326,7 +326,7 @@ export function EventGraph({
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
-    minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
+    minTime: eventSeries.length && eventSeries.at(0)?.name,
     maxTime:
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval

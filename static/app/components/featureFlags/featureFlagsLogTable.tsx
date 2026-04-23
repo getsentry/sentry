@@ -8,7 +8,6 @@ import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridE
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -16,7 +15,7 @@ export type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
 
 interface FeatureFlagsLogTableProps {
   columns: Array<GridColumnOrder<ColumnKey>>;
-  error: RequestError | null;
+  error: Error | null;
   flags: RawFlag[];
   isPending: boolean;
   pageLinks: string | null;

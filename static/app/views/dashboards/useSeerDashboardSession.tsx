@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
@@ -14,6 +15,12 @@ import type {DashboardDetails, Widget} from './types';
 
 const POLL_INTERVAL_MS = 500;
 const POST_COMPLETE_POLL_MS = 5000;
+
+function buildEditOnPageContext(
+  dashboard: Pick<DashboardDetails, 'title' | 'widgets'>
+): string {
+  return `The user is editing an existing dashboard. The current dashboard state is:\n\n${JSON.stringify({title: dashboard.title, widgets: dashboard.widgets})}\n\nThis session must ONLY modify the dashboard artifact. Produce a COMPLETE dashboard artifact that incorporates the requested changes while preserving widgets the user did not ask to change.`;
+}
 
 async function startDashboardEditSession(
   orgSlug: string,
@@ -38,7 +45,10 @@ async function startDashboardEditSession(
 }
 
 interface UseSeerDashboardSessionOptions {
-  onDashboardUpdate: (data: {title: string; widgets: Widget[]}) => void;
+  onDashboardUpdate: (
+    data: {title: string; widgets: Widget[]},
+    seerRunId: number | null
+  ) => void;
   dashboard?: Pick<DashboardDetails, 'title' | 'widgets'>;
   enabled?: boolean;
   onPostCompletePollEnd?: () => void;
@@ -127,10 +137,17 @@ export function useSeerDashboardSession({
       }
       const dashboardData = extractDashboardFromSession(session);
       if (dashboardData) {
-        onDashboardUpdate(dashboardData);
+        onDashboardUpdate(dashboardData, seerRunId);
       }
     }
-  }, [isUpdating, sessionStatus, session, sessionUpdatedAt, onDashboardUpdate]);
+  }, [
+    isUpdating,
+    sessionStatus,
+    session,
+    sessionUpdatedAt,
+    onDashboardUpdate,
+    seerRunId,
+  ]);
 
   const sendFollowUpMessage = useCallback(
     async (message: string) => {
@@ -159,7 +176,10 @@ export function useSeerDashboardSession({
           await fetchMutation({
             url,
             method: 'POST',
-            data: {query: message},
+            data: {
+              query: message,
+              ...(dashboard ? {on_page_context: buildEditOnPageContext(dashboard)} : {}),
+            },
           });
           queryClient.invalidateQueries({queryKey});
         }

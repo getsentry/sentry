@@ -226,6 +226,7 @@ class GitHubEnterpriseIntegration(
         query: str | None = None,
         page_number_limit: int | None = None,
         accessible_only: bool = False,
+        use_cache: bool = False,
     ) -> list[RepositoryInfo]:
         if not query:
             all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)

@@ -53,7 +53,7 @@ export class VirtualizedTreeNode<T> {
     if (!value) {
       const removedCount = this.getVisibleChildrenCount();
       this.expanded = value;
-      return new Array(removedCount);
+      return Array.from<VirtualizedTreeNode<T>>({length: removedCount});
     }
 
     // If we are opening a node, we need to add all of its children to the list and insert it

@@ -18,6 +18,8 @@ import {
 } from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function NewDetectorBreadcrumbs() {
   const organization = useOrganization();
@@ -42,6 +44,7 @@ export default function DetectorNew() {
   useWorkflowEngineFeatureGate({redirect: true});
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const hasPageFrame = useHasPageFrameFeature();
   const [detectorType] = useDetectorTypeQueryState();
   const [projectId] = useQueryState('project', parseAsString);
 
@@ -65,8 +68,14 @@ export default function DetectorNew() {
       <SentryDocumentTitle title={t('New Monitor')} />
       <EditLayout.Header maxWidth={maxWidth}>
         <EditLayout.HeaderContent>
-          <NewDetectorBreadcrumbs />
-          <EditLayout.Title title={t('Select monitor type')} />
+          {hasPageFrame ? (
+            <TopBar.Slot name="title">
+              <NewDetectorBreadcrumbs />
+            </TopBar.Slot>
+          ) : (
+            <NewDetectorBreadcrumbs />
+          )}
+          {!hasPageFrame && <EditLayout.Title title={t('Select monitor type')} />}
           <Text as="p" size="md" variant="muted">
             {tct(
               'Monitors detect problems in your application and send alerts when they occur. [docsLink:Read the Docs].',

@@ -878,6 +878,41 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data[0].get("environment") == ["alpha"]
         assert response.data[0].get("filters") == {"release": ["v1"]}
 
+    def test_get_last_visited_field_without_reordering_flag(self) -> None:
+        # Clean up existing dashboards setup for this test.
+        Dashboard.objects.all().delete()
+
+        one_hour_ago = before_now(hours=1)
+        Dashboard.objects.create(
+            title="Dashboard visited oldest",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=one_hour_ago,
+        )
+
+        now = before_now(minutes=0)
+        Dashboard.objects.create(
+            title="Dashboard visited most recently",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=now,
+        )
+
+        response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        titles = [row["title"] for row in response.data]
+        assert titles == [
+            "General",
+            "Dashboard visited most recently",
+            "Dashboard visited oldest",
+        ]
+
+        # Only "Dashboard with last visited" has a last visited timestamp.
+        visited_at = [row.get("lastVisited") for row in response.data]
+        assert visited_at == [None, now, one_hour_ago]
+
     def test_get_with_last_visited(self) -> None:
         # Clean up existing dashboards setup for this test.
         Dashboard.objects.all().delete()
@@ -2323,6 +2358,28 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         prebuilt_ids_in_response = {d["prebuiltId"] for d in prebuilt_in_response}
         assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
 
+    def test_node_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
+        """The Node.js Runtime Metrics prebuilt dashboard syncs when enabled via options."""
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        dashboard = Dashboard.objects.get(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.NODE_RUNTIME_METRICS,
+        )
+        assert dashboard.title == "Node.js Runtime Metrics"
+
+        prebuilt_in_response = [
+            d
+            for d in response.data
+            if d.get("prebuiltId") == PrebuiltDashboardId.NODE_RUNTIME_METRICS
+        ]
+        assert len(prebuilt_in_response) == 1
+
     def test_post_with_text_widget(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):
             data = {
@@ -2460,4 +2517,34 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["widgets"][0]["interval"][0] == "This field may not be blank."
         assert not Dashboard.objects.filter(
             organization=self.organization, title="Invalid Dashboard"
+        ).exists()
+
+    def test_post_with_deprecated_display_type_rejected(self) -> None:
+        data: dict[str, Any] = {
+            "title": "Dashboard with Deprecated Widget",
+            "widgets": [
+                {
+                    "displayType": "stacked_area",
+                    "interval": "5m",
+                    "title": "Stacked area",
+                    "queries": [
+                        {
+                            "name": "Transactions",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("post", self.url, data=data)
+        assert response.status_code == 400, response.data
+        assert (
+            "stacked_area is no longer a supported display type."
+            in response.data["widgets"][0]["displayType"][0]
+        )
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Dashboard with Deprecated Widget"
         ).exists()

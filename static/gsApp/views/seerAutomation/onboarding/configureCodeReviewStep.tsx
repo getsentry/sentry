@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -42,7 +42,7 @@ export function ConfigureCodeReviewStep() {
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
     useBulkUpdateRepositorySettings();
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     const existingRepostoriesToRemove = unselectedCodeReviewRepositories
       .filter(repo => repo.settings?.enabledCodeReview)
       .map(repo => repo.id);
@@ -134,15 +134,7 @@ export function ConfigureCodeReviewStep() {
           t('Failed to update AI Code Review settings, reload and try again')
         );
       });
-  }, [
-    clearRootCauseAnalysisRepositories,
-    selectedCodeReviewRepositories,
-    unselectedCodeReviewRepositories,
-    currentStep,
-    setCurrentStep,
-    updateRepositorySettings,
-    organization,
-  ]);
+  };
 
   return (
     <Fragment>

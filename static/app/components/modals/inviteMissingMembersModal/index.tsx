@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -62,44 +62,35 @@ export function InviteMissingMembersModal({
     [allowedRoles]
   );
 
-  const setRole = useCallback(
-    (role: string, index: number) => {
-      setMemberInvites(prevInvites => {
-        const invites = prevInvites.map(i => ({...i}));
-        invites[index]!.role = role;
-        if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
-          invites[index]!.teamSlugs = new Set([]);
-        }
-        return invites;
-      });
-    },
-    [allowedRolesMap]
-  );
+  const setRole = (role: string, index: number) => {
+    setMemberInvites(prevInvites => {
+      const invites = prevInvites.map(i => ({...i}));
+      invites[index]!.role = role;
+      if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
+        invites[index]!.teamSlugs = new Set([]);
+      }
+      return invites;
+    });
+  };
 
-  const setTeams = useCallback((teamSlugs: string[], index: number) => {
+  const setTeams = (teamSlugs: string[], index: number) => {
     setMemberInvites(prevInvites => {
       const invites = prevInvites.map(i => ({...i}));
       invites[index]!.teamSlugs = new Set(teamSlugs);
       return invites;
     });
-  }, []);
+  };
 
-  const selectAll = useCallback(
-    (checked: boolean) => {
-      const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
-      setMemberInvites(selectedMembers);
-    },
-    [memberInvites]
-  );
+  const selectAll = (checked: boolean) => {
+    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+    setMemberInvites(selectedMembers);
+  };
 
-  const toggleCheckbox = useCallback(
-    (checked: boolean, index: number) => {
-      const selectedMembers = [...memberInvites];
-      selectedMembers[index]!.selected = checked;
-      setMemberInvites(selectedMembers);
-    },
-    [memberInvites]
-  );
+  const toggleCheckbox = (checked: boolean, index: number) => {
+    const selectedMembers = [...memberInvites];
+    selectedMembers[index]!.selected = checked;
+    setMemberInvites(selectedMembers);
+  };
 
   if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
     return null;

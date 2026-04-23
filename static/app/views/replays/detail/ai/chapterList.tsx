@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -30,13 +30,10 @@ interface Props {
 export function ChapterList({timeRanges}: Props) {
   const replay = useReplayReader();
   const {setCurrentTime} = useReplayContext();
-  const onClickChapterTimestamp = useCallback(
-    (event: React.MouseEvent<Element>, start: number) => {
-      event.stopPropagation();
-      setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
-    },
-    [replay, setCurrentTime]
-  );
+  const onClickChapterTimestamp = (event: React.MouseEvent<Element>, start: number) => {
+    event.stopPropagation();
+    setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
+  };
 
   // do not include chapters that are before the start of the replay;
   // we filter these crumbs on the frontend anyway

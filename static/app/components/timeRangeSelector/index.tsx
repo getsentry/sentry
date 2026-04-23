@@ -270,34 +270,31 @@ export function TimeRangeSelector({
     );
   }, [showRelative, onChange, internalValue, hasChanges]);
 
-  const handleChange = useCallback(
-    (option: SelectOption<string>) => {
-      // The absolute option was selected -> open absolute selector
-      if (option.value === ABSOLUTE_OPTION_VALUE) {
-        setInternalValue(current => {
-          const defaultStart = defaultAbsolute?.start
-            ? defaultAbsolute.start
-            : getPeriodAgo(
-                'hours',
-                parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-              ).toDate();
-          const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
-          return {
-            ...current,
-            // Update default values for absolute selector
-            start: start ? getInternalDate(start, utc) : defaultStart,
-            end: end ? getInternalDate(end, utc) : defaultEnd,
-          };
-        });
-        setShowAbsoluteSelector(true);
-        return;
-      }
+  const handleChange = (option: SelectOption<string>) => {
+    // The absolute option was selected -> open absolute selector
+    if (option.value === ABSOLUTE_OPTION_VALUE) {
+      setInternalValue(current => {
+        const defaultStart = defaultAbsolute?.start
+          ? defaultAbsolute.start
+          : getPeriodAgo(
+              'hours',
+              parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+            ).toDate();
+        const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+        return {
+          ...current,
+          // Update default values for absolute selector
+          start: start ? getInternalDate(start, utc) : defaultStart,
+          end: end ? getInternalDate(end, utc) : defaultEnd,
+        };
+      });
+      setShowAbsoluteSelector(true);
+      return;
+    }
 
-      setInternalValue(current => ({...current, relative: option.value}));
-      onChange?.({relative: option.value, start: undefined, end: undefined});
-    },
-    [start, end, utc, defaultAbsolute, defaultPeriod, relative, onChange]
-  );
+    setInternalValue(current => ({...current, relative: option.value}));
+    onChange?.({relative: option.value, start: undefined, end: undefined});
+  };
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
 

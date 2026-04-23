@@ -12,6 +12,7 @@ from requests import HTTPError
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 
 from sentry import analytics, features
+from sentry.models.project import Project
 
 
 class IntegrationNotFound(NotFound):
@@ -53,10 +54,12 @@ from sentry.seer.autofix.utils import (
     CodingAgentState,
     CodingAgentStatus,
     StoreCodingAgentStatesRequest,
+    extract_api_error_message,
     get_autofix_state,
     get_coding_agent_prompt,
     get_project_seer_preferences,
     make_store_coding_agent_states_request,
+    read_preference_from_sentry_db,
     update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError, SeerApiResponseValidationError
@@ -231,20 +234,35 @@ def _launch_agents_for_repos(
 
     # Fetch project preferences to get auto_create_pr setting from automation_handoff
     auto_create_pr = False
-    try:
-        preference_response = get_project_seer_preferences(autofix_state.request.project_id)
-        if preference_response and preference_response.preference:
-            if preference_response.preference.automation_handoff:
-                auto_create_pr = preference_response.preference.automation_handoff.auto_create_pr
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "coding_agent.get_project_seer_preferences_error",
-            extra={
-                "organization_id": organization.id,
-                "run_id": run_id,
-                "project_id": autofix_state.request.project_id,
-            },
-        )
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        try:
+            project = Project.objects.get_from_cache(id=autofix_state.request.project_id)
+            preference = read_preference_from_sentry_db(project)
+            if preference.automation_handoff:
+                auto_create_pr = preference.automation_handoff.auto_create_pr
+        except Project.DoesNotExist:
+            logger.exception(
+                "coding_agent.project_not_found",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "project_id": autofix_state.request.project_id,
+                },
+            )
+    else:
+        try:
+            pref = get_project_seer_preferences(autofix_state.request.project_id).preference
+            if pref and pref.automation_handoff:
+                auto_create_pr = pref.automation_handoff.auto_create_pr
+        except (SeerApiError, SeerApiResponseValidationError):
+            logger.exception(
+                "coding_agent.get_project_seer_preferences_error",
+                extra={
+                    "organization_id": organization.id,
+                    "run_id": run_id,
+                    "project_id": autofix_state.request.project_id,
+                },
+            )
 
     repos = set(
         _extract_repos_from_root_cause(autofix_state)
@@ -376,7 +394,10 @@ def _launch_agents_for_repos(
                 if status_code == 401:
                     error_message = "Authentication failed. Please check that your API credentials are correct and have access to the required API endpoints."
                 else:
-                    error_message = f"Failed to launch coding agent: {status_code} Error: {e}"
+                    error_message = (
+                        extract_api_error_message(e.response)
+                        or f"Failed to launch coding agent ({status_code})"
+                    )
 
             failure: dict = {
                 "repo_name": repo_name,
@@ -690,7 +711,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
 
     if (
         last_event_type == ClaudeSessionEventStatus.IDLE
-        or last_event_type == ClaudeSessionEventStatus.CLOSED
+        or last_event_type == ClaudeSessionEventStatus.TERMINATED
     ):
         new_status = CodingAgentStatus.COMPLETED
 
@@ -715,7 +736,7 @@ def poll_claude_agent(clients, agent_id, org_id, agent_state: CodingAgentState) 
             },
         )
 
-    elif last_event_type == ClaudeSessionEventStatus.PENDING:
+    elif last_event_type == ClaudeSessionEventStatus.RESCHEDULING:
         if agent_state.status != CodingAgentStatus.PENDING:
             update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
 
@@ -780,7 +801,7 @@ def extract_result_from_events(events: list[ClaudeSessionEvent]) -> tuple[str | 
     branch_pattern = re.compile(r"https://github\.com/[^/]+/[^/]+/tree/[-\w./]*[-\w]")
 
     for event in reversed(events):
-        if event.type != "agent":
+        if event.type != "agent.message":
             continue
         for block in getattr(event, "content", []):
             if isinstance(block, dict) and block.get("type") == "text":

@@ -27,6 +27,7 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   children,
 }: StackTraceFrameRowProps) {
   const {
+    collapseAll,
     event,
     frames,
     hasScmSourceContext,
@@ -38,7 +39,9 @@ const StackTraceFrameRowRoot = memo(function StackTraceFrameRowRoot({
   } = useStackTraceContext();
 
   const registers = row.frameIndex === frames.length - 1 ? stacktrace.registers : {};
-  const [isExpanded, setIsExpanded] = useState(() => row.frameIndex === lastFrameIndex);
+  const [isExpanded, setIsExpanded] = useState(
+    () => !collapseAll && row.frameIndex === lastFrameIndex
+  );
 
   const isFrameExpandable = frameHasExpandableDetails({
     frame: row.frame,

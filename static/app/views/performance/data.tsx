@@ -74,7 +74,7 @@ export enum PerformanceTerm {
 
 type TermFormatter = (organization: Organization) => string;
 
-export const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
+const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
   tpm: () => t('TPM is the number of recorded transaction events per minute.'),
   throughput: () =>
     t('Throughput is the number of recorded transaction events per minute.'),
@@ -207,8 +207,11 @@ export function generateGenericPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -258,8 +261,12 @@ export function generateBackendPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -326,8 +333,11 @@ export function generateMobilePerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -379,8 +389,12 @@ function generateFrontendPageloadPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
@@ -430,8 +444,11 @@ export function generateFrontendOtherPerformanceEventView(
     version: 2,
   };
 
-  const widths = new Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);
+  const widths = Array.from<number | string>({length: savedQuery.fields.length}).fill(
+    COL_WIDTH_UNDEFINED
+  );
   widths[savedQuery.fields.length - 1] = '110';
+  // @ts-expect-error -- TODO: resolve this types mismatch
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {

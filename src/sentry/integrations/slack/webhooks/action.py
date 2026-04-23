@@ -709,6 +709,7 @@ class SlackActionEndpoint(Endpoint):
         if action_id in {
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+            SlackAction.LINK_IDENTITY.value,
         }:
             return self.respond()
 

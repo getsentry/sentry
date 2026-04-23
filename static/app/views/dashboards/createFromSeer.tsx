@@ -4,18 +4,16 @@ import * as Sentry from '@sentry/react';
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
 import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 
 import {WidgetErrorProvider} from './contexts/widgetErrorContext';
-import {statusIsTerminal} from './createFromSeerUtils';
+import {statusIsTerminal, validateDashboardAndRecordMetrics} from './createFromSeerUtils';
 import {DashboardChatPanel, type WidgetError} from './dashboardChatPanel';
 import {EMPTY_DASHBOARD} from './data';
 import {DashboardDetailWithInjectedProps as DashboardDetail} from './detail';
@@ -24,34 +22,6 @@ import {DashboardState} from './types';
 import {useSeerDashboardSession} from './useSeerDashboardSession';
 
 const EMPTY_DASHBOARDS: never[] = [];
-
-async function validateDashboardAndRecordMetrics(
-  organization: Organization,
-  newDashboard: DashboardDetails,
-  seerRunId: number | null
-) {
-  try {
-    await validateDashboard(organization.slug, newDashboard);
-    Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {
-        status: 'success',
-        organization_slug: organization.slug,
-        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
-      },
-    });
-  } catch (error) {
-    Sentry.metrics.count('dashboards.seer.validation', 1, {
-      attributes: {
-        status: 'failure',
-        organization_slug: organization.slug,
-        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
-      },
-    });
-    Sentry.captureException(error, {
-      tags: {seer_run_id: seerRunId},
-    });
-  }
-}
 
 export default function CreateFromSeer() {
   const organization = useOrganization();
@@ -89,7 +59,12 @@ export default function CreateFromSeer() {
   const handlePostCompletePollEnd = useCallback(() => {
     if (!hasValidatedRef.current && hasSeenNonTerminalRef.current) {
       hasValidatedRef.current = true;
-      validateDashboardAndRecordMetrics(organization, dashboard, seerRunId);
+      validateDashboardAndRecordMetrics({
+        organization,
+        dashboard,
+        seerRunId,
+        source: 'create',
+      });
     }
   }, [organization, dashboard, seerRunId]);
 

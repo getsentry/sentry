@@ -1489,6 +1489,20 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             assert response.status_code == 400, response.data
             assert "title" in response.data, response.data
 
+    def test_text_widget_description_exceeds_max_length(self) -> None:
+        with self.feature("organizations:dashboards-text-widgets"):
+            data = {
+                "title": "Text Widget Title",
+                "displayType": "text",
+                "description": "x" * 15001,
+            }
+            response = self.do_request("post", self.url(), data=data)
+            assert response.status_code == 400, response.data
+            assert "description" in response.data, response.data
+            assert (
+                response.data["description"][0] == "Description must not exceed 15,000 characters"
+            )
+
     def test_widget_with_invalid_dataset_source(self) -> None:
         data = {
             "title": "Errors over time",

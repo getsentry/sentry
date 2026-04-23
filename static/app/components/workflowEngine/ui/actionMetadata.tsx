@@ -68,6 +68,10 @@ export const ActionMetadata: Partial<
     name: t('Slack'),
     icon: <StyledPluginIcon pluginId="slack" size={ICON_SIZE} />,
   },
+  [ActionType.SLACK_STAGING]: {
+    name: t('Slack (Staging)'),
+    icon: <StyledPluginIcon pluginId="slack" size={ICON_SIZE} />,
+  },
   [ActionType.WEBHOOK]: {
     name: t('Webhook'),
     icon: <StyledPluginIcon pluginId="webhooks" size={ICON_SIZE} />,

@@ -633,10 +633,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
     plural: DataCategory.TRACE_METRICS,
-    singular: 'metric',
-    displayName: 'metric',
-    titleName: t('Metrics'),
-    productName: t('Metrics'),
+    singular: 'applicationMetric',
+    displayName: 'application metric',
+    titleName: t('Application Metric Counts'), // Only currently visible internally, this name should change if we expose this to users.
+    productName: t('Application Metrics'),
     uid: 33,
     isBilledCategory: false,
     statsInfo: {
@@ -648,10 +648,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC_BYTE]: {
     name: DataCategoryExact.TRACE_METRIC_BYTE,
     plural: DataCategory.TRACE_METRIC_BYTE,
-    singular: 'traceMetricByte',
-    displayName: 'metric byte',
-    titleName: t('Metrics (Bytes)'),
-    productName: t('Metrics'),
+    singular: 'applicationMetricByte',
+    displayName: 'application metric byte',
+    titleName: t('Application Metrics'),
+    productName: t('Application Metrics'),
     uid: 37,
     isBilledCategory: true,
     statsInfo: {

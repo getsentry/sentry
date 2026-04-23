@@ -143,6 +143,18 @@ class ReleaseModelManager(BaseManager["Release"]):
             organization_id, operator, value, project_ids, environments
         )
 
+    def filter_by_environment(
+        self,
+        value: str | Sequence[str],
+        project_ids: Sequence[int],
+        *,
+        lookup: str = "in",
+        negated: bool = False,
+    ) -> ReleaseQuerySet:
+        return self.get_queryset().filter_by_environment(
+            value, project_ids, lookup=lookup, negated=negated
+        )
+
     def order_by_recent(self):
         return self.get_queryset().order_by_recent()
 

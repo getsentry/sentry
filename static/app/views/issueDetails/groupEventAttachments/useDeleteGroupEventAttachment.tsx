@@ -1,26 +1,24 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
-import {
-  getApiQueryData,
-  setApiQueryData,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-import {makeFetchGroupEventAttachmentsQueryKey} from './useGroupEventAttachments';
+import {
+  fetchGroupEventAttachmentsApiOptions,
+  type FetchGroupEventAttachmentsApiOptionsParams,
+} from './useGroupEventAttachments';
 
-type DeleteGroupEventAttachmentVariables = Parameters<
-  typeof makeFetchGroupEventAttachmentsQueryKey
->[0] & {
+type DeleteGroupEventAttachmentVariables = FetchGroupEventAttachmentsApiOptionsParams & {
   attachment: IssueAttachment;
   projectSlug: string;
 };
 
 type DeleteGroupEventAttachmentContext = {
-  previous?: IssueAttachment[];
+  previous?: ApiResponse<IssueAttachment[]>;
 };
 
 export function useDeleteGroupEventAttachment() {
@@ -41,28 +39,24 @@ export function useDeleteGroupEventAttachment() {
         }
       ),
     onMutate: async variables => {
-      await queryClient.cancelQueries({
-        queryKey: makeFetchGroupEventAttachmentsQueryKey(variables),
-      });
+      const {queryKey} = fetchGroupEventAttachmentsApiOptions(variables);
 
-      const previous = getApiQueryData<IssueAttachment[]>(
-        queryClient,
-        makeFetchGroupEventAttachmentsQueryKey(variables)
-      );
+      await queryClient.cancelQueries({queryKey});
 
-      setApiQueryData<IssueAttachment[]>(
-        queryClient,
-        makeFetchGroupEventAttachmentsQueryKey(variables),
-        oldData => {
-          if (!Array.isArray(oldData)) {
-            return oldData;
-          }
+      const previous = queryClient.getQueryData<ApiResponse<IssueAttachment[]>>(queryKey);
 
-          return oldData.filter(
-            oldAttachment => oldAttachment.id !== variables.attachment.id
-          );
+      queryClient.setQueryData<ApiResponse<IssueAttachment[]>>(queryKey, oldData => {
+        if (!oldData) {
+          return oldData;
         }
-      );
+
+        return {
+          ...oldData,
+          json: oldData.json.filter(
+            oldAttachment => oldAttachment.id !== variables.attachment.id
+          ),
+        };
+      });
 
       return {previous};
     },
@@ -77,11 +71,8 @@ export function useDeleteGroupEventAttachment() {
       );
 
       if (context) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupEventAttachmentsQueryKey(variables),
-          context.previous
-        );
+        const {queryKey} = fetchGroupEventAttachmentsApiOptions(variables);
+        queryClient.setQueryData(queryKey, context.previous);
       }
     },
   });

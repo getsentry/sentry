@@ -88,11 +88,11 @@ export function ConfigureRootCauseAnalysisStep() {
     addRepositoryProjectMappings,
   ]);
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     // Build a map from repo ID to full repo object
     const repoMap = new Map(
       selectedRootCauseAnalysisRepositories.map(repo => [repo.id, repo])
@@ -162,16 +162,7 @@ export function ConfigureRootCauseAnalysisStep() {
         },
       }
     );
-  }, [
-    setCurrentStep,
-    currentStep,
-    updateAutofix,
-    repositoryProjectMapping,
-    selectedRootCauseAnalysisRepositories,
-    autoCreatePREnabled,
-    organization,
-    setAutoCreatePR,
-  ]);
+  };
 
   const handleRepositoryProjectMappingsChange = useCallback(
     (repoId: string, index: number, newValue: string | undefined) => {
@@ -190,12 +181,9 @@ export function ConfigureRootCauseAnalysisStep() {
     [changeRepositoryProjectMapping, repositoryProjectMapping]
   );
 
-  const handleAutoCreatePRChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setAutoCreatePREnabled(e.target.checked);
-    },
-    [setAutoCreatePREnabled]
-  );
+  const handleAutoCreatePRChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAutoCreatePREnabled(e.target.checked);
+  };
 
   const availableRepositories = useMemo(() => {
     return (

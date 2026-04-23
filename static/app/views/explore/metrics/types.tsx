@@ -106,3 +106,8 @@ export enum VirtualTableSampleColumnKey {
 }
 
 export type SampleTableColumnKey = TraceMetricFieldKey | VirtualTableSampleColumnKey;
+
+export const SORTABLE_SAMPLE_COLUMNS = new Set<SampleTableColumnKey>([
+  TraceMetricKnownFieldKey.METRIC_VALUE,
+  TraceMetricKnownFieldKey.TIMESTAMP,
+]);

@@ -72,6 +72,7 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
+  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -121,6 +122,10 @@ export type IssueEventParameters = {
   };
   'issue_details.issue_status_docs_clicked': Record<string, unknown>;
   'issue_details.issue_tags_click': Record<string, unknown>;
+  'issue_details.merged_issues.drawer_opened': {
+    group_id: string;
+    project_id: string;
+  };
   'issue_details.related_trace_issue.trace_issue_clicked': {
     group_id: number;
   };
@@ -137,12 +142,9 @@ export type IssueEventParameters = {
     project_id?: string;
     shouldBeGrouped?: string;
   };
-  'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
-    groupId: string;
-    parentGroupId: string;
-    value: string;
-    projectId?: string;
-    wouldGroup?: string;
+  'issue_details.similar_issues.drawer_opened': {
+    group_id: string;
+    project_id: string;
   };
   'issue_details.streamline_ui_toggle': {
     enforced_streamline_ui: boolean;
@@ -240,15 +242,18 @@ export type IssueEventParameters = {
     sort: string;
   };
   'issues_stream.archived': {
+    area: string;
     action_status_details?: string;
     action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
+    area: string;
     assigned_type: string;
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
   'issues_stream.merged': {
+    area: string;
     items_merged: number | 'all_in_query' | undefined;
     platform: string | undefined;
     project_id: string | undefined;
@@ -259,10 +264,15 @@ export type IssueEventParameters = {
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
+  'issues_stream.resolved': {
+    area: string;
+    action_status_details?: string;
+  };
   'issues_stream.sort_changed': {
     sort: string;
   };
   'issues_stream.updated_priority': {
+    area: string;
     priority: PriorityLevel;
   };
   'one_other_related_trace_issue.clicked': {
@@ -323,10 +333,12 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.issue_tags_click': 'Issue Details: Issue Tags Clicked',
   'issue.engaged_view': 'Issue: Engaged View',
+  'issue_details.similar_issues.drawer_opened':
+    'Issue Details: Similar Issues Drawer Opened',
+  'issue_details.merged_issues.drawer_opened':
+    'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
-    'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
@@ -367,6 +379,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.merged': 'Merged Issues from Issues Stream',
+  'issues_stream.resolved': 'Issues Stream: Resolved',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
@@ -388,6 +401,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'issue-details.android-tombstones-cta-dismiss':
+    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

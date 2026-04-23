@@ -16,10 +16,14 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
 from sentry.uptime.types import UptimeMonitorMode
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_alert_rule
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_write_alert_rule,
+    migrate_alert_rule,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.endpoints.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -1609,21 +1613,25 @@ class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITe
         )
         self.login_as(self.user)
 
+    @freeze_time("2024-12-11 03:21:34")
     def test_dual_written_rules_parity(self) -> None:
-        # Create and migrate alert rules
-        alert_rule1 = self.create_alert_rule(name="Parity Test Rule 1", projects=[self.project])
-        alert_rule2 = self.create_alert_rule(name="Parity Test Rule 2", projects=[self.project])
+        alert_rule1 = self.create_alert_rule(
+            name="Parity Test Rule 1", projects=[self.project], resolve_threshold=50
+        )
+        self.create_alert_rule_trigger(alert_rule1, label="critical")
+        alert_rule2 = self.create_alert_rule(
+            name="Parity Test Rule 2", projects=[self.project], resolve_threshold=50
+        )
+        self.create_alert_rule_trigger(alert_rule2, label="critical")
 
-        migrate_alert_rule(alert_rule1)
-        migrate_alert_rule(alert_rule2)
+        dual_write_alert_rule(alert_rule1)
+        dual_write_alert_rule(alert_rule2)
 
-        # Get legacy response
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             legacy_response = self.get_success_response(
                 self.organization.slug, project=[self.project.id]
             )
 
-        # Get workflow engine response
         with self.feature(
             [
                 "organizations:incidents",
@@ -1635,36 +1643,28 @@ class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITe
                 self.organization.slug, project=[self.project.id]
             )
 
-        # Both should return same count
-        assert len(legacy_response.data) == len(we_response.data)
-        assert len(we_response.data) == 2
+        assert len(legacy_response.data) == len(we_response.data) == 2
 
-        # Extract names for comparison
-        legacy_names = sorted([rule["name"] for rule in legacy_response.data])
-        we_names = sorted([rule["name"] for rule in we_response.data])
+        for old_rule, new_rule in zip(legacy_response.data, we_response.data):
+            assert_serializer_parity(old=old_rule, new=new_rule)
 
-        assert legacy_names == we_names
-        assert "Parity Test Rule 1" in we_names
-        assert "Parity Test Rule 2" in we_names
-
-        # Verify type field exists in WE response
-        for rule in we_response.data:
-            assert "type" in rule
-            assert rule["type"] == "alert_rule"
-
+    @freeze_time("2024-12-11 03:21:34")
     def test_filtering_parity(self) -> None:
-        # Create rules with different attributes using owner parameter
         rule_team = self.create_alert_rule(
             name="Team Rule",
             projects=[self.project],
             owner=Actor.from_id(user_id=None, team_id=self.team.id),
+            resolve_threshold=50,
         )
-        rule_no_team = self.create_alert_rule(name="No Team Rule", projects=[self.project])
+        self.create_alert_rule_trigger(rule_team, label="critical")
+        rule_no_team = self.create_alert_rule(
+            name="No Team Rule", projects=[self.project], resolve_threshold=50
+        )
+        self.create_alert_rule_trigger(rule_no_team, label="critical")
 
-        migrate_alert_rule(rule_team)
-        migrate_alert_rule(rule_no_team)
+        dual_write_alert_rule(rule_team)
+        dual_write_alert_rule(rule_no_team)
 
-        # Test team filtering in both modes
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             legacy_response = self.get_success_response(
                 self.organization.slug,
@@ -1685,7 +1685,6 @@ class OrganizationCombinedRuleIndexParityTest(BaseAlertRuleSerializerTest, APITe
                 team=[self.team.id],
             )
 
-        # Both should return same count
-        assert len(legacy_response.data) == len(we_response.data)
-        assert len(we_response.data) == 1
-        assert we_response.data[0]["name"] == "Team Rule"
+        assert len(legacy_response.data) == len(we_response.data) == 1
+
+        assert_serializer_parity(old=legacy_response.data[0], new=we_response.data[0])

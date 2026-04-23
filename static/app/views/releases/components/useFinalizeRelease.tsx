@@ -1,5 +1,7 @@
+import {useMutation} from '@tanstack/react-query';
+
 import type {Release} from 'sentry/types/release';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useFinalizeRelease() {

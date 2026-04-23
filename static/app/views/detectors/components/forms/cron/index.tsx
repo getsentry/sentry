@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -37,32 +36,54 @@ const FORM_SECTIONS = [
   CronIssuePreview,
   AutomateSection,
 ];
+/**
+ * Maps API errors in the `dataSources` property to the correct form fields.
+ * For Crons, `slug` may return error messages, and we want those to show
+ * up under the `name` field.
+ *
+ * TODO: When converting to the new form components, find a less fragile way to do this.
+ */
+const mapCronDetectorFormErrors = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) {
+    return error;
+  }
+
+  if ('dataSources' in error) {
+    if (typeof error.dataSources === 'object' && error.dataSources !== null) {
+      if ('slug' in error.dataSources) {
+        return {...error, name: error.dataSources.slug};
+      }
+      return {...error, ...error.dataSources};
+    }
+  }
+  return error;
+};
 
 function CronDetectorForm({detector}: {detector?: CronDetector}) {
   const dataSource = detector?.dataSources[0];
   const theme = useTheme();
   const showingPlatformGuide = useIsShowingPlatformGuide();
 
-  const formSections = (
-    <Fragment>
-      {dataSource?.queryObj.isUpserting && (
-        <Alert variant="warning">
-          {t(
-            'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
-          )}
-        </Alert>
-      )}
-      <PreviewSection />
-      {FORM_SECTIONS.map((FormSection, index) => (
-        <FormSection key={index} step={index + 1} />
-      ))}
-    </Fragment>
-  );
-
   return (
     <Stack gap="2xl" maxWidth={theme.breakpoints.xl}>
       {!detector && <InstrumentationGuide />}
-      {!showingPlatformGuide && formSections}
+      <Stack
+        data-test-id="form-sections"
+        style={showingPlatformGuide ? {display: 'none'} : undefined}
+        gap="2xl"
+      >
+        {dataSource?.queryObj.isUpserting && (
+          <Alert variant="warning">
+            {t(
+              'This monitor is managed in code and updates automatically with each check-in. Changes made here may be overwritten!'
+            )}
+          </Alert>
+        )}
+        <PreviewSection />
+        {FORM_SECTIONS.map((FormSection, index) => (
+          <FormSection key={index} step={index + 1} />
+        ))}
+      </Stack>
     </Stack>
   );
 }
@@ -77,6 +98,7 @@ export function NewCronDetectorForm() {
       initialFormData={{
         scheduleType: CRON_DEFAULT_SCHEDULE_TYPE,
       }}
+      mapFormErrors={mapCronDetectorFormErrors}
       disabledCreate={
         showingPlatformGuide
           ? t(
@@ -96,6 +118,7 @@ export function EditExistingCronDetectorForm({detector}: {detector: CronDetector
       detector={detector}
       formDataToEndpointPayload={cronFormDataToEndpointPayload}
       savedDetectorToFormData={cronSavedDetectorToFormData}
+      mapFormErrors={mapCronDetectorFormErrors}
     >
       <CronDetectorForm detector={detector} />
     </EditDetectorLayout>

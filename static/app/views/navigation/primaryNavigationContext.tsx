@@ -13,6 +13,7 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   explore: ['explore'],
   dashboards: ['dashboards', 'dashboard'],
   insights: ['insights'],
+  projects: ['projects'], // No primary nav button — accessed via logo nav. Needed for secondary nav routing.
   monitors: ['monitors'],
   settings: ['settings'],
   prevent: ['prevent'],

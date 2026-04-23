@@ -3,11 +3,7 @@ import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-que
 
 import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import type {
-  ApiQueryKey,
-  InfiniteApiQueryKey,
-  QueryKeyEndpointOptions,
-} from 'sentry/utils/api/apiQueryKey';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
@@ -71,8 +67,8 @@ function _apiOptions<
   return queryOptions({
     queryKey:
       Object.keys(strippedOptions).length > 0
-        ? ([{infinite: false, version: 'v2'}, url, strippedOptions] as ApiQueryKey)
-        : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
+        ? [{infinite: false, version: 'v2'}, url, strippedOptions]
+        : [{infinite: false, version: 'v2'}, url],
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -107,8 +103,8 @@ function _apiOptionsInfinite<
   return infiniteQueryOptions({
     queryKey:
       Object.keys(strippedOptions).length > 0
-        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as InfiniteApiQueryKey)
-        : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
+        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as const)
+        : ([{infinite: true, version: 'v2'}, url] as const),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),

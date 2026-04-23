@@ -84,154 +84,145 @@ export function TraceEventDataSection({
 
   const isMobile = isMobilePlatform(platform);
 
-  const handleFilterFramesChange = useCallback(
-    (val: 'full' | 'relevant') => {
-      const isFullOptionClicked = val === 'full';
+  const handleFilterFramesChange = (val: 'full' | 'relevant') => {
+    const isFullOptionClicked = val === 'full';
 
+    trackAnalytics(
+      isFullOptionClicked
+        ? 'stack-trace.full_stack_trace_clicked'
+        : 'stack-trace.most_relevant_clicked',
+      {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+      }
+    );
+
+    setIsFullStackTrace(isFullOptionClicked);
+  };
+
+  const handleSortByChange = (val: keyof typeof sortByOptions) => {
+    const isRecentFirst = val === 'recent-first';
+
+    trackAnalytics(
+      isRecentFirst
+        ? 'stack-trace.sort_option_recent_first_clicked'
+        : 'stack-trace.sort_option_recent_last_clicked',
+      {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+      }
+    );
+
+    setIsNewestFramesFirst(isRecentFirst);
+  };
+
+  const handleDisplayChange = (vals: typeof displayOptions) => {
+    if (vals.includes('raw-stack-trace')) {
+      trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('raw-stack-trace')) {
+      trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('absolute-addresses')) {
+      trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('absolute-addresses')) {
+      trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('absolute-file-paths')) {
+      trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('absolute-file-paths')) {
+      trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
+
+    if (vals.includes('minified')) {
       trackAnalytics(
-        isFullOptionClicked
-          ? 'stack-trace.full_stack_trace_clicked'
-          : 'stack-trace.most_relevant_clicked',
+        platform.startsWith('javascript')
+          ? 'stack-trace.display_option_minified_clicked'
+          : 'stack-trace.display_option_unsymbolicated_clicked',
         {
           organization,
           project_slug: projectSlug,
           platform,
           is_mobile: isMobile,
+          checked: true,
         }
       );
-
-      setIsFullStackTrace(isFullOptionClicked);
-    },
-    [organization, platform, projectSlug, isMobile, setIsFullStackTrace]
-  );
-
-  const handleSortByChange = useCallback(
-    (val: keyof typeof sortByOptions) => {
-      const isRecentFirst = val === 'recent-first';
-
+    } else if (displayOptions.includes('minified')) {
       trackAnalytics(
-        isRecentFirst
-          ? 'stack-trace.sort_option_recent_first_clicked'
-          : 'stack-trace.sort_option_recent_last_clicked',
+        platform.startsWith('javascript')
+          ? 'stack-trace.display_option_minified_clicked'
+          : 'stack-trace.display_option_unsymbolicated_clicked',
         {
           organization,
           project_slug: projectSlug,
           platform,
           is_mobile: isMobile,
+          checked: false,
         }
       );
+    }
 
-      setIsNewestFramesFirst(isRecentFirst);
-    },
-    [organization, platform, projectSlug, isMobile, setIsNewestFramesFirst]
-  );
+    if (vals.includes('verbose-function-names')) {
+      trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: true,
+      });
+    } else if (displayOptions.includes('verbose-function-names')) {
+      trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
+        organization,
+        project_slug: projectSlug,
+        platform,
+        is_mobile: isMobile,
+        checked: false,
+      });
+    }
 
-  const handleDisplayChange = useCallback(
-    (vals: typeof displayOptions) => {
-      if (vals.includes('raw-stack-trace')) {
-        trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('raw-stack-trace')) {
-        trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      if (vals.includes('absolute-addresses')) {
-        trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('absolute-addresses')) {
-        trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      if (vals.includes('absolute-file-paths')) {
-        trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('absolute-file-paths')) {
-        trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      if (vals.includes('minified')) {
-        trackAnalytics(
-          platform.startsWith('javascript')
-            ? 'stack-trace.display_option_minified_clicked'
-            : 'stack-trace.display_option_unsymbolicated_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: true,
-          }
-        );
-      } else if (displayOptions.includes('minified')) {
-        trackAnalytics(
-          platform.startsWith('javascript')
-            ? 'stack-trace.display_option_minified_clicked'
-            : 'stack-trace.display_option_unsymbolicated_clicked',
-          {
-            organization,
-            project_slug: projectSlug,
-            platform,
-            is_mobile: isMobile,
-            checked: false,
-          }
-        );
-      }
-
-      if (vals.includes('verbose-function-names')) {
-        trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: true,
-        });
-      } else if (displayOptions.includes('verbose-function-names')) {
-        trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
-          organization,
-          project_slug: projectSlug,
-          platform,
-          is_mobile: isMobile,
-          checked: false,
-        });
-      }
-
-      setDisplayOptions(vals);
-    },
-    [organization, platform, projectSlug, isMobile, displayOptions, setDisplayOptions]
-  );
+    setDisplayOptions(vals);
+  };
 
   const handleCopyRawStacktrace = useCallback(() => {
     trackAnalytics('stack-trace.copy_raw_clicked', {

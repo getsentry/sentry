@@ -4,6 +4,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import type {UseMutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -32,11 +33,9 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
-
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -105,6 +104,11 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
    */
   fallbackMutationOptions?: UseMutationOptions<any, Error, string>;
   /**
+   * Optional key-value options to pass to the search agent start endpoint.
+   * Used for strategy-specific context (e.g., metric name/type/unit for Metrics).
+   */
+  options?: Record<string, unknown>;
+  /**
    * Transform the final response from the polling API to the expected format.
    * This allows customization of how the response is converted to query items.
    */
@@ -118,6 +122,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   strategy,
   transformResponse,
   fallbackMutationOptions,
+  options: extraOptions,
   ...props
 }: AskSeerPollingComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -159,6 +164,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   } = useAskSeerPolling<T>({
     projectIds,
     strategy,
+    options: extraOptions,
     onError: error => {
       addErrorMessage(t('Failed to process AI query: %(error)s', {error: error.message}));
       trackAnalytics('ai_query.error', {

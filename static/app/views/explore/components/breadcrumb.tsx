@@ -10,8 +10,10 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function ExploreBreadcrumb({
   traceItemDataset,
+  savedQueryName,
 }: {
   traceItemDataset: TraceItemDataset;
+  savedQueryName?: string;
 }) {
   const organization = useOrganization();
   const crumbs: Crumb[] = [];
@@ -30,7 +32,7 @@ export function ExploreBreadcrumb({
   if (traceItemDataset === TraceItemDataset.TRACEMETRICS) {
     crumbs.push({
       to: makeMetricsPathname({organizationSlug: organization.slug, path: '/'}),
-      label: t('Metrics'),
+      label: t('Application Metrics'),
     });
   }
   if (traceItemDataset === TraceItemDataset.REPLAYS) {
@@ -40,7 +42,7 @@ export function ExploreBreadcrumb({
     });
   }
   crumbs.push({
-    label: t('Saved Query'),
+    label: savedQueryName ?? t('Saved Query'),
   });
 
   return <Breadcrumbs crumbs={crumbs} />;

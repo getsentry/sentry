@@ -112,6 +112,25 @@ describe('Dashboards > Detail', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not fetch dashboards when there are no projects', async () => {
+    act(() => ProjectsStore.loadInitialData([]));
+
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+    });
+
+    expect(
+      await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+
+    expect(dashboardsRequest).not.toHaveBeenCalled();
+  });
+
   it('creates new dashboard', async () => {
     const org = OrganizationFixture({features: FEATURES});
     const mockNavigate = jest.fn();

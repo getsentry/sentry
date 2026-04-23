@@ -47,17 +47,17 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
 
   const query = getQuery({location});
   const {
-    data: commitList = [],
+    data,
     isPending: isLoadingCommitList,
     error: commitListError,
     refetch,
-    getResponseHeader,
   } = useReleaseCommits({
     release: params.release,
     projectSlug,
     activeRepository: activeReleaseRepo,
     ...query,
   });
+  const commitList = data?.json ?? [];
   const commitsByRepository = getCommitsByRepository(commitList);
   const reposToRender = getReposToRender(Object.keys(commitsByRepository));
   const activeRepoName = activeReleaseRepo ? activeReleaseRepo.name : reposToRender[0];
@@ -94,7 +94,7 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
                 ))}
               </PanelBody>
             </Panel>
-            <Pagination pageLinks={getResponseHeader?.('Link')} />
+            <Pagination pageLinks={data?.headers.Link} />
           </Fragment>
         ) : (
           <EmptyState>

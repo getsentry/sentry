@@ -89,20 +89,39 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <TraceHeaderComponents.HeaderRow>
-          <Breadcrumbs
-            crumbs={getTraceViewBreadcrumbs({
-              organization: props.organization,
-              location,
-              moduleURLBuilder,
-              traceSlug: props.traceSlug,
-              project,
-              view,
-            })}
-          />
+          {hasPageFrameFeature ? (
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={getTraceViewBreadcrumbs({
+                  organization: props.organization,
+                  location,
+                  moduleURLBuilder,
+                  traceSlug: props.traceSlug,
+                  project,
+                  view,
+                })}
+              />
+            </TopBar.Slot>
+          ) : (
+            <Breadcrumbs
+              crumbs={getTraceViewBreadcrumbs({
+                organization: props.organization,
+                location,
+                moduleURLBuilder,
+                traceSlug: props.traceSlug,
+                project,
+                view,
+              })}
+            />
+          )}
           <Grid flow="column" align="center" gap="md">
             {hasPageFrameFeature ? (
               <TopBar.Slot name="feedback">
-                <FeedbackButton feedbackOptions={traceViewFeedbackOptions}>
+                <FeedbackButton
+                  feedbackOptions={traceViewFeedbackOptions}
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
                   {null}
                 </FeedbackButton>
               </TopBar.Slot>
