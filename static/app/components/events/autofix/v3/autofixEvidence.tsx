@@ -121,9 +121,7 @@ function EvidenceIssue({target, toolLink}: EvidenceLinkProps) {
 
   return (
     <EvidenceButton icon={<IconIssues />} to={target}>
-      {defined(event_id)
-        ? t('Error: %s', getShortEventId(event_id))
-        : t('Issue: %s', issue_id)}
+      {t('Issue: %s', issue_id)}
     </EvidenceButton>
   );
 }
