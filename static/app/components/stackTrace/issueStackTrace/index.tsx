@@ -13,7 +13,6 @@ import {
   useLineCoverageContext,
 } from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {LineCoverageLegend} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageLegend';
-import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {Panel} from 'sentry/components/panels/panel';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
@@ -46,8 +45,12 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import {IssueFrameActions} from './issueFrameActions';
 import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
-import type {IndexedExceptionValue} from './utils';
-import {resolveExceptionFields} from './utils';
+import {
+  formatExceptionsAsText,
+  getExceptionEntryMeta,
+  getOrderedExceptions,
+  resolveExceptionFields,
+} from './utils';
 
 interface IssueStackTraceBaseProps {
   event: Event;
@@ -142,17 +145,12 @@ function IssueStackTraceContent({
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
-  const entryType = isStandalone ? EntryType.STACKTRACE : EntryType.EXCEPTION;
-  const entryIndex = event.entries?.findIndex(entry => entry.type === entryType);
-  const rawEntryMeta = event._meta?.entries?.[entryIndex ?? -1]?.data;
-  const exceptionValuesMeta = isStandalone ? undefined : rawEntryMeta?.values;
+  const {rawEntryMeta, exceptionValuesMeta} = getExceptionEntryMeta(event, isStandalone);
 
-  const exceptions = useMemo(() => {
-    const indexed = values
-      .map((exc, exceptionIndex) => ({...exc, exceptionIndex}))
-      .filter((exc): exc is IndexedExceptionValue => exc.stacktrace !== null);
-    return isNewestFirst && view !== 'raw' ? indexed.reverse() : indexed;
-  }, [values, isNewestFirst, view]);
+  const exceptions = useMemo(
+    () => getOrderedExceptions(values, isNewestFirst, view),
+    [values, isNewestFirst, view]
+  );
 
   const firstVisibleExceptionIndex = exceptions.findIndex(
     exc =>
@@ -167,16 +165,12 @@ function IssueStackTraceContent({
 
   const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
     text: () =>
-      exceptions
-        .map(exc =>
-          rawStacktraceContent({
-            data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
-            platform: event.platform,
-            exception: isStandalone ? undefined : exc,
-            isMinified,
-          })
-        )
-        .join('\n\n'),
+      formatExceptionsAsText({
+        exceptions,
+        platform: event.platform,
+        isMinified,
+        isStandalone,
+      }),
     json: undefined,
     markdown: undefined,
   });
@@ -194,18 +188,12 @@ function IssueStackTraceContent({
         <Flex direction="column" gap="lg">
           <Panel>
             <RawStackTraceText>
-              {exceptions
-                .map(exc =>
-                  rawStacktraceContent({
-                    data: isMinified
-                      ? (exc.rawStacktrace ?? exc.stacktrace)
-                      : exc.stacktrace,
-                    platform: event.platform,
-                    exception: isStandalone ? undefined : exc,
-                    isMinified,
-                  })
-                )
-                .join('\n\n')}
+              {formatExceptionsAsText({
+                exceptions,
+                platform: event.platform,
+                isMinified,
+                isStandalone,
+              })}
             </RawStackTraceText>
           </Panel>
           <IssueStackTraceSuspectCommits

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,7 +6,6 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {Panel} from 'sentry/components/panels/panel';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {
@@ -34,8 +33,12 @@ import {defined} from 'sentry/utils';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import type {IndexedExceptionValue} from './utils';
-import {resolveExceptionFields} from './utils';
+import {
+  formatExceptionsAsText,
+  getExceptionEntryMeta,
+  getOrderedExceptions,
+  resolveExceptionFields,
+} from './utils';
 
 interface SharedIssueStackTraceBaseProps {
   event: Event;
@@ -131,17 +134,12 @@ function SharedIssueStackTraceContent({
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);
 
-  const entryType = isStandalone ? EntryType.STACKTRACE : EntryType.EXCEPTION;
-  const entryIndex = event.entries?.findIndex(entry => entry.type === entryType);
-  const rawEntryMeta = event._meta?.entries?.[entryIndex ?? -1]?.data;
-  const exceptionValuesMeta = isStandalone ? undefined : rawEntryMeta?.values;
+  const {rawEntryMeta, exceptionValuesMeta} = getExceptionEntryMeta(event, isStandalone);
 
-  const exceptions = useMemo(() => {
-    const indexed = values
-      .map((exc, exceptionIndex) => ({...exc, exceptionIndex}))
-      .filter((exc): exc is IndexedExceptionValue => exc.stacktrace !== null);
-    return isNewestFirst && view !== 'raw' ? indexed.reverse() : indexed;
-  }, [values, isNewestFirst, view]);
+  const exceptions = useMemo(
+    () => getOrderedExceptions(values, isNewestFirst, view),
+    [values, isNewestFirst, view]
+  );
 
   const firstVisibleExceptionIndex = exceptions.findIndex(
     exc =>
@@ -154,16 +152,12 @@ function SharedIssueStackTraceContent({
 
   const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
     text: () =>
-      exceptions
-        .map(exc =>
-          rawStacktraceContent({
-            data: isMinified ? (exc.rawStacktrace ?? exc.stacktrace) : exc.stacktrace,
-            platform: event.platform,
-            exception: isStandalone ? undefined : exc,
-            isMinified,
-          })
-        )
-        .join('\n\n'),
+      formatExceptionsAsText({
+        exceptions,
+        platform: event.platform,
+        isMinified,
+        isStandalone,
+      }),
     json: undefined,
     markdown: undefined,
   });
@@ -182,18 +176,12 @@ function SharedIssueStackTraceContent({
       <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Panel>
           <RawStackTraceText>
-            {exceptions
-              .map(exc =>
-                rawStacktraceContent({
-                  data: isMinified
-                    ? (exc.rawStacktrace ?? exc.stacktrace)
-                    : exc.stacktrace,
-                  platform: event.platform,
-                  exception: isStandalone ? undefined : exc,
-                  isMinified,
-                })
-              )
-              .join('\n\n')}
+            {formatExceptionsAsText({
+              exceptions,
+              platform: event.platform,
+              isMinified,
+              isStandalone,
+            })}
           </RawStackTraceText>
         </Panel>
       </InterimSection>
@@ -210,7 +198,7 @@ function SharedIssueStackTraceContent({
       <InterimSection type={sectionKey} title="Stack Trace" actions={sectionActions}>
         <Flex direction="column" gap="lg">
           {hasExceptionInfo && (
-            <Flex direction="column" gap="sm">
+            <Fragment>
               <div>
                 <ExceptionHeader type={type} module={module} />
               </div>
@@ -219,7 +207,7 @@ function SharedIssueStackTraceContent({
                 mechanism={exc.mechanism}
                 meta={excMeta}
               />
-            </Flex>
+            </Fragment>
           )}
           <StackTraceProvider
             exceptionIndex={isStandalone ? undefined : exc.exceptionIndex}
