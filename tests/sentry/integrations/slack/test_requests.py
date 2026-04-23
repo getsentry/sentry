@@ -323,6 +323,37 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         self.slack_request.authorize()
         self.slack_request.validate_integration()
 
+    def _add_second_org(self, slug: str = "second-org"):
+        org = self.create_organization(slug=slug, owner=self.slack_user)
+        self.create_organization_integration(organization_id=org.id, integration=self.integration)
+        return org
+
+    def _build_request(self, *, text: str = "", thread_ts: str = "") -> SlackEventRequest:
+        data = {
+            "type": "event_callback",
+            "team_id": "T_SEER",
+            "event_id": "E1",
+            "api_app_id": "A1",
+            "event": {
+                "type": "app_mention",
+                "channel": "C1",
+                "user": "U_SLACK",
+                "ts": "1.0",
+                "text": text,
+                "thread_ts": thread_ts,
+            },
+        }
+        request = self.factory.post(
+            "/extensions/slack/event/",
+            data=orjson.dumps(data),
+            content_type="application/json",
+        )
+        drf_request = SlackDMEndpoint().initialize_request(request)
+        slack_request = SlackEventRequest(drf_request)
+        slack_request.authorize()
+        slack_request.validate_integration()
+        return slack_request
+
     def test_identity_not_linked(self):
         with assume_test_silo_mode_of(self.identity):
             self.identity.delete()
@@ -439,6 +470,51 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason is None
         mock_has_access.assert_called()
         mock_has_feature_flag.assert_not_called()
+
+    @patch("sentry.integrations.slack.requests.event.get_thread_history")
+    @patch(
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        return_value=True,
+    )
+    def test_multi_org_resolves_from_message_link(self, mock_access, mock_get_thread_history):
+        other_org = self._add_second_org()
+        slack_request = self._build_request(
+            text=f"<@U_BOT> what about https://{other_org.slug}.sentry.io/issues/123/ ?"
+        )
+        result = slack_request.resolve_seer_organization()
+        assert result.organization_id == other_org.id
+        assert result.halt_reason is None
+        # No need to check the thread if we have a link in the initial message.
+        assert mock_get_thread_history.call_count == 0
+
+    @patch("sentry.integrations.slack.requests.event.get_thread_history")
+    @patch(
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        return_value=True,
+    )
+    def test_multi_org_resolves_from_thread(self, mock_access, mock_get_thread_history):
+        other_org = self._add_second_org()
+        mock_get_thread_history.return_value = [
+            {"user": "U_OTHER", "text": f"https://{other_org.slug}.sentry.io/issues/42/"},
+            {"user": "U_SLACK", "text": "<@U_BOT> help"},
+        ]
+        slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")
+        result = slack_request.resolve_seer_organization()
+        assert result.organization_id == other_org.id
+        assert result.halt_reason is None
+
+    @patch(
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        return_value=True,
+    )
+    def test_multi_org_ignores_link_for_unavailable_org(self, mock_access):
+        self._add_second_org()
+        slack_request = self._build_request(
+            text="<@U_BOT> https://sentry.io/organizations/not-my-org/issues/123/"
+        )
+        result = slack_request.resolve_seer_organization()
+        assert result.organization_id == self.organization.id
+        assert result.halt_reason is None
 
 
 class SlackActionRequestTest(TestCase):

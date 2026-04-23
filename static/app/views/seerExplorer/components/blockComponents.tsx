@@ -150,7 +150,6 @@ export function BlockComponent({
   onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
-  readOnly = false,
   ref,
 }: BlockProps) {
   const {copy} = useCopyToClipboard();
@@ -363,10 +362,10 @@ export function BlockComponent({
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly &&
-    block.message.role !== 'user';
+    block.message.role === 'assistant';
   const showFeedbackButtons = block.message.role === 'assistant';
-  const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
+  const showCopyButton =
+    block.message.role === 'assistant' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
   const isLoadingPlaceholder = blockStatus === 'loading' && !hasTools;
@@ -679,7 +678,7 @@ const BlockContent = styled(MarkedText)`
 
 const UserBlockContent = styled('div')`
   max-width: 80%;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
