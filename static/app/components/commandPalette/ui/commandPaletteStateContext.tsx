@@ -70,6 +70,7 @@ function commandPaletteReducer(
           action: null,
           query: '',
           resetOnOpen: false,
+          pendingReset: false,
         };
       }
       return {
