@@ -33,7 +33,7 @@ class OrganizationMapping(Model):
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=("organization_id", "slug"),
-        cache_ttl=60 * 5,  # 5 minutes
+        cache_ttl=60 * 60,  # 1 hour
     )
 
     organization_id = BoundedBigIntegerField(db_index=True, unique=True)

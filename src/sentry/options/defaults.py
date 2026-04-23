@@ -2404,23 +2404,12 @@ register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR
 register("hybridcloud.endpoint_flag_logging", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
     "hybridcloud.rpc.method_retry_overrides",
-    default={
-        # Invite lookups are read-only GETs that are latency-sensitive from the user's
-        # perspective (they block the accept-invite page load). Limit retries to 1 to
-        # avoid compounding slow control-silo responses into multi-second delays.
-        "organization.get_invite_by_slug": 1,
-        "organization.get_invite_by_id": 1,
-    },
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "hybridcloud.rpc.method_timeout_overrides",
-    default={
-        # Cap the invite lookup RPC calls at 2 seconds each so that slow control-silo
-        # responses don't block the accept-invite page for the full global RPC_TIMEOUT.
-        "organization.get_invite_by_slug": 2.0,
-        "organization.get_invite_by_id": 2.0,
-    },
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Webhook processing controls
