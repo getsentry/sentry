@@ -54,13 +54,18 @@ class OrganizationMissingMembersTestCase(APITestCase):
         nonmember_commit_author_invalid_domain.save()
 
         self.integration = self.create_integration(
-            organization=self.organization, provider="github", name="Github", external_id="github:1"
+            organization=self.organization,
+            provider="github",
+            name="Github",
+            external_id="github:1",
+            oi_params={"config": {"nudge_invite": True}},
         )
         self.integration2 = self.create_integration(
             organization=self.organization,
             provider="github",
             name="Github2",
             external_id="github:3",
+            oi_params={"config": {"nudge_invite": True}},
         )
         self.repo = self.create_repo(
             project=self.project, provider="integrations:github", integration_id=self.integration.id
@@ -159,7 +164,11 @@ class OrganizationMissingMembersTestCase(APITestCase):
         org = self.create_organization(owner=self.create_user())
         self.create_member(user=self.user, organization=org, role="manager")
         self.create_integration(
-            organization=org, provider="github", name="Github", external_id="github:2"
+            organization=org,
+            provider="github",
+            name="Github",
+            external_id="github:2",
+            oi_params={"config": {"nudge_invite": True}},
         )
 
         response = self.get_success_response(org.slug)
@@ -264,31 +273,19 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
-    def test_oi_config_reads_flag_skips_non_nudge_integrations(self) -> None:
-        """With the flag on and no OI having nudge_invite, the endpoint returns []."""
+    def test_all_ois_without_nudge_invite_returns_empty(self) -> None:
+        """When no OI has nudge_invite on, the endpoint returns []."""
         from sentry.integrations.models.organization_integration import (
             OrganizationIntegration,
         )
-        from sentry.testutils.helpers.features import Feature
 
-        with Feature({"organizations:scm-config-oi-reads": True}):
-            response = self.get_success_response(self.organization.slug)
-
-        assert len(response.data) == 0
-
-        # Now turn the nudge_invite flag on for one of the two github OIs. The
-        # endpoint must still return missing members for the org.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            oi = OrganizationIntegration.objects.get(
-                integration_id=self.integration.id, organization_id=self.organization.id
+            OrganizationIntegration.objects.filter(organization_id=self.organization.id).update(
+                config={"nudge_invite": False}
             )
-            oi.config = {"nudge_invite": True}
-            oi.save(update_fields=["config"])
 
-        with Feature({"organizations:scm-config-oi-reads": True}):
-            response = self.get_success_response(self.organization.slug)
-        assert response.data[0]["integration"] == "github"
-        assert len(response.data[0]["users"]) > 0
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 0
 
     def test_nongithub_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):

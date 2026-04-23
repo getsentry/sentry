@@ -887,7 +887,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "sentry:github_nudge_invite" not in options
         assert "sentry:gitlab_pr_bot" not in options
 
-    def test_scm_serializer_derived_from_oi_config_when_flag_on(self) -> None:
+    def test_scm_serializer_derived_from_oi_config(self) -> None:
+        """The three SCM serializer booleans are OR'd across active OIs."""
         self.create_integration(
             organization=self.organization,
             provider="github",
@@ -900,22 +901,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             external_id="gl-derived",
             oi_params={"config": {"pr_comments": False}},
         )
-        # Legacy org options disagree with the OI config to prove we are
-        # reading from the OI path.
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_pr_bot", value=False
-        )
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_nudge_invite", value=True
-        )
-        OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:gitlab_pr_bot", value=True
-        )
 
         self.method = "get"
         try:
-            with self.feature("organizations:scm-config-oi-reads"):
-                response = self.get_success_response(self.organization.slug)
+            response = self.get_success_response(self.organization.slug)
         finally:
             self.method = "put"
 
