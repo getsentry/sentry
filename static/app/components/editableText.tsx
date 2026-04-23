@@ -29,11 +29,6 @@ type Props = {
    */
   placeholder?: string;
   successMessage?: React.ReactNode;
-  /**
-   * "compact" removes fixed heights so the component inherits font-size and
-   * line-height from its context (e.g. when rendered inside a breadcrumb row).
-   */
-  variant?: 'compact';
 };
 
 export function EditableText({
@@ -49,7 +44,6 @@ export function EditableText({
   'aria-label': ariaLabel,
   placeholder,
   allowEmpty = false,
-  variant,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   // Immediately reflect the last committed value while we wait for the parent prop update
@@ -193,17 +187,10 @@ export function EditableText({
     [handleCancel, handleCommit]
   );
 
-  const isCompact = variant === 'compact';
-
   return (
     <Wrapper isDisabled={isDisabled} isEditing={isEditing} className={className}>
       {isEditing ? (
-        <InputWrapper
-          ref={innerWrapperRef}
-          isEmpty={isDraftEmpty}
-          isCompact={isCompact}
-          data-test-id="editable-text-input"
-        >
+        <InputWrapper ref={innerWrapperRef} data-test-id="editable-text-input">
           <StyledInput
             aria-label={ariaLabel}
             name={name}
@@ -214,9 +201,8 @@ export function EditableText({
             onFocus={event => autoSelect && event.target.select()}
             maxLength={maxLength}
             placeholder={placeholder}
-            isCompact={isCompact}
           />
-          <InputLabel isCompact={isCompact}>{currentDraft}</InputLabel>
+          <InputLabel>{currentDraft}</InputLabel>
         </InputWrapper>
       ) : (
         <Label
@@ -225,7 +211,7 @@ export function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel isCompact={isCompact}>{currentValue || placeholder}</InnerLabel>
+          <InnerLabel>{currentValue || placeholder}</InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}
@@ -241,28 +227,27 @@ const Label = styled('div')<{isDisabled: boolean}>`
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
-const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
+const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
-  border-bottom: ${p =>
-    p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
-  line-height: ${p => (p.isCompact ? 'inherit' : '38px')};
+  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
+  line-height: 38px;
 `;
 
-const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
+const InputWrapper = styled('div')`
   display: inline-block;
   background: ${p => p.theme.tokens.background.tertiary};
   border-radius: ${p => p.theme.radius.md};
-  margin: ${p => (p.isCompact ? 0 : `-${p.theme.space.xs} -${p.theme.space.md}`)};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  max-width: ${p => (p.isCompact ? '100%' : `calc(100% + ${p.theme.space.xl})`)};
+  max-width: calc(100% + ${p => p.theme.space.xl});
 `;
 
-const StyledInput = styled(Input)<{isCompact?: boolean}>`
+const StyledInput = styled(Input)`
   border: none !important;
   background: transparent;
   height: auto;
-  min-height: ${p => (p.isCompact ? 'auto' : '40px')};
-  padding: ${p => (p.isCompact ? `0 ${p.theme.space.xs}` : '0')};
+  min-height: 40px;
+  padding: 0;
   font-size: inherit;
   &,
   &:focus,
@@ -272,11 +257,11 @@ const StyledInput = styled(Input)<{isCompact?: boolean}>`
   }
 `;
 
-const InputLabel = styled('div')<{isCompact: boolean}>`
+const InputLabel = styled('div')`
   height: 0;
   opacity: 0;
   white-space: pre;
-  padding: 0 ${p => (p.isCompact ? p.theme.space.xs : p.theme.space.md)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`

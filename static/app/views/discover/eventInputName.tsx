@@ -14,8 +14,8 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   /**
-   * When true, renders without the Layout.Title wrapper and uses the
-   * compact EditableText variant so it fits inside a breadcrumb row.
+   * When true, renders without the Layout.Title wrapper so the page-frame
+   * title editor can fit inside the breadcrumb row.
    */
   compact?: boolean;
   isHomepage?: boolean;
