@@ -122,6 +122,22 @@ class IntegrationRepositoryTestCase(TestCase):
         assert exc_info.value.reclaimed_repo is not None
         assert exc_info.value.reclaimed_repo.id == existing.id
 
+    def test_create_repository__integrity_error_without_match_raises(
+        self, get_jwt: MagicMock
+    ) -> None:
+        # Pre-existing repo under a different external_id — the reclaim query
+        # (matching integration_id + config's external_id) won't find it, so
+        # the race fallback has nothing to surface.
+        self._create_repo()
+
+        with (
+            patch("sentry.models.Repository.objects.create", side_effect=IntegrityError),
+            pytest.raises(RepoExistsError) as exc_info,
+        ):
+            self.provider.create_repository(self.config, self.organization)
+
+        assert exc_info.value.reclaimed_repo is None
+
     @patch("sentry.plugins.providers.integration_repository.metrics")
     def test_create_repository__activates_existing_hidden_repo(
         self, mock_metrics: MagicMock, get_jwt: MagicMock
