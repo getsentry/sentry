@@ -44,6 +44,7 @@ describe('AssertionSuggestionsButton', () => {
       openDrawer: mockOpenDrawer,
       closeDrawer: mockCloseDrawer,
       isDrawerOpen: false,
+      isAnyDrawerOpen: false,
       panelRef: {current: null},
     });
   });
@@ -100,6 +101,7 @@ describe('AssertionSuggestionsButton', () => {
       openDrawer: mockOpenDrawer,
       closeDrawer: mockCloseDrawer,
       isDrawerOpen: true,
+      isAnyDrawerOpen: true,
       panelRef: {current: null},
     });
 

@@ -232,7 +232,6 @@ const BodyCell = memo(function BodyCell({
                   showOnlyOnOverflow
                   maxWidth={800}
                   isHoverable
-                  delay={500}
                   skipWrapper
                   position="right"
                 >
@@ -252,7 +251,6 @@ const BodyCell = memo(function BodyCell({
                   showOnlyOnOverflow
                   maxWidth={800}
                   isHoverable
-                  delay={500}
                   skipWrapper
                   position="right"
                 >

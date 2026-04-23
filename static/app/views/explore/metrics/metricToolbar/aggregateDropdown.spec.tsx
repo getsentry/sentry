@@ -505,4 +505,48 @@ describe('AggregateDropdown', () => {
       expect(within(trigger).getByText('+1')).toBeInTheDocument();
     });
   });
+
+  it('renders all groups as single-select and keeps only the last selection when singleSelect is passed', async () => {
+    const organization = OrganizationFixture({
+      features: ['tracemetrics-enabled'],
+    });
+
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.SAMPLES,
+      query: '',
+      cursor: '',
+      fields: ['id', 'timestamp'],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('p50(value,test_metric,distribution,-)')],
+      aggregateSortBys: [{field: 'p50(value,test_metric,distribution,-)', kind: 'desc'}],
+    });
+
+    render(
+      <AggregateDropdown
+        traceMetric={{name: 'test_metric', type: 'distribution'}}
+        singleSelect
+      />,
+      {
+        organization,
+        additionalWrapper: createWrapper({queryParams, stateful: true}),
+      }
+    );
+
+    const trigger = screen.getByRole('button', {name: /Agg/});
+    await userEvent.click(trigger);
+
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'p50'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'p75'}));
+
+    expect(await within(trigger).findByText('p75')).toBeInTheDocument();
+    expect(within(trigger).queryByText(/^\+\d/)).not.toBeInTheDocument();
+  });
 });

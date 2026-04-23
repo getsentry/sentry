@@ -137,8 +137,8 @@ export default function AutomationNewSettings() {
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
-  const initialData = useInitialFormData();
   const hasPageFrameFeature = useHasPageFrameFeature();
+  const initialData = useInitialFormData();
 
   const {
     errors: automationBuilderErrors,
@@ -237,7 +237,7 @@ export default function AutomationNewSettings() {
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <StyledLayoutHeader>
+          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
                 {hasPageFrameFeature ? (
@@ -262,8 +262,12 @@ export default function AutomationNewSettings() {
                 <AutomationFeedbackButton />
               </div>
             </HeaderInner>
-          </StyledLayoutHeader>
-          <StyledBody maxWidth={maxWidth}>
+          </Layout.Header>
+          <Layout.Body
+            maxWidth={maxWidth}
+            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
+            {...(hasPageFrameFeature ? {} : {padding: '0'})}
+          >
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
                 value={{
@@ -284,10 +288,22 @@ export default function AutomationNewSettings() {
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
-          </StyledBody>
+          </Layout.Body>
         </Stack>
         <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+          <Flex
+            width="100%"
+            maxWidth={
+              // Layout.Body uses `lg xl` page-frame padding, so subtract the left/right `xl`
+              // gutters to align the footer actions with the inner content column.
+              hasPageFrameFeature
+                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
+                : maxWidth
+            }
+            align="center"
+            gap="md"
+            justify="end"
+          >
             <Observer>
               {() => (
                 <Button priority="primary" type="submit" busy={model.isSaving}>
@@ -302,10 +318,6 @@ export default function AutomationNewSettings() {
   );
 }
 
-const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.tokens.background.primary};
-`;
-
 const HeaderInner = styled('div')<{maxWidth?: string}>`
   display: contents;
 
@@ -314,19 +326,5 @@ const HeaderInner = styled('div')<{maxWidth?: string}>`
     grid-template-columns: minmax(0, 1fr) auto;
     max-width: ${p => p.maxWidth};
     width: 100%;
-  }
-`;
-
-const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
-  max-width: ${p => p.maxWidth};
-  padding: 0;
-  margin: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-    margin: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 `;

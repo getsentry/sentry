@@ -10,12 +10,12 @@ import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/blockComponents';
+import {ExplorerDrawerHeader} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerHeader';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {TopBar} from 'sentry/views/seerExplorer/components/topBar';
 import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -27,18 +27,16 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent({
-  onClose,
   getPageReferrer,
 }: {
   getPageReferrer: () => string;
-  onClose: () => void;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
 
   const [inputValue, setInputValue] = useState('');
-  const [focusedBlockIndex, setFocusedBlockIndex] = useState(-1);
+  const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -46,15 +44,11 @@ export function ExplorerDrawerContent({
   const blockEnterHandlers = useRef<
     Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
   >(new Map());
-  const hoveredBlockIndex = useRef<number>(-1);
   const userScrolledUpRef = useRef<boolean>(false);
-  const allowHoverFocusChange = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
-  const sessionHistoryButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    hoveredBlockIndex.current = -1;
-    setFocusedBlockIndex(-1);
+    setHoveredBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
 
@@ -65,7 +59,6 @@ export function ExplorerDrawerContent({
     isPolling,
     isError,
     sendMessage,
-    deleteFromIndex,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -186,32 +179,40 @@ export function ExplorerDrawerContent({
   });
 
   // Menu component
-  const {menu, isMenuOpen, menuMode, closeMenu, openSessionHistory, openPRWidget} =
-    useExplorerMenu({
-      clearInput: () => setInputValue(''),
-      inputValue,
-      focusInput,
-      textAreaRef: textareaRef,
-      panelSize: 'max',
-      slashCommandHandlers: {
-        onNew: startNewSession,
-        onFeedback: openFeedbackForm ? handleFeedback : undefined,
-        onLangfuse: handleOpenLangfuse,
-        onConversations: handleOpenConversations,
-      },
-      onChangeSession: switchToRun,
-      menuAnchorRef: sessionHistoryButtonRef,
-      inputAnchorRef: textareaRef,
-      prWidgetAnchorRef: prWidgetButtonRef,
-      prWidgetItems,
-      prWidgetFooter,
-    });
+  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
+    clearInput: () => setInputValue(''),
+    inputValue,
+    focusInput,
+    textAreaRef: textareaRef,
+    panelSize: 'max',
+    slashCommandHandlers: {
+      onNew: startNewSession,
+      onFeedback: openFeedbackForm ? handleFeedback : undefined,
+      onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
+      onConversations: conversationsUrl ? handleOpenConversations : undefined,
+    },
+    inputAnchorRef: textareaRef,
+    prWidgetAnchorRef: prWidgetButtonRef,
+    prWidgetItems,
+    prWidgetFooter,
+  });
 
   const handleBlocksClick = useCallback(() => {
     closeMenu();
   }, [closeMenu]);
 
   // - Input section handlers -------------------------------------------------
+  const handleSend = useCallback(() => {
+    if (readOnly || isPolling || !inputValue.trim()) {
+      return;
+    }
+    sendMessage(inputValue.trim());
+    setInputValue('');
+    userScrolledUpRef.current = false;
+  }, [readOnly, inputValue, isPolling, sendMessage]);
+
+  const canInterrupt = sessionData?.status === 'processing';
+
   const handleInputKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (readOnly || e.nativeEvent.isComposing) {
@@ -220,29 +221,21 @@ export function ExplorerDrawerContent({
 
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        if (inputValue.trim() && !isPolling) {
-          sendMessage(inputValue.trim());
-          setInputValue('');
-          // Reset scroll state so we auto-scroll to show the response
-          userScrolledUpRef.current = false;
-          // Reset textarea height
-          if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-          }
-        }
+        handleSend();
+      } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
+        e.preventDefault();
+        interruptRun();
       }
     },
-    [readOnly, inputValue, isPolling, sendMessage]
+    [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    if (focusedBlockIndex !== -1) {
-      setFocusedBlockIndex(-1);
+    if (hoveredBlockIndex !== -1) {
+      setHoveredBlockIndex(-1);
       textareaRef.current?.focus();
     }
-    e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
   };
 
   const handleInputClick = useCallback(() => {
@@ -296,69 +289,9 @@ export function ExplorerDrawerContent({
       };
     }
     return undefined;
-  }, [focusedBlockIndex]);
-
-  // Reset scroll state when navigating to input (which is at the bottom)
-  useEffect(() => {
-    if (focusedBlockIndex === -1 && scrollContainerRef.current) {
-      // Small delay to let scrollIntoView complete
-      setTimeout(() => {
-        const container = scrollContainerRef.current;
-        if (container) {
-          const {scrollTop, scrollHeight, clientHeight} = container;
-          const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
-          if (isAtBottom) {
-            userScrolledUpRef.current = false;
-          }
-        }
-      }, 100);
-    }
-  }, [focusedBlockIndex]);
+  }, []);
 
   // - Keyboard listeners -----------------------------------------------------
-
-  // Keyboard event listeners for when the menu is closed.
-  // Menu keyboard listeners are in the menu component.
-  useEffect(() => {
-    if (isMenuOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isPrintableChar = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey;
-
-      // If input is enabled and not focused
-      if (
-        focusedBlockIndex !== -1 &&
-        !readOnly &&
-        !isFileApprovalPending &&
-        !isQuestionPending
-      ) {
-        if (isPrintableChar) {
-          // Focus input when user starts typing
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-          setInputValue(prev => prev + e.key);
-        } else if (e.key === 'Tab') {
-          // Focus input when user presses tab
-          e.preventDefault();
-          setFocusedBlockIndex(-1);
-          textareaRef.current?.focus();
-        }
-      }
-    };
-
-    // Re-enable hover focus changes when mouse actually moves
-    const handleMouseMove = () => {
-      allowHoverFocusChange.current = true;
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [isMenuOpen, readOnly, focusedBlockIndex, isFileApprovalPending, isQuestionPending]);
 
   // Update block refs array when blocks change
   useEffect(() => {
@@ -369,15 +302,12 @@ export function ExplorerDrawerContent({
   useBlockNavigation({
     isOpen: true, // Drawer content is always visible when rendered
     isMinimized: false,
-    focusedBlockIndex,
+    focusedBlockIndex: hoveredBlockIndex,
     blocks,
     blockRefs,
     textareaRef,
-    setFocusedBlockIndex,
     isFileApprovalPending,
-    isPolling,
     isQuestionPending,
-    onDeleteFromIndex: deleteFromIndex,
     onKeyPress: (blockIndex, key) => {
       const handler = blockEnterHandlers.current.get(blockIndex);
       const handled = handler?.(key) ?? false;
@@ -390,22 +320,14 @@ export function ExplorerDrawerContent({
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
-      <TopBar
-        isCopyLinkEnabled={false} // TODO: disabled for drawer, may remove in favor copy URL
-        onCopyLinkClick={() => {}}
-        onClose={onClose}
-        isEmptyState={isEmptyState}
-        isPolling={isPolling}
-        isSessionHistoryOpen={isMenuOpen && menuMode === 'session-history'}
-        onFeedbackClick={handleFeedback}
+      <ExplorerDrawerHeader
         onNewChatClick={() => {
           startNewSession();
           focusInput();
         }}
+        onChangeSession={switchToRun}
+        copySessionEnabled={copySessionEnabled}
         onCopySessionClick={copySessionToClipboard}
-        onSessionHistoryClick={openSessionHistory}
-        isCopySessionEnabled={copySessionEnabled}
-        sessionHistoryButtonRef={sessionHistoryButtonRef}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={
@@ -422,7 +344,12 @@ export function ExplorerDrawerContent({
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
         {isEmptyState ? (
-          <EmptyState isLoading={isPolling} isError={isError} runId={runId} />
+          <EmptyState
+            isLoading={isPolling}
+            isError={isError}
+            runId={runId}
+            onSuggestionClick={readOnly ? undefined : sendMessage}
+          />
         ) : (
           <Fragment>
             {blocks.map((block: Block, index: number) => (
@@ -433,43 +360,22 @@ export function ExplorerDrawerContent({
                 }}
                 block={block}
                 blockIndex={index}
+                isHovered={hoveredBlockIndex === index}
                 runId={runId ?? undefined}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
-                isLast={
-                  index === blocks.length - 1 && !(isAwaitingUserInput && pendingInput)
-                }
-                isFocused={focusedBlockIndex === index}
-                isPolling={isPolling}
                 readOnly={readOnly}
-                onMouseEnter={() => {
-                  // Don't change focus while menu is open, if already on this block, or if hover is disabled
-                  if (
-                    isMenuOpen ||
-                    hoveredBlockIndex.current === index ||
-                    !allowHoverFocusChange.current
-                  ) {
-                    return;
-                  }
-
-                  hoveredBlockIndex.current = index;
-                  setFocusedBlockIndex(index);
-                  textareaRef.current?.blur();
-                }}
-                onMouseLeave={() => {
-                  if (hoveredBlockIndex.current === index) {
-                    hoveredBlockIndex.current = -1;
-                  }
-                }}
-                onDelete={() => {
-                  deleteFromIndex(index);
-                  focusInput();
-                }}
-                onNavigate={undefined} // TODO: close drawer on link navigate?
+                onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
+                }}
+                onMouseEnter={() => {
+                  setHoveredBlockIndex(index);
+                }}
+                onMouseLeave={() => {
+                  setHoveredBlockIndex(-1);
                 }}
               />
             ))}
@@ -478,7 +384,6 @@ export function ExplorerDrawerContent({
               fileApprovalIndex < fileApprovalTotalPatches && (
                 <FileChangeApprovalBlock
                   currentIndex={fileApprovalIndex}
-                  isLast
                   pendingInput={pendingInput!}
                 />
               )}
@@ -486,7 +391,6 @@ export function ExplorerDrawerContent({
               <AskUserQuestionBlock
                 currentQuestion={currentQuestion}
                 customText={customText}
-                isLast
                 isOtherSelected={isOtherSelected}
                 onCustomTextChange={handleQuestionCustomTextChange}
                 onSelectOption={handleQuestionSelectOption}
@@ -501,10 +405,9 @@ export function ExplorerDrawerContent({
         blocks={blocks}
         enabled={!readOnly}
         inputValue={inputValue}
-        isFocused={focusedBlockIndex === -1}
+        canInterrupt={canInterrupt} // TODO: update when adding timeouts
         waitingForInterrupt={waitingForInterrupt}
         isMinimized={false} // Drawer doesn't have a minimized state
-        isPolling={isPolling}
         isVisible // Drawer content is always visible when rendered
         onClear={() => setInputValue('')}
         onCreatePR={createPR}
@@ -512,6 +415,7 @@ export function ExplorerDrawerContent({
         onInputClick={handleInputClick}
         onInterrupt={interruptRun}
         onKeyDown={handleInputKeyDown}
+        onSend={handleSend}
         onPRWidgetClick={openPRWidget}
         prWidgetButtonRef={prWidgetButtonRef}
         repoPRStates={repoPRStates}

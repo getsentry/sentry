@@ -597,7 +597,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/trace-items/stats/'
   | '/organizations/$organizationIdOrSlug/trace-logs/'
   | '/organizations/$organizationIdOrSlug/trace-meta/$traceId/'
-  | '/organizations/$organizationIdOrSlug/trace-summary/'
   | '/organizations/$organizationIdOrSlug/trace/$traceId/'
   | '/organizations/$organizationIdOrSlug/traces/'
   | '/organizations/$organizationIdOrSlug/unsubscribe/issue/$id/'

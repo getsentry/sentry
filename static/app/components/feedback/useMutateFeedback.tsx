@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function useMutateFeedback({feedbackIds, organization, projectIds}: Props) {
-  const {listQueryKey} = useFeedbackQueryKeys();
+  const {listApiOptions} = useFeedbackApiOptions();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
   const {mutate} = useMutation<TData, TError, TVariables, TContext>({
@@ -43,9 +43,7 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
       // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
       // Then we could push new data into the cache instead of re-fetching it again
 
-      const listQueryKeyOptions = listQueryKey
-        ? (parseQueryKey(listQueryKey).options ?? {})
-        : {};
+      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options ?? {};
       const options = isSingleId
         ? {}
         : ids === 'all'

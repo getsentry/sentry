@@ -3,7 +3,6 @@ import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
 import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
@@ -16,10 +15,8 @@ interface Props {
 }
 
 export function NewIssues({release, projectId, withChart = false}: Props) {
-  const organization = useOrganization();
   const location = useLocation();
   const {data: releaseDetails} = useReleaseDetails({release});
-  const path = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
     ...getReleaseParams({
       location,
@@ -40,7 +37,6 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
 
   return (
     <GroupList
-      endpointPath={path}
       queryParams={queryParams}
       query={
         releaseDetails

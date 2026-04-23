@@ -271,6 +271,67 @@ class SnapshotToMarkdownTest(TestCase):
         assert "# Widget-builder" in result
         assert '- **mode**: "creating"' in result
 
+    def test_priority_selects_highest(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "My Dashboard"},
+                    "children": [
+                        {"nodeType": "widget", "data": {"title": "W1"}, "children": []},
+                    ],
+                },
+                {
+                    "nodeType": "widget-builder",
+                    "priority": 1,
+                    "data": {"mode": "creating"},
+                    "children": [],
+                },
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# Widget-builder" in result
+        assert '- **mode**: "creating"' in result
+        assert "Dashboard" not in result
+
+    def test_priority_equal_renders_all(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "dashboard", "data": {"title": "D1"}, "children": []},
+                {"nodeType": "dashboard", "data": {"title": "D2"}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert result.count("# Dashboard") == 2
+
+    def test_priority_null_treated_as_zero(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "a", "priority": None, "data": {}, "children": []},
+                {"nodeType": "b", "priority": 1, "data": {}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# B" in result
+        assert "# A" not in result
+
+    def test_priority_multiple_highest(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "a", "priority": 1, "data": {}, "children": []},
+                {"nodeType": "b", "priority": 1, "data": {}, "children": []},
+                {"nodeType": "c", "data": {}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# A" in result
+        assert "# B" in result
+        assert "# C" not in result
+
     def test_node_with_non_dict_data(self) -> None:
         snapshot = {
             "version": 1,
