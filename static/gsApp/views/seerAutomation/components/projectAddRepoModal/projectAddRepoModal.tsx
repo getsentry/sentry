@@ -24,7 +24,6 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct} from 'sentry/locale';
-import {type Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
@@ -41,11 +40,6 @@ import {
 import {useMutateAutofixProject} from 'sentry/utils/seer/useMutateAutofixProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-
-interface RepoEntry {
-  branch: string;
-  repoId: Repository['id'];
-}
 
 interface Props extends ModalRenderProps {
   title: string;
@@ -94,29 +88,33 @@ export function ProjectAddRepoModal({
     ...defaultFormOptions,
     defaultValues: {
       projectId: preSelectedProjectId ?? '',
-      repoEntries: [{repoId: '', branch: ''}] as RepoEntry[],
+      repoEntries: [{repoId: '', branch: ''}],
       agent: useOrgDefaultAgent(),
       stoppingPoint: useOrgDefaultStoppingPoint(),
     },
     validators: {onDynamic: formSchema},
     onSubmit: ({value: {projectId, repoEntries, agent, stoppingPoint}}) =>
-      saveMutation.mutate(
-        {
-          project: projectsById.get(projectId)!, // We refined projectId, so this is safe
-          repoEntries,
-          agent,
-          stoppingPoint,
-        },
-        {
-          onSuccess: () => {
-            addSuccessMessage(t('Project saved successfully'));
-            closeModal();
+      saveMutation
+        .mutateAsync(
+          {
+            project: projectsById.get(projectId)!, // We refined projectId, so this is safe
+            repoEntries,
+            agent,
+            stoppingPoint,
           },
-          onError: () => {
-            addErrorMessage(t('Failed to save project settings'));
-          },
-        }
-      ),
+          {
+            onSuccess: () => {
+              addSuccessMessage(t('Project saved successfully'));
+              closeModal();
+            },
+            onError: () => {
+              addErrorMessage(t('Failed to save project settings'));
+            },
+          }
+        )
+        .catch(() => {
+          addErrorMessage(t('Failed to save project settings'));
+        }),
   });
 
   return (
@@ -212,7 +210,7 @@ export function ProjectAddRepoModal({
                                   }
                                   emptyMessage={t('No repositories found')}
                                   onChange={option =>
-                                    subField.handleChange(option?.value ?? '')
+                                    subField.handleChange(option.value ?? '')
                                   }
                                   options={repositoryOptions.data ?? []}
                                   search
@@ -316,17 +314,7 @@ export function ProjectAddRepoModal({
         <Footer>
           <Flex gap="md" justify="end">
             <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <form.Subscribe selector={state => state.isSubmitting}>
-              {isSubmitting => (
-                <Button
-                  priority="primary"
-                  disabled={isSubmitting}
-                  onClick={() => form.handleSubmit()}
-                >
-                  {t('Save Project')}
-                </Button>
-              )}
-            </form.Subscribe>
+            <form.SubmitButton>{t('Save Project')}</form.SubmitButton>
           </Flex>
         </Footer>
       </form.AppForm>
