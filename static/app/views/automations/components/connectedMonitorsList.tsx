@@ -85,7 +85,7 @@ export function ConnectedMonitorsList({
   limit = DEFAULT_DETECTORS_PER_PAGE,
   query,
   openInNewTab,
-  projectIds,
+  projectIds = [],
   workflowId,
   ...props
 }: Props) {
@@ -102,7 +102,7 @@ export function ConnectedMonitorsList({
         ? new MutableSearch([query ?? '', `workflow:${workflowId}`]).formatString()
         : query,
       includeIssueStreamDetectors: true,
-      projects: projectIds,
+      projects: [...projectIds, '-1'],
     }),
     select: selectJsonWithHeaders,
     enabled: !defined(detectorIds) || !emptySelection,
