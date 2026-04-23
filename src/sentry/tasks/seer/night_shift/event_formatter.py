@@ -98,7 +98,7 @@ def _format_exception_interface_output(event: dict[str, Any], data: dict[str, An
     values = data.get("values")
     if values:
         exceptions = list(values)
-    elif data.get("value"):
+    elif isinstance(data.get("value"), dict):
         exceptions = [data["value"]]
     else:
         return ""
@@ -470,6 +470,9 @@ def _render_context_lines(frame: dict[str, Any], context_size: int = 3) -> str:
 def _format_variable_value(value: Any, max_length: int = 80) -> str:
     try:
         if isinstance(value, str):
+            # Overhead for quotes + ellipsis: `"..."` = 5 chars around the content.
+            if len(value) + 2 > max_length:
+                return f'"{value[: max_length - 5]}..."'
             return f'"{value}"'
         if value is None:
             return "null"
