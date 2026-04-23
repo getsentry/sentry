@@ -150,7 +150,6 @@ export function BlockComponent({
   onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
-  readOnly = false,
   ref,
 }: BlockProps) {
   const {copy} = useCopyToClipboard();
