@@ -31,29 +31,29 @@ function selectRepositoryOptions(
     // a certain point we gotta skip them and render one big list.
     return repositories.map(toRepoOption);
   }
-  const connected = new Set<SelectOption<Repository['id']>>();
-  const disconnected = new Set<SelectOption<Repository['id']>>();
+  const connected: Array<SelectOption<Repository['id']>> = [];
+  const disconnected: Array<SelectOption<Repository['id']>> = [];
   for (const repo of repositories) {
     if (repo.integrationId && repo.status === RepositoryStatus.ACTIVE) {
-      connected.add(toRepoOption(repo));
+      connected.push(toRepoOption(repo));
     } else {
-      disconnected.add(toRepoOption(repo));
+      disconnected.push(toRepoOption(repo));
     }
   }
-  if (disconnected.size === 0) {
-    return Array.from(connected.values());
+  if (disconnected.length === 0) {
+    return connected;
   }
   return [
     {
       key: 'connected',
       label: t('Connected'),
-      options: Array.from(connected.values()),
+      options: connected,
     },
     {
       key: 'disconnected',
       label: t('Disconnected'),
       disabled: true,
-      options: Array.from(disconnected.values()),
+      options: disconnected,
     },
   ];
 }
