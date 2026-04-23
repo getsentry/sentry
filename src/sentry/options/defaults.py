@@ -2376,6 +2376,17 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Sample rate for metrics emitted by the per-org dynamic sampling pipeline
+# (status counters, org_status counters, duration timer). 1.0 emits every
+# event; lower values drop events proportionally. Use this to reduce metric
+# volume/cost when the pipeline is rolled out to many organizations.
+register(
+    "dynamic-sampling.per_org.metrics-sample-rate",
+    type=Float,
+    default=1.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing

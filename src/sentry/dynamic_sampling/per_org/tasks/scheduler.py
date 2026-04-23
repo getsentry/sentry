@@ -30,13 +30,20 @@ from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.tasks.gate import is_killswitch_engaged, is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.orchestrator import run_calculations_per_org_task
+from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    SCHEDULER_BEAT_STATUS_METRIC,
+    SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+    SCHEDULER_BUCKET_SIZE_METRIC,
+    SCHEDULER_BUCKET_STATUS_METRIC,
+    emit_gauge,
+    emit_status,
+)
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
 BUCKET_COUNT = 10
@@ -46,10 +53,7 @@ BUCKET_CURSOR_KEY = "ds::per_org:bucket_cursor"
 
 def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
     if is_killswitch_engaged():
-        metrics.incr(
-            "dynamic_sampling.schedule_per_org_calculations.killswitch_engaged",
-            tags={"bucket_index": str(bucket_index), "stage": "bucket"},
-        )
+        emit_status(SCHEDULER_BUCKET_STATUS_METRIC, "killswitched")
         return
 
     if not 0 <= bucket_index < BUCKET_COUNT:
@@ -79,21 +83,21 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
         run_calculations_per_org_task.apply_async(args=(org.id,), countdown=countdown)
         dispatched += 1
 
-    metrics.gauge(
-        "dynamic_sampling.schedule_per_org_calculations.bucket_size",
-        dispatched,
-        tags={"bucket_index": str(bucket_index)},
-    )
-    metrics.incr(
-        "dynamic_sampling.schedule_per_org_calculations.dispatched",
+    bucket_tag = {"bucket_index": str(bucket_index)}
+    emit_gauge(SCHEDULER_BUCKET_SIZE_METRIC, dispatched + skipped, tags=bucket_tag)
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        "dispatched",
         amount=dispatched,
-        tags={"bucket_index": str(bucket_index)},
+        extra_tags=bucket_tag,
     )
-    metrics.incr(
-        "dynamic_sampling.schedule_per_org_calculations.skipped_by_rollout",
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        "rollout_excluded",
         amount=skipped,
-        tags={"bucket_index": str(bucket_index)},
+        extra_tags=bucket_tag,
     )
+    emit_status(SCHEDULER_BUCKET_STATUS_METRIC, "completed")
 
 
 def _next_bucket_index() -> int:
@@ -141,11 +145,9 @@ def schedule_per_org_calculations() -> None:
     advancing the cursor.
     """
     if is_killswitch_engaged():
-        metrics.incr(
-            "dynamic_sampling.schedule_per_org_calculations.killswitch_engaged",
-            tags={"stage": "scheduler"},
-        )
+        emit_status(SCHEDULER_BEAT_STATUS_METRIC, "killswitched")
         return
 
     bucket_index = _next_bucket_index()
     schedule_per_org_calculations_bucket_task.apply_async(args=(bucket_index,))
+    emit_status(SCHEDULER_BEAT_STATUS_METRIC, "dispatched")

@@ -25,6 +25,12 @@ from sentry.dynamic_sampling.per_org.tasks.steps.outcomes_volume import (
 )
 from sentry.dynamic_sampling.per_org.tasks.steps.recalibration import apply_recalibration
 from sentry.dynamic_sampling.per_org.tasks.steps.sliding_window import apply_sliding_window
+from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    ORCHESTRATOR_DURATION_METRIC,
+    ORCHESTRATOR_STATUS_METRIC,
+    emit_status,
+    timed,
+)
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
@@ -32,39 +38,35 @@ from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-from sentry.utils import metrics
+
+
+def _emit_status(status: str) -> None:
+    emit_status(ORCHESTRATOR_STATUS_METRIC, status)
 
 
 def run_calculations_per_org(org_id: OrganizationId) -> None:
-    if is_killswitch_engaged():
-        metrics.incr(
-            "dynamic_sampling.run_calculations_per_org.killswitch_engaged",
-            sample_rate=1,
-        )
-        return
+    with timed(ORCHESTRATOR_DURATION_METRIC):
+        if is_killswitch_engaged():
+            _emit_status("killswitched")
+            return
 
-    if not is_org_in_rollout(org_id):
-        metrics.incr(
-            "dynamic_sampling.run_calculations_per_org.skipped_by_rollout",
-            sample_rate=1,
-        )
-        return
+        if not is_org_in_rollout(org_id):
+            _emit_status("not_in_rollout")
+            return
 
-    try:
-        organization = Organization.objects.get_from_cache(id=org_id)
-    except Organization.DoesNotExist:
-        return
+        try:
+            organization = Organization.objects.get_from_cache(id=org_id)
+        except Organization.DoesNotExist:
+            _emit_status("org_not_found")
+            return
 
-    if not has_dynamic_sampling(organization):
-        return
+        if not has_dynamic_sampling(organization):
+            _emit_status("org_has_no_dynamic_sampling")
+            return
 
-    with metrics.timer("dynamic_sampling.run_calculations_per_org.duration"):
         outcomes = fetch_outcomes_volume(org_id, organization)
         if not has_recent_volume(outcomes):
-            metrics.incr(
-                "dynamic_sampling.per_org.skipped_no_volume",
-                sample_rate=1,
-            )
+            _emit_status("no_volume")
             return
 
         eap = run_eap_batch(org_id, organization)
@@ -73,6 +75,8 @@ def run_calculations_per_org(org_id: OrganizationId) -> None:
         apply_recalibration(org_id, organization, outcomes)
         boost_low_volume_projects(org_id, organization, eap)
         boost_low_volume_transactions(org_id, organization, eap)
+
+    _emit_status("completed")
 
 
 @instrumented_task(
