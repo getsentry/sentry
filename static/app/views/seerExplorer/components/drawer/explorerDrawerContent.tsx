@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -120,7 +122,7 @@ export function ExplorerDrawerContent({
   });
 
   // - Topbar, menu, and slash command handlers -------------------------------
-  const copySessionEnabled = Boolean(runId && organization?.slug);
+  const copySessionEnabled = runId !== null && !!organization?.slug;
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
     blocks: sessionData?.blocks,
     status: sessionData?.status,
@@ -128,6 +130,18 @@ export function ExplorerDrawerContent({
     projects,
     enabled: copySessionEnabled,
   });
+
+  const handleCopyLink = useCallback(async () => {
+    if (!runId) return;
+    try {
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
+      addSuccessMessage('Copied link to current chat');
+      trackAnalytics('seer.explorer.session_link_copied', {organization});
+    } catch {
+      addErrorMessage('Failed to copy link to current chat');
+    }
+  }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
   const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
@@ -330,8 +344,8 @@ export function ExplorerDrawerContent({
           focusInput();
         }}
         onChangeSession={switchToRun}
-        copySessionEnabled={copySessionEnabled}
-        onCopySessionClick={copySessionToClipboard}
+        onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
+        onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={
