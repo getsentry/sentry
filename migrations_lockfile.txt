@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0007_add_extras_to_nightshiftrun
 
-sentry: 1071_add_broadcast_sync_locked
+sentry: 1072_backfill_scm_integration_config
 
 social_auth: 0003_social_auth_json_field
 
