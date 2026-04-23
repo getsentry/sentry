@@ -116,6 +116,60 @@ describe('useScmRepoSelection', () => {
     );
   });
 
+  it('recovers from repo_exists race by re-querying after POST', async () => {
+    let getCallCount = 0;
+    const getRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: () => {
+        getCallCount++;
+        // First GET sees nothing; POST fails with repo_exists because the
+        // background task registered the repo between our GET and POST.
+        // Second GET picks up the now-registered repo.
+        if (getCallCount === 1) {
+          return [];
+        }
+        return [
+          {
+            id: '77',
+            name: 'getsentry/sentry',
+            externalSlug: 'getsentry/sentry',
+            status: 'active',
+          },
+        ];
+      },
+    });
+
+    const addRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        detail: {
+          code: 'repo_exists',
+          message: 'A repository with that configuration already exists',
+          extra: {},
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useScmRepoSelection({integration: mockIntegration, onSelect, reposByIdentifier}),
+      {organization}
+    );
+
+    await act(async () => {
+      await result.current.handleSelect({value: 'getsentry/sentry'});
+    });
+
+    expect(getRequest).toHaveBeenCalledTimes(2);
+    expect(addRequest).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({id: '77', name: 'getsentry/sentry'})
+    );
+    expect(onSelect).not.toHaveBeenCalledWith(undefined);
+  });
+
   it('reverts onSelect on POST failure', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,

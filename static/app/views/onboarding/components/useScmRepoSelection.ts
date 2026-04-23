@@ -12,6 +12,7 @@ import type {
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -62,45 +63,66 @@ export function useScmRepoSelection({
     // registers all repos after integration install, so most repos will
     // already exist. Use a targeted query filtered by name to avoid
     // pagination issues with the full list.
+    const reposQueryOptions = apiOptions.as<Repository[]>()(
+      '/organizations/$organizationIdOrSlug/repos/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          status: 'active',
+          integration_id: integration.id,
+          query: repo.identifier,
+        },
+        staleTime: 0,
+      }
+    );
+    // The query param above is an icontains filter to narrow results and
+    // avoid pagination. The exact match here uses Repository.name against
+    // IntegrationRepository.identifier — the same comparison the backend
+    // uses in organization_integration_repos.py:61,80 to determine
+    // isInstalled. Can't use externalSlug because it varies by provider
+    // (e.g. GitLab returns a numeric project ID).
+    const findExistingRepo = async () => {
+      const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
+      return matches?.find(r => r.name === repo.identifier);
+    };
+
     setBusy(true);
     try {
-      const reposQueryOptions = apiOptions.as<Repository[]>()(
-        '/organizations/$organizationIdOrSlug/repos/',
-        {
-          path: {organizationIdOrSlug: organization.slug},
-          query: {
-            status: 'active',
-            integration_id: integration.id,
-            query: repo.identifier,
-          },
-          staleTime: 0,
-        }
-      );
-      const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
-      // The query param above is an icontains filter to narrow results
-      // and avoid pagination. The exact match here uses Repository.name
-      // against IntegrationRepository.identifier — the same comparison the
-      // backend uses in organization_integration_repos.py:61,80 to determine
-      // isInstalled. Can't use externalSlug because it varies by provider
-      // (e.g. GitLab returns a numeric project ID).
-      const existing = matches?.find(r => r.name === repo.identifier);
-
+      const existing = await findExistingRepo();
       if (existing) {
         onSelect({...optimistic, ...existing});
         return;
       }
 
-      // Repo not yet registered (link_all_repos may still be running).
-      const created = await fetchMutation<Repository>({
-        url: `/organizations/${organization.slug}/repos/`,
-        method: 'POST',
-        data: {
-          installation: integration.id,
-          identifier: repo.identifier,
-          provider: `integrations:${integration.provider.key}`,
-        },
-      });
-      onSelect({...optimistic, ...created});
+      try {
+        const created = await fetchMutation<Repository>({
+          url: `/organizations/${organization.slug}/repos/`,
+          method: 'POST',
+          data: {
+            installation: integration.id,
+            identifier: repo.identifier,
+            provider: `integrations:${integration.provider.key}`,
+          },
+        });
+        onSelect({...optimistic, ...created});
+      } catch (error) {
+        // Race with link_all_repos: the background task registered the repo
+        // between our GET and POST. Re-query to pick up the row it created.
+        const detail = error instanceof RequestError ? error.responseJSON?.detail : null;
+        if (
+          error instanceof RequestError &&
+          error.status === 400 &&
+          typeof detail === 'object' &&
+          detail?.code === 'repo_exists'
+        ) {
+          const raced = await findExistingRepo();
+          if (raced) {
+            onSelect({...optimistic, ...raced});
+            return;
+          }
+        }
+        throw error;
+      }
     } catch (error) {
       Sentry.captureException(error);
       addErrorMessage(t('Failed to select repository'));
