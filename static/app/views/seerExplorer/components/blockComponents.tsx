@@ -479,9 +479,6 @@ export function BlockComponent({
                                   />
                                 )}
                               </ToolCallLinkIconWrapper>
-                              <EnterKeyHint isVisible={isHighlighted}>
-                                enter ⏎
-                              </EnterKeyHint>
                             </ToolCallLink>
                           ) : (
                             <ToolCallPlainRow
@@ -753,17 +750,6 @@ const ToolCallLinkIconWrapper = styled('span')<{isHighlighted?: boolean}>`
   ${ToolCallLink}:hover & {
     visibility: visible;
   }
-`;
-
-const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
-  display: inline-block;
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.interactive.link.accent.hover};
-  flex-shrink: 0;
-  margin-left: ${p => p.theme.space.xs};
-  visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
-  font-family: ${p => p.theme.font.family.mono};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
