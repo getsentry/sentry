@@ -127,6 +127,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
                 **serializer.validated_data,
                 "organization_id": project.organization.id,
                 "project_id": project.id,
+                "autofix_automation_tuning": project.get_option("sentry:autofix_automation_tuning"),
             }
         )
         viewer_context = SeerViewerContext(

@@ -522,6 +522,10 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     extra={"run_id": run_id, "organization_id": organization.id},
                 )
                 return
+            if preference is not None:
+                preference.autofix_automation_tuning = project.get_option(
+                    "sentry:autofix_automation_tuning"
+                )
 
         if not preference or preference.automation_handoff is None:
             return

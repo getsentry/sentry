@@ -667,6 +667,7 @@ def _resolve_project_preference(
         repositories=[],
         automated_run_stopping_point=default_stopping_point,
         automation_handoff=default_handoff,
+        autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
     try:

@@ -381,6 +381,12 @@ class OrganizationAutofixAutomationSettingsEndpoint(OrganizationEndpoint):
                 validated_preferences = [
                     SeerProjectPreference.validate(pref) for pref in preferences_to_set
                 ]
+                # Preserve current autofix_automation_tuning (re-read after the
+                # in-transaction option update above) so the write doesn't clobber it.
+                for pref in validated_preferences:
+                    pref.autofix_automation_tuning = projects_by_id[pref.project_id].get_option(
+                        "sentry:autofix_automation_tuning"
+                    )
                 # Seer API responses don't include repository_id.
                 # Resolve before dual-writing so repos aren't skipped.
                 # This will not be necessary once we start keying by repo ID.

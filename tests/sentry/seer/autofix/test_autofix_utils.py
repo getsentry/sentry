@@ -5,6 +5,7 @@ import orjson
 import pytest
 
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, DataCategory
+from sentry.models.options.project_option import ProjectOption
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
@@ -965,6 +966,47 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.OFF
+        )
+
+    def test_writes_autofix_automation_tuning(self) -> None:
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            autofix_automation_tuning=AutofixAutomationTuningSettings.HIGH,
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.HIGH
+        )
+
+    def test_resets_autofix_automation_tuning_to_default(self) -> None:
+        self.project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.HIGH
+        )
+
+        preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            autofix_automation_tuning=AutofixAutomationTuningSettings.OFF,
+        )
+
+        write_preference_to_sentry_db(self.project, preference)
+
+        assert (
+            self.project.get_option("sentry:autofix_automation_tuning")
+            == AutofixAutomationTuningSettings.OFF
+        )
+        assert not ProjectOption.objects.filter(
+            project=self.project, key="sentry:autofix_automation_tuning"
+        ).exists()
 
     def test_creates_seer_project_repository_with_branch_overrides(self) -> None:
         preference = SeerProjectPreference(

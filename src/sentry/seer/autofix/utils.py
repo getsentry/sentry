@@ -18,6 +18,7 @@ from urllib3.util.retry import Retry
 from sentry import features, options, projectoptions, ratelimits
 from sentry.constants import (
     AUTO_OPEN_PRS_DEFAULT,
+    DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     DataCategory,
     ObjectStatus,
@@ -608,6 +609,12 @@ def _write_preference_project_options(project: Project, preference: SeerProjectP
         project.delete_option("sentry:seer_automation_handoff_integration_id")
         project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
 
+    tuning = preference.autofix_automation_tuning
+    if tuning == DEFAULT_AUTOFIX_AUTOMATION_TUNING_DEFAULT:
+        project.delete_option("sentry:autofix_automation_tuning")
+    else:
+        project.update_option("sentry:autofix_automation_tuning", tuning.value)
+
 
 def _write_preferences_to_sentry_db(
     project_preferences: list[tuple[Project, SeerProjectPreference]],
@@ -687,17 +694,14 @@ def _write_preferences_to_sentry_db(
 
 
 def write_preference_to_sentry_db(project: Project, preference: SeerProjectPreference) -> None:
-    """Write a single Seer project preference to ProjectOption and SeerProjectRepository.
-    TODO(AIML-2753): Add support for writing autofix_automation_tuning"""
+    """Write a single Seer project preference to ProjectOption and SeerProjectRepository."""
     _write_preferences_to_sentry_db([(project, preference)])
 
 
 def bulk_write_preferences_to_sentry_db(
     projects: list[Project], preferences: list[SeerProjectPreference]
 ) -> None:
-    """Write multiple Seer project preferences using bulk operations.
-    TODO(AIML-2753): Add support for writing autofix_automation_tuning
-    """
+    """Write multiple Seer project preferences using bulk operations."""
     projects_by_id = {p.id: p for p in projects}
 
     project_preferences: list[tuple[Project, SeerProjectPreference]] = []

@@ -98,9 +98,6 @@ class SeerProjectPreference(BaseModel):
     repositories: list[SeerRepoDefinition]
     automated_run_stopping_point: str | None = None
     automation_handoff: SeerAutomationHandoffConfiguration | None = None
-    # Currently we correctly get autofix_automation_tuning in the read path - but
-    # not the write path.
-    # TODO(AIML-2753): Support this field in the write path and not just the read path.
     autofix_automation_tuning: AutofixAutomationTuningSettings = AutofixAutomationTuningSettings.OFF
 
 

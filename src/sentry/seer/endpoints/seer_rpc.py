@@ -634,6 +634,10 @@ def trigger_coding_agent_launch(
                     preference = read_preference_from_sentry_db(project)
                 else:
                     preference = get_project_seer_preferences(project.id).preference
+                    if preference is not None:
+                        preference.autofix_automation_tuning = project.get_option(
+                            "sentry:autofix_automation_tuning"
+                        )
 
                 if preference and preference.automation_handoff is not None:
                     updated_preference = preference.copy(update={"automation_handoff": None})

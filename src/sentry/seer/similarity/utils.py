@@ -583,6 +583,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
         repositories=[],
         automated_run_stopping_point=stopping_point,
         automation_handoff=automation_handoff,
+        autofix_automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
     )
 
     try:
