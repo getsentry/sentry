@@ -43,14 +43,14 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 interface Props extends ModalRenderProps {
   title: string;
-  preSelectedProjectId?: Project['id'];
+  defaultProject?: Project;
 }
 
 export function ProjectAddRepoModal({
   Header,
   Body,
   Footer,
-  preSelectedProjectId,
+  defaultProject,
   title,
   closeModal,
 }: Props) {
@@ -65,9 +65,12 @@ export function ProjectAddRepoModal({
   const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
   const formSchema = z.object({
-    projectId: z.string().refine(id => projectsById.has(id), {
-      message: t('Please select a project'),
-    }),
+    project: z
+      .string()
+      .refine(id => projectsById.has(id), {
+        message: t('Please select a project'),
+      })
+      .transform(id => projectsById.get(id)!),
     repoEntries: z
       .array(
         z.object({
@@ -87,34 +90,27 @@ export function ProjectAddRepoModal({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      projectId: preSelectedProjectId ?? '',
+      project: defaultProject?.id ?? '',
       repoEntries: [{repoId: '', branch: ''}],
       agent: useOrgDefaultAgent(),
       stoppingPoint: useOrgDefaultStoppingPoint(),
     },
     validators: {onDynamic: formSchema},
-    onSubmit: ({value: {projectId, repoEntries, agent, stoppingPoint}}) =>
-      saveMutation
-        .mutateAsync(
-          {
-            project: projectsById.get(projectId)!, // We refined projectId, so this is safe
-            repoEntries,
-            agent,
-            stoppingPoint,
+    onSubmit: ({value}) => {
+      return saveMutation
+        .mutateAsync(formSchema.parse(value), {
+          onSuccess: () => {
+            addSuccessMessage(t('Project saved successfully'));
+            closeModal();
           },
-          {
-            onSuccess: () => {
-              addSuccessMessage(t('Project saved successfully'));
-              closeModal();
-            },
-            onError: () => {
-              addErrorMessage(t('Failed to save project settings'));
-            },
-          }
-        )
+          onError: () => {
+            addErrorMessage(t('Failed to save project settings'));
+          },
+        })
         .catch(() => {
           addErrorMessage(t('Failed to save project settings'));
-        }),
+        });
+    },
   });
 
   return (
@@ -137,7 +133,7 @@ export function ProjectAddRepoModal({
             <Separator orientation="horizontal" />
 
             <Grid columns="1fr max-content 1fr" gap="xl">
-              <form.AppField name="projectId">
+              <form.AppField name="project">
                 {field => (
                   <CompactSelect
                     style={{width: '100%'}}
@@ -156,7 +152,7 @@ export function ProjectAddRepoModal({
                         </OverlayTrigger.Button>
                       );
                     }}
-                    disabled={Boolean(preSelectedProjectId)}
+                    disabled={Boolean(defaultProject)}
                     emptyMessage={t('No projects found')}
                     onChange={option => field.handleChange(option?.value ?? '')}
                     options={projectOptions}
