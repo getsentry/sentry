@@ -127,6 +127,7 @@ def resolve_seer_organization_for_slack_user(
             logger.info("resolve_seer_organization.missing_membership", extra=logging_ctx)
             continue
 
+        logger.info("resolve_seer_organization.success", extra=logging_ctx)
         return SeerResolutionResult(organization_id=organization_id, halt_reason=None)
 
     logger.info("resolve_seer_organization.no_organization", extra=logging_ctx)
