@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,6 +24,7 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
+  getExplorerFeedbackOptions,
   getExplorerUrl,
   getLangfuseUrl,
   useCopySessionDataToClipboard,
@@ -37,6 +39,7 @@ export function ExplorerDrawerContent({
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
+  const {closeDrawer} = useDrawer();
 
   const [inputValue, setInputValue] = useState('');
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
@@ -163,20 +166,10 @@ export function ExplorerDrawerContent({
   const openFeedbackForm = useFeedbackForm();
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
-      openFeedbackForm({
-        formTitle: 'Seer Agent Feedback',
-        messagePlaceholder: 'How can we make Seer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-          ['feedback.owner']: 'ml-ai',
-          ...(runId === null ? {} : {['seer.run_id']: runId}),
-          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
-          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
-        },
-      });
+      const feedbackOptions = getExplorerFeedbackOptions(runId);
+      openFeedbackForm(feedbackOptions);
     }
-  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
+  }, [openFeedbackForm, runId]);
 
   // - Pop-up menu component --------------------------------------------------
 
@@ -237,12 +230,12 @@ export function ExplorerDrawerContent({
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
-      } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
+      } else if (e.key === 'Escape') {
         e.preventDefault();
-        interruptRun();
+        closeDrawer();
       }
     },
-    [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
+    [readOnly, handleSend, closeDrawer]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -344,6 +337,7 @@ export function ExplorerDrawerContent({
           focusInput();
         }}
         onChangeSession={switchToRun}
+        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
         onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}

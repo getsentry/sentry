@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
@@ -13,10 +14,13 @@ from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequest
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
 from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.slack.workspace import get_thread_history
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import OrganizationStatus
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
+from sentry.seer.entrypoints.slack.mention import build_thread_context
 from sentry.silo.base import SiloMode, all_silo_function
 from sentry.users.services.user.service import user_service
 
@@ -24,6 +28,10 @@ COMMANDS = ["link", "unlink", "link team", "unlink team"]
 SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 logger = logging.getLogger(__name__)
+
+# Slack wraps URLs in the form `<url>` or `<url|display text>`; this regex
+# extracts the URL portion while stopping at any of those delimiters.
+_URL_REGEX = re.compile(r"https?://[^\s<>|]+")
 
 
 def has_discover_links(links: list[str]) -> bool:
@@ -44,7 +52,95 @@ class SeerResolutionResult(NamedTuple):
 
 
 @all_silo_function
-def resolve_seer_organization_for_slack_user(
+def _resolve_available_organizations(
+    *, user_id: int, organization_ids: list[int], logging_ctx: dict[str, Any]
+) -> list[RpcUserOrganizationContext]:
+    """
+    Gets all organizations that adhere to the following:
+    - the organization exists
+    - the organization is active
+    - the user has access to the organization
+    - the organization has access to Seer Agent in Slack (varies based on SiloMode)
+    """
+    available_organizations = []
+    for organization_id in organization_ids:
+        ctx = organization_service.get_organization_by_id(id=organization_id, user_id=user_id)
+        logging_ctx["current_organization_id"] = organization_id
+        if ctx is None:
+            logger.info("_resolve_available_organizations.no_rpc_response", extra=logging_ctx)
+            continue
+
+        if ctx.organization.status != OrganizationStatus.ACTIVE:
+            logger.info("_resolve_available_organizations.inactive_org", extra=logging_ctx)
+            continue
+
+        # Since the getsentry FeatureHandler does _not_ add subscription context to CONTROL
+        # evaluations, we need to slim down the check to only cover the feature flag.
+        # This is actually fine, since after routing, this method is rerun at the CELL.
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            if not SlackAgentEntrypoint.has_feature_flag(ctx.organization):
+                logger.info("_resolve_available_organizations.no_feature_flag", extra=logging_ctx)
+                continue
+        else:
+            if not SlackAgentEntrypoint.has_access(ctx.organization):
+                logger.info("_resolve_available_organizations.no_access", extra=logging_ctx)
+                continue
+
+        if ctx.member is None:
+            logger.info("_resolve_available_organizations.missing_membership", extra=logging_ctx)
+            continue
+
+        logger.info("_resolve_available_organizations.success", extra=logging_ctx)
+        available_organizations.append(ctx)
+    return available_organizations
+
+
+def _resolve_organization_from_text(
+    *, search_text: str, available_organizations: list[RpcUserOrganizationContext]
+) -> RpcUserOrganizationContext | None:
+    """
+    Resolves an organization from the initial message text by looking for Sentry issue links and
+    matching its org slug against the available organizations. Returns the first match.
+    """
+    organizations_by_slug = {ctx.organization.slug: ctx for ctx in available_organizations}
+    for url in _URL_REGEX.findall(search_text):
+        _, args = match_link(url)
+        if not args or "org_slug" not in args:
+            continue
+        ctx = organizations_by_slug.get(args["org_slug"])
+        if ctx is not None:
+            return ctx
+    return None
+
+
+def _resolve_organization_from_thread(
+    *,
+    integration: RpcIntegration,
+    channel_id: str,
+    thread_ts: str,
+    available_organizations: list[RpcUserOrganizationContext],
+) -> RpcUserOrganizationContext | None:
+    """
+    Resolves an organization from a thread by looking for Sentry issue links starting with the
+    earliest message and matching its org slug against the available organizations. Returns the
+    first match.
+    """
+    if not channel_id or not thread_ts:
+        return None
+    thread_messages = get_thread_history(
+        integration_id=integration.id,
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        scopes=integration.metadata.get("scopes"),
+    )
+    thread_context = build_thread_context(thread_messages)
+    return _resolve_organization_from_text(
+        search_text=thread_context, available_organizations=available_organizations
+    )
+
+
+@all_silo_function
+def resolve_seer_organization(
     *,
     integration: RpcIntegration,
     slack_user_id: str,
@@ -55,7 +151,7 @@ def resolve_seer_organization_for_slack_user(
     message_text: str,
 ) -> SeerResolutionResult:
     """
-        Resolve and validate an organization/user for a Seer Slack event.
+    Resolve and validate an organization/user for a Seer Slack event.
 
     We require a linked identity, then search for an active, organization they belong to with
     Seer Agent access.
@@ -85,6 +181,7 @@ def resolve_seer_organization_for_slack_user(
     )
     user = user_service.get_user(identity.user_id) if identity else None
     if not user:
+        logger.info("resolve_seer_organization.identity_not_linked", extra=logging_ctx)
         return SeerResolutionResult(
             organization_id=None, halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
         )
@@ -95,45 +192,60 @@ def resolve_seer_organization_for_slack_user(
         providers=SLACK_PROVIDERS,
     )
     if not ois:
+        logger.info("resolve_seer_organization.no_valid_integration", extra=logging_ctx)
         return SeerResolutionResult(
             organization_id=None, halt_reason=SeerSlackHaltReason.NO_VALID_INTEGRATION
         )
 
-    logging_ctx["organization_ids"] = [oi.organization_id for oi in ois]
-    for oi in ois:
-        organization_id = oi.organization_id
-        ctx = organization_service.get_organization_by_id(id=oi.organization_id, user_id=user.id)
-        logging_ctx["current_organization_id"] = oi.organization_id
-        if ctx is None:
-            logger.info("resolve_seer_organization.no_rpc_response", extra=logging_ctx)
-            continue
+    organization_ids = [oi.organization_id for oi in ois]
+    logging_ctx["organization_ids"] = organization_ids
 
-        if ctx.organization.status != OrganizationStatus.ACTIVE:
-            logger.info("resolve_seer_organization.inactive_org", extra=logging_ctx)
-            continue
+    available_organizations = _resolve_available_organizations(
+        user_id=user.id, organization_ids=organization_ids, logging_ctx=logging_ctx
+    )
+    logging_ctx["organization_slugs"] = [ctx.organization.slug for ctx in available_organizations]
+    if not available_organizations:
+        logger.info("resolve_seer_organization.no_valid_organization", extra=logging_ctx)
+        return SeerResolutionResult(
+            organization_id=None, halt_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
+        )
 
-        # Since the getsentry FeatureHandler does _not_ add subscription context to CONTROL
-        # evaluations, we need to slim down the check to only cover the feature flag.
-        # This is actually fine, since after routing, this method is rerun at the CELL.
-        if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            if not SlackAgentEntrypoint.has_feature_flag(ctx.organization):
-                logger.info("resolve_seer_organization.no_feature_flag", extra=logging_ctx)
-                continue
-        else:
-            if not SlackAgentEntrypoint.has_access(ctx.organization):
-                logger.info("resolve_seer_organization.no_access", extra=logging_ctx)
-                continue
+    if len(available_organizations) == 1:
+        logger.info("resolve_seer_organization.single_organization", extra=logging_ctx)
+        return SeerResolutionResult(
+            organization_id=available_organizations[0].organization.id, halt_reason=None
+        )
 
-        if ctx.member is None:
-            logger.info("resolve_seer_organization.missing_membership", extra=logging_ctx)
-            continue
+    # If multiple organization are available, we follow a staged resolution approach:
+    # 1. Check the initial message for an organization identifier
+    ctx_from_message = _resolve_organization_from_text(
+        search_text=message_text, available_organizations=available_organizations
+    )
+    if ctx_from_message is not None:
+        logger.info("resolve_seer_organization.resolved_from_message", extra=logging_ctx)
+        return SeerResolutionResult(
+            organization_id=ctx_from_message.organization.id, halt_reason=None
+        )
 
-        logger.info("resolve_seer_organization.success", extra=logging_ctx)
-        return SeerResolutionResult(organization_id=organization_id, halt_reason=None)
+    # 2. Check the entire thread for an organization identifier
+    ctx_from_thread = _resolve_organization_from_thread(
+        integration=integration,
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        available_organizations=available_organizations,
+    )
+    if ctx_from_thread is not None:
+        logger.info("resolve_seer_organization.resolved_from_thread", extra=logging_ctx)
+        return SeerResolutionResult(
+            organization_id=ctx_from_thread.organization.id, halt_reason=None
+        )
 
-    logger.info("resolve_seer_organization.no_organization", extra=logging_ctx)
+    # 3. Check the user's preferred organization (TODO)
+    # 4. Fallback to the first result
+    first_organization = available_organizations[0]
+    logger.info("resolve_seer_organization.fallback_organization", extra=logging_ctx)
     return SeerResolutionResult(
-        organization_id=None, halt_reason=SeerSlackHaltReason.NO_VALID_ORGANIZATION
+        organization_id=first_organization.organization.id, halt_reason=None
     )
 
 
@@ -179,7 +291,7 @@ class SlackEventRequest(SlackDMRequest):
 
     @all_silo_function
     def resolve_seer_organization(self) -> SeerResolutionResult:
-        return resolve_seer_organization_for_slack_user(
+        return resolve_seer_organization(
             integration=self.integration,
             slack_user_id=self.user_id,
             channel_id=self.channel_id,

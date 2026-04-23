@@ -18,7 +18,7 @@ export function useReplayCountForTransactions({
   const organization = useOrganization();
   const {getOne, getMany, hasOne, hasMany} = useReplayCount({
     bufferLimit,
-    dataSource: 'discover',
+    dataSource: 'transactions',
     fieldName: 'transaction',
     organization,
     statsPeriod,
