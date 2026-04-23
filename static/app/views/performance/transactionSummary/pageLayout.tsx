@@ -162,25 +162,22 @@ export function PageLayout(props: Props) {
     [location.query, organization, projectId, transactionName]
   );
 
-  const onTabChange = useCallback(
-    (newTab: Tab) => {
-      // Prevent infinite rerenders
-      if (newTab === tab) {
-        return;
-      }
+  const onTabChange = (newTab: Tab) => {
+    // Prevent infinite rerenders
+    if (newTab === tab) {
+      return;
+    }
 
-      const analyticsKey = TAB_ANALYTICS[newTab];
-      if (analyticsKey) {
-        trackAnalytics(analyticsKey, {
-          organization,
-          project_platforms: getSelectedProjectPlatforms(location, projects),
-        });
-      }
+    const analyticsKey = TAB_ANALYTICS[newTab];
+    if (analyticsKey) {
+      trackAnalytics(analyticsKey, {
+        organization,
+        project_platforms: getSelectedProjectPlatforms(location, projects),
+      });
+    }
 
-      navigate(normalizeUrl(getNewRoute(newTab)));
-    },
-    [getNewRoute, tab, organization, location, projects, navigate]
-  );
+    navigate(normalizeUrl(getNewRoute(newTab)));
+  };
 
   const shouldUseEAP = useTransactionSummaryEAP();
 

@@ -1,10 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,15 +49,59 @@ export function WidgetBuilderTypeSelector({
   const hasTextWidget = organization.features.includes('dashboards-text-widgets');
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
-  const displayTypeOrder: Array<{label: string; type: DisplayType}> = [
-    {type: DisplayType.AREA, label: t('Area')},
-    {type: DisplayType.BAR, label: t('Bar (Time Series)')},
-    {type: DisplayType.CATEGORICAL_BAR, label: t('Bar (Categorical)')},
-    {type: DisplayType.LINE, label: t('Line')},
-    {type: DisplayType.TABLE, label: t('Table')},
-    {type: DisplayType.BIG_NUMBER, label: t('Big Number')},
-    ...(hasTextWidget ? [{type: DisplayType.TEXT, label: t('Text (Markdown)')}] : []),
-    ...(hasDetailsWidget ? [{type: DisplayType.DETAILS, label: t('Details')}] : []),
+  const displayTypeOrder: Array<{
+    details: string;
+    label: string;
+    type: DisplayType;
+  }> = [
+    {
+      type: DisplayType.AREA,
+      label: t('Area'),
+      details: t('Compare relative contributions over time.'),
+    },
+    {
+      type: DisplayType.BAR,
+      label: t('Bar (Time Series)'),
+      details: t('Compare one or more measurements over time using bars.'),
+    },
+    {
+      type: DisplayType.CATEGORICAL_BAR,
+      label: t('Bar (Categorical)'),
+      details: t('Compare measurements across categories.'),
+    },
+    {
+      type: DisplayType.LINE,
+      label: t('Line'),
+      details: t('Compare one or more measurements over time.'),
+    },
+    {
+      type: DisplayType.TABLE,
+      label: t('Table'),
+      details: t('Display filtered fields and aggregations in a table.'),
+    },
+    {
+      type: DisplayType.BIG_NUMBER,
+      label: t('Big Number'),
+      details: t('Show a single aggregated value over the selected time range.'),
+    },
+    ...(hasTextWidget
+      ? [
+          {
+            type: DisplayType.TEXT,
+            label: t('Text (Markdown)'),
+            details: t('Display rich text and formatted markdown.'),
+          },
+        ]
+      : []),
+    ...(hasDetailsWidget
+      ? [
+          {
+            type: DisplayType.DETAILS,
+            label: t('Details'),
+            details: t('Show a representative example of the filtered event data.'),
+          },
+        ]
+      : []),
   ];
 
   // Issue series widgets query a different data source from table widgets.
@@ -121,38 +163,35 @@ export function WidgetBuilderTypeSelector({
         inline={false}
         flexibleControlStateSize
       >
-        <Select
-          name="displayType"
+        <CompactSelect
           value={state.displayType}
-          options={displayTypeOrder.map(({type, label}) => ({
+          options={displayTypeOrder.map(({type, label, details}) => ({
             leadingItems: typeIcons[type],
             label,
             value: type,
+            details,
             disabled:
               type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type),
           }))}
-          clearable={false}
-          onChange={(newValue: any) => {
-            if (newValue?.value === state.displayType) {
+          menuWidth={300}
+          onChange={selection => {
+            const newValue = selection.value;
+            if (newValue === state.displayType) {
               return;
             }
             setError?.({...error, displayType: undefined});
 
-            if (
-              state.displayType === DisplayType.TEXT &&
-              newValue?.value !== DisplayType.TEXT
-            ) {
-              handleTextWidgetDisplayTypeChange(newValue?.value);
+            if (state.displayType === DisplayType.TEXT && newValue !== DisplayType.TEXT) {
+              handleTextWidgetDisplayTypeChange(newValue);
             } else if (state.dataset === WidgetType.ISSUE) {
-              handleIssueWidgetDisplayTypeChange(newValue?.value);
+              handleIssueWidgetDisplayTypeChange(newValue);
             } else {
               dispatch({
                 type: BuilderStateAction.SET_DISPLAY_TYPE,
-                payload: newValue?.value,
+                payload: newValue,
               });
               if (
-                (newValue.value === DisplayType.TABLE ||
-                  newValue.value === DisplayType.BIG_NUMBER) &&
+                (newValue === DisplayType.TABLE || newValue === DisplayType.BIG_NUMBER) &&
                 state.query?.length
               ) {
                 dispatch({
@@ -166,22 +205,10 @@ export function WidgetBuilderTypeSelector({
               widget_type: state.dataset ?? '',
               builder_version: WidgetBuilderVersion.SLIDEOUT,
               field: 'displayType',
-              value: newValue?.value ?? '',
+              value: newValue ?? '',
               new_widget: !isEditing,
               organization,
             });
-          }}
-          components={{
-            SingleValue: (containerProps: any) => {
-              return (
-                <components.SingleValue {...containerProps}>
-                  <Flex gap="md">
-                    {containerProps.data.leadingItems}
-                    {containerProps.children}
-                  </Flex>
-                </components.SingleValue>
-              );
-            },
           }}
         />
       </StyledFieldGroup>

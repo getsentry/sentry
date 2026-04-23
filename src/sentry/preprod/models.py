@@ -578,6 +578,14 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
                 (cls.APP_CLIP_ARTIFACT, "app_clip_artifact"),
             )
 
+        def to_choice_label(self) -> str:
+            """Return the human-readable choice label for this enum value.
+
+            Used by the EAP write path to store artifact type as a string attribute.
+            """
+            choices = dict(self.as_choices())
+            return choices[self.value]
+
     class SizeAnalysisState(IntEnum):
         PENDING = 0
         """Size analysis has not started yet."""

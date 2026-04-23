@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from sentry.features.handler import FeatureHandler
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.organizations.services.organization.model import RpcOrganization
     from sentry.users.models.user import User
 
 
@@ -321,7 +322,7 @@ class FeatureManager(RegisteredFeatureManager):
         feature_names: Sequence[str],
         actor: User | RpcUser | AnonymousUser | None = None,
         projects: Sequence[Project] | None = None,
-        organization: Organization | None = None,
+        organization: RpcOrganization | Organization | None = None,
     ) -> dict[str, dict[str, bool | None]] | None:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in

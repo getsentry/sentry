@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -14,7 +14,7 @@ interface Props {
 
 export function useFetchFeedbackData({feedbackId}: Props) {
   const organization = useOrganization();
-  const {getItemQueryKeys} = useFeedbackQueryKeys();
+  const {getItemQueryKeys} = useFeedbackApiOptions();
   const {issueQueryKey, eventQueryKey} = getItemQueryKeys(feedbackId);
 
   const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(

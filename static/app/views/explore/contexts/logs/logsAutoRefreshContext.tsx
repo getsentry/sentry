@@ -1,8 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

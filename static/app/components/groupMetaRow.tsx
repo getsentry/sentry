@@ -213,6 +213,7 @@ const LoggerAnnotation = styled(Annotation)`
   min-width: 10px;
   display: block;
   width: 100%;
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -222,7 +223,7 @@ const Location = styled('div')`
   font-size: ${p => p.theme.font.size.sm};
   color: ${p => p.theme.tokens.content.secondary};
   min-width: 10px;
-  line-height: 1.1;
+  line-height: 1.4;
   display: block;
   width: 100%;
   white-space: nowrap;

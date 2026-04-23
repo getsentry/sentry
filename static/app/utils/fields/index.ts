@@ -5,6 +5,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -2549,6 +2550,12 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  artifact_type: {
+    desc: t('The type of artifact component (e.g., main app, watch app, app clip)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    values: [...METRICS_ARTIFACT_TYPES],
+  },
   build_configuration_name: {
     desc: t('The name of the build configuration (e.g., Debug, Release)'),
     kind: FieldKind.FIELD,
@@ -2598,6 +2605,46 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     desc: t('The pull request number associated with a build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
+  },
+  image_count: {
+    desc: t('The number of images in the snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_added: {
+    desc: t('Number of images added compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_changed: {
+    desc: t('Number of images changed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_removed: {
+    desc: t('Number of images removed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_renamed: {
+    desc: t('Number of images renamed compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_skipped: {
+    desc: t('Number of images skipped during snapshot comparison'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  images_unchanged: {
+    desc: t('Number of images unchanged compared to the base snapshot'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.INTEGER,
+  },
+  is_approved: {
+    desc: t('Whether the snapshot comparison has been approved'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 

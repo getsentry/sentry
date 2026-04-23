@@ -50,12 +50,7 @@ export enum MEPState {
 const METRIC_SETTING_PARAM = 'metricSetting';
 export const METRIC_SEARCH_SETTING_PARAM = 'metricSearchSetting'; // TODO: Clean this up since we don't need multiple params in practice.
 
-function canUseMetricsDevUI(organization: Organization) {
-  return organization.features.includes('performance-use-metrics');
-}
-
 export function canUseMetricsData(organization: Organization) {
-  const isDevFlagOn = canUseMetricsDevUI(organization); // Forces metrics data on as well.
   const isInternalViewOn = organization.features.includes(
     'performance-transaction-name-only-search'
   );
@@ -68,7 +63,7 @@ export function canUseMetricsData(organization: Organization) {
     'dashboards-metrics-transition'
   );
 
-  return isDevFlagOn || isInternalViewOn || isRollingOut || isTransitioningPlan;
+  return isInternalViewOn || isRollingOut || isTransitioningPlan;
 }
 
 export function MEPSettingProvider({

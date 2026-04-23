@@ -369,7 +369,7 @@ function TriggeredConditionDetails({
   );
   const [fallbackEndDate] = useState(() => new Date().toISOString());
   const detectionType = evidenceData.config?.detectionType ?? 'static';
-  const {openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
+  const {data: openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId,
     eventId,
   });

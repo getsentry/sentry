@@ -7,21 +7,28 @@ import type {SelectValue} from 'sentry/types/core';
 import {
   COMPARISON_INTERVAL_CHOICES,
   INTERVAL_CHOICES,
+  Interval,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodes';
 
-export function CountBranch() {
+type IntervalChoice = {label: string; value: Interval};
+
+interface BranchProps {
+  intervalChoices?: IntervalChoice[];
+}
+
+export function CountBranch({intervalChoices = INTERVAL_CHOICES}: BranchProps) {
   return tct('more than [value] [interval]', {
     value: <ValueField />,
-    interval: <IntervalField />,
+    interval: <IntervalField intervalChoices={intervalChoices} />,
   });
 }
 
-export function PercentBranch() {
+export function PercentBranch({intervalChoices = INTERVAL_CHOICES}: BranchProps) {
   return tct('[value] higher [interval] compared to [comparison_interval]', {
     value: <PercentValueField />,
-    interval: <IntervalField />,
+    interval: <IntervalField intervalChoices={intervalChoices} />,
     comparison_interval: <ComparisonIntervalField />,
   });
 }
@@ -53,7 +60,11 @@ function PercentValueField() {
   );
 }
 
-function IntervalField() {
+function IntervalField({
+  intervalChoices = INTERVAL_CHOICES,
+}: {
+  intervalChoices?: IntervalChoice[];
+}) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -62,7 +73,7 @@ function IntervalField() {
       name={`${condition_id}.comparison.interval`}
       aria-label={t('Interval')}
       value={condition.comparison.interval}
-      options={INTERVAL_CHOICES}
+      options={intervalChoices}
       onChange={(option: SelectValue<string>) => {
         onUpdate({comparison: {...condition.comparison, interval: option.value}});
         removeError(condition.id);

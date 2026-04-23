@@ -64,10 +64,7 @@ def assert_no_webhook_payloads() -> None:
 def assert_webhook_payloads_for_mailbox(
     request: WSGIRequest,
     mailbox_name: str,
-    # TODO(cells): make required once getsentry passes cell everywhere
-    cell_names: list[str] | None = None,
-    # TODO(cells): remove once getsentry passes cell everywhere
-    region_names: list[str] | None = None,
+    cell_names: list[str],
     destination_types: dict[DestinationType, int] | None = None,
 ) -> None:
     """
@@ -80,7 +77,7 @@ def assert_webhook_payloads_for_mailbox(
     :param destination_types: Optional Mapping of destination types to the number of messages that should be found for that destination type
     """
     expected_payload = WebhookPayload.get_attributes_from_request(request=request)
-    cell_names_set = set(cell_names or region_names or [])
+    cell_names_set = set(cell_names)
     messages = WebhookPayload.objects.filter(mailbox_name=mailbox_name)
     messages_with_cell_count = messages.filter(cell_name__isnull=False).count()
     if messages_with_cell_count != len(cell_names_set):

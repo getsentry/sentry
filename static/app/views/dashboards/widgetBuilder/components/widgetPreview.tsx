@@ -112,11 +112,7 @@ export function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      widgetInterval={
-        organization.features.includes('dashboards-interval-selection')
-          ? chartInterval
-          : undefined
-      }
+      widgetInterval={chartInterval}
       onLegendSelectChanged={() => {}}
       legendOptions={
         widgetLegendState.widgetRequiresLegendUnselection(widget)
@@ -129,7 +125,7 @@ export function WidgetPreview({
       // dashboard state to be added
       onWidgetSplitDecision={() => {}}
       // onWidgetSplitDecision={onWidgetSplitDecision}
-      tableItemLimit={widget.limit}
+      tableItemLimit={widget.limit ?? undefined}
       showConfidenceWarning={
         widget.widgetType === WidgetType.SPANS ||
         widget.widgetType === WidgetType.TRACEMETRICS ||

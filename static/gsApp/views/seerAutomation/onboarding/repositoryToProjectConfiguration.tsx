@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -134,19 +134,16 @@ const RepositoryRow = memo(function RepositoryRow({
       : memberProjects.map(getProjectItem);
   }, [memberProjects, nonMemberProjects]);
 
-  const handleRepositoryChange = useCallback(
-    (option: SelectValue<string> | null) => {
-      if (option === null) {
-        onRemoveRepository?.(repository.id);
-        return;
-      }
+  const handleRepositoryChange = (option: SelectValue<string> | null) => {
+    if (option === null) {
+      onRemoveRepository?.(repository.id);
+      return;
+    }
 
-      if (option?.value && option.value !== repository.id) {
-        onChangeRepository(repository.id, option.value);
-      }
-    },
-    [repository.id, onChangeRepository, onRemoveRepository]
-  );
+    if (option?.value && option.value !== repository.id) {
+      onChangeRepository(repository.id, option.value);
+    }
+  };
 
   return (
     <MappingItem key={repository.id}>

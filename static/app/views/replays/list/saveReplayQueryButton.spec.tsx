@@ -42,24 +42,24 @@ describe('SaveReplayQueryButton', () => {
 
   it('renders the Save as button', () => {
     renderWithProvider();
-    expect(screen.getByRole('button', {name: 'Save as'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
   });
 
   it('does not disables the button when query is empty', () => {
     renderWithProvider();
-    expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: /save as/i})).toBeEnabled();
   });
 
   it('enables the button when query is not empty', () => {
     renderWithProvider('browser.name:Chrome');
-    expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: /save as/i})).toBeEnabled();
   });
 
   it('opens the save query modal when clicked', async () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     // Modal should be open with "New Query" title
     expect(await screen.findByRole('heading', {name: 'New Query'})).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     // Check for name section and input
     expect(await screen.findByText('Name')).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     // Check for starred toggle
     expect(await screen.findByText('Starred')).toBeInTheDocument();
@@ -92,7 +92,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     await screen.findByRole('heading', {name: 'New Query'});
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     await screen.findByRole('heading', {name: 'New Query'});
     expect(screen.getByRole('button', {name: 'Create a New Query'})).toBeDisabled();
@@ -113,7 +113,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     await screen.findByRole('heading', {name: 'New Query'});
     const nameInput = screen.getByPlaceholderText('Enter a name for your new query');
@@ -126,7 +126,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     await screen.findByRole('heading', {name: 'New Query'});
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
@@ -145,7 +145,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('browser.name:Chrome');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     await screen.findByRole('heading', {name: 'New Query'});
     const nameInput = screen.getByPlaceholderText('Enter a name for your new query');
@@ -178,7 +178,7 @@ describe('SaveReplayQueryButton', () => {
     renderWithProvider('user.email:test@example.com');
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
     await screen.findByRole('heading', {name: 'New Query'});
 

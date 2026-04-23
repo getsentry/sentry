@@ -85,7 +85,7 @@ export function useParams<P extends Partial<Record<ParamKeys, string | undefined
   return useMemo(() => {
     if (USING_CUSTOMER_DOMAIN && CUSTOMER_DOMAIN && contextParams.orgId === undefined) {
       // We do not know if the caller of this hook requires orgId, so we populate orgId implicitly.
-      return {...contextParams, orgId: CUSTOMER_DOMAIN} as P;
+      return {...contextParams, orgId: CUSTOMER_DOMAIN};
     }
     return contextParams;
   }, [contextParams]);

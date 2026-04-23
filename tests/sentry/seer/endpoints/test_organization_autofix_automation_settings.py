@@ -232,6 +232,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
                 "repositories": [],
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
                 "automation_handoff": None,
+                "autofix_automation_tuning": AutofixAutomationTuningSettings.OFF,
             }
         ]
 
@@ -293,6 +294,7 @@ class OrganizationAutofixAutomationSettingsEndpointTest(APITestCase):
                 "repositories": [],
                 "automated_run_stopping_point": AutofixStoppingPoint.OPEN_PR.value,
                 "automation_handoff": None,
+                "autofix_automation_tuning": AutofixAutomationTuningSettings.OFF,
             }
         ]
 

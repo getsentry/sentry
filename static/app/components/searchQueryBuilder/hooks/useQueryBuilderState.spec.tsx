@@ -1,9 +1,9 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 
-import {replaceFreeTextTokens} from './useQueryBuilderState';
+import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
@@ -244,5 +244,53 @@ describe('replaceFreeTextTokens', () => {
       expect(result?.newQuery).toBe(expected.query);
       expect(result?.focusOverride).toStrictEqual(expected.focusOverride);
     });
+  });
+});
+
+describe('multiSelectTokenValue', () => {
+  const filterKeys = {
+    'browser.name': {
+      key: 'browser.name',
+      name: 'browser.name',
+      kind: FieldKind.FIELD,
+    },
+  };
+
+  function runToggle(query: string, value: string) {
+    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
+    const token = parsed?.find(t => t.type === Token.FILTER);
+    if (!token) {
+      throw new Error(`No filter token found in query: ${query}`);
+    }
+
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+    return multiSelectTokenValue(state, {type: 'TOGGLE_FILTER_VALUE', token, value});
+  }
+
+  it('removes a manually-typed wildcard value when toggled off with its escaped form (list)', () => {
+    // User typed `browser.name:[test*,foo]` (wildcard). Suggestion checkbox
+    // dispatches the escaped `test\*` to toggle off.
+    const result = runToggle('browser.name:[test*,foo]', 'test\\*');
+    expect(result.query).toBe('browser.name:foo');
+  });
+
+  it('removes a manually-typed wildcard single value when toggled off with its escaped form', () => {
+    const result = runToggle('browser.name:test*', 'test\\*');
+    expect(result.query).toBe('browser.name:""');
+  });
+
+  it('appends a new value that does not match the existing raw value', () => {
+    const result = runToggle('browser.name:[test*,foo]', 'bar');
+    expect(result.query).toBe('browser.name:[test*,foo,bar]');
+  });
+
+  it('removes an already-escaped list value when toggled off with the same escaped form', () => {
+    const result = runToggle('browser.name:[test\\*,foo]', 'test\\*');
+    expect(result.query).toBe('browser.name:foo');
   });
 });

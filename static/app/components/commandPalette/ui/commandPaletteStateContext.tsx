@@ -23,6 +23,10 @@ export type CommandPaletteState = {
   action: CMDKNavStack | null;
   input: React.RefObject<HTMLInputElement | null>;
   open: boolean;
+  // When true, action and query are cleared the next time the modal opens.
+  // Set by 'trigger action' so the close animation plays without a jarring
+  // content swap, while still ensuring a clean slate on the next open.
+  pendingReset: boolean;
   query: string;
 };
 
@@ -62,6 +66,7 @@ function commandPaletteReducer(
         ...state,
         action: null,
         query: '',
+        pendingReset: false,
       };
     case 'set query':
       return {...state, query: action.query};
@@ -86,7 +91,7 @@ function commandPaletteReducer(
         query: state.action?.value?.query ?? state.query,
       };
     case 'trigger action':
-      return {...state, action: null, query: ''};
+      return {...state, pendingReset: true};
     default:
       unreachable(type);
       return state;
@@ -124,6 +129,7 @@ export function CommandPaletteStateProvider({
     query: '',
     action: null,
     open: false,
+    pendingReset: false,
   });
 
   return (

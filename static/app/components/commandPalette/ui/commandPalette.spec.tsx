@@ -157,6 +157,26 @@ describe('CommandPalette', () => {
     ).toHaveAttribute('data-link-type', 'external');
   });
 
+  it('renders both a custom trailingItem and the link indicator for a link action', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          to="/target/"
+          display={{
+            label: 'Action with trailing',
+            trailingItem: <span data-testid="custom-trailing">Badge</span>,
+          }}
+        />
+      </GlobalActionsComponent>
+    );
+
+    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
+    expect(
+      option.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toBeInTheDocument();
+  });
+
   it('clicking action with children shows sub-items, backspace returns', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     render(
@@ -283,8 +303,9 @@ describe('CommandPalette', () => {
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'child');
 
+      // The item now renders with its parent group as a prefix, so match by regex
       expect(
-        await screen.findByRole('option', {name: 'Child Action'})
+        await screen.findByRole('option', {name: /Child Action/})
       ).toBeInTheDocument();
     });
 
@@ -826,9 +847,31 @@ describe('CommandPalette', () => {
       expect(expandedOptions.slice(0, 4)).toEqual([
         'java-spring-boot',
         'java-spring-boot-test',
-        'gkojavascript-nextjs',
         'gkojavascript-astro',
+        'gkojavascript-nextjs',
       ]);
+    });
+
+    it('breaks equal search scores by shorter label length', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Paths'}} limit={2}>
+            <CMDKAction display={{label: 'path-cccccc'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'path-aaa'}} onAction={jest.fn()} />
+            <CMDKAction display={{label: 'path-b'}} onAction={jest.fn()} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'path');
+
+      const options = screen
+        .getAllByRole('option')
+        .filter(el => !el.hasAttribute('aria-disabled'))
+        .map(option => option.textContent);
+
+      expect(options).toEqual(['path-b', 'path-aaa', 'See all']);
     });
   });
 
@@ -1014,6 +1057,78 @@ describe('CommandPalette', () => {
       );
 
       await waitFor(() => expect(input).toHaveValue('parent'));
+    });
+  });
+
+  describe('deferred reset on close', () => {
+    // Top-level CMDKActions with children render as section headers (disabled),
+    // so to get a drillable item we nest the target group one level deeper.
+    // "Section" becomes a disabled header; "Drillable Group" is a selectable
+    // item that pushes onto the nav stack when clicked.
+    function ToggleablePalette({showPalette}: {showPalette: boolean}) {
+      return (
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'Drillable Group'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          {showPalette && <CommandPalette closeModal={jest.fn()} />}
+        </CommandPaletteProvider>
+      );
+    }
+
+    it('does not reset items immediately when a leaf action is triggered', async () => {
+      render(<ToggleablePalette showPalette />);
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+      await userEvent.click(screen.getByRole('option', {name: 'Child Action'}));
+
+      // pendingReset is set but the component is still mounted, so items must not
+      // swap back to the root list before the exit animation has completed
+      expect(screen.getByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+
+    it('resets action and query when the component unmounts after triggering an action', async () => {
+      const {rerender} = render(<ToggleablePalette showPalette />);
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Child Action'}));
+
+      // Unmount simulates the exit animation completing and React removing the element
+      rerender(<ToggleablePalette showPalette={false} />);
+
+      // Remount — state should have been reset by the cleanup effect
+      rerender(<ToggleablePalette showPalette />);
+
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('preserves state when closed without triggering an action', async () => {
+      const {rerender} = render(<ToggleablePalette showPalette />);
+
+      // Drill into the group but do not select a leaf action
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      // Unmount (user dismissed the palette without selecting anything)
+      rerender(<ToggleablePalette showPalette={false} />);
+
+      // Remount — state should be preserved (no pendingReset was set)
+      rerender(<ToggleablePalette showPalette />);
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
     });
   });
 

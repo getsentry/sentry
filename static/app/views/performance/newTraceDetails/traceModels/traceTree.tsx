@@ -1212,16 +1212,43 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return node.depth;
     }
 
-    let depth = -2;
-    let start: BaseNode | null = node;
+    const visibleParent = TraceTree.VisibleParent(node);
+    node.depth = visibleParent ? TraceTree.Depth(visibleParent) + 1 : 0;
+    return node.depth;
+  }
+
+  static VisibleParent(node: BaseNode): BaseNode | null {
+    if (node.visibleParent !== undefined) {
+      return node.visibleParent;
+    }
+
+    let start = node.parent;
 
     while (start) {
-      depth++;
+      if (
+        start.directVisibleChildren.includes(node) &&
+        (start.isRootNodeChild() || TraceTree.VisibleParent(start) !== null)
+      ) {
+        node.visibleParent = start;
+        return node.visibleParent;
+      }
+
       start = start.parent;
     }
 
-    node.depth = depth;
-    return depth;
+    node.visibleParent = null;
+    return node.visibleParent;
+  }
+
+  static IsLastVisibleChild(node: BaseNode): boolean {
+    const visibleParent = TraceTree.VisibleParent(node);
+
+    if (!visibleParent) {
+      return node.isLastChild();
+    }
+
+    const visibleChildren = visibleParent.directVisibleChildren;
+    return visibleChildren[visibleChildren.length - 1] === node;
   }
 
   static ConnectorsTo(node: BaseNode): number[] {
@@ -1230,31 +1257,36 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const connectors: number[] = [];
-    let start = node.parent;
+    let start = TraceTree.VisibleParent(node);
 
-    if (start?.isRootNodeChild() && !node.isLastChild()) {
+    if (start?.isRootNodeChild() && !TraceTree.IsLastVisibleChild(node)) {
       node.connectors = [-TraceTree.Depth(node)];
       return node.connectors;
     }
 
-    if (!node.isLastChild()) {
+    if (!TraceTree.IsLastVisibleChild(node)) {
       connectors.push(TraceTree.Depth(node));
     }
 
     while (start) {
-      if (!start.value || !start.parent) {
+      if (!start.value) {
         break;
       }
 
-      if (start.isLastChild()) {
-        start = start.parent;
+      const visibleParent = TraceTree.VisibleParent(start);
+      if (!visibleParent) {
+        break;
+      }
+
+      if (TraceTree.IsLastVisibleChild(start)) {
+        start = visibleParent;
         continue;
       }
 
       connectors.push(
-        start.parent.isRootNodeChild() ? -TraceTree.Depth(start) : TraceTree.Depth(start)
+        visibleParent.isRootNodeChild() ? -TraceTree.Depth(start) : TraceTree.Depth(start)
       );
-      start = start.parent;
+      start = visibleParent;
     }
 
     node.connectors = connectors;

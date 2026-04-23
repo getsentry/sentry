@@ -1,14 +1,13 @@
-import {useEffect, useMemo, type ReactNode} from 'react';
+import {useEffect, type ReactNode} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useLogReplayDataLoaded} from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
 import {useMarkReplayViewed} from 'sentry/utils/replays/hooks/useMarkReplayViewed';
-import {useReplayListQueryKey} from 'sentry/utils/replays/hooks/useReplayListQueryKey';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerSizeContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
@@ -16,14 +15,12 @@ import {ReplayPlaylistProvider} from 'sentry/utils/replays/playback/providers/re
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import {
-  type ReplayListQueryReferrer,
-  type ReplayListRecord,
-} from 'sentry/views/replays/types';
+import {type ReplayListQueryReferrer} from 'sentry/views/replays/types';
 
 interface Props {
   children: ReactNode;
@@ -74,23 +71,23 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   query.sort =
     !playlistSort || playlistSort === '' ? DEFAULT_REPLAY_LIST_SORT : playlistSort;
 
-  const queryKey = useReplayListQueryKey({
+  const replayListOptions = replayListApiOptions({
     options: {query},
     organization,
     queryReferrer: query.referrer
       ? (query.referrer as ReplayListQueryReferrer)
       : 'replayList',
   });
-  const {data, isLoading, getResponseHeader} = useApiQuery<{
-    data: ReplayListRecord[];
-    enabled: boolean;
-  }>(queryKey, {
-    staleTime: 0,
+  const {data, isLoading} = useQuery({
+    ...replayListOptions,
+    select: ({json, headers}) => ({
+      json: json.data.map(mapResponseToReplayRecord),
+      headers,
+    }),
     enabled: Boolean(playlistStart && playlistEnd),
   });
-  const pageLinks = getResponseHeader?.('Link') ?? null;
-
-  const replays = useMemo(() => data?.data?.map(mapResponseToReplayRecord) ?? [], [data]);
+  const pageLinks = data?.headers.Link ?? null;
+  const replays = data?.json ?? [];
 
   useLogReplayDataLoaded({projectId: replayRecord.project_id, replay});
 

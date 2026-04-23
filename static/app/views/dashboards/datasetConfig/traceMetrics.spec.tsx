@@ -12,10 +12,20 @@ import {
 } from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {DisplayType, WidgetType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
+
+const mockUseTraceItemSearchQueryBuilderProps = jest.fn(() => ({
+  filterKeys: {},
+  filterKeySections: [],
+  getTagValues: jest.fn(),
+}));
 
 jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   return {
     ...jest.requireActual('sentry/views/explore/components/traceItemSearchQueryBuilder'),
+    useTraceItemSearchQueryBuilderProps: (
+      ...args: Parameters<typeof mockUseTraceItemSearchQueryBuilderProps>
+    ) => mockUseTraceItemSearchQueryBuilderProps(...args),
     TraceItemSearchQueryBuilder: jest.fn(props => (
       <div
         data-test-id="trace-item-search-query-builder"
@@ -792,6 +802,95 @@ describe('TraceMetricsConfig', () => {
       const searchBar = await screen.findByTestId('trace-item-search-query-builder');
       expect(searchBar).toHaveAttribute('data-disable-recent-searches', 'false');
       expect(searchBar).toHaveAttribute('data-namespace', 'same_metric');
+    });
+  });
+
+  describe('useTraceMetricsSearchBarDataProvider', () => {
+    const defaultWidgetQuery: WidgetQuery = {
+      name: '',
+      fields: [],
+      columns: [],
+      fieldAliases: [],
+      aggregates: [],
+      conditions: '',
+      orderby: '',
+    };
+
+    function SearchBarDataProviderProbe({widgetQuery}: {widgetQuery?: WidgetQuery}) {
+      TraceMetricsConfig.useSearchBarDataProvider?.({
+        pageFilters: PageFiltersFixture({projects: [1]}),
+        widgetQuery,
+      });
+      return null;
+    }
+
+    beforeEach(() => {
+      mockUseTraceItemSearchQueryBuilderProps.mockClear();
+    });
+
+    it('does not scope attribute suggestions to the first metric when multiple metrics are selected', () => {
+      render(
+        <WidgetBuilderProvider>
+          <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                yAxis: ['avg(value,metric_a,counter,-)', 'avg(value,metric_b,gauge,-)'],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.LINE,
+              },
+            },
+          },
+        }
+      );
+
+      expect(mockUseTraceItemSearchQueryBuilderProps).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributeQuery: undefined,
+        })
+      );
+    });
+
+    it('keeps attribute suggestions scoped when all selected aggregates target the same metric', () => {
+      render(
+        <WidgetBuilderProvider>
+          <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
+        </WidgetBuilderProvider>,
+        {
+          organization: OrganizationFixture({
+            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
+          }),
+          initialRouterConfig: {
+            location: {
+              pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+              query: {
+                yAxis: [
+                  'avg(value,same_metric,counter,-)',
+                  'p50(value,same_metric,counter,-)',
+                ],
+                dataset: WidgetType.TRACEMETRICS,
+                displayType: DisplayType.LINE,
+              },
+            },
+          },
+        }
+      );
+
+      expect(mockUseTraceItemSearchQueryBuilderProps).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attributeQuery: createTraceMetricFilter({
+            name: 'same_metric',
+            type: 'counter',
+            unit: '-',
+          }),
+        })
+      );
     });
   });
 });

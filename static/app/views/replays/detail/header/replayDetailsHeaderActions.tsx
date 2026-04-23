@@ -6,6 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ConfigureReplayCard} from 'sentry/components/replays/header/configureReplayCard';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import {t} from 'sentry/locale';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
@@ -23,7 +24,15 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
       renderArchived={() => null}
       renderError={() => null}
       renderThrottled={() => null}
-      renderLoading={() => <Placeholder height="32px" width="352px" />}
+      renderLoading={() =>
+        hasPageFrameFeature ? (
+          <TopBar.Slot name="actions">
+            <Placeholder height="32px" width="352px" />
+          </TopBar.Slot>
+        ) : (
+          <Placeholder height="32px" width="352px" />
+        )
+      }
       renderMissing={() => null}
       renderProcessingError={({replayRecord, projectSlug}) =>
         hasPageFrameFeature ? (
@@ -37,7 +46,12 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
               />
             </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
             </TopBar.Slot>
           </Fragment>
         ) : (
@@ -68,7 +82,12 @@ export function ReplayDetailsHeaderActions({readerResult}: Props) {
               />
             </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton>{null}</FeedbackButton>
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
             </TopBar.Slot>
           </Fragment>
         ) : (

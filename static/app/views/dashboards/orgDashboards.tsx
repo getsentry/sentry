@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -9,7 +10,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -17,6 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
+import {mergeGlobalFilters} from './globalFilter/utils';
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
 import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
@@ -46,10 +50,6 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
-  const ENDPOINT = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
-
   // The currently selected dashboard. Use initialDashboard for optimistic updates
   // when navigating from widget builder (passed via location.state).
   const [selectedDashboardState, setSelectedDashboardState] =
@@ -60,7 +60,10 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     isPending: isDashboardsPending,
     isError: isDashboardsError,
     error: dashboardsError,
-  } = useApiQuery<DashboardListItem[]>([ENDPOINT], {staleTime: 0, retry: false});
+  } = useQuery({
+    ...dashboardsApiOptions(organization),
+    retry: false,
+  });
 
   const {
     data: fetchedSelectedDashboard,
@@ -88,11 +91,15 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   // If the dashboard is a prebuilt dashboard, merge the prebuilt dashboard data into the selected dashboard.
   // Preserve user-saved state (filters and page filters) from the DB record so changes persist.
   if (selectedDashboard?.prebuiltId) {
+    const prebuiltGlobalFilters = prebuiltDashboard?.filters?.globalFilter ?? [];
+    const savedGlobalFilters = selectedDashboard.filters?.globalFilter ?? [];
+    const globalFilter = mergeGlobalFilters(prebuiltGlobalFilters, savedGlobalFilters);
+
     selectedDashboard = {
       ...selectedDashboard,
       ...prebuiltDashboard,
       id: selectedDashboard.id,
-      filters: selectedDashboard.filters,
+      filters: {...selectedDashboard.filters, globalFilter},
       projects: selectedDashboard.projects,
       environment: selectedDashboard.environment,
       period: selectedDashboard.period,
@@ -189,10 +196,14 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // a flicker from stale data on refetch
     return () => {
       queryClient.removeQueries({
-        queryKey: [`${ENDPOINT}${dashboardId}/`],
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+            path: {organizationIdOrSlug: organization.slug, dashboardId},
+          }),
+        ],
       });
     };
-  }, [dashboardId, ENDPOINT, queryClient]);
+  }, [dashboardId, organization.slug, queryClient]);
 
   const childrenProps = useMemo(
     () => ({
@@ -235,7 +246,8 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
 
   if (isDashboardsError || isSelectedDashboardError) {
     const notFound =
-      dashboardsError?.status === 404 || selectedDashboardError?.status === 404;
+      (dashboardsError instanceof RequestError && dashboardsError.status === 404) ||
+      selectedDashboardError?.status === 404;
 
     if (notFound) {
       return <NotFound />;

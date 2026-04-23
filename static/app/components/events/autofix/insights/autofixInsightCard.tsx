@@ -339,7 +339,7 @@ const InsightContainer = styled('div')<{expanded?: boolean}>`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   border-color: ${p => (p.expanded ? p.theme.tokens.border.primary : 'transparent')};
 
-  box-shadow: ${p => (p.expanded ? p.theme.dropShadowMedium : 'none')};
+  box-shadow: ${p => (p.expanded ? p.theme.shadow.medium : 'none')};
 `;
 
 const MiniHeader = styled('p')<{expanded?: boolean}>`

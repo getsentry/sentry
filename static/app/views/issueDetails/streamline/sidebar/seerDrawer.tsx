@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
-import {css} from '@emotion/react';
+
+import {useDrawer} from '@sentry/scraps/drawer';
 
 import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';
 import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -55,14 +55,8 @@ export const useOpenSeerDrawer = ({
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
       resizable: true,
-      shouldCloseOnInteractOutside: () => {
-        return false;
-      },
+      mode: 'passive',
       onClose: () => {
         navigate(
           {

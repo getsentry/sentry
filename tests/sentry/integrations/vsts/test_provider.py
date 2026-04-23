@@ -17,7 +17,7 @@ from sentry.identity.vsts.provider import (
     VSTSNewOAuth2CallbackView,
     VSTSOAuth2CallbackView,
 )
-from sentry.integrations.vsts.integration import AccountConfigView, AccountForm
+from sentry.integrations.vsts.integration import AccountConfigView, AccountForm, get_accounts
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
@@ -241,8 +241,7 @@ class TestAccountConfigView(TestCase):
 
     @responses.activate
     def test_get_accounts(self) -> None:
-        view = AccountConfigView()
-        accounts = view.get_accounts("access-token", 123)
+        accounts = get_accounts("access-token", "123")
         assert accounts is not None
         assert accounts["value"][0]["accountName"] == "sentry"
         assert accounts["value"][1]["accountName"] == "sentry2"

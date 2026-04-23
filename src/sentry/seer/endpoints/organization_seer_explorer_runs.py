@@ -37,11 +37,16 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Get a list of explorer runs triggered by the requesting user.
+        Get a list of explorer runs for the organization.
+
+        By default, results are scoped to the requesting user. Pass ``owner=false``
+        to return runs from all users (e.g. system-created night-shift runs).
 
         Query Parameters:
-            category_key: Optional category key to filter by (e.g., "bug-fixer", "researcher")
-            category_value: Optional category value to filter by (e.g., "issue-123", "a5b32")
+            owner: If "true" (default), only return runs owned by the requesting
+                user. If "false", return runs regardless of owner.
+            category_key: Optional category key to filter by (e.g., "night_shift", "autofix")
+            category_value: Optional category value to filter by (e.g., "org-123")
         """
         has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
         if not has_access:
@@ -49,6 +54,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
 
         category_key = request.GET.get("category_key")
         category_value = request.GET.get("category_value")
+        only_current_user = request.GET.get("owner", "true").lower() != "false"
 
         def _make_seer_runs_request(offset: int, limit: int) -> dict[str, Any]:
             try:
@@ -58,6 +64,7 @@ class OrganizationSeerExplorerRunsEndpoint(OrganizationEndpoint):
                     category_value=category_value,
                     offset=offset,
                     limit=limit,
+                    only_current_user=only_current_user,
                 )
             except SeerPermissionError as e:
                 raise PermissionDenied(e.message) from e

@@ -62,7 +62,7 @@ export function RepositorySelector() {
   const allUnselected = selected.length === 0;
 
   // This is gonna lag if we have a lot of repositories, as we need to re-render all rows
-  const handleToggleAll = useCallback(() => {
+  const handleToggleAll = () => {
     if (allSelected) {
       setCodeReviewRepositories(
         Object.fromEntries(filteredRepositories.map(repo => [repo.id, false]))
@@ -73,7 +73,7 @@ export function RepositorySelector() {
     setCodeReviewRepositories(
       Object.fromEntries(filteredRepositories.map(repo => [repo.id, true]))
     );
-  }, [allSelected, filteredRepositories, setCodeReviewRepositories]);
+  };
 
   const handleToggleRepository = useCallback(
     (repositoryId: string, newValue: boolean) => {

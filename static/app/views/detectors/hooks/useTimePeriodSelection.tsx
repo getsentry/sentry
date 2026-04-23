@@ -17,8 +17,8 @@ interface UseTimePeriodSelectionResult {
 function mapIntervalToTimeWindow(intervalSeconds: number): TimeWindow | undefined {
   const intervalMinutes = Math.floor(intervalSeconds / 60);
 
-  if (Object.values(TimeWindow).includes(intervalMinutes as TimeWindow)) {
-    return intervalMinutes as TimeWindow;
+  if (Object.values(TimeWindow).includes(intervalMinutes)) {
+    return intervalMinutes;
   }
 
   return undefined;

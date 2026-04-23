@@ -29,6 +29,7 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issue_filter_keys,
     get_issues_stats,
 )
+from sentry.seer.assisted_query.metrics_tools import get_metric_metadata
 from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
@@ -50,6 +51,7 @@ from sentry.seer.explorer.index_data import (
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
 )
+from sentry.seer.explorer.snapshot_indexes import export_explorer_indexes
 from sentry.seer.explorer.tools import (
     execute_table_query,
     execute_timeseries_query,
@@ -97,6 +99,7 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_attribute_names": map_org_id_param(get_attribute_names),
     "get_attribute_values_with_substring": map_org_id_param(get_attribute_values_with_substring),
     "get_attributes_and_values": map_org_id_param(get_attributes_and_values),
+    "get_metric_metadata": map_org_id_param(get_metric_metadata),
     "get_event_filter_keys": map_org_id_param(get_event_filter_keys),
     "get_event_filter_key_values": map_org_id_param(get_event_filter_key_values),
     "get_issue_filter_keys": map_org_id_param(get_issue_filter_keys),
@@ -119,6 +122,9 @@ public_org_seer_method_registry: dict[str, Callable] = {
     "get_issues_stats": map_org_id_param(get_issues_stats),
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
+    #
+    # Explorer eval tooling
+    "export_explorer_indexes": map_org_id_param(export_explorer_indexes),
 }
 
 

@@ -45,6 +45,9 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         is_test: bool = False,
         user_id: int | None = None,
         email: str | None = None,
+        ip_address: str | None = None,
+        agree_terms: bool | None = None,
+        aggregated_data_consent: bool | None = None,
     ) -> Organization:
         assert (user_id is None and email) or (user_id and email is None), (
             "Must set either user_id or email"
@@ -157,6 +160,9 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
                 create_default_team=provision_options.create_default_team,
                 organization_id=organization_id,
                 is_test=provision_options.is_test,
+                ip_address=provision_options.ip_address,
+                agree_terms=provision_options.agree_terms,
+                aggregated_data_consent=provision_options.aggregated_data_consent,
             )
 
             create_post_provision_outbox(

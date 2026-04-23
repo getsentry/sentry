@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {CodeBlock} from '@sentry/scraps/code';
@@ -9,9 +10,8 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {Project, ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {Project} from 'sentry/types/project';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function OtherPlatformsInfo({
@@ -28,16 +28,10 @@ export function OtherPlatformsInfo({
     isError,
     isPending,
     refetch,
-  } = useApiQuery<ProjectKey[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery({
+    ...projectKeysApiOptions({orgSlug: organization.slug, projSlug: projectSlug}),
+    staleTime: Infinity,
+  });
 
   if (isPending) {
     return <LoadingIndicator />;

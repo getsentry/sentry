@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconStack} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -36,7 +36,7 @@ export function SupergroupSection({group}: SupergroupSectionProps) {
 
   const handleClick = () => {
     openDrawer(() => <SupergroupDetailDrawer supergroup={supergroup} />, {
-      ariaLabel: t('Supergroup details'),
+      ariaLabel: t('Issue group details'),
       drawerKey: 'supergroup-drawer',
       shouldCloseOnInteractOutside: el =>
         !document.getElementById('modal-portal')?.contains(el) &&
@@ -46,8 +46,8 @@ export function SupergroupSection({group}: SupergroupSectionProps) {
 
   return (
     <div>
-      <SidebarSectionTitle>{t('Supergroup')}</SidebarSectionTitle>
-      <SupergroupCard onClick={handleClick} aria-label={t('Supergroup details')}>
+      <SidebarSectionTitle>{t('Issue Group')}</SidebarSectionTitle>
+      <SupergroupCard onClick={handleClick} aria-label={t('Issue group details')}>
         <InteractionStateLayer />
         <Flex gap="sm" align="start">
           <AccentIcon size="sm" />

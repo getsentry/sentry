@@ -18,7 +18,7 @@ export default function Projects() {
     newPathPrefix: '/projects/',
   });
 
-  const redirectPath = organization.features.includes('workflow-engine-ui')
+  const redirectPath = organization.features.includes('insights-to-dashboards-ui-rollout')
     ? reverseRedirect
     : forwardRedirect;
 

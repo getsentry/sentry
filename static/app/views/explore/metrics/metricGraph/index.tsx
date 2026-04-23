@@ -10,15 +10,12 @@ import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {createTraceMetricEventsFilter} from 'sentry/views/dashboards/widgetCard/hooks/useWidgetRawCounts';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
-import type {TableOrientation} from 'sentry/views/explore/metrics/hooks/useOrientationControl';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   useMetricLabel,
   useMetricName,
@@ -52,19 +49,17 @@ const MINIMIZED_GRAPH_HEIGHT = 50;
 const STACKED_GRAPH_HEIGHT = 362;
 
 interface MetricsGraphProps {
-  orientation: TableOrientation;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
   additionalActions?: React.ReactNode;
-  infoContentHidden?: boolean;
   isMetricOptionsEmpty?: boolean;
+  title?: string;
 }
 
 export function MetricsGraph({
   timeseriesResult,
-  orientation,
   additionalActions,
-  infoContentHidden,
   isMetricOptionsEmpty,
+  title,
 }: MetricsGraphProps) {
   const metricQueries = useMultiMetricsQueryParams();
   const visualize = useMetricVisualize();
@@ -87,10 +82,9 @@ export function MetricsGraph({
       visualizes={visualizes}
       timeseriesResult={timeseriesResult}
       onChartTypeChange={handleChartTypeChange}
-      orientation={orientation}
       additionalActions={additionalActions}
-      infoContentHidden={infoContentHidden}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
+      title={title}
     />
   );
 }
@@ -104,14 +98,12 @@ interface GraphProps extends MetricsGraphProps {
 function Graph({
   onChartTypeChange,
   timeseriesResult,
-  orientation,
   visualize,
   visualizes,
-  infoContentHidden,
   additionalActions,
   isMetricOptionsEmpty,
+  title,
 }: GraphProps) {
-  const organization = useOrganization();
   const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const metricLabel = useMetricLabel();
@@ -178,8 +170,8 @@ function Graph({
     if (visualizes.length > 1) {
       return metricName;
     }
-    return metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
-  }, [aggregate, metricLabel, metricName, visualizes.length]);
+    return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
+  }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
   const Title = <Widget.WidgetTitle title={chartTitle} />;
 
@@ -235,21 +227,10 @@ function Graph({
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty;
 
-  let height: number | undefined = MINIMIZED_GRAPH_HEIGHT;
-  if (visualize.visible) {
-    if (orientation === 'bottom' || infoContentHidden) {
-      height = STACKED_GRAPH_HEIGHT;
-    } else if (canUseMetricsUIRefresh(organization)) {
-      height = STACKED_GRAPH_HEIGHT;
-    } else {
-      height = undefined;
-    }
-  }
+  const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
   return (
-    <WidgetWrapper
-      hideFooterBorder={orientation === 'bottom' || canUseMetricsUIRefresh(organization)}
-    >
+    <WidgetWrapper hideFooterBorder>
       <Widget
         Title={Title}
         Actions={Actions}

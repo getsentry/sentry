@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -24,13 +24,13 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getAlertText,
   getIntegrationStatus,
+  isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
@@ -350,6 +350,7 @@ export default function IntegrationDetailedView() {
                   view: 'integrations_directory_integration_detail',
                   integration: integrationSlug,
                   integration_type: integrationType,
+                  is_scm: provider ? isScmProvider(provider) : false,
                   already_installed: installationStatus !== 'Not Installed',
                   organization,
                 });

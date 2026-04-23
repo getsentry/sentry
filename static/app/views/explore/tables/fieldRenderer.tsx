@@ -125,13 +125,10 @@ function BaseExploreFieldRenderer({
   const query = new MutableSearch(userQuery);
   const {projects} = useProjects();
   const projectsMap = useMemo(() => {
-    return projects.reduce(
-      (acc, project) => {
-        acc[project.slug] = project;
-        return acc;
-      },
-      {} as Record<string, Project>
-    );
+    return projects.reduce<Record<string, Project>>((acc, project) => {
+      acc[project.slug] = project;
+      return acc;
+    }, {});
   }, [projects]);
 
   const project = projectsMap[data.project];

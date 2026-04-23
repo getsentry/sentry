@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
+import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

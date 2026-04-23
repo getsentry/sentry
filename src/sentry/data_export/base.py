@@ -29,9 +29,11 @@ class ExportQueryType:
     ISSUES_BY_TAG = 0
     DISCOVER = 1
     EXPLORE = 2
+    TRACE_ITEM_FULL_EXPORT = 3
     ISSUES_BY_TAG_STR = "Issues-by-Tag"
     DISCOVER_STR = "Discover"
     EXPLORE_STR = "Explore"
+    TRACE_ITEM_FULL_EXPORT_STR = "trace_item_full_export"
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -39,6 +41,7 @@ class ExportQueryType:
             (cls.ISSUES_BY_TAG, str(cls.ISSUES_BY_TAG_STR)),
             (cls.DISCOVER, str(cls.DISCOVER_STR)),
             (cls.EXPLORE, str(cls.EXPLORE_STR)),
+            (cls.TRACE_ITEM_FULL_EXPORT, str(cls.TRACE_ITEM_FULL_EXPORT_STR)),
         )
 
     @classmethod
@@ -47,6 +50,7 @@ class ExportQueryType:
             (cls.ISSUES_BY_TAG_STR, cls.ISSUES_BY_TAG_STR),
             (cls.DISCOVER_STR, cls.DISCOVER_STR),
             (cls.EXPLORE_STR, cls.EXPLORE_STR),
+            (cls.TRACE_ITEM_FULL_EXPORT_STR, cls.TRACE_ITEM_FULL_EXPORT_STR),
         )
 
     @classmethod
@@ -57,6 +61,8 @@ class ExportQueryType:
             return cls.DISCOVER_STR
         elif integer == cls.EXPLORE:
             return cls.EXPLORE_STR
+        elif integer == cls.TRACE_ITEM_FULL_EXPORT:
+            return cls.TRACE_ITEM_FULL_EXPORT_STR
         raise ValueError(f"Invalid ExportQueryType: {integer}")
 
     @classmethod
@@ -67,4 +73,6 @@ class ExportQueryType:
             return cls.DISCOVER
         elif string == cls.EXPLORE_STR:
             return cls.EXPLORE
+        elif string == cls.TRACE_ITEM_FULL_EXPORT_STR:
+            return cls.TRACE_ITEM_FULL_EXPORT
         raise ValueError(f"Invalid ExportQueryType: {string}")

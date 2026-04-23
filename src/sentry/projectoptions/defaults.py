@@ -106,6 +106,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "function_duration_regression_detection_enabled": True,
     "db_query_injection_detection_enabled": False,
     "web_vitals_detection_enabled": True,
+    "ai_issue_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -186,6 +187,10 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
+# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# stable API; the shape of the blob is expected to change.
+register(key="sentry:seer_nightshift_tweaks", default=None)
+
 # Seer project preferences
 register(
     key="sentry:seer_automated_run_stopping_point",
@@ -202,6 +207,7 @@ SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
     "sentry:seer_automation_handoff_target",
     "sentry:seer_automation_handoff_integration_id",
     "sentry:seer_automation_handoff_auto_create_pr",
+    "sentry:autofix_automation_tuning",
 ]
 
 # Boolean to enable/disable preprod size analysis for this project.
@@ -220,7 +226,7 @@ register(key="sentry:preprod_distribution_enabled_query", default="")
 register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", default=True)
 
 # Boolean to enable/disable snapshot PR comments for this project.
-register(key="sentry:preprod_snapshot_pr_comments_enabled", default=True)
+register(key="sentry:preprod_snapshot_pr_comments_enabled", default=False)
 
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

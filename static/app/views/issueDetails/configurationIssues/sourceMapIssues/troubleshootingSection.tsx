@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -5,6 +7,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
+import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {IconDocs, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -12,16 +16,47 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface TroubleshootingSectionProps {
   project: Project;
+  sourcemapsDocsUrl: string;
 }
 
-export function TroubleshootingSection({project}: TroubleshootingSectionProps) {
+export function TroubleshootingSection({
+  sourcemapsDocsUrl,
+  project,
+}: TroubleshootingSectionProps) {
   const organization = useOrganization();
   const settingsUrl = `/settings/${organization.slug}/projects/${project.slug}/source-maps/`;
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // TODO: Migrate troubleshooting steps to the content block system so we can use
+  // structured stepsToMarkdown() instead of innerHTML scraping.
+  const getMarkdown = () => {
+    if (!contentRef.current) {
+      return '';
+    }
+    try {
+      return simpleHtmlToMarkdown(contentRef.current.innerHTML);
+    } catch {
+      return '';
+    }
+  };
+
+  const troubleShootingDocUrl =
+    project.platform === 'react-native'
+      ? `${sourcemapsDocsUrl}troubleshooting/`
+      : `${sourcemapsDocsUrl}troubleshooting_js/`;
 
   return (
     <Stack gap="md" padding="lg">
-      <Heading as="h3">{t('Troubleshooting suggestions')}</Heading>
-      <Stack gap="sm">
+      <Flex align="center" justify="between">
+        <Heading as="h3">{t('Troubleshooting suggestions')}</Heading>
+        <CopyMarkdownButton
+          getMarkdown={getMarkdown}
+          title={t('Copies suggestions as Markdown, optimized for use with an LLM.')}
+          label={t('Copy')}
+          source="sourcemap_configuration_troubleshooting"
+        />
+      </Flex>
+      <Stack gap="sm" ref={contentRef}>
         <Disclosure size="md" defaultExpanded>
           <Disclosure.Title>{t('Verify Artifacts Are Uploaded')}</Disclosure.Title>
           <Disclosure.Content>
@@ -125,7 +160,7 @@ export function TroubleshootingSection({project}: TroubleshootingSectionProps) {
         </Disclosure>
         <Flex paddingTop="sm" align="center" gap="sm">
           <Text variant="muted">{t('Not what you\u2019re looking for?')}</Text>
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/">
+          <ExternalLink href={troubleShootingDocUrl}>
             <Flex align="center" gap="xs">
               <IconDocs size="xs" />
               {t('Read all documentation')}

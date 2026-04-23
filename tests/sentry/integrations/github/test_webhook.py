@@ -435,7 +435,15 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         sha1, sha256 = self._compute_signatures(body)
 
-        with self.feature("organizations:github-repo-auto-sync-webhook"), self.tasks():
+        with (
+            self.feature(
+                [
+                    "organizations:github-repo-auto-sync-webhook",
+                    "organizations:scm-repo-auto-sync-removal",
+                ]
+            ),
+            self.tasks(),
+        ):
             response = self.client.post(
                 path=self.url,
                 data=body,
@@ -483,7 +491,15 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
         )
         sha1, sha256 = self._compute_signatures(body)
 
-        with self.feature("organizations:github-repo-auto-sync-webhook"), self.tasks():
+        with (
+            self.feature(
+                [
+                    "organizations:github-repo-auto-sync-webhook",
+                    "organizations:scm-repo-auto-sync-removal",
+                ]
+            ),
+            self.tasks(),
+        ):
             response = self.client.post(
                 path=self.url,
                 data=body,

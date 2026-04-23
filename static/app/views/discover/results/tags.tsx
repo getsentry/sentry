@@ -22,8 +22,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {withApi} from 'sentry/utils/withApi';
 
 type Props = {
@@ -35,7 +33,6 @@ type Props = {
   totalValues: null | number;
   confirmedQuery?: boolean;
   onTagValueClick?: (title: string, value: TagSegment) => void;
-  tagsQueryResults?: UseApiQueryResult<Tag[], RequestError>;
 };
 
 type State = {
@@ -89,29 +86,6 @@ class Tags extends Component<Props, State> {
     this.setState({loading: true, error: ''});
     if (!appendTags) {
       this.setState({hasLoaded: false, tags: []});
-    }
-
-    // If we have tagsQueryResults, we can use that instead of fetching new data on mount.
-    if (!appendTags && this.props.tagsQueryResults) {
-      const pageLinks =
-        this.props.tagsQueryResults?.getResponseHeader?.('Link') ?? undefined;
-      let hasMore = false;
-      let cursor: string | undefined;
-      if (pageLinks) {
-        const paginationObject = parseLinkHeader(pageLinks);
-        hasMore = paginationObject?.next?.results ?? false;
-        cursor = paginationObject.next?.cursor;
-      }
-
-      this.setState({
-        tags: this.props.tagsQueryResults.data || [],
-        loading: this.props.tagsQueryResults.isPending,
-        hasLoaded: !this.props.tagsQueryResults.isPending,
-        hasMore,
-        nextCursor: cursor,
-        error: this.props.tagsQueryResults.error?.message || '',
-      });
-      return;
     }
 
     // Fetch should be forced after mounting as confirmedQuery isn't guaranteed

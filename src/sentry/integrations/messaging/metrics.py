@@ -47,6 +47,7 @@ class MessagingInteractionType(StrEnum):
     UNFURL_METRIC_ALERTS = "UNFURL_METRIC_ALERTS"
     UNFURL_DISCOVER = "UNFURL_DISCOVER"
     UNFURL_EXPLORE = "UNFURL_EXPLORE"
+    UNFURL_DASHBOARDS = "UNFURL_DASHBOARDS"
 
     GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
@@ -121,3 +122,4 @@ class SeerSlackHaltReason(StrEnum):
     NO_VALID_ORGANIZATION = "no_valid_organization"
     IDENTITY_NOT_LINKED = "identity_not_linked"
     MISSING_EVENT_DATA = "missing_event_data"
+    MISSING_MEMBERSHIP = "missing_membership"

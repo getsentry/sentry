@@ -250,6 +250,58 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
         assert response.status_code == 400
 
+    def _selective_data(self, **overrides):
+        data = {
+            "app_id": "com.test.app",
+            "images": {"screen.png": {"width": 100, "height": 200}},
+            "selective": True,
+            "all_image_file_names": ["screen.png", "skipped.png"],
+            "head_sha": "a" * 40,
+            "base_sha": "b" * 40,
+            "provider": "github.com",
+            "head_repo_name": "org/repo",
+            "head_ref": "feature",
+        }
+        data.update(overrides)
+        return data
+
+    def _post_selective(self, **overrides):
+        with self.feature("organizations:preprod-snapshots"):
+            return self.client.post(
+                self._get_create_url(), self._selective_data(**overrides), format="json"
+            )
+
+    def test_all_image_file_names_rejects_empty_list(self):
+        response = self._post_selective(images={}, all_image_file_names=[])
+        assert response.status_code == 400
+        assert "empty" in response.data["detail"]
+
+    def test_selective_requires_base_sha(self):
+        response = self._post_selective(base_sha=None)
+        assert response.status_code == 400
+        assert "base_sha" in response.data["detail"]
+
+    def test_all_image_file_names_must_contain_all_images(self):
+        response = self._post_selective(all_image_file_names=["other.png"])
+        assert response.status_code == 400
+        assert "all_image_file_names" in response.data["detail"]
+
+    def test_all_image_file_names_requires_selective(self):
+        response = self._post_selective(selective=False)
+        assert response.status_code == 400
+        assert "selective" in response.data["detail"]
+
+    def test_selective_without_all_image_file_names_accepted(self):
+        data = self._selective_data()
+        del data["all_image_file_names"]
+        with self.feature("organizations:preprod-snapshots"):
+            response = self.client.post(self._get_create_url(), data, format="json")
+        assert response.status_code == 200
+
+    def test_selective_with_all_image_file_names_accepted(self):
+        response = self._post_selective()
+        assert response.status_code == 200
+
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.get_preprod_session")
     @patch("sentry.preprod.api.endpoints.preprod_artifact_snapshot.compare_snapshots")
     def test_base_upload_triggers_comparison_for_waiting_head(

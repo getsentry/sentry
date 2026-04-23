@@ -17,17 +17,17 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
-BATCH_SIZE = 25
-INTER_BATCH_DELAY_S = 10
-MAX_FAILURES_PER_BATCH = 10
+SNUBA_QUERY_MAX_ATTEMPTS = 3
 
 
 @instrumented_task(
@@ -54,6 +54,41 @@ def backfill_supergroups_lightweight_for_org(
         logger.info(
             "supergroups_backfill_lightweight.feature_not_enabled",
             extra={"organization_id": organization_id},
+        )
+        return
+
+    try:
+        _backfill_org(organization, organization_id, last_project_id, last_group_id)
+    except Exception:
+        logger.exception(
+            "supergroups_backfill_lightweight.task_failed",
+            extra={
+                "organization_id": organization_id,
+                "last_project_id": last_project_id,
+                "last_group_id": last_group_id,
+            },
+        )
+        raise
+
+
+def _backfill_org(
+    organization: Organization,
+    organization_id: int,
+    last_project_id: int,
+    last_group_id: int,
+) -> None:
+    batch_size: int = options.get("seer.supergroups_backfill_lightweight.batch_size")
+    inter_batch_delay_s: int = options.get(
+        "seer.supergroups_backfill_lightweight.inter_batch_delay_s"
+    )
+    max_failures_per_batch: int = options.get(
+        "seer.supergroups_backfill_lightweight.max_failures_per_batch"
+    )
+
+    if batch_size <= 0:
+        logger.error(
+            "supergroups_backfill_lightweight.invalid_batch_size",
+            extra={"organization_id": organization_id, "batch_size": batch_size},
         )
         return
 
@@ -87,7 +122,7 @@ def backfill_supergroups_lightweight_for_org(
             substatus__in=UNRESOLVED_SUBSTATUS_CHOICES,
         )
         .select_related("project", "project__organization")
-        .order_by("id")[:BATCH_SIZE]
+        .order_by("id")[:batch_size]
     )
 
     if not groups:
@@ -98,10 +133,22 @@ def backfill_supergroups_lightweight_for_org(
                 "last_project_id": project.id + 1,
                 "last_group_id": 0,
             },
-            countdown=INTER_BATCH_DELAY_S,
+            countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
         return
+
+    logger.info(
+        "supergroups_backfill_lightweight.batch_starting",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "last_group_id": last_group_id,
+            "batch_size": len(groups),
+            "first_group_id": groups[0].id,
+            "last_group_id_in_batch": groups[-1].id,
+        },
+    )
 
     # Phase 1: Batch fetch event data
     group_event_pairs = _batch_fetch_events(groups, organization_id)
@@ -150,7 +197,7 @@ def backfill_supergroups_lightweight_for_org(
 
         last_processed_group_id = group.id
 
-        if failure_count >= MAX_FAILURES_PER_BATCH:
+        if max_failures_per_batch > 0 and failure_count >= max_failures_per_batch:
             logger.error(
                 "supergroups_backfill_lightweight.max_failures_reached",
                 extra={
@@ -171,11 +218,22 @@ def backfill_supergroups_lightweight_for_org(
         amount=failure_count,
     )
 
-    if failure_count >= MAX_FAILURES_PER_BATCH:
+    logger.info(
+        "supergroups_backfill_lightweight.batch_complete",
+        extra={
+            "organization_id": organization_id,
+            "project_id": project.id,
+            "success_count": success_count,
+            "failure_count": failure_count,
+            "last_group_id_in_batch": groups[-1].id,
+        },
+    )
+
+    if max_failures_per_batch > 0 and failure_count >= max_failures_per_batch:
         return
 
     # Self-chain: more groups in this project, or move to next project
-    if len(groups) == BATCH_SIZE:
+    if len(groups) == batch_size:
         next_project_id = project.id
         next_group_id = groups[-1].id
     else:
@@ -188,7 +246,7 @@ def backfill_supergroups_lightweight_for_org(
             "last_project_id": next_project_id,
             "last_group_id": next_group_id,
         },
-        countdown=INTER_BATCH_DELAY_S,
+        countdown=inter_batch_delay_s,
         headers={"sentry-propagate-traces": False},
     )
 
@@ -225,8 +283,16 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
             )
         )
 
-    results = bulk_snuba_queries(
-        snuba_requests, referrer="supergroups_backfill_lightweight.get_latest_events"
+    retry_policy = ConditionalRetryPolicy(
+        test_function=lambda attempt, exc: attempt < SNUBA_QUERY_MAX_ATTEMPTS
+        and isinstance(exc, SnubaError),
+        delay_function=exponential_delay(1.0),
+    )
+    results = retry_policy(
+        lambda: bulk_snuba_queries(
+            snuba_requests,
+            referrer=Referrer.SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS.value,
+        )
     )
 
     # Build unfetched Event objects from Snuba results, keeping groups aligned
@@ -247,11 +313,22 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
     # Batch fetch all event data from nodestore in one multi-get
     eventstore.bind_nodes(events)
 
+    # Filter out events with empty data
+    valid_groups: list[Group] = []
+    valid_events: list[Event] = []
+    for group, event in zip(matched_groups, events):
+        if event.data:
+            valid_groups.append(group)
+            valid_events.append(event)
+
+    if not valid_events:
+        return []
+
     # Bulk serialize all events
-    serialized_events = serialize(events, None, EventSerializer())
+    serialized_events = serialize(valid_events, None, EventSerializer())
 
     return [
         (group, serialized_event)
-        for group, serialized_event in zip(matched_groups, serialized_events)
+        for group, serialized_event in zip(valid_groups, serialized_events)
         if serialized_event
     ]

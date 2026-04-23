@@ -1,4 +1,4 @@
-import {useCallback, useMemo, type CSSProperties} from 'react';
+import {type CSSProperties, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -10,6 +10,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
+  type AutofixSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
   isCodeChangesSection,
@@ -21,7 +22,6 @@ import {
   isSolutionArtifact,
   isSolutionSection,
   useExplorerAutofix,
-  type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
   CodeChangesPreview,
@@ -260,10 +260,10 @@ function AutofixEmptyState({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const handleStartRootCause = useCallback(() => {
+  const handleStartRootCause = () => {
     startStep('root_cause');
     openSeerDrawer();
-  }, [startStep, openSeerDrawer]);
+  };
 
   return (
     <Flex direction="column" gap="md">

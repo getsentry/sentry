@@ -286,7 +286,7 @@ function DataWidgetViewerModal(props: Props) {
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
   const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || widget.limit !== undefined
+    widget.displayType === DisplayType.TOP_N || defined(widget.limit)
       ? {...widget, queries: sortedQueries}
       : widget;
   const api = useApi();
@@ -656,7 +656,7 @@ function DataWidgetViewerModal(props: Props) {
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 isFullScreen
                 showConfidenceWarning={
@@ -673,7 +673,7 @@ function DataWidgetViewerModal(props: Props) {
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{

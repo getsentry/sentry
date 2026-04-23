@@ -5,6 +5,10 @@ import type {Organization, Team} from './organization';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
+export type SeerNightshiftTweaks = {
+  enabled?: boolean;
+};
+
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
   slug: string;
@@ -51,7 +55,7 @@ export type Project = {
   isInternal: boolean;
   isMember: boolean;
   name: string;
-  organization: Organization;
+  organization: Pick<Organization, 'id' | 'slug'>;
   plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;
@@ -95,6 +99,7 @@ export type Project = {
   scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
+  seerNightshiftTweaks?: SeerNightshiftTweaks | null;
   seerScannerAutomation?: boolean;
   sessionStats?: {
     currentCrashFreeRate: number | null;

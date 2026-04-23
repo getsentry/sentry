@@ -7,6 +7,7 @@ from sentry.rules.history.endpoints.project_rule_group_history import RuleGroupH
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import AlertRuleWorkflow
 
 pytestmark = [requires_snuba]
 
@@ -93,6 +94,29 @@ class ProjectRuleGroupHistoryIndexEndpointTest(APITestCase):
             [RuleGroupHistory(group_2, 1, base_triggered_date)],
             self.user,
             RuleGroupHistorySerializer(),
+        )
+
+    def test_shared_workflow_across_projects(self) -> None:
+        project_a = self.project
+        project_b = self.create_project(organization=self.organization)
+        rule_a = self.create_project_rule(project=project_a)
+        rule_b = self.create_project_rule(project=project_b)
+
+        # Simulate the bug: point both rules at the same Workflow
+        arw_a = AlertRuleWorkflow.objects.get(rule_id=rule_a.id)
+        shared_workflow = arw_a.workflow
+        arw_b = AlertRuleWorkflow.objects.get(rule_id=rule_b.id)
+        arw_b.workflow = shared_workflow
+        arw_b.save()
+
+        self.login_as(self.user)
+        # This would crash with MultipleObjectsReturned without the project_id fix
+        self.get_success_response(
+            self.organization.slug,
+            project_a.slug,
+            rule_a.id,
+            start=before_now(days=1),
+            end=before_now(days=0),
         )
 
     def test_invalid_dates(self) -> None:

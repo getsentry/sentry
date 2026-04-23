@@ -225,11 +225,11 @@ export function EnvironmentPageFilter({
   const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     dispatch({type: 'remove staged'});
     handleChange([]);
     onReset?.();
-  }, [dispatch, handleChange, onReset]);
+  };
 
   return (
     <CompactSelect

@@ -284,13 +284,10 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce(
-    (selection, series) => {
-      selection[series] = false;
-      return selection;
-    },
-    {} as Record<string, boolean>
-  );
+  return unselectedSeries.reduce<Record<string, boolean>>((selection, series) => {
+    selection[series] = false;
+    return selection;
+  }, {});
 }
 
 /**

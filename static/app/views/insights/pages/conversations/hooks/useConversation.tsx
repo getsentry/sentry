@@ -1,12 +1,12 @@
 import {useEffect, useMemo} from 'react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getGenAiOperationTypeFromSpanOp} from 'sentry/views/insights/pages/agents/utils/query';
+import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
@@ -30,8 +30,7 @@ interface ConversationApiSpan {
   'precise.start_ts': number;
   project: string;
   'project.id': number;
-  'span.description': string;
-  'span.op': string;
+  'span.name': string;
   'span.status': string;
   span_id: string;
   trace: string;
@@ -49,7 +48,8 @@ interface ConversationApiSpan {
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.total_tokens'?: number;
-  'span.name'?: string;
+  'span.description'?: string;
+  'span.op'?: string;
   'user.email'?: string;
   'user.id'?: string;
   'user.ip'?: string;
@@ -60,7 +60,7 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.op']?.startsWith('gen_ai.') ?? false;
+  return span['span.name']?.startsWith('gen_ai.') ?? false;
 }
 
 interface UseConversationResult {
@@ -80,7 +80,7 @@ function createNodeFromApiSpan(
 ): AITraceSpanNode {
   const operationType =
     apiSpan['gen_ai.operation.type'] ||
-    getGenAiOperationTypeFromSpanOp(apiSpan['span.op']);
+    getGenAiOperationTypeFromSpanName(apiSpan['span.name']);
 
   const duration = apiSpan['precise.finish_ts'] - apiSpan['precise.start_ts'];
   const value: TraceTree.EAPSpan = {
@@ -89,8 +89,8 @@ function createNodeFromApiSpan(
     event_id: apiSpan.span_id,
     event_type: 'span',
     is_transaction: false,
-    op: apiSpan['span.op'],
-    description: apiSpan['span.description'] || apiSpan['span.name'],
+    op: apiSpan['span.name'],
+    description: apiSpan['span.name'],
     start_timestamp: apiSpan['precise.start_ts'],
     end_timestamp: apiSpan['precise.finish_ts'],
     project_id: apiSpan['project.id'],
@@ -101,7 +101,7 @@ function createNodeFromApiSpan(
     sdk_name: '',
     transaction: '',
     transaction_id: '',
-    name: apiSpan['span.description'] || apiSpan['span.name'] || '',
+    name: apiSpan['span.name'] || '',
     errors: [],
     occurrences: [],
     additional_attributes: {
@@ -183,16 +183,6 @@ export function useConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const queryUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        conversationId: conversation.conversationId,
-      },
-    }
-  );
-
   // Use conversation timestamps when available (with 1-hour padding), falling back to page filters
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const hasConversationTimestamps =
@@ -215,28 +205,39 @@ export function useConversation(
         per_page: 1000,
       };
 
-  const conversationQuery = useInfiniteApiQuery<ConversationApiSpan[]>({
-    queryKey: [{infinite: true, version: 'v1'}, queryUrl, {query: queryParams}],
-    staleTime: Infinity,
-    enabled: !!conversation.conversationId,
-  });
+  const {
+    data,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery(
+    apiOptions.asInfinite<ConversationApiSpan[]>()(
+      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+      {
+        path: conversation.conversationId
+          ? {
+              organizationIdOrSlug: organization.slug,
+              conversationId: conversation.conversationId,
+            }
+          : skipToken,
+        query: queryParams,
+        staleTime: Infinity,
+      }
+    )
+  );
 
-  const currentNumberPages = conversationQuery.data?.pages.length ?? 0;
+  const currentNumberPages = data?.pages.length ?? 0;
 
   useEffect(() => {
-    if (
-      !conversationQuery.isFetching &&
-      conversationQuery.hasNextPage &&
-      currentNumberPages < MAX_PAGES
-    ) {
-      conversationQuery.fetchNextPage();
+    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
+      fetchNextPage();
     }
-  }, [conversationQuery, currentNumberPages]);
+  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
 
-  const allSpans = useMemo(
-    () => conversationQuery.data?.pages.flatMap(([pageData]) => pageData) ?? [],
-    [conversationQuery.data]
-  );
+  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -266,7 +267,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: conversationQuery.isLoading || conversationQuery.isFetchingNextPage,
-    error: conversationQuery.isError,
+    isLoading: isLoading || isFetchingNextPage,
+    error: isError,
   };
 }

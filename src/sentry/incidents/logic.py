@@ -6,6 +6,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
+from re import Match
 from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
@@ -24,6 +25,7 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
 from sentry.db.models import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.incidents import tasks
 from sentry.incidents.events import IncidentCreatedEvent, IncidentStatusUpdatedEvent
 from sentry.incidents.models.alert_rule import (
@@ -107,7 +109,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
-from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -1092,15 +1093,33 @@ def enable_disable_subscriptions(
         bulk_disable_snuba_subscriptions(query_subscriptions)
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
+def update_detector_status(detector: Detector, enabled: bool) -> None:
+    """
+    Updates the status of a detector and the associated query subscriptions.
+
+    This is used to toggle whether a metric Detector is allowed for the owning
+    organization, and manages the associated subscription state.
+
+    This is separate from Detector.enabled, which is for snoozing.
+    """
     with transaction.atomic(router.db_for_write(Detector)):
-        toggle_detector(detector, enabled)
+        target_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+        detector.update(status=target_status)
 
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
+        # TODO: Determine whether there was work to be done, and return the result
+        # as a boolean.
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
+    """
+    Temporary alias for update_detector_status to ease cross-repo changes.
+    """
+    update_detector_status(detector, enabled)
 
 
 def delete_alert_rule(
@@ -1848,12 +1867,15 @@ EAP_FUNCTIONS = [
 
 
 def get_column_from_aggregate(
-    aggregate: str, allow_mri: bool, allow_eap: bool = False
+    aggregate: str,
+    allow_mri: bool,
+    allow_eap: bool = False,
+    match: Match[str] | None = None,
 ) -> str | None:
     # These functions exist as SnQLFunction definitions and are not supported in the older
     # logic for resolving functions. We parse these using `fields.is_function`, otherwise
     # they will fail using the old resolve_field logic.
-    match = is_function(aggregate)
+    match = is_function(aggregate) if match is None else match
     if match and (
         match.group("function") in SPANS_METRICS_FUNCTIONS
         or match.group("function") in METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS
@@ -1900,21 +1922,29 @@ def check_aggregate_column_support(
     aggregate: str, allow_mri: bool = False, allow_eap: bool = False
 ) -> bool:
     # TODO(ddm): remove `allow_mri` once the experimental feature flag is removed.
-    column = get_column_from_aggregate(aggregate, allow_mri, allow_eap)
-    match = is_function(aggregate)
-    function = match.group("function") if match else None
-    return (
-        column is None
-        or is_measurement(column)
-        or column in SUPPORTED_COLUMNS
-        or column in TRANSLATABLE_COLUMNS
-        or (is_mri(column) and allow_mri)
-        or (
-            isinstance(function, str)
-            and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
-        )
-        or allow_eap
-    )
+    if is_equation(aggregate):
+        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+    else:
+        terms = [aggregate]
+
+    for term in terms:
+        match = is_function(term)
+        column = get_column_from_aggregate(term, allow_mri, allow_eap, match)
+        function = match.group("function") if match else None
+        if not (
+            column is None
+            or is_measurement(column)
+            or column in SUPPORTED_COLUMNS
+            or column in TRANSLATABLE_COLUMNS
+            or (is_mri(column) and allow_mri)
+            or (
+                isinstance(function, str)
+                and column in INSIGHTS_FUNCTION_VALID_ARGS_MAP.get(function, [])
+            )
+            or allow_eap
+        ):
+            return False
+    return True
 
 
 def translate_aggregate_field(

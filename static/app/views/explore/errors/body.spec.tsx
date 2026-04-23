@@ -7,9 +7,9 @@ describe('ErrorsControlSection', () => {
     localStorage.clear();
   });
 
-  it('renders as an aside element', () => {
+  it('renders as an aside element', async () => {
     render(<ErrorsControlSection controlSectionExpanded />);
-    expect(screen.getByRole('complementary')).toBeInTheDocument();
+    expect(await screen.findByRole('complementary')).toBeInTheDocument();
   });
 });
 

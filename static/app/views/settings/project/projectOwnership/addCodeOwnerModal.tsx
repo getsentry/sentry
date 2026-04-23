@@ -1,5 +1,11 @@
 import {Fragment, useState, type Dispatch, type SetStateAction} from 'react';
 import styled from '@emotion/styled';
+import {
+  skipToken,
+  useQuery,
+  useMutation,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -24,14 +30,10 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  useApiQuery,
-  useMutation,
-  type UseMutationResult,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
@@ -59,14 +61,15 @@ export function AddCodeOwnerModal({
     data: codeMappings,
     isPending: isCodeMappingsPending,
     isError: isCodeMappingsError,
-  } = useApiQuery<RepositoryProjectPathConfig[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+  } = useQuery(
+    apiOptions.as<RepositoryProjectPathConfig[]>()(
+      '/organizations/$organizationIdOrSlug/code-mappings/',
+      {
         path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: {project: project.id}},
-    ],
-    {staleTime: Infinity}
+        query: {project: project.id},
+        staleTime: Infinity,
+      }
+    )
   );
 
   const {
@@ -85,19 +88,16 @@ export function AddCodeOwnerModal({
 
   const [codeMappingId, setCodeMappingId] = useState<string | null>(null);
 
-  const {data: codeownersFile} = useApiQuery<CodeownersFile>(
-    [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            configId: codeMappingId!,
-          },
-        }
-      ),
-    ],
-    {staleTime: Infinity, enabled: Boolean(codeMappingId)}
+  const {data: codeownersFile} = useQuery(
+    apiOptions.as<CodeownersFile>()(
+      '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
+      {
+        path: codeMappingId
+          ? {organizationIdOrSlug: organization.slug, configId: codeMappingId}
+          : skipToken,
+        staleTime: Infinity,
+      }
+    )
   );
 
   const mutation = useMutation<

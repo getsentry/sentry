@@ -23,7 +23,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
     }
     permission_classes = (ProjectAlertRulePermission,)
     workflow_engine_method_flags = {
-        "GET": "organizations:workflow-engine-projectalertruleindex-get",
+        "GET": "organizations:workflow-engine-metric-alert-endpoints-get",
     }
 
     @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rules")
