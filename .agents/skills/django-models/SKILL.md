@@ -47,11 +47,15 @@ The FK type is an architectural statement, not a style choice:
 - `FlexibleForeignKey("sentry.Project", on_delete=...)` — the FK target lives in the same silo. A real database constraint is created. Cascading delete is enforced by Postgres.
 - `HybridCloudForeignKey("sentry.User", on_delete="...", ...)` — the FK target lives in the _opposite_ silo. No database constraint. Cascade is eventually consistent via outbox tombstones. `on_delete` is passed as a string (`"CASCADE"`, `"SET_NULL"`, `"DO_NOTHING"`).
 - `FlexibleForeignKey(..., db_constraint=False)` — same silo, but you are opting out of the FK constraint. Reasonable when the target table is hot enough that the constraint causes lock contention, or when you intend to manage cascades manually.
-- Plain Django `ForeignKey` — never. There is no use case for it in this codebase.
+- Plain Django `ForeignKey` — avoid. A couple of older `workflow_engine` models still use it, but for new code the convention is `FlexibleForeignKey` (same-silo) or `HybridCloudForeignKey` (cross-silo). Both plug into Sentry's deletion framework and hybrid-cloud plumbing in ways plain `ForeignKey` does not.
 
 If a model has both kinds of FKs, that is fine and common. The presence of an HCFK is _not_ a signal that the model should be in the other silo — it just means the relationship crosses silos.
 
 ## Other norms worth encoding
+
+### Base class and timestamps
+
+Prefer `DefaultFieldsModel` when you want `date_added` (`auto_now_add=True`) and `date_updated` (`auto_now=True`) for free — which covers most new models. Plain `Model` is only right when you genuinely don't want either timestamp. `DefaultFieldsModelExisting` is legacy-only — its docstring explicitly says don't use it on new models (it leaves `date_added` nullable for backward compat with models that predate the field).
 
 ### Field-type intent
 
