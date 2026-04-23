@@ -14,8 +14,10 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
@@ -136,6 +138,11 @@ class CommitContextIntegration(ABC):
     def integration_id(self) -> int:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def org_integration(self) -> RpcOrganizationIntegration:
+        raise NotImplementedError
+
     @abstractmethod
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
@@ -216,13 +223,22 @@ class CommitContextIntegration(ABC):
         group_owner: GroupOwner,
         group_id: int,
     ) -> None:
+        from sentry import features
+
         try:
             # TODO(jianyuan): Remove this try/except once we have implemented the abstract method for all integrations
             pr_comment_workflow = self.get_pr_comment_workflow()
         except NotImplementedError:
             return
 
-        if not OrganizationOption.objects.get_value(
+        if features.has("organizations:scm-config-oi-reads", project.organization):
+            try:
+                pr_comments_enabled = self.org_integration.config.get("pr_comments", False)
+            except OrganizationIntegrationNotFound:
+                pr_comments_enabled = False
+            if not pr_comments_enabled:
+                return
+        elif not OrganizationOption.objects.get_value(
             organization=project.organization,
             key=pr_comment_workflow.organization_option_key,
             default=False,
