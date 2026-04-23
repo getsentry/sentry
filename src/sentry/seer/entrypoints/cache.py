@@ -211,11 +211,6 @@ class SeerOperatorAgentCache[CachePayloadT]:
         return f"seer:agent:{entrypoint_key}:{run_id}"
 
     @classmethod
-    def _get_legacy_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
-        # TODO: remove once the rename has fully propagated.
-        return f"seer:explorer:{entrypoint_key}:{run_id}"
-
-    @classmethod
     def set(cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT) -> None:
         with SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_AGENT,
@@ -232,13 +227,8 @@ class SeerOperatorAgentCache[CachePayloadT]:
             entrypoint_key=entrypoint_key,
         ).capture() as lifecycle:
             cache_key = cls._get_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
-            legacy_cache_key = cls._get_legacy_cache_key(
-                entrypoint_key=entrypoint_key, run_id=run_id
-            )
-            lifecycle.add_extras(
-                {"run_id": run_id, "cache_key": cache_key, "legacy_cache_key": legacy_cache_key}
-            )
-            cache_payload = cache.get(cache_key) or cache.get(legacy_cache_key)
+            lifecycle.add_extras({"run_id": run_id, "cache_key": cache_key})
+            cache_payload = cache.get(cache_key)
             if not cache_payload:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
