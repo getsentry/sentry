@@ -198,7 +198,7 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         result: defaultdict[Any, dict[str, Any]] = defaultdict(dict)
         detectors = {self.detector.id: self.detector}
 
-        serialized_data_conditions = [
+        serialized_data_conditions: list[dict[str, Any]] = [
             {
                 "alertRuleId": None,
                 "actions": [],
