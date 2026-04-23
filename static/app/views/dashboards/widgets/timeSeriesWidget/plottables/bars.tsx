@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
@@ -13,8 +12,6 @@ import {
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
-const {error} = Sentry.logger;
-
 interface BarsConfig extends ContinuousTimeSeriesConfig {
   /**
    * Stack name. If provided, bar plottables with the same stack will be stacked visually.
@@ -28,9 +25,6 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
     const datum = this.timeSeries.values.at(dataIndex);
 
     if (!datum) {
-      error('`Bars` plottable `onHighlight` out-of-range error', {
-        seriesDataIndex: dataIndex,
-      });
       return;
     }
 

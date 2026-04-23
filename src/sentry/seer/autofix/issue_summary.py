@@ -19,7 +19,11 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    NoSeerQuotaException,
+    trigger_autofix_explorer,
+)
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
@@ -35,6 +39,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
     make_get_project_preference_request,
+    read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -45,7 +50,6 @@ from sentry.seer.signed_seer_api import (
     make_signed_seer_api_request,
     make_summarize_issue_request,
 )
-from sentry.seer.supergroups.explorer_lightweight_rca import trigger_explorer_lightweight_rca
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
@@ -62,12 +66,14 @@ auto_run_source_map = {
     SeerAutomationSource.ISSUE_DETAILS: "issue_summary_fixability",
     SeerAutomationSource.ALERT: "issue_summary_on_alert_fixability",
     SeerAutomationSource.POST_PROCESS: "issue_summary_on_post_process_fixability",
+    SeerAutomationSource.NIGHT_SHIFT: "night_shift",
 }
 
 referrer_map = {
     SeerAutomationSource.ISSUE_DETAILS: AutofixReferrer.ISSUE_SUMMARY_FIXABILITY,
     SeerAutomationSource.ALERT: AutofixReferrer.ISSUE_SUMMARY_ALERT_FIXABILITY,
     SeerAutomationSource.POST_PROCESS: AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+    SeerAutomationSource.NIGHT_SHIFT: AutofixReferrer.NIGHT_SHIFT,
 }
 
 STOPPING_POINT_HIERARCHY = {
@@ -218,20 +224,16 @@ def _trigger_autofix_task(
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
         if features.has("organizations:autofix-on-explorer", group.organization):
-            run_id = trigger_autofix_explorer(
-                group=group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=referrer,
-                run_id=None,
-                stopping_point=stopping_point,
-            )
             try:
-                trigger_explorer_lightweight_rca(group)
-            except Exception:
-                logger.exception(
-                    "explorer_lightweight_rca.trigger_error_in_trigger_autofix_task",
-                    extra={"group_id": group_id},
+                run_id = trigger_autofix_explorer(
+                    group=group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=referrer,
+                    run_id=None,
+                    stopping_point=stopping_point,
                 )
+            except NoSeerQuotaException:
+                pass
         else:
             response = trigger_autofix(
                 group=group,
@@ -511,7 +513,12 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
     """
     fixability_score = get_and_update_group_fixability_score(group)
     fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
-    user_preference = _fetch_user_preference(group.project.id)
+
+    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
+        user_preference = read_preference_from_sentry_db(group.project).automated_run_stopping_point
+    else:
+        user_preference = _fetch_user_preference(group.project.id)
+
     return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 
 

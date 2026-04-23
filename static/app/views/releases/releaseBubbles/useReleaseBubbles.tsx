@@ -73,7 +73,7 @@ interface ReleaseBubbleSeriesProps {
 /**
  * Creates a series item that is used to draw the release bubbles in a chart
  */
-function ReleaseBubbleSeries({
+function createReleaseBubbleSeries({
   buckets,
   chartRef,
   theme,
@@ -663,7 +663,7 @@ export function useReleaseBubbles({
     /**
      * Series to append to a chart's existing `series`
      */
-    releaseBubbleSeries: ReleaseBubbleSeries({
+    releaseBubbleSeries: createReleaseBubbleSeries({
       yAxisIndex,
       alignInMiddle,
       buckets,

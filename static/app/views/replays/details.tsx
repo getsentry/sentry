@@ -21,6 +21,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ReplayDetailsProviders} from 'sentry/views/replays/detail/body/replayDetailsProviders';
 import {ReplayDetailsHeaderActions} from 'sentry/views/replays/detail/header/replayDetailsHeaderActions';
@@ -92,7 +93,49 @@ function ReplayDetailsContent() {
 
   const hasPageFrame = useHasPageFrameFeature();
 
-  const content = (
+  if (hasPageFrame) {
+    const pageFrameContent = (
+      <Fragment>
+        <TopBar.Slot name="title">
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        </TopBar.Slot>
+        <ReplayDetailsHeaderActions readerResult={readerResult} />
+        <Flex
+          justify="between"
+          align="center"
+          gap="md"
+          wrap="wrap"
+          padding={{sm: 'md lg', md: 'md xl'}}
+          borderBottom="secondary"
+        >
+          <ReplayDetailsUserBadge readerResult={readerResult} />
+          <ReplayDetailsMetadata readerResult={readerResult} />
+        </Flex>
+        <Stack flex={1} minHeight="0" overflow="hidden" padding="lg xl">
+          <ReplayDetailsPage readerResult={readerResult} />
+        </Stack>
+      </Fragment>
+    );
+
+    return (
+      <SentryDocumentTitle title={title}>
+        <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
+          {replay ? (
+            <ReplayDetailsProviders
+              replay={replay}
+              projectSlug={readerResult.projectSlug}
+            >
+              {pageFrameContent}
+            </ReplayDetailsProviders>
+          ) : (
+            pageFrameContent
+          )}
+        </Stack>
+      </SentryDocumentTitle>
+    );
+  }
+
+  const legacyContent = (
     <Fragment>
       <Flex direction="column">
         <Flex
@@ -101,17 +144,12 @@ function ReplayDetailsContent() {
           align="center"
           gap="md"
           wrap="wrap"
-          padding={hasPageFrame ? {sm: 'sm lg', md: 'md xl'} : 'sm lg'}
+          padding="sm lg"
         >
           <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
           <ReplayDetailsHeaderActions readerResult={readerResult} />
         </Flex>
-        <Flex
-          justify="between"
-          align="center"
-          padding={hasPageFrame ? {sm: 'md lg', md: 'md xl'} : 'md lg'}
-          borderBottom="secondary"
-        >
+        <Flex justify="between" align="center" padding="md lg" borderBottom="secondary">
           <ReplayDetailsUserBadge readerResult={readerResult} />
           <ReplayDetailsMetadata readerResult={readerResult} />
         </Flex>
@@ -129,10 +167,10 @@ function ReplayDetailsContent() {
               replay={replay}
               projectSlug={readerResult.projectSlug}
             >
-              {content}
+              {legacyContent}
             </ReplayDetailsProviders>
           ) : (
-            content
+            legacyContent
           )}
         </FullViewport>
       </Stack>

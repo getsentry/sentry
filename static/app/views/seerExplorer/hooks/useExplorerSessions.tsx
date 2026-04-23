@@ -27,7 +27,7 @@ export function useExplorerSessions({
       },
     ],
     {
-      staleTime: 10_000,
+      staleTime: Infinity,
       enabled: enabled && Boolean(organization),
     }
   );

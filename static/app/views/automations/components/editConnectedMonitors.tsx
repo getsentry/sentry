@@ -1,14 +1,16 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
-import {useDrawer} from 'sentry/components/globalDrawer';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -19,13 +21,13 @@ import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {getApiQueryData, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
-import {makeDetectorListQueryKey} from 'sentry/views/detectors/hooks';
+import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
 const PROJECT_GROUPS = [
@@ -106,7 +108,6 @@ function AllMonitors({
         </Flex>
         <ConnectedMonitorsList
           data-test-id="drawer-all-monitors-list"
-          detectorIds={null}
           connectedDetectorIds={new Set(connectedIds)}
           toggleConnected={toggleConnected}
           emptyMessage={t('No monitors found')}
@@ -136,14 +137,12 @@ function ConnectMonitorsDrawer({
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
     const oldDetectorsData =
-      getApiQueryData<Detector[]>(
-        queryClient,
-        makeDetectorListQueryKey({
-          orgSlug: organization.slug,
+      queryClient.getQueryData(
+        detectorListApiOptions(organization, {
           ids: localDetectorIds,
           includeIssueStreamDetectors: true,
-        })
-      ) ?? [];
+        }).queryKey
+      )?.json ?? [];
 
     const newDetectors = (
       oldDetectorsData.some(d => d.id === detector.id)
@@ -153,14 +152,12 @@ function ConnectMonitorsDrawer({
     const newDetectorIds = newDetectors.map(d => d.id);
 
     // Update the query cache to prevent the list from being fetched anew
-    setApiQueryData<Detector[]>(
-      queryClient,
-      makeDetectorListQueryKey({
-        orgSlug: organization.slug,
+    queryClient.setQueryData(
+      detectorListApiOptions(organization, {
         ids: newDetectorIds,
         includeIssueStreamDetectors: true,
-      }),
-      newDetectors
+      }).queryKey,
+      old => ({headers: old?.headers ?? {}, json: newDetectors})
     );
 
     setLocalDetectorIds(newDetectorIds);
@@ -288,6 +285,8 @@ function SpecificMonitorsSection({
   );
 }
 
+export const CONNECTED_MONITORS_ERROR_ID = 'connectedMonitors';
+
 function EditConnectedMonitorsContent({
   initialMode,
   connectedIds,
@@ -295,6 +294,7 @@ function EditConnectedMonitorsContent({
 }: ContentProps) {
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
+  const errorContext = useContext(AutomationBuilderErrorContext);
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
@@ -306,11 +306,23 @@ function EditConnectedMonitorsContent({
   );
   const handleProjectChange = useCallback(
     (projectIds: string[]) => {
-      if (!projectIds.length) {
+      if (projectIds.length) {
+        errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
+      } else {
         setConnectedIds([]);
       }
     },
-    [setConnectedIds]
+    [setConnectedIds, errorContext]
+  );
+
+  const handleSetConnectedIds = useCallback(
+    (ids: Automation['detectorIds']) => {
+      setConnectedIds(ids);
+      if (ids.length) {
+        errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
+      }
+    },
+    [setConnectedIds, errorContext]
   );
 
   return (
@@ -336,8 +348,13 @@ function EditConnectedMonitorsContent({
           ) : (
             <SpecificMonitorsSection
               connectedIds={connectedIds}
-              setConnectedIds={setConnectedIds}
+              setConnectedIds={handleSetConnectedIds}
             />
+          )}
+          {errorContext?.errors[CONNECTED_MONITORS_ERROR_ID] && (
+            <Alert variant="danger">
+              {errorContext.errors[CONNECTED_MONITORS_ERROR_ID]}
+            </Alert>
           )}
         </Stack>
       </FormSection>

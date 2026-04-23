@@ -2,7 +2,7 @@ import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
+import onboardingImg from 'sentry-images/spot/crons-onboarding.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -56,7 +56,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   const cronEnvironments = detector.dataSources[0].queryObj.environments;
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({
@@ -252,9 +252,19 @@ export default function CronDetectorsList() {
           <InsightsRedirectNotice>
             {t('Cron monitors have been moved from Insights to Monitors.')}
           </InsightsRedirectNotice>
-          <DetectorListHeader showTimeRangeSelector showTypeFilter={false} />
+          <DetectorListHeader
+            detectorType="monitor_check_in_failure"
+            showTimeRangeSelector
+            showTypeFilter={false}
+          />
           <GlobalMonitorProcessingErrors project={selectedProjects} />
-          <DetectorListContent {...detectorListQuery} emptyState={<CronEmptyState />} />
+          <DetectorListContent
+            isError={detectorListQuery.isError}
+            isLoading={detectorListQuery.isLoading}
+            isSuccess={detectorListQuery.isSuccess}
+            data={detectorListQuery.data}
+            emptyState={<CronEmptyState />}
+          />
         </WorkflowEngineListLayout>
       </SentryDocumentTitle>
     </MonitorViewContext.Provider>

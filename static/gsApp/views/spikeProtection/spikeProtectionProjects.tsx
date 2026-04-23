@@ -121,55 +121,49 @@ function SpikeProtectionProjects({subscription}: Props) {
     setIsLoading(false);
   }, [fetchAvailableNotificationActions]);
 
-  const fetchProjectNotificationActions = useCallback(
-    async (
-      project: Project,
-      projectNotificationActions: Record<string, NotificationAction[]>
-    ) => {
-      const projectId = project.id;
-      const data = await api.requestPromise(
-        `/organizations/${organization.slug}/notifications/actions/`,
-        {query: {triggerType, project: projectId}}
-      );
+  const fetchProjectNotificationActions = async (
+    project: Project,
+    projectNotificationActions: Record<string, NotificationAction[]>
+  ) => {
+    const projectId = project.id;
+    const data = await api.requestPromise(
+      `/organizations/${organization.slug}/notifications/actions/`,
+      {query: {triggerType, project: projectId}}
+    );
 
-      const notifActionsById = {...projectNotificationActions};
-      data.forEach((action: NotificationAction) => {
-        if (notifActionsById[projectId]) {
-          notifActionsById[projectId].push(action);
-        } else {
-          notifActionsById[projectId] = [action];
-        }
-      });
-      setNotificationActionsById(notifActionsById);
-    },
-    [api, organization]
-  );
-
-  const updateAllProjects = useCallback(
-    async (isEnabling: boolean) => {
-      try {
-        await api.requestPromise(
-          `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
-          {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
-        );
-        const newProjects = projects.map(p => ({
-          ...p,
-          options: {...p.options, [SPIKE_PROTECTION_OPTION_DISABLED]: !isEnabling},
-        }));
-        setProjects(newProjects);
-        await fetchData();
-        addSuccessMessage(
-          tct('[action] spike protection for all projects', {
-            action: isEnabling ? t('Enabled') : t('Disabled'),
-          })
-        );
-      } catch (err) {
-        Sentry.captureException(err);
-        addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+    const notifActionsById = {...projectNotificationActions};
+    data.forEach((action: NotificationAction) => {
+      if (notifActionsById[projectId]) {
+        notifActionsById[projectId].push(action);
+      } else {
+        notifActionsById[projectId] = [action];
       }
-    },
-    [api, organization, projects, fetchData]
-  );
+    });
+    setNotificationActionsById(notifActionsById);
+  };
+
+  const updateAllProjects = async (isEnabling: boolean) => {
+    try {
+      await api.requestPromise(
+        `/organizations/${organization.slug}/spike-protections/?projectSlug=$all`,
+        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
+      );
+      const newProjects = projects.map(p => ({
+        ...p,
+        options: {...p.options, [SPIKE_PROTECTION_OPTION_DISABLED]: !isEnabling},
+      }));
+      setProjects(newProjects);
+      await fetchData();
+      addSuccessMessage(
+        tct('[action] spike protection for all projects', {
+          action: isEnabling ? t('Enabled') : t('Disabled'),
+        })
+      );
+    } catch (err) {
+      Sentry.captureException(err);
+      addErrorMessage(SPIKE_PROTECTION_ERROR_MESSAGE);
+    }
+  };
 
   useEffect(() => {
     fetchProjects();

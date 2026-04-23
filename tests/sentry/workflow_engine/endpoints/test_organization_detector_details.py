@@ -12,6 +12,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -39,6 +40,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
 @pytest.mark.snuba_ci
+@with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationDetectorDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-organization-detector-details"
 
@@ -208,6 +210,14 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
+    def test_metric_detector_not_allowed_returns_404(self) -> None:
+        """
+        When the org lacks the incidents feature, GET for a metric detector
+        should return 404.
+        """
+        with self.feature({"organizations:incidents": False}):
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
@@ -365,6 +375,19 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 self.detector.id,
                 **data,
                 status_code=200,
+            )
+
+    def test_metric_detector_not_allowed_returns_404(self) -> None:
+        """
+        When the org lacks the incidents feature, PUT for a metric detector
+        should return 404.
+        """
+        with self.feature({"organizations:incidents": False}):
+            self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                **self.valid_data,
+                status_code=404,
             )
 
     def test_update_add_data_condition(self) -> None:
@@ -525,11 +548,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.enabled is False
-        assert detector.status == ObjectStatus.DISABLED
+        assert detector.status == ObjectStatus.ACTIVE
 
     def test_enable_detector(self) -> None:
         self.detector.update(enabled=False)
-        self.detector.update(status=ObjectStatus.DISABLED)
 
         data = {
             "enabled": True,
@@ -1006,6 +1028,50 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query_snapshot is not None
         assert snuba_query.query_snapshot.get("user_updated") is True
 
+    def test_update_generic_metrics_dataset_to_transactions(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                "dataset": Dataset.PerformanceMetrics.value,
+                "query": "event.type:transaction",
+                "aggregate": "count()",
+                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
+                "environment": self.environment.name,
+                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
+            }
+        ]
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
+
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
+            == Dataset.Transactions.value
+        )
+        assert (
+            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
+            == "event.type:transaction"
+        )
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["eventTypes"] == [
+            SnubaQueryEventType.EventType.TRANSACTION.name.lower()
+        ]
+
+        detector = Detector.objects.get(id=response.data["id"])
+        data_source = DataSource.objects.get(detector=detector)
+        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
+        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
+        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
+        assert query_sub.snuba_query.query == "event.type:transaction"
+        assert query_sub.snuba_query.aggregate == "count()"
+        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
@@ -1030,6 +1096,15 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
+
+    def test_delete_allowed_without_metric_subscription_feature(self) -> None:
+        with self.feature({"organizations:incidents": False}):
+            with outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
+
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
 
     def test_error_group_type(self) -> None:
         """

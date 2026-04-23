@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -47,8 +48,8 @@ interface Props<AggregatableQueryKey, Data> {
   onError?: (error: Error) => void;
 }
 
-function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[]) {
-  return ({queryKey}: any) => queryList.includes(queryKey[4] as AggregatableQueryKey);
+function isQueryKeyInList(queryList: unknown[]) {
+  return ({queryKey}: any) => queryList.includes(queryKey[4]);
 }
 
 /**
@@ -97,9 +98,9 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         .findAll({queryKey: [key]})
         .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
         .filter(defined)
-        .reduce(
+        .reduce<Data | undefined>(
           (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
-          undefined as Data | undefined
+          undefined
         ),
     [cache, key, queryClient, responseReducer]
   );

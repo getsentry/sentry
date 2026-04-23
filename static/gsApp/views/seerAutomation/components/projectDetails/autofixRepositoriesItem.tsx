@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -60,43 +60,37 @@ export function AutofixRepositoriesItem({
     repository.branch_overrides || []
   );
 
-  const handleUpdateOverride = useCallback(
-    (idx: number, updatedOverride: BranchOverride) => {
-      const newLocalOverrides = localOverrides.toSpliced(idx, 1, updatedOverride);
-      setLocalOverrides(newLocalOverrides);
+  const handleUpdateOverride = (idx: number, updatedOverride: BranchOverride) => {
+    const newLocalOverrides = localOverrides.toSpliced(idx, 1, updatedOverride);
+    setLocalOverrides(newLocalOverrides);
 
-      // Only sync valid overrides to the server if they changed
-      const branchOverrides = newLocalOverrides.filter(isOverrideValid);
-      if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
-        onUpdateRepo({
-          ...repository,
-          branch_overrides: branchOverrides,
-        });
-      }
-    },
-    [localOverrides, repository, onUpdateRepo]
-  );
+    // Only sync valid overrides to the server if they changed
+    const branchOverrides = newLocalOverrides.filter(isOverrideValid);
+    if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
+      onUpdateRepo({
+        ...repository,
+        branch_overrides: branchOverrides,
+      });
+    }
+  };
 
-  const handleRemoveOverride = useCallback(
-    (idx: number) => {
-      const newLocalOverrides = localOverrides.toSpliced(idx, 1);
-      setLocalOverrides(newLocalOverrides);
+  const handleRemoveOverride = (idx: number) => {
+    const newLocalOverrides = localOverrides.toSpliced(idx, 1);
+    setLocalOverrides(newLocalOverrides);
 
-      // Sync valid overrides to the server if they changed
-      const branchOverrides = newLocalOverrides.filter(isOverrideValid);
-      if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
-        onUpdateRepo({
-          ...repository,
-          branch_overrides: branchOverrides,
-        });
-      }
-    },
-    [localOverrides, repository, onUpdateRepo]
-  );
+    // Sync valid overrides to the server if they changed
+    const branchOverrides = newLocalOverrides.filter(isOverrideValid);
+    if (!areOverridesEqual(branchOverrides, repository.branch_overrides || [])) {
+      onUpdateRepo({
+        ...repository,
+        branch_overrides: branchOverrides,
+      });
+    }
+  };
 
-  const handleAddOverride = useCallback(() => {
+  const handleAddOverride = () => {
     setLocalOverrides([...localOverrides, {...DEFAULT_OVERRIDE}]);
-  }, [localOverrides]);
+  };
 
   return (
     <Fragment>

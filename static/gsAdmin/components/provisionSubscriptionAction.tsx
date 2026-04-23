@@ -193,24 +193,21 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const {subscription, billingConfig} = this.props;
 
     const provisionablePlans = billingConfig
-      ? billingConfig.planList.reduce(
-          (acc, plan) => {
-            if (
-              (isAmEnterprisePlan(plan.id) ||
-                plan.id === 'e1' ||
-                plan.id === 'mm2_a' ||
-                plan.id === 'mm2_b') &&
-              !plan.id.endsWith('_ac') &&
-              !plan.id.endsWith('_auf') &&
-              !isTrialPlan(plan.id) &&
-              !plan.isTestPlan
-            ) {
-              acc[plan.id] = plan;
-            }
-            return acc;
-          },
-          {} as Record<string, Plan>
-        )
+      ? billingConfig.planList.reduce<Record<string, Plan>>((acc, plan) => {
+          if (
+            (isAmEnterprisePlan(plan.id) ||
+              plan.id === 'e1' ||
+              plan.id === 'mm2_a' ||
+              plan.id === 'mm2_b') &&
+            !plan.id.endsWith('_ac') &&
+            !plan.id.endsWith('_auf') &&
+            !isTrialPlan(plan.id) &&
+            !plan.isTestPlan
+          ) {
+            acc[plan.id] = plan;
+          }
+          return acc;
+        }, {})
       : {};
 
     this.setState(state => ({
@@ -430,9 +427,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    const allCategories = Object.values(DATA_CATEGORY_INFO).map(
-      c => c.plural as DataCategory
-    );
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
     const planCategories = allCategories.filter(c =>
       this.state.provisionablePlans[postData.plan]?.categories.includes(c)
     );

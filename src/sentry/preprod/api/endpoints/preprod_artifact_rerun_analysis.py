@@ -8,7 +8,7 @@ from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint, internal_cell_silo_endpoint
@@ -22,8 +22,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.producer import PreprodFeature, produce_preprod_artifact_to_kafka
-from sentry.preprod.quotas import should_run_distribution, should_run_size
+from sentry.preprod.quotas import should_run_size
 from sentry.preprod.tasks import dispatch_taskbroker
 
 logger = logging.getLogger(__name__)
@@ -65,47 +64,12 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
 
         organization = head_artifact.project.organization
 
-        # Empty list is valid - triggers default processing behavior
-        requested_features: list[PreprodFeature] = []
-
         run_size, _ = should_run_size(head_artifact, actor=request.user)
         if run_size:
-            requested_features.append(PreprodFeature.SIZE_ANALYSIS)
-
-        run_distribution, _ = should_run_distribution(head_artifact, actor=request.user)
-        if run_distribution:
-            requested_features.append(PreprodFeature.BUILD_DISTRIBUTION)
-
-        if PreprodFeature.SIZE_ANALYSIS in requested_features:
             cleanup_old_metrics(head_artifact)
         reset_artifact_data(head_artifact)
 
-        if features.has("organizations:launchpad-taskbroker-rollout", organization):
-            dispatched = dispatch_taskbroker(
-                head_artifact.project.id, organization.id, head_artifact_id
-            )
-        else:
-            try:
-                produce_preprod_artifact_to_kafka(
-                    project_id=head_artifact.project.id,
-                    organization_id=organization.id,
-                    artifact_id=head_artifact_id,
-                    requested_features=requested_features,
-                )
-                dispatched = True
-            except Exception:
-                logger.exception(
-                    "preprod_artifact.rerun_analysis.dispatch_error",
-                    extra={
-                        "artifact_id": head_artifact_id,
-                        "user_id": request.user.id,
-                        "organization_id": organization.id,
-                        "project_id": head_artifact.project.id,
-                    },
-                )
-                dispatched = False
-
-        if not dispatched:
+        if not dispatch_taskbroker(head_artifact.project.id, organization.id, head_artifact_id):
             return Response(
                 {
                     "detail": f"Failed to queue analysis for artifact {head_artifact_id}",
@@ -182,36 +146,9 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
         reset_artifact_data(preprod_artifact)
 
         organization = preprod_artifact.project.organization
-        if features.has("organizations:launchpad-taskbroker-rollout", organization):
-            dispatched = dispatch_taskbroker(
-                preprod_artifact.project.id, organization.id, preprod_artifact_id
-            )
-        else:
-            try:
-                produce_preprod_artifact_to_kafka(
-                    project_id=preprod_artifact.project.id,
-                    organization_id=organization.id,
-                    artifact_id=preprod_artifact_id,
-                    requested_features=[
-                        PreprodFeature.SIZE_ANALYSIS,
-                        PreprodFeature.BUILD_DISTRIBUTION,
-                    ],
-                )
-                dispatched = True
-            except Exception as e:
-                logger.exception(
-                    "preprod_artifact.admin_rerun_analysis.dispatch_error",
-                    extra={
-                        "artifact_id": preprod_artifact_id,
-                        "user_id": request.user.id,
-                        "organization_id": organization.id,
-                        "project_id": preprod_artifact.project.id,
-                        "error": str(e),
-                    },
-                )
-                dispatched = False
-
-        if not dispatched:
+        if not dispatch_taskbroker(
+            preprod_artifact.project.id, organization.id, preprod_artifact_id
+        ):
             return Response(
                 {
                     "detail": f"Failed to queue analysis for artifact {preprod_artifact_id}",
@@ -303,32 +240,7 @@ class PreprodArtifactAdminBatchRerunAnalysisEndpoint(Endpoint):
             cleanup_stats = cleanup_old_metrics(artifact)
             reset_artifact_data(artifact)
 
-            if features.has("organizations:launchpad-taskbroker-rollout", organization):
-                dispatched = dispatch_taskbroker(artifact.project.id, organization.id, artifact_id)
-            else:
-                try:
-                    produce_preprod_artifact_to_kafka(
-                        project_id=artifact.project.id,
-                        organization_id=organization.id,
-                        artifact_id=artifact_id,
-                        requested_features=[
-                            PreprodFeature.SIZE_ANALYSIS,
-                            PreprodFeature.BUILD_DISTRIBUTION,
-                        ],
-                    )
-                    dispatched = True
-                except Exception:
-                    logger.exception(
-                        "preprod_artifact.admin_batch_rerun_analysis.dispatch_error",
-                        extra={
-                            "artifact_id": artifact_id,
-                            "user_id": request.user.id,
-                            "organization_id": organization.id,
-                            "project_id": artifact.project.id,
-                        },
-                    )
-                    dispatched = False
-
+            dispatched = dispatch_taskbroker(artifact.project.id, organization.id, artifact_id)
             if not dispatched:
                 artifact.refresh_from_db()
 
@@ -367,14 +279,10 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
         PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=preprod_artifact)
     )
 
-    file_ids_to_delete = []
-
     if size_metrics:
         size_metric_ids = [sm.id for sm in size_metrics]
 
-        for size_metric in size_metrics:
-            if size_metric.analysis_file_id:
-                file_ids_to_delete.append(size_metric.analysis_file_id)
+        file_ids_to_delete = [sm.analysis_file_id for sm in size_metrics if sm.analysis_file_id]
 
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis_id__in=size_metric_ids
@@ -392,10 +300,9 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
                 id__in=size_metric_ids
             ).delete()
 
-        if file_ids_to_delete:
-            for file in File.objects.filter(id__in=file_ids_to_delete):
-                file.delete()
-                stats.files_total_deleted += 1
+        for file in File.objects.filter(id__in=file_ids_to_delete):
+            file.delete()
+            stats.files_total_deleted += 1
 
     PreprodArtifactSizeMetrics.objects.create(
         preprod_artifact=preprod_artifact,

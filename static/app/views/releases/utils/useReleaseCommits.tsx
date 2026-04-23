@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Commit, Repository} from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are the URL params that our project/date/env picker generates (+ cursor for pagination)
@@ -24,30 +25,23 @@ interface UseReleaseCommitsParams extends Partial<
   activeRepository?: Repository;
 }
 
-export function useReleaseCommits(
-  {
-    release,
-    projectSlug,
-    activeRepository,
-    perPage = 40,
-    ...query
-  }: UseReleaseCommitsParams,
-  queryOptions?: UseApiQueryOptions<Commit[]>
-) {
+export function useReleaseCommits({
+  release,
+  projectSlug,
+  activeRepository,
+  perPage = 40,
+  ...query
+}: UseReleaseCommitsParams) {
   const organization = useOrganization();
-  return useApiQuery<Commit[]>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            version: release,
-          },
-        }
-      ),
+  return useQuery({
+    ...apiOptions.as<Commit[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/commits/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: projectSlug,
+          version: release,
+        },
         query: {
           ...query,
           per_page: perPage,
@@ -58,11 +52,9 @@ export function useReleaseCommits(
               }
             : {}),
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      ...queryOptions,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
 }

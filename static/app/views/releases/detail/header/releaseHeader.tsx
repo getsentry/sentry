@@ -1,15 +1,18 @@
 import React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {TabList} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -20,10 +23,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {isMobileRelease} from 'sentry/views/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
-import {ReleaseActions} from './releaseActions';
+import {ReleaseActions, releaseFeedbackOptions} from './releaseActions';
 
 type Props = {
   location: Location;
@@ -42,8 +47,33 @@ export function ReleaseHeader({
   releaseMeta,
   refetchData,
 }: Props) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const {version, url} = release;
   const {commitCount, commitFilesChanged} = releaseMeta;
+
+  const titleContent = (
+    <React.Fragment>
+      <IdBadge project={project} avatarSize={16} hideName />
+      <Version version={version} anchor={false} truncate />
+      <CopyToClipboardButton
+        className="release-copy-button"
+        priority="transparent"
+        size="zero"
+        text={version}
+        tooltipProps={{title: version}}
+        aria-label={t('Copy release version to clipboard')}
+      />
+      {!!url && (
+        <IconWrapper>
+          <Tooltip title={url}>
+            <ExternalLink href={url}>
+              <IconOpen />
+            </ExternalLink>
+          </Tooltip>
+        </IconWrapper>
+      )}
+    </React.Fragment>
+  );
 
   const releasePath = makeReleasesPathname({
     organization,
@@ -100,10 +130,7 @@ export function ReleaseHeader({
     to: 'builds/',
   };
 
-  if (
-    organization.features?.includes('preprod-frontend-routes') &&
-    (numberOfMobileBuilds || isMobileRelease(project.platform, false))
-  ) {
+  if (numberOfMobileBuilds || isMobileRelease(project.platform, false)) {
     tabs.push(buildsTab);
   }
 
@@ -128,51 +155,72 @@ export function ReleaseHeader({
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumbs
-          crumbs={[
-            {
-              to: makeReleasesPathname({
-                organization,
-                path: '/',
-              }),
-              label: t('Releases'),
-              preservePageFilters: true,
-            },
-            {label: t('Release Details')},
-          ]}
-        />
-        <Layout.Title>
-          <IdBadge project={project} avatarSize={28} hideName />
-          <Version version={version} anchor={false} truncate />
-          <IconWrapper>
-            <CopyToClipboardButton
-              priority="transparent"
-              size="zero"
-              text={version}
-              tooltipProps={{title: version}}
-              aria-label={t('Copy release version to clipboard')}
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: makeReleasesPathname({organization, path: '/'}),
+                  label: t('Releases'),
+                  preservePageFilters: true,
+                },
+                {
+                  label: (
+                    <Flex align="center" gap="md" minWidth={0} css={titleWrapperStyles}>
+                      {titleContent}
+                    </Flex>
+                  ),
+                },
+              ]}
             />
-          </IconWrapper>
-          {!!url && (
-            <IconWrapper>
-              <Tooltip title={url}>
-                <ExternalLink href={url}>
-                  <IconOpen />
-                </ExternalLink>
-              </Tooltip>
-            </IconWrapper>
-          )}
-        </Layout.Title>
+          </TopBar.Slot>
+        ) : (
+          <React.Fragment>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  to: makeReleasesPathname({organization, path: '/'}),
+                  label: t('Releases'),
+                  preservePageFilters: true,
+                },
+                {label: t('Release Details')},
+              ]}
+            />
+            <Layout.Title>{titleContent}</Layout.Title>
+          </React.Fragment>
+        )}
       </Layout.HeaderContent>
 
-      <Layout.HeaderActions>
-        <ReleaseActions
-          projectSlug={project.slug}
-          release={release}
-          releaseMeta={releaseMeta}
-          refetchData={refetchData}
-        />
-      </Layout.HeaderActions>
+      {hasPageFrameFeature ? (
+        <React.Fragment>
+          <TopBar.Slot name="actions">
+            <ReleaseActions
+              projectSlug={project.slug}
+              release={release}
+              releaseMeta={releaseMeta}
+              refetchData={refetchData}
+              showFeedbackButton={false}
+            />
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              feedbackOptions={releaseFeedbackOptions}
+              aria-label={t('Give Feedback')}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        </React.Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <ReleaseActions
+            projectSlug={project.slug}
+            release={release}
+            releaseMeta={releaseMeta}
+            refetchData={refetchData}
+          />
+        </Layout.HeaderActions>
+      )}
 
       <Layout.HeaderTabs value={getActiveTabTo()}>
         <TabList>
@@ -186,6 +234,18 @@ export function ReleaseHeader({
     </Layout.Header>
   );
 }
+
+const titleWrapperStyles = css`
+  line-height: 1;
+
+  .release-copy-button {
+    display: none;
+  }
+
+  &:hover .release-copy-button {
+    display: inline-flex;
+  }
+`;
 
 const IconWrapper = styled('span')`
   transition: color 0.3s ease-in-out;

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import timezone
-from typing import Any, ClassVar, Generic, NotRequired, TypedDict, TypeVar, cast
+from typing import Any, ClassVar, Generic, TypedDict, TypeVar, cast
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -19,7 +19,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcCreateRepository, RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
-from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
@@ -28,16 +27,6 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
 InstT = TypeVar("InstT", bound="RepositoryIntegration[Any]", default=RepositoryIntegration)
-
-
-class RepositoryInputConfig(TypedDict):
-    """Input config passed to create_repositories / build_repository_config.
-    Providers may include additional keys beyond these."""
-
-    external_id: str
-    integration_id: int
-    identifier: str
-    installation: NotRequired[str]
 
 
 class RepositoryConfig(TypedDict):
@@ -55,12 +44,12 @@ class RepoExistsError(SentryAPIException):
 
     def __init__(
         self,
-        code=None,
-        message=None,
-        detail=None,
+        code: str | None = None,
+        message: str | None = None,
+        detail: Any = None,
         repos: list[RepositoryConfig] | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__(code=code, message=message, detail=detail, **kwargs)
         self.repos = repos
 
@@ -70,7 +59,7 @@ class RepoExistsError(SentryAPIException):
         return "Repositories already exist."
 
 
-def get_integration_repository_provider(integration):
+def get_integration_repository_provider(integration: Any) -> Any:
     from sentry.plugins.base import bindings  # circular import
 
     binding_key = "integration-repository.provider"
@@ -92,7 +81,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     name: ClassVar[str]
     repo_provider: ClassVar[str]
 
-    def __init__(self, id):
+    def __init__(self, id: str) -> None:
         self.id = id
         self.logger = logging.getLogger(f"sentry.integrations.{self.repo_provider}")
 
@@ -122,7 +111,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         self,
         repo_config: Mapping[str, Any],
         organization: RpcOrganization,
-    ):
+    ) -> tuple[RepositoryConfig, RpcRepository]:
         result = self.build_repository_config(organization=organization, data=repo_config)
 
         integration_id = result["integration_id"]
@@ -142,9 +131,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             existing_repo.name = name
             existing_repo.integration_id = integration_id
             existing_repo.url = url
+            existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )
+            self.on_create_repository(existing_repo, organization)
             metrics.incr("sentry.integration_repo_provider.repo_relink")
             return result, existing_repo
 
@@ -156,10 +147,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         )
         repo = repositories[0] if repositories else None
 
-        repo_update_params = {
+        config_updates: dict[str, Any] = result.get("config") or {}
+        repo_update_params: dict[str, Any] = {
             "external_id": external_id,
             "url": result.get("url"),
-            "config": result.get("config") or {},
+            "config": config_updates,
             "provider": self.id,
             "integration_id": integration_id,
             "name": name,
@@ -174,12 +166,15 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     "old_provider": repo.provider,
                 },
             )
-            # update from params
+            # update from params, merging config to preserve keys like webhook_id
+            repo.config = {**repo.config, **config_updates}
             for field_name, field_value in repo_update_params.items():
-                setattr(repo, field_name, field_value)
+                if field_name != "config":
+                    setattr(repo, field_name, field_value)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
+            self.on_create_repository(repo, organization)
         else:
             create_repository = RpcCreateRepository.parse_obj(
                 {**repo_update_params, "status": ObjectStatus.ACTIVE}
@@ -188,15 +183,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization.id, create=create_repository
             )
             if new_repository is not None:
+                self.on_create_repository(new_repository, organization)
                 return result, new_repository
-
-            # Try to delete webhook we just created
-            try:
-                self.on_delete_repository(
-                    Repository(organization_id=organization.id, **repo_update_params)
-                )
-            except IntegrationError:
-                pass
 
             # if possible update the repo with matching integration
             repositories = repository_service.get_repositories(
@@ -218,11 +206,14 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
         return result, repo
 
-    def _update_repository(self, repo: RpcRepository, config: RepositoryConfig):
+    def _update_repository(self, repo: RpcRepository, config: RepositoryConfig) -> RpcRepository:
         repo.status = ObjectStatus.ACTIVE
 
+        new_config = config.get("config") or {}
+        repo.config = {**repo.config, **new_config}
         for field_name, field_value in config.items():
-            setattr(repo, field_name, field_value)
+            if field_name != "config":
+                setattr(repo, field_name, field_value)
         return repo
 
     def _update_repositories(
@@ -240,7 +231,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def create_repositories(
         self,
-        configs: list[RepositoryInputConfig],
+        configs: list[dict[str, Any]],
         organization: RpcOrganization,
     ) -> tuple[list[RpcRepository], list[RpcRepository], list[RepositoryConfig]]:
         """
@@ -282,17 +273,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization.id, create=create_repository
             )
             if new_repository is not None:
+                self.on_create_repository(new_repository, organization)
                 created_repos.append(new_repository)
                 continue
 
             missing_repos.append(repo_config)
-            # Try to delete webhook we just created
-            try:
-                self.on_delete_repository(
-                    Repository(organization_id=organization.id, **repo_config)
-                )
-            except IntegrationError:
-                pass
 
             # if possible update the repo with matching integration
             repositories = repository_service.get_repositories(
@@ -309,10 +294,12 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization.id,
                 updates=repos_to_update,
             )
+            for repo in repos_to_update:
+                self.on_create_repository(repo, organization)
 
         return created_repos, repos_to_update, missing_repos
 
-    def dispatch(self, request: Request, organization, **kwargs):
+    def dispatch(self, request: Request, organization: Any, **kwargs: Any) -> Response:
         try:
             config = self.get_repository_data(organization, request.data)
         except Exception as e:
@@ -365,10 +352,12 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             self.logger.exception(str(e))
             return Response({"error_type": "unknown"}, status=500)
 
-    def get_config(self, organization):
+    def get_config(self, organization: Any) -> Any:
         raise NotImplementedError
 
-    def get_repository_data(self, organization, config):
+    def get_repository_data(
+        self, organization: Any, config: MutableMapping[str, Any]
+    ) -> MutableMapping[str, Any]:
         """
         Gets the necessary repository data through the integration's API
         """
@@ -392,15 +381,25 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         """
         raise NotImplementedError
 
-    def on_delete_repository(self, repo):
+    def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
+        """Called after a repository is created or reactivated.
+
+        Override to perform post-creation setup like webhook creation.
+        The repo has already been persisted — update repo.config and call
+        repository_service.update_repository to store any new config values.
+        """
+
+    def on_delete_repository(self, repo: Any) -> None:
         pass
 
-    def format_date(self, date):
+    def format_date(self, date: str | None) -> Any | None:
         if not date:
             return None
         return parse_date(date).astimezone(timezone.utc)
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: Any, start_sha: str | None, end_sha: str
+    ) -> Sequence[Mapping[str, Any]]:
         """
         Generate a list of commits between the start & end sha
         Commits should be of the following format:
@@ -416,13 +415,26 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         """
         raise NotImplementedError
 
-    def pull_request_url(self, repo, pull_request):
+    def fetch_recent_commits(
+        self, repo: Any, end_sha: str, *, actor: Any | None = None
+    ) -> Sequence[Mapping[str, Any]]:
+        return self.compare_commits(repo, None, end_sha)
+
+    def fetch_commits_for_compare_range(
+        self, repo: Any, start_sha: str, end_sha: str, *, actor: Any | None = None
+    ) -> Sequence[Mapping[str, Any]]:
+        return self.compare_commits(repo, start_sha, end_sha)
+
+    def get_scm_provider_key(self) -> str:
+        return self.repo_provider
+
+    def pull_request_url(self, repo: Any, pull_request: Any) -> str | None:
         """
         Generate a URL to a pull request on the repository provider.
         """
         return None
 
-    def repository_external_slug(self, repo):
+    def repository_external_slug(self, repo: Any) -> str | None:
         """
         Generate the public facing 'external_slug' for a repository
         The shape of this id must match the `identifier` returned by
@@ -431,5 +443,5 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         return repo.name
 
     @staticmethod
-    def should_ignore_commit(message):
+    def should_ignore_commit(message: str) -> bool:
         return "#skipsentry" in message

@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -120,16 +120,6 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       await renderTicketRuleModal();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
       await submitSuccess();
-    });
-
-    it('submit button shall be disabled if form is incomplete', async () => {
-      await renderTicketRuleModal();
-      await userEvent.click(screen.getByRole('textbox', {name: 'Reporter'}));
-      expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
-      await userEvent.hover(screen.getByRole('button', {name: 'Apply Changes'}));
-      expect(
-        await screen.findByText('Required fields must be filled out')
-      ).toBeInTheDocument();
     });
 
     it('should reload fields when an "updatesForm" field changes', async () => {
@@ -289,6 +279,56 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
       await submitSuccess();
     });
 
+    it('should persist async select saved value when modal is reopened', async () => {
+      // Simulate reopening with a previously saved async field value.
+      // instance.dynamic_form_fields contains the saved field config with
+      // choices from the previous search. The backend returns empty choices
+      // for async fields, but the saved choices should be restored.
+      const reporterField: IssueConfigField = {
+        label: 'Reporter',
+        required: false,
+        url: 'http://example.com',
+        type: 'select',
+        name: 'reporter',
+        choices: [], // Backend returns empty choices for async fields
+      };
+
+      addMockConfigsAPICall(reporterField);
+
+      render(
+        <TicketRuleModal
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          link=""
+          ticketType=""
+          instance={{
+            integration: '1',
+            reporter: 'saved-user-id',
+            // Saved field configs with choices from previous async search
+            dynamic_form_fields: [
+              ...defaultIssueConfig,
+              {
+                ...reporterField,
+                choices: [['saved-user-id', 'Joe Smith']],
+              },
+            ],
+          }}
+          onSubmitAction={onSubmitAction}
+        />,
+        {organization}
+      );
+      // Wait for loading to finish and verify the saved value is displayed
+      expect(await screen.findByText('Joe Smith')).toBeInTheDocument();
+
+      // Submit should include the saved value
+      await submitSuccess();
+      const formData = onSubmitAction.mock.calls[0][0];
+      expect(formData.reporter).toBe('saved-user-id');
+    });
+
     it('should get async options from URL', async () => {
       await renderTicketRuleModal();
 
@@ -321,23 +361,104 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         issueTypeLabel
       );
 
-      // Component makes 1 request per character typed.
-      let txt = '';
-      for (const char of 'Joe') {
-        txt += char;
-        MockApiClient.addMockResponse({
-          url: `http://example.com?field=assignee&issuetype=10001&project=10000&query=${txt}`,
-          method: 'GET',
-          body: [{label: 'Joe', value: 'Joe'}],
-        });
-      }
+      // Catch-all mock for async search endpoint
+      MockApiClient.addMockResponse({
+        url: 'http://example.com',
+        method: 'GET',
+        body: [],
+      });
+      // Specific mock for the full "Joe" search (after debounce)
+      const searchResponse = MockApiClient.addMockResponse({
+        url: 'http://example.com',
+        match: [
+          MockApiClient.matchQuery({
+            field: 'assignee',
+            query: 'Joe',
+          }),
+        ],
+        method: 'GET',
+        body: [{label: 'Joe', value: 'Joe'}],
+      });
+
       expect(dynamicQuery).toHaveBeenCalled();
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
-      await selectEvent.openMenu(menu);
-      await userEvent.type(menu, 'Joe{Escape}');
+      await userEvent.click(menu);
+      await userEvent.type(menu, 'Joe');
+
+      await waitFor(() => expect(searchResponse).toHaveBeenCalled());
       await selectEvent.select(menu, 'Joe');
 
       await submitSuccess();
+
+      // The fieldOptionsCache (2nd arg) should include the search result
+      // so the parent can persist it in dynamic_form_fields
+      const fieldOptionsCache = onSubmitAction.mock.calls[0][1];
+      expect(fieldOptionsCache).toHaveProperty('assignee');
+    });
+
+    it('should persist async search choices in fieldOptionsCache on submit', async () => {
+      await renderTicketRuleModal();
+
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: issueTypeCode,
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Assignee',
+              required: true,
+              url: 'http://example.com',
+              type: 'select',
+              name: 'assignee',
+            },
+          ],
+        },
+      });
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        issueTypeLabel
+      );
+
+      MockApiClient.addMockResponse({
+        url: 'http://example.com',
+        method: 'GET',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: 'http://example.com',
+        match: [MockApiClient.matchQuery({field: 'assignee', query: 'Joe'})],
+        method: 'GET',
+        body: [{label: 'Joe', value: 'Joe'}],
+      });
+
+      expect(dynamicQuery).toHaveBeenCalled();
+      const menu = screen.getByRole('textbox', {name: 'Assignee'});
+      await userEvent.click(menu);
+      await userEvent.type(menu, 'Joe');
+      await waitFor(() =>
+        expect(screen.getAllByText('Joe').length).toBeGreaterThanOrEqual(1)
+      );
+      await selectEvent.select(menu, 'Joe');
+
+      await submitSuccess();
+
+      // The second argument to onSubmitAction is the fieldOptionsCache.
+      // It should include the async search result so the choice persists
+      // when the modal is re-opened.
+      const fieldOptionsCache = onSubmitAction.mock.calls[0][1];
+      expect(fieldOptionsCache).toHaveProperty('assignee');
+      expect(fieldOptionsCache.assignee).toEqual(
+        expect.arrayContaining([['Joe', 'Joe']])
+      );
     });
   });
 });

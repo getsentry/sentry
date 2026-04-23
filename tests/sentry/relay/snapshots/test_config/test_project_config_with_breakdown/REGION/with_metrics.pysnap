@@ -46,9 +46,3 @@ metricConditionalTagging:
   - d:transactions/measurements.lcp@millisecond
   - s:transactions/user@none
   targetTag: satisfaction
-transactionMetrics:
-  acceptTransactionNames: clientBased
-  customMeasurements:
-    limit: 10
-  extractCustomTags: []
-  version: 6

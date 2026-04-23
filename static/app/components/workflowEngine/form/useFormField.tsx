@@ -6,6 +6,7 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import type {FieldValue} from 'sentry/components/forms/types';
 import {getFormFieldValue} from 'sentry/components/workflowEngine/form/getFormFieldValue';
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function useFormField<Value extends FieldValue = FieldValue>(
   field: string
 ): Value | undefined {

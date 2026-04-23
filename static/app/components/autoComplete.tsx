@@ -519,7 +519,7 @@ export class AutoComplete<T extends Item> extends Component<
               const inputProps = this.getInputProps<E>(props);
 
               return inputIsActor
-                ? dropdownMenuProps.getActorProps<E>(inputProps as GetActorArgs<E>)
+                ? dropdownMenuProps.getActorProps<E>(inputProps)
                 : inputProps;
             },
 

@@ -1,4 +1,4 @@
-import {createContext, useContext} from 'react';
+import {createContext} from 'react';
 
 import type {TourContextType} from 'sentry/components/tours/tourContext';
 
@@ -30,11 +30,3 @@ export const ISSUE_DETAILS_TOUR_GUIDE_KEY = 'tour.issue_details';
 
 export const IssueDetailsTourContext =
   createContext<TourContextType<IssueDetailsTour> | null>(null);
-
-export function useIssueDetailsTour(): TourContextType<IssueDetailsTour> {
-  const tourContext = useContext(IssueDetailsTourContext);
-  if (!tourContext) {
-    throw new Error('Must be used within a TourContextProvider<IssueDetailsTour>');
-  }
-  return tourContext;
-}

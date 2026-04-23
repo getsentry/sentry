@@ -1,27 +1,31 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
+import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
+import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   AutomationBuilderContext,
   useAutomationBuilderReducer,
@@ -44,6 +48,8 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -55,6 +61,7 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const title = useFormField('name');
   const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   return (
     <Breadcrumbs
       crumbs={[
@@ -62,29 +69,76 @@ function AutomationBreadcrumbs() {
           label: t('Alerts'),
           to: makeAutomationBasePathname(organization.slug),
         },
-        {label: title ? title : t('New Alert')},
+        {label: hasPageFrameFeature ? t('New Alert') : title || t('New Alert')},
       ]}
     />
   );
 }
 
-const initialData = {
+const INITIAL_FORM_DATA_DEFAULTS = {
   name: '',
   environment: null,
   frequency: 0,
   enabled: true,
   projectIds: [],
+  detectorIds: [],
 };
+
+function useInitialFormData() {
+  const {selection} = usePageFilters();
+  const [connectedIds] = useQueryState(
+    'connectedIds',
+    parseAsNativeArrayOf(parseAsString)
+  );
+  const [projectId] = useQueryState('project', parseAsString);
+  const {projects} = useProjects();
+
+  // If URL params are passed, use them
+  if (connectedIds.length > 0) {
+    return {
+      ...INITIAL_FORM_DATA_DEFAULTS,
+      detectorIds: connectedIds,
+    };
+  }
+  if (projectId) {
+    return {
+      ...INITIAL_FORM_DATA_DEFAULTS,
+      projectIds: [projectId],
+    };
+  }
+
+  // If any specific projects are selected, use the first one
+  const intitialSelectedProject = selection.projects.find(p => p > 0);
+  if (intitialSelectedProject) {
+    return {
+      ...INITIAL_FORM_DATA_DEFAULTS,
+      projectIds: [String(intitialSelectedProject)],
+    };
+  }
+
+  // Otherwise use the first project that the user has access to
+  const sortedUserProjects = orderBy(
+    projects,
+    ['isMember', 'isBookmarked'],
+    ['desc', 'desc']
+  );
+  const firstUserProject = sortedUserProjects[0];
+  return {
+    ...INITIAL_FORM_DATA_DEFAULTS,
+    projectIds: firstUserProject ? [firstUserProject.id] : [],
+  };
+}
 
 export default function AutomationNewSettings() {
   const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.lg;
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const initialData = useInitialFormData();
 
   const {
     errors: automationBuilderErrors,
@@ -92,31 +146,18 @@ export default function AutomationNewSettings() {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const initialConnectedIds = useMemo(() => {
-    const connectedIdsQuery = location.query.connectedIds as
-      | string
-      | string[]
-      | undefined;
-    if (!connectedIdsQuery) {
-      return [];
-    }
-    const connectedIds = Array.isArray(connectedIdsQuery)
-      ? connectedIdsQuery
-      : [connectedIdsQuery];
-    return connectedIds;
-  }, [location.query.connectedIds]);
-
   const {mutateAsync: createAutomation, error} = useCreateAutomation();
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
-      const errors = validateAutomationBuilderState(state);
+      const automationFormData = data as AutomationFormData;
+      const errors = validateAutomationBuilderState(state, automationFormData);
       setAutomationBuilderErrors(errors);
 
       if (Object.keys(errors).length > 0) {
         const analyticsPayload = getAutomationAnalyticsPayload(
           getNewAutomationData({
-            data: data as AutomationFormData,
+            data: automationFormData,
             state,
           })
         );
@@ -136,9 +177,9 @@ export default function AutomationNewSettings() {
       formModel.setFormSaving();
 
       const formData = await resolveDetectorIdsForProjects({
-        formData: data as AutomationFormData,
+        formData: automationFormData,
         onSubmitError,
-        orgSlug: organization.slug,
+        organization,
         projectIds: data.projectIds,
         queryClient,
       });
@@ -189,27 +230,44 @@ export default function AutomationNewSettings() {
   return (
     <FullHeightForm
       hideFooter
-      initialData={{...initialData, detectorIds: initialConnectedIds}}
+      initialData={initialData}
       onSubmit={handleSubmit}
       model={model}
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <StyledLayoutHeader>
+          <Layout.Header {...(hasPageFrameFeature ? {} : {background: 'primary'})}>
             <HeaderInner maxWidth={maxWidth}>
               <Layout.HeaderContent>
-                <AutomationBreadcrumbs />
-                <Layout.Title>
-                  <EditableAutomationName />
-                </Layout.Title>
+                {hasPageFrameFeature ? (
+                  <Fragment>
+                    <TopBar.Slot name="title">
+                      <AutomationBreadcrumbs />
+                    </TopBar.Slot>
+                    <Heading as="h1" ellipsis>
+                      <EditableAutomationName />
+                    </Heading>
+                  </Fragment>
+                ) : (
+                  <Fragment>
+                    <AutomationBreadcrumbs />
+                    <Layout.Title>
+                      <EditableAutomationName />
+                    </Layout.Title>
+                  </Fragment>
+                )}
               </Layout.HeaderContent>
               <div>
                 <AutomationFeedbackButton />
               </div>
             </HeaderInner>
-          </StyledLayoutHeader>
-          <StyledBody maxWidth={maxWidth}>
+          </Layout.Header>
+          <Layout.Body
+            maxWidth={maxWidth}
+            margin={hasPageFrameFeature ? '0' : {sm: 'xl', md: '2xl 3xl'}}
+            {...(hasPageFrameFeature ? {} : {padding: '0'})}
+          >
             <Layout.Main width="full">
               <AutomationBuilderErrorContext.Provider
                 value={{
@@ -230,10 +288,22 @@ export default function AutomationNewSettings() {
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>
             </Layout.Main>
-          </StyledBody>
+          </Layout.Body>
         </Stack>
         <StickyFooter>
-          <Flex maxWidth={maxWidth} align="center" gap="md" justify="end">
+          <Flex
+            width="100%"
+            maxWidth={
+              // Layout.Body uses `lg xl` page-frame padding, so subtract the left/right `xl`
+              // gutters to align the footer actions with the inner content column.
+              hasPageFrameFeature
+                ? `calc(${maxWidth} - ${theme.space.xl} - ${theme.space.xl})`
+                : maxWidth
+            }
+            align="center"
+            gap="md"
+            justify="end"
+          >
             <Observer>
               {() => (
                 <Button priority="primary" type="submit" busy={model.isSaving}>
@@ -248,10 +318,6 @@ export default function AutomationNewSettings() {
   );
 }
 
-const StyledLayoutHeader = styled(Layout.Header)`
-  background-color: ${p => p.theme.tokens.background.primary};
-`;
-
 const HeaderInner = styled('div')<{maxWidth?: string}>`
   display: contents;
 
@@ -260,19 +326,5 @@ const HeaderInner = styled('div')<{maxWidth?: string}>`
     grid-template-columns: minmax(0, 1fr) auto;
     max-width: ${p => p.maxWidth};
     width: 100%;
-  }
-`;
-
-const StyledBody = styled(Layout.Body)<{maxWidth?: string}>`
-  max-width: ${p => p.maxWidth};
-  padding: 0;
-  margin: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-    margin: ${p =>
-      p.noRowGap
-        ? `${p.theme.space.xl} ${p.theme.space['3xl']}`
-        : `${p.theme.space['2xl']} ${p.theme.space['3xl']}`};
   }
 `;

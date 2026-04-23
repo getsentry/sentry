@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
+from django.core.cache import cache
 from requests import PreparedRequest
 
 from sentry.constants import ObjectStatus
@@ -56,6 +57,14 @@ MINIMUM_REQUESTS = 200
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
 
+class CachedRepo(TypedDict):
+    id: int
+    name: str
+    full_name: str
+    default_branch: str | None
+    archived: bool | None
+
+
 class GithubRateLimitInfo:
     def __init__(self, info: dict[str, int]) -> None:
         self.limit = info["limit"]
@@ -83,6 +92,13 @@ class GitHubReaction(StrEnum):
     HOORAY = "hooray"
     ROCKET = "rocket"
     EYES = "eyes"
+
+
+class GitHubApiRequestType(StrEnum):
+    COMPARE_COMMITS = "compare_commits"
+    GET_COMMITS = "get_commits"
+    GET_COMMIT = "get_commit"
+    CHECK_FILE = "check_file"
 
 
 class GithubSetupApiClient(IntegrationProxyClient):
@@ -327,13 +343,17 @@ class GitHubBaseClient(
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 50  # With a default of 100 per page -> 5,000 items
 
-    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[Any]:
+    def get_last_commits(self, repo: str, end_sha: str, per_page: int = 20) -> Sequence[Any]:
         """
-        Return API request that fetches last ~30 commits
+        Return API request that fetches the last N commits.
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
-        return self.get_cached(f"/repos/{repo}/commits", params={"sha": end_sha})
+        return self.get_cached(
+            f"/repos/{repo}/commits",
+            params={"sha": end_sha, "per_page": per_page},
+            api_request_type=GitHubApiRequestType.GET_COMMITS,
+        )
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> list[Any]:
         """
@@ -343,6 +363,7 @@ class GitHubBaseClient(
         return self._get_with_pagination(
             f"/repos/{repo}/compare/{start_sha}...{end_sha}",
             response_key="commits",
+            api_request_type=GitHubApiRequestType.COMPARE_COMMITS,
         )
 
     def repo_hooks(self, repo: str) -> Sequence[Any]:
@@ -355,13 +376,15 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits")
+        return self.get(f"/repos/{repo}/commits", api_request_type=GitHubApiRequestType.GET_COMMITS)
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#get-a-commit
         """
-        return self.get_cached(f"/repos/{repo}/commits/{sha}")
+        return self.get_cached(
+            f"/repos/{repo}/commits/{sha}", api_request_type=GitHubApiRequestType.GET_COMMIT
+        )
 
     def get_installation_info(self, installation_id: int | str) -> Any:
         """
@@ -549,6 +572,33 @@ class GitHubBaseClient(
                 page_number_limit=page_number_limit,
             )
 
+    def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
+        """
+        Return all repos accessible to this installation, cached in
+        Django cache for ``ttl`` seconds.
+
+        Only the fields used by get_repositories() are stored to keep
+        the cache payload small.
+        """
+        cache_key = f"github:repos:{self.integration.id}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        all_repos = self.get_repos()
+        repos: list[CachedRepo] = [
+            {
+                "id": r["id"],
+                "name": r["name"],
+                "full_name": r["full_name"],
+                "default_branch": r.get("default_branch"),
+                "archived": r.get("archived"),
+            }
+            for r in all_repos
+        ]
+        cache.set(cache_key, repos, ttl)
+        return repos
+
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[Any]]:
         """
         Find repositories matching a query.
@@ -565,7 +615,11 @@ class GitHubBaseClient(
         return self._get_with_pagination(f"/repos/{repo}/assignees")
 
     def _get_with_pagination(
-        self, path: str, response_key: str | None = None, page_number_limit: int | None = None
+        self,
+        path: str,
+        response_key: str | None = None,
+        page_number_limit: int | None = None,
+        api_request_type: GitHubApiRequestType | None = None,
     ) -> list[Any]:
         """
         Github uses the Link header to provide pagination links. Github
@@ -586,7 +640,9 @@ class GitHubBaseClient(
             output: list[dict[str, Any]] = []
 
             page_number = 1
-            resp = self.get(path, params={"per_page": self.page_size})
+            resp = self.get(
+                path, params={"per_page": self.page_size}, api_request_type=api_request_type
+            )
             output.extend(resp) if not response_key else output.extend(resp[response_key])
             next_link = get_next_link(resp)
 
@@ -595,7 +651,7 @@ class GitHubBaseClient(
             while next_link and page_number < page_number_limit:
                 # If a per_page is specified, GitHub preserves the per_page value
                 # in the response headers.
-                resp = self.get(next_link)
+                resp = self.get(next_link, api_request_type=api_request_type)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
 
                 next_link = get_next_link(resp)
@@ -725,7 +781,11 @@ class GitHubBaseClient(
         return self._get_with_pagination(f"/repos/{owner}/{repo}/labels")
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        return self.head_cached(path=f"/repos/{repo.name}/contents/{path}", params={"ref": version})
+        return self.head_cached(
+            path=f"/repos/{repo.name}/contents/{path}",
+            params={"ref": version},
+            api_request_type=GitHubApiRequestType.CHECK_FILE,
+        )
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False

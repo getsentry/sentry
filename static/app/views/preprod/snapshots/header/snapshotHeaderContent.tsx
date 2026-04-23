@@ -7,7 +7,13 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import {IconCommit, IconPullRequest, IconShow, IconStack} from 'sentry/icons';
+import {
+  IconCommit,
+  IconPullRequest,
+  IconSliders,
+  IconShow,
+  IconStack,
+} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Theme} from 'sentry/utils/theme';
@@ -66,7 +72,8 @@ export function SnapshotHeaderContent({
     <Layout.HeaderContent>
       <Layout.Title>{t('Snapshot')}</Layout.Title>
 
-      {vcsItems.length > 0 && (
+      {(vcsItems.length > 0 ||
+        (data.diff_threshold !== null && data.diff_threshold !== undefined)) && (
         <Flex align="center" gap="lg" wrap="wrap">
           {vcsItems.map(item => (
             <Flex align="center" gap="xs" key={item.key}>
@@ -82,6 +89,17 @@ export function SnapshotHeaderContent({
               )}
             </Flex>
           ))}
+          {data.diff_threshold !== null && data.diff_threshold !== undefined && (
+            <Flex align="center" gap="xs">
+              <IconSliders size="xs" />
+              <Text size="sm" variant="muted">
+                {t(
+                  'Specified minimum diff: %s%%',
+                  parseFloat((data.diff_threshold * 100).toPrecision(10))
+                )}
+              </Text>
+            </Flex>
+          )}
         </Flex>
       )}
 

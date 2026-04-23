@@ -154,7 +154,6 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/authenticators/$'),
   new RegExp('^api/0/accept-invite/[^/]+/[^/]+/[^/]+/$'),
   new RegExp('^api/0/data-export/notifications/google-cloud/$'),
-  new RegExp('^api/0/accept-invite/[^/]+/[^/]+/$'),
   new RegExp('^api/0/notification-defaults/$'),
   new RegExp('^api/0/sentry-apps-stats/$'),
   new RegExp('^api/0/doc-integrations/$'),

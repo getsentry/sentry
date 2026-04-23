@@ -19,7 +19,6 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
@@ -30,6 +29,7 @@ import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSett
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -132,6 +132,7 @@ export function Table({
   const [tableMetricSet, setTableMetricSet] = useState(false);
   const unparameterizedMetricProject = useRef<{project?: Project | undefined}>(undefined);
 
+  const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
 
   useEffect(() => {
@@ -237,7 +238,7 @@ export function Table({
 
       updateQuery(searchConditions, action, column, value);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,

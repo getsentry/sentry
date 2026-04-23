@@ -1,5 +1,5 @@
 from typing import TypedDict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -275,7 +275,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
     def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger, mock_get_prefs):
         """Continues to next step when not at stopping point."""
         # No handoff configured - should continue with normal pipeline
-        mock_get_prefs.return_value = None
+        mock_get_prefs.return_value = Mock(preference=None)
 
         state = run_state(
             blocks=[root_cause_memory_block()],
@@ -584,6 +584,28 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             group=self.group,
         )
 
+        assert result == handoff_config
+
+    @with_feature("organizations:seer-project-settings-read-from-sentry")
+    @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
+    @patch("sentry.seer.autofix.on_completion_hook.get_project_seer_preferences")
+    def test_get_handoff_config_reads_from_sentry_db(self, mock_get_prefs, mock_read_db):
+        """When feature flag enabled, reads preferences from Sentry DB instead of Seer API."""
+        handoff_config = self._make_handoff_config()
+        mock_read_db.return_value = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[],
+            automation_handoff=handoff_config,
+        )
+
+        result = AutofixOnCompletionHook._get_handoff_config_if_applicable(
+            stopping_point=AutofixStoppingPoint.CODE_CHANGES,
+            current_step=AutofixStep.ROOT_CAUSE,
+            group=self.group,
+        )
+
+        mock_get_prefs.assert_not_called()
         assert result == handoff_config
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")

@@ -11,7 +11,10 @@ import {
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {useMetricVisualizes} from 'sentry/views/explore/metrics/metricsQueryParams';
+import {
+  useMetricVisualize,
+  useMetricVisualizes,
+} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
 import {
@@ -19,6 +22,7 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseMetricAggregatesTableOptions {
@@ -26,6 +30,7 @@ interface UseMetricAggregatesTableOptions {
   limit: number;
   traceMetric: TraceMetric;
   queryExtras?: RPCQueryExtras;
+  staleTime?: number;
 }
 
 interface MetricAggregatesTableResult {
@@ -47,9 +52,14 @@ export function useMetricAggregatesTable({
   limit,
   traceMetric,
   queryExtras,
+  staleTime,
 }: UseMetricAggregatesTableOptions) {
+  const visualize = useMetricVisualize();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricAggregatesTableImp>['result']) => {
+      if (isVisualizeEquation(visualize)) {
+        return false;
+      }
       const countAggregate = makeCountAggregate(traceMetric);
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
       const hasData =
@@ -58,7 +68,7 @@ export function useMetricAggregatesTable({
           (result.data.length === 1 && Boolean(result.data[0][countAggregate])));
       return !hasData && canGoToHigherAccuracyTier;
     },
-    [traceMetric]
+    [traceMetric, visualize]
   );
   return useProgressiveQuery<typeof useMetricAggregatesTableImp>({
     queryHookImplementation: useMetricAggregatesTableImp,
@@ -67,6 +77,7 @@ export function useMetricAggregatesTable({
       limit,
       traceMetric,
       queryExtras,
+      staleTime,
     },
     queryOptions: {
       canTriggerHighAccuracy,
@@ -79,6 +90,7 @@ function useMetricAggregatesTableImp({
   limit,
   traceMetric,
   queryExtras,
+  staleTime,
 }: UseMetricAggregatesTableOptions): MetricAggregatesTableResult {
   const {selection} = usePageFilters();
   const visualizes = useMetricVisualizes();
@@ -86,6 +98,8 @@ function useMetricAggregatesTableImp({
   const groupBys = useQueryParamsGroupBys();
   const query = useQueryParamsQuery();
   const sortBys = useQueryParamsAggregateSortBys();
+
+  const isEquation = visualizes.every(isVisualizeEquation);
 
   const fields = useMemo(() => {
     const allFields: string[] = [];
@@ -111,7 +125,7 @@ function useMetricAggregatesTableImp({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Metric Aggregates',
-      fields: [...fields, makeCountAggregate(traceMetric)],
+      fields: [...fields, ...(isEquation ? [] : [makeCountAggregate(traceMetric)])],
       orderby: sortBys.map(formatSort),
       query,
       version: 2,
@@ -119,16 +133,24 @@ function useMetricAggregatesTableImp({
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [fields, query, selection, sortBys, traceMetric]);
+  }, [fields, query, selection, sortBys, traceMetric, isEquation]);
 
   const result = useSpansQuery({
-    enabled: enabled && Boolean(traceMetric.name) && fields.length > 0,
+    enabled:
+      enabled &&
+      fields.length > 0 &&
+      (isEquation
+        ? visualizes.every(
+            visualize => isVisualizeEquation(visualize) && visualize.expression.text
+          )
+        : Boolean(traceMetric.name)),
     eventView,
     initialData: [],
     limit,
     referrer: 'api.explore.metric-aggregates-table',
     trackResponseAnalytics: false,
     queryExtras,
+    staleTime,
   });
 
   return useMemo(() => {

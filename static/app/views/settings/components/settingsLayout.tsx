@@ -42,7 +42,7 @@ export function SettingsLayout({children}: Props) {
         </SettingsHeader>
       )}
 
-      <Flex flex="1" maxWidth="1440px">
+      <Flex flex="1" maxWidth={hasPageFrame ? undefined : '1440px'}>
         <Container
           flex="1"
           padding={hasPageFrame ? {sm: 'xl', md: 'md xl'} : {xs: 'xl', md: '3xl'}}

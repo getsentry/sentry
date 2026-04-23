@@ -2,9 +2,7 @@ import React from 'react';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
@@ -20,17 +18,9 @@ export function AnnotatedAttributeTooltip({
   // Fetch full project details including `project.relayPiiConfig`
   // That property is not normally available in the store.
   // Taken from FilteredAnnotatedTextValue.tsx
-  const {data: projectDetails} = useApiQuery<Project>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-        path: {
-          organizationIdOrSlug: extra.organization.slug,
-          projectIdOrSlug: extra.project?.slug!,
-        },
-      }),
-    ],
+  const {data: projectDetails} = useDetailedProject(
+    {orgSlug: extra.organization.slug, projectSlug: extra.project?.slug ?? ''},
     {
-      staleTime: Infinity,
       retry: false,
       enabled: !!extra.project?.slug && !!fieldKey && !!extra.traceItemMeta,
       notifyOnChangeProps: ['data'],

@@ -1,3 +1,7 @@
+import * as Sentry from '@sentry/react';
+
+import {validateDashboard} from 'sentry/actionCreators/dashboards';
+import type {Organization} from 'sentry/types/organization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 
 import {
@@ -8,7 +12,7 @@ import {
   getInitialColumnDepths,
 } from './layoutUtils';
 import {DEFAULT_TABLE_LIMIT} from './types';
-import type {Widget, WidgetLayout} from './types';
+import type {DashboardDetails, Widget, WidgetLayout} from './types';
 
 const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 
@@ -127,4 +131,40 @@ export function extractDashboardFromSession(
 
 export function statusIsTerminal(status?: string | null) {
   return status === 'completed' || status === 'error' || status === 'awaiting_user_input';
+}
+
+export async function validateDashboardAndRecordMetrics({
+  organization,
+  dashboard,
+  seerRunId,
+  source,
+}: {
+  dashboard: DashboardDetails;
+  organization: Organization;
+  seerRunId: number | null;
+  source: 'create' | 'edit';
+}) {
+  try {
+    await validateDashboard(organization.slug, dashboard);
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
+      attributes: {
+        status: 'success',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+        source,
+      },
+    });
+  } catch (error) {
+    Sentry.metrics.count('dashboards.seer.validation', 1, {
+      attributes: {
+        status: 'failure',
+        organization_slug: organization.slug,
+        ...(seerRunId ? {seer_run_id: seerRunId} : {}),
+        source,
+      },
+    });
+    Sentry.captureException(error, {
+      tags: {seer_run_id: seerRunId},
+    });
+  }
 }

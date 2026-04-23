@@ -97,7 +97,7 @@ export function getDefaultWidgetHeight(displayType: DisplayType): number {
 }
 
 export function getInitialColumnDepths() {
-  return new Array(NUM_DESKTOP_COLS).fill(0);
+  return Array.from<number>({length: NUM_DESKTOP_COLS}).fill(0);
 }
 
 /**
@@ -112,7 +112,7 @@ export function calculateColumnDepths(
   layouts.forEach(({x, w, y, h}) => {
     // Adjust the column depths for each column the widget takes up
     for (let col = x; col < x + w; col++) {
-      depths[col] = Math.max(y + h, depths[col]);
+      depths[col] = Math.max(y + h, depths[col]!);
     }
   });
 

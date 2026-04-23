@@ -190,7 +190,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
       mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
       // Fill in the Input
       await userEvent.type(
@@ -217,7 +217,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
       mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
       // Fill in the Input
       const input = screen.getByPlaceholderText('Display name');
@@ -242,7 +242,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
       mount(location, organization, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
       // Do not fill in Input
 
@@ -415,7 +415,7 @@ describe('Discover > SaveQueryButtonGroup', () => {
         mount(location, organization, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
-        await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+        await userEvent.click(screen.getByRole('button', {name: /save as/i}));
 
         // Fill in the Input
         await userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
@@ -496,6 +496,30 @@ describe('Discover > SaveQueryButtonGroup', () => {
       expect(queryParameters.get('query')).toBe('foo:bar');
       expect(queryParameters.get('dataset')).toBe('events');
       expect(queryParameters.get('eventTypes')).toBe('error');
+    });
+    it('renders "Create Alert" button without workflow-engine-ui flag', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents'],
+      };
+      mount(location, metricAlertOrg, errorsViewModified, savedQuery, yAxis);
+
+      expect(screen.getByRole('button', {name: 'Create Alert'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create Monitor'})
+      ).not.toBeInTheDocument();
+    });
+    it('renders "Create Monitor" button with workflow-engine-ui flag', () => {
+      const metricAlertOrg = {
+        ...organization,
+        features: ['incidents', 'workflow-engine-ui'],
+      };
+      mount(location, metricAlertOrg, errorsViewModified, savedQuery, yAxis);
+
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Create Alert'})
+      ).not.toBeInTheDocument();
     });
   });
 });

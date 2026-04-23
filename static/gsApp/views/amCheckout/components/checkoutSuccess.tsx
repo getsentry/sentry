@@ -498,6 +498,15 @@ function Receipt({
   );
 }
 
+const checkoutSuccessFeedbackOptions = {
+  formTitle: t('Give feedback'),
+  messagePlaceholder: t('How can we make the checkout experience better for you?'),
+  tags: {
+    ['feedback.source']: 'checkout_success',
+    ['feedback.owner']: 'billing',
+  },
+};
+
 export function CheckoutSuccess({
   invoice,
   basePlan,
@@ -607,19 +616,7 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton
-              feedbackOptions={{
-                formTitle: t('Give feedback'),
-                messagePlaceholder: t(
-                  'How can we make the checkout experience better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'checkout_success',
-                  ['feedback.owner']: 'billing',
-                },
-              }}
-              size="md"
-            />
+            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
           </Flex>
         </Flex>
       </Flex>

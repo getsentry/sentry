@@ -682,14 +682,17 @@ SPAN_VIRTUAL_CONTEXTS = {
         # TODO: need to change this so the VCC is using it too, but would require rewriting the term_resolver
         default_value="Unknown",
         sort_column="sentry.device.class",
+        search_type="string",
     ),
     "span.module": VirtualColumnDefinition(
         constructor=module_context_constructor,
+        search_type="string",
     ),
     "is_starred_transaction": VirtualColumnDefinition(
         constructor=is_starred_segment_context_constructor,
         default_value="false",
         processor=lambda x: True if x == "true" else False,
+        search_type="boolean",
     ),
     **project_virtual_contexts(),
 }

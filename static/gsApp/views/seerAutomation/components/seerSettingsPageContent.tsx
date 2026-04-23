@@ -4,6 +4,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {NoActiveSeerSubscriptionBanner} from 'getsentry/views/seerAutomation/components/noActiveSeerSubscriptionBanner';
 import {SeerWizardSetupBanner} from 'getsentry/views/seerAutomation/components/seerWizardSetupBanner';
 import {SettingsPageTabs} from 'getsentry/views/seerAutomation/components/settingsPageTabs';
@@ -14,13 +15,16 @@ interface Props {
 }
 
 export function SeerSettingsPageContent({children}: Props) {
+  const subscription = useSubscription();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
   const showNoActiveSeerSubscriptionBanner =
-    !hasSeatBasedSeer && (hasLegacySeer || hasCodeReviewBeta);
+    !hasSeatBasedSeer &&
+    (hasLegacySeer || hasCodeReviewBeta) &&
+    subscription?.canSelfServe;
 
   return (
     <Stack gap="lg">

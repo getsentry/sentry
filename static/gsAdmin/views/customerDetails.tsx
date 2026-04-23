@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
@@ -20,13 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -324,12 +319,12 @@ export function CustomerDetails() {
     }
   };
 
-  const regionMap = ConfigStore.get('regions').reduce(
+  const regionMap = ConfigStore.get('regions').reduce<Record<string, string>>(
     (acc: any, region: any) => {
       acc[region.url] = region.name;
       return acc;
     },
-    {} as Record<string, string>
+    {}
   );
   const region = regionMap[organization?.links.regionUrl || 'unknown'] ?? 'unknown';
 

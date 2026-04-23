@@ -30,7 +30,7 @@ export function AppSizeInsights({
   const isSidebarOpen = searchParams.get('insights') === 'open';
   const organization = useOrganization();
 
-  const openSidebar = useCallback(() => {
+  const openSidebar = () => {
     trackAnalytics('preprod.builds.details.open_insights_sidebar', {
       organization,
       platform: platform ?? null,
@@ -40,7 +40,7 @@ export function AppSizeInsights({
     const newParams = new URLSearchParams(searchParams);
     newParams.set('insights', 'open');
     setSearchParams(newParams);
-  }, [organization, platform, projectType, searchParams, setSearchParams]);
+  };
 
   const closeSidebar = useCallback(() => {
     const newParams = new URLSearchParams(searchParams);

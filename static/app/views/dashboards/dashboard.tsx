@@ -34,6 +34,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {
   assignDefaultLayout,
@@ -129,9 +130,10 @@ function DashboardInner({
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
     contextHint:
-      'This is a Sentry dashboard. The dateRange, environments, and projects below are global page filters that scope every widget query. Each child widget node contains its own query config that can be used with tools like telemetry_live_search and telemetry_index_list_nodes to fetch data for that widget and dig deeper. Based on the user question, data might be needed from multiple widgets.',
+      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. Use telemetry_live_search or telemetry_index_list_nodes to fetch data. Based on the user question, data might be needed from multiple widgets.',
     title: dashboard.title,
     widgetCount: dashboard.widgets.length,
+    queryHints: getQueryHintLegend(dashboard.widgets),
     filters: dashboard.filters,
     isEditingDashboard,
     dateRange: selection.datetime,
@@ -301,29 +303,26 @@ function DashboardInner({
     [organization, dashboard.widgets, onEditWidget]
   );
 
-  const handleChangeSplitDataset = useCallback(
-    (widget: Widget, index: number) => {
-      const widgetCopy = cloneDeep({
-        ...widget,
-        id: undefined,
-      });
+  const handleChangeSplitDataset = (widget: Widget, index: number) => {
+    const widgetCopy = cloneDeep({
+      ...widget,
+      id: undefined,
+    });
 
-      const nextList = [...dashboard.widgets];
-      const nextWidgetData = {
-        ...widgetCopy,
-        widgetType: WidgetType.TRANSACTIONS,
-        datasetSource: DatasetSource.USER,
-        id: widget.id,
-      };
-      nextList[index] = nextWidgetData;
+    const nextList = [...dashboard.widgets];
+    const nextWidgetData = {
+      ...widgetCopy,
+      widgetType: WidgetType.TRANSACTIONS,
+      datasetSource: DatasetSource.USER,
+      id: widget.id,
+    };
+    nextList[index] = nextWidgetData;
 
-      onUpdate(nextList);
-      if (!isEditingDashboard) {
-        handleUpdateWidgetList(nextList);
-      }
-    },
-    [dashboard.widgets, onUpdate, isEditingDashboard, handleUpdateWidgetList]
-  );
+    onUpdate(nextList);
+    if (!isEditingDashboard) {
+      handleUpdateWidgetList(nextList);
+    }
+  };
 
   const handleLayoutChange = useCallback(
     (_: any, allLayouts: LayoutState) => {
@@ -491,6 +490,7 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
+// eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${p => p.theme.space.xl};
 

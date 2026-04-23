@@ -110,12 +110,13 @@ export const ReplayActivityColumn: ReplayTableColumn = {
       return null;
     }
     const colors = theme.chart.getColorPalette(0);
-    const scoreBarPalette = new Array(10).fill([colors[0]]);
+    const scoreBarPalette = Array.from<string[]>({length: 10}).fill([colors[0]]);
     return (
       <DropdownContainer key="activity">
         <ScoreBar
           size={20}
           score={replay?.activity ?? 1}
+          // @ts-expect-error -- TODO: Resolve this mismatch
           palette={scoreBarPalette}
           radius={0}
         />

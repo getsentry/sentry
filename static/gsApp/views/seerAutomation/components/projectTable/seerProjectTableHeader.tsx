@@ -1,29 +1,32 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import type {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  useBulkMutateSelectedAgent,
-  useFetchAgentOptions,
-} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
@@ -34,21 +37,47 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
-  {title: t('Agent'), key: 'fixes', sortKey: 'agent'},
+  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
   {
-    title: (
+    title: ({organization}: {organization: Organization}) => (
       <Flex gap="sm" align="center">
-        {t('PR Creation')}
+        {t('Preferred Coding Agent')}
         <InfoTip
-          title={t(
-            'This setting only applies when an Autofix Handoff is configured to run automatically.'
+          title={tct(
+            'Select the coding agent to use when proposing code changes. [manageLink:Manage Coding Agent Integrations]',
+            {
+              manageLink: (
+                <Link
+                  to={{
+                    pathname: `/settings/${organization.slug}/integrations/`,
+                    query: {category: 'coding agent'},
+                  }}
+                >
+                  {t('Manage Coding Agent Integrations')}
+                </Link>
+              ),
+            }
           )}
         />
       </Flex>
     ),
-    key: 'pr_creation',
+    key: 'fixes',
+    sortKey: 'agent',
   },
-  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('Automation Steps')}
+        <InfoTip
+          title={t(
+            'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
+          )}
+        />
+      </Flex>
+    ),
+    key: 'automation_steps',
+    sortKey: 'steps',
+  },
 ];
 
 function getMutationCallbacks(count: number) {
@@ -73,6 +102,7 @@ export function ProjectTableHeader({
   onSortClick,
   sort,
   updateBulkAutofixAutomationSettings,
+  agentOptions,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -95,7 +125,6 @@ export function ProjectTableHeader({
     [projects, selectedIds]
   );
 
-  const agentOptions = useFetchAgentOptions({organization});
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
 
   return (
@@ -126,7 +155,7 @@ export function ProjectTableHeader({
             }
             sort={sort?.field === sortKey ? sort.kind : undefined}
           >
-            {title}
+            {typeof title === 'function' ? title({organization}) : title}
           </SimpleTable.HeaderCell>
         ))}
       </TableHeader>
@@ -158,29 +187,35 @@ export function ProjectTableHeader({
               triggerLabel={t('Agent')}
             />
             <DropdownMenu
-              isDisabled={!canWrite || organization.enableSeerCoding === false}
+              isDisabled={!canWrite}
               size="xs"
-              items={[
-                {
-                  key: 'open_pr',
-                  label: t('On'),
-                  onAction: () =>
+              items={PROJECT_STOPPING_POINT_OPTIONS.map(option => ({
+                key: option.value,
+                label: option.label,
+                onAction: () => {
+                  if (option.value === 'off') {
                     updateBulkAutofixAutomationSettings(
-                      {projectIds, automatedRunStoppingPoint: 'open_pr'},
+                      {projectIds, autofixAutomationTuning: 'off'},
                       getMutationCallbacks(projectIds.length)
-                    ),
-                },
-                {
-                  key: 'code_changes',
-                  label: t('Off'),
-                  onAction: () =>
+                    );
+                  } else {
+                    const stoppingPointMap = {
+                      root_cause: 'root_cause' as const,
+                      plan: 'code_changes' as const,
+                      create_pr: 'open_pr' as const,
+                    };
                     updateBulkAutofixAutomationSettings(
-                      {projectIds, automatedRunStoppingPoint: 'code_changes'},
+                      {
+                        projectIds,
+                        autofixAutomationTuning: 'medium',
+                        automatedRunStoppingPoint: stoppingPointMap[option.value],
+                      },
                       getMutationCallbacks(projectIds.length)
-                    ),
+                    );
+                  }
                 },
-              ]}
-              triggerLabel={t('Create PRs')}
+              }))}
+              triggerLabel={t('Automation Steps')}
             />
           </TableCellsRemainingContent>
         </TableHeader>

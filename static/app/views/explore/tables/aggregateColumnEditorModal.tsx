@@ -89,7 +89,7 @@ export function AggregateColumnEditorModal({
     return columns.filter(isGroupBy).map(groupBy => groupBy.groupBy);
   }, [columns]);
 
-  const handleApply = useCallback(() => {
+  const handleApply = () => {
     const newColumns: WritableAggregateField[] = [];
 
     for (const col of tempColumns) {
@@ -102,7 +102,7 @@ export function AggregateColumnEditorModal({
 
     onColumnsChange(newColumns);
     closeModal();
-  }, [closeModal, onColumnsChange, tempColumns]);
+  };
 
   const groupByColumnss = tempColumns.filter(isGroupBy);
   const visualizeColumns = tempColumns.filter(isVisualize);
@@ -382,21 +382,18 @@ function AggregateSelector({
     [parsedFunction, onChange, visualize]
   );
 
-  const handleArgumentChange = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
-        onChange(visualize.replace({yAxis: newYAxis}));
+  const handleArgumentChange = (index: number, option: SelectOption<SelectKey>) => {
+    if (typeof option.value === 'string') {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = option.value;
+      } else {
+        args = [option.value];
       }
-    },
-    [parsedFunction, onChange, visualize]
-  );
+      const newYAxis = `${parsedFunction?.name}(${args.join(',')})`;
+      onChange(visualize.replace({yAxis: newYAxis}));
+    }
+  };
 
   return (
     <Fragment>

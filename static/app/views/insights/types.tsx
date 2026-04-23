@@ -52,6 +52,7 @@ export enum SpanFields {
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
   TRANSACTION_SPAN_ID = 'transaction.span_id',
+  TRANSACTION_EVENT_ID = 'transaction.event_id',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
   PROFILE_ID = 'profile_id',
@@ -120,6 +121,8 @@ export enum SpanFields {
   GEN_AI_OUTPUT_MESSAGES = 'gen_ai.output.messages',
   GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions',
   GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
+  GEN_AI_CONTEXT_WINDOW_SIZE = 'gen_ai.context.window_size',
+  GEN_AI_CONTEXT_UTILIZATION = 'gen_ai.context.utilization',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -304,6 +307,7 @@ export type NonNullableStringFields =
   | SpanFields.CLS_SOURCE
   | SpanFields.LCP_ELEMENT
   | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM
   | SpanFields.CODE_FILEPATH
   | SpanFields.CODE_FUNCTION
@@ -321,7 +325,6 @@ export type NonNullableStringFields =
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_CATEGORY
   | SpanFields.SPAN_SYSTEM
   | SpanFields.TIMESTAMP
@@ -338,7 +341,7 @@ export type NonNullableStringFields =
   | SpanFields.USER_DISPLAY
   | SpanFields.SENTRY_ORIGIN;
 
-type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION;
+type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
 
 export type SpanStringFields = NullableStringFields | NonNullableStringFields;
 

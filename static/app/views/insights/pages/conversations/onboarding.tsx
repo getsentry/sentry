@@ -67,14 +67,6 @@ import {
   useOnboardingProject,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
-const PYTHON_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI_AGENTS]);
-const NODE_AUTO_CONVERSATION_ID = new Set<string>([AgentIntegration.OPENAI]);
-
-function needsManualConversationId(integration: string, isPython: boolean): boolean {
-  const autoSet = isPython ? PYTHON_AUTO_CONVERSATION_ID : NODE_AUTO_CONVERSATION_ID;
-  return !autoSet.has(integration);
-}
-
 function useConversationSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
   const [shouldRefetch, setShouldRefetch] = useState(true);
@@ -226,40 +218,47 @@ function ConversationOnboardingPanel({
   );
 }
 
-function getConversationIdStep(_integration: string, isPython: boolean): OnboardingStep {
-  const content: ContentBlock[] = isPython
-    ? [
-        {
-          type: 'text',
-          text: t(
-            'Group related LLM calls into a single conversation thread by setting an ID at the start:'
-          ),
-        },
-        {
-          type: 'code',
+function getConversationIdStep(integration: string, isPython: boolean): OnboardingStep {
+  const isOpenAI =
+    integration === AgentIntegration.OPENAI ||
+    integration === AgentIntegration.OPENAI_AGENTS;
+
+  const content: ContentBlock[] = [
+    {
+      type: 'text',
+      text: t(
+        'Group related LLM calls into a single conversation thread by setting an ID at the start:'
+      ),
+    },
+    isPython
+      ? {
+          type: 'code' as const,
           language: 'python',
           code: `import sentry_sdk
 
 # Call this at the start of each conversation
 sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
-        },
-      ]
-    : [
-        {
-          type: 'text',
-          text: t(
-            'Group related LLM calls into a single conversation thread by setting an ID at the start:'
-          ),
-        },
-        {
-          type: 'code',
+        }
+      : {
+          type: 'code' as const,
           language: 'javascript',
           code: `import * as Sentry from "@sentry/node";
 
 // Call this at the start of each conversation
 Sentry.setConversationId("my-conversation-123");`,
         },
-      ];
+    ...(isOpenAI
+      ? [
+          {
+            type: 'alert' as const,
+            alertType: 'info' as const,
+            text: t(
+              "Alternatively, you can pass the conversation property to OpenAI's API and Sentry will automatically track the conversation ID."
+            ),
+          },
+        ]
+      : []),
+  ];
 
   return {
     title: t('Set Conversation ID'),
@@ -358,17 +357,11 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   };
 
   const selectedIntegration = selectedPlatformOptions.integration;
-  const showConversationIdStep = needsManualConversationId(
-    selectedIntegration,
-    isPythonPlatform
-  );
 
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    ...(showConversationIdStep
-      ? [getConversationIdStep(selectedIntegration, isPythonPlatform)]
-      : []),
+    getConversationIdStep(selectedIntegration, isPythonPlatform),
     ...(agentMonitoringDocs.verify?.(docParams) || []),
   ].filter(s => !s.collapsible);
 
@@ -382,7 +375,7 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
       </Flex>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
       <GuidedSteps
-        key={`${selectedIntegration}-${showConversationIdStep}`}
+        key={selectedIntegration}
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
           navigate({

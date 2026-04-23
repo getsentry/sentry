@@ -167,7 +167,7 @@ const Panel = styled(FluidHeight)`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
 `;
 
 const ContextContainer = styled('div')`

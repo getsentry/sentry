@@ -30,22 +30,6 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.path = f"/organizations/{self.org.slug}/releases/"
         self.project.update(first_event=timezone.now())
 
-    def test_list(self) -> None:
-        self.create_release(project=self.project, version="1.0", date_added=self.release_date)
-        self.browser.get(self.path)
-        self.browser.wait_until_not(".loading")
-        # TODO(releases): add health data
-
-    def test_detail(self) -> None:
-        release = self.create_release(
-            project=self.project, version="1.0", date_added=self.release_date
-        )
-        self.browser.get(self.path + release.version)
-        self.browser.wait_until_not(".loading")
-        self.browser.wait_until_test_id("release-wrapper")
-        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-        # TODO(releases): add health data
-
     def test_detail_pick_project(self) -> None:
         release = self.create_release(
             project=self.project,
@@ -56,15 +40,3 @@ class OrganizationReleasesTest(AcceptanceTestCase):
         self.browser.get(self.path + release.version)
         self.browser.wait_until_not(".loading")
         assert "Select a project to continue" in self.browser.element("[role='dialog'] header").text
-
-    # This is snapshotting features that are enable through the discover and performance features.
-    def test_detail_with_discover_and_performance(self) -> None:
-        with self.feature(["organizations:discover-basic", "organizations:performance-view"]):
-            release = self.create_release(
-                project=self.project, version="1.0", date_added=self.release_date
-            )
-            self.browser.get(self.path + release.version)
-            self.browser.wait_until_not(".loading")
-            self.browser.wait_until_test_id("release-wrapper")
-            self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            # TODO(releases): add health data

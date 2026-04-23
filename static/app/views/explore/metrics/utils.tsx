@@ -3,6 +3,7 @@ import qs from 'query-string';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
@@ -17,7 +18,6 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {TraceSamplesTableStatColumns} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   defaultMetricQuery,
@@ -26,7 +26,6 @@ import {
 } from 'sentry/views/explore/metrics/metricQuery';
 import {
   TraceMetricKnownFieldKey,
-  VirtualTableSampleColumnKey,
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
@@ -140,6 +139,21 @@ export function getMetricsUrlFromSavedQueryUrl({
 
     const aggregateFields = [...visualizes, ...groupBys];
 
+    const hasAggregateOrderby = defined(queryItem.aggregateOrderby);
+    let aggregateSortBys = undefined;
+    if (hasAggregateOrderby) {
+      aggregateSortBys = queryItem.aggregateOrderby
+        ? decodeSorts(queryItem.aggregateOrderby)
+        : undefined;
+    } else if (queryItem.orderby) {
+      aggregateSortBys = decodeSorts(queryItem.orderby);
+    }
+
+    const sortBys =
+      hasAggregateOrderby && queryItem.orderby
+        ? decodeSorts(queryItem.orderby)
+        : undefined;
+
     return {
       ...defaultQuery,
       metric: queryItem.metric ?? defaultQuery.metric,
@@ -147,7 +161,8 @@ export function getMetricsUrlFromSavedQueryUrl({
         mode: queryItem.mode,
         query: queryItem.query,
         aggregateFields,
-        aggregateSortBys: decodeSorts(queryItem.orderby) || [],
+        aggregateSortBys,
+        sortBys,
       }),
     };
   });
@@ -173,10 +188,7 @@ export function getMetricsUrlFromSavedQueryUrl({
 
 export function getMetricTableColumnType(
   column: SampleTableColumnKey
-): 'value' | 'stat' | 'metric_value' {
-  if (TraceSamplesTableStatColumns.includes(column as VirtualTableSampleColumnKey)) {
-    return 'stat';
-  }
+): 'value' | 'metric_value' {
   if (column === TraceMetricKnownFieldKey.METRIC_VALUE) {
     return 'metric_value'; // Special cased for headers and rendering usually.
   }

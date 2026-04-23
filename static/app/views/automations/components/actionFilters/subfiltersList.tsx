@@ -201,7 +201,7 @@ function ComparisonTypeField() {
           ...(option.value === DataConditionType.EVENT_ATTRIBUTE
             ? {attribute: Attribute.MESSAGE}
             : {key: ''}),
-        } as Subfilter);
+        });
       }}
     />
   );

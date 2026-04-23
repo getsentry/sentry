@@ -114,8 +114,6 @@ describe('OrganizationDropdown', () => {
     );
     // onClick should take precedence setting session storage value and navigationigating:
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Projects'}));
-    expect(readStorageValue<string | null>(CUSTOM_REFERRER_KEY, null)).toBe(
-      'org-dropdown'
-    );
+    expect(readStorageValue(CUSTOM_REFERRER_KEY, null)).toBe('org-dropdown');
   });
 });

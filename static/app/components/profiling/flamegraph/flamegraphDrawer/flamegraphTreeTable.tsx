@@ -228,9 +228,7 @@ export function FlamegraphTreeTable({
     );
 
   const scrollContainers = useMemo(() => {
-    return [scrollContainerRef, dynamicScrollContainerRef].filter(
-      c => !!c
-    ) as HTMLElement[];
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(c => !!c);
   }, [dynamicScrollContainerRef, scrollContainerRef]);
 
   const {
@@ -256,19 +254,16 @@ export function FlamegraphTreeTable({
     tree,
   });
 
-  const onSortChange = useCallback(
-    (newSort: 'total weight' | 'self weight' | 'name') => {
-      const newDirection =
-        newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
+  const onSortChange = (newSort: 'total weight' | 'self weight' | 'name') => {
+    const newDirection =
+      newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
 
-      setDirection(newDirection);
-      setSort(newSort);
+    setDirection(newDirection);
+    setSort(newSort);
 
-      const sortFn = makeCallTreeTableSortFunction(newSort, newDirection);
-      handleSortingChange(sortFn);
-    },
-    [sort, direction, handleSortingChange]
-  );
+    const sortFn = makeCallTreeTableSortFunction(newSort, newDirection);
+    handleSortingChange(sortFn);
+  };
 
   useEffect(() => {
     function onShowInTableView(frame: FlamegraphFrame) {

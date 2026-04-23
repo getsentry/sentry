@@ -24,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -55,8 +56,10 @@ class ExplorerChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     user_org_context: NotRequired[dict[str, Any] | None]
     intelligence_level: NotRequired[str]
+    reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
     enable_coding: NotRequired[bool]
+    enable_code_mode_tools: NotRequired[bool]
     project_id: NotRequired[int]
     query_metadata: NotRequired[dict[str, str]]
     artifact_key: NotRequired[str]
@@ -68,6 +71,7 @@ class ExplorerChatRequest(TypedDict):
     metadata: NotRequired[dict[str, Any]]
     is_context_engine_enabled: NotRequired[bool]
     max_iterations: NotRequired[int]
+    proxy_headers: NotRequired[dict[str, str] | None]
 
 
 class ExplorerRunsRequest(TypedDict):
@@ -181,7 +185,8 @@ def get_explorer_state_from_pr_id(
 
 
 def has_seer_explorer_access_with_detail(
-    organization: Organization, actor: SentryUser | AnonymousUser | RpcUser | None = None
+    organization: Organization | RpcOrganization,
+    actor: SentryUser | AnonymousUser | RpcUser | None = None,
 ) -> tuple[bool, str | None]:
     """
     Check if the actor has access to Seer Explorer.
@@ -297,6 +302,30 @@ def collect_user_org_context(
     }
 
 
+def get_proxy_headers() -> dict[str, str] | None:
+    """Build auth headers for Seer to echo back to Sentry on callbacks.
+
+    Returns a single ``X-Viewer-Context`` JWT header, or ``None`` when no
+    ViewerContext is set. Matches the format used by the standard inbound
+    Seer → Sentry path (``X-Viewer-Context`` JWT, no separate signature
+    header), so Sentry's middleware decodes both with the same code path.
+    """
+    from sentry.viewer_context import encode_viewer_context, get_viewer_context
+
+    ctx = get_viewer_context()
+    if ctx is None or ctx.user_id is None:
+        return None
+
+    if not settings.SEER_API_SHARED_SECRET:
+        return None
+
+    try:
+        return {"X-Viewer-Context": encode_viewer_context(ctx)}
+    except Exception:
+        logger.exception("Failed to encode viewer context JWT for proxy headers")
+        return None
+
+
 def fetch_run_status(run_id: int, organization: Organization) -> SeerRunState:
     """Fetch current run status from Seer."""
     body = ExplorerStateRequest(run_id=run_id, organization_id=organization.id)
@@ -360,16 +389,31 @@ def _render_node(node: dict[str, Any], depth: int) -> str:
     return "\n".join(lines)
 
 
+_MAX_ROOT_NODES = 10
+
+
+def _get_priority(node: dict[str, Any]) -> int:
+    priority = node.get("priority")
+    return priority if isinstance(priority, int) else 0
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
-    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
-    The top-level nodes list contains a single root node (the page).
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "priority": int, "data": ..., "children": [...]}]}``
+    The top-level nodes list may contain multiple root nodes (e.g. a dashboard
+    and a widget-builder sidebar rendered as siblings).  Nodes are sorted by
+    ``priority`` (descending, default 0) and only nodes at the highest
+    priority level are rendered.  At most ``_MAX_ROOT_NODES`` are emitted to
+    guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
     if not nodes:
         return ""
+    sorted_nodes = sorted(nodes, key=_get_priority, reverse=True)
+    top_priority = _get_priority(sorted_nodes[0])
+    selected = [n for n in sorted_nodes if _get_priority(n) == top_priority][:_MAX_ROOT_NODES]
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    return preamble + _render_node(nodes[0], 0)
+    return preamble + "\n".join(_render_node(node, 0) for node in selected)

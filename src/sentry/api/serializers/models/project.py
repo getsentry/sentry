@@ -75,6 +75,7 @@ _PROJECT_SCOPE_PREFIX = "projects:"
 
 LATEST_DEPLOYS_KEY: Final = "latestDeploys"
 UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
+ORGANIZATION_KEY: Final = "organization"
 
 
 # These features are not used on the frontend,
@@ -964,6 +965,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    seerNightshiftTweaks: NotRequired[Any]
     scmSourceContextEnabled: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
 
@@ -979,7 +981,16 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
-        orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
+        if self._collapse(ORGANIZATION_KEY):
+            orgs = {
+                str(i.organization_id): {
+                    "id": str(i.organization_id),
+                    "slug": i.organization.slug,
+                }
+                for i in item_list
+            }
+        else:
+            orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
@@ -1113,6 +1124,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "seerScannerAutomation": self.get_value_with_default(
                 attrs, "sentry:seer_scanner_automation"
+            ),
+            "seerNightshiftTweaks": self.get_value_with_default(
+                attrs, "sentry:seer_nightshift_tweaks"
             ),
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
             "scmSourceContextEnabled": self.get_value_with_default(

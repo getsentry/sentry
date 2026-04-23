@@ -5,6 +5,7 @@ import orjson
 import pytest
 
 from sentry import ratelimits
+from sentry.constants import ObjectStatus
 from sentry.seer.autofix.constants import AutofixStatus
 from sentry.seer.autofix.utils import (
     AUTOFIX_AUTOTRIGGED_RATE_LIMIT_OPTION_MULTIPLIERS,
@@ -72,6 +73,88 @@ class TestGetRepoFromCodeMappings(TestCase):
         repos = get_autofix_repos_from_project_code_mappings(project)
         assert len(repos) == 1
         assert repos[0]["provider"] == "integrations:github"
+
+    def test_filters_out_disabled_repos(self) -> None:
+        project = self.create_project()
+        active_repo = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=active_repo)
+
+        disabled_repo = self.create_repo(
+            name="getsentry/disabled-repo",
+            provider="integrations:github",
+            external_id="456",
+            integration_id=234,
+        )
+        disabled_repo.update(status=ObjectStatus.DISABLED)
+        self.create_code_mapping(
+            project=project,
+            repo=disabled_repo,
+            stack_root="disabled/",
+            source_root="src/disabled/",
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 1
+        assert repos[0]["repository_id"] == active_repo.id
+
+    def test_filters_out_repos_without_integration(self) -> None:
+        project = self.create_project()
+        repo_with_integration = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=repo_with_integration)
+
+        repo_without_integration = self.create_repo(
+            name="getsentry/no-integration",
+            provider="integrations:github",
+            external_id="456",
+            integration_id=None,
+        )
+        self.create_code_mapping(
+            project=project,
+            repo=repo_without_integration,
+            stack_root="no-int/",
+            source_root="src/no-int/",
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 1
+        assert repos[0]["repository_id"] == repo_with_integration.id
+
+    def test_filters_out_repos_without_external_id(self) -> None:
+        project = self.create_project()
+        repo_with_external_id = self.create_repo(
+            name="getsentry/sentry",
+            provider="integrations:github",
+            external_id="123",
+            integration_id=234,
+        )
+        self.create_code_mapping(project=project, repo=repo_with_external_id)
+
+        repo_without_external_id = self.create_repo(
+            name="getsentry/no-external",
+            provider="integrations:github",
+            external_id=None,
+            integration_id=234,
+        )
+        self.create_code_mapping(
+            project=project,
+            repo=repo_without_external_id,
+            stack_root="no-ext/",
+            source_root="src/no-ext/",
+        )
+
+        repos = get_autofix_repos_from_project_code_mappings(project)
+        assert len(repos) == 1
+        assert repos[0]["repository_id"] == repo_with_external_id.id
 
 
 class TestGetAutofixStateFromPrId(TestCase):

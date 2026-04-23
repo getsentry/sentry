@@ -23,6 +23,7 @@ import {
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -30,6 +31,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {toPercent} from 'sentry/utils/number/toPercent';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import type {Theme} from 'sentry/utils/theme';
@@ -45,6 +47,7 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {ModuleName, type SpanProperty} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {generateProfileLink} from 'sentry/views/performance/transactionSummary/utils';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
@@ -73,6 +76,9 @@ const BASE_FIELDS = [
   'spans.http',
   'spans.resource',
   'spans.ui',
+  'transaction.event_id',
+  'transaction.span_id',
+  'project',
 ];
 
 type SampledEventsColumn = GridColumnHeader<
@@ -127,7 +133,6 @@ export function SampledEventsTable({
   const organization = useOrganization();
 
   const project = projects.find(p => p.id === String(eventView.project[0]));
-  const projectSlug = project?.slug;
 
   const isBackend =
     platformToPerformanceType(projects, eventView.project) ===
@@ -244,7 +249,7 @@ export function SampledEventsTable({
             });
           },
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
       <Pagination
@@ -261,7 +266,6 @@ function renderBodyCell(
   column: SampledEventsColumn,
   row: Record<string, any>,
   meta: EventsMetaType | undefined,
-  projectSlug: string | undefined,
   location: Location,
   organization: Organization,
   theme: Theme
@@ -309,21 +313,23 @@ function renderBodyCell(
   }
 
   if (column.key === 'profile.id') {
+    // generateProfileLink reads tableRow.id as the transaction event id
+    // (discover-style rows); EAP spans expose it as `transaction.event_id`,
+    // so alias it here.
+    const tableRow: TableDataRow = {
+      ...row,
+      id: String(row['transaction.event_id'] ?? ''),
+    };
+    const to = normalizeUrl(generateProfileLink()(organization, tableRow, undefined));
+
     return (
       <div>
         <LinkButton
           size="xs"
           icon={<IconProfiling size="xs" />}
-          to={{
-            pathname: normalizeUrl(
-              `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`
-            ),
-            query: {
-              referrer: 'performance',
-            },
-          }}
+          to={to}
           aria-label={t('View Profile')}
-          disabled={!row['profile.id']}
+          disabled={isEmptyObject(to)}
         />
       </div>
     );

@@ -1,7 +1,7 @@
 type TextSegment = {type: 'text'; value: string};
 type JsonSegment = {type: 'json'; value: string};
 
-export type ExtractedSegment = TextSegment | JsonSegment;
+type ExtractedSegment = TextSegment | JsonSegment;
 
 /**
  * Finds the position of the matching closing bracket for a `{` or `[`

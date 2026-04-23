@@ -9,7 +9,7 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 import {hasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 
-export interface PrebuiltDashboardUrlOptions {
+interface PrebuiltDashboardUrlOptions {
   bare?: boolean;
   /**
    * Dashboard-specific filters (release, global filters) to apply

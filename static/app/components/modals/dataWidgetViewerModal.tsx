@@ -91,6 +91,7 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
+  widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
@@ -98,10 +99,7 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import {
-  DashboardsMEPProvider,
-  useDashboardsMEPContext,
-} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
@@ -288,7 +286,7 @@ function DataWidgetViewerModal(props: Props) {
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
   const primaryWidget =
-    widget.displayType === DisplayType.TOP_N || widget.limit !== undefined
+    widget.displayType === DisplayType.TOP_N || defined(widget.limit)
       ? {...widget, queries: sortedQueries}
       : widget;
   const api = useApi();
@@ -658,7 +656,7 @@ function DataWidgetViewerModal(props: Props) {
                 selection={modalSelection}
                 dashboardFilters={dashboardFilters}
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 isFullScreen
                 showConfidenceWarning={
@@ -675,7 +673,7 @@ function DataWidgetViewerModal(props: Props) {
                 dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
-                tableItemLimit={widget.limit}
+                tableItemLimit={widget.limit ?? undefined}
                 onZoom={onZoom}
                 onLegendSelectChanged={onLegendSelectChanged}
                 legendOptions={{
@@ -907,8 +905,6 @@ function OpenButton({
 }: OpenButtonProps) {
   let openLabel: string;
   let path: string;
-  const {isMetricsData} = useDashboardsMEPContext();
-
   switch (widget.widgetType) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
@@ -919,13 +915,25 @@ function OpenButton({
       path = getWidgetReleasesUrl(widget, dashboardFilters, selection, organization);
       break;
     case WidgetType.SPANS:
+    case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
+      const multiQueryUnsupported =
+        widget.queries.length > 1 &&
+        !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+      if (multiQueryUnsupported) {
+        return (
+          <Tooltip
+            title={t('Explore does not support multiple queries for this dataset')}
+          >
+            <Button priority="primary" disabled>
+              {openLabel}
+            </Button>
+          </Tooltip>
+        );
+      }
+      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization)!;
       break;
-    case WidgetType.LOGS:
-      openLabel = t('Open in Explore');
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization);
-      break;
+    }
     case WidgetType.TRACEMETRICS:
       openLabel = t('Open in Explore');
       path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
@@ -940,9 +948,7 @@ function OpenButton({
         {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         dashboardFilters,
         selection,
-        organization,
-        0,
-        isMetricsData
+        organization
       );
       break;
   }

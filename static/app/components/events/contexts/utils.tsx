@@ -133,6 +133,7 @@ export function getRelativeTimeFromEventDateCreated(
 
 type KnownDataDetails = Omit<KeyValueListDataItem, 'key'> | undefined;
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
 export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,

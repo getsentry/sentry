@@ -112,7 +112,7 @@ function PipelineRunner({
         </Flex>
       </Container>
 
-      {pipeline.error && <Text variant="muted">Error: {pipeline.error.message}</Text>}
+      {pipeline.error && <Text variant="muted">Error: {pipeline.error}</Text>}
 
       {pipeline.view}
 

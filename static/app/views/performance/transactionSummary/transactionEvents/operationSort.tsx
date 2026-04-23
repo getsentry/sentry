@@ -10,9 +10,9 @@ import {Radio} from '@sentry/scraps/radio';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import {MenuItem} from 'sentry/components/menuItem';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>>;
 
@@ -24,6 +24,7 @@ type Props = {
 };
 
 export function OperationSort({eventView, location, tableMeta, title: Title}: Props) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const menuEl = useRef<Element | null>(null);
 
@@ -75,7 +76,7 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
               onClick={() => {
                 const sortLink = generateSortLink({field: operation});
                 if (sortLink) {
-                  browserHistory.push(sortLink);
+                  navigate(sortLink);
                 }
               }}
             />

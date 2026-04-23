@@ -8,7 +8,7 @@ import {ReactQueryDevtoolsPanel} from '@tanstack/react-query-devtools';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/context';
+import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {FrontendVersionProvider} from 'sentry/components/frontendVersionContext';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';

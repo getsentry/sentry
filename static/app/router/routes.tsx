@@ -158,10 +158,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/acceptOrganizationInvite')),
     },
     {
-      path: '/accept/:memberId/:token/',
-      component: make(() => import('sentry/views/acceptOrganizationInvite')),
-    },
-    {
       path: '/accept-transfer/',
       component: make(() => import('sentry/views/acceptProjectTransfer')),
     },
@@ -675,6 +671,11 @@ function buildRoutes(): RouteObject[] {
       path: 'mobile-builds/',
       name: t('Mobile Builds'),
       component: make(() => import('sentry/views/settings/project/preprod')),
+    },
+    {
+      path: 'snapshots/',
+      name: t('Snapshots'),
+      component: make(() => import('sentry/views/settings/project/preprod/snapshots')),
     },
     {
       path: 'keys/',
@@ -1251,14 +1252,12 @@ function buildRoutes(): RouteObject[] {
       },
       accountSettingsRoutes,
       {
-        name: t('Organization'),
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
         children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
       },
       {
         path: ':orgId/',
-        name: t('Organization'),
         component: withDomainRedirect(NoOp),
         children: [
           orgSettingsRoutes,
@@ -1345,17 +1344,6 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'widget-builder/widget/new/',
-          component: make(() => import('sentry/views/dashboards/create')),
-        },
-      ],
-    },
-    {
-      path: '/dashboards/new/:templateId',
-      component: make(() => import('sentry/views/dashboards/create')),
-      withOrgPath: true,
-      children: [
-        {
-          path: 'widget/:widgetId/',
           component: make(() => import('sentry/views/dashboards/create')),
         },
       ],
@@ -1657,6 +1645,12 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
+  };
+
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/workflows/',
+    component: make(() => import('sentry/views/seerWorkflows')),
+    withOrgPath: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -2084,13 +2078,6 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
-    // Redirect old conversations links to the new explore location
-    {
-      path: `${CONVERSATIONS_LANDING_SUB_PATH}/*`,
-      component: make(
-        () => import('sentry/views/insights/pages/conversations/conversationsRedirect')
-      ),
-    },
     // Redirect old links to the new agents landing page
     {
       path: 'ai/*',
@@ -2324,9 +2311,14 @@ function buildRoutes(): RouteObject[] {
       children: [
         {
           index: true,
-          handle: {module: undefined},
           component: make(
             () => import('sentry/views/insights/pages/conversations/overview')
+          ),
+        },
+        {
+          path: ':conversationId/',
+          component: make(
+            () => import('sentry/views/insights/pages/conversations/conversationDetail')
           ),
         },
         transactionSummaryRoute,
@@ -2527,6 +2519,10 @@ function buildRoutes(): RouteObject[] {
     {
       path: `${IssueTaxonomy.WARNINGS}/`,
       component: make(() => import('sentry/views/issueList/pages/warnings')),
+    },
+    {
+      path: `${IssueTaxonomy.SENTRY_CONFIGURATION}/`,
+      component: make(() => import('sentry/views/issueList/pages/sentryConfiguration')),
     },
     {
       path: 'instrumentation/',
@@ -2793,6 +2789,7 @@ function buildRoutes(): RouteObject[] {
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,
+      seerRoutes,
       releasesRoutes,
       statsRoutes,
       discoverRoutes,

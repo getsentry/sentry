@@ -19,7 +19,7 @@ from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity
 from sentry.models.activity import Activity
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
@@ -288,7 +288,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, organization_id: int, organization_member_id: int
     ) -> bool:
         try:
-            member = OrganizationMember.objects.get(id=organization_member_id)
+            member = OrganizationMember.objects.get(
+                id=organization_member_id, organization_id=organization_id
+            )
         except OrganizationMember.DoesNotExist:
             return False
         num_deleted, _deleted = member.delete()
@@ -582,6 +584,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 AlertRuleActivity,
                 Dashboard,
                 DashboardFavoriteUser,
+                DashboardRevision,
                 GroupAssignee,
                 GroupBookmark,
                 GroupSeen,

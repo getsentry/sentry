@@ -103,7 +103,7 @@ function useCronLegendStatuses({
 
 export function IssueCronCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 500);
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
 

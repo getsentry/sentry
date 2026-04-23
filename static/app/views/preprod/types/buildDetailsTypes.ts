@@ -15,6 +15,7 @@ export interface BuildDetailsApiResponse {
   posted_status_checks?: PostedStatusChecks | null;
   base_artifact_id?: string | null;
   base_build_info?: BuildDetailsAppInfo | null;
+  snapshot_comparison_info?: SnapshotComparisonInfo | null;
 }
 
 interface BuildDetailsDistributionInfo {
@@ -191,4 +192,18 @@ export function isStatusCheckFailure(
   result: StatusCheckResult | undefined | null
 ): result is StatusCheckResultFailure {
   return result?.success === false;
+}
+
+export type SnapshotComparisonState = 'pending' | 'processing' | 'success' | 'failed';
+export type SnapshotApprovalStatus = 'approved' | 'requires_approval';
+
+export interface SnapshotComparisonInfo {
+  image_count: number;
+  approval_status: SnapshotApprovalStatus | null;
+  comparison_error_message: string | null;
+  comparison_state: SnapshotComparisonState | null;
+  images_added: number;
+  images_changed: number;
+  images_removed: number;
+  images_unchanged: number;
 }

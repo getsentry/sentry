@@ -42,7 +42,7 @@ export function LLMCallsWidget() {
 
   const generationsRequest = useSpans(
     {
-      fields: ['gen_ai.request.model', 'count()'],
+      fields: [SpanFields.GEN_AI_RESPONSE_MODEL, 'count()'],
       sorts: [{field: 'count()', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -54,7 +54,7 @@ export function LLMCallsWidget() {
     {
       ...pageFilterChartParams,
       query: fullQuery,
-      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
+      groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
       yAxis: ['count(span.duration)'],
       sort: {field: 'count(span.duration)', kind: 'desc'},
       topEvents: 3,
@@ -109,7 +109,7 @@ export function LLMCallsWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {models?.map((item, index) => {
-        const modelId = item['gen_ai.request.model'];
+        const modelId = item[SpanFields.GEN_AI_RESPONSE_MODEL];
         return (
           <Fragment key={modelId}>
             <div>
@@ -149,7 +149,7 @@ export function LLMCallsWidget() {
                   yAxes: ['count(span.duration)'],
                 },
               ],
-              groupBy: ['gen_ai.request.model'],
+              groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
               query: fullQuery,
               sort: '-count(span.duration)',
               interval: pageFilterChartParams.interval,

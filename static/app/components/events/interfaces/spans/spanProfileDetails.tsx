@@ -7,6 +7,11 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
+import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
+import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
@@ -298,20 +303,41 @@ export function SpanProfileDetails({
           </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
-      <StackTraceContent
-        event={processedEvent}
-        newestFirst
-        platform={event.platform || 'other'}
-        stacktrace={{
-          framesOmitted: null,
-          hasSystemFrames: false,
-          registers: null,
-          frames,
-        }}
-        stackView={StackView.APP}
-        inlined
-        maxDepth={MAX_STACK_DEPTH}
-      />
+      {organization.features.includes('issue-details-new-stack-trace') ? (
+        <StackTraceViewStateProvider platform={event.platform || 'other'}>
+          <StackTraceProvider
+            event={processedEvent}
+            stacktrace={{
+              framesOmitted: null,
+              hasSystemFrames: false,
+              registers: null,
+              frames,
+            }}
+            maxDepth={MAX_STACK_DEPTH}
+          >
+            <StackTraceFrames
+              borderless
+              frameActionsComponent={IssueFrameActions}
+              frameContextComponent={FrameContent}
+            />
+          </StackTraceProvider>
+        </StackTraceViewStateProvider>
+      ) : (
+        <StackTraceContent
+          event={processedEvent}
+          newestFirst
+          platform={event.platform || 'other'}
+          stacktrace={{
+            framesOmitted: null,
+            hasSystemFrames: false,
+            registers: null,
+            frames,
+          }}
+          stackView={StackView.APP}
+          inlined
+          maxDepth={MAX_STACK_DEPTH}
+        />
+      )}
     </SpanContainer>
   );
 }

@@ -1,11 +1,11 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -78,26 +78,23 @@ function MetricsSectionContent({
     ? result.data.slice(0, NUMBER_ABBREVIATED_METRICS)
     : undefined;
 
-  const onOpenMetricsDrawer = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      trackAnalytics('metrics.issue_details.drawer_opened', {
-        organization,
-      });
+  const onOpenMetricsDrawer = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    trackAnalytics('metrics.issue_details.drawer_opened', {
+      organization,
+    });
 
-      navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            [METRICS_DRAWER_QUERY_PARAM]: 'true',
-          },
+    navigate(
+      {
+        ...location,
+        query: {
+          ...location.query,
+          [METRICS_DRAWER_QUERY_PARAM]: 'true',
         },
-        {replace: true}
-      );
-    },
-    [navigate, location, organization]
-  );
+      },
+      {replace: true}
+    );
+  };
 
   useEffect(() => {
     const shouldOpenDrawer = location.query[METRICS_DRAWER_QUERY_PARAM] === 'true';

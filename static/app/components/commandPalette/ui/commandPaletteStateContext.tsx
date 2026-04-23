@@ -6,19 +6,27 @@ import {
   openCommandPaletteDeprecated,
   toggleCommandPalette,
 } from 'sentry/actionCreators/modal';
-import type {CommandPaletteActionWithKey} from 'sentry/components/commandPalette/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type LinkedList = {
-  previous: LinkedList | null;
-  value: {action: CommandPaletteActionWithKey; query: string};
+/**
+ * A stack entry for navigating into a CMDK group. Stores the group's
+ * collection key and display label so the palette can render the correct
+ * subtree and placeholder text without holding on to the full action object.
+ */
+export type CMDKNavStack = {
+  previous: CMDKNavStack | null;
+  value: {key: string; label: string; query: string; prompt?: string};
 };
 
 export type CommandPaletteState = {
-  action: LinkedList | null;
+  action: CMDKNavStack | null;
   input: React.RefObject<HTMLInputElement | null>;
   open: boolean;
+  // When true, action and query are cleared the next time the modal opens.
+  // Set by 'trigger action' so the close animation plays without a jarring
+  // content swap, while still ensuring a clean slate on the next open.
+  pendingReset: boolean;
   query: string;
 };
 
@@ -28,7 +36,13 @@ export type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
-  | {action: CommandPaletteActionWithKey; type: 'push action'}
+  | {
+      key: string;
+      label: string;
+      type: 'push action';
+      prompt?: string;
+      query?: string;
+    }
   | {type: 'trigger action'}
   | {type: 'pop action'};
 
@@ -52,6 +66,7 @@ function commandPaletteReducer(
         ...state,
         action: null,
         query: '',
+        pendingReset: false,
       };
     case 'set query':
       return {...state, query: action.query};
@@ -59,10 +74,15 @@ function commandPaletteReducer(
       return {
         ...state,
         action: {
-          value: {action: action.action, query: state.query},
+          value: {
+            key: action.key,
+            label: action.label,
+            prompt: action.prompt,
+            query: state.query,
+          },
           previous: state.action,
         },
-        query: '',
+        query: action.query ?? '',
       };
     case 'pop action':
       return {
@@ -71,7 +91,7 @@ function commandPaletteReducer(
         query: state.action?.value?.query ?? state.query,
       };
     case 'trigger action':
-      return {...state, action: null, query: ''};
+      return {...state, pendingReset: true};
     default:
       unreachable(type);
       return state;
@@ -109,6 +129,7 @@ export function CommandPaletteStateProvider({
     query: '',
     action: null,
     open: false,
+    pendingReset: false,
   });
 
   return (
@@ -150,11 +171,7 @@ export function getActionPath(state: CommandPaletteState): string {
   const path: string[] = [];
   let node = state.action;
   while (node !== null) {
-    const label =
-      typeof node.value.action.display.label === 'string'
-        ? node.value.action.display.label
-        : '';
-    path.unshift(label);
+    path.unshift(node.value.label);
     node = node.previous;
   }
   return path.join(' → ');

@@ -156,9 +156,7 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
             try:
                 # Check if project has repos linked in Seer.
                 # Skip cache to ensure latest data from Seer API.
-                seer_repos_linked = has_project_connected_repos(
-                    org.id, group.project.id, skip_cache=True
-                )
+                seer_repos_linked = has_project_connected_repos(org, group.project, skip_cache=True)
             except Exception as e:
                 # Default to False if we can't check if the project has repos linked in Seer.
                 sentry_sdk.capture_exception(e)

@@ -153,6 +153,7 @@ export const LogTableBody = styled(TableBody)<{
     padding-top: ${p.theme.space.md};
     padding-bottom: ${p.theme.space.md};
     `}
+  align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
 

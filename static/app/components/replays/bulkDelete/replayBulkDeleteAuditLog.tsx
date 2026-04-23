@@ -1,28 +1,33 @@
 import {Fragment} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Pagination} from 'sentry/components/pagination';
+import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
 import {ReplayBulkDeleteAuditLogTable} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogTable';
-import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
-import {useReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/useReplayBulkDeleteAuditLog';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   projectSlug: string;
 }
 
 export function ReplayBulkDeleteAuditLog({projectSlug}: Props) {
-  const {data, getResponseHeader, error, isPending} = useReplayBulkDeleteAuditLog({
-    projectSlug,
-    query: {referrer: 'replay-settings'},
+  const organization = useOrganization();
+  const {data, error, isPending} = useQuery({
+    ...replayBulkDeleteAuditLogApiOptions(organization, {
+      projectSlug,
+      query: {referrer: 'replay-settings'},
+    }),
+    select: selectJsonWithHeaders,
   });
+
+  const rows = data?.json.data;
+  const pageLinks = data?.headers?.Link ?? null;
 
   return (
     <Fragment>
-      <ReplayBulkDeleteAuditLogTable
-        rows={data?.data}
-        error={error}
-        isPending={isPending}
-      />
-      <Pagination pageLinks={getResponseHeader?.('Link') ?? null} />
+      <ReplayBulkDeleteAuditLogTable rows={rows} error={error} isPending={isPending} />
+      <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }

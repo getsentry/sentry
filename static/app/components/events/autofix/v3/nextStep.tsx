@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
@@ -27,7 +28,6 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SeerDrawerNextStepProps {
@@ -342,9 +342,10 @@ function NextStepTemplate({
           <Button priority="primary" disabled={isProcessing} onClick={onClickYes}>
             {labelYes}
           </Button>
-          {codingAgentOptions?.length ? (
+          {codingAgentIntegrations === undefined ? null : (
             <DropdownMenu
               items={codingAgentOptions}
+              isDisabled={false}
               trigger={(triggerProps, isOpen) => (
                 <Button
                   {...triggerProps}
@@ -367,7 +368,7 @@ function NextStepTemplate({
                 </DropdownMenuFooter>
               }
             />
-          ) : null}
+          )}
         </ButtonBar>
       </Flex>
     </Flex>

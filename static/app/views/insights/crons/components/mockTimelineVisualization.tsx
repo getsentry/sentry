@@ -63,7 +63,7 @@ export function MockTimelineVisualization({schedule}: Props) {
   };
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: timelineWidth} = useDimensions({elementRef});
 
   const sampleDataQueryKey = [
     getApiUrl('/organizations/$organizationIdOrSlug/monitors-schedule-data/', {

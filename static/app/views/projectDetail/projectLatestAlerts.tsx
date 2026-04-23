@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -15,6 +16,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -124,25 +126,20 @@ export function ProjectLatestAlerts({
     !unresolvedAlertsIsLoading &&
     !resolvedAlertsIsLoading;
   // This is only used to determine if we should show the "Create Alert" button
-  const {data: alertRules = [], isPending: alertRulesLoading} = useApiQuery<any[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/alert-rules/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...pick(location.query, Object.values(URL_PARAM)),
-          // Sort by name
-          asc: 1,
-          per_page: 1,
-        },
-      },
-    ],
-    {
+  const {data: hasAlertRules, isPending: alertRulesLoading} = useQuery({
+    ...apiOptions.as<unknown[]>()('/organizations/$organizationIdOrSlug/alert-rules/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
-      enabled: shouldLoadAlertRules,
-    }
-  );
+      query: {
+        ...pick(location.query, Object.values(URL_PARAM)),
+        // Sort by name
+        asc: 1,
+        per_page: 1,
+      },
+    }),
+    enabled: shouldLoadAlertRules,
+    select: data => data.json.length > 0,
+  });
 
   function renderAlertRules() {
     if (unresolvedAlertsIsError || resolvedAlertsIsError) {
@@ -154,7 +151,7 @@ export function ProjectLatestAlerts({
       return <Placeholder height={PLACEHOLDER_AND_EMPTY_HEIGHT} />;
     }
 
-    const hasAlertRule = alertsUnresolvedAndResolved.length > 0 || alertRules?.length > 0;
+    const hasAlertRule = alertsUnresolvedAndResolved.length > 0 || hasAlertRules;
     if (!hasAlertRule) {
       return (
         <MissingAlertsButtons organization={organization} projectSlug={projectSlug} />

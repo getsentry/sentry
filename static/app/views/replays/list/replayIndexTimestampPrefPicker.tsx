@@ -9,6 +9,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 export function ReplayIndexTimestampPrefPicker() {
   const [prefs, setPrefs] = useReplayPrefs();
+  const label = t('Configure timestamp settings');
 
   return (
     <CompactSelect
@@ -27,7 +28,8 @@ export function ReplayIndexTimestampPrefPicker() {
         <OverlayTrigger.IconButton
           {...triggerProps}
           icon={<IconSettings />}
-          aria-label={t('Configure timestamp settings')}
+          aria-label={label}
+          tooltipProps={{title: label}}
         />
       )}
       value={prefs.timestampType}

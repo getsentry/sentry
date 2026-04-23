@@ -692,6 +692,84 @@ class LLMDetectedExperimentalGroupTypeV2(GroupType):
 
 
 @dataclass(frozen=True)
+class AIDetectedHTTPGroupType(GroupType):
+    type_id = 3503
+    slug = "ai_detected_http"
+    description = "AI Detected HTTP Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.HTTP_CLIENT.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class AIDetectedDBGroupType(GroupType):
+    type_id = 3504
+    slug = "ai_detected_db"
+    description = "AI Detected Database Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.DB_QUERY.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class AIDetectedRuntimePerformanceGroupType(GroupType):
+    type_id = 3505
+    slug = "ai_detected_runtime_performance"
+    description = "AI Detected Runtime Performance Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class AIDetectedSecurityGroupType(GroupType):
+    type_id = 3506
+    slug = "ai_detected_security"
+    description = "AI Detected Security Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class AIDetectedCodeHealthGroupType(GroupType):
+    type_id = 3507
+    slug = "ai_detected_code_health"
+    description = "AI Detected Code Health Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.CONFIGURATION.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class AIDetectedGeneralGroupType(GroupType):
+    type_id = 3508
+    slug = "ai_detected_general"
+    description = "AI Detected Issue"
+    category = GroupCategory.AI_DETECTED.value
+    category_v2 = GroupCategory.AI_DETECTED.value
+    default_priority = PriorityLevel.MEDIUM
+    released = False
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
 class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     type_id = 5002
     slug = "replay_click_rage"

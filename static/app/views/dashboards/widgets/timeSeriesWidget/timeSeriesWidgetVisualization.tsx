@@ -10,12 +10,13 @@ import type {
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
 import sum from 'lodash/sum';
+import unescape from 'lodash/unescape';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
+import {ChartLegend} from 'sentry/components/charts/chartLegend';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {
   useChartXRangeSelection,
@@ -87,6 +88,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
+
+  /**
+   * Whether new options fully replace previous chart options.
+   */
+  notMerge?: boolean;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -351,7 +357,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           return defined(sampleId) ? sampleId.toString() : seriesName;
         }
 
-        const alias = aliases[seriesName];
+        // seriesName may be HTML-escaped, so we need to unescape it before looking up the alias
+        // to ensure the lookup works correctly for series with characters that are escaped.
+        const alias = aliases[unescape(seriesName)];
         if (alias) {
           // The alias value comes from `plottable.label` and is not
           // HTML-escaped. Escape it for safe insertion into raw HTML
@@ -397,10 +405,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
-  // find min/max timestamp of *all* timeSeries
+  // find min/max timestamp of *all* timeSeries. Drop null boundaries from
+  // non-time-bounded plottables (e.g. `Thresholds`) before sorting —
+  // `Array.prototype.sort`'s default lexicographic comparator stringifies
+  // `null` to `"null"`, which sorts after any timestamp and would end up as
+  // `latestTimeStamp`, leaving release bubbles with no `maxTime` to bucket.
   const allBoundaries = props.plottables
     .flatMap(plottable => [plottable.start, plottable.end])
-    .toSorted();
+    .filter(defined)
+    .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
 
@@ -684,6 +697,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
+          notMerge={props.notMerge}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from

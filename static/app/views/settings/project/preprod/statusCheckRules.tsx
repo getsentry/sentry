@@ -71,21 +71,18 @@ export function StatusCheckRules() {
     [location.query, navigate]
   );
 
-  const handleToggleExpanded = useCallback(
-    (ruleId: string, isExpanded: boolean) => {
-      const newExpanded = new Set(expandedRuleIds);
-      if (isExpanded) {
-        newExpanded.add(ruleId);
-      } else {
-        newExpanded.delete(ruleId);
-        if (ruleId === newRuleId) {
-          setNewRuleId(null);
-        }
+  const handleToggleExpanded = (ruleId: string, isExpanded: boolean) => {
+    const newExpanded = new Set(expandedRuleIds);
+    if (isExpanded) {
+      newExpanded.add(ruleId);
+    } else {
+      newExpanded.delete(ruleId);
+      if (ruleId === newRuleId) {
+        setNewRuleId(null);
       }
-      updateExpandedInUrl([...newExpanded]);
-    },
-    [expandedRuleIds, newRuleId, updateExpandedInUrl]
-  );
+    }
+    updateExpandedInUrl([...newExpanded]);
+  };
 
   const hasRepositories = !isLoadingRepos && repositories && repositories.length > 0;
 

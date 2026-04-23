@@ -29,13 +29,6 @@ export type EventGroupComponent = {
   name: string | null;
   values: EventGroupComponent[] | string[];
 };
-type EventGroupingConfig = {
-  base: string | null;
-  delegates: string[];
-  id: string;
-  strategies: string[];
-};
-
 type VariantEvidence = {
   desc: string;
   fingerprint: string;
@@ -78,7 +71,6 @@ interface ChecksumVariant extends BaseVariant {
 interface HasComponentGrouping {
   client_values?: string[];
   component?: EventGroupComponent;
-  config?: EventGroupingConfig;
   matched_rule?: string;
   values?: string[];
 }

@@ -50,21 +50,22 @@ import {
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
-import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  LegendSelection,
+  TabularColumn,
+} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
   useDroppedColumnsWarning,
-  useIndexedEventsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
 import {WidgetFrame} from './widgetFrame';
-import {getWidgetQueryLLMHint, readableConditions} from './widgetLLMContext';
+import {readableConditions} from './widgetLLMContext';
 
 export type OnDataFetchedParams = {
   tableResults?: TableDataWithTitle[];
@@ -162,7 +163,6 @@ function WidgetCard(props: Props) {
     title: props.widget.title,
     displayType: resolvedDisplayType,
     widgetType: props.widget.widgetType,
-    queryHint: getWidgetQueryLLMHint(resolvedDisplayType),
     queries: props.widget.queries.map(q => ({
       name: q.name,
       conditions: readableConditions(q.conditions),
@@ -225,9 +225,7 @@ function WidgetCard(props: Props) {
     query.aggregates.some(aggregate => aggregate.includes('session.duration'))
   );
 
-  const {isMetricsData} = useDashboardsMEPContext();
   const extractionStatus = useExtractionStatus({queryKey: widget});
-  const indexedEventsWarning = useIndexedEventsWarning();
   const onDemandWarning = useOnDemandWarning({widget});
   const transactionsDeprecationWarning = useTransactionsDeprecationWarning({
     widget,
@@ -309,9 +307,7 @@ function WidgetCard(props: Props) {
         ? t('Not Extracted')
         : undefined;
 
-  const indexedDataBadge = indexedEventsWarning ? t('Indexed') : undefined;
-
-  const badges = [indexedDataBadge, onDemandExtractionBadge].filter(n => n !== undefined);
+  const badges = [onDemandExtractionBadge].filter(n => n !== undefined);
 
   const warnings = [
     onDemandWarning,
@@ -333,7 +329,6 @@ function WidgetCard(props: Props) {
         organization,
         selection,
         widget,
-        Boolean(isMetricsData),
         props.widgetLimitReached,
         props.hasEditAccess,
         location,
@@ -364,6 +359,19 @@ function WidgetCard(props: Props) {
 
   const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
+    // Legend state requires a stable widget ID to persist to the URL.
+    // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
+    const legendSelectionForWidget = widget.id
+      ? widgetLegendState.getWidgetSelectionState(widget)
+      : undefined;
+
+    const handleLegendSelectionChange = widget.id
+      ? (legendState: LegendSelection) => {
+          widgetLegendState.setWidgetSelectionState(legendState, widget);
+          onLegendSelectChanged?.();
+        }
+      : undefined;
+
     return (
       <ErrorBoundary customComponent={errorBoundaryHandler}>
         <VisuallyCompleteWithData
@@ -398,6 +406,8 @@ function WidgetCard(props: Props) {
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
               showConfidenceWarning={showConfidenceWarning}
+              legendSelection={legendSelectionForWidget}
+              onLegendSelectionChange={handleLegendSelectionChange}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>

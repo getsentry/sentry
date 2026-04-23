@@ -16,6 +16,7 @@ from sentry.models.project import Project
 from sentry.search.events.types import SnubaParams
 from sentry.seer.autofix.utils import (
     bulk_get_project_preferences,
+    bulk_read_preferences_from_sentry_db,
     get_autofix_repos_from_project_code_mappings,
 )
 from sentry.seer.explorer.context_engine_utils import (
@@ -257,7 +258,16 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
 
     org_repo_definitions: dict[tuple[str, str, str], RepoDetails] = {}
 
-    preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
+    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
+        preferences = bulk_read_preferences_from_sentry_db(
+            organization_id, list(project_map.keys())
+        )
+        preferences_by_id = {
+            str(project_id): preference.dict() if preference else None
+            for project_id, preference in preferences.items()
+        }
+    else:
+        preferences_by_id = bulk_get_project_preferences(organization_id, list(project_map.keys()))
 
     for project_id, project in project_map.items():
         existing_pref = preferences_by_id.get(str(project_id))

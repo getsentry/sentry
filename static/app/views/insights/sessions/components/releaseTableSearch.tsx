@@ -59,8 +59,8 @@ export function ReleaseTableSearch() {
     });
   };
 
-  const getTagValues: GetTagValues = async (tag, currentQuery) => {
-    const values = await tagValueLoader(tag.key, currentQuery);
+  const getTagValues: GetTagValues = async ({tag, searchQuery}) => {
+    const values = await tagValueLoader(tag.key, searchQuery);
     return values.map(({value}) => value);
   };
 

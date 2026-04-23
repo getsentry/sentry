@@ -54,7 +54,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },
@@ -108,7 +108,7 @@ describe('useReplayData', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },
@@ -168,7 +168,7 @@ describe('useReplayData', () => {
     });
   });
 
-  it('should always fetch DISCOVER & ISSUE_PLATFORM errors', async () => {
+  it('should always fetch ERRORS & ISSUE_PLATFORM errors', async () => {
     const startedAt = new Date('12:00:00 01-01-2023');
     const finishedAt = new Date('12:00:10 01-01-2023');
 
@@ -186,7 +186,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
     const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {},
       headers: {
         Link: [
@@ -195,14 +195,14 @@ describe('useReplayData', () => {
         ].join(','),
       },
       match: [
-        (_url, options) => options.query?.dataset === DiscoverDatasets.DISCOVER,
+        (_url, options) => options.query?.dataset === DiscoverDatasets.ERRORS,
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:0:0',
       ],
     });
 
     const mockedIssuePlatformEventsMetaCall = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {},
       headers: {
         Link: [
@@ -290,7 +290,7 @@ describe('useReplayData', () => {
       body: {data: mockReplayResponse},
     });
     const mockedErrorEventsMetaCall1 = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {data: mockErrorResponse1},
       headers: {
         Link: [
@@ -299,13 +299,13 @@ describe('useReplayData', () => {
         ].join(','),
       },
       match: [
-        (_url, options) => options.query?.dataset === DiscoverDatasets.DISCOVER,
+        (_url, options) => options.query?.dataset === DiscoverDatasets.ERRORS,
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:0:0',
       ],
     });
     const mockedErrorEventsMetaCall2 = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {data: mockErrorResponse2},
       headers: {
         Link: [
@@ -314,13 +314,13 @@ describe('useReplayData', () => {
         ].join(','),
       },
       match: [
-        (_url, options) => options.query?.dataset === DiscoverDatasets.DISCOVER,
+        (_url, options) => options.query?.dataset === DiscoverDatasets.ERRORS,
         (_url, options) => options.query?.query === `replayId:[${mockReplayResponse.id}]`,
         (_url, options) => options.query?.cursor === '0:1:0',
       ],
     });
     const mockedIssuePlatformEventsMetaCall1 = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {data: mockErrorResponse3},
       headers: {
         Link: [
@@ -335,7 +335,7 @@ describe('useReplayData', () => {
       ],
     });
     const mockedIssuePlatformEventsMetaCall2 = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {data: mockErrorResponse4},
       headers: {
         Link: [
@@ -417,13 +417,13 @@ describe('useReplayData', () => {
 
     const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
       asyncDelay: 250, // Simulate 250ms response time
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
-      match: [MockApiClient.matchQuery({dataset: DiscoverDatasets.DISCOVER})],
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({dataset: DiscoverDatasets.ERRORS})],
       body: {data: mockErrorResponse},
     });
     const mockedIssuePlatformEventsMetaCall = MockApiClient.addMockResponse({
       asyncDelay: 250, // Simulate 250ms response time
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       match: [MockApiClient.matchQuery({dataset: DiscoverDatasets.ISSUE_PLATFORM})],
       body: {data: mockErrorResponse},
     });
@@ -512,7 +512,7 @@ describe('useReplayData', () => {
     });
 
     const mockedErrorEventsMetaCall = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/replays-events-meta/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },

@@ -47,6 +47,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
             on_completion_hook=DashboardOnCompletionHook,
             category_key="dashboard_generate",
             category_value=str(self.organization.id),
+            reasoning_effort="medium",
         )
         mock_client.start_run.assert_called_once_with(
             prompt="Show me error rates by project",
@@ -148,6 +149,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
             on_completion_hook=DashboardOnCompletionHook,
             category_key="dashboard_generate",
             category_value=str(self.organization.id),
+            reasoning_effort="medium",
         )
 
         # Verify on_page_context includes the current dashboard JSON

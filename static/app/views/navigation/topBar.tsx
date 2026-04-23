@@ -1,31 +1,37 @@
+import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot, withSlots} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME,
   PRIMARY_HEADER_HEIGHT,
+  TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'actions', 'feedback'] as const);
+const Slot = slot(['title', 'actions', 'feedback'] as const, {
+  providers: ({children}) => <SizeProvider size="sm">{children}</SizeProvider>,
+});
 
 function TopBarContent() {
   const theme = useTheme();
-  const organization = useOrganization({allowNull: true});
   const hasPageFrame = useHasPageFrameFeature();
+  const {barTop, contentTop} = useTopOffset();
 
-  const {openExplorerPanel} = useExplorerPanel();
+  useEffect(() => {
+    document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, contentTop);
+    return () => {
+      document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
+    };
+  }, [contentTop]);
 
   if (!hasPageFrame) {
     return null;
@@ -43,7 +49,7 @@ function TopBarContent() {
       padding={{sm: 'sm lg', md: 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
+      top={barTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
@@ -58,11 +64,7 @@ function TopBarContent() {
             {props => <Flex {...props} align="center" gap="sm" />}
           </Slot.Outlet>
 
-          {organization && isSeerExplorerEnabled(organization) ? (
-            <Button icon={<IconSeer />} onClick={openExplorerPanel}>
-              {t('Ask Seer')}
-            </Button>
-          ) : null}
+          <AskSeerButton />
 
           <Slot.Outlet name="feedback">
             {props => (
@@ -72,6 +74,7 @@ function TopBarContent() {
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={{tags: {'feedback.source': 'top_navigation'}}}
+                    tooltipProps={{title: t('Give Feedback')}}
                   >
                     {null}
                   </FeedbackButton>

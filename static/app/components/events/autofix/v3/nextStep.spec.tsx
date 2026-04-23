@@ -14,19 +14,18 @@ import {SeerDrawerNextStep} from './nextStep';
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
 ): ReturnType<typeof useExplorerAutofix> {
-  return {
+  const base: ReturnType<typeof useExplorerAutofix> = {
     runState: {run_id: 1} as any,
     startStep: jest.fn(),
     createPR: jest.fn(),
-    sendMessage: jest.fn(),
     reset: jest.fn(),
     triggerCodingAgentHandoff: jest.fn(),
+    codingAgentErrors: [],
+    dismissCodingAgentError: jest.fn(),
     isLoading: false,
     isPolling: false,
-    isReady: true,
-    isStreaming: false,
-    ...overrides,
-  } as ReturnType<typeof useExplorerAutofix>;
+  };
+  return {...base, ...overrides};
 }
 
 function defaultArtifacts(step: string): AutofixSection['artifacts'] {
@@ -211,6 +210,25 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, make a plan'}));
       expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
+    });
+
+    it('shows coding agent dropdown with Add Integration CTA when no integrations exist', async () => {
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={autofix}
+        />
+      );
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      const addIntegrationLink = screen.getByRole('button', {name: 'Add Integration'});
+      expect(addIntegrationLink).toHaveAttribute(
+        'href',
+        '/settings/org-slug/integrations/?category=coding%20agent'
+      );
     });
 
     it('shows coding agent dropdown when integrations exist', async () => {

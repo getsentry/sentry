@@ -1,0 +1,396 @@
+#!/usr/bin/env python
+
+from sentry.runner import configure
+
+configure()
+
+import logging
+import sys
+from concurrent.futures import as_completed
+from datetime import timedelta
+
+logger = logging.getLogger(__name__)
+
+from sentry.models.commitcomparison import CommitComparison
+from sentry.models.project import Project
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactMobileAppInfo,
+    PreprodComparisonApproval,
+)
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor as ThreadPoolExecutor
+
+#################
+# Configuration #
+#################
+ORG_SLUG = "sentry"
+PROJECT_SLUG = "internal"
+REPO_NAME = "EmergeTools/hackernews"
+PR_NUMBER = 784
+COMMIT_SHA = "46fb48581ba0e8cdcaa01765a1123d996f5272d3"
+BASE_COMMIT_SHA = "a79c91dacdbc32c0cc64e5251062a5d210089e64"
+
+# Snapshot build configurations
+BUILDS = [
+    {
+        "app_id": "com.emerge.hackernews.android",
+        "artifact_type": PreprodArtifact.ArtifactType.AAB,
+        "app_name": "HackerNews Android",
+        "build_version": "1.0.3",
+        "build_number": 42,
+        "state": "compared_with_changes",
+        "create_base": True,
+        "images_changed": 3,
+        "images_added": 1,
+        "images_removed": 0,
+        "images_unchanged": 20,
+        "image_count": 24,
+    },
+    {
+        "app_id": "com.emerge.hackernews.ios",
+        "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
+        "app_name": "HackerNews iOS",
+        "build_version": "1.0.3",
+        "build_number": 15,
+        "state": "compared_no_changes",
+        "create_base": True,
+        "images_changed": 0,
+        "images_added": 0,
+        "images_removed": 0,
+        "images_unchanged": 15,
+        "image_count": 15,
+    },
+]
+
+# Available states:
+# - "no_metrics":              Artifact has no snapshot metrics yet (processing)
+# - "metrics_no_comparison":   Artifact has metrics but no comparison yet
+# - "comparison_pending":      Comparison created but still pending
+# - "comparison_processing":   Comparison in progress
+# - "comparison_failed":       Comparison failed
+# - "compared_no_changes":     Comparison complete, all images match
+# - "compared_with_changes":   Comparison complete, some images differ
+
+# Pass --concurrent to trigger all builds in parallel (tests lock serialization)
+CONCURRENT = "--concurrent" in sys.argv
+
+
+def cleanup_existing_data(project, commit_comparison):
+    """Remove existing test artifacts for idempotent reruns."""
+    logger.info("\nCleaning up existing artifacts for commit %s...", COMMIT_SHA[:8])
+
+    base_commit_comparisons = CommitComparison.objects.filter(
+        head_sha=BASE_COMMIT_SHA,
+        organization_id=project.organization_id,
+    )
+
+    all_commit_comparisons = [commit_comparison] + list(base_commit_comparisons)
+    existing_artifacts = PreprodArtifact.objects.filter(
+        commit_comparison__in=all_commit_comparisons,
+        project__organization_id=project.organization_id,
+    )
+
+    if existing_artifacts.exists():
+        artifact_ids = list(existing_artifacts.values_list("id", flat=True))
+        metrics = PreprodSnapshotMetrics.objects.filter(preprod_artifact_id__in=artifact_ids)
+        metrics_ids = list(metrics.values_list("id", flat=True))
+
+        comparison_count = PreprodSnapshotComparison.objects.filter(
+            head_snapshot_metrics_id__in=metrics_ids
+        ).delete()[0]
+        metrics_count = metrics.delete()[0]
+        approval_count = PreprodComparisonApproval.objects.filter(
+            preprod_artifact_id__in=artifact_ids
+        ).delete()[0]
+        artifact_count = existing_artifacts.delete()[0]
+
+        if base_commit_comparisons.exists():
+            base_count = base_commit_comparisons.delete()[0]
+            logger.info(
+                "  Deleted %s artifacts, %s metrics, %s comparisons, %s approvals, %s base commits",
+                artifact_count,
+                metrics_count,
+                comparison_count,
+                approval_count,
+                base_count,
+            )
+        else:
+            logger.info(
+                "  Deleted %s artifacts, %s metrics, %s comparisons, %s approvals",
+                artifact_count,
+                metrics_count,
+                comparison_count,
+                approval_count,
+            )
+    else:
+        logger.info("  No existing artifacts found (clean slate)")
+
+    # Clear any previous snapshot comment_id so we get a fresh create
+    extras = commit_comparison.extras or {}
+    pr_comments = extras.get("pr_comments", {})
+    if "snapshots" in pr_comments:
+        del pr_comments["snapshots"]
+        commit_comparison.extras = extras
+        commit_comparison.save(update_fields=["extras"])
+        logger.info("  Cleared previous snapshot comment_id from extras")
+
+
+def create_artifact_and_metrics(project, build_config, commit_comparison):
+    """Create a preprod artifact with snapshot metrics."""
+    state = build_config["state"]
+
+    artifact = PreprodArtifact.objects.create(
+        project=project,
+        artifact_type=build_config["artifact_type"],
+        app_id=build_config["app_id"],
+        commit_comparison=commit_comparison,
+        state=PreprodArtifact.ArtifactState.PROCESSED,
+    )
+    PreprodArtifactMobileAppInfo.objects.create(
+        preprod_artifact=artifact,
+        app_name=build_config["app_name"],
+        build_version=build_config["build_version"],
+        build_number=build_config["build_number"],
+    )
+
+    artifact.date_added = artifact.date_added - timedelta(minutes=5)
+    artifact.save(update_fields=["date_added"])
+
+    logger.info("  Created artifact: %s (ID: %s)", build_config["app_id"], artifact.id)
+
+    if state == "no_metrics":
+        logger.info("  No metrics created (simulating upload in progress)")
+        return artifact, None
+
+    metrics = PreprodSnapshotMetrics.objects.create(
+        preprod_artifact=artifact,
+        image_count=build_config.get("image_count", 10),
+    )
+    logger.info("  Created snapshot metrics: %s (%s images)", metrics.id, metrics.image_count)
+
+    return artifact, metrics
+
+
+def create_base_data(project, build_config, head_commit_comparison):
+    """Create base artifact and metrics for comparison."""
+    base_commit_comparison, _ = CommitComparison.objects.get_or_create(
+        head_repo_name=head_commit_comparison.head_repo_name,
+        head_sha=BASE_COMMIT_SHA,
+        provider=head_commit_comparison.provider,
+        organization_id=head_commit_comparison.organization_id,
+    )
+
+    if not head_commit_comparison.base_sha:
+        head_commit_comparison.base_sha = BASE_COMMIT_SHA
+        head_commit_comparison.save(update_fields=["base_sha"])
+
+    base_artifact = PreprodArtifact.objects.create(
+        project=project,
+        artifact_type=build_config["artifact_type"],
+        app_id=build_config["app_id"],
+        commit_comparison=base_commit_comparison,
+        state=PreprodArtifact.ArtifactState.PROCESSED,
+    )
+    PreprodArtifactMobileAppInfo.objects.create(
+        preprod_artifact=base_artifact,
+        app_name=build_config["app_name"],
+        build_version=build_config["build_version"],
+        build_number=build_config["build_number"] - 1,
+    )
+
+    base_metrics = PreprodSnapshotMetrics.objects.create(
+        preprod_artifact=base_artifact,
+        image_count=build_config.get("image_count", 10),
+    )
+
+    logger.info(
+        "  Created base artifact: %s (ID: %s) with metrics",
+        build_config["app_id"],
+        base_artifact.id,
+    )
+
+    return base_metrics
+
+
+def create_comparison(build_config, head_metrics, base_metrics):
+    """Create a snapshot comparison based on the configured state."""
+    state = build_config["state"]
+
+    state_map = {
+        "comparison_pending": PreprodSnapshotComparison.State.PENDING,
+        "comparison_processing": PreprodSnapshotComparison.State.PROCESSING,
+        "comparison_failed": PreprodSnapshotComparison.State.FAILED,
+        "compared_no_changes": PreprodSnapshotComparison.State.SUCCESS,
+        "compared_with_changes": PreprodSnapshotComparison.State.SUCCESS,
+    }
+
+    comparison_state = state_map.get(state)
+    if comparison_state is None:
+        return None
+
+    comparison = PreprodSnapshotComparison.objects.create(
+        head_snapshot_metrics=head_metrics,
+        base_snapshot_metrics=base_metrics,
+        state=comparison_state,
+        images_changed=build_config.get("images_changed", 0),
+        images_added=build_config.get("images_added", 0),
+        images_removed=build_config.get("images_removed", 0),
+        images_unchanged=build_config.get("images_unchanged", 0),
+    )
+
+    status_label = {
+        PreprodSnapshotComparison.State.PENDING: "Pending",
+        PreprodSnapshotComparison.State.PROCESSING: "Processing",
+        PreprodSnapshotComparison.State.FAILED: "Failed",
+        PreprodSnapshotComparison.State.SUCCESS: "Success",
+    }[comparison_state]
+
+    logger.info("  Created comparison: %s", status_label)
+    if comparison_state == PreprodSnapshotComparison.State.SUCCESS:
+        logger.info(
+            "    Changed: %s, Added: %s, Removed: %s, Unchanged: %s",
+            comparison.images_changed,
+            comparison.images_added,
+            comparison.images_removed,
+            comparison.images_unchanged,
+        )
+
+    return comparison
+
+
+def setup_builds(project, build_configs, commit_comparison):
+    """Create all artifacts, metrics, base data, and comparisons."""
+    created_artifacts = []
+
+    for build_config in build_configs:
+        logger.info("\nSetting up %s...", build_config["app_id"])
+
+        artifact, head_metrics = create_artifact_and_metrics(
+            project, build_config, commit_comparison
+        )
+        created_artifacts.append(artifact)
+
+        if (
+            head_metrics
+            and build_config.get("create_base")
+            and build_config["state"]
+            not in (
+                "no_metrics",
+                "metrics_no_comparison",
+            )
+        ):
+            base_metrics = create_base_data(project, build_config, commit_comparison)
+            create_comparison(build_config, head_metrics, base_metrics)
+
+    return created_artifacts
+
+
+def run_task(artifact_id):
+    """Run the snapshot PR comment task for an artifact."""
+    create_preprod_snapshot_pr_comment_task(preprod_artifact_id=artifact_id)
+
+
+def main():
+    try:
+        project = Project.objects.get(slug=PROJECT_SLUG, organization__slug=ORG_SLUG)
+        logger.info("Found project: %s (ID: %s)", project.name, project.id)
+
+        commit_comparison, created = CommitComparison.objects.get_or_create(
+            head_repo_name=REPO_NAME,
+            head_sha=COMMIT_SHA,
+            provider="github",
+            organization_id=project.organization.id,
+            defaults={
+                "head_ref": "main",
+                "base_ref": "main",
+                "pr_number": PR_NUMBER,
+            },
+        )
+        if not created and not commit_comparison.pr_number:
+            commit_comparison.pr_number = PR_NUMBER
+            commit_comparison.save(update_fields=["pr_number"])
+
+        logger.info(
+            "%s commit comparison: %s (pr_number=%s)",
+            "Created" if created else "Found",
+            commit_comparison.id,
+            commit_comparison.pr_number,
+        )
+
+        cleanup_existing_data(project, commit_comparison)
+
+        logger.info("\nRunning snapshot PR comment test with %s build(s):", len(BUILDS))
+        for i, config in enumerate(BUILDS, 1):
+            logger.info(
+                "  BUILD_%s: %s (state: %s, base: %s)",
+                i,
+                config["app_id"],
+                config["state"],
+                config.get("create_base", False),
+            )
+
+        created_artifacts = setup_builds(project, BUILDS, commit_comparison)
+
+        if CONCURRENT:
+            logger.info(
+                "\nTriggering %s tasks concurrently (testing lock serialization)...",
+                len(created_artifacts),
+            )
+
+            def run_build_task(artifact):
+                from django import db
+
+                db.connections.close_all()
+                run_task(artifact.id)
+                return artifact.id
+
+            with ThreadPoolExecutor(max_workers=len(created_artifacts)) as pool:
+                futures = {pool.submit(run_build_task, a): a.id for a in created_artifacts}
+                for future in as_completed(futures):
+                    aid = futures[future]
+                    try:
+                        future.result()
+                        logger.info("  Task for artifact %s completed", aid)
+                    except Exception:
+                        logger.exception("  Task for artifact %s failed", aid)
+        else:
+            logger.info(
+                "\nCalling create_preprod_snapshot_pr_comment_task with artifact %s...",
+                created_artifacts[0].id,
+            )
+            run_task(created_artifacts[0].id)
+
+        logger.info("Done!")
+
+        # Show results
+        commit_comparison.refresh_from_db()
+        cc_extras = commit_comparison.extras or {}
+        snapshots = cc_extras.get("pr_comments", {}).get("snapshots", {})
+        comment_id = snapshots.get("comment_id")
+
+        if snapshots.get("success") and comment_id:
+            logger.info(
+                "\nComment posted! Check: https://github.com/%s/pull/%s",
+                REPO_NAME,
+                PR_NUMBER,
+            )
+            logger.info("  Comment ID: %s", comment_id)
+        elif not snapshots.get("success") and snapshots:
+            logger.info("\nComment FAILED. Error: %s", snapshots.get("error_type"))
+        else:
+            logger.info("\nComment was NOT posted. Check logs above for early-return reasons.")
+
+    except Project.DoesNotExist:
+        logger.exception("Project not found: %s/%s", ORG_SLUG, PROJECT_SLUG)
+        for p in Project.objects.select_related("organization").all()[:10]:
+            logger.info("  - %s/%s", p.organization.slug, p.slug)
+        sys.exit(1)
+    except Exception:
+        logger.exception("Error running trigger_snapshot_pr_comment")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

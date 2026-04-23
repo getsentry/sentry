@@ -3,11 +3,7 @@ import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-que
 
 import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import type {
-  ApiQueryKey,
-  InfiniteApiQueryKey,
-  QueryKeyEndpointOptions,
-} from 'sentry/utils/api/apiQueryKey';
+import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ExtractPathParams, OptionalPathParams} from 'sentry/utils/api/getApiUrl';
 import type {KnownGetsentryApiUrls} from 'sentry/utils/api/knownGetsentryApiUrls';
@@ -23,8 +19,26 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function stripUndefinedValues(obj: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === undefined) {
+      continue;
+    }
+    if (isObject(value)) {
+      const stripped = stripUndefinedValues(value);
+      if (Object.keys(stripped).length > 0) {
+        result[key] = stripped;
+      }
+      continue;
+    }
+    result[key] = value;
+  }
+  return result;
 }
 
 const selectJson = <TData>(data: ApiResponse<TData>) => data.json;
@@ -34,6 +48,7 @@ export const selectJsonWithHeaders = <TData>(
 ): ApiResponse<TData> => data;
 
 function _apiOptions<
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
   // todo: infer the actual data type from the ApiMapping
@@ -52,8 +67,8 @@ function _apiOptions<
   return queryOptions({
     queryKey:
       Object.keys(strippedOptions).length > 0
-        ? ([{infinite: false, version: 'v2'}, url, strippedOptions] as ApiQueryKey)
-        : ([{infinite: false, version: 'v2'}, url] as ApiQueryKey),
+        ? [{infinite: false, version: 'v2'}, url, strippedOptions]
+        : [{infinite: false, version: 'v2'}, url],
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -69,6 +84,7 @@ function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
 }
 
 function _apiOptionsInfinite<
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
   // todo: infer the actual data type from the ApiMapping
@@ -87,8 +103,8 @@ function _apiOptionsInfinite<
   return infiniteQueryOptions({
     queryKey:
       Object.keys(strippedOptions).length > 0
-        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as InfiniteApiQueryKey)
-        : ([{infinite: true, version: 'v2'}, url] as InfiniteApiQueryKey),
+        ? ([{infinite: true, version: 'v2'}, url, strippedOptions] as const)
+        : ([{infinite: true, version: 'v2'}, url] as const),
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),

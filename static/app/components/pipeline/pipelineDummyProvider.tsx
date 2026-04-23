@@ -7,7 +7,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
-import type {PipelineDefinition, PipelineStepProps} from './types';
+import type {
+  PipelineCompletionProps,
+  PipelineDefinition,
+  PipelineStepProps,
+} from './types';
 import {pipelineComplete} from './types';
 
 function DummyStepOne({
@@ -19,7 +23,7 @@ function DummyStepOne({
 
   return (
     <Stack gap="md">
-      <Text>{stepData.message ?? t('Enter your name to continue')}</Text>
+      <Text>{stepData?.message ?? t('Enter your name to continue')}</Text>
       <InputGroup>
         <InputGroup.Input
           aria-label={t('Your name')}
@@ -46,7 +50,7 @@ function DummyStepTwo({
 }: PipelineStepProps<{greeting: string}>) {
   return (
     <Stack gap="md">
-      <Text>{stepData.greeting ?? t('Dummy step two')}</Text>
+      <Text>{stepData?.greeting ?? t('Dummy step two')}</Text>
       <Button
         size="sm"
         priority="primary"
@@ -63,11 +67,26 @@ type DummyCompletionData = {
   result: string;
 };
 
+function DummyCompletionView({
+  data,
+  finish,
+}: PipelineCompletionProps<DummyCompletionData>) {
+  return (
+    <Stack gap="md">
+      <Text>{data.result}</Text>
+      <Button size="sm" priority="primary" onClick={finish}>
+        {t('Done')}
+      </Button>
+    </Stack>
+  );
+}
+
 export const dummyIntegrationPipeline = {
   type: 'integration',
   provider: 'dummy',
   actionTitle: t('Dummy Integration Pipeline'),
   getCompletionData: pipelineComplete<DummyCompletionData>,
+  completionView: DummyCompletionView,
   steps: [
     {
       stepId: 'step_one',

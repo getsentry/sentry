@@ -179,9 +179,6 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # Date
             (\d{4}-[01]\d-[0-3]\d)
             |
-            # Time
-            ([0-2]\d:[0-5]\d:[0-5]\d)
-            |
             # Old Date Formats, TODO: possibly safe to remove?
             (
                 \b(?:(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+)?
@@ -203,6 +200,29 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
         """,
     ),
     ParameterizationRegex(name="duration", raw_pattern=r"""\b(\d+ms) | (\d+(\.\d+)?s)\b"""),
+    ParameterizationRegex(
+        name="mac_addr",
+        raw_pattern=r"""
+            (
+                # 6 sets of 2 hex characters, separated by colons, dashes, or spaces
+                \b
+                (
+                    ([0-9A-Fa-f]{2}:){5} | # 5 sets of two hex digits, each followed by a colon
+                    ([0-9A-Fa-f]{2}-){5} | # 5 sets of two hex digits, each followed by a dash
+                    ([0-9A-Fa-f]{2}\s){5} # 5 sets of two hex digits, each followed by a space
+                )
+                [0-9A-Fa-f]{2} # Final set of two hex digits
+                \b
+            )|
+            (
+                # 3 sets of 4 hex characters, separate by dots
+                \b
+                ([0-9A-Fa-f]{4}\.){2}  # 2 sets of four hex digits, each followed by a period
+                [0-9A-Fa-f]{4} # Final set of four hex digits
+                \b
+            )
+        """,
+    ),
     # The IP pattern has to come after the date pattern, because times like 12:31:12 are also valid
     # IPv6 addresses
     ParameterizationRegex(
@@ -230,20 +250,27 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # two things:
             #   - Cases where the initial or end characters are all valid, but there are too many of
             #     them. (IOW, we don't want to match `2345:...` inside of an otherwise-invalid IP
-            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.)
+            #     like `12345:...`, and the same applies to `...:1234` inside of `...:12345`.
+            #     Similar logic applies to initial and final colons - we don't want `:::1` to turn
+            #     into `:<ip>` because it's matching on just the second and third colons.)
             #   - Cases where `::` (which is a valid IPv6 address) appears inside of expressions
             #     like `SomeClass::someMethod()`, especially when the characters bordering the `::`
             #     are valid hex, like `Space::explore()`.
             # This doesn't fix edge cases like `Fee::add()`, where it's all hex and also fewer than
             # 5 characters on either side, but those are presumably pretty rare.
-            (?<![0-9a-zA-Z_]) # Negative lookbehind
+            (?<![\w:]) # Negative lookbehind (match can't start immediately after these)
             (
+                (?!:::) # Negative lookahead to prevent starting with three colons
+                (?!:[^:]) # Negative lookahead to prevent starting with a single colon
                 ([0-9a-fA-F]{0,4}:){2,7} # Multiple sets of 0-4 hex chars, each followed by a colon
                 [0-9a-fA-F]{0,4} # Final set of 0-4 hex chars
+                (?<![^:]:) # Negative lookbehind to prevent ending with a single colon
+                (?<!:::) # Negative lookbehind to prevent ending with three colons
+
                 (%\S+)? # Optional zone ID
                 (/\d{1,3})? # Optional CIDR suffix
             )
-            (?![0-9a-zA-Z]) # Negative lookahead
+            (?![\w:]) # Negative lookahead (match can't end immediately before these)
         """,
         # Validate that the matched string actually is an IP address before replacing it. If not,
         # leave it alone.
@@ -310,6 +337,37 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             # hex values are mixed, so that's a tradeoff we're okay with.) Also, it only includes
             # lowercase letters, since git shas are always expressed that way.
             (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
+        """,
+    ),
+    # This pattern must come after the hex-based patterns so it doesn't catch strings which happen
+    # to contain only letters between A and F.
+    ParameterizationRegex(
+        name="random_id",
+        raw_pattern=r"""
+            \b
+            # Random nonsense alphanumeric id strings. To avoid false positives, we require the
+            # following:
+            #   - A mix of uppercase letters, lowercase letters, and numbers
+            #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For
+            #     our purposes, that means the string must switch back and forth between letters and
+            #     numbers at least 3 times. This rules out human-readable strings like `dogNumber1`
+            #     (1 switch) and `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
+            #
+            # Lookahead guaranteeing at least one uppercase letter
+            (?= [a-z0-9]* [A-Z])
+            # Lookahead guaranteeing at least one lowercase letter
+            (?= [A-Z0-9]* [a-z])
+            # Lookahead enforcing letter/number switches. Two versions depending on whether the
+            # string starts with a letter or number. This also takes care of the "contains a number"
+            # requirement.
+            (?=
+                \d+ [a-zA-Z]+ \d+ [a-zA-Z]+
+                |
+                [a-zA-Z]+ \d+ [a-zA-Z]+ \d+
+            )
+            # The pattern itself
+            [a-zA-Z0-9]{4,128}
+            \b
         """,
     ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),

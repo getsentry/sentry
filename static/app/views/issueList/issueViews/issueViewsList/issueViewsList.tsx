@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
@@ -17,7 +18,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -34,16 +35,15 @@ import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCrea
 import {useDeleteGroupSearchView} from 'sentry/views/issueList/mutations/useDeleteGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
 import type {GroupSearchViewBackendSortOption} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {
-  makeFetchGroupSearchViewsKey,
-  useFetchGroupSearchViews,
-} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   GroupSearchViewCreatedBy,
   GroupSearchViewSort,
   type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type IssueViewSectionProps = {
   createdBy: GroupSearchViewCreatedBy;
@@ -101,24 +101,7 @@ function IssueViewSection({
   const queryClient = useQueryClient();
   const endpointSort = getEndpointSort(sort);
 
-  const {
-    data: views = [],
-    isPending,
-    isError,
-    getResponseHeader,
-  } = useFetchGroupSearchViews(
-    {
-      orgSlug: organization.slug,
-      createdBy,
-      limit,
-      sort: endpointSort,
-      cursor,
-      query,
-    },
-    {staleTime: 0}
-  );
-
-  const tableQueryKey = makeFetchGroupSearchViewsKey({
+  const tableQueryOptions = groupSearchViewsApiOptions({
     orgSlug: organization.slug,
     createdBy,
     limit,
@@ -127,36 +110,62 @@ function IssueViewSection({
     query,
   });
 
+  const {data, isPending, isError} = useQuery({
+    ...tableQueryOptions,
+    select: selectJsonWithHeaders,
+    staleTime: 0,
+  });
+  const views = data?.json ?? [];
+
   const {mutate: mutateViewStarred} = useUpdateGroupSearchViewStarred({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-        return data?.map(view =>
-          view.id === variables.id ? {...view, starred: variables.starred} : view
-        );
-      });
+      queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+        prevData
+          ? {
+              ...prevData,
+              json: prevData.json.map(view =>
+                view.id === variables.id ? {...view, starred: variables.starred} : view
+              ),
+            }
+          : prevData
+      );
     },
     onError: (_error, variables) => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-        return data?.map(view =>
-          view.id === variables.id ? {...view, starred: !variables.starred} : view
-        );
-      });
+      queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+        prevData
+          ? {
+              ...prevData,
+              json: prevData.json.map(view =>
+                view.id === variables.id ? {...view, starred: !variables.starred} : view
+              ),
+            }
+          : prevData
+      );
     },
   });
   const {mutate: deleteView} = useDeleteGroupSearchView({
     onMutate: variables => {
-      setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-        return data?.filter(v => v.id !== variables.id);
-      });
+      queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+        prevData
+          ? {...prevData, json: prevData.json.filter(v => v.id !== variables.id)}
+          : prevData
+      );
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey: tableQueryKey});
+      queryClient.invalidateQueries({queryKey: tableQueryOptions.queryKey});
     },
   });
   const updateViewName = (view: GroupSearchView) => {
-    setApiQueryData<GroupSearchView[]>(queryClient, tableQueryKey, data => {
-      return data?.map(v => (v.id === view.id ? {...v, name: view.name} : v));
-    });
+    queryClient.setQueryData(tableQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(v =>
+              v.id === view.id ? {...v, name: view.name} : v
+            ),
+          }
+        : prevData
+    );
   };
 
   useRouteAnalyticsParams(
@@ -167,7 +176,7 @@ function IssueViewSection({
         }
   );
 
-  const pageLinks = getResponseHeader?.('Link');
+  const pageLinks = data?.headers.Link;
 
   if (emptyState && !isPending && views.length === 0) {
     return emptyState;
@@ -321,7 +330,17 @@ function SortDropdown() {
   );
 }
 
+const issueViewsFeedbackOptions = {
+  formTitle: t('Give Feedback'),
+  messagePlaceholder: t('How can we make issue views better for you?'),
+  tags: {
+    ['feedback.source']: 'custom_views',
+    ['feedback.owner']: 'issues',
+  },
+};
+
 export default function IssueViewsList() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -363,58 +382,63 @@ export default function IssueViewsList() {
           <Layout.HeaderContent>
             <Layout.Title>{t('All Views')}</Layout.Title>
           </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <FeedbackButton
-                size="sm"
-                feedbackOptions={{
-                  formTitle: t('Give Feedback'),
-                  messagePlaceholder: t('How can we make issue views better for you?'),
-                  tags: {
-                    ['feedback.source']: 'custom_views',
-                    ['feedback.owner']: 'issues',
-                  },
-                }}
-              />
-              <Feature
-                features="organizations:issue-views"
-                hookName="feature-disabled:issue-views"
-                renderDisabled={props => (
-                  <Hovercard
-                    body={
-                      <FeatureDisabled
-                        features={props.features}
-                        hideHelpToggle
-                        featureName={t('Issue Views')}
-                      />
-                    }
-                  >
-                    {typeof props.children === 'function'
-                      ? props.children(props)
-                      : props.children}
-                  </Hovercard>
-                )}
-              >
-                {({hasFeature}) => (
-                  <Button
-                    priority="primary"
-                    icon={<IconAdd />}
-                    size="sm"
-                    disabled={!hasFeature || isCreatingView}
-                    busy={isCreatingView}
-                    onClick={() => {
-                      trackAnalytics('issue_views.table.create_view_clicked', {
-                        organization,
-                      });
-                      handleCreateView();
-                    }}
-                  >
-                    {t('Create View')}
-                  </Button>
-                )}
-              </Feature>
-            </Grid>
-          </Layout.HeaderActions>
+          {hasPageFrameFeature ? (
+            <Fragment>
+              <TopBar.Slot name="feedback">
+                <FeedbackButton
+                  size="sm"
+                  feedbackOptions={issueViewsFeedbackOptions}
+                  aria-label={t('Give Feedback')}
+                  tooltipProps={{title: t('Give Feedback')}}
+                >
+                  {null}
+                </FeedbackButton>
+              </TopBar.Slot>
+            </Fragment>
+          ) : (
+            <Layout.HeaderActions>
+              <Grid flow="column" align="center" gap="md">
+                <FeedbackButton size="sm" feedbackOptions={issueViewsFeedbackOptions} />
+                <Feature
+                  features="organizations:issue-views"
+                  hookName="feature-disabled:issue-views"
+                  renderDisabled={props => (
+                    <Hovercard
+                      body={
+                        <FeatureDisabled
+                          features={props.features}
+                          hideHelpToggle
+                          featureName={t('Issue Views')}
+                        />
+                      }
+                    >
+                      {typeof props.children === 'function'
+                        ? props.children(props)
+                        : props.children}
+                    </Hovercard>
+                  )}
+                >
+                  {({hasFeature}) => (
+                    <Button
+                      priority="primary"
+                      icon={<IconAdd />}
+                      size="sm"
+                      disabled={!hasFeature || isCreatingView}
+                      busy={isCreatingView}
+                      onClick={() => {
+                        trackAnalytics('issue_views.table.create_view_clicked', {
+                          organization,
+                        });
+                        handleCreateView();
+                      }}
+                    >
+                      {t('Create View')}
+                    </Button>
+                  )}
+                </Feature>
+              </Grid>
+            </Layout.HeaderActions>
+          )}
         </Layout.Header>
         <Layout.Body>
           <MainTableLayout width="full">
@@ -433,7 +457,47 @@ export default function IssueViewsList() {
                 }}
                 placeholder={t('Search views by name or query')}
               />
-              <SortDropdown />
+              <Flex gap="md">
+                <SortDropdown />
+                {hasPageFrameFeature ? (
+                  <Feature
+                    features="organizations:issue-views"
+                    hookName="feature-disabled:issue-views"
+                    renderDisabled={props => (
+                      <Hovercard
+                        body={
+                          <FeatureDisabled
+                            features={props.features}
+                            hideHelpToggle
+                            featureName={t('Issue Views')}
+                          />
+                        }
+                      >
+                        {typeof props.children === 'function'
+                          ? props.children(props)
+                          : props.children}
+                      </Hovercard>
+                    )}
+                  >
+                    {({hasFeature}) => (
+                      <Button
+                        priority="primary"
+                        icon={<IconAdd />}
+                        disabled={!hasFeature || isCreatingView}
+                        busy={isCreatingView}
+                        onClick={() => {
+                          trackAnalytics('issue_views.table.create_view_clicked', {
+                            organization,
+                          });
+                          handleCreateView();
+                        }}
+                      >
+                        {t('Create View')}
+                      </Button>
+                    )}
+                  </Feature>
+                ) : null}
+              </Flex>
             </FilterSortBar>
             <TableHeading>{t('Created by Me')}</TableHeading>
             <IssueViewSection

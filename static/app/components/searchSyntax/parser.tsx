@@ -886,7 +886,7 @@ export class TokenConverter {
   /**
    * Checks a filter against some non-grammar validation rules
    */
-  checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
+  checkFilterWarning = (key: FilterMap[FilterType]['key']) => {
     if (
       ![
         Token.KEY_SIMPLE,
@@ -903,19 +903,7 @@ export class TokenConverter {
       return null;
     }
 
-    const keyName = getKeyName(
-      key as TokenResult<
-        | Token.KEY_SIMPLE
-        | Token.KEY_EXPLICIT_TAG
-        | Token.KEY_EXPLICIT_FLAG
-        | Token.KEY_AGGREGATE
-        | Token.KEY_EXPLICIT_BOOLEAN_TAG
-        | Token.KEY_EXPLICIT_NUMBER_TAG
-        | Token.KEY_EXPLICIT_NUMBER_FLAG
-        | Token.KEY_EXPLICIT_STRING_TAG
-        | Token.KEY_EXPLICIT_STRING_FLAG
-      >
-    );
+    const keyName = getKeyName(key);
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
 
@@ -1513,12 +1501,9 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-function tryParseSearch<T extends {config: SearchConfig}>(
-  query: string,
-  config: T
-): ParseResult | null {
+function tryParseSearch(...args: Parameters<typeof parse>): ParseResult | null {
   try {
-    return parse(query, config);
+    return parse(...args);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

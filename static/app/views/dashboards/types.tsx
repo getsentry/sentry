@@ -168,7 +168,7 @@ export type Widget = {
   layout?: WidgetLayout | null;
   legendType?: LegendType | null;
   // Used to define 'topEvents' when fetching time-series data for a widget
-  limit?: number;
+  limit?: number | null;
   // Used for table widget column widths, currently is not saved
   tableWidths?: number[];
   tempId?: string;

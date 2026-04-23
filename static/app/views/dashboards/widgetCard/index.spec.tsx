@@ -181,7 +181,6 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
     expect(spy).toHaveBeenCalledWith({
-      isMetricsData: false,
       organization,
       widget: multipleQueryWidget,
     });
@@ -809,30 +808,6 @@ describe('Dashboards > WidgetCard', () => {
     ).toBe('60s');
     // @ts-expect-error TODO: Fix this type
     expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
-  });
-
-  it('displays indexed badge in preview mode', async () => {
-    renderWithProviders(
-      <WidgetCard
-        api={api}
-        organization={{
-          ...organization,
-          features: [...organization.features],
-        }}
-        widget={multipleQueryWidget}
-        selection={selection}
-        isEditingDashboard={false}
-        onDelete={() => undefined}
-        onEdit={() => undefined}
-        onDuplicate={() => undefined}
-        showContextMenu
-        widgetLimitReached={false}
-        isPreview
-        widgetLegendState={widgetLegendState}
-      />
-    );
-
-    expect(await screen.findByText('Indexed')).toBeInTheDocument();
   });
 
   it('does not render description for text display type widgets', async () => {

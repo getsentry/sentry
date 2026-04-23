@@ -1,3 +1,4 @@
+import type {QueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -10,11 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {fetchMutation, type QueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
   DashboardFilter,
   DisplayType,
+  MAX_CATEGORICAL_BAR_LIMIT,
   type DashboardDetails,
   type DashboardListItem,
   type Widget,
@@ -206,11 +208,12 @@ export function fetchDashboard(
 export function updateDashboard(
   api: Client,
   orgId: string,
-  dashboard: DashboardDetails
+  dashboard: DashboardDetails,
+  {revisionSource}: {revisionSource?: string} = {}
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     dashboard;
-  const data: Partial<DashboardDetails> = {
+  const data: Partial<DashboardDetails> & {revisionSource?: string} = {
     title,
     projects,
     environment,
@@ -220,6 +223,9 @@ export function updateDashboard(
     filters,
     utc,
   };
+  if (revisionSource) {
+    data.revisionSource = revisionSource;
+  }
   if (widgets) {
     data.widgets = widgets
       .map(widget => omit(widget, ['tempId']))
@@ -354,34 +360,59 @@ export function validateWidget(
 }
 
 /**
- * Enforces a limit on the widget if it is a chart and has a grouping
+ * Enforces valid limits on widgets before saving to the backend.
  *
- * This ensures that widgets from previously created dashboards will have
- * a limit applied properly when editing old dashboards that did not have
- * this validation in place.
+ * - TABLE and BIG_NUMBER widgets should never have limits — clear any stale ones.
+ * - Chart widgets with grouping must have a limit, capped to the display type's max.
+ *
+ * Uses `null` (not `undefined`) so the value survives JSON.stringify and
+ * reaches the backend, which will clear the stale DB value.
  */
 function _enforceWidgetLimit(widget: Widget) {
-  if (
-    widget.displayType === DisplayType.TABLE ||
-    widget.displayType === DisplayType.BIG_NUMBER
-  ) {
+  if (!DISPLAY_TYPES_WITH_LIMITS.has(widget.displayType)) {
+    return {...widget, limit: null};
+  }
+
+  if (widget.queries.length === 0) {
     return widget;
   }
 
+  let maxLimit: number;
+  if (widget.displayType === DisplayType.CATEGORICAL_BAR) {
+    maxLimit = MAX_CATEGORICAL_BAR_LIMIT;
+  } else {
+    maxLimit = getResultsLimit(
+      widget.queries.length,
+      widget.queries[0]!.aggregates.length
+    );
+  }
+
   const hasColumns = widget.queries.some(query => query.columns.length > 0);
+
   if (hasColumns && !defined(widget.limit)) {
     // The default we historically assign for charts with a grouping is 5,
     // continue using that default unless there are conditions which make 5
     // too large to automatically apply.
-    const maxLimit = getResultsLimit(
-      widget.queries.length,
-      widget.queries[0]!.aggregates.length
-    );
     return {
       ...widget,
       limit: Math.min(maxLimit, TOP_N),
     };
   }
 
+  if (hasColumns && defined(widget.limit) && widget.limit > maxLimit) {
+    return {...widget, limit: maxLimit};
+  }
+
   return widget;
 }
+
+// Chart types where `limit` controls the Top N grouping cap.
+// Other display types either fetch their own data (see `widgetFetchesOwnData`)
+// or don't use limits (TABLE, BIG_NUMBER, WHEEL, DETAILS).
+const DISPLAY_TYPES_WITH_LIMITS = new Set([
+  DisplayType.AREA,
+  DisplayType.BAR,
+  DisplayType.LINE,
+  DisplayType.TOP_N,
+  DisplayType.CATEGORICAL_BAR,
+]);

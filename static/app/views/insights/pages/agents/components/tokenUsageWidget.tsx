@@ -42,7 +42,7 @@ export function TokenUsageWidget() {
 
   const tokensRequest = useSpans(
     {
-      fields: ['gen_ai.request.model', 'sum(gen_ai.usage.total_tokens)'],
+      fields: [SpanFields.GEN_AI_RESPONSE_MODEL, 'sum(gen_ai.usage.total_tokens)'],
       sorts: [{field: 'sum(gen_ai.usage.total_tokens)', kind: 'desc'}],
       search: fullQuery,
       limit: 3,
@@ -54,7 +54,7 @@ export function TokenUsageWidget() {
     {
       ...pageFilterChartParams,
       query: fullQuery,
-      groupBy: [SpanFields.GEN_AI_REQUEST_MODEL],
+      groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
       yAxis: ['sum(gen_ai.usage.total_tokens)'],
       sort: {field: 'sum(gen_ai.usage.total_tokens)', kind: 'desc'},
       topEvents: 3,
@@ -112,7 +112,7 @@ export function TokenUsageWidget() {
   const footer = hasData && (
     <WidgetFooterTable>
       {tokens?.map((item, index) => {
-        const modelId = `${item['gen_ai.request.model']}`;
+        const modelId = `${item[SpanFields.GEN_AI_RESPONSE_MODEL]}`;
         return (
           <Fragment key={modelId}>
             <div>
@@ -152,7 +152,7 @@ export function TokenUsageWidget() {
                   yAxes: ['sum(gen_ai.usage.total_tokens)'],
                 },
               ],
-              groupBy: ['gen_ai.request.model'],
+              groupBy: [SpanFields.GEN_AI_RESPONSE_MODEL],
               query: fullQuery,
               sort: '-sum(gen_ai.usage.total_tokens)',
               interval: pageFilterChartParams.interval,

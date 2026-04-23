@@ -1,17 +1,6 @@
-import type {ReactNode} from 'react';
-
-import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
-import type {QueryClient} from 'sentry/utils/queryClient';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
-
-function makeWrapper(queryClient: QueryClient) {
-  return function wrapper({children}: {children?: ReactNode}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-  };
-}
 
 const MOCK_API_ENDPOINT = '/api/test/';
 function queryKeyFactory() {
@@ -26,8 +15,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: false,
         getQueryKey,
@@ -48,8 +36,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, rerender} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result, rerender} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: false,
         getQueryKey,
@@ -76,8 +63,7 @@ describe('useFetchParallelPages', () => {
   it('should call the queryFn zero times, when hits is 0', () => {
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,
@@ -94,8 +80,7 @@ describe('useFetchParallelPages', () => {
   it('should call the queryFn zero times, and flip to state=success when hits is 0', () => {
     const getQueryKey = queryKeyFactory();
 
-    const {result, rerender} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result, rerender} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: false,
         getQueryKey,
@@ -122,8 +107,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,
@@ -148,8 +132,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,
@@ -180,8 +163,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,
@@ -207,8 +189,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,
@@ -238,8 +219,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,
@@ -271,8 +251,7 @@ describe('useFetchParallelPages', () => {
 
     const getQueryKey = queryKeyFactory();
 
-    const {result} = renderHook(useFetchParallelPages, {
-      wrapper: makeWrapper(makeTestQueryClient()),
+    const {result} = renderHookWithProviders(useFetchParallelPages, {
       initialProps: {
         enabled: true,
         getQueryKey,

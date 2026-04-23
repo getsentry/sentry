@@ -7,7 +7,6 @@ import {Select} from '@sentry/scraps/select';
 import {t} from 'sentry/locale';
 import type {
   IssueAlertConfiguration,
-  IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
@@ -23,7 +22,7 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 
-import {RuleNode} from './ruleNode';
+import {isSchemaFormConfig, RuleNode} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -145,7 +144,7 @@ export class RuleNodeList extends Component<Props> {
   getNode = (
     template: IssueAlertRuleAction | IssueAlertRuleCondition,
     itemIdx: number
-  ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
+  ): IssueAlertRuleActionTemplate | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
     const node = nodes?.find((n: any) => {
       if ('sentryAppInstallationUuid' in n) {
@@ -172,11 +171,14 @@ export class RuleNodeList extends Component<Props> {
 
     const item = items[itemIdx]!;
 
-    let changeAlertNode: IssueAlertGenericConditionConfig = {
-      ...(node as IssueAlertGenericConditionConfig),
+    const nodeFormFields =
+      node.formFields && !isSchemaFormConfig(node.formFields) ? node.formFields : {};
+
+    let changeAlertNode: IssueAlertRuleActionTemplate = {
+      ...node,
       label: node.label.replace('...', ' {comparisonType}'),
       formFields: {
-        ...(node.formFields as IssueAlertGenericConditionConfig['formFields']),
+        ...nodeFormFields,
         comparisonType: {
           type: 'choice',
           choices: COMPARISON_TYPE_CHOICES,

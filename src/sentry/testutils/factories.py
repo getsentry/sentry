@@ -141,6 +141,9 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
 )
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -2559,6 +2562,61 @@ class Factories:
             error_code=error_code,
             error_message=error_message,
             analysis_file_id=analysis_file_id,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_snapshot_metrics(
+        preprod_artifact: PreprodArtifact,
+        image_count: int = 0,
+        is_selective: bool = False,
+    ) -> PreprodSnapshotMetrics:
+        return PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=preprod_artifact,
+            image_count=image_count,
+            is_selective=is_selective,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_snapshot_comparison(
+        head_snapshot_metrics: PreprodSnapshotMetrics,
+        base_snapshot_metrics: PreprodSnapshotMetrics,
+        state: int = PreprodSnapshotComparison.State.SUCCESS,
+        images_added: int = 0,
+        images_removed: int = 0,
+        images_changed: int = 0,
+        images_unchanged: int = 0,
+        images_renamed: int = 0,
+        images_skipped: int = 0,
+    ) -> PreprodSnapshotComparison:
+        return PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=head_snapshot_metrics,
+            base_snapshot_metrics=base_snapshot_metrics,
+            state=state,
+            images_added=images_added,
+            images_removed=images_removed,
+            images_changed=images_changed,
+            images_unchanged=images_unchanged,
+            images_renamed=images_renamed,
+            images_skipped=images_skipped,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_preprod_comparison_approval(
+        preprod_artifact: PreprodArtifact,
+        preprod_feature_type: int = PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+        approval_status: int = PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        approved_at: datetime | None = None,
+        approved_by_id: int | None = None,
+    ) -> PreprodComparisonApproval:
+        return PreprodComparisonApproval.objects.create(
+            preprod_artifact=preprod_artifact,
+            preprod_feature_type=preprod_feature_type,
+            approval_status=approval_status,
+            approved_at=approved_at,
+            approved_by_id=approved_by_id,
         )
 
     @staticmethod
