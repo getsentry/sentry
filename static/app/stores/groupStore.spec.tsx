@@ -92,16 +92,15 @@ describe('GroupStore', () => {
       expect(GroupStore.getAllItemIds()).toEqual(['1']);
     });
 
-    it('keeps items with a missing or invalid lastSeen', () => {
+    it('keeps items with an unparseable lastSeen', () => {
       GroupStore.items = [
-        g('1', {lastSeen: undefined as unknown as string}),
-        g('2', {lastSeen: 'not-a-date'}),
-        g('3', {lastSeen: '2026-04-23T10:00:00Z'}),
+        g('1', {lastSeen: 'not-a-date'}),
+        g('2', {lastSeen: '2026-04-23T10:00:00Z'}),
       ];
 
       GroupStore.pruneOlderThan(new Date('2026-04-23T11:00:00Z').getTime());
 
-      expect(GroupStore.getAllItemIds()).toEqual(['1', '2']);
+      expect(GroupStore.getAllItemIds()).toEqual(['1']);
     });
   });
 

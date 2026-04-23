@@ -17,6 +17,7 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CursorHandler} from 'sentry/components/pagination';
 import {QueryCount} from 'sentry/components/queryCount';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -29,7 +30,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getCurrentSentryReactRootSpan} from 'sentry/utils/getCurrentSentryReactRootSpan';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -183,41 +183,31 @@ function IssueListOverview({
     if (!period) {
       return null;
     }
-    const hours = parsePeriodToHours(period);
-    if (hours <= 0) {
+    try {
+      const startMs = new Date(parseStatsPeriod(period).start).getTime();
+      return Number.isFinite(startMs) ? startMs : null;
+    } catch {
+      // parseStatsPeriod throws on malformed input. Skip pruning rather than
+      // breaking the poll callback.
       return null;
     }
-    return Date.now() - hours * 60 * 60 * 1000;
   }, [selection.datetime]);
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
       // Note: We do not update state with cursors from polling,
       // `CursorPoller` updates itself with new cursors
-      GroupStore.addToFront(data);
+      if (data.length > 0) {
+        GroupStore.addToFront(data);
+        setQueryCount(newQueryCount);
+      }
       const minLastSeenMs = getRealtimeWindowStartMs();
       if (minLastSeenMs !== null) {
         GroupStore.pruneOlderThan(minLastSeenMs);
       }
-      setQueryCount(newQueryCount);
     },
     [getRealtimeWindowStartMs]
   );
-
-  // CursorPoller skips its success callback on empty polls, so prune on a
-  // timer to keep aging items out of the list even when no new issues arrive.
-  useEffect(() => {
-    if (!realtimeActive) {
-      return undefined;
-    }
-    const intervalId = window.setInterval(() => {
-      const minLastSeenMs = getRealtimeWindowStartMs();
-      if (minLastSeenMs !== null) {
-        GroupStore.pruneOlderThan(minLastSeenMs);
-      }
-    }, 30_000);
-    return () => window.clearInterval(intervalId);
-  }, [realtimeActive, getRealtimeWindowStartMs]);
 
   useEffect(() => {
     // Either cleanup or reuse the poller to prevent a resource leak.

@@ -215,7 +215,7 @@ const storeConfig: GroupStoreDefinition = {
   pruneOlderThan(minLastSeenMs) {
     const removedIds: string[] = [];
     this.items = this.items.filter(item => {
-      const lastSeenMs = item.lastSeen ? new Date(item.lastSeen).getTime() : NaN;
+      const lastSeenMs = new Date(item.lastSeen).getTime();
       if (Number.isFinite(lastSeenMs) && lastSeenMs < minLastSeenMs) {
         removedIds.push(item.id);
         return false;

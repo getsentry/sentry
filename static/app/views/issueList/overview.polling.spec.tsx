@@ -220,10 +220,10 @@ describe('IssueList -> Polling', () => {
     // lastSeen is now older than the 14d window.
     jest.setSystemTime(new Date(NOW.getTime() + 30 * 24 * 60 * 60 * 1000));
 
-    // Advance past the 30s prune interval; CursorPoller's empty poll fires
-    // repeatedly, and the interval prunes the aged-out item even without
-    // new poll data.
-    jest.advanceTimersByTime(31_000);
+    // First empty poll fires at BASE_DELAY (3s). CursorPoller now always
+    // invokes the success callback, so the prune runs on this tick even
+    // though no new issues arrived.
+    jest.advanceTimersByTime(3001);
 
     await waitFor(() => {
       expect(screen.queryByTestId('1')).not.toBeInTheDocument();

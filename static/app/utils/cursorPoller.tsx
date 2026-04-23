@@ -75,23 +75,27 @@ export class CursorPoller {
           return;
         }
 
-        // if theres no data, nothing changes
-        if (!data?.length) {
+        const hasNewData = Boolean(data?.length);
+        if (hasNewData) {
+          if (this.reqsWithoutData > 0) {
+            this.reqsWithoutData -= 1;
+          }
+          const linksHeader = resp?.getResponseHeader('Link') ?? null;
+          const links = parseLinkHeader(linksHeader);
+          if (links?.previous?.href) {
+            this.setEndpoint(links.previous.href);
+          }
+        } else {
           this.reqsWithoutData += 1;
-          return;
         }
 
-        if (this.reqsWithoutData > 0) {
-          this.reqsWithoutData -= 1;
-        }
-
-        const linksHeader = resp?.getResponseHeader('Link') ?? null;
         const hitsHeader = resp?.getResponseHeader('X-Hits') ?? null;
         const queryCount = defined(hitsHeader) ? parseInt(hitsHeader, 10) || 0 : 0;
-        const links = parseLinkHeader(linksHeader);
-        this.setEndpoint(links.previous!.href);
 
-        this.options.success(data, {queryCount});
+        // Always fire success — callers may want to run on every poll tick
+        // (e.g. pruning aged-out items) and not just on polls that returned
+        // new data.
+        this.options.success(data ?? [], {queryCount});
       },
       error: resp => {
         if (!resp) {
