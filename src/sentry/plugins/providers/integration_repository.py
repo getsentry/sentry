@@ -192,6 +192,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             # active existing repo, update it and treat this as a successful
             # reclaim; if the existing repo is in a non-active state (e.g.
             # PENDING_DELETION), fall through to RepoExistsError.
+            #
+            # Intentionally skip on_create_repository in the reclaim path: the
+            # existing row was set up by whoever wrote it, and provider hooks
+            # are not uniformly idempotent (bitbucket_server re-creates its
+            # webhook, bitbucket does not persist webhook_id).
             repositories = repository_service.get_repositories(
                 organization_id=organization.id,
                 integration_id=integration_id,
@@ -211,7 +216,6 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                         active_repo = repo
 
             if active_repo is not None:
-                self.on_create_repository(active_repo, organization)
                 metrics.incr("sentry.integration_repo_provider.repo_exists_reclaimed")
                 return result, active_repo
 
