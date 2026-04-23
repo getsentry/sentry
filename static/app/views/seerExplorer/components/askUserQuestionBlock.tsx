@@ -18,7 +18,6 @@ interface AskUserQuestionBlockProps {
   questionIndex: number;
   selectedOption: number;
   isFocused?: boolean;
-  isLast?: boolean;
   onClick?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -28,7 +27,6 @@ export function AskUserQuestionBlock({
   currentQuestion,
   customText,
   isFocused,
-  isLast,
   isOtherSelected,
   onClick,
   onCustomTextChange,
@@ -58,7 +56,6 @@ export function AskUserQuestionBlock({
   return (
     <Block
       isFocused={isFocused}
-      isLast={isLast}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -139,10 +136,8 @@ export function AskUserQuestionBlock({
   );
 }
 
-const Block = styled('div')<{isFocused?: boolean; isLast?: boolean}>`
+const Block = styled('div')<{isFocused?: boolean}>`
   width: 100%;
-  border-bottom: ${p =>
-    p.isLast ? 'none' : `1px solid ${p.theme.tokens.border.primary}`};
   position: relative;
   flex-shrink: 0;
   cursor: pointer;

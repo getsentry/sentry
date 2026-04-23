@@ -350,7 +350,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=False,
     )
     def test_org_no_seer_access(self, mock_access):
@@ -367,7 +367,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=True,
     )
     def test_resolves_valid_organization(self, mock_access):
@@ -376,11 +376,11 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         assert result.halt_reason is None
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_feature_flag",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_feature_flag",
         return_value=True,
     )
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=False,
     )
     def test_control_silo_skips_subscription_gated_access_check(
@@ -401,11 +401,11 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         mock_has_access.assert_not_called()
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_feature_flag",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_feature_flag",
         return_value=False,
     )
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=True,
     )
     def test_control_silo_halts_when_feature_flag_disabled(
@@ -420,11 +420,11 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         mock_has_access.assert_not_called()
 
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_feature_flag",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_feature_flag",
         return_value=True,
     )
     @patch(
-        "sentry.integrations.slack.requests.event.SlackExplorerEntrypoint.has_access",
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
         return_value=True,
     )
     def test_cell_silo_uses_full_access_check(self, mock_has_access, mock_has_feature_flag):

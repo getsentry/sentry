@@ -2523,7 +2523,8 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
 
         params = build_widget_timeseries_params(widget, QueryDict())[0]
 
-        assert params["statsPeriod"] == "14d"
+        # Matches DEFAULT_STATS_PERIOD in static/app/views/dashboards/data.tsx
+        assert params["statsPeriod"] == "24h"
 
     def test_url_start_end_supersedes_default_stats_period(self) -> None:
         widget = self._make_widget()
@@ -2535,3 +2536,101 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert "statsPeriod" not in params
         assert params["start"] == "2026-01-01T00:00:00"
         assert params["end"] == "2026-01-02T00:00:00"
+
+    def test_defaults_to_all_projects_when_no_url_or_dashboard_project(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        # ALL_ACCESS_PROJECT_ID (-1) so an unconfigured dashboard still renders
+        # data rather than an empty chart.
+        assert params["project"] == "-1"
+
+    def test_dashboard_projects_used_when_url_missing(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        project_b = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a, project_b])
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert sorted(params["project"]) == sorted([str(project_a.id), str(project_b.id)])
+
+    def test_dashboard_all_projects_flag_maps_to_sentinel(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"all_projects": True}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["project"] == "-1"
+
+    def test_url_project_overrides_dashboard_projects(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a])
+
+        params = build_widget_timeseries_params(widget, QueryDict("project=99"))[0]
+
+        assert params["project"] == "99"
+
+    def test_dashboard_environment_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod", "staging"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["environment"] == ["prod", "staging"]
+
+    def test_url_environment_overrides_dashboard_environment(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("environment=dev"))[0]
+
+        assert params["environment"] == "dev"
+
+    def test_dashboard_period_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"period": "7d"}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["statsPeriod"] == "7d"
+
+    def test_dashboard_start_end_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {
+            "start": "2026-01-01T00:00:00",
+            "end": "2026-01-02T00:00:00",
+            "utc": True,
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert "statsPeriod" not in params
+        assert params["start"] == "2026-01-01T00:00:00"
+        assert params["end"] == "2026-01-02T00:00:00"
+        # utc is intentionally dropped - not consumed by events-timeseries and
+        # irrelevant for a cross-timezone Slack audience.
+        assert "utc" not in params
+
+    def test_url_period_supersedes_dashboard_start_end(self) -> None:
+        # When the URL carries any date info, the dashboard's date range is
+        # ignored entirely so we don't mix URL statsPeriod with a saved range.
+        widget = self._make_widget()
+        widget.dashboard.filters = {
+            "start": "2026-01-01T00:00:00",
+            "end": "2026-01-02T00:00:00",
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["statsPeriod"] == "7d"
+        assert "start" not in params
+        assert "end" not in params

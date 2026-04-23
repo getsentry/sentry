@@ -19,7 +19,11 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    NoSeerQuotaException,
+    trigger_autofix_explorer,
+)
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
@@ -220,13 +224,16 @@ def _trigger_autofix_task(
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
         if features.has("organizations:autofix-on-explorer", group.organization):
-            run_id = trigger_autofix_explorer(
-                group=group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=referrer,
-                run_id=None,
-                stopping_point=stopping_point,
-            )
+            try:
+                run_id = trigger_autofix_explorer(
+                    group=group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=referrer,
+                    run_id=None,
+                    stopping_point=stopping_point,
+                )
+            except NoSeerQuotaException:
+                pass
         else:
             response = trigger_autofix(
                 group=group,

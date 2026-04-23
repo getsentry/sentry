@@ -2,7 +2,7 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.autofix import TIMEOUT_SECONDS
-from sentry.seer.autofix.autofix_agent import AutofixStep
+from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer, AutofixStatus
 from sentry.seer.autofix.utils import AutofixState, AutofixStoppingPoint, CodebaseState
 from sentry.seer.explorer.client_models import SeerRunState
@@ -987,6 +987,25 @@ class GroupAutofixEndpointExplorerRoutingTest(APITestCase, SnubaTestCase):
                 user_context=None,
                 insert_index=3,
             )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_explorer")
+    def test_post_returns_402_when_no_seer_quota(self, mock_trigger_explorer):
+        """POST returns 402 Payment Required when quota check fails."""
+        for flag in EXPLORER_FLAGS:
+            mock_trigger_explorer.reset_mock()
+            mock_trigger_explorer.side_effect = NoSeerQuotaException()
+            group = self.create_group()
+
+            self.login_as(user=self.user)
+            with self.feature(flag):
+                response = self.client.post(
+                    self._get_url(group.id, mode="explorer"),
+                    data={"step": "root_cause"},
+                    format="json",
+                )
+
+            assert response.status_code == 402, f"Failed for {flag}: {response.data}"
+            assert response.data == "No budget for Seer Autofix."
 
     @patch("sentry.seer.autofix.autofix._call_autofix")
     @patch("sentry.seer.autofix.autofix._get_trace_tree_for_event")

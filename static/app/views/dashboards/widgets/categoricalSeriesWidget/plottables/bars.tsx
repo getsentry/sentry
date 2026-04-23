@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import Color from 'color';
+import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {BarSeries} from 'sentry/components/charts/series/barSeries';
@@ -69,8 +69,8 @@ export class Bars
   toSeries(
     plottingOptions: CategoricalPlottingOptions
   ): Array<BarSeriesOption | LineSeriesOption> {
-    const color = plottingOptions.color ?? this.config?.color ?? undefined;
-    const colorObject = color ? Color(color) : undefined;
+    const colorOption = plottingOptions.color ?? this.config?.color ?? undefined;
+    const colorObject = colorOption ? color(colorOption) : undefined;
 
     return [
       BarSeries({
@@ -78,7 +78,7 @@ export class Bars
         stack: this.config?.stack,
         yAxisIndex: 0,
         xAxisIndex: 0,
-        color,
+        color: colorOption,
         emphasis: {
           itemStyle: colorObject
             ? {

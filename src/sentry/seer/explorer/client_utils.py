@@ -392,18 +392,28 @@ def _render_node(node: dict[str, Any], depth: int) -> str:
 _MAX_ROOT_NODES = 10
 
 
+def _get_priority(node: dict[str, Any]) -> int:
+    priority = node.get("priority")
+    return priority if isinstance(priority, int) else 0
+
+
 def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     """Convert an LLMContextSnapshot dict to a markdown string.
 
-    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "data": ..., "children": [...]}]}``
+    Expected shape: ``{"version": int, "nodes": [{"nodeType": str, "priority": int, "data": ..., "children": [...]}]}``
     The top-level nodes list may contain multiple root nodes (e.g. a dashboard
-    and a widget-builder sidebar rendered as siblings).  At most ``_MAX_ROOT_NODES``
-    are rendered to guard against runaway token usage.
+    and a widget-builder sidebar rendered as siblings).  Nodes are sorted by
+    ``priority`` (descending, default 0) and only nodes at the highest
+    priority level are rendered.  At most ``_MAX_ROOT_NODES`` are emitted to
+    guard against runaway token usage.
     """
     nodes = snapshot.get("nodes", [])
     if not nodes:
         return ""
+    sorted_nodes = sorted(nodes, key=_get_priority, reverse=True)
+    top_priority = _get_priority(sorted_nodes[0])
+    selected = [n for n in sorted_nodes if _get_priority(n) == top_priority][:_MAX_ROOT_NODES]
     preamble = (
         "> This is a structured summary of the page the user is viewing, not an exact screenshot.\n"
     )
-    return preamble + "\n".join(_render_node(node, 0) for node in nodes[:_MAX_ROOT_NODES])
+    return preamble + "\n".join(_render_node(node, 0) for node in selected)

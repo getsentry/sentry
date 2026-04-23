@@ -271,7 +271,14 @@ class RouteSlackSeerEventTest(TestCase):
         slack_body = {
             "type": "event_callback",
             "team_id": "T1",
-            "event": {"type": "app_mention", "user": "U_SLACK", "channel": "C1", "ts": "1.0"},
+            "event": {
+                "type": "app_mention",
+                "user": "U_SLACK",
+                "channel": "C1",
+                "ts": "123.456",
+                "thread_ts": "100.000",
+                "text": "hello",
+            },
         }
         event_request = self.factory.post(
             reverse("sentry-integration-slack-event"),
@@ -286,8 +293,10 @@ class RouteSlackSeerEventTest(TestCase):
             integration_id=integration_id if integration_id is not None else self.integration.id,
             slack_user_id="U_SLACK",
             channel_id="C1",
-            thread_ts="",
+            thread_ts="100.000",
+            message_ts="123.456",
             event_type="app_mention",
+            message_text="hello",
         )
 
     @responses.activate

@@ -1,8 +1,10 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Variables extends Partial<Project> {}

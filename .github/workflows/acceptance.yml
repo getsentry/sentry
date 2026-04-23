@@ -71,19 +71,6 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
-      - run: mkdir -p config/chartcuterie
-
-      - uses: ./.github/actions/setup-devservices
-        with:
-          mode: acceptance-ci
-
-      - name: Start Snuba bootstrap
-        if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: |
-          # Start in background early so it overlaps with webpack and sentry env setup.
-          # The script polls for ClickHouse readiness itself.
-          python3 ./.github/actions/setup-devservices/bootstrap-snuba.py &
-
       - name: Step configurations
         id: config
         run: |
@@ -114,20 +101,10 @@ jobs:
         id: setup
         with:
           mode: acceptance-ci
-          skip-devservices: 'true'
 
-      - name: Wait for devservices
-        run: |
-          sentry init
-          ./.github/actions/setup-devservices/wait.py
-
-      - name: Wait for Snuba bootstrap
+      - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: |
-          timeout 600 bash -c 'until [ -f /tmp/snuba-bootstrap-exit ]; do sleep 2; done' ||
-            { echo "::error::Timed out waiting for Snuba bootstrap after 600s"; exit 1; }
-          rc=$(</tmp/snuba-bootstrap-exit)
-          [ "$rc" -eq 0 ] || { echo "::error::Snuba per-worker bootstrap failed"; exit "$rc"; }
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
@@ -139,11 +116,6 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          if [ -f /tmp/ds.log ]; then
-            echo "--- devservices startup log ---"
-            cat /tmp/ds.log
-          fi
-
           if command -v devservices; then
             devservices logs
           fi

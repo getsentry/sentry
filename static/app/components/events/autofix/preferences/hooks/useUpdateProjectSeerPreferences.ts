@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {
   makeProjectSeerPreferencesQueryKey,
@@ -11,8 +12,6 @@ import {
   fetchMutation,
   getApiQueryData,
   setApiQueryData,
-  useMutation,
-  useQueryClient,
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

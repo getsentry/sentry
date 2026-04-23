@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/components/repositories/scmIntegrationTree/organizationConfigIntegrationsQueryOptions';
 import type {
@@ -9,11 +10,9 @@ import type {
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
-import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
-
 type ScmIntegrationTreeData = {
   connectedIdentifiers: Set<string>;
   connectedRepos: Repository[];

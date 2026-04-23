@@ -6,6 +6,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {useIsFetching} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
@@ -36,13 +37,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
@@ -429,7 +428,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery ? null : (
+        isEmptyPromptQuery || isLoading ? null : (
           <CommandPaletteNoResults />
         )
       ) : (
@@ -667,10 +666,17 @@ function flattenActions(
   // groups by their best child score so the most relevant sub-section surfaces
   // first. When we are inside an expanded group we also sort leaf actions by
   // their own score so the full result list matches the limited preview ordering.
+  // Sections with a "cmdk:supplementary:" reserved key always sort last,
+  // regardless of score.
   collected.sort((a, b) => {
     const aRootKey = nodeRootKey.get(a.key)!;
     const bRootKey = nodeRootKey.get(b.key)!;
     if (aRootKey !== bRootKey) {
+      const aIsSupplementary = aRootKey.startsWith('cmdk:supplementary:');
+      const bIsSupplementary = bRootKey.startsWith('cmdk:supplementary:');
+      if (aIsSupplementary !== bIsSupplementary) {
+        return aIsSupplementary ? 1 : -1;
+      }
       return compareCommandPaletteScores(
         rootBestScore.get(aRootKey),
         rootBestScore.get(bRootKey)

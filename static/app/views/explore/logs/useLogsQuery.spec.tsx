@@ -1,3 +1,4 @@
+import {QueryClientProvider, type InfiniteData} from '@tanstack/react-query';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -9,8 +10,6 @@ import type {ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import type {InfiniteData} from 'sentry/utils/queryClient';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
@@ -149,9 +148,9 @@ describe('useInfiniteLogsQuery', () => {
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
     const infiniteQueryKey = queryKeys.find(
       key => Array.isArray(key) && key[key.length - 1] === 'infinite'
-    );
+    )!;
 
-    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
     expect(cachedData.pageParams).toHaveLength(2);
 
@@ -159,7 +158,7 @@ describe('useInfiniteLogsQuery', () => {
 
     expect(mocks.previousPageMock).toHaveBeenCalled();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
     expect(cachedData.pageParams).toHaveLength(3);
 
@@ -232,15 +231,15 @@ describe('useInfiniteLogsQuery', () => {
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
     const infiniteQueryKey = queryKeys.find(
       key => Array.isArray(key) && key[key.length - 1] === 'infinite'
-    );
+    )!;
 
-    let cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(2);
     expect(cachedData.pageParams).toHaveLength(2);
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(1); // Only the initial page should remain
     expect(cachedData.pageParams).toHaveLength(1);
 
@@ -252,7 +251,7 @@ describe('useInfiniteLogsQuery', () => {
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey!) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(1);
     expect(cachedData.pageParams).toHaveLength(1);
 

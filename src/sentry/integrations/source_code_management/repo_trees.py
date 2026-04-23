@@ -22,6 +22,7 @@ EXCLUDED_PATHS = ["tests/"]
 class RepoAndBranch(NamedTuple):
     name: str
     branch: str
+    external_id: str
 
 
 class RepoTree(NamedTuple):
@@ -92,6 +93,7 @@ class RepoTreesIntegration(ABC):
                 {
                     "full_name": str(repo_info["identifier"]),
                     "default_branch": repo_info.get("default_branch") or "",
+                    "external_id": repo_info["external_id"],
                 }
                 for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
@@ -145,7 +147,13 @@ class RepoTreesIntegration(ABC):
                 # The API rate limit is reset every hour
                 # Spread the expiration of the cache of each repo across the day
                 trees[repo_full_name] = self._populate_tree(
-                    RepoAndBranch(repo_full_name, repo_info["default_branch"]),
+                    # Use .get() for external_id since cached entries from before this field
+                    # was added won't have it. The cache TTL will naturally cycle them out.
+                    RepoAndBranch(
+                        repo_full_name,
+                        repo_info["default_branch"],
+                        repo_info.get("external_id", ""),
+                    ),
                     use_cache,
                     3600 * (index % 24),
                 )

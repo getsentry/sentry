@@ -1021,10 +1021,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
     },
-    "prune-old-open-period-activity": {
-        "task": "workflow_engine:sentry.workflow_engine.tasks.cleanup.prune_old_open_period_activity",
-        "schedule": timedelta(minutes=2),
-    },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
@@ -1204,11 +1200,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
-    },
-    # TODO(constantinius): Remove fetch-ai-model-costs once all consumers have migrated to fetch-ai-model-metadata
-    "fetch-ai-model-costs": {
-        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-        "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
@@ -2240,7 +2231,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.4.0"
+SELF_HOSTED_STABLE_VERSION = "26.4.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

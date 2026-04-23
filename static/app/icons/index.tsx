@@ -72,6 +72,7 @@ export {IconLab} from './iconLab';
 export {IconLightning} from './iconLightning';
 export {IconLinear} from './iconLinear';
 export {IconLink} from './iconLink';
+export {IconLinkBroken} from './iconLinkBroken';
 export {IconList} from './iconList';
 export {IconLocation} from './iconLocation';
 export {IconLock} from './iconLock';

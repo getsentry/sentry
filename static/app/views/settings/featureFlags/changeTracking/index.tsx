@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -15,12 +16,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';

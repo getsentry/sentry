@@ -342,8 +342,9 @@ class SlackRequestParser(BaseRequestParser):
                     "slack_user_id": self.slack_request.user_id,
                     "channel_id": self.slack_request.channel_id,
                     "thread_ts": self.slack_request.thread_ts,
-                    "text": self.slack_request.text,
-                    "event_type": self.slack_request.type,
+                    "message_ts": self.slack_request.dm_data.get("ts", ""),
+                    "event_type": self.slack_request.dm_data.get("type", ""),
+                    "message_text": self.slack_request.text,
                 }
             )
             logger.info(

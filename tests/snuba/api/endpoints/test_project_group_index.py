@@ -1400,13 +1400,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["assignedTo"] is None
 
-    def test_assign_team_not_member_of_when_open_membership_disabled(self) -> None:
+    def test_assign_team_when_user_not_on_target_team_in_closed_membership(self) -> None:
         """
-        Test that a user cannot assign an issue to a team they are not a member of
-        when Open Membership is disabled. This is a regression test for an authorization
-        bypass vulnerability.
+        A user with project access can assign any team that also has project access,
+        even one they are not a member of.
         """
-        # Disable Open Membership
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -1427,34 +1425,33 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         url = f"{self.path}?id={group.id}"
         response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
 
-        assert response.status_code == 400, response.content
-        assert "only assign teams you are a member of" in str(response.data)
-        assert not GroupAssignee.objects.filter(group=group, team=other_team).exists()
+        assert response.status_code == 200, response.content
+        assert response.data["assignedTo"]["id"] == str(other_team.id)
+        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
 
-    def test_assign_team_not_member_of_with_team_admin_scope(self) -> None:
-        """
-        Test that a user with team:admin scope CAN assign an issue to a team they are
-        not a member of, even when Open Membership is disabled.
-        """
+    def test_assign_team_without_project_access_when_open_membership_disabled(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
         group = self.create_group()
 
-        other_team = self.create_team(organization=group.project.organization, name="other-team")
-        group.project.add_team(other_team)
+        member_user = self.create_user("member@example.com")
+        member_team = self.create_team(organization=group.project.organization, name="member-team")
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[member_team]
+        )
+        group.project.add_team(member_team)
 
-        admin_user = self.create_user("admin@example.com")
-        self.create_member(user=admin_user, organization=self.organization, role="owner")
-        self.login_as(user=admin_user)
+        other_team = self.create_team(organization=group.project.organization, name="other-team")
+
+        self.login_as(user=member_user)
 
         url = f"{self.path}?id={group.id}"
         response = self.client.put(url, data={"assignedTo": f"team:{other_team.id}"})
 
-        assert response.status_code == 200, response.content
-        assert response.data["assignedTo"]["id"] == str(other_team.id)
-        assert response.data["assignedTo"]["type"] == "team"
-        assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+        assert response.status_code == 400, response.content
+        assert "without access to the project" in str(response.data)
+        assert not GroupAssignee.objects.filter(group=group, team=other_team).exists()
 
     def test_assign_team_when_open_membership_enabled(self) -> None:
         """
@@ -1485,6 +1482,20 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["assignedTo"]["id"] == str(other_team.id)
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=other_team).exists()
+
+    def test_unassign_in_closed_membership(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        group = self.create_group()
+        GroupAssignee.objects.assign(group, self.user)
+        self.login_as(user=self.user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(url, data={"assignedTo": ""})
+
+        assert response.status_code == 200, response.content
+        assert not GroupAssignee.objects.filter(group=group).exists()
 
     def test_discard(self) -> None:
         group1 = self.create_group(is_public=True)

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -37,7 +38,6 @@ import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
