@@ -108,7 +108,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
           ) : null}
           <ArtifactDetails>
             <Text bold>{t('Evidence')}</Text>
-            {evidence.length > 0 ? (
+            {evidence.length > 0 && (
               <Flex gap="md" wrap="wrap">
                 {evidence.map(e => (
                   <AutofixEvidence
@@ -118,8 +118,6 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                   />
                 ))}
               </Flex>
-            ) : (
-              <Text variant="muted">{t('No evidence available')}</Text>
             )}
           </ArtifactDetails>
         </Fragment>
