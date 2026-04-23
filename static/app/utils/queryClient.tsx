@@ -7,7 +7,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from '@tanstack/react-query';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
@@ -17,7 +17,6 @@ import type {
   InfiniteApiQueryKey,
   QueryKeyEndpointOptions,
 } from 'sentry/utils/api/apiQueryKey';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type {
@@ -188,50 +187,6 @@ export function setApiQueryData<TResponseData>(
   );
 
   return updateResult?.[0];
-}
-
-function parsePageParam(dir: 'previous' | 'next') {
-  return ([, , resp]: ApiResult<unknown>) => {
-    const parsed = parseLinkHeader(resp?.getResponseHeader('Link') ?? null);
-    return parsed[dir]?.results ? parsed[dir] : null;
-  };
-}
-
-/**
- * Wraps React Query's useInfiniteQuery for consistent usage in the Sentry app.
- * Query keys should be an array which include an endpoint URL and options such as query params.
- * This wrapper will execute the request using the query key URL.
- *
- * See https://tanstack.com/query/v4/docs/overview for docs on React Query.
- */
-export function useInfiniteApiQuery<TResponseData>({
-  queryKey,
-  enabled,
-  staleTime,
-}: {
-  queryKey: InfiniteApiQueryKey;
-  enabled?: boolean;
-  staleTime?: number;
-}) {
-  return useInfiniteQuery({
-    queryKey,
-    queryFn: ({pageParam}): Promise<ApiResult<TResponseData>> => {
-      const {url, options} = parseQueryKey(queryKey);
-      return QUERY_API_CLIENT.requestPromise(url, {
-        includeAllArgs: true,
-        headers: options?.headers,
-        query: {
-          ...options?.query,
-          cursor: pageParam?.cursor,
-        },
-      });
-    },
-    getPreviousPageParam: parsePageParam('previous'),
-    getNextPageParam: parsePageParam('next'),
-    initialPageParam: undefined,
-    enabled: enabled ?? true,
-    staleTime,
-  });
 }
 
 type ApiMutationVariables<
