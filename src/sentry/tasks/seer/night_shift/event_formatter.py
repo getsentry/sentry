@@ -118,9 +118,7 @@ def _format_exception_interface_output(event: dict[str, Any], data: dict[str, An
 
         if is_chained and index > 0:
             parts.append("")
-            parts.append(
-                _get_exception_chain_message(event.get("platform"), index, len(exceptions))
-            )
+            parts.append(_get_exception_chain_message(event.get("platform"), index))
             parts.append("")
 
         exc_type = exception.get("type") or ""
@@ -518,19 +516,21 @@ def _find_first_in_app_frame(frames: Sequence[dict[str, Any]]) -> dict[str, Any]
     return None
 
 
-def _get_exception_chain_message(platform: str | None, index: int, total_exceptions: int) -> str:
-    default_msg = "**During handling of the above exception, another exception occurred:**"
+def _get_exception_chain_message(platform: str | None, index: int) -> str:
+    # Exceptions are rendered outermost-first, so the chain message at index > 0
+    # introduces an *inner* (causal) exception — "Caused by" reads naturally.
+    default_msg = "**Caused by:**"
     if not platform:
         return default_msg
     p = platform.lower()
     if p == "python":
         return default_msg
     if p == "java":
-        return "**Caused by:**"
+        return default_msg
     if p in ("csharp", "dotnet"):
         return "**---> Inner Exception:**"
     if p == "ruby":
-        return "**Caused by:**"
+        return default_msg
     if p == "go":
         return "**Wrapped error:**"
     if p == "rust":
