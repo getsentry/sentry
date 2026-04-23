@@ -24,29 +24,29 @@ export function useCompactSelectProjectOptions({
       return projects.map(toProjectOption);
     }
 
-    const myProjects = new Set<Project>();
-    const otherProjects = new Set<Project>();
+    const myProjects = new Set<SelectOption<string>>();
+    const otherProjects = new Set<SelectOption<string>>();
     for (const project of projects) {
       if (project.isMember) {
-        myProjects.add(project);
+        myProjects.add(toProjectOption(project));
       } else {
-        otherProjects.add(project);
+        otherProjects.add(toProjectOption(project));
       }
     }
 
     if (otherProjects.size === 0) {
-      return Array.from(myProjects.values().map(toProjectOption));
+      return Array.from(myProjects.values());
     }
     return [
       {
         key: 'my-projects',
         label: t('My Projects'),
-        options: Array.from(myProjects.values().map(toProjectOption)),
+        options: Array.from(myProjects.values()),
       },
       {
         key: 'other-projects',
         label: t('Other Projects'),
-        options: Array.from(otherProjects.values().map(toProjectOption)),
+        options: Array.from(otherProjects.values()),
       },
     ];
   }, [projects]);
