@@ -2,7 +2,11 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from sentry_sdk import capture_exception
 
-from sentry import roles
+from sentry import analytics, audit_log, options, roles
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -17,6 +21,9 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
 from sentry.services.organization import OrganizationProvisioningOptions
+from sentry.signals import terms_accepted
+from sentry.users.services.user.model import RpcUser
+from sentry.utils.audit import create_audit_entry_from_user
 
 
 def create_post_provision_outbox(
@@ -43,7 +50,10 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         create_default_team: bool,
         organization_id: int,
         is_test: bool = False,
+        owner: RpcUser | None = None,
+        # TODO(cells) Deprecated use owner instead
         user_id: int | None = None,
+        # TODO(cells) Deprecated use owner instead
         email: str | None = None,
         ip_address: str | None = None,
         agree_terms: bool | None = None,
@@ -76,6 +86,42 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         if create_default_team:
             team = org.team_set.create(name=org.name)
             OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+
+        if owner and options.get("provision_organization_in_cell.record_analytics"):
+            create_audit_entry_from_user(
+                user=owner,
+                ip_address=ip_address,
+                organization=org,
+                target_object=org.id,
+                event=audit_log.get_event_id("ORG_ADD"),
+                data=org.get_audit_log_data(),
+            )
+            try:
+                analytics.record(
+                    OrganizationCreatedEvent(
+                        id=org.id, name=org.name, slug=org.slug, actor_id=owner.id
+                    )
+                )
+            except Exception as e:
+                capture_exception(e)
+
+            if agree_terms:
+                terms_accepted.send_robust(
+                    user=owner,
+                    organization_id=org.id,
+                    ip_address=ip_address,
+                    sender=type(self),
+                )
+
+            if aggregated_data_consent:
+                org.update_option("sentry:aggregated_data_consent", True)
+
+                try:
+                    analytics.record(
+                        AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+                    )
+                except Exception as e:
+                    capture_exception(e)
 
         return org
 
@@ -153,6 +199,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
 
         with outbox_context(transaction.atomic(router.db_for_write(Organization))):
             organization = self._create_organization_and_team(
+                owner=provision_options.owner,
                 user_id=provision_options.owning_user_id,
                 email=provision_options.owning_email,
                 slug=provision_options.slug,
