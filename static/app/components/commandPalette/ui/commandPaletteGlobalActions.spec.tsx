@@ -128,7 +128,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     const option = (await screen.findAllByRole('option')).find(
       el => !el.hasAttribute('aria-disabled')
     );
-    expect(option).toHaveAccessibleName('project-b · General Settings');
+    expect(option).toHaveAccessibleName('project-b');
   });
 
   it('does not duplicate the current project in the list', async () => {
@@ -149,9 +149,9 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
     await drillIntoGeneralSettings();
 
-    await screen.findByRole('option', {name: 'project-b · General Settings'});
+    await screen.findByRole('option', {name: 'project-b'});
     expect(
-      screen.getAllByRole('option', {name: 'project-b · General Settings'})
+      screen.getAllByRole('option', {name: 'project-b'})
     ).toHaveLength(1);
   });
 
@@ -178,7 +178,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     const option = (await screen.findAllByRole('option')).find(
       el => !el.hasAttribute('aria-disabled')
     );
-    expect(option).toHaveAccessibleName('project-b · General Settings');
+    expect(option).toHaveAccessibleName('project-b');
     expect(screen.getByText('Current')).toBeInTheDocument();
   });
 
@@ -204,10 +204,10 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
     // Both selected projects should appear with the Current tag
     expect(
-      await screen.findByRole('option', {name: 'project-a · General Settings'})
+      await screen.findByRole('option', {name: 'project-a'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('option', {name: 'project-b · General Settings'})
+      screen.getByRole('option', {name: 'project-b'})
     ).toBeInTheDocument();
     expect(screen.getAllByText('Current')).toHaveLength(2);
     // Unselected project should still be present but without a tag

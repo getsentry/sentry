@@ -29,7 +29,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     expect(sections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: 'Project Settings',
+          label: 'frontend',
           items: expect.arrayContaining([
             expect.objectContaining({
               label: 'General',
@@ -64,7 +64,7 @@ describe('ProjectSettingsCommandPaletteActions', () => {
     expect(sections).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          label: 'Project Settings',
+          label: 'frontend',
           items: expect.arrayContaining([
             expect.objectContaining({
               label: 'Processing',
