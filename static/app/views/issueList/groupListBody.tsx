@@ -2,6 +2,8 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Container} from '@sentry/scraps/layout';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -244,7 +246,7 @@ function GroupList({
         }
 
         const {supergroup, matchingIds} = item;
-        const expanded = !collapsedSupergroupIds.has(supergroup.id);
+        const expanded = collapsedSupergroupIds.has(supergroup.id);
 
         return (
           <Fragment key={`sg-${supergroup.id}`}>
@@ -254,14 +256,14 @@ function GroupList({
               onToggle={() => handleToggleExpand(supergroup.id)}
             />
             {expanded && (
-              <ExpandedArea>
+              <Container background="secondary">
                 <SupergroupChildList
                   supergroup={supergroup}
                   memberList={memberList}
                   query={query}
                   knownMatchIds={matchingIds}
                 />
-              </ExpandedArea>
+              </Container>
             )}
           </Fragment>
         );
@@ -269,7 +271,3 @@ function GroupList({
     </PanelBody>
   );
 }
-
-const ExpandedArea = styled('div')`
-  background: ${p => p.theme.tokens.background.secondary};
-`;
