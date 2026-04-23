@@ -186,12 +186,18 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 self.on_create_repository(new_repository, organization)
                 return result, new_repository
 
-            # if possible update the repo with matching integration
+            # Create failed, typically a unique-constraint violation. Something
+            # else wrote the row first: the link_all_repos background task
+            # after integration install, or a concurrent client. If we find an
+            # active existing repo, update it and treat this as a successful
+            # reclaim; if the existing repo is in a non-active state (e.g.
+            # PENDING_DELETION), fall through to RepoExistsError.
             repositories = repository_service.get_repositories(
                 organization_id=organization.id,
                 integration_id=integration_id,
                 external_id=external_id,
             )
+            active_repo: RpcRepository | None = None
             if repositories:
                 # We anticipate to only update one repository, but we update any duplicates as well.
                 for repo in repositories:
@@ -201,6 +207,13 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                         organization_id=organization.id,
                         update=repo,
                     )
+                    if active_repo is None and repo.status == ObjectStatus.ACTIVE:
+                        active_repo = repo
+
+            if active_repo is not None:
+                self.on_create_repository(active_repo, organization)
+                metrics.incr("sentry.integration_repo_provider.repo_exists_reclaimed")
+                return result, active_repo
 
             raise RepoExistsError(repos=[result])
 

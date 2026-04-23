@@ -9,7 +9,6 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import RepoExistsError
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
 
@@ -70,10 +69,12 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].provider == "integrations:github"
 
     def test_create_repository__repo_exists(self, get_jwt: MagicMock) -> None:
-        self._create_repo(external_id=self.config["external_id"])
+        existing = self._create_repo(external_id=self.config["external_id"])
 
-        with pytest.raises(RepoExistsError):
-            self.provider.create_repository(self.config, self.organization)
+        _, repo = self.provider.create_repository(self.config, self.organization)
+
+        assert repo.id == existing.id
+        assert Repository.objects.count() == 1
 
     def test_create_repository__transfer_repo_in_org(self, get_jwt: MagicMock) -> None:
         # can transfer a disabled repo from one integration to another in a single org
@@ -95,24 +96,20 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
 
-        with pytest.raises(RepoExistsError):
-            self.provider.create_repository(self.config, self.organization)
+        _, returned = self.provider.create_repository(self.config, self.organization)
 
+        assert returned.id == repo.id
         repo.refresh_from_db()
         assert repo.name == self.repo_name
+        assert returned.name == self.repo_name
 
-    @patch("sentry.models.Repository.objects.create")
-    @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
-    def test_create_repository__delete_webhook(
-        self, mock_on_delete: MagicMock, mock_repo: MagicMock, get_jwt: MagicMock
-    ) -> None:
-        self._create_repo()
+    def test_create_repository__integrity_error_reclaims_existing(self, get_jwt: MagicMock) -> None:
+        existing = self._create_repo(external_id=self.config["external_id"])
 
-        mock_repo.side_effect = IntegrityError
-        mock_on_delete.side_effect = IntegrationError
+        with patch("sentry.models.Repository.objects.create", side_effect=IntegrityError):
+            _, repo = self.provider.create_repository(self.config, self.organization)
 
-        with pytest.raises(RepoExistsError):
-            self.provider.create_repository(self.config, self.organization)
+        assert repo.id == existing.id
 
     @patch("sentry.plugins.providers.integration_repository.metrics")
     def test_create_repository__activates_existing_hidden_repo(
