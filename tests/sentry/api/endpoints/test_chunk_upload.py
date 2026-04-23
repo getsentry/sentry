@@ -628,11 +628,8 @@ class ChunkUploadTest(APITestCase):
 
     def test_upload_truncated_gzip_payload(self) -> None:
         """Truncated gzip (valid header, missing tail) should return 400, not 500."""
-        import gzip as gzip_mod
-
-        full = gzip_mod.compress(b"some real data that gzip will compress")
         # Keep only the first 6 bytes -- valid magic + method but no data
-        truncated = full[:6]
+        truncated = gzip.compress(b"some real data that gzip will compress")[:6]
         blob = SimpleUploadedFile("0" * 40, truncated, content_type="multipart/form-data")
 
         response = self.client.post(

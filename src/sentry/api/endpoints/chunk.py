@@ -1,9 +1,7 @@
 import logging
 import re
-from collections.abc import Iterator
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
-from typing import IO, Protocol
 
 import zstandard
 from django.conf import settings
@@ -51,12 +49,6 @@ CHUNK_UPLOAD_ACCEPT = (
     "dartsymbolmap",  # Dart/Flutter symbol mapping files
 )
 
-# Compression codecs advertised to clients via the `compression` field of the
-# chunk-upload options response. Clients use this list to decide how to encode
-# chunks on upload. New codecs must:
-#   - be detectable via the HTTP `Content-Encoding` request header on POST, AND
-#   - decompress with a hard cap of `settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE` to
-#     prevent decompression bombs.
 CHUNK_UPLOAD_COMPRESSION = ("gzip", "zstd")
 
 
@@ -64,66 +56,34 @@ class ChunkTooLarge(OSError):
     """Raised when a (possibly decompressed) chunk exceeds the per-chunk size limit."""
 
 
-class _Reader(Protocol):
-    """Minimal structural type for any bounded-read source.
-
-    Covers the concrete types we pass in (``GzipFile`` from ``gzip`` and
-    ``ZstdDecompressor().stream_reader`` from ``zstandard``) without forcing
-    them to satisfy the full ``IO[bytes]`` protocol -- which they don't.
-    """
-
-    def read(self, __n: int = ...) -> bytes: ...
-
-
-class _SizedChunk(Protocol):
-    """A chunk we can size and name before handing it to ``FileBlob.from_files``.
-
-    Both Django's ``UploadedFile`` (plain uploads) and our ``GzipChunk``/
-    ``ZstdChunk`` wrappers expose ``.size`` and ``.name``; the underlying
-    ``IO[bytes]`` type does not, which is why we need this narrower protocol.
-    """
-
-    size: int
-    name: str
-
-    def read(self, __n: int = ...) -> bytes: ...
-
-
-def _read_bounded(reader: _Reader, limit: int) -> bytes:
+def _read_bounded(reader, limit):
     """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
 
-    We ask for ``limit + 1`` bytes and let the stream produce as much as it can within
-    that budget. If any more bytes are available after that read, the stream exceeds
-    the cap and we bail. This keeps memory bounded at ``limit + 1`` bytes regardless
-    of how well-compressed the input is (protects against zstd/gzip decompression
-    bombs where a small compressed payload expands to hundreds of megabytes).
+    Asks for ``limit + 1`` bytes so that any overflow can be detected in bounded
+    memory -- this caps peak allocation regardless of how well-compressed the
+    input is, protecting against zstd/gzip decompression bombs.
     """
     data = reader.read(limit + 1)
     if len(data) > limit:
-        raise ChunkTooLarge("Chunk size too large")
-    # Guard against streams that returned short and still have more data available
-    # after a short read (shouldn't happen with BufferedReader but be defensive).
-    extra = reader.read(1)
-    if extra:
         raise ChunkTooLarge("Chunk size too large")
     return data
 
 
 class GzipChunk(BytesIO):
-    def __init__(self, file: IO[bytes]) -> None:
+    def __init__(self, file):
         reader = GzipFile(fileobj=file, mode="rb")
         data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
         self.size = len(data)
-        self.name = getattr(file, "name", "")
+        self.name = file.name
         super().__init__(data)
 
 
 class ZstdChunk(BytesIO):
-    def __init__(self, file: IO[bytes]) -> None:
+    def __init__(self, file):
         reader = zstandard.ZstdDecompressor().stream_reader(file)
         data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
         self.size = len(data)
-        self.name = getattr(file, "name", "")
+        self.name = file.name
         super().__init__(data)
 
 
@@ -215,7 +175,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
-        compression: list[str] = (
+        compression = (
             []
             if organization.id in options.get("chunk-upload.no-compression")
             else list(CHUNK_UPLOAD_COMPRESSION)
@@ -248,21 +208,14 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         Requests to this endpoint should use the region-specific domain
         eg. `us.sentry.io` or `de.sentry.io`
 
-        Compression is negotiated via the HTTP ``Content-Encoding`` request
-        header. Supported values are listed in the ``compression`` field of the
-        ``GET`` response (currently ``gzip`` and ``zstd``). When set, every
-        chunk delivered under the ``file`` multipart field is decoded using
-        that codec.
+        Chunks may be compressed with ``gzip`` or ``zstd``. Codec is selected
+        via the ``Content-Encoding`` request header; the legacy ``file_gzip``
+        multipart field is still accepted but cannot be combined with the
+        header.
 
-        The legacy ``file_gzip`` multipart field is still accepted for
-        backwards compatibility with older clients, but is deprecated in favor
-        of ``Content-Encoding: gzip`` on the ``file`` field. Requests that mix
-        ``Content-Encoding`` with a ``file_gzip`` entry are rejected with 400
-        to avoid ambiguity -- clients must pick one mechanism per request.
-
-        :pparam file file: The filename should be sha1 hash of the (decoded)
-                            content. Also note you can add up to
-                            MAX_CHUNKS_PER_REQUEST files in this request.
+        :pparam file file: The filename should be sha1 hash of the content.
+                            Also not you can add up to MAX_CHUNKS_PER_REQUEST files
+                            in this request.
 
         :auth: required
         """
@@ -281,10 +234,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         files_plain = request.FILES.getlist("file")
         files_gzip_legacy = request.FILES.getlist("file_gzip")
 
-        # Mixing the new Content-Encoding mechanism with the deprecated
-        # `file_gzip` field is ambiguous: the legacy field always means gzip
-        # regardless of the header, so a request with both is asking the server
-        # to apply two different codecs in one upload. Reject up front.
         if encoding and files_gzip_legacy:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response(
@@ -292,8 +241,8 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        files: list[_SizedChunk] = []
-        checksums: list[str] = []
+        files = []
+        checksums = []
         total_size = 0
 
         # Validate if chunks exceed the maximum chunk limit before attempting to decompress them.
@@ -332,10 +281,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Invalid zstd payload"}, status=status.HTTP_400_BAD_REQUEST)
         except (BadGzipFile, EOFError):
-            # BadGzipFile: bad magic / bad header. EOFError: stream truncated
-            # mid-decompression. GzipFile raises these via its read() path, so
-            # we also cover the legacy file_gzip multipart upload, not just
-            # Content-Encoding: gzip.
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Invalid gzip payload"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -351,18 +296,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request, encoding: str) -> Iterator[tuple[_SizedChunk, str]]:
-    """Yield ``(chunk, checksum)`` tuples for every uploaded chunk.
-
-    ``encoding`` is the (lowercased) value of the request's ``Content-Encoding``
-    header and must be ``""``, ``"gzip"``, or ``"zstd"`` (validated by the
-    caller). When non-empty, every chunk under the ``file`` multipart field is
-    decoded using that codec.
-
-    The legacy ``file_gzip`` multipart field is always decoded as gzip
-    independent of the header. It is deprecated in favor of
-    ``Content-Encoding: gzip`` on the ``file`` field.
-    """
+def get_files(request: Request, encoding: str):
     for chunk in request.FILES.getlist("file"):
         if encoding == "gzip":
             yield GzipChunk(chunk), chunk.name
@@ -371,8 +305,7 @@ def get_files(request: Request, encoding: str) -> Iterator[tuple[_SizedChunk, st
         else:
             yield chunk, chunk.name
 
-    # Deprecated: prefer `Content-Encoding: gzip` on the `file` field. Retained
-    # for backwards compatibility with older sentry-cli versions that always
-    # dispatch gzipped chunks under this field name.
+    # Legacy: older clients send gzipped chunks under `file_gzip` with no
+    # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
         yield GzipChunk(chunk), chunk.name
