@@ -74,7 +74,7 @@ For new models, use `Meta.constraints = [UniqueConstraint(...)]` instead of `uni
 
 ### Composite indexes match query order
 
-If you filter on `(org_id, project_id, type)` together, you need an index whose field order matches the most-selective-first filter pattern. A foreign key auto-index does _not_ cover the multi-column case — it's easy to assume it does and forget the composite index during the initial scaffold. Add it when you create the model, not after.
+If you filter on `(org_id, project_id, type)` together, you need an index whose field order matches the most-selective-first filter pattern. A foreign key auto-index does _not_ cover the multi-column case.
 
 ### Where the file lives
 
