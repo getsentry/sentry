@@ -38,7 +38,7 @@ describe('ErrorsContent', () => {
   it('renders the Errors page title', async () => {
     const organization = OrganizationFixture();
     render(<ErrorsContent />, {organization});
-    expect(await screen.findByText('Errors')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {name: /Errors/})).toBeInTheDocument();
   });
 
   it('renders page filter bar with project, environment, and date filters', async () => {
