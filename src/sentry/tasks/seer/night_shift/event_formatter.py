@@ -16,9 +16,7 @@ the type-specific sections are silently skipped and the rest of the output
 
 from __future__ import annotations
 
-# sentry.utils.json doesn't accept `indent`/`default` kwargs, which we need
-# for human-readable context dumps and safe fallback on non-serializable values.
-import json  # noqa: S003
+import json  # noqa: S003 - need stdlib json for indent + default kwargs
 import re
 from collections.abc import Sequence
 from typing import Any
