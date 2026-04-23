@@ -109,7 +109,7 @@ const getPriorityColor = ({
 /**
  * Creates a custom series that renders incident highlights underneath the main chart
  */
-function IncidentMarkerSeries({
+function createIncidentMarkerSeries({
   incidentPeriods,
   theme,
   seriesId,
@@ -498,7 +498,7 @@ export function useIncidentMarkers({
       return null;
     }
 
-    return IncidentMarkerSeries({
+    return createIncidentMarkerSeries({
       incidentPeriods,
       theme,
       yAxisIndex,
