@@ -259,6 +259,7 @@ const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
   margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   max-width: calc(100% + ${p => p.theme.space.xl});
+  /* Mirror InnerLabel's transparent top border so the baseline stays put on edit. */
   border-top: ${p => (p.isCompact ? '1px solid transparent' : 'none')};
 `;
 
