@@ -24,10 +24,10 @@ function getCurrentTab({
 }
 
 function getCurrentRouteInfo({
-  groupId,
   eventId,
-  organization,
+  groupId,
   matches,
+  organization,
   params,
 }: {
   eventId: string | undefined;
@@ -62,10 +62,10 @@ export function useGroupDetailsRoute(): {
   }>();
   const matches = useMatches();
   return getCurrentRouteInfo({
-    groupId: params.groupId,
     eventId: params.eventId,
-    organization,
+    groupId: params.groupId,
     matches,
+    organization,
     params,
   });
 }
