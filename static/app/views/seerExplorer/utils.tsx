@@ -985,7 +985,7 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-const RUN_ID_QUERY_PARAM = 'explorerRunId';
+export const RUN_ID_QUERY_PARAM = 'explorerRunId';
 
 /**
  * Returns the URL of the current window with the run ID query param set.

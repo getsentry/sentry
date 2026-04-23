@@ -6,18 +6,20 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type SetStateAction,
 } from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {RUN_ID_QUERY_PARAM} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
@@ -25,12 +27,7 @@ type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
-  runId: number | null;
   sessionState: SeerExplorerSessionState;
-  /**
-   * XXX: For useSeerExplorer hook only. Do not manually call this to update the drawer UI.
-   */
-  setRunId: (value: SetStateAction<number | null>) => void;
   toggleSeerExplorer: () => void;
 };
 
@@ -38,21 +35,21 @@ export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
   openSeerExplorer: () => {},
-  runId: null,
   sessionState: 'inactive',
-  setRunId: () => {},
   toggleSeerExplorer: () => {},
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  const [runId, setRunId] = useSeerExplorerRunId();
-
+  const [runId] = useSeerExplorerRunId();
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
     isOpen,
   } = useSeerExplorerDrawer();
+
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Observes the shared session query so the button can reflect activity even
   // when the drawer is closed. Shares the underlying query with
@@ -102,8 +99,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       openSeerExplorer: openSeerExplorerDrawer,
       closeSeerExplorer: closeSeerExplorerDrawer,
       toggleSeerExplorer: toggleSeerExplorerDrawer,
-      runId,
-      setRunId,
       sessionState,
     }),
     [
@@ -111,13 +106,26 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       openSeerExplorerDrawer,
       closeSeerExplorerDrawer,
       toggleSeerExplorerDrawer,
-      runId,
-      setRunId,
       sessionState,
     ]
   );
 
   const {visible: isModalOpen} = useGlobalModal();
+
+  // Deep link effect while drawer closed (drawer content handles when open)
+  useEffect(() => {
+    // Set runId and UI state to the query param and remove it from the URL.
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (typeof paramValue !== 'string') {
+      return;
+    }
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+      openSeerExplorerDrawer({runId: parsedRunId});
+    }
+  }, [location, navigate, openSeerExplorerDrawer]);
 
   useHotkeys(
     isModalOpen
