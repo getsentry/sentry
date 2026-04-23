@@ -71,12 +71,13 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
 
   const userHasBillingAccess = organization.access.includes('org:billing');
 
-  const warnAboutGithubIntegration =
+  const warnAboutSCMIntegration =
     isGroupMode &&
     !setupData?.integration.ok &&
     shouldShowBilling &&
     !isTouchCustomer &&
     !hasSeerButNeedsPayg;
+  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
 
   const autofixAcknowledgeMutation = useSeerAcknowledgeMutation();
 
@@ -281,11 +282,15 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
           <AiPrivacyNotice />
         </LegalText>
       </SingleCard>
-      {warnAboutGithubIntegration && (
+      {warnAboutSCMIntegration && (
         <Alert variant="warning" showIcon={false}>
-          {t(
-            'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
-          )}
+          {hasGitLabSupport
+            ? t(
+                'Seer currently works best with GitHub or GitLab repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+              )
+            : t(
+                'Seer currently works best with GitHub repositories, but support for other providers is coming soon. Either way, you can still use Seer to triage and dive into issues.'
+              )}
         </Alert>
       )}
     </Stack>
