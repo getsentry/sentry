@@ -3241,10 +3241,12 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# TTL (in seconds) for the per-segment SET NX lock acquired at flush time to
-# prevent two flushers from producing the same segment concurrently. Must be
-# larger than the expected flush+produce+cleanup latency.
-# If set to 0, no locks will be acquired.
+# TTL (in seconds) for the per-segment lock acquired at flush time to
+# prevent two flushers from producing the same segment concurrently.
+# The lock is never explicitly released and only expires via this TTL.
+# Pick a value larger than the expected flush+produce latency but smaller than
+# `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
+# next flush cycle. If set to 0, no locks will be acquired.
 register(
     "spans.buffer.flusher.flush-lock-ttl",
     type=Int,

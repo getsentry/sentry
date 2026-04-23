@@ -93,7 +93,7 @@ Glossary for types of keys:
     * span-buf:hrs:<segment_key> -- flags a segment as "has root span" (HRS).
     * span-buf:ic:<segment_key> -- ingested count, total spans originally ingested for a segment.
     * span-buf:ibc:<segment_key> -- ingested byte count, total bytes originally ingested for a segment.
-    * span-buf:fl:<segment_key> -- a per-segment lock to prevent the same segment from being flushed multiple times concurrently.
+    * span-buf:fl:<segment_key> -- a per-segment lock (with TTL) to prevent the same segment from being flushed multiple times concurrently.
     <segment_key> -- an internal identifier, see `spans.segment_key` module.
 """
 
@@ -665,18 +665,6 @@ class SpansBuffer:
             )
         return locks_acquired
 
-    def _release_flush_locks(self, segment_keys: Sequence[SegmentKey]) -> None:
-        if not segment_keys:
-            return
-
-        if options.get("spans.buffer.flusher.flush-lock-ttl") <= 0:
-            return
-
-        with self.client.pipeline(transaction=False) as p:
-            for segment_key in segment_keys:
-                p.delete(self._get_flush_lock_key(segment_key))
-            p.execute()
-
     def flush_segments(self, now: int) -> dict[SegmentKey, FlushedSegment]:
         cutoff = now
 
@@ -1065,5 +1053,3 @@ class SpansBuffer:
                             p.unlink(payload_key)
 
                 p.execute()
-
-            self._release_flush_locks(list(segment_keys.keys()))
