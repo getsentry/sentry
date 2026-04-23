@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import {queryOptions, useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
@@ -138,6 +138,7 @@ export function useIssuesSeriesQuery(
             },
         retryDelay: getRetryDelay,
         select: selectJsonWithHeaders,
+        placeholderData: keepPreviousData,
       });
     }),
   });
