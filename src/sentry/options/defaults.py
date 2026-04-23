@@ -2274,6 +2274,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.trace.span_with_errors_ok_status.sample_rate",
+    type=Float,
+    default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "insights.span-samples-query.sample-rate",
     type=Float,
     default=0.0,  # 0 acts as 'no sampling'
