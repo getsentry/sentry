@@ -74,7 +74,7 @@ For new models, use `Meta.constraints = [UniqueConstraint(...)]` instead of `uni
 
 ### Composite indexes match query order
 
-If you filter on `(org_id, project_id, type)` together, you need an index whose field order matches the most-selective-first filter pattern. A foreign key auto-index does _not_ cover the multi-column case. This is the #1 source of slow queries on new models — add the composite index when you create the model, not after a Sentry slow-query alert.
+If you filter on `(org_id, project_id, type)` together, you need an index whose field order matches the most-selective-first filter pattern. A foreign key auto-index does _not_ cover the multi-column case — it's easy to assume it does and forget the composite index during the initial scaffold. Add it when you create the model, not after.
 
 ### Where the file lives
 
