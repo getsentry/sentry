@@ -235,7 +235,7 @@ export function SetupReplaysCTA({
             data-test-id="setup-replays-btn"
             type="button"
             onClick={() => activateSidebar()}
-            priority="primary"
+            variant="primary"
             disabled={disabled}
           >
             {t('Set Up Replays')}
@@ -259,7 +259,7 @@ export function SetupReplaysCTA({
             path: '/new/',
             organization,
           })}
-          priority="primary"
+          variant="primary"
           disabled={disabled}
         >
           {t('Create Project')}

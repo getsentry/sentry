@@ -234,14 +234,14 @@ export function ReleaseCard({
           <Collapsible
             expandButton={({onExpand, numberOfHiddenItems}) => (
               <ExpandButtonWrapper>
-                <Button priority="primary" size="xs" onClick={onExpand}>
+                <Button variant="primary" size="xs" onClick={onExpand}>
                   {tct('Show [numberOfHiddenItems] More', {numberOfHiddenItems})}
                 </Button>
               </ExpandButtonWrapper>
             )}
             collapseButton={({onCollapse}) => (
               <Flex justify="center" align="center" height="41px">
-                <Button priority="primary" size="xs" onClick={onCollapse}>
+                <Button variant="primary" size="xs" onClick={onCollapse}>
                   {t('Collapse')}
                 </Button>
               </Flex>
