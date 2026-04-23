@@ -58,6 +58,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         ip_address: str | None = None,
         agree_terms: bool | None = None,
         aggregated_data_consent: bool | None = None,
+        channel_name: str | None = None,
     ) -> Organization:
         assert (user_id is None and email) or (user_id and email is None), (
             "Must set either user_id or email"
@@ -88,13 +89,19 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
             OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
 
         if owner and options.get("provision_organization_in_cell.record_analytics"):
+            audit_data = org.get_audit_log_data()
+            actor_label = None
+            if channel_name:
+                audit_data["channel"] = channel_name
+                actor_label = f"provision_channel:{channel_name}"
             create_audit_entry_from_user(
                 user=owner,
                 ip_address=ip_address,
                 organization=org,
                 target_object=org.id,
                 event=audit_log.get_event_id("ORG_ADD"),
-                data=org.get_audit_log_data(),
+                data=audit_data,
+                actor_label=actor_label,
             )
             try:
                 analytics.record(
@@ -210,6 +217,7 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
                 ip_address=provision_options.ip_address,
                 agree_terms=provision_options.agree_terms,
                 aggregated_data_consent=provision_options.aggregated_data_consent,
+                channel_name=provision_options.channel_name,
             )
 
             create_post_provision_outbox(

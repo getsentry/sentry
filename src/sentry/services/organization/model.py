@@ -18,6 +18,7 @@ class OrganizationOptions(pydantic.BaseModel):
     ip_address: str | None = None
     agree_terms: bool | None = None
     aggregated_data_consent: bool | None = None
+    channel_name: str | None = None
 
 
 class PostProvisionOptions(pydantic.BaseModel):
