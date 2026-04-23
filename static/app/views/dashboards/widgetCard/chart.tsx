@@ -753,7 +753,7 @@ function BigNumberComponent({
         field={field}
         value={value}
         type={meta.fields?.[field] ?? null}
-        unit={(meta.units?.[field] as DataUnit) ?? null}
+        unit={meta.units?.[field] ?? null}
         thresholds={widget.thresholds ?? undefined}
         // TODO: preferredPolarity has been added to ThresholdsConfig as a property,
         // we should remove this prop fromBigNumberWidgetVisualization

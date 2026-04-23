@@ -8,7 +8,7 @@ import {
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-type StarTransactionParams = {
+interface StarTransactionParams {
   project_id?: string;
   segment_name?: string;
 }

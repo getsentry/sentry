@@ -13,7 +13,7 @@ import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
-type ScmIntegrationTreeData = {
+interface ScmIntegrationTreeData {
   connectedIdentifiers: Set<string>;
   connectedRepos: Repository[];
   isError: boolean;

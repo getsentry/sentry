@@ -5,9 +5,9 @@ import type {Organization, Team} from './organization';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
-export type SeerNightshiftTweaks = {
+export interface SeerNightshiftTweaks {
   enabled?: boolean;
-};
+}
 
 // Minimal project representation for use with avatars.
 export interface AvatarProject {

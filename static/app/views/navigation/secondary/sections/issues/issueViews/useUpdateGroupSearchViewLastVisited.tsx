@@ -4,7 +4,7 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-type UpdateGroupSearchViewLastVisitedVariables = {
+interface UpdateGroupSearchViewLastVisitedVariables {
   viewId: string;
 }
 

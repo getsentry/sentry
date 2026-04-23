@@ -98,7 +98,7 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 import type {TableExpando} from './tables/useTableExpando';
-type LogsTabProps = {
+interface LogsTabProps {
   datePageFilterProps: DatePageFilterProps;
   tableExpando: TableExpando;
 }

@@ -189,7 +189,7 @@ export function setApiQueryData<TResponseData>(
   return updateResult?.[0];
 }
 
-type ApiMutationVariables<
+interface ApiMutationVariables<
   Headers extends Record<string, unknown> = Record<string, string>,
   Query extends Record<string, unknown> = Record<string, any>,
   Data extends Record<string, unknown> = Record<string, unknown>,

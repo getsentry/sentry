@@ -67,9 +67,7 @@ export function ActionLink({
     type === 'button' ? (
       <StyledButton size="xs" {...actionCommonProps} />
     ) : (
-      <StyledAction
-        {...(actionCommonProps as React.ComponentProps<typeof StyledAction>)}
-      />
+      <StyledAction {...actionCommonProps} />
     );
 
   if (shouldConfirm && onAction) {
