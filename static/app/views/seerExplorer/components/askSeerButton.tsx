@@ -5,6 +5,7 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {Hotkey} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
+import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 
 import {IconSeer} from 'sentry/icons';
@@ -21,14 +22,19 @@ export function AskSeerButton() {
     return null;
   }
 
+  const visibility = sessionState === 'thinking' ? 'hidden' : undefined;
+
   const icon =
     !isOpen && sessionState === 'done-thinking' ? (
       <StatusIndicator variant="accent" />
     ) : (
-      <IconSeer animation={sessionState === 'thinking' ? 'loading' : undefined} />
+      <IconSeer
+        visibility={visibility}
+        animation={sessionState === 'thinking' ? 'loading' : undefined}
+      />
     );
   const props: ButtonProps = {
-    'aria-label': t('Ask Seer'),
+    'aria-label': sessionState === 'thinking' ? t('Seer is thinking...') : t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
     priority: 'default',
     icon: <IconWrapper>{icon}</IconWrapper>,
@@ -36,10 +42,15 @@ export function AskSeerButton() {
 
   return (
     <SeerButton {...props} onClick={toggleSeerExplorer}>
-      <Flex align="center" gap="sm">
+      <Flex align="center" gap="sm" visibility={visibility}>
         {t('Ask Seer')}
         <Hotkey value="command+/" variant="debossed" />
       </Flex>
+      {sessionState === 'thinking' ? (
+        <SeerLoader position="absolute" inset="0" align="center">
+          <IndeterminateLoader variant="monochrome" />
+        </SeerLoader>
+      ) : null}
     </SeerButton>
   );
 }
@@ -47,6 +58,10 @@ export function AskSeerButton() {
 function IconWrapper(props: PropsWithChildren) {
   return <Flex width="14px" align="center" justify="center" {...props} />;
 }
+
+const SeerLoader = styled(Flex)`
+  color: ${p => p.theme.tokens.graphics.accent.vibrant};
+`;
 
 const SeerButton = styled(Button)`
   > span:last-child {
