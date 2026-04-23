@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
 
@@ -32,6 +32,12 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  CommandPaletteHotkeys,
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 
 function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   return (
@@ -1129,6 +1135,82 @@ describe('CommandPalette', () => {
         await screen.findByRole('option', {name: 'Child Action'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('reset on open', () => {
+    // Capture dispatch so tests can open/close CMDK without going through
+    // toggleCommandPalette, keeping the setup self-contained.
+    let testDispatch: CommandPaletteDispatch;
+
+    function DispatchCapture() {
+      testDispatch = useCommandPaletteDispatch();
+      return null;
+    }
+
+    function PaletteContent() {
+      const state = useCommandPaletteState();
+      return (
+        <Fragment>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'Drillable Group'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          {state.open && <CommandPalette closeModal={jest.fn()} />}
+        </Fragment>
+      );
+    }
+
+    function Wrapper({withHotkeys}: {withHotkeys?: boolean} = {}) {
+      return (
+        <CommandPaletteProvider>
+          <DispatchCapture />
+          {withHotkeys && <CommandPaletteHotkeys />}
+          <PaletteContent />
+        </CommandPaletteProvider>
+      );
+    }
+
+    it('preserves state when toggled closed and open without navigating', async () => {
+      render(<Wrapper />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+
+    it('resets state on the next open if the route changes while CMDK is closed', async () => {
+      const {router} = render(<Wrapper withHotkeys />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      // Navigate while closed — route change must trigger reset on the next open
+      act(() => router.navigate('/new-page/'));
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
     });
   });
 
