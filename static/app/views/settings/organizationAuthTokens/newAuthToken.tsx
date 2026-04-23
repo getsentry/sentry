@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -17,13 +18,12 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {makeFetchOrgAuthTokensForOrgQueryKey} from 'sentry/views/settings/organizationAuthTokens';
 
 type OrgAuthTokenWithToken = OrgAuthToken & {token: string};
@@ -133,21 +133,27 @@ export default function OrganizationAuthTokensNewAuthToken() {
   return (
     <div>
       <SentryDocumentTitle title={t('Create New Organization Token')} />
-      <SettingsPageHeader title={t('Create New Organization Token')} />
+      <SettingsPageHeader
+        title={t('Create New Organization Token')}
+        subtitle={
+          <Stack gap="md">
+            <div>
+              {t(
+                'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+              )}
+            </div>
+            <div>
+              {tct(
+                'For more information on how to use the web API, see our [link:documentation].',
+                {
+                  link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                }
+              )}
+            </div>
+          </Stack>
+        }
+      />
 
-      <TextBlock>
-        {t(
-          'Organization tokens can be used in many places to interact with Sentry programmatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
-        )}
-      </TextBlock>
-      <TextBlock>
-        {tct(
-          'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
-        )}
-      </TextBlock>
       <AuthTokenCreateForm
         organization={organization}
         onCreatedToken={token => displayNewToken(token.token, handleGoBack)}

@@ -65,6 +65,12 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 interface CMDKActionProps {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  /**
+   * Stable reserved key for this node. Use the "cmdk:supplementary:" prefix to
+   * guarantee the section always sorts last in search results regardless of score.
+   * Example: id="cmdk:supplementary:help"
+   */
+  id?: string;
   keywords?: string[];
   /**
    * Maximum number of results to show. For async resources the default is 4;
@@ -87,6 +93,7 @@ export function CMDKAction({
   display,
   keywords,
   children,
+  id,
   to,
   onAction,
   prompt,
@@ -107,7 +114,7 @@ export function CMDKAction({
         : {display, keywords, ref, onAction, limit: effectiveLimit}
       : {display, keywords, ref, to, limit: effectiveLimit};
 
-  const key = CMDKCollection.useRegisterNode(nodeData);
+  const key = CMDKCollection.useRegisterNode(nodeData, id);
   const {query} = useCommandPaletteState();
 
   const resourceOptions = resource

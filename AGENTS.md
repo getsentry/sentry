@@ -98,6 +98,8 @@ If a hook fails, fix the issues, stage changes, then re-run until it passes.
 
 #### Testing
 
+For backend-scoped changes, always try `make test-selective` first. It detects which tests are affected by your local diff and runs only those, making the feedback loop much faster. Fall back to `pytest` when you need to run a specific file or `test-selective` doesn't cover your case.
+
 ```bash
 # Run a specific test file.
 # Do not run pytest by itself; it'll take forever!
@@ -184,6 +186,10 @@ Use the right AGENTS.md for the area you're working in:
 - **General** → This file (`AGENTS.md`) for Sentry overview and commands
 
 Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
+
+## Viewer/Organization Context
+
+- Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
 
 ## Agent Skills
 

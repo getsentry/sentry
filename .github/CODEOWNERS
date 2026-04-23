@@ -889,7 +889,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/bitbucket_server/                              @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/vsts/                                          @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
 /src/sentry/integrations/vsts_extension/                                @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
-/src/sentry/integrations/perforce/                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm
+/src/sentry/integrations/perforce/                                      @getsentry/product-owners-settings-integrations @getsentry/ecosystem @getsentry/scm @getsentry/gdx
 /tests/sentry/integrations/source_code_management/                      @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/repository/                                  @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/github_enterprise/                           @getsentry/ecosystem @getsentry/scm
@@ -898,7 +898,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/integrations/bitbucket_server/                            @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/vsts/                                        @getsentry/ecosystem @getsentry/scm
 /tests/sentry/integrations/vsts_extension/                              @getsentry/ecosystem @getsentry/scm
-/tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm
+/tests/sentry/integrations/perforce/                                    @getsentry/ecosystem @getsentry/scm @getsentry/gdx
 /tests/sentry/scm/                                                      @getsentry/scm
 ## End of SCM
 

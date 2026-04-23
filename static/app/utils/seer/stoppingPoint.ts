@@ -1,4 +1,5 @@
 import type {QueryClient, UseMutateFunction} from '@tanstack/react-query';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import type {AutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
@@ -14,7 +15,6 @@ import {
   fetchDataQuery,
   fetchMutation,
   getApiQueryData,
-  mutationOptions,
   setApiQueryData,
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';

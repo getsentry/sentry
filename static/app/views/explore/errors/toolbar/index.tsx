@@ -22,7 +22,7 @@ function ErrorsToolbarSaveAs() {
   return (
     <SaveStyledToolbarSection data-test-id="section-save-as">
       <Grid flow="column" align="center" gap="md">
-        <Button aria-label={t('Save as')}>{t('Save')}</Button>
+        <Button>{t('Save as')}</Button>
       </Grid>
     </SaveStyledToolbarSection>
   );

@@ -109,8 +109,10 @@ export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
 export function ConversationDetailPanel({
   selectedNode,
   nodeTraceMap,
+  initiallyCollapseAiIO = true,
 }: {
   nodeTraceMap: Map<string, string>;
+  initiallyCollapseAiIO?: boolean;
   selectedNode?: AITraceSpanNode;
 }) {
   const organization = useOrganization();
@@ -132,7 +134,7 @@ export function ConversationDetailPanel({
         replay: null,
         traceId: nodeTraceMap.get(selectedNode.id) ?? '',
         hideNodeActions: true,
-        initiallyCollapseAiIO: true,
+        initiallyCollapseAiIO,
       })}
     </Flex>
   );

@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {QueryClientProvider, type QueryClient} from '@tanstack/react-query';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -6,8 +7,7 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import type {ApiResult} from 'sentry/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
-import type {ApiQueryKey, QueryClient} from 'sentry/utils/queryClient';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 function makeWrapper(queryClient: QueryClient) {
   return function wrapper({children}: {children?: ReactNode}) {

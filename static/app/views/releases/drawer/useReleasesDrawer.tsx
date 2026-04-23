@@ -1,9 +1,10 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,7 +40,6 @@ export function useReleasesDrawer() {
           },
           ariaLabel: t('Releases drawer'),
           drawerKey: 'releases-drawer',
-          transitionProps: {stiffness: 1000},
           onClose: () => {
             navigate({
               query: cleanLocationQuery(location.query),

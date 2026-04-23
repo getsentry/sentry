@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -17,13 +18,7 @@ import {
 } from 'sentry/components/stream/group';
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,9 +48,16 @@ type Props = {
   canSelectGroups?: boolean;
   customStatsPeriod?: TimePeriodType;
   /**
-   * Defaults to `/organizations/${orgSlug}/issues/`
+   * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
-  endpointPath?: string;
+  endpoint?:
+    | {
+        path: '/organizations/$organizationIdOrSlug/issues/';
+      }
+    | {
+        path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
+        version: string;
+      };
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -94,7 +96,7 @@ const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee
 
 export function GroupList({
   queryParams,
-  endpointPath,
+  endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
   renderErrorMessage,
@@ -188,68 +190,82 @@ export function GroupList({
   );
 
   const queryClient = useQueryClient();
-  const queryKey: ApiQueryKey = [
-    endpointPath
-      ? (endpointPath as any)
-      : getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-          },
-        }),
-    {query: computedQueryParams},
-  ];
+
+  const issuesQueryOptions =
+    endpoint.path === '/organizations/$organizationIdOrSlug/issues/'
+      ? apiOptions.as<Group[]>()(endpoint.path, {
+          path: {organizationIdOrSlug: organization.slug},
+          query: computedQueryParams,
+          staleTime: 0,
+        })
+      : apiOptions.as<Group[]>()(endpoint.path, {
+          path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
+          query: computedQueryParams,
+          staleTime: 0,
+        });
   const {
-    data: groupsData,
+    data,
     dataUpdatedAt,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
     error: queryError,
-    getResponseHeader,
     refetch,
-  } = useApiQuery<Group[]>(queryKey, {
-    staleTime: 0,
+  } = useQuery({
+    ...issuesQueryOptions,
+    select: selectJsonWithHeaders,
     enabled: !hasLogicBoolean,
   });
+  const groupsData = data?.json;
 
   const updateQueryCacheAssigneeChange = (
     groupId: string,
     newAssignee: AssignableEntity | null
   ) => {
-    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
-      return oldData?.map(group => {
-        if (group.id === groupId) {
-          return {
-            ...group,
-            assignedTo: newAssignee
-              ? {
-                  id: newAssignee.id,
-                  name: newAssignee.assignee.name,
-                  type: newAssignee.type,
-                }
-              : null,
-          };
-        }
-        return group;
-      });
-    });
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(group => {
+              if (group.id === groupId) {
+                return {
+                  ...group,
+                  assignedTo: newAssignee
+                    ? {
+                        id: newAssignee.id,
+                        name: newAssignee.assignee.name,
+                        type: newAssignee.type,
+                      }
+                    : null,
+                };
+              }
+              return group;
+            }),
+          }
+        : prevData
+    );
   };
 
   const updateQueryCachePriorityChange = (
     groupId: string,
     newPriority: PriorityLevel
   ) => {
-    setApiQueryData<Group[]>(queryClient, queryKey, oldData => {
-      return oldData?.map(group => {
-        if (group.id === groupId) {
-          return {...group, priority: newPriority};
-        }
-        return group;
-      });
-    });
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(group => {
+              if (group.id === groupId) {
+                return {...group, priority: newPriority};
+              }
+              return group;
+            }),
+          }
+        : prevData
+    );
   };
 
-  const pageLinks = getResponseHeader?.('Link') ?? null;
+  const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
   const errorDetail = hasLogicBoolean
     ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR

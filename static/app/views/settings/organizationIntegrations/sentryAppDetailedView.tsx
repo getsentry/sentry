@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
@@ -29,12 +30,7 @@ import {
   getSentryAppInstallStatus,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';

@@ -1,4 +1,5 @@
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -41,7 +42,7 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -63,7 +64,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 
 import {CMDKAction} from './cmdk';
@@ -108,6 +109,8 @@ export function GlobalCommandPaletteActions() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
+
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
@@ -538,6 +541,7 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction
+        id="cmdk:supplementary:help"
         display={{label: t('Help')}}
         resource={(query: string): CMDKQueryOptions => {
           return cmdkQueryOptions({

@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
@@ -7,46 +8,15 @@ import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/pre
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
-import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
-import {
-  fetchDataQuery,
-  fetchMutation,
-  useQueryClient,
-  useQuery,
-} from 'sentry/utils/queryClient';
+import {fetchDataQuery, fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type PreferredAgent = 'seer' | CodingAgentIntegration;
-
-export function useFetchAgentOptions({
-  organization,
-  enabled = true,
-}: {
-  organization: Organization;
-  enabled?: boolean;
-}) {
-  return useQuery({
-    ...organizationIntegrationsCodingAgents(organization),
-    enabled,
-    select: (data): Array<{label: string; value: PreferredAgent}> => {
-      return [
-        {value: 'seer', label: t('Seer Agent')},
-        ...(data.json.integrations ?? [])
-          .filter(integration => integration.id)
-          .map(integration => ({
-            value: integration,
-            label: integration.name,
-          })),
-      ];
-    },
-  });
-}
 
 export function useBulkMutateSelectedAgent() {
   const organization = useOrganization();

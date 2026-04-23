@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
@@ -5,6 +7,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -15,8 +18,10 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
+import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   getIdFromLocation,
   getTitleFromLocation,
@@ -37,6 +42,8 @@ export default function MetricsContent() {
     dataCategories: [DataCategory.TRACE_METRICS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+  const hasEquations = canUseMetricsEquations(organization);
+
   return (
     <SentryDocumentTitle title={METRICS_TITLE} orgSlug={organization?.slug}>
       <PageFiltersContainer
@@ -56,16 +63,18 @@ export default function MetricsContent() {
       >
         <AnalyticsArea name="explore.metrics">
           <Stack flex={1}>
-            <MetricsHeader />
-            {defined(onboardingProject) ? (
-              <MetricsTabOnboarding
-                organization={organization}
-                project={onboardingProject}
-                datePageFilterProps={datePageFilterProps}
-              />
-            ) : (
-              <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-            )}
+            <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
+              <MetricsHeader />
+              {defined(onboardingProject) ? (
+                <MetricsTabOnboarding
+                  organization={organization}
+                  project={onboardingProject}
+                  datePageFilterProps={datePageFilterProps}
+                />
+              ) : (
+                <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+              )}
+            </MultiMetricsQueryParamsProvider>
           </Stack>
         </AnalyticsArea>
       </PageFiltersContainer>
@@ -88,40 +97,75 @@ function MetricsHeader() {
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasPageFrameFeature = useHasPageFrameFeature();
-
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
+
+  const documentTitle = hasSavedQueryTitle ? (
+    <SentryDocumentTitle
+      title={`${savedQuery.name} — ${METRICS_TITLE}`}
+      orgSlug={organization?.slug}
+    />
+  ) : null;
+
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/explore/metrics/"
+      title={t(
+        'Track critical application signals using counters, gauges, and distributions.'
+      )}
+      linkLabel={t('Read the Docs')}
+    />
+  );
+
+  const hasBreadcrumb = Boolean(title && defined(pageId));
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        {documentTitle}
+        <TopBar.Slot name="title">
+          {hasBreadcrumb ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.TRACEMETRICS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : (
+            title || METRICS_TITLE
+          )}
+          <FeatureBadge type="beta" />
+          {titleTooltip}
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={metricsFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
 
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${METRICS_TITLE}`}
-            orgSlug={organization?.slug}
-          />
-        ) : null}
-        {title && defined(pageId) ? (
+        {documentTitle}
+        {hasBreadcrumb ? (
           <ExploreBreadcrumb
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             savedQueryName={savedQuery?.name}
           />
         ) : null}
         <Layout.Title>
-          {title ? title : METRICS_TITLE}
+          {title || METRICS_TITLE}
           <FeatureBadge type="beta" />
+          {titleTooltip}
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={metricsFeedbackOptions}>
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        ) : (
-          <FeedbackButton feedbackOptions={metricsFeedbackOptions} />
-        )}
+        <FeedbackButton feedbackOptions={metricsFeedbackOptions} />
       </Layout.HeaderActions>
     </Layout.Header>
   );

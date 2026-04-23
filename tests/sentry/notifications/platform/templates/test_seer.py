@@ -5,9 +5,9 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
-    SeerExplorerError,
     _get_next_stopping_point,
 )
 from sentry.notifications.platform.types import ParagraphBlock
@@ -106,12 +106,12 @@ class SeerAutofixUpdateTest(TestCase):
         assert coding_update.has_next_trigger is ENABLE_SEER_CODING_DEFAULT
 
 
-class SeerExplorerErrorTemplateTest(TestCase):
+class SeerAgentErrorTemplateTest(TestCase):
     def test_render(self) -> None:
-        from sentry.notifications.platform.templates.seer import SeerExplorerErrorTemplate
+        from sentry.notifications.platform.templates.seer import SeerAgentErrorTemplate
 
-        data = SeerExplorerError(error_message="Seer could not explore your organization.")
-        template = SeerExplorerErrorTemplate()
+        data = SeerAgentError(error_message="Seer could not explore your organization.")
+        template = SeerAgentErrorTemplate()
         rendered = template.render(data)
 
         assert rendered.subject == "Seer had some trouble..."
@@ -120,14 +120,14 @@ class SeerExplorerErrorTemplateTest(TestCase):
         assert rendered.body[0].blocks[0].text == "Seer could not explore your organization."
 
     def test_render_custom_title(self) -> None:
-        from sentry.notifications.platform.templates.seer import SeerExplorerErrorTemplate
+        from sentry.notifications.platform.templates.seer import SeerAgentErrorTemplate
 
-        data = SeerExplorerError(
+        data = SeerAgentError(
             error_message="Timeout.",
-            error_title="Explorer failed",
+            error_title="Agent failed",
         )
-        template = SeerExplorerErrorTemplate()
+        template = SeerAgentErrorTemplate()
         rendered = template.render(data)
 
-        assert rendered.subject == "Explorer failed"
+        assert rendered.subject == "Agent failed"
         assert rendered.body[0].blocks[0].text == "Timeout."

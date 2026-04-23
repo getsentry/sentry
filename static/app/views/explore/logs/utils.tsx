@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -18,7 +19,6 @@ import {
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {InfiniteData, InfiniteQueryObserverResult} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -60,7 +60,6 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {generateTargetQuery} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
 const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(

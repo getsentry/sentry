@@ -1,10 +1,9 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import {
-  BodyContainer,
   StyledTabPanels,
   TabListWrapper,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
@@ -43,47 +42,49 @@ export function MetricInfoTabs({
       }}
       size="md"
     >
-      {visualize.visible ? (
-        <Flex direction="row" justify="between" align="center" paddingRight="xl">
-          <TabListWrapper>
-            <TabList variant="floating">
-              <TabList.Item
-                key={Mode.SAMPLES}
-                disabled={contentsHidden || isVisualizeEquation(visualize)}
-                tooltip={{
-                  title: isVisualizeEquation(visualize)
-                    ? t('Samples are not available for equations')
-                    : undefined,
-                }}
-              >
-                {t('Samples')}
-              </TabList.Item>
-              <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
-                {t('Aggregates')}
-              </TabList.Item>
-            </TabList>
-          </TabListWrapper>
-          {additionalActions}
-        </Flex>
-      ) : null}
-      {visualize.visible && !contentsHidden ? (
-        <BodyContainer>
-          <StyledTabPanels>
-            <TabPanels.Item key={Mode.AGGREGATE}>
-              <AggregatesTab
-                traceMetric={traceMetric}
-                isMetricOptionsEmpty={isMetricOptionsEmpty}
-              />
-            </TabPanels.Item>
-            <TabPanels.Item key={Mode.SAMPLES}>
-              <SamplesTab
-                traceMetric={traceMetric}
-                isMetricOptionsEmpty={isMetricOptionsEmpty}
-              />
-            </TabPanels.Item>
-          </StyledTabPanels>
-        </BodyContainer>
-      ) : null}
+      <Container paddingRight="xl" paddingLeft="xl" paddingBottom="md" paddingTop="md">
+        {visualize.visible ? (
+          <Flex direction="row" justify="between" align="center">
+            <TabListWrapper>
+              <TabList variant="floating">
+                <TabList.Item
+                  key={Mode.SAMPLES}
+                  disabled={contentsHidden || isVisualizeEquation(visualize)}
+                  tooltip={{
+                    title: isVisualizeEquation(visualize)
+                      ? t('Samples are not available for equations')
+                      : undefined,
+                  }}
+                >
+                  {t('Samples')}
+                </TabList.Item>
+                <TabList.Item key={Mode.AGGREGATE} disabled={contentsHidden}>
+                  {t('Aggregates')}
+                </TabList.Item>
+              </TabList>
+            </TabListWrapper>
+            {additionalActions}
+          </Flex>
+        ) : null}
+        {visualize.visible && !contentsHidden ? (
+          <Container height="312px">
+            <StyledTabPanels>
+              <TabPanels.Item key={Mode.AGGREGATE}>
+                <AggregatesTab
+                  traceMetric={traceMetric}
+                  isMetricOptionsEmpty={isMetricOptionsEmpty}
+                />
+              </TabPanels.Item>
+              <TabPanels.Item key={Mode.SAMPLES}>
+                <SamplesTab
+                  traceMetric={traceMetric}
+                  isMetricOptionsEmpty={isMetricOptionsEmpty}
+                />
+              </TabPanels.Item>
+            </StyledTabPanels>
+          </Container>
+        ) : null}
+      </Container>
     </TabStateProvider>
   );
 }

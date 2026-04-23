@@ -44,6 +44,9 @@ export type OnboardingEventParameters = {
     repo: string;
   };
   'onboarding.scm_connect_step_viewed': Record<string, unknown>;
+  'onboarding.scm_header_skip_clicked': {
+    step: string;
+  };
   'onboarding.scm_platform_change_platform_clicked': Record<string, unknown>;
   'onboarding.scm_platform_feature_toggled': {
     enabled: boolean;
@@ -69,6 +72,16 @@ export type OnboardingEventParameters = {
   'onboarding.scm_project_details_step_viewed': Record<string, unknown>;
   'onboarding.scm_project_details_team_selected': {
     team: string;
+  };
+  'onboarding.scm_setup_platform_later_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_take_to_error_clicked': {
+    platform?: string;
+  };
+  'onboarding.scm_view_sample_event_clicked': {
+    platform?: string;
   };
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_step_viewed': Record<string, unknown>;
@@ -136,6 +149,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
+  'onboarding.scm_header_skip_clicked': 'Onboarding: SCM Header Skip Clicked',
   'onboarding.scm_platform_change_platform_clicked':
     'Onboarding: SCM Platform Change Platform Clicked',
   'onboarding.scm_platform_feature_toggled': 'Onboarding: SCM Platform Feature Toggled',
@@ -156,6 +170,10 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: SCM Project Details Step Viewed',
   'onboarding.scm_project_details_team_selected':
     'Onboarding: SCM Project Details Team Selected',
+  'onboarding.scm_setup_platform_later_clicked':
+    'Onboarding: SCM Setup Platform Later Clicked',
+  'onboarding.scm_take_to_error_clicked': 'Onboarding: SCM Take to Error Clicked',
+  'onboarding.scm_view_sample_event_clicked': 'Onboarding: SCM View Sample Event Clicked',
   'onboarding.scm_welcome_continue_clicked': 'Onboarding: SCM Welcome Continue Clicked',
   'onboarding.scm_welcome_step_viewed': 'Onboarding: SCM Welcome Step Viewed',
 };

@@ -30,6 +30,7 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getTimeBoundsFromNodes} from 'sentry/views/insights/pages/agents/utils/timeBounds';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -187,23 +188,8 @@ export function ConversationSummary({
 }: ConversationSummaryProps) {
   const organization = useOrganization();
   const lastMessageDate = useMemo(() => {
-    if (nodes.length === 0) {
-      return null;
-    }
-
-    let endTimestamp = Number.NEGATIVE_INFINITY;
-
-    for (const node of nodes) {
-      if (typeof node.endTimestamp === 'number') {
-        endTimestamp = Math.max(endTimestamp, node.endTimestamp);
-      }
-    }
-
-    if (!Number.isFinite(endTimestamp)) {
-      return null;
-    }
-
-    return new Date(endTimestamp * 1e3);
+    const {endTimestamp} = getTimeBoundsFromNodes(nodes);
+    return endTimestamp === undefined ? null : new Date(endTimestamp);
   }, [nodes]);
 
   const handleCopyConversationId = () => {

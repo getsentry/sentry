@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
-import type {QueryClient} from '@tanstack/react-query';
+import {useQuery, type QueryClient} from '@tanstack/react-query';
+import {queryOptions, mutationOptions} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
@@ -18,17 +19,15 @@ import {
   fetchDataQuery,
   fetchMutation,
   getApiQueryData,
-  mutationOptions,
   setApiQueryData,
-  useQuery,
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type PreferredAgent = 'seer' | CodingAgentIntegration;
+export type PreferredAgent = 'seer' | CodingAgentIntegration;
 
 export function useOrgDefaultAgent() {
   const organization = useOrganization();
-  const agentOptions = useCodingAgentSelectOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
 
   const integrations = useMemo(
     () =>
@@ -76,12 +75,12 @@ export function buildHandoffPayload(
  * Returns the list of coding agent integrations formatted as select options,
  * with Seer Agent as the first/default option.
  */
-export function useCodingAgentSelectOptions({
+export function getCodingAgentSelectQueryOptions({
   organization,
 }: {
   organization: Organization;
 }) {
-  return useQuery({
+  return queryOptions({
     ...organizationIntegrationsCodingAgents(organization),
     select: (data): Array<{label: string; value: PreferredAgent}> => [
       {value: 'seer', label: t('Seer Agent')},

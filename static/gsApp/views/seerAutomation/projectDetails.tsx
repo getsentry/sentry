@@ -4,6 +4,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
@@ -18,6 +19,7 @@ import {ProjectSeerContainer as OldProjectDetails} from 'sentry/views/settings/p
 
 import {AutofixAgent} from 'getsentry/views/seerAutomation/components/projectDetails/autofixAgent';
 import {AutofixRepositories} from 'getsentry/views/seerAutomation/components/projectDetails/autofixRepositoriesList';
+import {NightShift} from 'getsentry/views/seerAutomation/components/projectDetails/nightShift';
 
 export default function SeerProjectDetailsPage() {
   const organization = useOrganization();
@@ -85,6 +87,9 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
+          <Feature features="organizations:seer-night-shift">
+            <NightShift canWrite={canWrite} project={project} />
+          </Feature>
         </Stack>
       )}
     </AnalyticsArea>
