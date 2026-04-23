@@ -15,11 +15,11 @@ from slack_sdk.models.blocks import (
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
 from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
-    SeerExplorerError,
-    SeerExplorerResponse,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
@@ -188,10 +188,10 @@ class SeerSlackRendererTest(TestCase):
         assert isinstance(actions_block.elements[0], LinkButtonElement)
 
 
-class SeerSlackRendererExplorerErrorTest(TestCase):
-    def test_render_explorer_error(self) -> None:
-        data = SeerExplorerError(error_message="Seer could not explore your organization.")
-        renderable = SeerSlackRenderer._render_explorer_error(data)
+class SeerSlackRendererAgentErrorTest(TestCase):
+    def test_render_agent_error(self) -> None:
+        data = SeerAgentError(error_message="Seer could not explore your organization.")
+        renderable = SeerSlackRenderer._render_agent_error(data)
 
         assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
         blocks = renderable["blocks"]
@@ -203,27 +203,27 @@ class SeerSlackRendererExplorerErrorTest(TestCase):
         assert blocks[1].text is not None
         assert ">Seer could not explore your organization." in blocks[1].text.text
 
-    def test_render_explorer_error_custom_title(self) -> None:
-        data = SeerExplorerError(
+    def test_render_agent_error_custom_title(self) -> None:
+        data = SeerAgentError(
             error_message="Timeout.",
-            error_title="Explorer failed",
+            error_title="Agent failed",
         )
-        renderable = SeerSlackRenderer._render_explorer_error(data)
+        renderable = SeerSlackRenderer._render_agent_error(data)
 
-        assert renderable["text"] == "Seer stumbled: Explorer failed"
+        assert renderable["text"] == "Seer stumbled: Agent failed"
         title_block = renderable["blocks"][0]
         assert isinstance(title_block, SectionBlock)
         assert title_block.text is not None
-        assert title_block.text.text == "Explorer failed"
+        assert title_block.text.text == "Agent failed"
         body_block = renderable["blocks"][1]
         assert isinstance(body_block, SectionBlock)
         assert body_block.text is not None
         assert ">Timeout." in body_block.text.text
 
-    def test_render_dispatches_to_explorer_error(self) -> None:
+    def test_render_dispatches_to_agent_error(self) -> None:
         from sentry.notifications.platform.types import NotificationRenderedTemplate
 
-        data = SeerExplorerError(error_message="Something went wrong.")
+        data = SeerAgentError(error_message="Something went wrong.")
         renderable = SeerSlackRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
@@ -231,22 +231,22 @@ class SeerSlackRendererExplorerErrorTest(TestCase):
         assert renderable["text"] == "Seer stumbled: Seer had some trouble..."
 
 
-class SeerSlackRendererExplorerTest(TestCase):
-    def _create_explorer_response(self, summary: str = "") -> SeerExplorerResponse:
-        return SeerExplorerResponse(
+class SeerSlackRendererAgentTest(TestCase):
+    def _create_agent_response(self, summary: str = "") -> SeerAgentResponse:
+        return SeerAgentResponse(
             run_id=MOCK_RUN_ID,
             organization_id=self.organization.id,
             summary=summary,
         )
 
-    def test_render_explorer_response_with_summary(self) -> None:
-        data = self._create_explorer_response(
+    def test_render_agent_response_with_summary(self) -> None:
+        data = self._create_agent_response(
             summary="Found a spike in 500 errors from the auth service."
         )
         with self.feature("organizations:seer-run-id-in-slack"):
-            renderable = SeerSlackRenderer._render_explorer_response(data)
+            renderable = SeerSlackRenderer._render_agent_response(data)
 
-        assert renderable["text"] == "Seer Explorer has finished"
+        assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
         assert len(blocks) == 2
 
@@ -257,27 +257,27 @@ class SeerSlackRendererExplorerTest(TestCase):
         assert isinstance(blocks[1].elements[0], PlainTextObject)
         assert f"Run ID: {MOCK_RUN_ID}" in blocks[1].elements[0].text
 
-    def test_render_explorer_response_without_run_id_flag(self) -> None:
-        data = self._create_explorer_response(
+    def test_render_agent_response_without_run_id_flag(self) -> None:
+        data = self._create_agent_response(
             summary="Found a spike in 500 errors from the auth service."
         )
-        renderable = SeerSlackRenderer._render_explorer_response(data)
+        renderable = SeerSlackRenderer._render_agent_response(data)
 
-        assert renderable["text"] == "Seer Explorer has finished"
+        assert renderable["text"] == "Seer Agent has finished"
         blocks = renderable["blocks"]
         assert len(blocks) == 1
 
         assert isinstance(blocks[0], MarkdownBlock)
         assert "Found a spike in 500 errors from the auth service." in blocks[0].text
 
-    def test_render_explorer_response_with_missing_scope_footer(self) -> None:
-        data = SeerExplorerResponse(
+    def test_render_agent_response_with_missing_scope_footer(self) -> None:
+        data = SeerAgentResponse(
             run_id=MOCK_RUN_ID,
             organization_id=self.organization.id,
             summary="Some analysis",
             missing_scope_settings_url="https://sentry.io/settings/test/integrations/slack/",
         )
-        renderable = SeerSlackRenderer._render_explorer_response(data)
+        renderable = SeerSlackRenderer._render_agent_response(data)
 
         blocks = renderable["blocks"]
         assert len(blocks) == 2
@@ -290,20 +290,20 @@ class SeerSlackRendererExplorerTest(TestCase):
         assert "Reinstall" in footer_text
         assert "I can't read the whole thread" in footer_text
 
-    def test_render_explorer_response_no_footer_when_url_not_set(self) -> None:
-        data = self._create_explorer_response(summary="Some analysis")
+    def test_render_agent_response_no_footer_when_url_not_set(self) -> None:
+        data = self._create_agent_response(summary="Some analysis")
         assert data.missing_scope_settings_url is None
-        renderable = SeerSlackRenderer._render_explorer_response(data)
+        renderable = SeerSlackRenderer._render_agent_response(data)
 
         for block in renderable["blocks"]:
             assert block.type != "context"
 
-    def test_render_dispatches_to_explorer_response(self) -> None:
-        data = self._create_explorer_response(summary="Test")
+    def test_render_dispatches_to_agent_response(self) -> None:
+        data = self._create_agent_response(summary="Test")
         from sentry.notifications.platform.types import NotificationRenderedTemplate
 
         renderable = SeerSlackRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="", body=[]),
         )
-        assert renderable["text"] == "Seer Explorer has finished"
+        assert renderable["text"] == "Seer Agent has finished"

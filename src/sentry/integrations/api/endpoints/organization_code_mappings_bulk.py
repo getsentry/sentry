@@ -126,7 +126,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 provider=repo_provider,
                 integration_id=org_int.integration_id,
-                external_id=repo_info.get("identifier", ""),
+                external_id=repo_info["external_id"],
             ), None
         except IntegrityError:
             # Race condition — repo was created between our lookup and now

@@ -78,7 +78,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             assert call_args[1]["raise_on_error"] is True
 
             # Should update seer_latest_training_model without touching seer_model
-            metadata.refresh_from_db()
+            metadata = GroupHashMetadata.objects.get(id=metadata.id)
             assert metadata.seer_latest_training_model == "v2"
             assert metadata.seer_model is None
 
@@ -123,7 +123,7 @@ class MaybeSendSeerForNewModelTrainingTest(TestCase):
             assert call_args[1]["raise_on_error"] is True
 
             # Should update seer_latest_training_model without touching seer_model
-            metadata.refresh_from_db()
+            metadata = GroupHashMetadata.objects.get(id=metadata.id)
             assert metadata.seer_latest_training_model == "v2"
             assert metadata.seer_model == "v1"
 

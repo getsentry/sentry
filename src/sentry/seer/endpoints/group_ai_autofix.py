@@ -35,6 +35,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
+    NoSeerQuotaException,
     get_autofix_explorer_state,
     trigger_autofix_explorer,
     trigger_coding_agent_handoff,
@@ -296,6 +297,8 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                 insert_index=data.get("insert_index"),
             )
             return Response({"run_id": run_id}, status=status.HTTP_202_ACCEPTED)
+        except NoSeerQuotaException:
+            return Response("No budget for Seer Autofix.", status=status.HTTP_402_PAYMENT_REQUIRED)
         except SeerPermissionError as e:
             raise PermissionDenied(str(e))
 

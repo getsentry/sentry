@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -19,9 +20,8 @@ import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getTimeFormat} from 'sentry/utils/dates';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -91,26 +91,18 @@ export default function UsageLog() {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-  const {
-    data: auditLogs,
-    isPending,
-    isError,
-    getResponseHeader,
-    refetch,
-  } = useApiQuery<UsageLogs>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/subscription/usage-logs/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data, isPending, isError, refetch} = useQuery({
+    ...apiOptions.as<UsageLogs>()(
+      '/customers/$organizationIdOrSlug/subscription/usage-logs/',
       {
-        method: 'GET',
-        query: {
-          ...location.query,
-        },
-      },
-    ],
-    {staleTime: 0}
-  );
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...location.query},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const auditLogs = data?.json;
 
   const eventNames = useMemoWithPrevious<string[] | null>(
     previous => auditLogs?.eventNames ?? previous,
@@ -226,7 +218,7 @@ export default function UsageLog() {
           </Timeline.Container>
         )}
       </Grid>
-      <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
+      <Pagination pageLinks={data?.headers.Link} onCursor={handleCursor} />
     </Fragment>
   );
 

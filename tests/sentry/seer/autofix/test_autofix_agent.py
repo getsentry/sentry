@@ -4,8 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.constants import DataCategory
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
+    NoSeerQuotaException,
     build_step_prompt,
     generate_autofix_handoff_prompt,
     trigger_autofix_explorer,
@@ -271,10 +273,12 @@ class TestTriggerAutofixExplorer(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_autofix_explorer_sends_started_webhook_for_all_steps(
-        self, mock_client_class, mock_broadcast
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
         """Sends correct started webhook for all autofix steps."""
         mock_client = MagicMock()
@@ -302,10 +306,12 @@ class TestTriggerAutofixExplorer(TestCase):
             call_kwargs = mock_broadcast.call_args.kwargs
             assert call_kwargs["event_name"] == expected_action.value
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_autofix_explorer_sends_started_webhook_for_continued_run(
-        self, mock_client_class, mock_broadcast
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
         """Sends started webhook when continuing an existing run."""
         mock_client = MagicMock()
@@ -326,10 +332,12 @@ class TestTriggerAutofixExplorer(TestCase):
         assert call_kwargs["event_name"] == SeerActionType.SOLUTION_STARTED.value
         assert call_kwargs["payload"]["run_id"] == 67890
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_autofix_explorer_passes_project_to_client(
-        self, mock_client_class, mock_broadcast
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
         """SeerExplorerClient is constructed with project from the group."""
         mock_client = MagicMock()
@@ -347,10 +355,12 @@ class TestTriggerAutofixExplorer(TestCase):
         call_kwargs = mock_client_class.call_args.kwargs
         assert call_kwargs["project"] == self.group.project
 
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
     def test_trigger_autofix_explorer_passes_group_id_in_metadata(
-        self, mock_client_class, mock_broadcast
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
     ):
         """start_run is called with metadata containing group_id even without stopping_point."""
         mock_client = MagicMock()
@@ -367,6 +377,87 @@ class TestTriggerAutofixExplorer(TestCase):
         mock_client.start_run.assert_called_once()
         call_kwargs = mock_client.start_run.call_args.kwargs
         assert call_kwargs["metadata"] == {"group_id": self.group.id, "referrer": "unknown"}
+
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_when_no_quota(self, mock_check_quota, mock_client_class):
+        with pytest.raises(NoSeerQuotaException):
+            trigger_autofix_explorer(
+                group=self.group,
+                step=AutofixStep.ROOT_CAUSE,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=None,
+            )
+        mock_check_quota.assert_called_once_with(
+            org_id=self.group.organization.id,
+            data_category=DataCategory.SEER_AUTOFIX,
+        )
+        mock_client_class.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_records_seer_run_for_new_run(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.start_run.return_value = 12345
+
+        trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.ROOT_CAUSE,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        mock_record_run.assert_called_once_with(
+            self.group.organization.id, self.group.project.id, DataCategory.SEER_AUTOFIX
+        )
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_does_not_record_seer_run_for_continued_run(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.continue_run.return_value = 67890
+
+        trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=67890,
+        )
+
+        mock_record_run.assert_not_called()
+
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerExplorerClient")
+    def test_continued_run_permitted_with_no_remaining_budget(
+        self, mock_client_class, mock_broadcast, mock_check_quota, mock_record_run
+    ):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.continue_run.return_value = 67890
+
+        run_id = trigger_autofix_explorer(
+            group=self.group,
+            step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=67890,
+        )
+
+        assert run_id == 67890
+        mock_client.continue_run.assert_called_once()
+        mock_check_quota.assert_not_called()
+        mock_record_run.assert_not_called()
 
 
 class TestTriggerCodingAgentHandoff(TestCase):

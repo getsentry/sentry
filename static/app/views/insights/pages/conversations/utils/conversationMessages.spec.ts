@@ -315,6 +315,29 @@ describe('conversationMessages utilities', () => {
       expect(parseAssistantContent(node as any)).toBeNull();
     });
 
+    it('extracts content from non-array JSON object in output messages', () => {
+      const outputObj = JSON.stringify({content: 'Object content response'});
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('Object content response');
+    });
+
+    it('falls back to response.text when output messages is object without content', () => {
+      const outputObj = JSON.stringify({other: 'no content key'});
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Fallback text',
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('Fallback text');
+    });
+
     it('returns [Filtered] when output messages are scrubbed', () => {
       const node = createMockNode({
         id: 'node-1',

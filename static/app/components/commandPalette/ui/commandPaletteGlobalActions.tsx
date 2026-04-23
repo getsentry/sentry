@@ -1,4 +1,5 @@
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -29,6 +30,7 @@ import {
   IconList,
   IconLock,
   IconOpen,
+  IconProject,
   IconSearch,
   IconSeer,
   IconSettings,
@@ -40,7 +42,7 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {QUERY_API_CLIENT, useMutation} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -62,7 +64,8 @@ import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
-import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 
@@ -110,6 +113,8 @@ export function GlobalCommandPaletteActions() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
+
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
@@ -343,6 +348,26 @@ export function GlobalCommandPaletteActions() {
             />
           </CMDKAction>
         )}
+
+        <CMDKAction display={{label: t('Projects'), icon: <IconProject />}}>
+          <CMDKAction
+            display={{label: t('All Projects')}}
+            to={makeProjectsPathname({path: '/', organization})}
+          />
+          {projects
+            .filter(project => project.isBookmarked)
+            .slice(0, 8)
+            .map(project => (
+              <CMDKAction
+                key={project.id}
+                display={{
+                  label: project.name,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                }}
+                to={makeProjectsPathname({path: `/${project.slug}/`, organization})}
+              />
+            ))}
+        </CMDKAction>
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
           {getUserOrgNavigationConfiguration().flatMap(section =>

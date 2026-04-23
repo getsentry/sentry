@@ -18,12 +18,14 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
 import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
+import {ScmStepHeader} from 'sentry/views/onboarding/components/scmStepHeader';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
@@ -126,6 +128,11 @@ const PRODUCT_OPTIONS: ProductOption[] = [
 ];
 
 export function NewWelcomeUI(props: StepProps) {
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
+
   useWelcomeAnalyticsEffect();
 
   // Scroll to top on mount to fix iOS Safari retaining scroll position from previous page.
@@ -140,24 +147,38 @@ export function NewWelcomeUI(props: StepProps) {
 
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
-      <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
-        <WelcomeBackgroundNewUi />
+      <MotionFlex
+        direction="column"
+        align={hasScmOnboarding ? undefined : 'center'}
+        {...STAGGER_CONTAINER}
+      >
+        {hasScmOnboarding ? null : <WelcomeBackgroundNewUi />}
         <Flex direction="column" gap="2xl">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM}>
-            <Flex direction="column" gap="sm" paddingBottom="2xl">
-              <Container>
-                <Heading as="h1" density="comfortable">
-                  {t('Welcome to Sentry')}
-                </Heading>
-              </Container>
-              <Container>
-                <Text variant="muted" size="xl" bold wrap="pre-line">
-                  {t("Your code is probably broken. Let's fix it faster.")}
-                </Text>
-              </Container>
-            </Flex>
+            {hasScmOnboarding ? (
+              <Flex paddingBottom="2xl" justify="center">
+                <ScmStepHeader
+                  heading={t('Welcome to Sentry')}
+                  subtitle={t("Your code is probably broken. Let's fix it faster.")}
+                  subtitleSize="xl"
+                />
+              </Flex>
+            ) : (
+              <Flex direction="column" gap="sm" paddingBottom="2xl">
+                <Container>
+                  <Heading as="h1" density="comfortable">
+                    {t('Welcome to Sentry')}
+                  </Heading>
+                </Container>
+                <Container>
+                  <Text variant="muted" size="xl" bold wrap="pre-line">
+                    {t("Your code is probably broken. Let's fix it faster.")}
+                  </Text>
+                </Container>
+              </Flex>
+            )}
 
-            <Stack gap="2xs">
+            <Stack gap="2xs" align={hasScmOnboarding ? 'center' : undefined}>
               <Flex align="center" gap="md">
                 <Container>
                   <IconBusiness size="md" variant="accent" />
@@ -198,11 +219,14 @@ export function NewWelcomeUI(props: StepProps) {
             </Text>
           </MotionContainer>
         </Flex>
-        <GenericFooter>
-          <Flex align="center" padding="0 3xl">
-            <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
+        <GenericFooter gap="3xl" padding="0 3xl">
+          <Flex align="center">
+            {hasScmOnboarding ? null : (
+              <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
+            )}
           </Flex>
-          <Flex align="center" padding="0 3xl">
+
+          <Flex align="center">
             <Button
               priority="primary"
               onClick={handleComplete}

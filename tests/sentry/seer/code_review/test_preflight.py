@@ -100,19 +100,45 @@ class TestCodeReviewPreflightService(TestCase):
         assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     # -------------------------------------------------------------------------
-    # Seer-added (legacy usage-based) org tests
+    # Seer-added (legacy usage-based) org tests - not eligible for code review
     # -------------------------------------------------------------------------
 
     @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
-    def test_denied_when_seer_added_org_has_no_repo_settings(self) -> None:
+    def test_denied_when_seer_added_only_org_not_eligible(self) -> None:
         service = self._create_service()
         result = service.check()
 
         assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
+        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
 
     @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
-    def test_allowed_when_seer_added_org_has_repo_settings_enabled(self) -> None:
+    def test_denied_when_seer_added_only_org_even_with_repo_settings_enabled(self) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+
+        OrganizationContributors.objects.create(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_NOT_ELIGIBLE_FOR_CODE_REVIEW
+
+    @with_feature(
+        [
+            "organizations:gen-ai-features",
+            "organizations:seer-added",
+            "organizations:code-review-beta",
+        ]
+    )
+    def test_allowed_when_seer_added_and_code_review_beta_org_has_repo_settings(self) -> None:
+        """Legacy seer-added plus beta remains eligible (beta is the code-review gate)."""
         self.create_repository_settings(
             repository=self.repo,
             enabled_code_review=True,
@@ -129,25 +155,6 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is True
         assert result.denial_reason is None
-
-    @with_feature(["organizations:gen-ai-features", "organizations:seer-added"])
-    def test_denied_when_seer_added_org_has_repo_settings_disabled(self) -> None:
-        self.create_repository_settings(
-            repository=self.repo,
-            enabled_code_review=False,
-        )
-
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
-            external_identifier=self.external_identifier,
-        )
-
-        service = self._create_service()
-        result = service.check()
-
-        assert result.allowed is False
-        assert result.denial_reason == PreflightDenialReason.REPO_CODE_REVIEW_DISABLED
 
     # -------------------------------------------------------------------------
     # Seat-based org tests

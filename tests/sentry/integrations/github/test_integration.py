@@ -51,6 +51,8 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.cache import cache
 
+_ = sentry
+
 TREE_RESPONSES = {
     "xyz": {"status_code": 200, "body": {"tree": [{"path": "src/xyz.py", "type": "blob"}]}},
     "foo": {
@@ -589,7 +591,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
+        with patch.object(client.GitHubBaseClient, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
                 {
@@ -624,10 +626,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         with (
-            patch.object(
-                sentry.integrations.github.client.GitHubBaseClient, "page_number_limit", 1
-            ),
-            patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1),
+            patch.object(client.GitHubBaseClient, "page_number_limit", 1),
+            patch.object(client.GitHubBaseClient, "page_size", 1),
         ):
             result = installation.get_repositories()
             assert result == [
@@ -791,25 +791,39 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_trees(self, repo_info_list=None):
         result = {}
+        repo_ids = {"xyz": "1234567", "foo": "1296269", "bar": "9876574", "baz": "1276555"}
         # bar (409 empty repo) returns an empty RepoTree since we cache the result
-        # baz (404) still fails and is excluded
+        # baz (404) also returns an empty RepoTree because we cache not-found outcomes
         list = repo_info_list or [
             ("xyz", "master", ["src/xyz.py"]),
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
             ("bar", "main", []),
+            ("baz", "master", []),
         ]
         for repo, branch, files in list:
             result[f"{self.gh_org}/{repo}"] = RepoTree(
-                RepoAndBranch(f"{self.gh_org}/{repo}", branch), files
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch, str(repo_ids.get(repo, ""))), files
             )
         return result
 
     def _expected_cached_repos(self):
         return [
-            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/foo", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/bar", "default_branch": "main"},
-            {"full_name": f"{self.gh_org}/baz", "default_branch": "master"},
+            {
+                "full_name": f"{self.gh_org}/xyz",
+                "default_branch": "master",
+                "external_id": "1234567",
+            },
+            {
+                "full_name": f"{self.gh_org}/foo",
+                "default_branch": "master",
+                "external_id": "1296269",
+            },
+            {"full_name": f"{self.gh_org}/bar", "default_branch": "main", "external_id": "9876574"},
+            {
+                "full_name": f"{self.gh_org}/baz",
+                "default_branch": "master",
+                "external_id": "1276555",
+            },
         ]
 
     @responses.activate
@@ -878,6 +892,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     # Now that the rate limit is reset we should get files for foo
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
                     ("bar", "main", []),
+                    ("baz", "master", []),
                 ]
             )
 
@@ -910,6 +925,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ("xyz", "master", ["src/xyz.py"]),
                 ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
                 ("bar", "main", []),
+                ("baz", "master", []),
             ]
         )
 
@@ -956,9 +972,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     # xyz is missing because its request errors
                     # foo has data because its API request is made in spite of xyz's error
                     ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
-                    # bar (409 empty repo) is present with empty files since we cache the result
-                    # baz (404) is missing because its API request throws an error
+                    # bar (409 empty repo) and baz (404) are present with empty files
+                    # since both outcomes are cached
                     ("bar", "main", []),
+                    ("baz", "master", []),
                 ]
             )
 

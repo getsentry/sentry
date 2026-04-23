@@ -14,10 +14,8 @@ import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetect
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
-import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
-import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {getMetricsUrl} from 'sentry/views/explore/metrics/utils';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
@@ -184,15 +182,18 @@ function getDetectorMetricsUrl({
   const interval = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
   const numericProjectId = Number(projectId);
 
-  const {traceMetric} = parseMetricAggregate(snubaQuery.aggregate ?? '');
+  // Expand equation aggregates (e.g. `equation|count(...) + count(...)`) into
+  // one metric row per unique function plus an equation row, so Explore opens
+  // with all the referenced components, not a single opaque VisualizeFunction.
+  const parsed = parseAggregateExpression(snubaQuery.aggregate ?? '', snubaQuery.query);
+  const parsedQueries = parsed.equationRow
+    ? [...parsed.metricQueries, parsed.equationRow]
+    : parsed.metricQueries;
 
-  const metricQuery = defaultMetricQuery();
-  metricQuery.metric = traceMetric;
-  metricQuery.queryParams = metricQuery.queryParams.replace({
-    mode: Mode.AGGREGATE,
-    query: snubaQuery.query,
-    aggregateFields: [new VisualizeFunction(snubaQuery.aggregate)],
-  });
+  const metricQueries = parsedQueries.map(metricQuery => ({
+    ...metricQuery,
+    queryParams: metricQuery.queryParams.replace({mode: Mode.AGGREGATE}),
+  }));
 
   return getMetricsUrl({
     organization,
@@ -207,7 +208,7 @@ function getDetectorMetricsUrl({
       projects: [numericProjectId],
     },
     interval,
-    metricQueries: [metricQuery],
+    metricQueries,
   });
 }
 

@@ -158,6 +158,7 @@ export function TraceAiSpans({
           replay: null,
           traceId: traceSlug,
           hideNodeActions: true,
+          initiallyCollapseAiIO: false,
         })}
       </RightPanel>
     </Wrapper>
@@ -208,6 +209,7 @@ export function AiSpansSplitView({
         <ConversationDetailPanel
           selectedNode={selectedNode}
           nodeTraceMap={nodeTraceMap}
+          initiallyCollapseAiIO={false}
         />
       }
     />

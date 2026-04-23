@@ -242,15 +242,18 @@ export type IssueEventParameters = {
     sort: string;
   };
   'issues_stream.archived': {
+    area: string;
     action_status_details?: string;
     action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
+    area: string;
     assigned_type: string;
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
   'issues_stream.merged': {
+    area: string;
     items_merged: number | 'all_in_query' | undefined;
     platform: string | undefined;
     project_id: string | undefined;
@@ -261,10 +264,15 @@ export type IssueEventParameters = {
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
+  'issues_stream.resolved': {
+    area: string;
+    action_status_details?: string;
+  };
   'issues_stream.sort_changed': {
     sort: string;
   };
   'issues_stream.updated_priority': {
+    area: string;
     priority: PriorityLevel;
   };
   'one_other_related_trace_issue.clicked': {
@@ -371,6 +379,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.merged': 'Merged Issues from Issues Stream',
+  'issues_stream.resolved': 'Issues Stream: Resolved',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',

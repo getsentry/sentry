@@ -1,10 +1,10 @@
 import {useEffect, useMemo} from 'react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -183,16 +183,6 @@ export function useConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  const queryUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        conversationId: conversation.conversationId,
-      },
-    }
-  );
-
   // Use conversation timestamps when available (with 1-hour padding), falling back to page filters
   const ONE_HOUR_MS = 60 * 60 * 1000;
   const hasConversationTimestamps =
@@ -215,28 +205,39 @@ export function useConversation(
         per_page: 1000,
       };
 
-  const conversationQuery = useInfiniteApiQuery<ConversationApiSpan[]>({
-    queryKey: [{infinite: true, version: 'v1'}, queryUrl, {query: queryParams}],
-    staleTime: Infinity,
-    enabled: !!conversation.conversationId,
-  });
+  const {
+    data,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isLoading,
+    isError,
+  } = useInfiniteQuery(
+    apiOptions.asInfinite<ConversationApiSpan[]>()(
+      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+      {
+        path: conversation.conversationId
+          ? {
+              organizationIdOrSlug: organization.slug,
+              conversationId: conversation.conversationId,
+            }
+          : skipToken,
+        query: queryParams,
+        staleTime: Infinity,
+      }
+    )
+  );
 
-  const currentNumberPages = conversationQuery.data?.pages.length ?? 0;
+  const currentNumberPages = data?.pages.length ?? 0;
 
   useEffect(() => {
-    if (
-      !conversationQuery.isFetching &&
-      conversationQuery.hasNextPage &&
-      currentNumberPages < MAX_PAGES
-    ) {
-      conversationQuery.fetchNextPage();
+    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
+      fetchNextPage();
     }
-  }, [conversationQuery, currentNumberPages]);
+  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
 
-  const allSpans = useMemo(
-    () => conversationQuery.data?.pages.flatMap(([pageData]) => pageData) ?? [],
-    [conversationQuery.data]
-  );
+  const allSpans = useMemo(() => data?.pages.flatMap(page => page.json) ?? [], [data]);
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -266,7 +267,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: conversationQuery.isLoading || conversationQuery.isFetchingNextPage,
-    error: conversationQuery.isError,
+    isLoading: isLoading || isFetchingNextPage,
+    error: isError,
   };
 }

@@ -17,7 +17,11 @@ export function AutomationFeedbackButton() {
   if (hasPageFrameFeature) {
     return (
       <TopBar.Slot name="feedback">
-        <FeedbackButton feedbackOptions={automationFeedbackOptions}>
+        <FeedbackButton
+          feedbackOptions={automationFeedbackOptions}
+          aria-label={t('Feedback')}
+          tooltipProps={{title: t('Feedback')}}
+        >
           {null}
         </FeedbackButton>
       </TopBar.Slot>

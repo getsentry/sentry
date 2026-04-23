@@ -10,6 +10,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -96,12 +97,16 @@ export function MetricPanel({
     traceMetric,
     fields,
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
   const metricAggregatesTableResult = useMetricAggregatesTable({
     enabled: areQueriesEnabled,
     limit: RESULT_LIMIT,
     traceMetric,
+    // We can use Infinity here because the data will remain the same, and if the args to
+    // change the data changes, the cache will be invalidated.
+    staleTime: Infinity,
   });
 
   const {result: timeseriesResult} = useMetricTimeseries({

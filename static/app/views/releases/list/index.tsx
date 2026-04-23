@@ -468,7 +468,11 @@ export default function ReleasesList() {
                 <Layout.HeaderActions>
                   {hasPageFrameFeature ? (
                     <TopBar.Slot name="feedback">
-                      <FeedbackButton feedbackOptions={releasesFeedbackOptions}>
+                      <FeedbackButton
+                        feedbackOptions={releasesFeedbackOptions}
+                        aria-label={t('Give Feedback')}
+                        tooltipProps={{title: t('Give Feedback')}}
+                      >
                         {null}
                       </FeedbackButton>
                     </TopBar.Slot>
