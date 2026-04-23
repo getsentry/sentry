@@ -6,11 +6,13 @@ import type {
   CrossEventType,
 } from 'sentry/views/explore/queryParams/crossEvent';
 
-export const crossEventDropdownItems: DropdownMenuProps['items'] = [
-  {key: 'spans', label: t('Spans')},
-  {key: 'logs', label: t('Logs')},
-  {key: 'metrics', label: t('Metrics')},
-];
+export function getCrossEventDropdownItems(): DropdownMenuProps['items'] {
+  return [
+    {key: 'spans', label: t('Spans')},
+    {key: 'logs', label: t('Logs')},
+    {key: 'metrics', label: t('Metrics')},
+  ];
+}
 
 const EMPTY_TRACE_METRIC: TraceMetric = {name: '', type: ''};
 

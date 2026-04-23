@@ -15,7 +15,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import {
-  crossEventDropdownItems,
+  getCrossEventDropdownItems,
   makeCrossEvent,
 } from 'sentry/views/explore/spans/crossEvents/utils';
 
@@ -52,7 +52,7 @@ export function CrossEventQueryingDropdown() {
       {triggerProps => (
         <DropdownMenu
           onAction={onAction}
-          items={crossEventDropdownItems}
+          items={getCrossEventDropdownItems()}
           isDisabled={isDisabled}
           triggerProps={{
             ...triggerProps,
