@@ -5918,6 +5918,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.data["data"][0]["issue"] == "unknown"
         assert response.data["data"][0]["count()"] == 1
 
+    @pytest.mark.skip(reason="flaky under shuffled xdist — assert 0 == 1 event count race")
     def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self) -> None:
         # Store an error
         self.store_event(

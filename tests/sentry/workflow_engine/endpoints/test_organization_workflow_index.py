@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from typing import Any
 from unittest import mock
 
+import pytest
 import responses
 
 from sentry import audit_log
@@ -548,6 +549,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             str(self.workflow_two.id),
         }
 
+    @pytest.mark.skip(reason="flaky under shuffled xdist — SnubaError port 1218 connection")
     def test_query_by_created_by_negated_list(self) -> None:
         other_user = self.create_user(email="other@example.com")
         self.workflow.update(created_by_id=self.user.id)

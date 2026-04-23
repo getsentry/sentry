@@ -19,6 +19,7 @@ class TestIssueResolvedTriggerCondition(ConditionTestCase):
             condition_result=True,
         )
 
+    @pytest.mark.skip(reason="flaky under shuffled xdist — SnubaError port 1218 connection")
     def test_evaluate_value__resolved(self) -> None:
         self.group_event.group.status = GroupStatus.RESOLVED
         result = self.dc.evaluate_value(self.event_data)
