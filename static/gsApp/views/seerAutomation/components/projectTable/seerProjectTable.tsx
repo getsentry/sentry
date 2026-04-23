@@ -70,7 +70,7 @@ export function SeerProjectTable() {
   const result = useInfiniteQuery({
     ...autofixSettingsQueryOptions,
     select: ({pages}) =>
-      new Map(
+      Object.fromEntries(
         pages
           .flatMap(page => page.json)
           .map(setting => [String(setting.projectId), setting] as const)
@@ -158,8 +158,8 @@ export function SeerProjectTable() {
           : b.name.localeCompare(a.name);
       }
 
-      const aSettings = autofixSettingsByProjectId?.get(a.id);
-      const bSettings = autofixSettingsByProjectId?.get(b.id);
+      const aSettings = autofixSettingsByProjectId?.[a.id];
+      const bSettings = autofixSettingsByProjectId?.[b.id];
 
       if (sort.field === 'agent') {
         const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
@@ -205,7 +205,7 @@ export function SeerProjectTable() {
 
     if (agentFilter) {
       filtered = filtered.filter(project => {
-        const settings = autofixSettingsByProjectId?.get(project.id);
+        const settings = autofixSettingsByProjectId?.[project.id];
         const projectAgentId = settings?.automationHandoff?.target
           ? String(settings.automationHandoff.target)
           : 'seer';
@@ -312,7 +312,7 @@ export function SeerProjectTable() {
             filteredProjects.map(project => (
               <SeerProjectTableRow
                 key={project.id}
-                autofixSettings={autofixSettingsByProjectId?.get(project.id)}
+                autofixSettings={autofixSettingsByProjectId?.[project.id]}
                 integrations={integrations ?? []}
                 isPendingIntegrations={isPendingIntegrations}
                 mutateStoppingPoint={mutateStoppingPoint}
