@@ -9,6 +9,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import RepoExistsError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
 
@@ -108,20 +109,22 @@ class IntegrationRepositoryTestCase(TestCase):
         repo.refresh_from_db()
         assert repo.name == self.repo_name
 
-    def test_create_repository__integrity_error_without_match_raises(
-        self, get_jwt: MagicMock
+    @patch("sentry.models.Repository.objects.create")
+    @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
+    def test_create_repository__delete_webhook(
+        self, mock_on_delete: MagicMock, mock_repo: MagicMock, get_jwt: MagicMock
     ) -> None:
-        # Pre-existing repo under a different external_id — the reclaim query
-        # (matching integration_id + config's external_id) won't find it, so
-        # the race fallback has nothing to surface.
         self._create_repo()
 
-        with (
-            patch("sentry.models.Repository.objects.create", side_effect=IntegrityError),
-            pytest.raises(RepoExistsError) as exc_info,
-        ):
+        mock_repo.side_effect = IntegrityError
+        mock_on_delete.side_effect = IntegrationError
+
+        with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
+        # Pre-existing repo is under the default external_id=123456, not the
+        # config's 654321 — the reclaim query misses, so the race fallback
+        # has nothing to surface.
         assert exc_info.value.reclaimed_repo is None
 
     def test_create_repository__integrity_error_attaches_reclaimed(
