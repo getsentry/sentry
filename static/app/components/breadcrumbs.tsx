@@ -1,4 +1,4 @@
-import {Fragment, isValidElement} from 'react';
+import {Fragment} from 'react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
@@ -82,19 +82,9 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
     }
   }
 
-  const isCustomLabel = isValidElement(props.crumb.label);
-
   return (
     <Container maxWidth="400px" width="auto">
       {styleProps => {
-        if (isCustomLabel && !props.crumb.to) {
-          return (
-            <div data-test-id="breadcrumb-item" {...styleProps}>
-              {props.crumb.label}
-            </div>
-          );
-        }
-
         return props.crumb.to ? (
           <BreadcrumbLink
             to={props.crumb.to}
