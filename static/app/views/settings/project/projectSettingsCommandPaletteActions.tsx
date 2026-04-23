@@ -135,10 +135,7 @@ export function getProjectSettingsCommandPaletteSections({
         items: section.items
           .filter(item => shouldShowItem(item, context, section))
           .map(item => {
-            const suffix = item.path.replace(
-              '/settings/:orgId/projects/:projectId/',
-              ''
-            );
+            const suffix = item.path.replace('/settings/:orgId/projects/:projectId/', '');
             return {
               display: {
                 label: item.title,

@@ -77,8 +77,8 @@ import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/i
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
-import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
+import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 import {CMDKAction} from './cmdk';
@@ -90,7 +90,6 @@ const DSN_ICONS: React.ReactElement[] = [
   <IconSettings key="settings" />,
   <IconList key="list" />,
 ];
-
 
 const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/:orgId/api-keys/': <IconLock />,
