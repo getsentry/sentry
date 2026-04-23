@@ -88,15 +88,7 @@ export function ProjectAddRepoModal({
     stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
   });
 
-  const saveMutation = useMutateAutofixProject({
-    onSuccess: () => {
-      addSuccessMessage(t('Project saved successfully'));
-      closeModal();
-    },
-    onError: () => {
-      addErrorMessage(t('Failed to save project settings'));
-    },
-  });
+  const saveMutation = useMutateAutofixProject();
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -108,12 +100,23 @@ export function ProjectAddRepoModal({
     },
     validators: {onDynamic: formSchema},
     onSubmit: ({value: {projectId, repoEntries, agent, stoppingPoint}}) =>
-      saveMutation.mutate({
-        project: projectsById.get(projectId)!, // We refined projectId, so this is safe
-        repoEntries,
-        agent,
-        stoppingPoint,
-      }),
+      saveMutation.mutate(
+        {
+          project: projectsById.get(projectId)!, // We refined projectId, so this is safe
+          repoEntries,
+          agent,
+          stoppingPoint,
+        },
+        {
+          onSuccess: () => {
+            addSuccessMessage(t('Project saved successfully'));
+            closeModal();
+          },
+          onError: () => {
+            addErrorMessage(t('Failed to save project settings'));
+          },
+        }
+      ),
   });
 
   return (

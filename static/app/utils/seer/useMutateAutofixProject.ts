@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient, type DefaultError} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
@@ -12,12 +12,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {buildHandoffPayload, type PreferredAgent} from 'sentry/utils/seer/preferredAgent';
-import {resolveStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
+import {
+  getTuningFromStoppingPoint,
+  resolveStoppingPoint,
+} from 'sentry/utils/seer/stoppingPoint';
 import type {UserFacingStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = [Project, SeerPreferencesResponse];
-type TError = DefaultError;
 type TVariables = {
   agent: PreferredAgent;
   project: Project;
@@ -27,20 +29,8 @@ type TVariables = {
   }>;
   stoppingPoint: UserFacingStoppingPoint;
 };
-type TOnMutateResult = unknown;
 
-interface Props {
-  onError?: (error: TError, variables: TVariables, context: TOnMutateResult) => void;
-  onSettled?: (
-    data: TData | undefined,
-    error: TError | null,
-    variables: TVariables,
-    context: TOnMutateResult
-  ) => void;
-  onSuccess?: (data: TData, variables: TVariables) => void;
-}
-
-export function useMutateAutofixProject({onSuccess, onError, onSettled}: Props) {
+export function useMutateAutofixProject() {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
@@ -53,7 +43,7 @@ export function useMutateAutofixProject({onSuccess, onError, onSettled}: Props) 
       agent,
       stoppingPoint,
     }: TVariables): Promise<TData> => {
-      const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+      const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
       const handoff = buildHandoffPayload(agent, stoppingPoint === 'create_pr');
       const {stoppingPointValue, automationHandoff} = resolveStoppingPoint(
@@ -109,17 +99,16 @@ export function useMutateAutofixProject({onSuccess, onError, onSettled}: Props) 
         }),
       ]);
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
+      const {project, stoppingPoint} = variables;
+      const tuning = getTuningFromStoppingPoint(stoppingPoint);
+
       ProjectsStore.onUpdateSuccess({
-        id: variables.project.id,
-        autofixAutomationTuning: 'medium',
+        id: project.id,
+        autofixAutomationTuning: tuning,
       });
-      onSuccess?.(data, variables);
     },
-    onError: (error, variables, context) => {
-      onError?.(error, variables, context);
-    },
-    onSettled: (data, error, variables, context) => {
+    onSettled: (_data, _error, variables, _context) => {
       const {project} = variables;
       queryClient.invalidateQueries({
         queryKey: makeProjectSeerPreferencesQueryKey(organization.slug, project.slug),
@@ -127,7 +116,6 @@ export function useMutateAutofixProject({onSuccess, onError, onSettled}: Props) 
       queryClient.invalidateQueries({
         queryKey: bulkAutofixAutomationSettingsInfiniteOptions({organization}).queryKey,
       });
-      onSettled?.(data, error, variables, context);
     },
   });
 }

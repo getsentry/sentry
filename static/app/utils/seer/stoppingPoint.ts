@@ -102,6 +102,12 @@ export function getProjectStoppingPointValue(
   return 'plan';
 }
 
+export function getTuningFromStoppingPoint(
+  stoppingPoint: UserFacingStoppingPoint
+): 'off' | 'medium' {
+  return stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+}
+
 /**
  * Returns mutation options for updating the stopping point on a project.
  *
@@ -163,7 +169,7 @@ export function getProjectStoppingPointMutationOptions({
 }) {
   return mutationOptions({
     mutationFn: async ({stoppingPoint, project}: StoppingPointVariables) => {
-      const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
+      const tuning = getTuningFromStoppingPoint(stoppingPoint);
 
       const projectPromise = fetchMutation<Project>({
         method: 'PUT',
