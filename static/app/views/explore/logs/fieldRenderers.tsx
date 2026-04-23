@@ -640,17 +640,19 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function TimeStampRenderer(props: LogFieldRendererProps) {
+  if (props.extra.timestampRelativeTo) {
+    // Check if we should use relative timestamps (eg. in replay)
+    return <RelativeTimestampRenderer {...props} />;
+  }
+  return <TimestampRenderer {...props} />;
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
-  [OurLogKnownFieldKey.TIMESTAMP]: props => {
-    if (props.extra.timestampRelativeTo) {
-      // Check if we should use relative timestamps (eg. in replay)
-      return RelativeTimestampRenderer(props);
-    }
-    return TimestampRenderer(props);
-  },
+  [OurLogKnownFieldKey.TIMESTAMP]: TimeStampRenderer,
   [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,

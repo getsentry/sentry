@@ -450,6 +450,7 @@ export default typescript.config([
     name: 'plugin/@sentry/sentry',
     plugins: {'@sentry': sentryPlugin},
     rules: {
+      '@sentry/no-calling-components-as-functions': 'error',
       '@sentry/no-digits-in-tn': 'error',
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
@@ -955,6 +956,13 @@ export default typescript.config([
     },
     rules: {
       'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'files/fixtures',
+    files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
+    rules: {
+      '@sentry/no-calling-components-as-functions': 'off',
     },
   },
   {
