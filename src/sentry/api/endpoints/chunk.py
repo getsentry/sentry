@@ -59,14 +59,20 @@ class ChunkTooLarge(OSError):
 def _read_bounded(reader, limit):
     """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
 
-    Asks for ``limit + 1`` bytes so that any overflow can be detected in bounded
-    memory -- this caps peak allocation regardless of how well-compressed the
-    input is, protecting against zstd/gzip decompression bombs.
+    Loops until the reader signals EOF or we exceed ``limit``. The loop matters
+    for ``ZstdDecompressor.stream_reader``, which may short-read when its
+    underlying source does (a real file-backed ``TemporaryUploadedFile`` can);
+    without looping, a bomb payload that happens to short-read past the cap
+    could slip through. Peak memory stays bounded at ``limit + 1`` bytes.
     """
-    data = reader.read(limit + 1)
-    if len(data) > limit:
-        raise ChunkTooLarge("Chunk size too large")
-    return data
+    buf = bytearray()
+    while True:
+        chunk = reader.read(limit + 1 - len(buf))
+        if not chunk:
+            return bytes(buf)
+        buf.extend(chunk)
+        if len(buf) > limit:
+            raise ChunkTooLarge("Chunk size too large")
 
 
 class GzipChunk(BytesIO):

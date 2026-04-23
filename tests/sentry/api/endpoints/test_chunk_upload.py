@@ -540,6 +540,9 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {
+            "error": "Cannot combine Content-Encoding with file_gzip field"
+        }
         assert not FileBlob.objects.exists()
 
     def test_upload_rejects_unsupported_content_encoding(self) -> None:
@@ -556,6 +559,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Unsupported Content-Encoding"}
         assert not FileBlob.objects.exists()
 
     def test_upload_zstd_decompression_bomb(self) -> None:
@@ -579,6 +583,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Chunk size too large"}
         assert not FileBlob.objects.exists()
 
     def test_upload_invalid_zstd_payload(self) -> None:
@@ -594,6 +599,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid zstd payload"}
 
     def test_upload_invalid_gzip_payload_content_encoding(self) -> None:
         """Malformed gzip payload via Content-Encoding should return 400, not 500."""
@@ -610,6 +616,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid gzip payload"}
 
     def test_upload_invalid_gzip_payload_legacy_field(self) -> None:
         """Malformed gzip via legacy file_gzip field should return 400, not 500."""
@@ -625,6 +632,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid gzip payload"}
 
     def test_upload_truncated_gzip_payload(self) -> None:
         """Truncated gzip (valid header, missing tail) should return 400, not 500."""
@@ -641,3 +649,4 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+        assert response.json() == {"error": "Invalid gzip payload"}
