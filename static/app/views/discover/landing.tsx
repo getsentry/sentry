@@ -215,11 +215,26 @@ function DiscoverLanding() {
                   ]}
                 />
               </Layout.HeaderContent>
+              <Layout.HeaderActions>
+                <LinkButton
+                  data-test-id="build-new-query"
+                  to={to}
+                  size="sm"
+                  priority="primary"
+                  onClick={() => {
+                    trackAnalytics('discover_v2.build_new_query', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Build a new query')}
+                </LinkButton>
+              </Layout.HeaderActions>
             </Layout.Header>
           )}
           <Layout.Body>
             <Layout.Main width="full">
-              <StyledActions>
+              <StyledActions hasBuildButton={hasPageFrameFeature}>
                 <StyledSearchBar
                   defaultQuery=""
                   query={savedSearchQuery}
@@ -244,18 +259,20 @@ function DiscoverLanding() {
                   onChange={opt => handleSortChange(opt.value)}
                   position="bottom-end"
                 />
-                <LinkButton
-                  data-test-id="build-new-query"
-                  to={to}
-                  priority="primary"
-                  onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Build a new query')}
-                </LinkButton>
+                {hasPageFrameFeature && (
+                  <LinkButton
+                    data-test-id="build-new-query"
+                    to={to}
+                    priority="primary"
+                    onClick={() => {
+                      trackAnalytics('discover_v2.build_new_query', {
+                        organization,
+                      });
+                    }}
+                  >
+                    {t('Build a new query')}
+                  </LinkButton>
+                )}
               </StyledActions>
               {status === 'pending' ? (
                 <LoadingIndicator />
@@ -304,10 +321,13 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const StyledActions = styled('div')`
+const StyledActions = styled('div')<{hasBuildButton: boolean}>`
   display: grid;
   gap: ${p => p.theme.space.xl};
-  grid-template-columns: auto max-content min-content max-content;
+  grid-template-columns: ${p =>
+    p.hasBuildButton
+      ? 'auto max-content min-content max-content'
+      : 'auto max-content min-content'};
   align-items: center;
   margin-bottom: ${p => p.theme.space.xl};
 
