@@ -223,7 +223,7 @@ def create_metric_alert(
                     status=status.HTTP_201_CREATED,
                 )
             except Detector.DoesNotExist:
-                Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 
