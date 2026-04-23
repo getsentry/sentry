@@ -208,11 +208,12 @@ export function fetchDashboard(
 export function updateDashboard(
   api: Client,
   orgId: string,
-  dashboard: DashboardDetails
+  dashboard: DashboardDetails,
+  {revisionSource}: {revisionSource?: string} = {}
 ): Promise<DashboardDetails> {
   const {title, widgets, projects, environment, period, start, end, filters, utc} =
     dashboard;
-  const data: Partial<DashboardDetails> = {
+  const data: Partial<DashboardDetails> & {revisionSource?: string} = {
     title,
     projects,
     environment,
@@ -222,6 +223,9 @@ export function updateDashboard(
     filters,
     utc,
   };
+  if (revisionSource) {
+    data.revisionSource = revisionSource;
+  }
   if (widgets) {
     data.widgets = widgets
       .map(widget => omit(widget, ['tempId']))

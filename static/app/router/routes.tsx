@@ -1252,14 +1252,12 @@ function buildRoutes(): RouteObject[] {
       },
       accountSettingsRoutes,
       {
-        name: t('Organization'),
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
         children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
       },
       {
         path: ':orgId/',
-        name: t('Organization'),
         component: withDomainRedirect(NoOp),
         children: [
           orgSettingsRoutes,

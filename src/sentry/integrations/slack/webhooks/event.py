@@ -35,7 +35,6 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.entrypoints.slack.analytics import SlackSeerAgentConversation
-from sentry.seer.entrypoints.slack.messaging import send_identity_link_prompt
 from sentry.seer.entrypoints.slack.tasks import process_mention_for_slack
 
 from .base import SlackDMEndpoint
@@ -388,16 +387,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 }
             )
 
-            organization_id, error_reason = slack_request.resolve_seer_organization()
-            if error_reason:
-                lifecycle.record_halt(error_reason)
-                if error_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
-                    send_identity_link_prompt(
-                        integration=slack_request.integration,
-                        slack_user_id=slack_request.user_id,
-                        channel_id=slack_request.channel_id,
-                        thread_ts=slack_request.thread_ts or None,
-                    )
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
+                # The control parser route Seer events through `route_slack_seer_event`. It'll send
+                # messages about re-installing, checking settings, or linking before proceeding.
+                lifecycle.record_halt(halt_reason)
                 return self.respond()
 
             if not organization_id:
@@ -467,17 +461,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             spec=SlackMessagingSpec(),
         ).capture() as lifecycle:
             lifecycle.add_extra("integration_id", slack_request.integration.id)
-            organization_id, error_reason = slack_request.resolve_seer_organization()
-            if error_reason:
-                lifecycle.record_halt(error_reason)
-                if error_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
-                    send_identity_link_prompt(
-                        integration=slack_request.integration,
-                        slack_user_id=slack_request.user_id,
-                        channel_id=slack_request.channel_id,
-                        thread_ts=slack_request.thread_ts or None,
-                        is_welcome_message=True,
-                    )
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
+                lifecycle.record_halt(halt_reason)
                 return self.respond()
 
             if not organization_id:

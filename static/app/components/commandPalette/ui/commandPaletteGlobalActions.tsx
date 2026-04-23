@@ -541,6 +541,7 @@ export function GlobalCommandPaletteActions() {
       </CMDKAction>
 
       <CMDKAction
+        id="cmdk:supplementary:help"
         display={{label: t('Help')}}
         resource={(query: string): CMDKQueryOptions => {
           return cmdkQueryOptions({
