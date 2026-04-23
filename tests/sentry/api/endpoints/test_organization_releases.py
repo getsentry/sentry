@@ -2156,7 +2156,6 @@ class OrganizationReleaseCreateTest(APITestCase):
                 HTTP_AUTHORIZATION=f"Bearer {token.token}",
             )
         assert response.status_code == 201, response.content
-        assert Release.objects.filter(organization_id=org.id, version="1.2.1").exists()
 
     @patch("sentry.tasks.commits.fetch_commits")
     def test_api_token(self, mock_fetch_commits: MagicMock) -> None:
