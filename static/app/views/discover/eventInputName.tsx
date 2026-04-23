@@ -7,17 +7,13 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {PageFrameEditableViewTitle} from 'sentry/views/issueList/editableIssueViewHeader';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 type Props = {
   eventView: EventView;
   organization: Organization;
-  /**
-   * When true, renders without the Layout.Title wrapper so the page-frame
-   * title editor can fit inside the breadcrumb row.
-   */
-  compact?: boolean;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
@@ -29,15 +25,10 @@ const HOMEPAGE_DEFAULT = t('New Query');
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-export function EventInputName({
-  organization,
-  eventView,
-  savedQuery,
-  isHomepage,
-  compact,
-}: Props) {
+export function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
   const api = useApi();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   function handleChange(nextQueryName: string) {
     // Do not update automatically if
@@ -68,18 +59,16 @@ export function EventInputName({
 
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
 
-  if (compact) {
+  if (hasPageFrameFeature) {
     return (
       <PageFrameEditableViewTitle
         ariaLabel={t('Edit query name')}
         maxLength={255}
         onSave={handleChange}
         value={value}
-        containerTestIdPrefix="discover2-query-name"
+        dataTestId={`discover2-query-name-${value}`}
         errorMessage={t('Please set a name for this query')}
         isDisabled={!eventView.id || Boolean(isHomepage)}
-        saveOnBlur
-        startEditingOnClick
       />
     );
   }

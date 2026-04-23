@@ -22,27 +22,19 @@ type PageFrameEditableViewTitleProps = {
   maxLength: number;
   onSave: (title: string) => void;
   value: string;
-  containerTestIdPrefix?: string;
+  dataTestId?: string;
   errorMessage?: React.ReactNode;
-  inputTestId?: string;
   isDisabled?: boolean;
-  labelTestId?: string;
-  saveOnBlur?: boolean;
-  startEditingOnClick?: boolean;
 };
 
 export function PageFrameEditableViewTitle({
   ariaLabel,
+  dataTestId,
+  errorMessage,
+  isDisabled = false,
   maxLength,
   onSave,
   value,
-  containerTestIdPrefix,
-  errorMessage,
-  inputTestId = 'editable-text-input',
-  isDisabled = false,
-  labelTestId = 'editable-text-label',
-  saveOnBlur = false,
-  startEditingOnClick = false,
 }: PageFrameEditableViewTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [optimisticValue, setOptimisticValue] = useState<string | null>(null);
@@ -108,18 +100,14 @@ export function PageFrameEditableViewTitle({
   };
 
   return (
-    <PageFrameViewTitleWrapper
-      data-test-id={
-        containerTestIdPrefix ? `${containerTestIdPrefix}-${currentValue}` : undefined
-      }
-    >
+    <PageFrameViewTitleWrapper data-test-id={dataTestId}>
       {isEditing ? (
-        <PageFrameInputWrapper data-test-id={inputTestId}>
+        <PageFrameInputWrapper data-test-id="editable-text-input">
           <PageFrameGrowingInput
             value={currentDraft}
             ref={mergeRefs(inputRef, autosizeInputRef)}
             onChange={event => setDraftValue(event.target.value)}
-            onBlur={saveOnBlur ? handleSave : stopEditing}
+            onBlur={handleSave}
             onKeyDown={event => {
               switch (event.key) {
                 case 'Enter':
@@ -139,10 +127,9 @@ export function PageFrameEditableViewTitle({
         </PageFrameInputWrapper>
       ) : (
         <PageFrameViewTitle
-          data-test-id={labelTestId}
+          data-test-id="editable-text-label"
           isDisabled={isDisabled}
-          onClick={startEditingOnClick ? handleBeginEditing : undefined}
-          onDoubleClick={handleBeginEditing}
+          onClick={handleBeginEditing}
           title={currentValue}
         >
           {currentValue}
@@ -209,12 +196,24 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   if (hasPageFrame) {
     return (
       <TopBar.Slot name="title">
-        <PageFrameEditableViewTitle
-          ariaLabel={t('Edit view name')}
-          maxLength={128}
-          onSave={handleOnSave}
-          value={view.name}
-        />
+        {isEditing ? (
+          <EditingViewTitle
+            initialTitle={view.name}
+            onSave={handleOnSave}
+            stopEditing={() => setIsEditing(false)}
+          />
+        ) : (
+          <PageFrameViewTitleWrapper>
+            <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+            <Button
+              icon={<IconEdit />}
+              onClick={handleBeginEditing}
+              aria-label={t('Edit view name')}
+              size="sm"
+              priority="transparent"
+            />
+          </PageFrameViewTitleWrapper>
+        )}
       </TopBar.Slot>
     );
   }
@@ -252,6 +251,7 @@ function EditingViewTitle({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(initialTitle);
+  const hasPageFrame = useHasPageFrameFeature();
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -277,8 +277,10 @@ function EditingViewTitle({
     value: title,
   });
 
+  const GrowingInput = hasPageFrame ? PageFrameGrowingInput : StyledGrowingInput;
+
   return (
-    <StyledGrowingInput
+    <GrowingInput
       value={title}
       ref={mergeRefs(inputRef, autosizeInputRef)}
       onChange={handleOnChange}
@@ -311,6 +313,7 @@ const PageFrameViewTitleWrapper = styled('div')`
 `;
 
 const PageFrameViewTitle = styled('div')<{isDisabled: boolean}>`
+  height: auto;
   letter-spacing: normal;
   margin-right: ${p => p.theme.space['2xs']};
   font-size: inherit;
@@ -389,25 +392,9 @@ const StyledGrowingInput = styled(Input)`
   }
 `;
 
-const PageFrameGrowingInput = styled(Input)`
-  position: relative;
-  border: none;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  min-height: 0;
+const PageFrameGrowingInput = styled(StyledGrowingInput)`
   height: auto;
-  border-radius: 0;
-  text-overflow: ellipsis;
-  cursor: text;
   line-height: inherit;
   font-size: inherit;
   font-weight: inherit;
-
-  &,
-  &:focus,
-  &:active,
-  &:hover {
-    box-shadow: none;
-  }
 `;

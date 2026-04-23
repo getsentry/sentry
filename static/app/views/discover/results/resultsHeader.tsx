@@ -189,7 +189,6 @@ class ResultsHeader extends Component<Props, State> {
         location={location}
         isHomepage={isHomepage}
         savedQuery={savedQuery}
-        embedEditableName
       />
     );
 

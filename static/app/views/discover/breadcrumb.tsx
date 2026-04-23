@@ -11,17 +11,12 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  /**
-   * When true, renders the editable saved-query name as the last crumb
-   * instead of a plain text label. Enabled under the page-frame feature
-   * where the title row sits inside the top bar.
-   */
-  embedEditableName?: boolean;
   event?: Event;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
@@ -34,8 +29,8 @@ export function DiscoverBreadcrumb({
   location,
   isHomepage,
   savedQuery,
-  embedEditableName,
 }: Props) {
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
     ? {
@@ -68,13 +63,12 @@ export function DiscoverBreadcrumb({
     }
     crumbs.push({
       label:
-        embedEditableName && !event ? (
+        hasPageFrameFeature && !event ? (
           <EventInputName
             savedQuery={savedQuery}
             organization={organization}
             eventView={eventView}
             isHomepage={isHomepage}
-            compact
           />
         ) : (
           eventView.name || ''
