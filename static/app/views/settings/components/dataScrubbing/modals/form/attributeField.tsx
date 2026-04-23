@@ -36,7 +36,11 @@ const datasetToTraceItemType: Record<
 const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
   Record<AllowedDataScrubbingDatasets, Set<string>>
 > = {
-  [AllowedDataScrubbingDatasets.METRICS]: new Set(['metric.name']),
+  [AllowedDataScrubbingDatasets.METRICS]: new Set([
+    'metric.name',
+    'metric.type',
+    'metric.unit',
+  ]),
 };
 
 type FieldProps = {

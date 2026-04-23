@@ -165,6 +165,30 @@ describe('useExperiment (gsApp)', () => {
     expect(Amplitude.groupIdentify).not.toHaveBeenCalled();
   });
 
+  it('does not report exposure when the feature has no experiment assignment', () => {
+    // Feature is enabled via organization.features (e.g. SENTRY_FEATURES or a
+    // regular non-experiment flag) but has no entry in organization.experiments.
+    // The BE only fires auto-exposure for flags with experiment_mode set, so we
+    // match that behavior here and skip both the Amplitude write and the POST.
+    const org = OrganizationFixture({
+      features: ['not-an-experiment'],
+      experiments: {},
+    });
+    const mockExposure = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/experiment-exposure/`,
+      method: 'POST',
+      statusCode: 204,
+    });
+
+    render(<TestComponent feature="not-an-experiment" />, {organization: org});
+
+    expect(Amplitude.groupIdentify).not.toHaveBeenCalled();
+    expect(mockExposure).not.toHaveBeenCalled();
+    // The hook still returns a sensible default for consumers.
+    expect(screen.getByTestId('in-experiment')).toHaveTextContent('true');
+    expect(screen.getByTestId('assignment')).toHaveTextContent('control');
+  });
+
   it('does not post exposure when reportExposure is false', () => {
     const org = OrganizationFixture({
       features: ['test-experiment'],

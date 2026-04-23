@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Mapping
-from typing import Any, Literal, Self, TypedDict, overload
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from types import TracebackType
+from typing import Any, Literal, NotRequired, Self, TypedDict, TypeVar, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -30,10 +31,13 @@ class SessionSettings(TypedDict):
     timeout: int
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
-    proxies: Any
-    stream: Any
-    verify: Any
-    cert: Any
+    proxies: NotRequired[MutableMapping[str, str]]
+    stream: NotRequired[bool | None]
+    verify: NotRequired[bool | str | None]
+    cert: NotRequired[str | tuple[str, str] | None]
+
+
+_TPaginatedResult = TypeVar("_TPaginatedResult")
 
 
 class BaseApiClient:
@@ -76,7 +80,12 @@ class BaseApiClient:
     def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type: type[Exception], exc_value: Exception, traceback: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[Exception] | None,
+        exc_value: Exception | None,
+        traceback: TracebackType | None,
+    ) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
         #  Don't want to make the change until I completely understand urllib3
         #  machinery + how we override it, possibly do this along with urllib3
@@ -88,7 +97,7 @@ class BaseApiClient:
         code: str | int,
         error: Exception | None = None,
         resp: Response | None = None,
-        extra: Mapping[str, str] | None = None,
+        extra: Mapping[str, str | int] | None = None,
     ) -> None:
         tags: dict[str, str | int] = {self.integration_type: self.name, "status": code}
         if extra and "api_request_type" in extra:
@@ -162,14 +171,60 @@ class BaseApiClient:
         """
         return build_session()
 
+    @staticmethod
+    def _normalize_cert_setting(cert_setting: object) -> str | tuple[str, str] | None:
+        # ``requests`` accepts cert as None, a single cert path, or a
+        # (cert_file, key_file) tuple.
+        if cert_setting is None or isinstance(cert_setting, str):
+            return cert_setting
+        if (
+            isinstance(cert_setting, tuple)
+            and len(cert_setting) == 2
+            and all(isinstance(item, str) for item in cert_setting)
+        ):
+            return cert_setting
+        return None
+
+    # Keep this helper as a typed boundary between requests'
+    # ``merge_environment_settings`` output and ``session.send`` kwargs. This
+    # prevents forwarding unexpected keys while keeping _request readable.
+    def _build_session_settings(
+        self,
+        timeout: int,
+        allow_redirects: bool,
+        *,
+        proxies: object | None = None,
+        stream: object | None = None,
+        verify: object | None = None,
+        cert: object | None = None,
+    ) -> SessionSettings:
+        # Build a typed subset of session.send kwargs.
+        session_settings: SessionSettings = {
+            "timeout": timeout,
+            "allow_redirects": allow_redirects,
+        }
+
+        if isinstance(proxies, MutableMapping):
+            session_settings["proxies"] = proxies
+
+        if isinstance(stream, bool) or stream is None:
+            session_settings["stream"] = stream
+
+        if isinstance(verify, bool) or isinstance(verify, str) or verify is None:
+            session_settings["verify"] = verify
+
+        session_settings["cert"] = self._normalize_cert_setting(cert)
+
+        return session_settings
+
     @overload
     def _request(
         self,
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -188,8 +243,8 @@ class BaseApiClient:
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -207,8 +262,8 @@ class BaseApiClient:
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: tuple[str, str] | str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -276,11 +331,14 @@ class BaseApiClient:
                     verify=self.verify_ssl,
                     cert=None,
                 )
-                session_settings: SessionSettings = {
-                    "timeout": timeout,
-                    "allow_redirects": allow_redirects,
-                    **environment_settings,
-                }
+                session_settings = self._build_session_settings(
+                    timeout=timeout,
+                    allow_redirects=allow_redirects,
+                    proxies=environment_settings.get("proxies"),
+                    stream=environment_settings.get("stream"),
+                    verify=environment_settings.get("verify"),
+                    cert=environment_settings.get("cert"),
+                )
                 resp: Response = session.send(finalized_request, **session_settings)
                 if raw_response:
                     return resp
@@ -331,6 +389,8 @@ class BaseApiClient:
         if resp.status_code == 204:
             return {}
 
+        # BaseApiResponse.from_response returns MappingApiResponse (subclass of dict)
+        # or SequenceApiResponse (subclass of list), or TextApiResponse (has str .text)
         return BaseApiResponse.from_response(
             resp, allow_text=allow_text, ignore_webhook_errors=ignore_webhook_errors
         )
@@ -339,8 +399,8 @@ class BaseApiClient:
     def request(self, *args: Any, **kwargs: Any) -> Any:
         return self._request(*args, **kwargs)
 
-    def delete(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("DELETE", *args, **kwargs)
+    def delete(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("DELETE", path, *args, **kwargs)
 
     def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
         if not data:
@@ -390,20 +450,20 @@ class BaseApiClient:
     def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("GET", *args, **kwargs)
+    def get(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("GET", path, *args, **kwargs)
 
-    def patch(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("PATCH", *args, **kwargs)
+    def patch(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("PATCH", path, *args, **kwargs)
 
-    def post(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("POST", *args, **kwargs)
+    def post(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("POST", path, *args, **kwargs)
 
-    def put(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("PUT", *args, **kwargs)
+    def put(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("PUT", path, *args, **kwargs)
 
-    def head(self, *args: Any, **kwargs: Any) -> Any:
-        return self.request("HEAD", *args, **kwargs)
+    def head(self, path: str, *args: Any, **kwargs: Any) -> Any:
+        return self.request("HEAD", path, *args, **kwargs)
 
     def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "HEAD", *args, **kwargs)
@@ -411,20 +471,20 @@ class BaseApiClient:
     def get_with_pagination(
         self,
         path: str,
-        gen_params: Callable[..., Any],
-        get_results: Callable[..., Any],
+        gen_params: Callable[[int, int], Mapping[str, str | int | bool]],
+        get_results: Callable[[Any], Sequence[_TPaginatedResult]],
         *args: Any,
         **kwargs: Any,
-    ) -> list[Any]:
+    ) -> list[_TPaginatedResult]:
         page_size = self.page_size
-        output = []
+        output: list[_TPaginatedResult] = []
 
         for i in range(self.page_number_limit):
             resp = self.get(path, params=gen_params(i, page_size))
             results = get_results(resp)
             num_results = len(results)
 
-            output += results
+            output += list(results)
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output

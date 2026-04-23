@@ -31,7 +31,7 @@ interface CollectionStore<T> {
 interface CollectionInstance<T> {
   Context: React.Context<string | null>;
   Provider: (props: {children: React.ReactNode}) => React.ReactElement;
-  useRegisterNode: (data: T) => string;
+  useRegisterNode: (data: T, reservedId?: string) => string;
   useStore: () => CollectionStore<T>;
 }
 
@@ -140,7 +140,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
     );
   }
 
-  function useRegisterNode(data: T): string {
+  function useRegisterNode(data: T, reservedId?: string): string {
     // Read the stable store from context directly — NOT via useStore() — so
     // that structural node changes (which produce a new useStore() reference)
     // do not invalidate the layout-effect deps and trigger re-registration loops.
@@ -152,7 +152,8 @@ export function makeCollection<T>(): CollectionInstance<T> {
     }
     const parentKey = useContext(Context);
 
-    const key = useId();
+    const generatedKey = useId();
+    const key = reservedId ?? generatedKey;
     // Store data in a ref so tree() always reflects the latest value without
     // needing to re-register when data changes. Structural changes (parentKey)
     // still cause a full re-registration via the effect deps.

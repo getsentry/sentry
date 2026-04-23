@@ -428,7 +428,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery ? null : (
+        isEmptyPromptQuery || isLoading ? null : (
           <CommandPaletteNoResults />
         )
       ) : (
@@ -666,10 +666,17 @@ function flattenActions(
   // groups by their best child score so the most relevant sub-section surfaces
   // first. When we are inside an expanded group we also sort leaf actions by
   // their own score so the full result list matches the limited preview ordering.
+  // Sections with a "cmdk:supplementary:" reserved key always sort last,
+  // regardless of score.
   collected.sort((a, b) => {
     const aRootKey = nodeRootKey.get(a.key)!;
     const bRootKey = nodeRootKey.get(b.key)!;
     if (aRootKey !== bRootKey) {
+      const aIsSupplementary = aRootKey.startsWith('cmdk:supplementary:');
+      const bIsSupplementary = bRootKey.startsWith('cmdk:supplementary:');
+      if (aIsSupplementary !== bIsSupplementary) {
+        return aIsSupplementary ? 1 : -1;
+      }
       return compareCommandPaletteScores(
         rootBestScore.get(aRootKey),
         rootBestScore.get(bRootKey)
