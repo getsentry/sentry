@@ -1,4 +1,4 @@
-import {useMutation, type DefaultError} from '@tanstack/react-query';
+import {useMutation, useQueryClient, type DefaultError} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
@@ -6,7 +6,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {buildHandoffPayload, type PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {resolveStoppingPoint} from 'sentry/utils/seer/stoppingPoint';

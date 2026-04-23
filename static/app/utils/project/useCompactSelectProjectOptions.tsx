@@ -6,20 +6,11 @@ import type {SelectOption, SelectOptionOrSection} from '@sentry/scraps/compactSe
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 
-const toProjectOptionWithAvatar = (project: Project): SelectOption<string> => ({
+const toProjectOption = (project: Project): SelectOption<string> => ({
   value: project.id,
   label: project.slug,
   leadingItems: <ProjectAvatar project={project} />,
 });
-
-const toProjectOptionNoAvatar = (project: Project): SelectOption<string> => ({
-  value: project.id,
-  label: project.slug,
-});
-
-const makeMapper = (size: number) => {
-  return size > 50 ? toProjectOptionNoAvatar : toProjectOptionWithAvatar;
-};
 
 export function useCompactSelectProjectOptions({
   projects,
@@ -27,7 +18,11 @@ export function useCompactSelectProjectOptions({
   projects: Project[];
 }): Array<SelectOptionOrSection<string>> {
   return useMemo(() => {
-    const mapper = makeMapper(projects.length);
+    if (projects.length > 100) {
+      // SelectSections disable virtualized rendering in CompactSelect, so after
+      // a certain point we gotta skip them and render one big list.
+      return projects.map(toProjectOption);
+    }
 
     const myProjects = new Set<Project>();
     const otherProjects = new Set<Project>();
@@ -40,18 +35,18 @@ export function useCompactSelectProjectOptions({
     }
 
     if (otherProjects.size === 0) {
-      return Array.from(myProjects.values().map(mapper));
+      return Array.from(myProjects.values().map(toProjectOption));
     }
     return [
       {
         key: 'my-projects',
         label: t('My Projects'),
-        options: Array.from(myProjects.values().map(mapper)),
+        options: Array.from(myProjects.values().map(toProjectOption)),
       },
       {
         key: 'other-projects',
         label: t('Other Projects'),
-        options: Array.from(otherProjects.values().map(mapper)),
+        options: Array.from(otherProjects.values().map(toProjectOption)),
       },
     ];
   }, [projects]);

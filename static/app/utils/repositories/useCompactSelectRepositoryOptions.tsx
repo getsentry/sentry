@@ -13,7 +13,7 @@ import {
 } from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function toOptionWithIcon(repo: Repository): SelectOption<Repository['id']> {
+function toRepoOption(repo: Repository): SelectOption<Repository['id']> {
   return {
     value: repo.id,
     label: repo.name,
@@ -22,46 +22,36 @@ function toOptionWithIcon(repo: Repository): SelectOption<Repository['id']> {
   };
 }
 
-function toOptionNoAvatar(repo: Repository): SelectOption<Repository['id']> {
-  return {
-    value: repo.id,
-    label: repo.name,
-    textValue: repo.name,
-  };
-}
-
-function makeMapper(size: number) {
-  return size > 50 ? toOptionNoAvatar : toOptionWithIcon;
-}
-
 function selectRepositoryOptions(
   data: InfiniteData<ApiResponse<Repository[]>>
 ): Array<SelectOptionOrSection<string>> {
   const repositories = selectUniqueRepos(data);
-  const mapper = makeMapper(repositories.length);
+  if (repositories.length > 100) {
+    // SelectSections disable virtualized rendering in CompactSelect, so after
+    // a certain point we gotta skip them and render one big list.
+    return repositories.map(toRepoOption);
+  }
   const connected = new Set<Repository>();
   const disconnected = new Set<Repository>();
   for (const repo of repositories) {
     if (repo.integrationId && repo.status === RepositoryStatus.ACTIVE) {
       connected.add(repo);
-    } else {
-      disconnected.add(repo);
     }
   }
   if (disconnected.size === 0) {
-    return Array.from(connected.values().map(mapper));
+    return Array.from(connected.values().map(toRepoOption));
   }
   return [
     {
       key: 'connected',
       label: t('Connected'),
-      options: Array.from(connected.values().map(mapper)),
+      options: Array.from(connected.values().map(toRepoOption)),
     },
     {
       key: 'disconnected',
       label: t('Disconnected'),
       disabled: true,
-      options: Array.from(disconnected.values().map(mapper)),
+      options: Array.from(disconnected.values().map(toRepoOption)),
     },
   ];
 }

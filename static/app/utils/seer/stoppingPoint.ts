@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
+export type UserFacingStoppingPoint = 'off' | 'root_cause' | 'plan' | 'create_pr';
 
 export const PROJECT_STOPPING_POINT_OPTIONS = [
   {value: 'off' as const, label: t('No Automation')},

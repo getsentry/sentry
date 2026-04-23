@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useInfiniteQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -33,7 +33,7 @@ import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
 import {useOrgDefaultAgent} from 'sentry/utils/seer/preferredAgent';
-import {useCodingAgentSelectOptions} from 'sentry/utils/seer/preferredAgent';
+import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
   useOrgDefaultStoppingPoint,
@@ -67,7 +67,7 @@ export function ProjectAddRepoModal({
   const unconfiguredProjects = useUnconfiguredProjects();
   const projectOptions = useCompactSelectProjectOptions({projects: unconfiguredProjects});
   const repositoryOptions = useCompactSelectRepositoryOptions();
-  const agentOptions = useCodingAgentSelectOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const stoppingPointOptions = PROJECT_STOPPING_POINT_OPTIONS;
 
   const formSchema = z.object({
@@ -161,6 +161,7 @@ export function ProjectAddRepoModal({
                     options={projectOptions}
                     search
                     value={field.state.value ?? ''}
+                    virtualizeThreshold={50}
                   />
                 )}
               </form.AppField>
@@ -202,17 +203,18 @@ export function ProjectAddRepoModal({
                                       </OverlayTrigger.Button>
                                     );
                                   }}
-                                  search
                                   loading={
                                     repositoryOptions.isPending ||
                                     repositoryOptions.hasNextPage
                                   }
                                   emptyMessage={t('No repositories found')}
-                                  options={repositoryOptions.data ?? []}
-                                  value={subField.state.value ?? ''}
                                   onChange={option =>
                                     subField.handleChange(option?.value ?? '')
                                   }
+                                  options={repositoryOptions.data ?? []}
+                                  search
+                                  value={subField.state.value ?? ''}
+                                  virtualizeThreshold={50}
                                 />
                               )}
                             </form.Field>
