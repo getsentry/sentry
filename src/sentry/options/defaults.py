@@ -3195,12 +3195,6 @@ register(
     default=10 * 1024 * 1024,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When enabled, oversized segments are split into chunks instead of being dropped.
-register(
-    "spans.buffer.chunk-oversized-segments",
-    default=False,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Whether to enforce max-segment-bytes during ingestion via the Lua script.
 register(
     "spans.buffer.enforce-segment-size",
