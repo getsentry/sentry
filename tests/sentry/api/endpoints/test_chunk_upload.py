@@ -540,9 +540,7 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
-        assert response.json() == {
-            "error": "Cannot combine Content-Encoding with file_gzip field"
-        }
+        assert response.json() == {"error": "Cannot combine Content-Encoding with file_gzip field"}
         assert not FileBlob.objects.exists()
 
     def test_upload_rejects_unsupported_content_encoding(self) -> None:
