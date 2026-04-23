@@ -220,7 +220,7 @@ def route_slack_seer_event(
         logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
-    organization_id, error_reason = resolve_seer_organization_for_slack_user(
+    organization_id, halt_reason = resolve_seer_organization_for_slack_user(
         integration=integration,
         slack_user_id=slack_user_id,
         channel_id=channel_id,
@@ -229,15 +229,15 @@ def route_slack_seer_event(
         event_type=event_type,
     )
     logging_ctx["organization_id"] = organization_id
-    logging_ctx["error_reason"] = error_reason
+    logging_ctx["halt_reason"] = halt_reason
 
-    if error_reason:
+    if halt_reason:
         send_halt_message(
             integration=integration,
             slack_user_id=slack_user_id,
             channel_id=channel_id,
             thread_ts=thread_ts or None,
-            halt_reason=error_reason,
+            halt_reason=halt_reason,
         )
         logger.info("route_slack_seer_event.halt_message_sent", extra=logging_ctx)
         return
