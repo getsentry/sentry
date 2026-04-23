@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 import secrets
+import time
 from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -28,6 +29,26 @@ logger = logging.getLogger("sentry.oauth")
 # ABNF: code-challenge = 43*128unreserved
 # unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
 CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
+
+# How long an unused oa2:{tx_id} session entry is kept before pruning on the
+# next GET. Abandoned tabs would otherwise accumulate until session expiry.
+OAUTH_AUTHORIZE_SESSION_TTL = 10 * 60
+
+
+def _expired_authorize_keys(session, now: float) -> list[str]:
+    expired = []
+    for key in list(session.keys()):
+        if not key.startswith("oa2:"):
+            continue
+        entry = session.get(key)
+        # The oa2: prefix is also used by oauth_device.py with a different
+        # payload shape. Only touch entries carrying our "tx" marker.
+        if not isinstance(entry, dict) or "tx" not in entry:
+            continue
+        ts = entry.get("ts")
+        if not isinstance(ts, (int, float)) or now - ts > OAUTH_AUTHORIZE_SESSION_TTL:
+            expired.append(key)
+    return expired
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -250,6 +271,13 @@ class OAuthAuthorizeView(AuthLoginView):
         # session overwrite attacks. Without this, an attacker could open a malicious
         # OAuth flow in a popup/redirect, overwriting the legitimate app's session data.
         tx_id = secrets.token_urlsafe(32)
+        now = time.time()
+        # Prune stale authorize payloads from abandoned prior flows. The oa2:
+        # prefix is shared with oauth_device.py, so only touch entries that
+        # carry our "tx" marker.
+        for stale_key in _expired_authorize_keys(request.session, now):
+            request.session.pop(stale_key, None)
+            request.session.modified = True
         payload = {
             "rt": response_type,
             "cid": client_id,
@@ -260,11 +288,12 @@ class OAuthAuthorizeView(AuthLoginView):
             "cc": code_challenge,
             "ccm": code_challenge_method if code_challenge else None,
             "tx": tx_id,
+            "ts": now,
         }
-        # Store under a unique key to prevent cross-tab session overwrites
-        request.session[f"oa2:{tx_id}"] = payload
+        session_key = f"oa2:{tx_id}"
 
         if not request.user.is_authenticated:
+            request.session[session_key] = payload
             return super().get(request, application=application, tx_id=tx_id)
 
         # If the application expects org level access, we need to prompt the user to choose which
@@ -280,6 +309,8 @@ class OAuthAuthorizeView(AuthLoginView):
                 # if we've already approved all of the required scopes
                 # we can skip prompting the user
                 if all(existing_auth.has_scope(s) for s in scopes):
+                    # Auto-approve returns a redirect immediately; no POST will
+                    # follow, so don't persist the session entry.
                     return self.approve(
                         request=request,
                         user=request.user,
@@ -333,6 +364,10 @@ class OAuthAuthorizeView(AuthLoginView):
             "tx_id": tx_id,
         }
 
+        # Persist the payload only once we're rendering the authorize form —
+        # the auto-approve and missing-org-options paths above return without
+        # ever POSTing back, so writing the entry there would just leak it.
+        request.session[session_key] = payload
         return self.respond("sentry/oauth-authorize.html", context)
 
     def _logged_out_post(
@@ -345,19 +380,12 @@ class OAuthAuthorizeView(AuthLoginView):
         # subtle indirection to avoid "unreachable" after `.is_authenticated` below
         # since `.post()` mutates `request.user`
         response = super().post(request, application=application, tx_id=tx_id, **kwargs)
-        # once they login, bind their user ID
         if request.user.is_authenticated and session_key:
-            # Save OAuth payload before session regeneration
-            oa2_payload = request.session.get(session_key)
-
-            # Regenerate session to prevent session fixation attacks
+            # Login succeeded; the subsequent redirect hits GET /oauth/authorize
+            # again, which mints a fresh tx_id and payload. Drop the now-stale
+            # entry and cycle the session key to defeat fixation.
+            request.session.pop(session_key, None)
             request.session.cycle_key()
-
-            # Restore OAuth payload after session regeneration and update user ID
-            if oa2_payload is not None:
-                oa2_payload["uid"] = request.user.id
-                request.session[session_key] = oa2_payload
-                request.session.modified = True
         return response
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
@@ -396,13 +424,18 @@ class OAuthAuthorizeView(AuthLoginView):
                 client_id=payload["cid"], status=ApiApplicationStatus.active
             )
         except ApiApplication.DoesNotExist:
+            # The app is gone; this payload can never succeed, so clear it to
+            # avoid leaking a session entry on every replay of this error.
+            request.session.pop(session_key, None)
+            request.session.modified = True
             return self.respond(
                 "sentry/oauth-error.html",
                 {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
             )
 
         if not request.user.is_authenticated:
-            # Don't clean up session key yet - _logged_out_post needs it for session cycling
+            # Don't clean up session key yet - the login retry path needs it
+            # so a bad password followed by a correct one can reuse the same tx_id.
             return self._logged_out_post(request, application, **kwargs)
 
         # Clean up the session key after verifying the user to prevent replay attacks

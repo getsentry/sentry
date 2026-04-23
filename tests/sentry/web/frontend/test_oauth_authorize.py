@@ -1,12 +1,14 @@
+import time
 from functools import cached_property
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.web.frontend.oauth_authorize import OAUTH_AUTHORIZE_SESSION_TTL
 
 
 @control_silo_test
@@ -281,6 +283,105 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         authorization = ApiAuthorization.objects.get(user=self.user, application=self.application)
         assert authorization.get_scopes() == grant.get_scopes()
+
+    def test_get_prunes_stale_oa2_session_entries(self) -> None:
+        self.login_as(self.user)
+
+        self.session["oa2:stale_tx"] = {
+            "tx": "stale_tx",
+            "ts": time.time() - OAUTH_AUTHORIZE_SESSION_TTL - 1,
+        }
+        self.save_session()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert "oa2:stale_tx" not in self.client.session
+
+    def test_get_keeps_recent_oa2_session_entries(self) -> None:
+        self.login_as(self.user)
+
+        self.session["oa2:recent_tx"] = {"tx": "recent_tx", "ts": time.time() - 5}
+        self.save_session()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert "oa2:recent_tx" in self.client.session
+
+    def test_get_does_not_touch_device_flow_session_entries(self) -> None:
+        self.login_as(self.user)
+
+        # oauth_device.py shares the "oa2:" prefix with a different payload shape
+        # (no "tx" marker); those entries must not be swept.
+        self.session["oa2:ABCD-1234"] = {"device_code_id": 42, "user_id": self.user.id}
+        self.save_session()
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+
+        assert resp.status_code == 200
+        assert "oa2:ABCD-1234" in self.client.session
+
+    def test_post_clears_session_entry_when_application_deactivated(self) -> None:
+        self.login_as(self.user)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 200
+        tx_id = resp.context["tx_id"]
+        assert f"oa2:{tx_id}" in self.client.session
+
+        self.application.status = ApiApplicationStatus.inactive
+        self.application.save()
+
+        resp = self.client.post(self.path, {"op": "approve", "tx_id": tx_id})
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert f"oa2:{tx_id}" not in self.client.session
+
+    def test_auto_approve_does_not_persist_session_entry(self) -> None:
+        self.login_as(self.user)
+        ApiAuthorization.objects.create(user=self.user, application=self.application)
+
+        before = {k for k in self.client.session.keys() if k.startswith("oa2:")}
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}"
+        )
+        assert resp.status_code == 302
+        assert "code=" in resp["Location"]
+
+        after = {k for k in self.client.session.keys() if k.startswith("oa2:")}
+        assert after == before
+
+    def test_post_clears_session_entry_after_unauthenticated_login(self) -> None:
+        full_path = f"{self.path}?response_type=code&client_id={self.application.client_id}"
+
+        resp = self.client.get(full_path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/login.html")
+        tx_id = resp.context["tx_id"]
+
+        resp = self.client.post(
+            full_path,
+            {
+                "username": self.user.username,
+                "password": "admin",
+                "op": "login",
+                "tx_id": tx_id,
+            },
+        )
+        self.assertRedirects(resp, full_path)
+
+        assert f"oa2:{tx_id}" not in self.client.session
 
 
 @control_silo_test
