@@ -106,6 +106,73 @@ def run_night_shift_for_org(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
+    return _execute_night_shift_run(
+        organization,
+        dry_run=dry_run,
+        max_candidates=max_candidates,
+        log_extra=log_extra,
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.night_shift.run_night_shift_for_project",
+    namespace=seer_tasks,
+    processing_deadline_duration=5 * 60,
+)
+def run_night_shift_for_project(
+    project_id: int,
+    dry_run: bool = False,
+    max_candidates: int | None = None,
+    **kwargs: Any,
+) -> int | None:
+    """One-off night shift run scoped to a single project, e.g. from the
+    project settings "Run Now" button."""
+    project = (
+        Project.objects.filter(id=project_id, status=ObjectStatus.ACTIVE)
+        .select_related("organization")
+        .first()
+    )
+    if project is None:
+        return None
+
+    organization = project.organization
+    if organization.status != OrganizationStatus.ACTIVE:
+        return None
+
+    log_extra: dict[str, object] = {
+        "organization_id": organization.id,
+        "organization_slug": organization.slug,
+        "project_id": project.id,
+        "project_slug": project.slug,
+    }
+    sentry_sdk.set_tags(
+        {
+            "organization_id": organization.id,
+            "organization_slug": organization.slug,
+            "project_id": project.id,
+        }
+    )
+
+    return _execute_night_shift_run(
+        organization,
+        project_id=project.id,
+        dry_run=dry_run,
+        max_candidates=max_candidates,
+        log_extra=log_extra,
+    )
+
+
+def _execute_night_shift_run(
+    organization: Organization,
+    *,
+    project_id: int | None = None,
+    dry_run: bool,
+    max_candidates: int | None,
+    log_extra: dict[str, object],
+) -> int | None:
+    """Create a SeerNightShiftRun, run triage against eligible projects, and
+    optionally dispatch autofix. Shared between the org-wide scheduler and
+    per-project manual triggers."""
     start_time = time.monotonic()
 
     run = SeerNightShiftRun.objects.create(
@@ -123,7 +190,7 @@ def run_night_shift_for_org(
         return None
 
     try:
-        eligible_projects, _ = _get_eligible_projects(organization)
+        eligible_projects, _ = _get_eligible_projects(organization, project_id=project_id)
     except Exception:
         _fail_run(
             run,
@@ -246,12 +313,16 @@ def _fail_run(
 
 def _get_eligible_projects(
     organization: Organization,
+    project_id: int | None = None,
 ) -> tuple[list[Project], dict[int, SeerProjectPreference | None]]:
-    """Return active projects that have automation enabled and connected repos."""
-    project_map = {
-        p.id: p
-        for p in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-    }
+    """Return active projects that have automation enabled and connected repos.
+
+    When project_id is provided, only that project is considered (for manual
+    per-project triggers)."""
+    project_qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+    if project_id is not None:
+        project_qs = project_qs.filter(id=project_id)
+    project_map = {p.id: p for p in project_qs}
     if not project_map:
         return [], {}
 

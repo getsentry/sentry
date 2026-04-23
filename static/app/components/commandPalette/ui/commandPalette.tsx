@@ -279,6 +279,20 @@ export function CommandPalette(props: CommandPaletteProps) {
     [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
   );
 
+  // Dispatch the deferred reset once the close animation finishes. framer-motion
+  // only unmounts this component after the exit animation completes, so the
+  // cleanup runs at exactly the right time. If the user re-opens the palette
+  // before the animation ends, the component stays mounted and nothing fires.
+  const pendingResetRef = useRef(state.pendingReset);
+  pendingResetRef.current = state.pendingReset;
+  useEffect(() => {
+    return () => {
+      if (pendingResetRef.current) {
+        dispatch({type: 'reset'});
+      }
+    };
+  }, [dispatch]);
+
   const resultsListRef = useRef<HTMLDivElement>(null);
   const modifierKeysRef = useRef({shiftKey: false});
 

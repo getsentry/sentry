@@ -277,6 +277,7 @@ class RouteSlackSeerEventTest(TestCase):
                 "channel": "C1",
                 "ts": "123.456",
                 "thread_ts": "100.000",
+                "text": "hello",
             },
         }
         event_request = self.factory.post(
@@ -295,6 +296,7 @@ class RouteSlackSeerEventTest(TestCase):
             thread_ts="100.000",
             message_ts="123.456",
             event_type="app_mention",
+            message_text="hello",
         )
 
     @responses.activate

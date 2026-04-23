@@ -30,7 +30,7 @@ export function AskSeerButton() {
   const props: ButtonProps = {
     'aria-label': t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
-    priority: sessionState === 'thinking' ? 'primary' : 'default',
+    priority: 'default',
     icon: <IconWrapper>{icon}</IconWrapper>,
   };
 

@@ -52,6 +52,7 @@ def resolve_seer_organization_for_slack_user(
     thread_ts: str,
     message_ts: str,
     event_type: str,
+    message_text: str,
 ) -> SeerResolutionResult:
     """
         Resolve and validate an organization/user for a Seer Slack event.
@@ -185,6 +186,7 @@ class SlackEventRequest(SlackDMRequest):
             thread_ts=self.thread_ts,
             message_ts=self.dm_data.get("ts", ""),
             event_type=self.dm_data.get("type", ""),
+            message_text=self.text,
         )
 
     @property

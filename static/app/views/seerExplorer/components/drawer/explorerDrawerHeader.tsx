@@ -19,6 +19,7 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface ExplorerDrawerHeaderProps {
   copySessionEnabled: boolean;
+  isEmptyState: boolean;
   onChangeSession: (runId: number) => void;
   onCopySessionClick: () => void;
   onNewChatClick: () => void;
@@ -34,6 +35,7 @@ export function ExplorerDrawerHeader({
   onNewChatClick,
   onChangeSession,
   copySessionEnabled,
+  isEmptyState,
   onCopySessionClick,
   showContextEngineToggle,
   overrideCtxEngEnable,
@@ -174,6 +176,7 @@ export function ExplorerDrawerHeader({
         <Button
           icon={<IconAdd />}
           onClick={onNewChatClick}
+          disabled={isEmptyState}
           priority="default"
           size="xs"
           aria-label={t('Start a new chat (/new)')}

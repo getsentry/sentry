@@ -195,6 +195,8 @@ def route_slack_seer_event(
     thread_ts: str,
     message_ts: str,
     event_type: str,
+    # TODO(leander): Remove default after deployment, when active tasks are complete
+    message_text: str = "",
 ) -> None:
     """
     Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
@@ -212,6 +214,8 @@ def route_slack_seer_event(
         "slack_user_id": slack_user_id,
         "channel_id": channel_id,
         "thread_ts": thread_ts,
+        "message_ts": message_ts,
+        "event_type": event_type,
     }
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
@@ -227,6 +231,7 @@ def route_slack_seer_event(
         thread_ts=thread_ts,
         message_ts=message_ts,
         event_type=event_type,
+        message_text=message_text,
     )
     logging_ctx["organization_id"] = organization_id
     logging_ctx["halt_reason"] = halt_reason
