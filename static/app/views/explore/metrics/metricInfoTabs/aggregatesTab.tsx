@@ -16,6 +16,7 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
@@ -82,6 +83,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       : isVisualizeEquation(visualize) && Boolean(visualize.expression.text),
     limit: RESULT_LIMIT,
     traceMetric,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
   const columns = useMemo(
@@ -100,6 +102,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: traceMetricFilter,
+      staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
     }),
     enabled: Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),

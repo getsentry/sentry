@@ -40,6 +40,7 @@ type SpansQueryProps<T = any[]> = {
   limit?: number;
   queryExtras?: RPCQueryExtras;
   referrer?: string;
+  staleTime?: number;
   trackResponseAnalytics?: boolean;
 };
 
@@ -83,6 +84,7 @@ function useSpansQueryBase<T>({
   trackResponseAnalytics,
   queryExtras,
   withPageFilters,
+  staleTime,
 }: SpansQueryProps<T> & {withPageFilters: boolean}) {
   if (!eventView) {
     throw new Error(
@@ -114,6 +116,7 @@ function useSpansQueryBase<T>({
     logQuery: queryExtras?.logQuery,
     metricQuery: queryExtras?.metricQuery,
     spanQuery: queryExtras?.spanQuery,
+    staleTime,
   });
 
   if (trackResponseAnalytics) {
@@ -135,6 +138,7 @@ type WrappedDiscoverTimeseriesQueryProps = {
   referrer?: string;
   samplingMode?: SamplingMode;
   spanQuery?: string[];
+  staleTime?: number;
 };
 
 function useWrappedDiscoverTimeseriesQueryBase<T>({
@@ -149,6 +153,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   logQuery,
   metricQuery,
   spanQuery,
+  staleTime,
 }: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -197,11 +202,12 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime:
-        usesRelativeDateRange &&
+        staleTime ??
+        (usesRelativeDateRange &&
         defined(intervalInMilliseconds) &&
         intervalInMilliseconds !== 0
           ? intervalInMilliseconds
-          : Infinity,
+          : Infinity),
     },
     referrer,
   });
@@ -258,6 +264,7 @@ type WrappedDiscoverQueryProps<T> = {
   refetchInterval?: number;
   samplingMode?: SamplingMode;
   spanQuery?: string[];
+  staleTime?: number;
 };
 
 function useWrappedDiscoverQueryBase<T>({
@@ -280,6 +287,7 @@ function useWrappedDiscoverQueryBase<T>({
   metricQuery,
   spanQuery,
   extrapolationMode,
+  staleTime,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -336,7 +344,7 @@ function useWrappedDiscoverQueryBase<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: getStaleTimeForEventView(eventView),
+      staleTime: staleTime ?? getStaleTimeForEventView(eventView),
       additionalQueryKey,
       refetchInterval,
       placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,

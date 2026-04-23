@@ -11,7 +11,7 @@ import {FieldKind} from 'sentry/utils/fields';
 import {type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -129,7 +129,7 @@ export function useGetTraceItemAttributeValues({
               method: 'GET',
               query: {...options?.query},
             }),
-          staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+          staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
         });
         return result
           .filter((item: TraceItemAttributeValue) => defined(item.value))
