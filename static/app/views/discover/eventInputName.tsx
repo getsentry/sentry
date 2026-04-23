@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {EditableText} from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -63,7 +61,7 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
   if (hasPageFrameFeature) {
     return (
       <div data-test-id={`discover2-query-name-${value}`}>
-        <PageFrameEditableText
+        <EditableText
           value={value}
           onChange={handleChange}
           errorMessage={t('Please set a name for this query')}
@@ -87,42 +85,3 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
     </Layout.Title>
   );
 }
-
-const PageFrameEditableText = styled(EditableText)`
-  [data-test-id='editable-text-label'] svg {
-    flex-shrink: 0;
-    opacity: 0;
-  }
-
-  [data-test-id='editable-text-input'] {
-    display: inline-block;
-    min-width: 0;
-    max-width: 100%;
-    background: transparent !important;
-    border-top: 1px solid transparent;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-  }
-
-  [data-test-id='editable-text-input'] input {
-    min-height: 0;
-    height: auto;
-    line-height: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-  }
-
-  :hover,
-  :focus-within {
-    [data-test-id='editable-text-label'] svg {
-      opacity: 1;
-    }
-  }
-`;

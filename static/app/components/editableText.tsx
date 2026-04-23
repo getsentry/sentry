@@ -196,11 +196,17 @@ export function EditableText({
   const isCompact = variant === 'compact';
 
   return (
-    <Wrapper isDisabled={isDisabled} isEditing={isEditing} className={className}>
+    <Wrapper
+      isCompact={isCompact}
+      isDisabled={isDisabled}
+      isEditing={isEditing}
+      className={className}
+    >
       {isEditing ? (
         <InputWrapper
           ref={innerWrapperRef}
           isEmpty={isDraftEmpty}
+          isCompact={isCompact}
           data-test-id="editable-text-input"
         >
           <StyledInput
@@ -221,6 +227,7 @@ export function EditableText({
         <Label
           onClick={isDisabled ? undefined : handleEditClick}
           ref={labelRef}
+          isCompact={isCompact}
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
@@ -232,28 +239,43 @@ export function EditableText({
   );
 }
 
-const Label = styled('div')<{isDisabled: boolean}>`
+const Label = styled('div')<{isDisabled: boolean; isCompact?: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
   gap: ${p => p.theme.space.md};
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
+
+  ${p =>
+    p.isCompact &&
+    css`
+      svg {
+        flex-shrink: 0;
+        opacity: 0;
+      }
+    `}
 `;
 
 const InnerLabel = styled(TextOverflow)<{isCompact?: boolean}>`
   border-top: 1px solid transparent;
   border-bottom: ${p =>
     p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
-  line-height: ${p => (p.isCompact ? 'inherit' : '38px')};
+  ${p =>
+    !p.isCompact &&
+    css`
+      line-height: 38px;
+    `}
 `;
 
-const InputWrapper = styled('div')<{isEmpty: boolean}>`
+const InputWrapper = styled('div')<{isEmpty: boolean; isCompact?: boolean}>`
   display: inline-block;
-  background: ${p => p.theme.tokens.background.tertiary};
-  border-radius: ${p => p.theme.radius.md};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  max-width: calc(100% + ${p => p.theme.space.xl});
+  background: ${p => (p.isCompact ? 'transparent' : p.theme.tokens.background.tertiary)};
+  border-radius: ${p => (p.isCompact ? 0 : p.theme.radius.md)};
+  border-top: ${p => (p.isCompact ? '1px solid transparent' : 'none')};
+  margin: ${p => (p.isCompact ? 0 : `-${p.theme.space.xs} -${p.theme.space.md}`)};
+  padding: ${p => (p.isCompact ? 0 : `${p.theme.space.xs} ${p.theme.space.md}`)};
+  max-width: ${p => (p.isCompact ? '100%' : `calc(100% + ${p.theme.space.xl})`)};
+  min-width: ${p => (p.isCompact ? 0 : 'auto')};
 `;
 
 const StyledInput = styled(Input)<{isCompact?: boolean}>`
@@ -263,6 +285,13 @@ const StyledInput = styled(Input)<{isCompact?: boolean}>`
   min-height: ${p => (p.isCompact ? 'auto' : '40px')};
   padding: 0;
   font-size: inherit;
+  ${p =>
+    p.isCompact &&
+    css`
+      line-height: 1.2;
+      font-weight: inherit;
+      border-radius: 0 !important;
+    `}
   &,
   &:focus,
   &:active,
@@ -278,7 +307,11 @@ const InputLabel = styled('div')`
   padding: 0 ${p => p.theme.space.md};
 `;
 
-const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
+const Wrapper = styled('div')<{
+  isDisabled: boolean;
+  isEditing: boolean;
+  isCompact?: boolean;
+}>`
   display: flex;
 
   ${p =>
@@ -286,6 +319,15 @@ const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
     css`
       ${InnerLabel} {
         border-bottom-color: transparent;
+      }
+    `}
+
+  ${p =>
+    p.isCompact &&
+    css`
+      &:hover ${Label} svg,
+      &:focus-within ${Label} svg {
+        opacity: 1;
       }
     `}
 `;
