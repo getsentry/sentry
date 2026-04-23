@@ -163,6 +163,26 @@ describe('CommandPalette', () => {
     ).toHaveAttribute('data-link-type', 'external');
   });
 
+  it('renders both a custom trailingItem and the link indicator for a link action', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          to="/target/"
+          display={{
+            label: 'Action with trailing',
+            trailingItem: <span data-testid="custom-trailing">Badge</span>,
+          }}
+        />
+      </GlobalActionsComponent>
+    );
+
+    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
+    expect(
+      option.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toBeInTheDocument();
+  });
+
   it('clicking action with children shows sub-items, backspace returns', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     render(
@@ -1166,7 +1186,9 @@ describe('CommandPalette', () => {
       act(() => testDispatch({type: 'toggle modal'}));
 
       // Sub-action state should still be intact
-      expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
     });
 
@@ -1187,8 +1209,12 @@ describe('CommandPalette', () => {
       // Reopen — route change must have set resetOnOpen
       act(() => testDispatch({type: 'toggle modal'}));
 
-      expect(await screen.findByRole('option', {name: 'Root Action'})).toBeInTheDocument();
-      expect(screen.queryByRole('option', {name: 'Child Action'})).not.toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
     });
   });
 
