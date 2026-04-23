@@ -856,7 +856,9 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
     return SeerProjectRepository.objects.filter(
-        project=project, project__status=ObjectStatus.ACTIVE
+        project=project,
+        project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
     ).exists()
 
 
