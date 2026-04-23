@@ -14,7 +14,10 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
-from sentry.integrations.slack.requests.event import SlackEventRequest
+from sentry.integrations.slack.requests.event import (
+    PREFERRED_ORGANIZATION_ID_KEY,
+    SlackEventRequest,
+)
 from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
@@ -513,6 +516,36 @@ class SlackEventRequestSeerResolutionTest(TestCase):
             text="<@U_BOT> https://sentry.io/organizations/not-my-org/issues/123/"
         )
         result = slack_request.resolve_seer_organization()
+        assert result.organization_id == self.organization.id
+        assert result.halt_reason is None
+
+    @patch("sentry.integrations.slack.requests.event.get_thread_history", return_value=[])
+    @patch(
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        return_value=True,
+    )
+    def test_multi_org_resolves_from_preference(self, mock_access, mock_get_thread_history):
+        other_org = self._add_second_org()
+        with assume_test_silo_mode_of(self.identity):
+            self.identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: other_org.id})
+
+        slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")
+        result = slack_request.resolve_seer_organization()
+        assert result.organization_id == other_org.id
+        assert result.halt_reason is None
+
+    @patch("sentry.integrations.slack.requests.event.get_thread_history", return_value=[])
+    @patch(
+        "sentry.integrations.slack.requests.event.SlackAgentEntrypoint.has_access",
+        return_value=True,
+    )
+    def test_multi_org_ignores_stale_preference(self, mock_access, mock_get_thread_history):
+        with assume_test_silo_mode_of(self.identity):
+            self.identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: 9999999})
+
+        slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")
+        result = slack_request.resolve_seer_organization()
+        # Stale preference is silently ignored, falls back to first available org.
         assert result.organization_id == self.organization.id
         assert result.halt_reason is None
 

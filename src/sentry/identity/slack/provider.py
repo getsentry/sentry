@@ -4,6 +4,8 @@ from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.pipeline.views.base import PipelineView
 
+PREFERRED_ORGANIZATION_ID_KEY = "preferred_organization_id"
+
 
 class SlackIdentityProvider(OAuth2Provider):
     key = IntegrationProviderSlug.SLACK.value
@@ -67,7 +69,7 @@ class SlackIdentityProvider(OAuth2Provider):
             "id": data["user"]["id"],
             "email": data["user"]["email"],
             "scopes": sorted(data["scope"].split(",")),
-            "data": self.get_oauth_data(data),
+            "data": {**self.get_oauth_data(data), PREFERRED_ORGANIZATION_ID_KEY: None},
         }
 
 

@@ -6,7 +6,9 @@ from collections.abc import Mapping
 from typing import Any, NamedTuple
 
 from sentry.constants import ObjectStatus
+from sentry.identity.services.identity import RpcIdentity
 from sentry.identity.services.identity.service import identity_service
+from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -113,6 +115,24 @@ def _resolve_organization_from_text(
     return None
 
 
+def _resolve_organization_from_preference(
+    *,
+    identity: RpcIdentity,
+    available_organizations: list[RpcUserOrganizationContext],
+) -> RpcUserOrganizationContext | None:
+    """
+    Resolves an organization from the user's stored preference on their Identity. Returns None if
+    no preference is set, or if the preferred org is not currently available to the user.
+    """
+    preferred_id = identity.data.get(PREFERRED_ORGANIZATION_ID_KEY)
+    if not preferred_id:
+        return None
+    for ctx in available_organizations:
+        if ctx.organization.id == preferred_id:
+            return ctx
+    return None
+
+
 def _resolve_organization_from_thread(
     *,
     integration: RpcIntegration,
@@ -180,7 +200,7 @@ def resolve_seer_organization(
         else None
     )
     user = user_service.get_user(identity.user_id) if identity else None
-    if not user:
+    if not identity or not user:
         logger.info("resolve_seer_organization.identity_not_linked", extra=logging_ctx)
         return SeerResolutionResult(
             organization_id=None, halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
@@ -240,7 +260,16 @@ def resolve_seer_organization(
             organization_id=ctx_from_thread.organization.id, halt_reason=None
         )
 
-    # 3. Check the user's preferred organization (TODO)
+    # 3. Check the user's preferred organization
+    ctx_from_preference = _resolve_organization_from_preference(
+        identity=identity, available_organizations=available_organizations
+    )
+    if ctx_from_preference is not None:
+        logger.info("resolve_seer_organization.resolved_from_preference", extra=logging_ctx)
+        return SeerResolutionResult(
+            organization_id=ctx_from_preference.organization.id, halt_reason=None
+        )
+
     # 4. Fallback to the first result
     first_organization = available_organizations[0]
     logger.info("resolve_seer_organization.fallback_organization", extra=logging_ctx)

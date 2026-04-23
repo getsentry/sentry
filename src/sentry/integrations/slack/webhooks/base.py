@@ -112,6 +112,9 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
     def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         raise NotImplementedError
 
+    def set_default_org(self, slack_request: SlackDMRequest, slug: str) -> Response:
+        raise NotImplementedError
+
 
 @dataclass(frozen=True)
 class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
@@ -206,6 +209,35 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         )
 
     @property
+    def SET_DEFAULT_ORG_HALT_MAPPINGS(self) -> dict[str, MessageCommandHaltReason]:
+        from sentry.integrations.slack.webhooks.command import (
+            LINK_USER_FIRST_MESSAGE,
+            SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE,
+            SET_DEFAULT_ORG_NOT_FOUND_PREFIX,
+        )
+
+        return {
+            LINK_USER_FIRST_MESSAGE: MessageCommandHaltReason.LINK_USER_FIRST,
+            SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE: MessageCommandHaltReason.MISSING_ORG_SLUG,
+            SET_DEFAULT_ORG_NOT_FOUND_PREFIX: MessageCommandHaltReason.ORG_NOT_FOUND,
+        }
+
+    def set_default_org_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        slug = input.arg_values[0] if input.arg_values else ""
+        response = self.endpoint.set_default_org(self.request, slug)
+        for message, reason in self.SET_DEFAULT_ORG_HALT_MAPPINGS.items():
+            if message in str(response.data):
+                return IntegrationResponse(
+                    interaction_result=EventLifecycleOutcome.HALTED,
+                    response=response,
+                    outcome_reason=str(reason),
+                )
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    @property
     def command_handlers(
         self,
     ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
@@ -214,3 +246,4 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         yield commands.UNLINK_IDENTITY, self.unlink_user_handler
         yield commands.LINK_TEAM, self.link_team_handler
         yield commands.UNLINK_TEAM, self.unlink_team_handler
+        yield commands.SET_DEFAULT_ORG, self.set_default_org_handler

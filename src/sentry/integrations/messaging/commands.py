@@ -93,6 +93,10 @@ UNLINK_TEAM = MessagingIntegrationCommand(
     MessagingInteractionType.UNLINK_TEAM,
     "unlink team",
 )
+SET_DEFAULT_ORG = MessagingIntegrationCommand(
+    MessagingInteractionType.SET_DEFAULT_ORG,
+    "set org",
+)
 
 R = TypeVar("R")  # response
 
