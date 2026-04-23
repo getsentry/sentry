@@ -12,7 +12,7 @@ import type {
   SwcLoaderOptions,
 } from '@rspack/core';
 import rspack from '@rspack/core';
-import ReactRefreshRspackPlugin from '@rspack/plugin-react-refresh';
+import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
@@ -266,15 +266,9 @@ const appConfig: Configuration = {
     sentry: 'less/sentry.less',
   },
   context: staticPrefix,
+  incremental: DEV_MODE,
   experiments: {
-    // https://rspack.dev/config/experiments#experimentsincremental
-    incremental: DEV_MODE,
     futureDefaults: true,
-    // Native css parsing not working in production
-    // Build production bundle and open the entrypoints/sentry.css file
-    // Assets path should be `../assets/rubik.woff` not `assets/rubik.woff`
-    // Not compatible with CssExtractRspackPlugin https://rspack.rs/guide/tech/css#using-cssextractrspackplugin
-    css: false,
     // https://rspack.dev/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
     nativeWatcher: true,
@@ -784,7 +778,8 @@ if (IS_UI_DEV_ONLY) {
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
         router: req => {
-          const orgSlug = extractSlug((req as any).hostname);
+          const host = req.headers.host!.split(':')[0]!;
+          const orgSlug = extractSlug(host);
           return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
         },
       },
@@ -810,7 +805,7 @@ if (IS_UI_DEV_ONLY) {
         },
         router: (req: any) => {
           const regionPathPattern = /^\/region\/([^/]+)/;
-          const regionname = req.path.match(regionPathPattern);
+          const regionname = (req.url ?? '').match(regionPathPattern);
           if (regionname) {
             return `https://${regionname[1]}.sentry.io`;
           }
@@ -819,7 +814,12 @@ if (IS_UI_DEV_ONLY) {
       },
     ],
     historyApiFallback: {
-      rewrites: [{from: /^\/.*$/, to: '/_assets/index.html'}],
+      rewrites: [
+        {
+          from: /^(?!\/(?:_assets|api|avatar|organization-avatar|extensions|region)\/).*$/,
+          to: '/_assets/index.html',
+        },
+      ],
     },
   };
   // Hot reloading breaks if we aren't using a single runtime chunk
@@ -893,10 +893,9 @@ if (IS_PRODUCTION) {
 
 // Cache rspack builds
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
-  appConfig.experiments!.cache = {
+  appConfig.cache = {
     type: 'persistent',
-    // https://rspack.dev/config/experiments#cachestorage
+    // https://rspack.rs/config/cache
     storage: {
       type: 'filesystem',
       directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
