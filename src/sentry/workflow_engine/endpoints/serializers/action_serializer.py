@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
@@ -10,7 +11,7 @@ class ActionSerializerResponse(TypedDict):
     id: str
     type: str
     integrationId: str | None
-    data: dict[str, Any]
+    data: Mapping[str, Any]
     config: dict[str, Any]
     status: str
 
