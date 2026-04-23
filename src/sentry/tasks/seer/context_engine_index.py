@@ -267,6 +267,7 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
             continue
 
         autofix_repos = get_autofix_repos_from_project_code_mappings(project)
+        # Use autofix repos to get repo languages
         language_map: dict[tuple[str, str, str], list[str]] = {}
         for autofix_repo in autofix_repos:
             key = (autofix_repo["provider"], autofix_repo["owner"], autofix_repo["name"])

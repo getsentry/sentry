@@ -916,7 +916,7 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         mock_get_tags,
         mock_record_seer_run,
     ):
-        """Tests that the preference read from Sentry DB is passed to _call_autofix."""
+        """Tests that the preference is passed to _call_autofix."""
         mock_get_profile.return_value = None
         mock_get_trace.return_value = None
         mock_get_tags.return_value = None
