@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
@@ -22,7 +21,7 @@ from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
-from sentry.seer.entrypoints.slack.mention import build_thread_context
+from sentry.seer.entrypoints.slack.mention import _SLACK_URL_RE, build_thread_context
 from sentry.silo.base import SiloMode, all_silo_function
 from sentry.users.services.user.service import user_service
 
@@ -30,10 +29,6 @@ COMMANDS = ["link", "unlink", "link team", "unlink team"]
 SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 logger = logging.getLogger(__name__)
-
-# Slack wraps URLs in the form `<url>` or `<url|display text>`; this regex
-# extracts the URL portion while stopping at any of those delimiters.
-_URL_REGEX = re.compile(r"https?://[^\s<>|]+")
 
 
 def has_discover_links(links: list[str]) -> bool:
@@ -105,7 +100,7 @@ def _resolve_organization_from_text(
     matching its org slug against the available organizations. Returns the first match.
     """
     organizations_by_slug = {ctx.organization.slug: ctx for ctx in available_organizations}
-    for url in _URL_REGEX.findall(search_text):
+    for url in _SLACK_URL_RE.findall(search_text):
         _, args = match_link(url)
         if not args or "org_slug" not in args:
             continue

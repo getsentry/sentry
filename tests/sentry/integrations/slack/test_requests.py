@@ -480,7 +480,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
     def test_multi_org_resolves_from_message_link(self, mock_access, mock_get_thread_history):
         other_org = self._add_second_org()
         slack_request = self._build_request(
-            text=f"<@U_BOT> what about https://{other_org.slug}.sentry.io/issues/123/ ?"
+            text=f"<@U_BOT> what about <https://{other_org.slug}.sentry.io/issues/123/> ?"
         )
         result = slack_request.resolve_seer_organization()
         assert result.organization_id == other_org.id
@@ -496,7 +496,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
     def test_multi_org_resolves_from_thread(self, mock_access, mock_get_thread_history):
         other_org = self._add_second_org()
         mock_get_thread_history.return_value = [
-            {"user": "U_OTHER", "text": f"https://{other_org.slug}.sentry.io/issues/42/"},
+            {"user": "U_OTHER", "text": f"<https://{other_org.slug}.sentry.io/issues/42/>"},
             {"user": "U_SLACK", "text": "<@U_BOT> help"},
         ]
         slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")
@@ -511,7 +511,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
     def test_multi_org_ignores_link_for_unavailable_org(self, mock_access):
         self._add_second_org()
         slack_request = self._build_request(
-            text="<@U_BOT> https://sentry.io/organizations/not-my-org/issues/123/"
+            text="<@U_BOT> <https://sentry.io/organizations/not-my-org/issues/123/>"
         )
         result = slack_request.resolve_seer_organization()
         assert result.organization_id == self.organization.id
