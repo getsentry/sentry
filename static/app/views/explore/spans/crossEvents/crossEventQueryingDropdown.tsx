@@ -52,7 +52,7 @@ export function CrossEventQueryingDropdown() {
       {triggerProps => (
         <DropdownMenu
           onAction={onAction}
-          items={getCrossEventDropdownItems()}
+          items={getCrossEventDropdownItems(organization)}
           isDisabled={isDisabled}
           triggerProps={{
             ...triggerProps,
