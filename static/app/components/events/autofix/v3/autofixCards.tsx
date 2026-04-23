@@ -104,24 +104,24 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                   </Container>
                 </ArtifactDetails>
               ) : null}
-              <ArtifactDetails>
-                <Text bold>{t('Evidence')}</Text>
-                {evidence.length > 0 ? (
-                  <Flex gap="md" wrap="wrap">
-                    {evidence.map(e => (
-                      <AutofixEvidence
-                        key={e.toolCall.id}
-                        toolCall={e.toolCall}
-                        toolLink={e.toolLink}
-                      />
-                    ))}
-                  </Flex>
-                ) : (
-                  <Text variant="muted">{t('No evidence available')}</Text>
-                )}
-              </ArtifactDetails>
             </Fragment>
           ) : null}
+          <ArtifactDetails>
+            <Text bold>{t('Evidence')}</Text>
+            {evidence.length > 0 ? (
+              <Flex gap="md" wrap="wrap">
+                {evidence.map(e => (
+                  <AutofixEvidence
+                    key={e.toolCall.id}
+                    toolCall={e.toolCall}
+                    toolLink={e.toolLink}
+                  />
+                ))}
+              </Flex>
+            ) : (
+              <Text variant="muted">{t('No evidence available')}</Text>
+            )}
+          </ArtifactDetails>
         </Fragment>
       ) : (
         <ArtifactDetails>

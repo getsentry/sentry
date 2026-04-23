@@ -293,9 +293,9 @@ describe('useAutofixSectionEvidence', () => {
     const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
 
     expect(result.current).toHaveLength(1);
-    expect(result.current[0].toolCall.id).toBe('tc-1');
-    expect(result.current[0].toolLink?.kind).toBe('telemetry_live_search');
-    expect(result.current[0].toolResult?.tool_call_id).toBe('tc-1');
+    expect(result.current[0]!.toolCall.id).toBe('tc-1');
+    expect(result.current[0]!.toolLink?.kind).toBe('telemetry_live_search');
+    expect(result.current[0]!.toolResult?.tool_call_id).toBe('tc-1');
   });
 
   it('extracts multiple evidence items from a single block', () => {
@@ -331,8 +331,8 @@ describe('useAutofixSectionEvidence', () => {
     const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
 
     expect(result.current).toHaveLength(2);
-    expect(result.current[0].toolCall.id).toBe('tc-1');
-    expect(result.current[1].toolCall.id).toBe('tc-2');
+    expect(result.current[0]!.toolCall.id).toBe('tc-1');
+    expect(result.current[1]!.toolCall.id).toBe('tc-2');
   });
 
   it('flattens evidence across multiple blocks', () => {
@@ -429,6 +429,6 @@ describe('useAutofixSectionEvidence', () => {
     const {result} = renderHookWithProviders(() => useAutofixSectionEvidence({section}));
 
     expect(result.current).toHaveLength(1);
-    expect(result.current[0].toolLink).toBeUndefined();
+    expect(result.current[0]!.toolLink).toBeUndefined();
   });
 });
