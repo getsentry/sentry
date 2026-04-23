@@ -27,6 +27,9 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    WorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
@@ -1152,17 +1155,23 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-rule-serializers")
+    @with_feature("organizations:workflow-engine-metric-alert-endpoints-put")
     def test_workflow_engine_serializer(self) -> None:
-        self.create_team(organization=self.organization, members=[self.user])
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+
         self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["name"] = "what"
 
-        ard = AlertRuleDetector.objects.get(alert_rule_id=self.alert_rule.id)
-        self.detector = Detector.objects.get(id=ard.detector_id)
-        fake_detector_id = get_fake_id_from_object_id(self.detector.id)
-
-        with outbox_runner():
-            self.get_error_response(self.organization.slug, fake_detector_id, status_code=400)
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
+        detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
+        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
 
     def test_not_updated_fields(self) -> None:
         self.create_member(
