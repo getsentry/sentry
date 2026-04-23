@@ -1,3 +1,5 @@
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+
 import type {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -21,6 +23,21 @@ export function getCrossEventDropdownItems(
   }
 
   return items;
+}
+
+export function getCrossEventDatasetOptions(
+  organization: Organization
+): Array<SelectOption<CrossEventType>> {
+  const options: Array<SelectOption<CrossEventType>> = [
+    {value: 'spans', label: t('Spans')},
+    {value: 'logs', label: t('Logs')},
+  ];
+
+  if (canUseMetricsUI(organization)) {
+    options.push({value: 'metrics', label: t('Metrics')});
+  }
+
+  return options;
 }
 
 const EMPTY_TRACE_METRIC: TraceMetric = {name: '', type: ''};

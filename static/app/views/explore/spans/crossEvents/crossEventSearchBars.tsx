@@ -21,7 +21,10 @@ import {
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 import {SpansTabCrossEventMetricsSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventMetricsSearchBar';
 import {SpansTabCrossEventSearchBar} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBar';
-import {makeCrossEvent} from 'sentry/views/explore/spans/crossEvents/utils';
+import {
+  getCrossEventDatasetOptions,
+  makeCrossEvent,
+} from 'sentry/views/explore/spans/crossEvents/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 export function SpansTabCrossEventSearchBars() {
@@ -73,11 +76,7 @@ export function SpansTabCrossEventSearchBars() {
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} {...props} prefix={t('with')} />
               )}
-              options={[
-                {value: 'spans', label: t('Spans')},
-                {value: 'logs', label: t('Logs')},
-                {value: 'metrics', label: t('Metrics')},
-              ]}
+              options={getCrossEventDatasetOptions(organization)}
               onChange={({value: newValue}) => {
                 if (!isCrossEventType(newValue)) return;
 
