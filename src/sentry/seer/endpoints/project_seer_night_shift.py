@@ -25,5 +25,5 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
         if not features.has("organizations:seer-night-shift", project.organization):
             raise NotFound
 
-        run_night_shift_for_project(project.id)
-        return Response(status=200)
+        run_night_shift_for_project.apply_async(args=[project.id])
+        return Response(status=202)

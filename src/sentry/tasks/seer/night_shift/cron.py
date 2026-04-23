@@ -114,10 +114,16 @@ def run_night_shift_for_org(
     )
 
 
+@instrumented_task(
+    name="sentry.tasks.seer.night_shift.run_night_shift_for_project",
+    namespace=seer_tasks,
+    processing_deadline_duration=5 * 60,
+)
 def run_night_shift_for_project(
     project_id: int,
     dry_run: bool = False,
     max_candidates: int | None = None,
+    **kwargs: Any,
 ) -> int | None:
     """One-off night shift run scoped to a single project, e.g. from the
     project settings "Run Now" button."""
