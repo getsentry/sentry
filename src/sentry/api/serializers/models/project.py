@@ -96,7 +96,7 @@ class CrashFreeRatesWithHealthData(CurrentAndPreviousCrashFreeRate):
 
 def _get_team_memberships(
     team_list: Collection[int], user: User | RpcUser | AnonymousUser
-) -> Iterable[OrganizationMemberTeam]:
+) -> list[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
