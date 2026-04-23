@@ -476,6 +476,28 @@ class ChunkUploadTest(APITestCase):
         stored_checksums = {fb.checksum for fb in file_blobs}
         assert stored_checksums == {checksum1, checksum2}
 
+    def test_upload_content_encoding_zstd_multi_frame(self) -> None:
+        """Multi-frame zstd payload should decode fully (read_across_frames)."""
+        part_a = b"first frame payload "
+        part_b = b"second frame payload"
+        data = part_a + part_b
+        compressor = zstandard.ZstdCompressor()
+        # Concatenate two independent zstd frames into one blob.
+        compressed = compressor.compress(part_a) + compressor.compress(part_b)
+        checksum = sha1(data).hexdigest()
+        blob = SimpleUploadedFile(checksum, compressed, content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="zstd",
+            format="multipart",
+        )
+
+        assert response.status_code == 200, response.content
+        assert FileBlob.objects.filter(checksum=checksum).exists()
+
     def test_upload_content_encoding_zstd_mixed_case(self) -> None:
         """Content-Encoding should be normalized (case-insensitive per RFC 7231)."""
         data = b"hello zstd"

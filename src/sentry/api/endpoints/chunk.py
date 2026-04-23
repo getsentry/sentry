@@ -86,7 +86,12 @@ class GzipChunk(BytesIO):
 
 class ZstdChunk(BytesIO):
     def __init__(self, file):
-        reader = zstandard.ZstdDecompressor().stream_reader(file)
+        # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
+        # (which reads across concatenated gzip members) and matches the
+        # convention in `src/sentry/models/eventattachment.py`. Without it a
+        # multi-frame zstd payload would silently decode only the first frame
+        # and produce a misleading checksum-mismatch error.
+        reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
         data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
         self.size = len(data)
         self.name = file.name
