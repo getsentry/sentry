@@ -20,7 +20,7 @@ from sentry.models.organization import ORGANIZATION_NAME_MAX_LENGTH, Organizatio
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
-from sentry.services.organization import OrganizationProvisioningOptions
+from sentry.services.organization import OrganizationOptions, OrganizationProvisioningOptions
 from sentry.signals import terms_accepted
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry_from_user
@@ -55,10 +55,6 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         user_id: int | None = None,
         # TODO(cells) Deprecated use owner instead
         email: str | None = None,
-        ip_address: str | None = None,
-        agree_terms: bool | None = None,
-        aggregated_data_consent: bool | None = None,
-        channel_name: str | None = None,
     ) -> Organization:
         assert (user_id is None and email) or (user_id and email is None), (
             "Must set either user_id or email"
@@ -87,48 +83,6 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         if create_default_team:
             team = org.team_set.create(name=org.name)
             OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
-
-        if owner and options.get("provision_organization_in_cell.record_analytics"):
-            audit_data = org.get_audit_log_data()
-            actor_label = None
-            if channel_name:
-                audit_data["channel"] = channel_name
-                actor_label = f"provision_channel:{channel_name}"
-            create_audit_entry_from_user(
-                user=owner,
-                ip_address=ip_address,
-                organization=org,
-                target_object=org.id,
-                event=audit_log.get_event_id("ORG_ADD"),
-                data=audit_data,
-                actor_label=actor_label,
-            )
-            try:
-                analytics.record(
-                    OrganizationCreatedEvent(
-                        id=org.id, name=org.name, slug=org.slug, actor_id=owner.id
-                    )
-                )
-            except Exception as e:
-                capture_exception(e)
-
-            if agree_terms:
-                terms_accepted.send_robust(
-                    user=owner,
-                    organization_id=org.id,
-                    ip_address=ip_address,
-                    sender=type(self),
-                )
-
-            if aggregated_data_consent:
-                org.update_option("sentry:aggregated_data_consent", True)
-
-                try:
-                    analytics.record(
-                        AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
-                    )
-                except Exception as e:
-                    capture_exception(e)
 
         return org
 
@@ -214,17 +168,68 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
                 create_default_team=provision_options.create_default_team,
                 organization_id=organization_id,
                 is_test=provision_options.is_test,
-                ip_address=provision_options.ip_address,
-                agree_terms=provision_options.agree_terms,
-                aggregated_data_consent=provision_options.aggregated_data_consent,
-                channel_name=provision_options.channel_name,
             )
 
             create_post_provision_outbox(
                 provisioning_options=provision_payload, org_id=organization.id
             ).save()
 
+        self._record_organization_create_analytics(organization, provision_options)
+
         return True
+
+    def _record_organization_create_analytics(
+        self, organization: Organization, provision_options: OrganizationOptions
+    ) -> None:
+        if not (
+            provision_options.owner
+            and options.get("provision_organization_in_cell.record_analytics")
+        ):
+            return
+
+        # These operations involve RPC calls to control so do them outside of the transaction
+        audit_data = organization.get_audit_log_data()
+        actor_label = None
+        if provision_options.channel_name:
+            audit_data["channel"] = provision_options.channel_name
+            actor_label = f"provision_channel:{provision_options.channel_name}"
+        create_audit_entry_from_user(
+            user=provision_options.owner,
+            ip_address=provision_options.ip_address,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_ADD"),
+            data=audit_data,
+            actor_label=actor_label,
+        )
+        try:
+            analytics.record(
+                OrganizationCreatedEvent(
+                    id=organization.id,
+                    name=organization.name,
+                    slug=organization.slug,
+                    actor_id=provision_options.owner.id,
+                )
+            )
+        except Exception as e:
+            capture_exception(e)
+
+        if provision_options.agree_terms:
+            terms_accepted.send_robust(
+                user=provision_options.owner,
+                organization_id=organization.id,
+                ip_address=provision_options.ip_address,
+                sender=type(self),
+            )
+
+        if provision_options.aggregated_data_consent:
+            organization.update_option("sentry:aggregated_data_consent", True)
+            try:
+                analytics.record(
+                    AggregatedDataConsentOrganizationCreatedEvent(organization_id=organization.id)
+                )
+            except Exception as e:
+                capture_exception(e)
 
     def update_organization_slug_from_reservation(
         self,
