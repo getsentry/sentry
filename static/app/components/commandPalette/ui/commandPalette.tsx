@@ -429,7 +429,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery ? null : (
+        isEmptyPromptQuery || isLoading ? null : (
           <CommandPaletteNoResults />
         )
       ) : (
