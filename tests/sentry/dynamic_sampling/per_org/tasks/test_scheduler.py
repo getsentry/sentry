@@ -335,8 +335,10 @@ class SchedulerRetrySafetyTest(TestCase):
         # Celery-level retries of the beat entry would re-INCR the cursor
         # and skip the failed bucket. The split only holds if this task is
         # non-retryable.
+        retry = schedule_per_org_calculations.retry
+        assert retry is not None
         # pylint: disable=protected-access
-        assert schedule_per_org_calculations.retry._times == 0
+        assert retry._times == 0
 
     def test_bucket_task_accepts_bucket_index_as_argument(self) -> None:
         # If bucket_index weren't an argument, a retry would have to recompute
@@ -383,17 +385,22 @@ class SchedulerRetrySafetyTest(TestCase):
         # The beat entry is the *only* place the cursor is allowed to move.
         with BurstTaskRunner() as burst:
             schedule_per_org_calculations()
-            cursor_after_first = int(self.redis.get(BUCKET_CURSOR_KEY))
+            cursor_after_first = self._read_cursor()
             # Drain queued bucket task(s) so their execution has a chance to
             # accidentally touch the cursor - this assertion is what proves
             # the fix.
             _run_queued_bucket_tasks(burst)
-            cursor_after_bucket = int(self.redis.get(BUCKET_CURSOR_KEY))
+            cursor_after_bucket = self._read_cursor()
 
         assert cursor_after_first == 1
         assert cursor_after_bucket == 1, (
             "running the queued bucket task must not advance the cursor"
         )
+
+    def _read_cursor(self) -> int:
+        raw = self.redis.get(BUCKET_CURSOR_KEY)
+        assert raw is not None, f"expected {BUCKET_CURSOR_KEY} to exist in redis"
+        return int(raw)
 
     def test_full_revolution_unaffected_by_bucket_task_retries(self) -> None:
         # Even if every bucket task ran twice (as if retried once), all active
@@ -421,7 +428,7 @@ class SchedulerRetrySafetyTest(TestCase):
             assert dispatched_from_our_orgs.count(org_id) == 2
         # Cursor advanced exactly BUCKET_COUNT times (once per beat), not
         # more, proving retries never touched it.
-        assert int(self.redis.get(BUCKET_CURSOR_KEY)) == BUCKET_COUNT
+        assert self._read_cursor() == BUCKET_COUNT
 
 
 class SchedulerKillswitchAndRolloutTest(TestCase):
