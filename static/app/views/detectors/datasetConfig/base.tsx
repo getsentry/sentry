@@ -9,12 +9,12 @@ import type {
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import type {
   Dataset,
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
+import type {getDiscoverSeriesQueryOptions} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 import type {
   MetricDetectorInterval,
   MetricDetectorTimePeriod,
@@ -106,7 +106,9 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   getIntervals: (options: {
     detectionType: MetricDetectorConfig['detectionType'];
   }) => readonly MetricDetectorInterval[];
-  getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  getSeriesQueryOptions: (
+    options: DetectorSeriesQueryOptions
+  ) => ReturnType<typeof getDiscoverSeriesQueryOptions>;
   /**
    * Based on the interval, returns an array of time periods.
    */
