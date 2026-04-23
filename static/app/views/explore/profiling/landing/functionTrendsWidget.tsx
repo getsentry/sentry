@@ -34,7 +34,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
+import type {DataState} from 'sentry/views/explore/profiling/useLandingAnalytics';
 
 import {MAX_FUNCTIONS} from './constants';
 import {

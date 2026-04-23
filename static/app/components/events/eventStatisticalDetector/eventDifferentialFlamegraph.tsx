@@ -38,7 +38,7 @@ import {useDifferentialFlamegraphQuery} from 'sentry/utils/profiling/hooks/useDi
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LOADING_PROFILE_GROUP} from 'sentry/views/profiling/profileGroupProvider';
+import {LOADING_PROFILE_GROUP} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 interface EventDifferentialFlamegraphProps {
   event: Event;

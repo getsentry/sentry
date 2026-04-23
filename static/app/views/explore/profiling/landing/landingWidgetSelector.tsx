@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
+import type {DataState} from 'sentry/views/explore/profiling/useLandingAnalytics';
 
 import {FunctionTrendsWidget} from './functionTrendsWidget';
 import {SlowestFunctionsWidget} from './slowestFunctionsWidget';

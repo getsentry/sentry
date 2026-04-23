@@ -18,7 +18,7 @@ import {
   HeaderTitleLegend,
   Subtitle,
   WidgetContainer,
-} from 'sentry/views/profiling/landing/styles';
+} from 'sentry/views/explore/profiling/landing/styles';
 import {ExampleReplaysList} from 'sentry/views/replays/selectors/exampleReplaysList';
 import {ProjectInfo} from 'sentry/views/replays/selectors/projectInfo';
 import {SelectorLink} from 'sentry/views/replays/selectors/selectorLink';

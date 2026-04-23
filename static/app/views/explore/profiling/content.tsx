@@ -43,10 +43,10 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
+import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {LandingAggregateFlamegraph} from 'sentry/views/profiling/landingAggregateFlamegraph';
-import {Onboarding} from 'sentry/views/profiling/onboarding';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
