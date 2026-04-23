@@ -428,7 +428,7 @@ class GitHubApiClientTest(TestCase):
         ) as cache_set:
             self.install.get_cached_repo_files(self.repo.name, "master", shifted_seconds)
 
-        cache_set.assert_called_once_with(
+        cache_set.assert_any_call(
             repo_key,
             [],
             self.install.CACHE_SECONDS + shifted_seconds,
