@@ -7,6 +7,7 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class SeerRunType(models.TextChoices):
@@ -14,6 +15,12 @@ class SeerRunType(models.TextChoices):
     AUTOFIX = "autofix"
     PR_REVIEW = "pr_review"
     ASSISTED_QUERY = "assisted_query"
+
+
+class SeerRunMirrorStatus(models.TextChoices):
+    PENDING = "pending"
+    LIVE = "live"
+    FAILED = "failed"
 
 
 @cell_silo_model
@@ -28,16 +35,23 @@ class SeerRun(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
+    # Null for system runs (e.g. Night Shift).
+    user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="CASCADE")
+
     # External id so we don't leak seer run count.
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
 
     # FK value from Seer's DbRunState.id.
-    seer_run_state_id = models.TextField()
+    # Nullable to support outbox writing
+    seer_run_state_id = models.TextField(null=True, unique=True)
 
-    # Null for system runs (e.g. Night Shift).
-    user_id = models.BigIntegerField(null=True)
-
-    type = models.CharField(max_length=32, choices=SeerRunType.choices)
+    type = models.CharField(max_length=256, choices=SeerRunType.choices)
+    mirror_status = models.CharField(
+        max_length=256,
+        choices=SeerRunMirrorStatus.choices,
+        default=SeerRunMirrorStatus.PENDING,
+        db_default=SeerRunMirrorStatus.PENDING,
+    )
 
     last_triggered_at = models.DateTimeField()
     extras = models.JSONField(db_default={}, default=dict)
@@ -45,15 +59,14 @@ class SeerRun(DefaultFieldsModel):
     class Meta:
         app_label = "seer"
         db_table = "seer_seerrun"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["seer_run_state_id"], name="seerrun_unique_seer_run_state_id"
-            ),
-        ]
         indexes = [
-            models.Index(fields=["user_id"]),
+            # Per-org recency queries (listing, activity feeds).
             models.Index(fields=["organization", "-last_triggered_at"]),
+            # Per-user session history.
+            models.Index(fields=["organization", "user_id", "-last_triggered_at"]),
+            # Per-org type breakdowns (e.g. "all PR reviews for this org").
             models.Index(fields=["organization", "type", "-last_triggered_at"]),
+            # TTL/cleanup scans across all orgs.
             models.Index(fields=["last_triggered_at"]),
         ]
 
@@ -83,7 +96,7 @@ class SeerAgentRun(DefaultFieldsModel):
     )
     # What feature/surface invoked this run: "autofix", "night_shift",
     # "slack_thread", "dashboard_generate", "bug-fixer", "chat", etc.
-    source = models.CharField(max_length=64)
+    source = models.CharField(max_length=256)
     # Source-specific payload. Keys are owned per source, e.g.:
     #   source="slack_thread" -> {"thread_ts": "..."}
     #   source="dashboard_generate" -> {"dashboard_id": "..."}
@@ -92,8 +105,5 @@ class SeerAgentRun(DefaultFieldsModel):
     class Meta:
         app_label = "seer"
         db_table = "seer_seeragentrun"
-        indexes = [
-            models.Index(fields=["source"]),
-        ]
 
     __repr__ = sane_repr("run_id", "source", "group_id")
