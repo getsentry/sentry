@@ -328,11 +328,13 @@ function useUnconfiguredProjects() {
   const result = useInfiniteQuery({
     ...autofixSettingsQueryOptions,
     select: ({pages}) =>
-      new Set(
-        pages
-          .flatMap(page => page.json)
-          .filter(setting => setting.reposCount > 0)
-          .map(setting => String(setting.projectId))
+      Array.from(
+        new Set(
+          pages
+            .flatMap(page => page.json)
+            .filter(setting => setting.reposCount > 0)
+            .map(setting => String(setting.projectId))
+        )
       ),
   });
   useFetchAllPages({result});
@@ -341,6 +343,6 @@ function useUnconfiguredProjects() {
   return useMemo(() => {
     return isPending || hasNextPage
       ? projects
-      : projects.filter(p => !projectsWithRepos?.has(String(p.id)));
+      : projects.filter(p => !projectsWithRepos?.includes(String(p.id)));
   }, [projects, projectsWithRepos, isPending, hasNextPage]);
 }
