@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.core.exceptions import BadRequest
 from pydantic import BaseModel, Field
 
 from sentry.integrations.models.repository_project_path_config import (
@@ -88,15 +89,12 @@ class get_event_details_agentic_triage(  # noqa: N801
                 end=params.end,
                 project_slug=params.project_slug,
             )
-        except Group.DoesNotExist:
-            return (
-                f"Issue not found: issue_id={params.issue_id!r}. "
-                "Check the ID and ensure the issue exists in this organization."
-            )
-        except ValueError as e:
-            # Raised by `uuid.UUID(event_id)` for malformed UUIDs, or by downstream
-            # parameter validation. Return the message so the agent can retry.
-            return f"Invalid input: {e}"
+        except (BadRequest, Group.DoesNotExist, ValueError) as e:
+            # All three are agent-correctable: bad arg combo, missing group, or
+            # malformed UUID. Return the exception message so the agent can see
+            # what went wrong and retry. Unexpected errors (Organization.DoesNotExist,
+            # AssertionError, etc.) bubble up to be logged as real failures.
+            return f"Could not fetch event: {e}"
         if result is None:
             return "Event not found. Check the issue_id/event_id and time range."
 
