@@ -96,7 +96,10 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.name == self.config["identifier"]
         assert repo.url == self.config["url"]
 
-    def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
+    def test_create_repository__repo_exists_does_not_rename(self, get_jwt: MagicMock) -> None:
+        # The race path no longer mutates the existing row. Intent of a
+        # create POST is "make sure this repo exists" — a rename-sync would be
+        # a different operation.
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
 
         with pytest.raises(RepoExistsError) as exc_info:
@@ -105,9 +108,9 @@ class IntegrationRepositoryTestCase(TestCase):
         existing = exc_info.value.existing_repo
         assert existing is not None
         assert existing.id == repo.id
-        assert existing.name == self.repo_name
+        assert existing.name == "getsentry/santry"
         repo.refresh_from_db()
-        assert repo.name == self.repo_name
+        assert repo.name == "getsentry/santry"
 
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
