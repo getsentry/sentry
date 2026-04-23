@@ -31,6 +31,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
+    "spans.buffer.flusher.flush-lock-ttl": 0,
     "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.compression.level": 0,
     "spans.buffer.pipeline-batch-size": 0,
@@ -1523,6 +1524,61 @@ def test_done_flush_phase2_catches_race_after_zrem(buffer: SpansBuffer) -> None:
     # Clean up
     buffer.done_flush_segments(rv2)
     assert_clean(buffer.client)
+
+
+@pytest.mark.parametrize(
+    "flush_lock_ttl, expected_flushed_segments",
+    [
+        pytest.param(0, 2, id="lock-disabled-duplicate-flushes"),
+        pytest.param(10, 1, id="lock-enabled-flush-once"),
+    ],
+)
+def test_segment_flush_lock(
+    buffer: SpansBuffer, flush_lock_ttl: int, expected_flushed_segments: int
+) -> None:
+    """
+    Tests the segment flush lock that prevents two buffers from flushing the same
+    segment concurrently and producing duplicated spans.
+    """
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+            partition=0,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+            partition=0,
+        ),
+    ]
+    process_spans(spans, buffer, now=0)
+
+    # Replicate the shard-0 queue entry onto shard 1 to simulate the segment
+    # being tracked by two shards simultaneously.
+    segment_key = _segment_id(1, "a" * 32, "b" * 16)
+    score = buffer.client.zscore(b"span-buf:q:0", segment_key)
+    assert score is not None
+    buffer.client.zadd(b"span-buf:q:1", {segment_key: score})
+
+    buffer_a = SpansBuffer(assigned_shards=[0], slice_id=buffer.slice_id)
+    buffer_b = SpansBuffer(assigned_shards=[1], slice_id=buffer.slice_id)
+
+    with override_options({"spans.buffer.flusher.flush-lock-ttl": flush_lock_ttl}):
+        rv_a = buffer_a.flush_segments(now=11)
+        rv_b = buffer_b.flush_segments(now=11)
+        buffer_a.done_flush_segments(rv_a)
+        buffer_b.done_flush_segments(rv_b)
+        assert len(rv_a) + len(rv_b) == expected_flushed_segments
 
 
 # --- Distributed payload keys tests ---
