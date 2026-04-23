@@ -158,6 +158,7 @@ export function InputSection({
                 'This conversation is owned by another user and is read-only'
               )}
               rows={1}
+              size="md"
               data-test-id="seer-explorer-input"
             />
           </StyledInputGroup>
@@ -270,6 +271,7 @@ export function InputSection({
             rows={1}
             maxRows={5}
             autosize
+            size="md"
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
