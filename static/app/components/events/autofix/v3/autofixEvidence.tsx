@@ -116,6 +116,14 @@ function EvidenceTelemetry({target, toolCall, toolLink}: EvidenceLinkProps) {
 function EvidenceTrace({target, toolLink}: EvidenceLinkProps) {
   const {trace_id, span_id} = toolLink?.params ?? {};
 
+  if (typeof trace_id !== 'string') {
+    return null;
+  }
+
+  if (defined(span_id) && typeof span_id !== 'string') {
+    return null;
+  }
+
   return (
     <EvidenceButton icon={<IconSpan />} to={target}>
       {defined(span_id)
@@ -128,7 +136,7 @@ function EvidenceTrace({target, toolLink}: EvidenceLinkProps) {
 function EvidenceIssue({target, toolLink}: EvidenceLinkProps) {
   const {event_id} = toolLink?.params ?? {};
 
-  if (!defined(event_id)) {
+  if (typeof event_id !== 'string') {
     return null; // This isn't useful evidence as we're already on the issue details page
   }
 
@@ -141,6 +149,11 @@ function EvidenceIssue({target, toolLink}: EvidenceLinkProps) {
 
 function EvidenceReplay({target, toolLink}: EvidenceLinkProps) {
   const {replay_id} = toolLink?.params ?? {};
+
+  if (typeof replay_id !== 'string') {
+    return null;
+  }
+
   return (
     <EvidenceButton icon={<IconPlay />} to={target}>
       {t('Replay: %s', getShortEventId(replay_id))}
@@ -150,6 +163,11 @@ function EvidenceReplay({target, toolLink}: EvidenceLinkProps) {
 
 function EvidenceProfile({target, toolLink}: EvidenceLinkProps) {
   const {profile_id} = toolLink?.params ?? {};
+
+  if (typeof profile_id !== 'string') {
+    return null;
+  }
+
   return (
     <EvidenceButton icon={<IconProfiling />} to={target}>
       {t('Profile: %s', getShortEventId(profile_id))}
