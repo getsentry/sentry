@@ -648,7 +648,7 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             self.preprod_artifact.installable_app_error_code
             == PreprodArtifact.InstallableAppErrorCode.NO_QUOTA
         )
-        assert self.preprod_artifact.installable_app_error_message is None
+        assert self.preprod_artifact.installable_app_error_message == "Distribution quota exceeded"
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_sets_error_code_distribution_filtered(self) -> None:
@@ -666,7 +666,10 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             self.preprod_artifact.installable_app_error_code
             == PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_FILTERED
         )
-        assert self.preprod_artifact.installable_app_error_message is None
+        assert (
+            self.preprod_artifact.installable_app_error_message
+            == "Build filtered out by project settings"
+        )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_sets_error_code_distribution_disabled(self) -> None:
@@ -683,7 +686,10 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
             self.preprod_artifact.installable_app_error_code
             == PreprodArtifact.InstallableAppErrorCode.DISTRIBUTION_DISABLED
         )
-        assert self.preprod_artifact.installable_app_error_message is None
+        assert (
+            self.preprod_artifact.installable_app_error_message
+            == "Distribution disabled for this project"
+        )
 
 
 class FindOrCreateReleaseTest(TestCase):
