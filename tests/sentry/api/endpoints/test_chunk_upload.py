@@ -594,3 +594,53 @@ class ChunkUploadTest(APITestCase):
         )
 
         assert response.status_code == 400, response.content
+
+    def test_upload_invalid_gzip_payload_content_encoding(self) -> None:
+        """Malformed gzip payload via Content-Encoding should return 400, not 500."""
+        blob = SimpleUploadedFile(
+            "0" * 40, b"not a gzip stream", content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_upload_invalid_gzip_payload_legacy_field(self) -> None:
+        """Malformed gzip via legacy file_gzip field should return 400, not 500."""
+        blob = SimpleUploadedFile(
+            "0" * 40, b"not a gzip stream", content_type="multipart/form-data"
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"file_gzip": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content
+
+    def test_upload_truncated_gzip_payload(self) -> None:
+        """Truncated gzip (valid header, missing tail) should return 400, not 500."""
+        import gzip as gzip_mod
+
+        full = gzip_mod.compress(b"some real data that gzip will compress")
+        # Keep only the first 6 bytes -- valid magic + method but no data
+        truncated = full[:6]
+        blob = SimpleUploadedFile("0" * 40, truncated, content_type="multipart/form-data")
+
+        response = self.client.post(
+            self.url,
+            data={"file": [blob]},
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            HTTP_CONTENT_ENCODING="gzip",
+            format="multipart",
+        )
+
+        assert response.status_code == 400, response.content

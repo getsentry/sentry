@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Iterator
-from gzip import GzipFile
+from gzip import BadGzipFile, GzipFile
 from io import BytesIO
 from typing import IO, Protocol
 
@@ -331,6 +331,13 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         except zstandard.ZstdError:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Invalid zstd payload"}, status=status.HTTP_400_BAD_REQUEST)
+        except (BadGzipFile, EOFError):
+            # BadGzipFile: bad magic / bad header. EOFError: stream truncated
+            # mid-decompression. GzipFile raises these via its read() path, so
+            # we also cover the legacy file_gzip multipart upload, not just
+            # Content-Encoding: gzip.
+            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Invalid gzip payload"}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.post.files", extra={"len": len(files)})
 
