@@ -9,7 +9,7 @@ import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {OurLogs} from 'sentry/views/explore/replays/detail/ourlogs';
 import {useReplayTraces} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 
-jest.mock('sentry/views/replays/detail/trace/useReplayTraces');
+jest.mock('sentry/views/explore/replays/detail/trace/useReplayTraces');
 
 function Wrappers({
   children,

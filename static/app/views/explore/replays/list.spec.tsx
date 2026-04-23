@@ -21,7 +21,7 @@ jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 jest.mock('sentry/utils/useProjectSdkNeedsUpdate');
-jest.mock('sentry/views/replays/detail/useAllMobileProj');
+jest.mock('sentry/views/explore/replays/detail/useAllMobileProj');
 
 const mockUseDeadRageSelectors = jest.mocked(useDeadRageSelectors);
 mockUseDeadRageSelectors.mockReturnValue({
