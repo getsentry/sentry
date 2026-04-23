@@ -72,6 +72,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
+import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 import {CMDKAction} from './cmdk';
 import type {CMDKResourceContext} from './cmdk';
@@ -126,20 +127,23 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
-  const visibleProjectSettingsNavItems = useMemo(
-    () =>
-      getNavigationConfiguration({
-        organization,
-      }).flatMap(section =>
-        section.items.filter(navItem => {
-          if (!navItem.show) return true;
-          return typeof navItem.show === 'function'
-            ? (navItem.show as () => boolean)()
-            : navItem.show;
-        })
-      ),
-    [organization]
-  );
+  const visibleProjectSettingsNavItems = useMemo(() => {
+    const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
+      access: new Set(organization.access),
+      features: new Set(organization.features),
+      organization,
+    };
+    return getNavigationConfiguration({
+      organization,
+    }).flatMap(section =>
+      section.items.filter(navItem => {
+        if (navItem.show === undefined) return true;
+        return typeof navItem.show === 'function'
+          ? navItem.show({...context, ...section})
+          : navItem.show;
+      })
+    );
+  }, [organization]);
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
   const prefix = `/organizations/${organization.slug}`;
