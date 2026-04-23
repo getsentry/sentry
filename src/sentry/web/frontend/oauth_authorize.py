@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+import secrets
 from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -91,7 +92,10 @@ class OAuthAuthorizeView(AuthLoginView):
 
     def respond_login(self, request: HttpRequest, context, **kwargs):
         application = kwargs["application"]  # required argument
+        tx_id = kwargs.get("tx_id")  # transaction ID for CSRF-like protection
         context["banner"] = f"Connect Sentry to {application.name}"
+        if tx_id:
+            context["tx_id"] = tx_id
         return self.respond("sentry/login.html", context)
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
@@ -242,6 +246,10 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
+        # Generate a unique transaction ID per authorization request to prevent
+        # session overwrite attacks. Without this, an attacker could open a malicious
+        # OAuth flow in a popup/redirect, overwriting the legitimate app's session data.
+        tx_id = secrets.token_urlsafe(32)
         payload = {
             "rt": response_type,
             "cid": client_id,
@@ -251,18 +259,13 @@ class OAuthAuthorizeView(AuthLoginView):
             "uid": request.user.id if request.user.is_authenticated else "",
             "cc": code_challenge,
             "ccm": code_challenge_method if code_challenge else None,
+            "tx": tx_id,
         }
-        # TODO(dcramer): Using a single "oa2" session key means multiple tabs authorizing
-        # different applications will overwrite each other's session data. If a user has
-        # Tab A (App A) and Tab B (App B) open, whichever tab they opened last will have
-        # its payload in the session. Approving from Tab A would then authorize App B.
-        # Consider using a unique transaction ID per authorization request, stored either
-        # in the URL or as a per-request session key (e.g., oa2:{tx_id}).
-        # See oauth_device.py for an example using user_code as a natural unique key.
-        request.session["oa2"] = payload
+        # Store under a unique key to prevent cross-tab session overwrites
+        request.session[f"oa2:{tx_id}"] = payload
 
         if not request.user.is_authenticated:
-            return super().get(request, application=application)
+            return super().get(request, application=application, tx_id=tx_id)
 
         # If the application expects org level access, we need to prompt the user to choose which
         # organization they want to give access to every time. We should not presume the user intention
@@ -327,6 +330,7 @@ class OAuthAuthorizeView(AuthLoginView):
             "scopes": scopes,
             "permissions": permissions,
             "organization_options": organization_options,
+            "tx_id": tx_id,
         }
 
         return self.respond("sentry/oauth-authorize.html", context)
@@ -334,13 +338,17 @@ class OAuthAuthorizeView(AuthLoginView):
     def _logged_out_post(
         self, request: HttpRequest, application: ApiApplication, **kwargs: Any
     ) -> HttpResponseBase:
+        # Get tx_id from POST data to find the correct session key
+        tx_id = request.POST.get("tx_id")
+        session_key = f"oa2:{tx_id}" if tx_id else None
+
         # subtle indirection to avoid "unreachable" after `.is_authenticated` below
         # since `.post()` mutates `request.user`
-        response = super().post(request, application=application, **kwargs)
+        response = super().post(request, application=application, tx_id=tx_id, **kwargs)
         # once they login, bind their user ID
-        if request.user.is_authenticated:
+        if request.user.is_authenticated and session_key:
             # Save OAuth payload before session regeneration
-            oa2_payload = request.session.get("oa2")
+            oa2_payload = request.session.get(session_key)
 
             # Regenerate session to prevent session fixation attacks
             request.session.cycle_key()
@@ -348,14 +356,34 @@ class OAuthAuthorizeView(AuthLoginView):
             # Restore OAuth payload after session regeneration and update user ID
             if oa2_payload is not None:
                 oa2_payload["uid"] = request.user.id
-                request.session["oa2"] = oa2_payload
+                request.session[session_key] = oa2_payload
                 request.session.modified = True
         return response
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        # Retrieve transaction ID from POST data and use it to get the correct session payload
+        tx_id = request.POST.get("tx_id")
+        if not tx_id:
+            return self.respond(
+                "sentry/oauth-error.html",
+                {
+                    "error": "We were unable to complete your request. Please re-initiate the authorization flow."
+                },
+            )
+
+        session_key = f"oa2:{tx_id}"
         try:
-            payload = request.session["oa2"]
+            payload = request.session[session_key]
         except KeyError:
+            return self.respond(
+                "sentry/oauth-error.html",
+                {
+                    "error": "We were unable to complete your request. Please re-initiate the authorization flow."
+                },
+            )
+
+        # Verify the transaction ID in the payload matches the one in the request
+        if payload.get("tx") != tx_id:
             return self.respond(
                 "sentry/oauth-error.html",
                 {
@@ -374,7 +402,12 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         if not request.user.is_authenticated:
+            # Don't clean up session key yet - _logged_out_post needs it for session cycling
             return self._logged_out_post(request, application, **kwargs)
+
+        # Clean up the session key after verifying the user to prevent replay attacks
+        del request.session[session_key]
+        request.session.modified = True
 
         if payload["uid"] != request.user.id:
             return self.respond(
