@@ -30,8 +30,8 @@ export type CommandPaletteState = {
   pendingReset: boolean;
   query: string;
   // When true, state is reset as part of the next open transition. Set when
-  // the user clicks anywhere on the page after closing CMDK, signalling they
-  // moved on and expect a fresh palette on the next open.
+  // the route changes while the palette is closed, so navigation always starts
+  // from a clean slate.
   resetOnOpen: boolean;
 };
 

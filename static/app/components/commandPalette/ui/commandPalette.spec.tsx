@@ -1181,11 +1181,9 @@ describe('CommandPalette', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
       await screen.findByRole('option', {name: 'Child Action'});
 
-      // Close then reopen with no mouse interaction in between
       act(() => testDispatch({type: 'toggle modal'}));
       act(() => testDispatch({type: 'toggle modal'}));
 
-      // Sub-action state should still be intact
       expect(
         await screen.findByRole('option', {name: 'Child Action'})
       ).toBeInTheDocument();
@@ -1200,13 +1198,11 @@ describe('CommandPalette', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
       await screen.findByRole('option', {name: 'Child Action'});
 
-      // Close CMDK
       act(() => testDispatch({type: 'toggle modal'}));
 
-      // Navigate to a different route while CMDK is closed
+      // Navigate while closed — route change must trigger reset on the next open
       act(() => router.navigate('/new-page/'));
 
-      // Reopen — route change must have set resetOnOpen
       act(() => testDispatch({type: 'toggle modal'}));
 
       expect(
