@@ -70,8 +70,18 @@ export function useExperiment(options: UseExperimentOptions): UseExperimentResul
     retry: false,
   });
 
+  // Only report exposure for features that are actually experiments.
+  // organization.experiments is populated by get_experiment_assignments
+  // which filters to flags with experiment_mode set, so its absence signals
+  // "not an experiment" (or "entity handler not available in dev/test").
+  // This mirrors the backend's auto-exposure gate in getsentry/features.py,
+  // which only fires exposure for flags with experiment_mode. The hook
+  // return value still falls through to 'control' for consumers that need
+  // a default.
+  const hasExperimentAssignment = organization.experiments?.[feature] !== undefined;
+
   useEffect(() => {
-    if (!reportExposure) {
+    if (!reportExposure || !hasExperimentAssignment) {
       return;
     }
 
@@ -85,6 +95,7 @@ export function useExperiment(options: UseExperimentOptions): UseExperimentResul
     logExposure();
   }, [
     reportExposure,
+    hasExperimentAssignment,
     organization.id,
     organization.slug,
     feature,
