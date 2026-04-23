@@ -307,6 +307,93 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         assert set(triggered_actions) == {self.action}
         assert getattr(triggered_actions[0], "workflow_id") == workflow.id
 
+    def test_deduplicates_different_actions_with_same_dedup_key(self) -> None:
+        """
+        Two different Action objects with the same dedup_key (same type, config, data)
+        in different workflows should be deduplicated — only one action fires.
+        WAGS should be created for both workflows.
+        """
+        # Create a second workflow with a different action that has the same dedup_key
+        workflow_2 = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.detector, workflow=workflow_2)
+
+        # Create action_2 with identical config to self.action (same dedup_key)
+        action_2 = self.create_action(
+            type=self.action.type,
+            config=self.action.config,
+            data=self.action.data,
+            integration_id=self.action.integration_id,
+        )
+        assert action_2.get_dedup_key() == self.action.get_dedup_key()
+        assert action_2.id != self.action.id
+
+        action_group_2 = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group_2,
+            action=action_2,
+        )
+        self.create_workflow_data_condition_group(workflow_2, action_group_2)
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        # Should deduplicate to a single action since both have the same dedup_key
+        assert len(triggered_actions) == 1
+
+        # WAGS should be created for both workflows
+        assert (
+            WorkflowActionGroupStatus.objects.filter(
+                action__in=[self.action, action_2], group=self.group
+            ).count()
+            == 2
+        )
+
+    def test_deduplicates_different_actions_with_same_dedup_key__later_fire(self) -> None:
+        """
+        Same as above but with existing WAGS entries. Both workflows should be
+        marked as triggered even though only one action fires.
+        """
+        workflow_2 = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.detector, workflow=workflow_2)
+
+        action_2 = self.create_action(
+            type=self.action.type,
+            config=self.action.config,
+            data=self.action.data,
+            integration_id=self.action.integration_id,
+        )
+        assert action_2.get_dedup_key() == self.action.get_dedup_key()
+
+        action_group_2 = self.create_data_condition_group(logic_type="any-short")
+        self.create_data_condition_group_action(
+            condition_group=action_group_2,
+            action=action_2,
+        )
+        self.create_workflow_data_condition_group(workflow_2, action_group_2)
+
+        # Both have old WAGS entries that should allow firing
+        status_1 = WorkflowActionGroupStatus.objects.create(
+            workflow=self.workflow, action=self.action, group=self.group
+        )
+        status_1.update(date_updated=timezone.now() - timedelta(days=1))
+        status_2 = WorkflowActionGroupStatus.objects.create(
+            workflow=workflow_2, action=action_2, group=self.group
+        )
+        status_2.update(date_updated=timezone.now() - timedelta(days=1))
+
+        triggered_actions = filter_recently_fired_workflow_actions(
+            set(DataConditionGroup.objects.all()), self.event_data
+        )
+
+        # Should deduplicate to a single action
+        assert len(triggered_actions) == 1
+
+        # Both WAGS should be updated
+        for status in [status_1, status_2]:
+            status.refresh_from_db()
+            assert status.date_updated == timezone.now()
+
     def test_skips_action_with_no_workflow(self) -> None:
         orphan_group = self.create_data_condition_group(logic_type="any-short")
         orphan_action = self.create_action(type=Action.Type.PLUGIN)
