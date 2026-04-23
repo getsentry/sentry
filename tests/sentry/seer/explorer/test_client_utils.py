@@ -10,6 +10,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.models import SeerApiError
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -261,7 +262,7 @@ class CollectUserOrgContextTest(TestCase):
         self, mock_bulk_get: MagicMock
     ) -> None:
         """Seer API failures don't break explorer startup; repos fall back to empty."""
-        mock_bulk_get.side_effect = Exception("seer unavailable")
+        mock_bulk_get.side_effect = SeerApiError("seer unavailable", 503)
 
         context = collect_user_org_context(self.user, self.organization)
 
