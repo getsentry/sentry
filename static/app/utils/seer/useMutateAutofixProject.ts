@@ -52,7 +52,7 @@ export function useMutateAutofixProject() {
       );
 
       const repoDefinitions = repoEntries
-        .filter(e => e.repoId !== null)
+        .filter(e => Boolean(e.repoId))
         .map(e => {
           const repo = repositoriesById.get(e.repoId);
           const [owner, name] = (repo?.name || '/').split('/');
