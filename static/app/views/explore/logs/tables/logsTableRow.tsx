@@ -540,9 +540,9 @@ function LogRowDetails({
             <DetailsContent>
               <DetailsBody>
                 {isRegularLogResponseItem(dataRow) ? (
-                  LogBodyRenderer({
-                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                    extra: {
+                  <LogBodyRenderer
+                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    extra={{
                       highlightTerms,
                       logColors,
                       wrapBody: true,
@@ -555,8 +555,8 @@ function LogRowDetails({
                       meta,
                       theme,
                       traceItemMeta: data?.meta,
-                    },
-                  })
+                    }}
+                  />
                 ) : (
                   <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
                 )}

@@ -71,19 +71,6 @@ export function AlertHeader({activeTab}: Props) {
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="actions">
-            <CreateAlertButton
-              organization={organization}
-              iconProps={{size: 'sm'}}
-              priority="primary"
-              referrer="alert_stream"
-              projectSlug={
-                selection.projects.length === 1
-                  ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
-                  : undefined
-              }
-            >
-              {t('Create Alert')}
-            </CreateAlertButton>
             <LinkButton
               onClick={handleNavigateToSettings}
               href="#"

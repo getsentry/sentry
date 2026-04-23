@@ -23,6 +23,7 @@ type CreateSampleEventButtonProps = ButtonProps & {
   api: Client;
   organization: Organization;
   source: string;
+  hasScmOnboarding?: boolean;
   onClick?: () => void;
   onCreateSampleGroup?: () => void;
   project?: Project;
@@ -107,7 +108,8 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project, onCreateSampleGroup} = this.props;
+    const {api, organization, project, onCreateSampleGroup, hasScmOnboarding} =
+      this.props;
     let eventData: any;
 
     if (!project) {
@@ -116,6 +118,11 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
     if (onCreateSampleGroup) {
       onCreateSampleGroup();
+    } else if (hasScmOnboarding) {
+      trackAnalytics('onboarding.scm_view_sample_event_clicked', {
+        platform: project.platform,
+        organization,
+      });
     } else {
       trackAnalytics('growth.onboarding_view_sample_event', {
         platform: project.platform,
@@ -196,6 +203,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       organization: _organization,
       project: _project,
       source: _source,
+      hasScmOnboarding: _hasScmOnboarding,
       ...props
     } = this.props;
 

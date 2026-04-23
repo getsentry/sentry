@@ -1,6 +1,7 @@
 import type {ReactElement} from 'react';
 import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import type {QueryStatus} from '@tanstack/react-query';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
@@ -33,10 +34,8 @@ import {
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
-import type {QueryStatus} from 'sentry/utils/queryClient';
 import {useFlamegraph} from 'sentry/views/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
 interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
   filter: 'application' | 'system' | 'all';

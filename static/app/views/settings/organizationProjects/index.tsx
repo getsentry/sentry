@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,6 +25,7 @@ import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
 import {CreateProjectButton} from 'sentry/views/settings/organizationProjects/createProjectButton';
@@ -33,6 +36,7 @@ const ITEMS_PER_PAGE = 50;
 
 function OrganizationProjects() {
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,13 +84,21 @@ function OrganizationProjects() {
       <SentryDocumentTitle
         title={routeTitleGen(t('Projects'), organization.slug, false)}
       />
-      <SettingsPageHeader title="Projects" action={action} />
+      <SettingsPageHeader title="Projects" action={hasPageFrame ? undefined : action} />
       <SearchWrapper>
-        <SearchBar
-          placeholder={t('Search Projects')}
-          onChange={debouncedSearch}
-          query={query}
-        />
+        <Flex align="center" gap="md">
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search Projects')}
+                onChange={debouncedSearch}
+                query={query}
+              />
+            )}
+          </Container>
+          {hasPageFrame && action}
+        </Flex>
       </SearchWrapper>
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>

@@ -151,8 +151,11 @@ class ReleaseIssues extends Component<Props, State> {
     };
   }
 
-  getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
-    const {version, organization, location, releaseBounds} = this.props;
+  getIssuesEndpoint(): {
+    endpoint: React.ComponentProps<typeof GroupList>['endpoint'];
+    queryParams: IssuesQueryParams;
+  } {
+    const {version, location, releaseBounds} = this.props;
     const issuesType = this.getActiveIssuesType();
 
     const queryParams = {
@@ -168,7 +171,9 @@ class ReleaseIssues extends Component<Props, State> {
     switch (issuesType) {
       case IssuesType.ALL:
         return {
-          path: `/organizations/${organization.slug}/issues/`,
+          endpoint: {
+            path: '/organizations/$organizationIdOrSlug/issues/',
+          },
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
@@ -179,14 +184,17 @@ class ReleaseIssues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-            version
-          )}/resolved/`,
+          endpoint: {
+            path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/',
+            version,
+          },
           queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
         return {
-          path: `/organizations/${organization.slug}/issues/`,
+          endpoint: {
+            path: '/organizations/$organizationIdOrSlug/issues/',
+          },
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
@@ -198,7 +206,9 @@ class ReleaseIssues extends Component<Props, State> {
         };
       case IssuesType.REGRESSED:
         return {
-          path: `/organizations/${organization.slug}/issues/`,
+          endpoint: {
+            path: '/organizations/$organizationIdOrSlug/issues/',
+          },
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
@@ -209,7 +219,9 @@ class ReleaseIssues extends Component<Props, State> {
       case IssuesType.NEW:
       default:
         return {
-          path: `/organizations/${organization.slug}/issues/`,
+          endpoint: {
+            path: '/organizations/$organizationIdOrSlug/issues/',
+          },
           queryParams: {
             ...queryParams,
             query: new MutableSearch([
@@ -345,7 +357,7 @@ class ReleaseIssues extends Component<Props, State> {
     const {count, pageLinks, onCursor} = this.state;
     const issuesType = this.getActiveIssuesType();
     const {queryFilterDescription, withChart, version} = this.props;
-    const {path, queryParams} = this.getIssuesEndpoint();
+    const {endpoint, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
       {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
@@ -411,7 +423,7 @@ class ReleaseIssues extends Component<Props, State> {
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            endpointPath={path}
+            endpoint={endpoint}
             queryParams={queryParams}
             query={`release:"${escapeDoubleQuotes(version)}"`}
             canSelectGroups={false}

@@ -1,8 +1,9 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IssueType, type Group, type ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
@@ -40,29 +41,6 @@ export function getIssueQueryFilter({
   return mutableSearch.formatString();
 }
 
-function useWebVitalsIssuesQueryKey({
-  issueTypes = DEFAULT_ISSUE_TYPES,
-  webVital,
-  transaction,
-}: QueryProps): ApiQueryKey {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    {
-      query: {
-        query: getIssueQueryFilter({issueTypes, transaction, webVital}),
-        project: selection.projects,
-        environment: selection.environments,
-        ...normalizeDateTimeParams(selection.datetime),
-        per_page: 6,
-      },
-    },
-  ];
-}
-
 export function useWebVitalsIssuesQuery({
   issueTypes = DEFAULT_ISSUE_TYPES,
   webVital,
@@ -75,21 +53,30 @@ export function useWebVitalsIssuesQuery({
   eventIds?: string[];
   pollInterval?: number;
 }) {
-  return useApiQuery<Group[]>(
-    useWebVitalsIssuesQueryKey({issueTypes, transaction, webVital}),
-    {
-      staleTime: 0,
-      enabled: Boolean(issueTypes?.length) && enabled,
-      refetchInterval: query => {
-        // Poll until the number of issues in the results array matches the number of expected eventIds.
-        if (!pollInterval || !eventIds) {
-          return false;
-        }
-        const result = query.state.data?.[0];
-        return result && Array.isArray(result) && result.length < eventIds.length
-          ? pollInterval
-          : false;
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  return useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        query: getIssueQueryFilter({issueTypes, transaction, webVital}),
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(selection.datetime),
+        per_page: 6,
       },
-    }
-  );
+      staleTime: 0,
+    }),
+    enabled: Boolean(issueTypes?.length) && enabled,
+    refetchInterval: query => {
+      // Poll until the number of issues in the results array matches the number of expected eventIds.
+      if (!pollInterval || !eventIds) {
+        return false;
+      }
+      const result = query.state.data?.json;
+      return result && Array.isArray(result) && result.length < eventIds.length
+        ? pollInterval
+        : false;
+    },
+  });
 }

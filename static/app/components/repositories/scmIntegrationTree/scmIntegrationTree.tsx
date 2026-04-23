@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient, type InfiniteData} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -29,8 +30,6 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
-import type {InfiniteData} from 'sentry/utils/queryClient';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

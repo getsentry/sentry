@@ -1,3 +1,4 @@
+import {keepPreviousData as keepPreviousDataFn} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -11,7 +12,6 @@ import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuer
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {keepPreviousData as keepPreviousDataFn} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
@@ -24,7 +24,6 @@ import {
   shouldRetryHandler,
 } from 'sentry/views/insights/common/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/insights/common/utils/trackResponse';
-
 const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
@@ -41,6 +40,7 @@ interface SpansQueryProps<T = any[]> {
   limit?: number;
   queryExtras?: RPCQueryExtras;
   referrer?: string;
+  staleTime?: number;
   trackResponseAnalytics?: boolean;
 }
 
@@ -84,6 +84,7 @@ function useSpansQueryBase<T>({
   trackResponseAnalytics,
   queryExtras,
   withPageFilters,
+  staleTime,
 }: SpansQueryProps<T> & {withPageFilters: boolean}) {
   if (!eventView) {
     throw new Error(
@@ -115,6 +116,7 @@ function useSpansQueryBase<T>({
     logQuery: queryExtras?.logQuery,
     metricQuery: queryExtras?.metricQuery,
     spanQuery: queryExtras?.spanQuery,
+    staleTime,
   });
 
   if (trackResponseAnalytics) {
@@ -136,7 +138,8 @@ interface WrappedDiscoverTimeseriesQueryProps {
   referrer?: string;
   samplingMode?: SamplingMode;
   spanQuery?: string[];
-}
+  staleTime?: number;
+};
 
 function useWrappedDiscoverTimeseriesQueryBase<T>({
   eventView,
@@ -150,6 +153,7 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
   logQuery,
   metricQuery,
   spanQuery,
+  staleTime,
 }: WrappedDiscoverTimeseriesQueryProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -198,11 +202,12 @@ function useWrappedDiscoverTimeseriesQueryBase<T>({
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
       staleTime:
-        usesRelativeDateRange &&
+        staleTime ??
+        (usesRelativeDateRange &&
         defined(intervalInMilliseconds) &&
         intervalInMilliseconds !== 0
           ? intervalInMilliseconds
-          : Infinity,
+          : Infinity),
     },
     referrer,
   });
@@ -259,7 +264,8 @@ interface WrappedDiscoverQueryProps<T> {
   refetchInterval?: number;
   samplingMode?: SamplingMode;
   spanQuery?: string[];
-}
+  staleTime?: number;
+};
 
 function useWrappedDiscoverQueryBase<T>({
   eventView,
@@ -281,6 +287,7 @@ function useWrappedDiscoverQueryBase<T>({
   metricQuery,
   spanQuery,
   extrapolationMode,
+  staleTime,
 }: WrappedDiscoverQueryProps<T> & {
   pageFiltersReady: boolean;
 }) {
@@ -337,7 +344,7 @@ function useWrappedDiscoverQueryBase<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: getStaleTimeForEventView(eventView),
+      staleTime: staleTime ?? getStaleTimeForEventView(eventView),
       additionalQueryKey,
       refetchInterval,
       placeholderData: keepPreviousData ? keepPreviousDataFn : undefined,

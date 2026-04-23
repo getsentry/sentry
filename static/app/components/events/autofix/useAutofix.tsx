@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -22,8 +23,6 @@ import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useMutation,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';

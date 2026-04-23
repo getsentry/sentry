@@ -101,6 +101,7 @@ const Chart = styled('div')`
   }
 `;
 
+// eslint-disable-next-line @sentry/no-calling-components-as-functions
 const StyledGridLayout = styled(WidthProvider(GridLayout))`
   margin: -4px;
 `;

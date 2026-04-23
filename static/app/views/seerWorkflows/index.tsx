@@ -178,7 +178,11 @@ function RunDetail({
             {t('No issues processed in this run.')}
           </Text>
         ) : (
-          <Grid columns="max-content max-content 1fr" gap="sm xl" align="center">
+          <Grid
+            columns="max-content max-content max-content max-content"
+            gap="sm xl"
+            align="center"
+          >
             <Text bold size="xs" variant="muted">
               {t('Group')}
             </Text>
@@ -188,6 +192,7 @@ function RunDetail({
             <Text bold size="xs" variant="muted">
               {t('Seer Run ID')}
             </Text>
+            <span />
             {run.issues.flatMap(issue => [
               <Link
                 key={`${issue.id}-group`}
@@ -201,6 +206,21 @@ function RunDetail({
               <Text key={`${issue.id}-seer`} size="sm" variant="muted">
                 {issue.seerRunId ?? '-'}
               </Text>,
+              issue.seerRunId === null ? (
+                <span key={`${issue.id}-explorer`} />
+              ) : (
+                <LinkButton
+                  key={`${issue.id}-explorer`}
+                  size="xs"
+                  icon={<IconOpen />}
+                  to={{
+                    pathname: `/organizations/${organizationSlug}/issues/`,
+                    query: {explorerRunId: issue.seerRunId},
+                  }}
+                >
+                  {t('Explorer')}
+                </LinkButton>
+              ),
             ])}
           </Grid>
         )}

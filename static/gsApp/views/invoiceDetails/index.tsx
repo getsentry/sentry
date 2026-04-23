@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData} from '@tanstack/react-query';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -11,7 +12,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';

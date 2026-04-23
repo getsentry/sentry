@@ -21,8 +21,6 @@ import {ReleaseContext} from './releaseContext';
 import {NoContextWrapper} from './styles';
 import {ContextType} from './utils';
 
-const HOVER_DELAY = 400;
-
 function getHoverBody(
   dataRow: EventData,
   contextType: ContextType,
@@ -158,7 +156,6 @@ export function QuickContextHovercard(props: ContextProps) {
     <StyledHovercard
       {...hovercardProps}
       showUnderline
-      delay={HOVER_DELAY}
       header={getHoverHeader(dataRow, contextType, organization)}
       body={getHoverBody(
         dataRow,

@@ -203,6 +203,13 @@ class DashboardRevisionTest(TestCase):
         assert revision.snapshot == snapshot
         assert revision.snapshot_schema_version == DashboardRevision.SNAPSHOT_SCHEMA_VERSION
         assert revision.created_by_id == self.user.id
+        assert revision.source == "edit"
+
+    def test_create_for_dashboard_stores_custom_source(self) -> None:
+        revision = DashboardRevision.create_for_dashboard(
+            self.dashboard, self.user, {}, source="edit-with-agent"
+        )
+        assert revision.source == "edit-with-agent"
 
     def test_create_for_dashboard_prunes_beyond_retention_limit(self) -> None:
         for i in range(DashboardRevision.RETENTION_LIMIT):

@@ -96,11 +96,13 @@ def get_metric_metadata(
 
     params: dict[str, Any] = {
         "dataset": "tracemetrics",
-        # Selecting metric.name/type/unit plus count() groups by the selected
+        # Selecting metric.name/type/unit plus count(value) groups by the selected
         # non-aggregate fields, giving us distinct tuples with event counts.
-        "field": ["metric.name", "metric.type", "metric.unit", "count()"],
+        # tracemetrics requires count() to take an attribute argument — zero-arg
+        # count() parse-fails at the events layer.
+        "field": ["metric.name", "metric.type", "metric.unit", "count(value)"],
         "query": query,
-        "sort": "-count()",
+        "sort": "-count(value)",
         "per_page": per_page,
         "statsPeriod": stats_period,
         "project": project_ids or [ALL_ACCESS_PROJECT_ID],
@@ -114,10 +116,17 @@ def get_metric_metadata(
             path=f"/organizations/{organization.slug}/events/",
             params=params,
         )
-    except client.ApiError:
+    except client.ApiError as e:
+        # Surface status + body prefix in log extras so prod flakes are debuggable
+        # without a new deploy. Keep the return `error` code stable for callers.
         logger.exception(
             "get_metric_metadata: events query failed",
-            extra={"org_id": org_id, "project_ids": project_ids},
+            extra={
+                "org_id": org_id,
+                "project_ids": project_ids,
+                "status_code": getattr(e, "status_code", None),
+                "body_prefix": str(getattr(e, "body", None))[:500],
+            },
         )
         return {"candidates": [], "has_more": False, "error": "events_query_failed"}
 
@@ -137,8 +146,9 @@ def get_metric_metadata(
         munit = row.get("metric.unit") or "none"
         if not name or not mtype:
             continue
-        # count() may come back as "count()" or "count" depending on the dataset shape.
-        count = row.get("count()")
+        # count(value) may come back under the full function key or the bare name
+        # depending on the dataset shape.
+        count = row.get("count(value)")
         if count is None:
             count = row.get("count", 0)
         candidates.append(

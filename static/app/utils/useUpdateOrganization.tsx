@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -6,8 +8,6 @@ import {
   fetchMutation,
   getApiQueryData,
   setApiQueryData,
-  useMutation,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 

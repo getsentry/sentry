@@ -1,14 +1,14 @@
+import {useIsMutating, useMutation} from '@tanstack/react-query';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {useIsMutating, useMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-interface StarTransactionParams {
+type StarTransactionParams = {
   project_id?: string;
   segment_name?: string;
 }

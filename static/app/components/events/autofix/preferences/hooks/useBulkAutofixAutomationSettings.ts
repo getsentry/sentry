@@ -1,16 +1,13 @@
 import {useMemo} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import type {UseMutationOptions} from '@tanstack/react-query';
 
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {
-  fetchMutation,
-  useMutation,
-  useQueryClient,
-  type UseMutationOptions,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 

@@ -1,4 +1,6 @@
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = unknown;

@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -31,7 +31,6 @@ import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useQueryClient,
   type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';

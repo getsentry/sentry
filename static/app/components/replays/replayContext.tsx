@@ -19,7 +19,7 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useRAF} from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
 
-import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
+import {canvasReplayerPlugin} from './canvasReplayerPlugin';
 
 type RootElem = null | HTMLDivElement;
 
@@ -357,7 +357,7 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.tokens.border.accent.moderate,
         },
-        plugins: [CanvasReplayerPlugin(events)],
+        plugins: [canvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
         speed: initialPrefsRef.current.playbackSpeed,
       });

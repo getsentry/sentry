@@ -223,10 +223,17 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 export function Visualize() {
   const organization = useOrganization();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
 
   if (dataset === DetectorDataset.METRICS) {
     if (canUseMetricsEquationsInAlerts(organization)) {
-      return <MetricsEquationVisualize />;
+      return (
+        <MetricsEquationVisualize
+          projectIds={projectId ? [Number(projectId)] : undefined}
+          environments={environment ? [environment] : undefined}
+        />
+      );
     }
     return <MetricsVisualize />;
   }
