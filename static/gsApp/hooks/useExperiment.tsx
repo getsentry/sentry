@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import type {Simplify} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,7 +7,6 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FlexContainer} from 'sentry/utils/discover/styles';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 import type {SpanResponse} from 'sentry/views/insights/types';

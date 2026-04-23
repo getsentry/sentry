@@ -34,7 +34,6 @@ interface InputSectionProps {
   canInterrupt: boolean;
   enabled: boolean;
   inputValue: string;
-  isFocused: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -57,7 +56,6 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
-  isFocused,
   isMinimized = false,
   canInterrupt,
   waitingForInterrupt,
@@ -268,17 +266,15 @@ export function InputSection({
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={
-              isFocused
-                ? t('Ask seer a question, or press / for commands.')
-                : t('Press Tab ⇥ to return here')
-            }
+            placeholder={t('Ask seer a question, or press / for commands.')}
             rows={1}
+            maxRows={5}
+            autosize
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
         {canInterrupt || waitingForInterrupt ? (
-          <PauseButton
+          <Button
             icon={<IconPause />}
             onClick={onInterrupt}
             size="md"
@@ -290,10 +286,11 @@ export function InputSection({
             }}
           />
         ) : (
-          <SendButton
+          <Button
             icon={<IconArrow direction="right" />}
             onClick={onSend}
             size="md"
+            priority="default"
             disabled={!inputValue.trim()}
             aria-label={t('Send message')}
           />
@@ -349,30 +346,6 @@ const ActionBar = styled(motion.div)`
   background: ${p => p.theme.tokens.background.primary};
   position: sticky;
   bottom: 0;
-`;
-
-const SendButton = styled(Button)`
-  width: ${p => p.theme.form.md.height};
-  flex-shrink: 0;
-  background: ${p => p.theme.tokens.background.primary};
-  color: ${p => p.theme.tokens.content.primary};
-
-  &:hover:not(:disabled),
-  &:focus-visible:not(:disabled) {
-    background: ${p => p.theme.tokens.background.primary};
-    color: ${p => p.theme.tokens.content.primary};
-  }
-`;
-
-const PauseButton = styled(Button)`
-  width: ${p => p.theme.form.md.height};
-  flex-shrink: 0;
-  background: ${p => p.theme.tokens.background.promotion.vibrant};
-  border-color: ${p => p.theme.tokens.border.promotion.vibrant};
-
-  &:disabled {
-    opacity: 0.5;
-  }
 `;
 
 const Kbd = styled('span')`

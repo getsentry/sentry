@@ -1,10 +1,10 @@
+import {QueryClient} from '@tanstack/react-query';
+
 import {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import {QueryClient} from 'sentry/utils/queryClient';
 
 import type {PromotionClaimed, PromotionData} from 'getsentry/types';
 import {createPromotionCheckQueryKey} from 'getsentry/utils/usePromotionTriggerCheck';
-
 export async function claimAvailablePromotion({
   promotionData,
   organization,

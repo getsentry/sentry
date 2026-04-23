@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -13,9 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayListItem} from 'sentry/components/replays/list/__stories__/replayListItem';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {type InfiniteData, type UseInfiniteQueryResult} from 'sentry/utils/queryClient';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
-
 interface Props {
   onSelect: (replayId: string) => void;
   queryResult: UseInfiniteQueryResult<
