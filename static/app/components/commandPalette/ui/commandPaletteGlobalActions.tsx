@@ -440,7 +440,7 @@ export function GlobalCommandPaletteActions() {
                   // including the full projects array would be too costly —
                   // some orgs have thousands of projects.
                   // `params.projectId`/`queryProjectIds` bust the cache when
-                  // the active project changes.
+                  // the active project changes (affects "Current" tag display).
                   // eslint-disable-next-line @tanstack/query/exhaustive-deps
                   cmdkQueryOptions({
                     queryKey: [
@@ -449,33 +449,27 @@ export function GlobalCommandPaletteActions() {
                       suffix,
                       params.projectId ?? [...queryProjectIds].join(','),
                     ],
-                    queryFn: () =>
-                      projects
-                        .filter(p => !currentProjectSlugs.has(p.slug))
-                        .map(project => ({
-                          display: {
-                            label: project.slug,
-                            icon: <ProjectAvatar project={project} size={16} />,
-                          },
-                          to: `/settings/${organization.slug}/projects/${project.slug}/${suffix}`,
-                        })),
+                    queryFn: () => {
+                      const sorted = [
+                        ...projects.filter(p => currentProjectSlugs.has(p.slug)),
+                        ...projects.filter(p => !currentProjectSlugs.has(p.slug)),
+                      ];
+                      return sorted.map(project => ({
+                        display: {
+                          label: project.slug,
+                          icon: <ProjectAvatar project={project} size={16} />,
+                          trailingItem: currentProjectSlugs.has(project.slug) ? (
+                            <Tag variant="muted">{t('Current')}</Tag>
+                          ) : undefined,
+                        },
+                        to: `/settings/${organization.slug}/projects/${project.slug}/${suffix}`,
+                      }));
+                    },
                     enabled: state === 'selected',
                     staleTime: Infinity,
                   })
                 }
-              >
-                {currentProjects.map(project => (
-                  <CMDKAction
-                    key={project.id}
-                    display={{
-                      label: project.slug,
-                      icon: <ProjectAvatar project={project} size={16} />,
-                      trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
-                    }}
-                    to={`/settings/${organization.slug}/projects/${project.slug}/${suffix}`}
-                  />
-                ))}
-              </CMDKAction>
+              />
             );
           })}
         </CMDKAction>
