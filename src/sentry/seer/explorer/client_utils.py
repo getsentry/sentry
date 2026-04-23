@@ -252,7 +252,7 @@ def _collect_repos_by_project_id(
         }
 
     try:
-        seer_prefs = bulk_get_project_preferences(organization.id, project_ids)
+        pref_dicts_by_pid = bulk_get_project_preferences(organization.id, project_ids)
     except (SeerApiError, HTTPError, orjson.JSONDecodeError):
         logger.exception(
             "Failed to fetch Seer project preferences for explorer context",
@@ -260,12 +260,7 @@ def _collect_repos_by_project_id(
         )
         return {}
 
-    repos_by_pid: dict[str, list[dict[str, Any]]] = {}
-    for pid, pref in seer_prefs.items():
-        if not pref:
-            continue
-        repos_by_pid[pid] = pref.get("repositories") or []
-    return repos_by_pid
+    return {pid: pref.get("repositories") or [] for pid, pref in pref_dicts_by_pid.items() if pref}
 
 
 def collect_user_org_context(
