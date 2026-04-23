@@ -186,17 +186,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 self.on_create_repository(new_repository, organization)
                 return result, new_repository
 
-            # Create failed, typically a unique-constraint violation. Something
-            # else wrote the row first: the link_all_repos background task
-            # after integration install, or a concurrent client. If we find an
-            # active existing repo, update it and treat this as a successful
-            # reclaim; if the existing repo is in a non-active state (e.g.
-            # PENDING_DELETION), fall through to RepoExistsError.
-            #
-            # Intentionally skip on_create_repository in the reclaim path: the
-            # existing row was set up by whoever wrote it, and provider hooks
-            # are not uniformly idempotent (bitbucket_server re-creates its
-            # webhook, bitbucket does not persist webhook_id).
+            # if possible update the repo with matching integration
             repositories = repository_service.get_repositories(
                 organization_id=organization.id,
                 integration_id=integration_id,
@@ -215,6 +205,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     if active_repo is None and repo.status == ObjectStatus.ACTIVE:
                         active_repo = repo
 
+            # Concurrent writer (e.g. link_all_repos) already created the row;
+            # return it as a successful reclaim instead of raising. Skip
+            # on_create_repository — the winning writer already ran it and
+            # provider hooks aren't uniformly idempotent (bitbucket_server
+            # duplicates its webhook).
             if active_repo is not None:
                 return result, active_repo
 
