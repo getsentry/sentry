@@ -12,7 +12,7 @@ export const crossEventDropdownItems: DropdownMenuProps['items'] = [
   {key: 'metrics', label: t('Metrics')},
 ];
 
-export const EMPTY_TRACE_METRIC: TraceMetric = {name: '', type: ''};
+const EMPTY_TRACE_METRIC: TraceMetric = {name: '', type: ''};
 
 export function makeCrossEvent(type: CrossEventType, query = ''): CrossEvent {
   if (type === 'metrics') {
