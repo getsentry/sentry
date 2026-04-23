@@ -146,12 +146,12 @@ export function ExplorerDrawerContent({
   }, [conversationsUrl]);
 
   const openFeedbackForm = useFeedbackForm();
-  const feedbackOptions = useMemo(() => getExplorerFeedbackOptions(runId), [runId]);
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
+      const feedbackOptions = getExplorerFeedbackOptions(runId);
       openFeedbackForm(feedbackOptions);
     }
-  }, [openFeedbackForm, feedbackOptions]);
+  }, [openFeedbackForm, runId]);
 
   // - Pop-up menu component --------------------------------------------------
 
