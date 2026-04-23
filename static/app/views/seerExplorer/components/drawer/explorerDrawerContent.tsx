@@ -327,6 +327,7 @@ export function ExplorerDrawerContent({
         }}
         onChangeSession={switchToRun}
         copySessionEnabled={copySessionEnabled}
+        isEmptyState={isEmptyState}
         onCopySessionClick={copySessionToClipboard}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
