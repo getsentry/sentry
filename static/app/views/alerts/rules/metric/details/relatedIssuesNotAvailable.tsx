@@ -25,7 +25,7 @@ export function RelatedIssuesNotAvailable({buttonTo, buttonText}: Props) {
         variant="info"
         trailingItems={
           <Feature features="discover-basic">
-            <LinkButton priority="default" size="xs" to={buttonTo}>
+            <LinkButton variant="default" size="xs" to={buttonTo}>
               {buttonText}
             </LinkButton>
           </Feature>
