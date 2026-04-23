@@ -363,7 +363,6 @@ export function BlockComponent({
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly &&
     block.message.role === 'assistant';
   const showFeedbackButtons = block.message.role === 'assistant';
   const showCopyButton =
