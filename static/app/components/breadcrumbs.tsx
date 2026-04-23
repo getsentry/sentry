@@ -50,19 +50,17 @@ export function Breadcrumbs({crumbs, ...props}: BreadcrumbsProps) {
       {...props}
     >
       {crumbs.map((crumb, index) => {
-        const isLast = index === crumbs.length - 1;
-
         return (
           <Fragment key={index}>
             <BreadCrumbItem
-              crumb={{...crumb, to: isLast ? undefined : crumb.to}}
-              variant={isLast ? 'primary' : 'muted'}
+              crumb={{...crumb, to: index === crumbs.length - 1 ? undefined : crumb.to}}
+              variant={index === crumbs.length - 1 ? 'primary' : 'muted'}
             />
-            {isLast ? null : (
+            {index < crumbs.length - 1 ? (
               <Flex align="center" justify="center" flexShrink={0}>
                 <IconSlashForward size="xs" variant="muted" />
               </Flex>
-            )}
+            ) : null}
           </Fragment>
         );
       })}
