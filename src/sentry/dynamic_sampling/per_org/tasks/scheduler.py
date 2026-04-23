@@ -1,21 +1,24 @@
-"""Per-org scheduler.
+"""Per-org dynamic sampling pipeline tasks.
 
-Cron entry point that fans the per-org orchestrator out across all active
-organizations. Orgs are split into `BUCKET_COUNT` deterministic buckets by
-`Organization.id % BUCKET_COUNT`, and a Redis-backed cursor advances one
-bucket per run, so after `BUCKET_COUNT` runs every org has been scheduled
-exactly once without tracking individual orgs.
+Defines the cron-driven bucket scheduler and the per-org worker that runs one
+cycle of dynamic-sampling calculations end-to-end. Tasks are registered at
+import time via `@instrumented_task`; `TASKWORKER_IMPORTS` targets this module
+so decorators run on startup.
 
-The cursor is advanced exactly once per beat fire. To guarantee that, the
-scheduling work is split into two tasks:
+The scheduling side is split into two tasks to keep bucket progress safe
+under retries:
 
 * ``schedule_per_org_calculations`` is the beat entry point. It atomically
-  INCRs the cursor, captures the resulting bucket_index, and dispatches the
-  bucket task with that index as an argument. It runs without retries so a
+  INCRs a Redis cursor, captures the resulting ``bucket_index``, and
+  dispatches the bucket task with that index. It runs without retries so a
   failure here can never advance the cursor twice for the same revolution.
-* ``schedule_per_org_calculations_bucket_task`` does the actual fan-out and
-  is safely retryable: retries re-execute with the same bucket_index, so a
+* ``schedule_per_org_calculations_bucket`` does the actual fan-out and is
+  safely retryable: retries re-execute with the same ``bucket_index`` so a
   transient failure cannot cause a bucket to be skipped.
+
+The worker side (``run_calculations_per_org_task``) runs one full cycle for a
+single organization; each phase lives in its own module under ``steps.*`` and
+is wired together by ``run_calculations_per_org``.
 """
 
 from __future__ import annotations
@@ -29,7 +32,19 @@ from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.tasks.gate import is_killswitch_engaged, is_org_in_rollout
-from sentry.dynamic_sampling.per_org.tasks.orchestrator import run_calculations_per_org_task
+from sentry.dynamic_sampling.per_org.tasks.steps.boost_low_volume_projects import (
+    boost_low_volume_projects,
+)
+from sentry.dynamic_sampling.per_org.tasks.steps.boost_low_volume_transactions import (
+    boost_low_volume_transactions,
+)
+from sentry.dynamic_sampling.per_org.tasks.steps.eap_batch import run_eap_batch
+from sentry.dynamic_sampling.per_org.tasks.steps.outcomes_volume import (
+    fetch_outcomes_volume,
+    has_recent_volume,
+)
+from sentry.dynamic_sampling.per_org.tasks.steps.recalibration import apply_recalibration
+from sentry.dynamic_sampling.per_org.tasks.steps.sliding_window import apply_sliding_window
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BEAT_STATUS_METRIC,
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
@@ -37,9 +52,12 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_STATUS_METRIC,
     emit_gauge,
     emit_status,
+    emit_status_metric,
+    instrumented,
 )
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
+from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -149,3 +167,50 @@ def schedule_per_org_calculations() -> None:
     bucket_index = _next_bucket_index()
     schedule_per_org_calculations_bucket.apply_async(args=(bucket_index,))
     emit_status(SCHEDULER_BEAT_STATUS_METRIC, "dispatched")
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=20 * 60 + 5,
+    retry=Retry(times=5, delay=5),
+    silo_mode=SiloMode.CELL,
+)
+@dynamic_sampling_task
+def run_calculations_per_org_task(org_id: OrganizationId) -> None:
+    run_calculations_per_org(org_id)
+
+
+@instrumented
+def run_calculations_per_org(org_id: OrganizationId) -> None:
+    if is_killswitch_engaged():
+        emit_status_metric("killswitched")
+        return
+
+    if not is_org_in_rollout(org_id):
+        emit_status_metric("not_in_rollout")
+        return
+
+    try:
+        organization = Organization.objects.get_from_cache(id=org_id)
+    except Organization.DoesNotExist:
+        emit_status_metric("org_not_found")
+        return
+
+    if not has_dynamic_sampling(organization):
+        emit_status_metric("org_has_no_dynamic_sampling")
+        return
+
+    outcomes = fetch_outcomes_volume(org_id, organization)
+    if not has_recent_volume(outcomes):
+        emit_status_metric("no_volume")
+        return
+
+    eap = run_eap_batch(org_id, organization)
+
+    apply_sliding_window(org_id, organization, eap)
+    apply_recalibration(org_id, organization, outcomes)
+    boost_low_volume_projects(org_id, organization, eap)
+    boost_low_volume_transactions(org_id, organization, eap)
+
+    emit_status_metric("completed")
