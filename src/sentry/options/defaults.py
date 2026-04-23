@@ -2276,7 +2276,7 @@ register(
 register(
     "performance.trace.span_with_errors_ok_status.sample_rate",
     type=Float,
-    default=0.01,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
