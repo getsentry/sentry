@@ -80,6 +80,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert_last_analytics_event(
             mock_record,
             SlackSeerAgentResponded(
+                organization_id=self.organization.id,
                 org_slug=self.organization.slug,
                 user_id=self.user.id,
                 username="alice",
@@ -251,6 +252,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert_last_analytics_event(
             mock_record,
             SlackSeerAgentResponded(
+                organization_id=self.organization.id,
                 org_slug=self.organization.slug,
                 user_id=self.user.id,
                 username="alice",
@@ -321,6 +323,7 @@ class ProcessMentionForSlackTest(TestCase):
         assert_last_analytics_event(
             mock_record,
             SlackSeerAgentResponded(
+                organization_id=self.organization.id,
                 org_slug=self.organization.slug,
                 user_id=self.user.id,
                 username="alice",

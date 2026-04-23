@@ -15,11 +15,16 @@ from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiCli
 from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
-from sentry.shared_integrations.exceptions import ApiForbiddenError, IntegrationConfigurationError
+from sentry.shared_integrations.exceptions import (
+    ApiForbiddenError,
+    IntegrationConfigurationError,
+    IntegrationError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -224,6 +229,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
         fields = installation.get_organization_config()
 
         assert [field["name"] for field in fields] == [
+            "sync_status_forward",
             "sync_reverse_assignment",
             "sync_forward_assignment",
             "sync_comments",
@@ -246,7 +252,9 @@ class GitlabIssueSyncTest(GitLabTestCase):
         # Initial config should be empty
         assert org_integration.config == {}
 
-        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
             # Update configuration
             data = {"sync_reverse_assignment": True, "other_option": "test_value"}
             installation.update_organization_config(data)
@@ -276,7 +284,9 @@ class GitlabIssueSyncTest(GitLabTestCase):
         }
         org_integration.save()
 
-        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
             # Update configuration with new data
             data = {"sync_reverse_assignment": True, "new_key": "new_value"}
             installation.update_organization_config(data)
@@ -557,16 +567,16 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
-        ) as mock_task:
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_reverse_assignment": True}
             installation.update_organization_config(data)
 
             # Verify task was called with correct arguments
-            mock_task.delay.assert_called_once_with(
-                integration_id=integration.id,
+            mock_schedule_webhooks.assert_called_once_with(
                 organization_id=self.organization.id,
+                integration_id=integration.id,
             )
 
         # Verify config was updated (but version stays at 0 since task was mocked)
@@ -603,14 +613,14 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
-        ) as mock_task:
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_reverse_assignment": True}
             installation.update_organization_config(data)
 
             # Verify task was NOT called
-            mock_task.delay.assert_not_called()
+            mock_schedule_webhooks.assert_not_called()
 
         # Verify config was still updated
         org_integration = integration_service.get_organization_integration(
@@ -647,16 +657,16 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
-        ) as mock_task:
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_comments": True}
             installation.update_organization_config(data)
 
             # Verify task was called
-            mock_task.delay.assert_called_once_with(
-                integration_id=integration.id,
+            mock_schedule_webhooks.assert_called_once_with(
                 organization_id=self.organization.id,
+                integration_id=integration.id,
             )
 
         # Verify config was updated (but version is not set since task was mocked)
@@ -692,16 +702,16 @@ class GitlabIssueSyncTest(GitLabTestCase):
         )
 
         with patch(
-            "sentry.integrations.gitlab.integration.update_all_project_webhooks"
-        ) as mock_task:
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ) as mock_schedule_webhooks:
             # Update configuration
             data = {"sync_reverse_assignment": False, "sync_comments": False}
             installation.update_organization_config(data)
 
             # Task should be called since version is missing (defaults to 0)
-            mock_task.delay.assert_called_once_with(
-                integration_id=integration.id,
+            mock_schedule_webhooks.assert_called_once_with(
                 organization_id=self.organization.id,
+                integration_id=integration.id,
             )
 
     @responses.activate
@@ -729,7 +739,9 @@ class GitlabIssueSyncTest(GitLabTestCase):
             },
         )
 
-        with patch("sentry.integrations.gitlab.integration.update_all_project_webhooks"):
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
             # Update configuration
             data = {"sync_comments": True}
             installation.update_organization_config(data)
@@ -743,6 +755,412 @@ class GitlabIssueSyncTest(GitLabTestCase):
         assert org_integration.config["existing_key"] == "existing_value"
         assert org_integration.config["sync_forward_assignment"] is True
         assert org_integration.config["sync_comments"] is True
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_update_organization_config_status_sync(self) -> None:
+        """Test that status sync configuration creates IntegrationExternalProject records"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # No external projects initially
+        assert (
+            IntegrationExternalProject.objects.filter(
+                organization_integration_id=org_integration.id
+            ).count()
+            == 0
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
+            # Configure status sync for two projects
+            data = {
+                "sync_status_forward": {
+                    "my-group/project-1": {"on_resolve": "closed", "on_unresolve": "opened"},
+                    "my-group/project-2": {"on_resolve": "closed", "on_unresolve": "opened"},
+                }
+            }
+            installation.update_organization_config(data)
+
+        # Verify IntegrationExternalProject records were created
+        external_projects = IntegrationExternalProject.objects.filter(
+            organization_integration_id=org_integration.id
+        )
+        assert external_projects.count() == 2
+
+        project1 = external_projects.get(external_id="my-group/project-1")
+        assert project1.name == "my-group/project-1"
+        assert project1.resolved_status == "closed"
+        assert project1.unresolved_status == "opened"
+
+        project2 = external_projects.get(external_id="my-group/project-2")
+        assert project2.name == "my-group/project-2"
+        assert project2.resolved_status == "closed"
+        assert project2.unresolved_status == "opened"
+
+        # Verify the boolean flag is set
+        org_integration.refresh_from_db()
+        assert org_integration.config["sync_status_forward"] is True
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_update_organization_config_invalid_status(self) -> None:
+        """Test that invalid status values raise IntegrationError"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
+            # Try to configure with invalid status
+            data = {
+                "sync_status_forward": {
+                    "my-group/project": {"on_resolve": "invalid_status", "on_unresolve": "opened"}
+                }
+            }
+
+            with pytest.raises(IntegrationError) as exc_info:
+                installation.update_organization_config(data)
+
+            assert "Invalid resolve status" in str(exc_info.value)
+            assert "invalid_status" in str(exc_info.value)
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_update_organization_config_missing_status(self) -> None:
+        """Test that missing on_resolve/on_unresolve raises IntegrationError"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        with patch(
+            "sentry.integrations.gitlab.integration.repository_service.schedule_update_gitlab_project_webhooks"
+        ):
+            # Try to configure with missing on_unresolve
+            data = {"sync_status_forward": {"my-group/project": {"on_resolve": "closed"}}}
+
+            with pytest.raises(IntegrationError) as exc_info:
+                installation.update_organization_config(data)
+
+            assert "Resolve and unresolve status are required" in str(exc_info.value)
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_get_config_data_returns_status_mappings(self) -> None:
+        """Test that get_config_data returns status mappings correctly"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # Create some IntegrationExternalProject records
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="my-group/project-1",
+            name="my-group/project-1",
+            resolved_status="closed",
+            unresolved_status="opened",
+        )
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="my-group/project-2",
+            name="my-group/project-2",
+            resolved_status="closed",
+            unresolved_status="opened",
+        )
+
+        # Get config data
+        config_data = installation.get_config_data()
+
+        # Verify status mappings are returned
+        assert "sync_status_forward" in config_data
+        mappings = config_data["sync_status_forward"]
+        assert len(mappings) == 2
+        assert mappings["my-group/project-1"] == {"on_resolve": "closed", "on_unresolve": "opened"}
+        assert mappings["my-group/project-2"] == {"on_resolve": "closed", "on_unresolve": "opened"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_status_outbound_resolve(self) -> None:
+        """Test resolving a Sentry issue closes the GitLab issue"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # Create IntegrationExternalProject for status mapping
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="cool-group/sentry",
+            name="cool-group/sentry",
+            resolved_status="closed",
+            unresolved_status="opened",
+        )
+
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#45",
+        )
+
+        # Mock get issue endpoint to return current state
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"iid": 45, "state": "opened", "title": "Test Issue"},
+            status=200,
+        )
+
+        # Mock update issue status endpoint
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"iid": 45, "state": "closed", "title": "Test Issue"},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(external_issue, is_resolved=True, project_id=1)
+
+        assert len(responses.calls) == 2
+        # First call gets current state
+        assert (
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
+            == responses.calls[0].request.url
+        )
+        # Second call updates state
+        request = responses.calls[1].request
+        assert (
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
+            == request.url
+        )
+        assert orjson.loads(request.body) == {"state_event": "close"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_status_outbound_unresolve(self) -> None:
+        """Test unresolving a Sentry issue reopens the GitLab issue"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # Create IntegrationExternalProject for status mapping
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="cool-group/sentry",
+            name="cool-group/sentry",
+            resolved_status="closed",
+            unresolved_status="opened",
+        )
+
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#45",
+        )
+
+        # Mock get issue endpoint to return current state
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"iid": 45, "state": "closed", "title": "Test Issue"},
+            status=200,
+        )
+
+        # Mock update issue status endpoint
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"iid": 45, "state": "opened", "title": "Test Issue"},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(external_issue, is_resolved=False, project_id=1)
+
+        assert len(responses.calls) == 2
+        # First call gets current state
+        assert (
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
+            == responses.calls[0].request.url
+        )
+        # Second call updates state
+        request = responses.calls[1].request
+        assert (
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
+            == request.url
+        )
+        assert orjson.loads(request.body) == {"state_event": "reopen"}
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_status_outbound_no_mapping(self) -> None:
+        """Test that sync returns early if no IntegrationExternalProject exists"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#45",
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(external_issue, is_resolved=True, project_id=1)
+
+        # Should not make any API calls
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_status_outbound_already_in_state(self) -> None:
+        """Test that sync skips update if GitLab issue is already in desired state"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # Create IntegrationExternalProject for status mapping
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="cool-group/sentry",
+            name="cool-group/sentry",
+            resolved_status="closed",
+            unresolved_status="opened",
+        )
+
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#45",
+        )
+
+        # Mock get issue endpoint to return state already closed
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"iid": 45, "state": "closed", "title": "Test Issue"},
+            status=200,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(external_issue, is_resolved=True, project_id=1)
+
+        # Should only call GET, not PUT since already in correct state
+        assert len(responses.calls) == 1
+        assert (
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45"
+            == responses.calls[0].request.url
+        )
+        assert responses.calls[0].request.method == "GET"
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_status_outbound_invalid_key(self) -> None:
+        """Test that sync handles malformed external issue keys gracefully"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="invalid-key-format",
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            installation.sync_status_outbound(external_issue, is_resolved=True, project_id=1)
+
+        # Should not make any API calls
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @with_feature("organizations:integrations-gitlab-project-management")
+    def test_sync_status_outbound_api_error(self) -> None:
+        """Test that sync handles API errors gracefully"""
+        integration = Integration.objects.get(provider=self.provider)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        # Create IntegrationExternalProject for status mapping
+        IntegrationExternalProject.objects.create(
+            organization_integration_id=org_integration.id,
+            external_id="cool-group/sentry",
+            name="cool-group/sentry",
+            resolved_status="closed",
+            unresolved_status="opened",
+        )
+
+        group = self.create_group()
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
+            key="example.gitlab.com/group-x:cool-group/sentry#45",
+        )
+
+        # Mock get issue endpoint to return error
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/cool-group%2Fsentry/issues/45",
+            json={"message": "404 Not Found"},
+            status=404,
+        )
+
+        responses.calls.reset()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            with pytest.raises(IntegrationError):
+                installation.sync_status_outbound(external_issue, is_resolved=True, project_id=1)
 
 
 @control_silo_test

@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -24,6 +25,7 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const {setSelectedFeatures} = useOnboardingContext();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
     reportExposure: false,
@@ -61,6 +63,9 @@ export function SetupDocs({recentCreatedProject: project, genBackButton}: StepPr
                 organization={organization}
                 project={project}
                 activeProductSelection={products}
+                onProductSelectionSync={
+                  hasScmOnboarding ? setSelectedFeatures : undefined
+                }
                 newOrg
               />
             )}

@@ -1,3 +1,4 @@
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {InfoTip} from '@sentry/scraps/info';
@@ -57,7 +58,14 @@ export function NightShift({canWrite, project}: Props) {
   const disabled = !canWrite || isPending;
 
   return (
-    <FieldGroup title={t('Night Shift')}>
+    <FieldGroup
+      title={
+        <Flex gap="xs" align="center">
+          {t('Night Shift')}
+          <FeatureBadge type="alpha" />
+        </Flex>
+      }
+    >
       <Flex gap="xs" align="center">
         <Text size="sm" variant="muted">
           {t('Debug')}

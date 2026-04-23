@@ -11,12 +11,16 @@ from requests import Response
 from rest_framework import status
 from taskbroker_client.retry import Retry
 
+from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.requests.event import resolve_seer_organization_for_slack_user
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.seer.entrypoints.slack.messaging import send_halt_message
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.types.cell import Cell, get_cell_by_name
+from sentry.types.cell import Cell, CellResolutionError, get_cell_by_name, get_cell_for_organization
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +118,17 @@ class _AsyncSlackDispatcher(_AsyncCellDispatcher):
         return None
 
 
+class _AsyncSlackSeerDispatcher(_AsyncSlackDispatcher):
+    """
+    Seer event webhooks carry no ``response_url``; the cell handles the event and
+    responds with an empty 200. Suppress response forwarding by always unpacking
+    to ``None``.
+    """
+
+    def unpack_payload(self, response: Response) -> Any:
+        return None
+
+
 @instrumented_task(
     name="sentry.middleware.integrations.tasks.convert_to_async_slack_response",
     namespace=integrations_control_tasks,
@@ -163,3 +178,76 @@ def convert_to_async_discord_response(
 
     if response is not None and response.status_code == status.HTTP_404_NOT_FOUND:
         raise Exception("Discord hook is not ready.")
+
+
+@instrumented_task(
+    name="sentry.middleware.integrations.tasks.route_slack_seer_event",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=2, delay=5),
+    silo_mode=SiloMode.CONTROL,
+)
+def route_slack_seer_event(
+    *,
+    payload: dict[str, Any],
+    integration_id: int,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str,
+    message_ts: str,
+    event_type: str,
+) -> None:
+    """
+    Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
+    Since this can route to organizations sharing Slack across cells, we need to run it at the parser.
+
+    We run this as a task because the algorithm will make calls to Slack, increasing the likelihood
+    of hitting the 3 second deadline. At that point, Slack may retry the request and we don't
+    dedupe these requests, so it'd break the Seer experience.
+
+    Now control will respond immediately, and schedule this task. We can take our time routing,
+    and then allow the identified cell to actually handle the event.
+    """
+    logging_ctx = {
+        "integration_id": integration_id,
+        "slack_user_id": slack_user_id,
+        "channel_id": channel_id,
+        "thread_ts": thread_ts,
+    }
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
+    if integration is None:
+        logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
+        return
+
+    organization_id, halt_reason = resolve_seer_organization_for_slack_user(
+        integration=integration,
+        slack_user_id=slack_user_id,
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        message_ts=message_ts,
+        event_type=event_type,
+    )
+    logging_ctx["organization_id"] = organization_id
+    logging_ctx["halt_reason"] = halt_reason
+
+    if halt_reason:
+        send_halt_message(
+            integration=integration,
+            slack_user_id=slack_user_id,
+            channel_id=channel_id,
+            thread_ts=thread_ts or None,
+            halt_reason=halt_reason,
+        )
+        logger.info("route_slack_seer_event.halt_message_sent", extra=logging_ctx)
+        return
+
+    if organization_id is None:
+        return
+
+    try:
+        cell = get_cell_for_organization(str(organization_id))
+    except CellResolutionError:
+        logger.exception("route_slack_seer_event.cell_resolution_error", extra=logging_ctx)
+        return
+    _AsyncSlackSeerDispatcher(payload, response_url="").dispatch([cell.name])
