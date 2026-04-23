@@ -193,6 +193,8 @@ def route_slack_seer_event(
     slack_user_id: str,
     channel_id: str,
     thread_ts: str,
+    message_ts: str,
+    event_type: str,
 ) -> None:
     """
     Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
@@ -219,7 +221,12 @@ def route_slack_seer_event(
         return
 
     organization_id, error_reason = resolve_seer_organization_for_slack_user(
-        integration=integration, slack_user_id=slack_user_id
+        integration=integration,
+        slack_user_id=slack_user_id,
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        message_ts=message_ts,
+        event_type=event_type,
     )
     logging_ctx["organization_id"] = organization_id
     logging_ctx["error_reason"] = error_reason

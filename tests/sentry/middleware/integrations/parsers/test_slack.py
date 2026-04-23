@@ -63,6 +63,7 @@ class SlackRequestParserTest(TestCase):
                 "user": "U1234567890",
                 "text": "hello",
                 "ts": "1234567890.123456",
+                "thread_ts": "1234567890.000001",
             },
         }
         request = self.factory.post(
@@ -382,6 +383,10 @@ class SlackRequestParserTest(TestCase):
         kwargs = mock_apply.call_args.kwargs["kwargs"]
         assert kwargs["integration_id"] == self.integration.id
         assert kwargs["slack_user_id"] == "U1234567890"
+        assert kwargs["channel_id"] == "C1234567890"
+        assert kwargs["thread_ts"] == "1234567890.000001"
+        assert kwargs["message_ts"] == "1234567890.123456"
+        assert kwargs["event_type"] == "app_mention"
         assert kwargs["payload"]["method"] == "POST"
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
 
