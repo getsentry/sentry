@@ -679,7 +679,7 @@ const BlockContent = styled(MarkedText)`
 
 const UserBlockContent = styled('div')`
   max-width: 80%;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
