@@ -114,5 +114,18 @@ class RepositoryService(RpcService):
         This will also delete code owners, and code mapping associated with matching repositories.
         """
 
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def schedule_update_gitlab_project_webhooks(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+    ) -> None:
+        """
+        Schedules a task to update all GitLab project webhooks for an integration.
+        This is used when sync settings change and webhooks need to be updated.
+        """
+
 
 repository_service = RepositoryService.create_delegation()

@@ -427,6 +427,11 @@ export function LogsInfiniteTable({
       newSet.delete(logItemId);
       return newSet;
     });
+    setExpandedLogRowsHeights(prev => {
+      const next = {...prev};
+      delete next[logItemId];
+      return next;
+    });
   }, []);
 
   const tableStaticCSS = useMemo(() => {
