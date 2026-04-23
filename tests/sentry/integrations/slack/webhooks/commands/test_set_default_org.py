@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.integrations.slack.requests.event import PREFERRED_ORGANIZATION_ID_KEY
+from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.slack.webhooks.command import (
     SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE,
     SET_DEFAULT_ORG_NOT_FOUND_MESSAGE,

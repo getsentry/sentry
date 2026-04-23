@@ -8,16 +8,14 @@ from django.test import RequestFactory
 from django.utils.functional import cached_property
 
 from sentry import options
+from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
-from sentry.integrations.slack.requests.event import (
-    PREFERRED_ORGANIZATION_ID_KEY,
-    SlackEventRequest,
-)
+from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
