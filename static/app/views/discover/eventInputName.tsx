@@ -6,6 +6,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {PageFrameEditableViewTitle} from 'sentry/views/issueList/editableIssueViewHeader';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
@@ -69,12 +70,16 @@ export function EventInputName({
 
   if (compact) {
     return (
-      <EditableText
+      <PageFrameEditableViewTitle
+        ariaLabel={t('Edit query name')}
+        maxLength={255}
+        onSave={handleChange}
         value={value}
-        onChange={handleChange}
-        isDisabled={!eventView.id || isHomepage}
+        containerTestIdPrefix="discover2-query-name"
         errorMessage={t('Please set a name for this query')}
-        variant="compact"
+        isDisabled={!eventView.id || Boolean(isHomepage)}
+        saveOnBlur
+        startEditingOnClick
       />
     );
   }
