@@ -240,11 +240,7 @@ def has_seer_explorer_access_with_detail(
 def _collect_repos_by_project_id(
     organization: Organization, project_ids: list[int]
 ) -> dict[str, list[dict[str, Any]]]:
-    """Fetch repo lists for each project, keyed by project_id (as string).
-
-    When `organizations:seer-project-settings-read-from-sentry` is on, reads
-    directly from Sentry's DB. Otherwise fetches via the Seer API.
-    """
+    """Fetch repo lists for each project, keyed by project_id."""
     if not project_ids:
         return {}
 

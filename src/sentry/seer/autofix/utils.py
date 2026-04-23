@@ -769,7 +769,14 @@ def _build_automation_handoff(
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB.
 
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    Returns an empty default preference if the project is not active."""
+    if project.status != ObjectStatus.ACTIVE:
+        return SeerProjectPreference(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            repositories=[],
+        )
+
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
@@ -800,7 +807,13 @@ def bulk_read_preferences_from_sentry_db(
     if not project_ids:
         return {}
 
-    projects = list(Project.objects.filter(id__in=project_ids, organization_id=organization_id))
+    projects = list(
+        Project.objects.filter(
+            id__in=project_ids,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    )
 
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
     for project_repo in (
