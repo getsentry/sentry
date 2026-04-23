@@ -269,13 +269,12 @@ const InnerLabel = styled(TextOverflow)<{isCompact: boolean}>`
 
 const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
   display: inline-block;
-  background: ${p => (p.isCompact ? 'transparent' : p.theme.tokens.background.tertiary)};
-  border-radius: ${p => (p.isCompact ? 0 : p.theme.radius.md)};
+  background: ${p => p.theme.tokens.background.tertiary};
+  border-radius: ${p => p.theme.radius.md};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  max-width: calc(100% + ${p => p.theme.space.xl});
   border-top: ${p => (p.isCompact ? '1px solid transparent' : 'none')};
-  margin: ${p => (p.isCompact ? 0 : `-${p.theme.space.xs} -${p.theme.space.md}`)};
-  padding: ${p => (p.isCompact ? 0 : `${p.theme.space.xs} ${p.theme.space.md}`)};
-  max-width: ${p => (p.isCompact ? '100%' : `calc(100% + ${p.theme.space.xl})`)};
-  min-width: ${p => (p.isCompact ? 0 : 'auto')};
 `;
 
 const StyledInput = styled(Input)<{isCompact: boolean}>`
@@ -288,6 +287,7 @@ const StyledInput = styled(Input)<{isCompact: boolean}>`
   ${p =>
     p.isCompact &&
     css`
+      /* Match TextOverflow's line-height so the baseline doesn't shift on edit. */
       line-height: 1.2;
       font-weight: inherit;
       border-radius: 0 !important;
