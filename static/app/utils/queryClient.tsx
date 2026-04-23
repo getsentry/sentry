@@ -9,7 +9,7 @@ import type {
 } from '@tanstack/react-query';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
-import type {ApiResult, ResponseMeta} from 'sentry/api';
+import type {ApiResult} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {
@@ -76,12 +76,7 @@ export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends
   staleTime: number;
 }
 
-export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError> & {
-  /**
-   * Get a header value from the response
-   */
-  getResponseHeader?: ResponseMeta['getResponseHeader'];
-};
+export type UseApiQueryResult<TData, TError> = UseQueryResult<TData, TError>;
 
 /**
  * Wraps React Query's useQuery for consistent usage in the Sentry app.
@@ -110,7 +105,6 @@ export function useApiQuery<TResponseData, TError = RequestError>(
 
   const queryResult = {
     data: data?.[0],
-    getResponseHeader: data?.[2]?.getResponseHeader,
     ...rest,
   };
 
