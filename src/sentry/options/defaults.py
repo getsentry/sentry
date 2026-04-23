@@ -2355,6 +2355,27 @@ register(
 # It is only a killswitch for behaviour, it may actually increase infra load if flipped for a user currently being sampled.
 register("dynamic-sampling.config.killswitch", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Killswitch for the per-org dynamic sampling pipeline. When set to True the
+# scheduler stops advancing the bucket cursor and stops dispatching bucket
+# tasks, and any already-queued per-org task becomes a no-op on pickup. Use
+# this to immediately halt the pipeline without a deploy.
+register(
+    "dynamic-sampling.per_org.killswitch",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Deterministic % rollout of the per-org dynamic sampling pipeline, keyed on
+# organization id. A value of 0.0 disables the pipeline for every org; 1.0
+# enables it for every org. Intermediate values select a stable hash-based
+# subset so toggling the rate up and down does not reshuffle which orgs run.
+register(
+    "dynamic-sampling.per_org.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing

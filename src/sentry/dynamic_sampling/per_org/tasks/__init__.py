@@ -12,6 +12,7 @@ from sentry.dynamic_sampling.per_org.tasks.orchestrator import (
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     schedule_per_org_calculations,
     schedule_per_org_calculations_bucket,
+    schedule_per_org_calculations_bucket_task,
 )
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "run_calculations_per_org_task",
     "schedule_per_org_calculations",
     "schedule_per_org_calculations_bucket",
+    "schedule_per_org_calculations_bucket_task",
 ]

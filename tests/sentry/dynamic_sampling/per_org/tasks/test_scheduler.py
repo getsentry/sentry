@@ -10,10 +10,12 @@ from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     _next_bucket_index,
     schedule_per_org_calculations,
     schedule_per_org_calculations_bucket,
+    schedule_per_org_calculations_bucket_task,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
 
@@ -22,6 +24,34 @@ def _drain_dispatched_org_ids(burst) -> list[int]:
     ids = [args[0] for _task, args, _kwargs in burst.queue]
     burst.queue.clear()
     return ids
+
+
+_BUCKET_TASK_NAME = "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket"
+
+
+def _is_bucket_task(task) -> bool:
+    return getattr(task, "name", None) == _BUCKET_TASK_NAME
+
+
+def _run_queued_bucket_tasks(burst) -> int:
+    """Execute every bucket task currently queued, returning how many ran.
+
+    After ``schedule_per_org_calculations`` the queue holds a bucket task per
+    call; running them materialises the per-org dispatches into the queue so
+    the existing assertions about dispatched org ids keep working.
+    """
+    ran = 0
+    remaining: list = []
+    pending = list(burst.queue)
+    burst.queue.clear()
+    for task, args, kwargs in pending:
+        if _is_bucket_task(task):
+            schedule_per_org_calculations_bucket_task(*args, **kwargs)
+            ran += 1
+        else:
+            remaining.append((task, args, kwargs))
+    burst.queue[:0] = remaining
+    return ran
 
 
 def _active_org_ids() -> set[int]:
@@ -33,6 +63,7 @@ def _active_org_ids() -> set[int]:
 class SchedulePerOrgCalculationsBucketTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_options({"dynamic-sampling.per_org.rollout-rate": 1.0}))
         get_redis_client_for_ds().delete(BUCKET_CURSOR_KEY)
         # Test fixtures (and any leakage from earlier tests) leave active orgs
         # behind. Capture them so we only assert on orgs we created here.
@@ -195,6 +226,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_options({"dynamic-sampling.per_org.rollout-rate": 1.0}))
         self.redis = get_redis_client_for_ds()
         self.redis.delete(BUCKET_CURSOR_KEY)
 
@@ -213,8 +245,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with BurstTaskRunner() as burst:
             schedule_per_org_calculations()
+            _run_queued_bucket_tasks(burst)
             first = _drain_dispatched_org_ids(burst)
             schedule_per_org_calculations()
+            _run_queued_bucket_tasks(burst)
             second = _drain_dispatched_org_ids(burst)
 
         assert all(i % BUCKET_COUNT == 0 for i in first)
@@ -231,6 +265,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         with BurstTaskRunner() as burst:
             for _ in range(BUCKET_COUNT):
                 schedule_per_org_calculations()
+            _run_queued_bucket_tasks(burst)
             dispatched = _drain_dispatched_org_ids(burst)
 
         dispatched_from_our_orgs = [i for i in dispatched if i in created_ids]
@@ -245,6 +280,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with BurstTaskRunner() as burst:
             schedule_per_org_calculations()
+            _run_queued_bucket_tasks(burst)
             dispatched = _drain_dispatched_org_ids(burst)
 
         assert dispatched, "expected at least one dispatched org"
@@ -261,7 +297,222 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with BurstTaskRunner() as burst:
             schedule_per_org_calculations()
+            _run_queued_bucket_tasks(burst)
             dispatched = _drain_dispatched_org_ids(burst)
 
         assert len(dispatched) > 0
         assert JITTER_WINDOW_SECONDS > 0
+
+
+class SchedulerRetrySafetyTest(TestCase):
+    """Regression coverage for the split-dispatch contract.
+
+    The beat entry ``schedule_per_org_calculations`` advances the cursor
+    exactly once and hands the resulting ``bucket_index`` to a retryable
+    fan-out task. If either contract breaks (cursor advanced inside the
+    retryable task, or the beat entry retries) a transient failure would
+    silently skip a bucket for that revolution and violate the "every org
+    scheduled exactly once per ``BUCKET_COUNT`` beats" guarantee.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"dynamic-sampling.per_org.rollout-rate": 1.0}))
+        self.redis = get_redis_client_for_ds()
+        self.redis.delete(BUCKET_CURSOR_KEY)
+
+    def _create_orgs_across_buckets(self, per_bucket: int = 2) -> dict[int, list[int]]:
+        by_bucket: dict[int, list[int]] = {b: [] for b in range(BUCKET_COUNT)}
+        attempts = 0
+        max_attempts = BUCKET_COUNT * per_bucket * 20
+        while any(len(v) < per_bucket for v in by_bucket.values()) and attempts < max_attempts:
+            org = self.create_organization()
+            by_bucket[org.id % BUCKET_COUNT].append(org.id)
+            attempts += 1
+        return by_bucket
+
+    def test_beat_entry_task_has_retries_disabled(self) -> None:
+        # Celery-level retries of the beat entry would re-INCR the cursor
+        # and skip the failed bucket. The split only holds if this task is
+        # non-retryable.
+        # pylint: disable=protected-access
+        assert schedule_per_org_calculations.retry._times == 0
+
+    def test_bucket_task_accepts_bucket_index_as_argument(self) -> None:
+        # If bucket_index weren't an argument, a retry would have to recompute
+        # it and would therefore touch the cursor again.
+        by_bucket = self._create_orgs_across_buckets(per_bucket=2)
+        target = 4
+
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations_bucket_task(target)
+            dispatched = _drain_dispatched_org_ids(burst)
+
+        for org_id in dispatched:
+            assert org_id % BUCKET_COUNT == target
+        for org_id in by_bucket[target]:
+            assert org_id in dispatched
+
+    def test_bucket_task_retry_does_not_advance_cursor(self) -> None:
+        # Simulate a retry by invoking the bucket task twice with the same
+        # bucket_index. The cursor must stay untouched and the same bucket's
+        # orgs must be dispatched on both attempts.
+        by_bucket = self._create_orgs_across_buckets(per_bucket=2)
+        target = 6
+        self.redis.set(BUCKET_CURSOR_KEY, str(target + 1))
+        cursor_before = self.redis.get(BUCKET_CURSOR_KEY)
+
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations_bucket_task(target)
+            first = _drain_dispatched_org_ids(burst)
+            schedule_per_org_calculations_bucket_task(target)
+            second = _drain_dispatched_org_ids(burst)
+
+        cursor_after = self.redis.get(BUCKET_CURSOR_KEY)
+        assert cursor_before == cursor_after, "bucket task must not touch the cursor"
+
+        assert sorted(first) == sorted(second), (
+            "retry of the bucket task must dispatch the same orgs"
+        )
+        for org_id in first + second:
+            assert org_id % BUCKET_COUNT == target
+        for org_id in by_bucket[target]:
+            assert org_id in first
+
+    def test_beat_entry_advances_cursor_exactly_once_per_call(self) -> None:
+        # The beat entry is the *only* place the cursor is allowed to move.
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations()
+            cursor_after_first = int(self.redis.get(BUCKET_CURSOR_KEY))
+            # Drain queued bucket task(s) so their execution has a chance to
+            # accidentally touch the cursor - this assertion is what proves
+            # the fix.
+            _run_queued_bucket_tasks(burst)
+            cursor_after_bucket = int(self.redis.get(BUCKET_CURSOR_KEY))
+
+        assert cursor_after_first == 1
+        assert cursor_after_bucket == 1, (
+            "running the queued bucket task must not advance the cursor"
+        )
+
+    def test_full_revolution_unaffected_by_bucket_task_retries(self) -> None:
+        # Even if every bucket task ran twice (as if retried once), all active
+        # orgs should still be dispatched and confined to their own bucket.
+        by_bucket = self._create_orgs_across_buckets(per_bucket=2)
+        created_ids = {org_id for ids in by_bucket.values() for org_id in ids}
+
+        with BurstTaskRunner() as burst:
+            for _ in range(BUCKET_COUNT):
+                schedule_per_org_calculations()
+            # Queue: BUCKET_COUNT bucket tasks. Run each twice to simulate a
+            # retry after a transient failure.
+            queued_bucket_calls = list(burst.queue)
+            burst.queue.clear()
+            for task, args, kwargs in queued_bucket_calls:
+                if _is_bucket_task(task):
+                    schedule_per_org_calculations_bucket_task(*args, **kwargs)
+                    schedule_per_org_calculations_bucket_task(*args, **kwargs)
+            dispatched = _drain_dispatched_org_ids(burst)
+
+        # Each org was dispatched twice because we intentionally retried every
+        # bucket, but every org was still covered and no bucket was skipped.
+        dispatched_from_our_orgs = sorted(i for i in dispatched if i in created_ids)
+        for org_id in created_ids:
+            assert dispatched_from_our_orgs.count(org_id) == 2
+        # Cursor advanced exactly BUCKET_COUNT times (once per beat), not
+        # more, proving retries never touched it.
+        assert int(self.redis.get(BUCKET_CURSOR_KEY)) == BUCKET_COUNT
+
+
+class SchedulerKillswitchAndRolloutTest(TestCase):
+    """The killswitch must neutralise both scheduler stages, and the rollout
+    rate must deterministically gate per-org dispatch.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.redis = get_redis_client_for_ds()
+        self.redis.delete(BUCKET_CURSOR_KEY)
+
+    def _create_orgs_in_bucket(self, bucket: int, count: int) -> list[int]:
+        ids: list[int] = []
+        attempts = 0
+        max_attempts = count * BUCKET_COUNT * 20
+        while len(ids) < count and attempts < max_attempts:
+            org = self.create_organization()
+            if org.id % BUCKET_COUNT == bucket:
+                ids.append(org.id)
+            attempts += 1
+        assert len(ids) == count, "could not seed enough orgs in the target bucket"
+        return ids
+
+    @override_options(
+        {
+            "dynamic-sampling.per_org.killswitch": True,
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+        }
+    )
+    def test_beat_entry_is_noop_when_killswitch_engaged(self) -> None:
+        # Cursor must not advance and no bucket task may be dispatched.
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations()
+            queued = list(burst.queue)
+            burst.queue.clear()
+
+        assert queued == []
+        assert self.redis.get(BUCKET_CURSOR_KEY) is None
+
+    @override_options(
+        {
+            "dynamic-sampling.per_org.killswitch": True,
+            "dynamic-sampling.per_org.rollout-rate": 1.0,
+        }
+    )
+    def test_bucket_task_is_noop_when_killswitch_engaged(self) -> None:
+        # A bucket task already in flight when the killswitch flips must
+        # short-circuit before dispatching any org work.
+        self._create_orgs_in_bucket(bucket=2, count=2)
+
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations_bucket_task(2)
+            dispatched = _drain_dispatched_org_ids(burst)
+
+        assert dispatched == []
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
+    def test_rollout_at_zero_dispatches_nothing(self) -> None:
+        # At 0% rollout the bucket task must produce no org dispatches even
+        # though the bucket is non-empty.
+        self._create_orgs_in_bucket(bucket=5, count=3)
+
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations_bucket_task(5)
+            dispatched = _drain_dispatched_org_ids(burst)
+
+        assert dispatched == []
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_rollout_at_one_dispatches_every_org_in_bucket(self) -> None:
+        org_ids = self._create_orgs_in_bucket(bucket=8, count=3)
+
+        with BurstTaskRunner() as burst:
+            schedule_per_org_calculations_bucket_task(8)
+            dispatched = _drain_dispatched_org_ids(burst)
+
+        for org_id in org_ids:
+            assert org_id in dispatched
+
+    def test_rollout_is_deterministic_for_a_given_org(self) -> None:
+        # The same (option_value, org_id) pair must produce the same decision
+        # every time, so a held-steady rate must not shuffle which orgs run
+        # across successive beats.
+        org_ids = self._create_orgs_in_bucket(bucket=1, count=5)
+
+        with override_options({"dynamic-sampling.per_org.rollout-rate": 0.5}):
+            with BurstTaskRunner() as burst:
+                schedule_per_org_calculations_bucket_task(1)
+                first = sorted(i for i in _drain_dispatched_org_ids(burst) if i in org_ids)
+                schedule_per_org_calculations_bucket_task(1)
+                second = sorted(i for i in _drain_dispatched_org_ids(burst) if i in org_ids)
+
+        assert first == second

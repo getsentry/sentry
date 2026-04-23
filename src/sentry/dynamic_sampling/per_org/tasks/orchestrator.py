@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from taskbroker_client.retry import Retry
 
+from sentry.dynamic_sampling.per_org.tasks.gate import is_killswitch_engaged, is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.steps.boost_low_volume_projects import (
     boost_low_volume_projects,
 )
@@ -35,6 +36,20 @@ from sentry.utils import metrics
 
 
 def run_calculations_per_org(org_id: OrganizationId) -> None:
+    if is_killswitch_engaged():
+        metrics.incr(
+            "dynamic_sampling.run_calculations_per_org.killswitch_engaged",
+            sample_rate=1,
+        )
+        return
+
+    if not is_org_in_rollout(org_id):
+        metrics.incr(
+            "dynamic_sampling.run_calculations_per_org.skipped_by_rollout",
+            sample_rate=1,
+        )
+        return
+
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
