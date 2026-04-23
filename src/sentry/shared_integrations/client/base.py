@@ -82,8 +82,8 @@ class BaseApiClient:
 
     def __exit__(
         self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
+        exc_type: type[Exception] | None,
+        exc_value: Exception | None,
         traceback: TracebackType | None,
     ) -> None:
         # TODO(joshuarli): Look into reusing a SafeSession, and closing it here.
@@ -95,7 +95,7 @@ class BaseApiClient:
     def track_response_data(
         self,
         code: str | int,
-        error: BaseException | None = None,
+        error: Exception | None = None,
         resp: Response | None = None,
         extra: Mapping[str, str | int] | None = None,
     ) -> None:
@@ -162,7 +162,7 @@ class BaseApiClient:
                 return True
         return False
 
-    def is_error_fatal(self, error: BaseException) -> bool:
+    def is_error_fatal(self, error: Exception) -> bool:
         return False
 
     def build_session(self) -> SafeSession:

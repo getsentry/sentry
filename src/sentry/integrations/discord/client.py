@@ -135,7 +135,7 @@ class DiscordClient(ApiClient):
     def track_response_data(
         self,
         code: str | int,
-        error: BaseException | None = None,
+        error: Exception | None = None,
         resp: Response | None = None,
         extra: Mapping[str, str | int] | None = None,
     ) -> None:
