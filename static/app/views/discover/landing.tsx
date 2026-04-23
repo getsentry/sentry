@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -192,33 +191,17 @@ function DiscoverLanding() {
       <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
         <Stack flex={1}>
           {hasPageFrameFeature ? (
-            <Fragment>
-              <TopBar.Slot name="title">
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      label: t('Discover'),
-                      to: getDiscoverLandingUrl(organization),
-                    },
-                    {label: t('Saved Queries')},
-                  ]}
-                />
-              </TopBar.Slot>
-              <TopBar.Slot name="actions">
-                <LinkButton
-                  data-test-id="build-new-query"
-                  to={to}
-                  priority="primary"
-                  onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Build a new query')}
-                </LinkButton>
-              </TopBar.Slot>
-            </Fragment>
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={[
+                  {
+                    label: t('Discover'),
+                    to: getDiscoverLandingUrl(organization),
+                  },
+                  {label: t('Saved Queries')},
+                ]}
+              />
+            </TopBar.Slot>
           ) : (
             <Layout.Header>
               <Layout.HeaderContent>
@@ -232,21 +215,6 @@ function DiscoverLanding() {
                   ]}
                 />
               </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <LinkButton
-                  data-test-id="build-new-query"
-                  to={to}
-                  size="sm"
-                  priority="primary"
-                  onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
-                  }}
-                >
-                  {t('Build a new query')}
-                </LinkButton>
-              </Layout.HeaderActions>
             </Layout.Header>
           )}
           <Layout.Body>
@@ -276,6 +244,18 @@ function DiscoverLanding() {
                   onChange={opt => handleSortChange(opt.value)}
                   position="bottom-end"
                 />
+                <LinkButton
+                  data-test-id="build-new-query"
+                  to={to}
+                  priority="primary"
+                  onClick={() => {
+                    trackAnalytics('discover_v2.build_new_query', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Build a new query')}
+                </LinkButton>
               </StyledActions>
               {status === 'pending' ? (
                 <LoadingIndicator />
@@ -327,7 +307,7 @@ const StyledSearchBar = styled(SearchBar)`
 const StyledActions = styled('div')`
   display: grid;
   gap: ${p => p.theme.space.xl};
-  grid-template-columns: auto max-content min-content;
+  grid-template-columns: auto max-content min-content max-content;
   align-items: center;
   margin-bottom: ${p => p.theme.space.xl};
 
