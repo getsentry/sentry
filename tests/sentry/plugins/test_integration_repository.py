@@ -71,9 +71,11 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repository__repo_exists(self, get_jwt: MagicMock) -> None:
         existing = self._create_repo(external_id=self.config["external_id"])
 
-        _, repo = self.provider.create_repository(self.config, self.organization)
+        with pytest.raises(RepoExistsError) as exc_info:
+            self.provider.create_repository(self.config, self.organization)
 
-        assert repo.id == existing.id
+        assert exc_info.value.reclaimed_repo is not None
+        assert exc_info.value.reclaimed_repo.id == existing.id
         assert Repository.objects.count() == 1
 
     def test_create_repository__transfer_repo_in_org(self, get_jwt: MagicMock) -> None:
@@ -96,20 +98,29 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
 
-        _, returned = self.provider.create_repository(self.config, self.organization)
+        with pytest.raises(RepoExistsError) as exc_info:
+            self.provider.create_repository(self.config, self.organization)
 
-        assert returned.id == repo.id
+        reclaimed = exc_info.value.reclaimed_repo
+        assert reclaimed is not None
+        assert reclaimed.id == repo.id
+        assert reclaimed.name == self.repo_name
         repo.refresh_from_db()
         assert repo.name == self.repo_name
-        assert returned.name == self.repo_name
 
-    def test_create_repository__integrity_error_reclaims_existing(self, get_jwt: MagicMock) -> None:
+    def test_create_repository__integrity_error_attaches_reclaimed(
+        self, get_jwt: MagicMock
+    ) -> None:
         existing = self._create_repo(external_id=self.config["external_id"])
 
-        with patch("sentry.models.Repository.objects.create", side_effect=IntegrityError):
-            _, repo = self.provider.create_repository(self.config, self.organization)
+        with (
+            patch("sentry.models.Repository.objects.create", side_effect=IntegrityError),
+            pytest.raises(RepoExistsError) as exc_info,
+        ):
+            self.provider.create_repository(self.config, self.organization)
 
-        assert repo.id == existing.id
+        assert exc_info.value.reclaimed_repo is not None
+        assert exc_info.value.reclaimed_repo.id == existing.id
 
     @patch("sentry.plugins.providers.integration_repository.metrics")
     def test_create_repository__activates_existing_hidden_repo(
@@ -129,8 +140,9 @@ class IntegrationRepositoryTestCase(TestCase):
         repo.status = ObjectStatus.PENDING_DELETION
         repo.save()
 
-        with pytest.raises(RepoExistsError):
+        with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
+        assert exc_info.value.reclaimed_repo is None
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION

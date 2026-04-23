@@ -48,10 +48,15 @@ class RepoExistsError(SentryAPIException):
         message: str | None = None,
         detail: Any = None,
         repos: list[RepositoryConfig] | None = None,
+        reclaimed_repo: RpcRepository | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(code=code, message=message, detail=detail, **kwargs)
         self.repos = repos
+        # Populated when create_repository found an existing ACTIVE row matching
+        # the config. Callers that can treat the race as a success (e.g. the
+        # REST dispatch) should check this before surfacing the 400.
+        self.reclaimed_repo = reclaimed_repo
 
     def __str__(self) -> str:
         if self.repos:
@@ -205,15 +210,13 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     if active_repo is None and repo.status == ObjectStatus.ACTIVE:
                         active_repo = repo
 
-            # Concurrent writer (e.g. link_all_repos) already created the row;
-            # return it as a successful reclaim instead of raising. Skip
-            # on_create_repository — the winning writer already ran it and
-            # provider hooks aren't uniformly idempotent (bitbucket_server
-            # duplicates its webhook).
-            if active_repo is not None:
-                return result, active_repo
-
-            raise RepoExistsError(repos=[result])
+            # Concurrent writer (e.g. link_all_repos) already created the row.
+            # Surface the active match on the exception so callers that want to
+            # treat the race as success (dispatch) can, while callers that
+            # prefer the historical "skip and try again" behavior (the GitHub
+            # push webhook) stay unaffected by catching RepoExistsError as
+            # before.
+            raise RepoExistsError(repos=[result], reclaimed_repo=active_repo)
 
         return result, repo
 
@@ -318,9 +321,14 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
-        except RepoExistsError:
+        except RepoExistsError as exc:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            raise
+            if exc.reclaimed_repo is None or not exc.repos:
+                raise
+            # Reclaim the row a concurrent writer created. Falls through to
+            # the normal success path so repo_linked/analytics still fire.
+            repo = exc.reclaimed_repo
+            result = exc.repos[0]
         except Exception as e:
             return self.handle_api_error(e)
 
