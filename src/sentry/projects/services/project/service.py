@@ -119,10 +119,19 @@ class ProjectService(RpcService):
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_project(self, *, organization_id: int, project_id: int) -> bool:
-        """Soft-delete a project: mark it ``PENDING_DELETION`` and schedule a
-        ``ScheduledDeletion``, matching the behavior of the project DELETE
-        endpoint. Returns True if the project existed and was marked for
-        deletion, False otherwise (idempotent no-op).
+        """Soft-delete a project; matches the behavior of the project
+        DELETE endpoint except it does NOT write an audit log entry and
+        does NOT schedule a Seer grouping-records cleanup.
+
+        Idempotent: a second call on an already-PENDING_DELETION row
+        returns True without re-scheduling. Returns False if the
+        project doesn't exist, doesn't belong to the given org, or is
+        the internal project (``settings.SENTRY_PROJECT``).
+
+        **Callers are responsible for creating any audit log entries** --
+        this RPC deliberately does not write them on their behalf.
+        Stripe Projects (the only current caller) audits at its own
+        layer so auditing here would double-count.
         """
         pass
 
