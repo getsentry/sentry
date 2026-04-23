@@ -31,11 +31,14 @@ export function useSecondaryNavigation(): SecondaryNavigationContext {
 
 interface SecondaryNavigationContextProviderProps {
   children: React.ReactNode;
+  activeGroup?: string;
 }
 
 export function SecondaryNavigationContextProvider(
   props: SecondaryNavigationContextProviderProps
 ) {
+  const isLocked = props.activeGroup === 'settings';
+
   const [isCollapsedPersisted, setIsCollapsedPersisted] = useLocalStorageState(
     NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY,
     false
@@ -46,20 +49,23 @@ export function SecondaryNavigationContextProvider(
 
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
+      if (isLocked) {
+        return;
+      }
       setViewState(nextView);
       if (nextView !== 'peek') {
         setIsCollapsedPersisted(nextView === 'collapsed');
       }
     },
-    [setIsCollapsedPersisted]
+    [isLocked, setIsCollapsedPersisted]
   );
 
   const value = useMemo(() => {
     return {
-      view,
+      view: isLocked ? ('expanded' as const) : view,
       setView,
     };
-  }, [view, setView]);
+  }, [isLocked, view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

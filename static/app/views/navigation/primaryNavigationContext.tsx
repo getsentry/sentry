@@ -71,7 +71,7 @@ export function PrimaryNavigationContextProvider(
 
   return (
     <NavigationTourReminderContextProvider>
-      <SecondaryNavigationContextProvider>
+      <SecondaryNavigationContextProvider activeGroup={activeRouteGroup}>
         <PrimaryNavigationContext.Provider value={value}>
           {props.children}
         </PrimaryNavigationContext.Provider>

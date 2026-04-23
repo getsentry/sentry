@@ -272,11 +272,12 @@ interface SecondaryNavigationHeaderProps {
 }
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
   const hasPageFrame = useHasPageFrameFeature();
   const isMobilePageFrame = hasPageFrame && layout === 'mobile';
+  const isLocked = activeGroup === 'settings';
 
   return (
     <Grid
@@ -302,28 +303,29 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
         </Text>
       </div>
       <div>
-        {isMobilePageFrame ? (
-          <Button
-            size="xs"
-            icon={<IconClose />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority="transparent"
-          />
-        ) : layout === 'mobile' ? null : (
-          <Button
-            size="xs"
-            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            priority={isCollapsed ? 'primary' : 'transparent'}
-            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-            analyticsParams={{
-              is_collapsed: isCollapsed,
-            }}
-          />
-        )}
+        {!isLocked &&
+          (isMobilePageFrame ? (
+            <Button
+              size="xs"
+              icon={<IconClose />}
+              aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+              onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+              priority="transparent"
+            />
+          ) : layout === 'mobile' ? null : (
+            <Button
+              size="xs"
+              icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+              aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+              onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
+              priority={isCollapsed ? 'primary' : 'transparent'}
+              analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+              analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+              analyticsParams={{
+                is_collapsed: isCollapsed,
+              }}
+            />
+          ))}
       </div>
     </Grid>
   );

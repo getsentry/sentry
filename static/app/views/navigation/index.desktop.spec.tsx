@@ -760,6 +760,40 @@ describe('desktop navigation', () => {
         });
       });
 
+      describe('settings page', () => {
+        it('is always expanded even when nav was previously collapsed', () => {
+          localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+            })
+          );
+
+          expect(
+            screen.queryByTestId('collapsed-secondary-sidebar')
+          ).not.toBeInTheDocument();
+        });
+
+        it('does not show the collapse button', () => {
+          render(
+            <PrimaryNavigationContextProvider>
+              <Navigation />
+            </PrimaryNavigationContextProvider>,
+            navigationContext({
+              initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+            })
+          );
+
+          expect(
+            screen.queryByRole('button', {name: 'Collapse'})
+          ).not.toBeInTheDocument();
+        });
+      });
+
       describe('peek preview', () => {
         it('shows the sidebar on hover when collapsed', async () => {
           localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
