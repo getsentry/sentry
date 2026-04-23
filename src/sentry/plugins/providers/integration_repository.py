@@ -216,7 +216,6 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                         active_repo = repo
 
             if active_repo is not None:
-                metrics.incr("sentry.integration_repo_provider.repo_exists_reclaimed")
                 return result, active_repo
 
             raise RepoExistsError(repos=[result])
