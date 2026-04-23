@@ -791,6 +791,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _expected_trees(self, repo_info_list=None):
         result = {}
+        repo_ids = {"xyz": "1234567", "foo": "1296269", "bar": "9876574", "baz": "1276555"}
         # bar (409 empty repo) returns an empty RepoTree since we cache the result
         # baz (404) also returns an empty RepoTree because we cache not-found outcomes
         list = repo_info_list or [
@@ -801,16 +802,28 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
         for repo, branch, files in list:
             result[f"{self.gh_org}/{repo}"] = RepoTree(
-                RepoAndBranch(f"{self.gh_org}/{repo}", branch), files
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch, str(repo_ids.get(repo, ""))), files
             )
         return result
 
     def _expected_cached_repos(self):
         return [
-            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/foo", "default_branch": "master"},
-            {"full_name": f"{self.gh_org}/bar", "default_branch": "main"},
-            {"full_name": f"{self.gh_org}/baz", "default_branch": "master"},
+            {
+                "full_name": f"{self.gh_org}/xyz",
+                "default_branch": "master",
+                "external_id": "1234567",
+            },
+            {
+                "full_name": f"{self.gh_org}/foo",
+                "default_branch": "master",
+                "external_id": "1296269",
+            },
+            {"full_name": f"{self.gh_org}/bar", "default_branch": "main", "external_id": "9876574"},
+            {
+                "full_name": f"{self.gh_org}/baz",
+                "default_branch": "master",
+                "external_id": "1276555",
+            },
         ]
 
     @responses.activate

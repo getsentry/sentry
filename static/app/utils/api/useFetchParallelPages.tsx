@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface Props {

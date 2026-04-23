@@ -6,6 +6,7 @@
  */
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -18,7 +19,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';

@@ -47,7 +47,7 @@ TRANSACTION_BATCH_SIZE = 50
 TRACE_PROCESSING_TTL_SECONDS = 7200
 MAX_LLM_FIELD_LENGTH = 2000
 
-DETECTION_CYCLE_DURATION = timedelta(hours=2, minutes=30)
+DETECTION_CYCLE_DURATION = timedelta(hours=1)
 
 
 seer_issue_detection_connection_pool = connection_from_url(

@@ -22,6 +22,7 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
+from sentry.snuba.replays import Replays
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.uptime_results import UptimeResults
@@ -45,6 +46,7 @@ DATASET_OPTIONS = {
     "issuePlatform": issue_platform,
     "profileFunctions": functions,
     SupportedTraceItemType.PROFILE_FUNCTIONS.value: ProfileFunctions,
+    SupportedTraceItemType.REPLAYS.value: Replays,
     SupportedTraceItemType.SPANS.value: Spans,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
@@ -54,13 +56,14 @@ DATASET_OPTIONS = {
 }
 DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
-    ProfileFunctions,
-    PreprodSize,
-    ProcessingErrors,
-    Spans,
-    TraceMetrics,
     Occurrences,
     OurLogs,
+    PreprodSize,
+    ProcessingErrors,
+    ProfileFunctions,
+    Replays,
+    Spans,
+    TraceMetrics,
     UptimeResults,
 }
 DATASET_LABELS = {

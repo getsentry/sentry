@@ -81,7 +81,6 @@ export default function SavedQueriesView() {
         {hasPageFrameFeature ? (
           <Fragment>
             <TopBar.Slot name="title">{t('All Queries')}</TopBar.Slot>
-            <TopBar.Slot name="actions">{createQueryButton}</TopBar.Slot>
             <TopBar.Slot name="feedback">
               <FeedbackButton
                 aria-label={t('Give Feedback')}

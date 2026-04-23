@@ -2,10 +2,12 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
 
 import {getFeedbackItemQueryKey} from 'sentry/components/feedback/getFeedbackItemQueryKey';
-import {useFeedbackListQueryKey} from 'sentry/components/feedback/useFeedbackListQueryKey';
+import {
+  useFeedbackListApiOptions,
+  useFeedbackListInfiniteApiOptions,
+} from 'sentry/components/feedback/useFeedbackListApiOptions';
 import type {Organization} from 'sentry/types/organization';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   children: ReactNode;
@@ -17,31 +19,24 @@ type ItemQueryKeys = {
   issueQueryKey: ApiQueryKey | undefined;
 };
 
+type FeedbackListApiOptions = ReturnType<typeof useFeedbackListApiOptions>;
+type FeedbackListInfiniteApiOptions = ReturnType<
+  typeof useFeedbackListInfiniteApiOptions
+>;
+
 interface TContext {
   getItemQueryKeys: (id: string) => ItemQueryKeys;
+  listApiOptions: FeedbackListInfiniteApiOptions;
   listHeadTime: number;
-  listPrefetchQueryKey: ApiQueryKey | undefined;
-  listQueryKey: InfiniteApiQueryKey | undefined;
+  listPrefetchApiOptions: FeedbackListApiOptions;
   resetListHeadTime: () => void;
 }
 
 const EMPTY_ITEM_QUERY_KEYS = {issueQueryKey: undefined, eventQueryKey: undefined};
 
-const DEFAULT_CONTEXT: TContext = {
-  getItemQueryKeys: () => EMPTY_ITEM_QUERY_KEYS,
-  listHeadTime: 0,
-  listPrefetchQueryKey: undefined,
-  listQueryKey: undefined,
-  resetListHeadTime: () => undefined,
-};
+const FeedbackApiOptionsProvider = createContext<TContext | null>(null);
 
-const FeedbackQueryKeysProvider = createContext<TContext>(DEFAULT_CONTEXT);
-
-export function FeedbackQueryKeys({children, organization}: Props) {
-  // The "Head time" is the timestamp of the newest feedback that we can show in
-  // the list (the head element in the array); the same time as when we loaded
-  // the page. It can be updated without loading the page, when we want to see
-  // fresh list items.
+export function FeedbackApiOptions({children, organization}: Props) {
   const [listHeadTime, setHeadTimeMs] = useState(() => Date.now());
   const resetListHeadTime = useCallback(() => {
     setHeadTimeMs(Date.now());
@@ -61,41 +56,41 @@ export function FeedbackQueryKeys({children, organization}: Props) {
     [organization]
   );
 
-  const listQueryKey = useFeedbackListQueryKey({
+  const listApiOptions = useFeedbackListInfiniteApiOptions({
     listHeadTime,
     organization,
     prefetch: false,
   });
 
-  const listPrefetchQueryKey = useFeedbackListQueryKey({
+  const listPrefetchApiOptions = useFeedbackListApiOptions({
     listHeadTime,
     organization,
     prefetch: true,
   });
 
   return (
-    <FeedbackQueryKeysProvider.Provider
+    <FeedbackApiOptionsProvider.Provider
       value={{
         getItemQueryKeys,
         listHeadTime,
-        listPrefetchQueryKey,
-        listQueryKey: getInfiniteListQueryKey(listQueryKey),
+        listPrefetchApiOptions,
+        listApiOptions,
         resetListHeadTime,
       }}
     >
       {children}
-    </FeedbackQueryKeysProvider.Provider>
+    </FeedbackApiOptionsProvider.Provider>
   );
 }
 
-function getInfiniteListQueryKey(listQueryKey: ApiQueryKey | undefined) {
-  if (!listQueryKey) {
-    return undefined;
-  }
-  const {url, options} = parseQueryKey(listQueryKey);
-  return [{infinite: true, version: 'v1'}, url, options] as InfiniteApiQueryKey;
-}
+export function useFeedbackApiOptions() {
+  const context = useContext(FeedbackApiOptionsProvider);
 
-export function useFeedbackQueryKeys() {
-  return useContext(FeedbackQueryKeysProvider);
+  if (!context) {
+    throw new Error(
+      'useFeedbackApiOptions must be used within a FeedbackApiOptionsProvider'
+    );
+  }
+
+  return context;
 }

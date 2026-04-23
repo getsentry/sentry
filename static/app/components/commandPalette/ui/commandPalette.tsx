@@ -6,6 +6,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {useIsFetching} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
@@ -36,13 +37,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);

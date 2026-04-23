@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics, features
+from sentry import analytics, features, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -24,7 +24,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixTriageCompletedEvent,
     AiAutofixTriageStartedEvent,
 )
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.artifact_schemas import (
     ImpactAssessmentArtifact,
@@ -61,6 +61,10 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
+
+
+class NoSeerQuotaException(Exception):
+    pass
 
 
 class AutofixStep(StrEnum):
@@ -251,6 +255,14 @@ def trigger_autofix_explorer(
     Returns:
         The run ID
     """
+    # check billing quota for triggering a new autofix run
+    if run_id is None:
+        has_budget: bool = quotas.backend.check_seer_quota(
+            org_id=group.organization.id,
+            data_category=DataCategory.SEER_AUTOFIX,
+        )
+        if not has_budget:
+            raise NoSeerQuotaException()
 
     config = STEP_CONFIGS[step]
 
@@ -288,6 +300,11 @@ def trigger_autofix_explorer(
             artifact_key=artifact_key,
             artifact_schema=artifact_schema,
             metadata=metadata,
+        )
+
+        # Make sure to log billing event for seer autofix whenever a new run is started
+        quotas.backend.record_seer_run(
+            group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
     else:
         client.continue_run(

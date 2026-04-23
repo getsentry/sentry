@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 
@@ -24,8 +25,7 @@ import {
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
@@ -82,43 +82,41 @@ export function IssuesWidget() {
     [datetimeSelection, pageFilters.environments, pageFilters.projects, query]
   );
 
-  const issuesQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
+  const issuesQueryOptions = apiOptions.as<Group[]>()(
+    '/organizations/$organizationIdOrSlug/issues/',
     {
+      path: {organizationIdOrSlug: organization.slug},
       query: queryParams,
-    },
-  ] as const;
-  const {
-    data: groups,
-    isPending,
-    error,
-    refetch,
-  } = useApiQuery<Group[]>(issuesQueryKey, {
-    staleTime: 0,
-  });
+      staleTime: 0,
+    }
+  );
+  const {data: groups, isPending, error, refetch} = useQuery(issuesQueryOptions);
 
   const handleAssigneeChange = (
     groupId: string,
     newAssignee: AssignableEntity | null
   ) => {
-    queryClient.setQueryData<Group[]>(issuesQueryKey, previousGroups =>
-      (previousGroups ?? []).map(previousGroup => {
-        if (previousGroup.id !== groupId) {
-          return previousGroup;
-        }
-        return {
-          ...previousGroup,
-          assignedTo: newAssignee
-            ? {
-                id: newAssignee.id,
-                name: newAssignee.assignee.name,
-                type: newAssignee.type,
+    queryClient.setQueryData(issuesQueryOptions.queryKey, prevData =>
+      prevData
+        ? {
+            ...prevData,
+            json: prevData.json.map(previousGroup => {
+              if (previousGroup.id !== groupId) {
+                return previousGroup;
               }
-            : null,
-        };
-      })
+              return {
+                ...previousGroup,
+                assignedTo: newAssignee
+                  ? {
+                      id: newAssignee.id,
+                      name: newAssignee.assignee.name,
+                      type: newAssignee.type,
+                    }
+                  : null,
+              };
+            }),
+          }
+        : prevData
     );
   };
 

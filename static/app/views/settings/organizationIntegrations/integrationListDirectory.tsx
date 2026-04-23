@@ -6,7 +6,7 @@ import startCase from 'lodash/startCase';
 
 import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 
@@ -45,6 +45,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
@@ -505,6 +506,7 @@ function IntegrationSettingsHeader({
   search: string;
   title: string;
 }) {
+  const hasPageFrame = useHasPageFrameFeature();
   const getCategoryLabel = useCallback((c: string) => {
     return c === 'api' ? 'API' : startCase(c);
   }, []);
@@ -520,24 +522,55 @@ function IntegrationSettingsHeader({
     <SettingsPageHeader
       title={title}
       body={
-        <ActionContainer>
-          <Select
-            name="select-categories"
-            onChange={onChangeCategory}
-            value={category}
-            options={categoryOptions}
-          />
-          <SearchBar
-            query={search}
-            onSearch={onChangeSearch}
-            placeholder={t('Filter Integrations\u2026')}
-            aria-label={t('Filter')}
-            width="100%"
-            data-test-id="search-bar"
-          />
-        </ActionContainer>
+        hasPageFrame ? (
+          <Flex align="center" gap="md">
+            <Container width="240px">
+              <Select
+                name="select-categories"
+                onChange={onChangeCategory}
+                value={category}
+                options={categoryOptions}
+              />
+            </Container>
+            <Container flex={1}>
+              {({className}) => (
+                <SearchBar
+                  className={className}
+                  query={search}
+                  onSearch={onChangeSearch}
+                  placeholder={t('Filter Integrations\u2026')}
+                  aria-label={t('Filter')}
+                  width="100%"
+                  data-test-id="search-bar"
+                />
+              )}
+            </Container>
+            <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+          </Flex>
+        ) : (
+          <ActionContainer>
+            <Select
+              name="select-categories"
+              onChange={onChangeCategory}
+              value={category}
+              options={categoryOptions}
+            />
+            <SearchBar
+              query={search}
+              onSearch={onChangeSearch}
+              placeholder={t('Filter Integrations\u2026')}
+              aria-label={t('Filter')}
+              width="100%"
+              data-test-id="search-bar"
+            />
+          </ActionContainer>
+        )
       }
-      action={<CreateIntegrationButton analyticsView="integrations_directory" />}
+      action={
+        hasPageFrame ? undefined : (
+          <CreateIntegrationButton analyticsView="integrations_directory" />
+        )
+      }
     />
   );
 }
