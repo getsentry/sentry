@@ -31,7 +31,11 @@ import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
-import {canUseMetricsAlertsUI, canUseMetricsSavedQueriesUI} from './metricsFlags';
+import {
+  canUseMetricsAlertsUI,
+  canUseMetricsEquationsInAlerts,
+  canUseMetricsSavedQueriesUI,
+} from './metricsFlags';
 
 interface UseSaveAsMetricItemsOptions {
   interval: string;
@@ -112,41 +116,47 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
       return [];
     }
 
-    const alertsUrls = metricQueries.map((metricQuery, index) => {
-      const visualize = metricQuery.queryParams.visualizes[0]!;
-      const yAxis = visualize.yAxis;
+    const alertsUrls = metricQueries
+      .filter(
+        metricQuery =>
+          canUseMetricsEquationsInAlerts(organization) ||
+          isVisualizeFunction(metricQuery.queryParams.visualizes[0]!)
+      )
+      .map((metricQuery, index) => {
+        const visualize = metricQuery.queryParams.visualizes[0]!;
+        const yAxis = visualize.yAxis;
 
-      const query = metricQuery.queryParams.query ?? '';
-      let label = yAxis;
-      if (isVisualizeFunction(visualize)) {
-        const func = parseFunction(yAxis);
-        label = func ? prettifyParsedFunction(func) : yAxis;
-      } else if (isVisualizeEquation(visualize)) {
-        label = metricQuery.label ?? '';
-      }
+        const query = metricQuery.queryParams.query ?? '';
+        let label = yAxis;
+        if (isVisualizeFunction(visualize)) {
+          const func = parseFunction(yAxis);
+          label = func ? prettifyParsedFunction(func) : yAxis;
+        } else if (isVisualizeEquation(visualize)) {
+          label = metricQuery.label ?? '';
+        }
 
-      return {
-        key: `create-alert-${index}`,
-        label,
-        to: getAlertsUrl({
-          project,
-          query,
-          pageFilters: pageFilters.selection,
-          aggregate: yAxis,
-          organization,
-          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval: options.interval,
-          eventTypes: [EventTypes.TRACE_ITEM_METRIC],
-        }),
-        onAction: () => {
-          trackAnalytics('metrics.save_as', {
-            save_type: 'alert',
-            ui_source: 'searchbar',
+        return {
+          key: `create-alert-${index}`,
+          label,
+          to: getAlertsUrl({
+            project,
+            query,
+            pageFilters: pageFilters.selection,
+            aggregate: yAxis,
             organization,
-          });
-        },
-      };
-    });
+            dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+            interval: options.interval,
+            eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+          }),
+          onAction: () => {
+            trackAnalytics('metrics.save_as', {
+              save_type: 'alert',
+              ui_source: 'searchbar',
+              organization,
+            });
+          },
+        };
+      });
 
     const newAlertLabel = organization.features.includes('workflow-engine-ui')
       ? t('Monitor for')
