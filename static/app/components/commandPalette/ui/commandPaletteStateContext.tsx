@@ -1,4 +1,4 @@
-import {createContext, useContext, useReducer, useRef} from 'react';
+import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
@@ -7,6 +7,7 @@ import {
   toggleCommandPalette,
 } from 'sentry/actionCreators/modal';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -28,6 +29,10 @@ export type CommandPaletteState = {
   // content swap, while still ensuring a clean slate on the next open.
   pendingReset: boolean;
   query: string;
+  // When true, state is reset as part of the next open transition. Set when
+  // the user clicks anywhere on the page after closing CMDK, signalling they
+  // moved on and expect a fresh palette on the next open.
+  resetOnOpen: boolean;
 };
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
@@ -44,7 +49,8 @@ export type CommandPaletteAction =
       query?: string;
     }
   | {type: 'trigger action'}
-  | {type: 'pop action'};
+  | {type: 'pop action'}
+  | {type: 'reset on open'};
 
 const CommandPaletteStateContext = createContext<CommandPaletteState | null>(null);
 const CommandPaletteDispatchContext =
@@ -57,6 +63,15 @@ function commandPaletteReducer(
   const type = action.type;
   switch (type) {
     case 'toggle modal':
+      if (!state.open && state.resetOnOpen) {
+        return {
+          ...state,
+          open: true,
+          action: null,
+          query: '',
+          resetOnOpen: false,
+        };
+      }
       return {
         ...state,
         open: !state.open,
@@ -67,7 +82,10 @@ function commandPaletteReducer(
         action: null,
         query: '',
         pendingReset: false,
+        resetOnOpen: false,
       };
+    case 'reset on open':
+      return {...state, resetOnOpen: true};
     case 'set query':
       return {...state, query: action.query};
     case 'push action':
@@ -130,6 +148,7 @@ export function CommandPaletteStateProvider({
     action: null,
     open: false,
     pendingReset: false,
+    resetOnOpen: false,
   });
 
   return (
@@ -149,6 +168,18 @@ export function CommandPaletteHotkeys() {
   const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const location = useLocation();
+
+  // When the route pathname changes, mark state for reset on the next open.
+  // Skip the initial render — only react to actual route changes.
+  const isFirstRenderRef = useRef(true);
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      return;
+    }
+    dispatch({type: 'reset on open'});
+  }, [location.pathname, dispatch]);
 
   useHotkeys([
     {
