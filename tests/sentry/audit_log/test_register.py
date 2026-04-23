@@ -39,7 +39,7 @@ class AuditLogEventRegisterTest(TestCase):
                     event_id=40000,
                     name="UPTIME_MONITOR_DISABLE_BROKEN",
                     api_name="uptime_monitor.disable_broken",
-                    template="Automatically disabled broken uptime monitor {id}",
+                    template="Automatically disabled broken uptime monitor {name}",
                 ),
             ]
             for event in events:

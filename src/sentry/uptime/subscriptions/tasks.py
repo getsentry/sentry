@@ -222,7 +222,11 @@ def broken_monitor_checker(**kwargs):
                 organization=detector.project.organization,
                 target_object=detector.id,
                 event=audit_log.get_event_id("UPTIME_MONITOR_DISABLE_BROKEN"),
-                data={"date_updated": str(detector_state.date_updated)},
+                data={
+                    "date_updated": str(detector_state.date_updated),
+                    "id": detector.id,
+                    "name": detector.name,
+                },
             )
 
             count += 1

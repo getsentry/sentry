@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
@@ -49,6 +49,12 @@ export type OnboardingLayoutProps = {
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
   newOrg?: boolean;
+  /**
+   * Fires after every product toggle in addition to the doc's
+   * onProductSelectionChange. Used by SCM onboarding to keep its context in
+   * sync when the user changes products on the setup-docs step.
+   */
+  onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
 
 const EMPTY_ARRAY: never[] = [];
@@ -62,6 +68,7 @@ export function OnboardingLayout({
   newOrg,
   projectKeyId,
   configType = 'onboarding',
+  onProductSelectionSync,
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -159,6 +166,14 @@ export function OnboardingLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleProductSelectionChange = useCallback(
+    (params: {previousProducts: ProductSolution[]; products: ProductSolution[]}) => {
+      onProductSelectionChange?.(params);
+      onProductSelectionSync?.(params.products);
+    },
+    [onProductSelectionChange, onProductSelectionSync]
+  );
+
   const hideInstructionsCopy = (docsConfig[configType] ?? docsConfig.onboarding)
     ?.hideInstructionsCopy;
 
@@ -172,7 +187,7 @@ export function OnboardingLayout({
               <ProductSelectionAvailabilityHook
                 organization={organization}
                 platform={platformKey}
-                onChange={onProductSelectionChange}
+                onChange={handleProductSelectionChange}
                 onLoad={onProductSelectionLoad}
               />
             )}

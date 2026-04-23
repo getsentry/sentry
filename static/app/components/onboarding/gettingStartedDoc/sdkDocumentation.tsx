@@ -18,6 +18,7 @@ type SdkDocumentationProps = {
   project: Project;
   configType?: ConfigType;
   newOrg?: boolean;
+  onProductSelectionSync?: (products: ProductSolution[]) => void;
 };
 
 // Loads the component containing the documentation for the specified platform
@@ -28,6 +29,7 @@ export function SdkDocumentation({
   newOrg,
   configType,
   organization,
+  onProductSelectionSync,
 }: SdkDocumentationProps) {
   const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: organization.slug,
@@ -95,6 +97,7 @@ export function SdkDocumentation({
       project={project}
       configType={configType}
       projectKeyId={projectKeyId}
+      onProductSelectionSync={onProductSelectionSync}
     />
   );
 }
