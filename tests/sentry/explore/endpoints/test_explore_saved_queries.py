@@ -1425,6 +1425,47 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400, response.content
         assert "Cross event queries are limited to 7 days." in str(response.content)
 
+    def test_get_returns_cross_events_metrics(self) -> None:
+        query = {
+            "range": "24h",
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+            "crossEvents": [
+                {
+                    "query": "",
+                    "type": "metrics",
+                    "metric": {
+                        "name": "http.response_time",
+                        "type": "distribution",
+                        "unit": "millisecond",
+                    },
+                },
+            ],
+        }
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Metrics cross event query",
+            query=query,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"query": "name:Metrics cross event query"})
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
+        ]
+
     def test_save_with_cross_events_metrics(self) -> None:
         with self.feature(self.features):
             response = self.client.post(

@@ -14,9 +14,16 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 
-class CrossEventResponseType(TypedDict):
+class MetricResponseType(TypedDict, total=False):
+    name: str
+    type: str
+    unit: str | None
+
+
+class CrossEventResponseType(TypedDict, total=False):
     query: str
     type: str
+    metric: MetricResponseType
 
 
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
