@@ -25,6 +25,7 @@ from sentry.seer.autofix.types import AutofixSelectRootCausePayload
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree
 from sentry.seer.models import (
     SeerProjectPreference,
+    SeerRepoDefinition,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.utils import get_github_username_for_user
@@ -1113,7 +1114,18 @@ class TestCallAutofix(TestCase):
         group.first_seen = now
 
         # Test data
-        repos = [{"name": "test-repo"}]
+        preference = SeerProjectPreference(
+            organization_id=456,
+            project_id=789,
+            repositories=[
+                SeerRepoDefinition(
+                    provider="integrations:github",
+                    owner="getsentry",
+                    name="test-repo",
+                    external_id="123",
+                )
+            ],
+        )
         serialized_event = {"event_id": "test-event"}
         profile = {"profile_data": "test"}
         trace_tree = {"trace_data": "test"}
@@ -1125,7 +1137,7 @@ class TestCallAutofix(TestCase):
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -1147,7 +1159,8 @@ class TestCallAutofix(TestCase):
         body = orjson.loads(mock_request.call_args[0][0])
         assert body["organization_id"] == 456
         assert body["project_id"] == 789
-        assert body["repos"] == repos
+        assert body["repos"] == [repo.dict() for repo in preference.repositories]
+        assert body["preference"] == preference.dict()
         assert body["issue"]["id"] == 101112
         assert body["issue"]["title"] == "Test Group"
         assert body["issue"]["short_id"] == "TEST-123"
