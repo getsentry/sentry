@@ -168,24 +168,21 @@ PREBUILT_SAVED_QUERIES = [
             {
                 "fields": [
                     "id",
-                    "span.op",
-                    "span.description",
-                    "span.duration",
-                    "transaction",
-                    "timestamp",
-                    "gen_ai.cost.total_tokens",
-                    "gen_ai.response.model",
                     "gen_ai.output.messages",
+                    "gen_ai.response.model",
+                    "gen_ai.cost.total_tokens",
+                    "timestamp",
                 ],
-                "query": "has:gen_ai.cost.total_tokens has:gen_ai.response.model has:gen_ai.output.messages",
+                "query": "gen_ai.operation.type:ai_client has:gen_ai.output.messages",
                 "mode": "samples",
                 "visualize": [
                     {
                         "chartType": 1,
-                        "yAxes": ["p90(span.duration)"],
+                        "yAxes": ["count(span.duration)"],
                     },
                 ],
                 "orderby": "-timestamp",
+                "groupby": ["gen_ai.response.model"],
             }
         ],
     },
