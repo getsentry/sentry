@@ -104,7 +104,7 @@ def _get_team_memberships(
     return list(
         OrganizationMemberTeam.objects.filter(
             organizationmember__user_id=user.id, team__in=team_list
-        )
+        ).select_related("organizationmember__organization")
     )
 
 
@@ -124,7 +124,6 @@ def get_access_by_project(
         teams_set.add(team_id)
 
     team_memberships = _get_team_memberships(teams_set, user)
-    prefetch_related_objects(team_memberships, "organizationmember__organization")
 
     memberships_by_team: dict[int, OrganizationMemberTeam] = {
         m.team_id: m for m in team_memberships
