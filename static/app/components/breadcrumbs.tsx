@@ -80,43 +80,30 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
     }
   }
 
-  const isTextLabel =
-    typeof props.crumb.label === 'string' || typeof props.crumb.label === 'number';
-
   return (
     <Container maxWidth="400px" width="auto">
       {styleProps => {
-        if (props.crumb.to) {
-          return (
-            <BreadcrumbLink
-              to={props.crumb.to}
-              preservePageFilters={props.crumb.preservePageFilters}
-              data-test-id="breadcrumb-link"
-              onClick={onBreadcrumbLinkClick}
-              {...styleProps}
-            >
-              <Text ellipsis variant={props.variant}>
-                {props.crumb.label}
-              </Text>
-            </BreadcrumbLink>
-          );
-        }
-        if (isTextLabel) {
-          return (
-            <Text
-              ellipsis
-              variant={props.variant}
-              data-test-id="breadcrumb-item"
-              {...styleProps}
-            >
+        return props.crumb.to ? (
+          <BreadcrumbLink
+            to={props.crumb.to}
+            preservePageFilters={props.crumb.preservePageFilters}
+            data-test-id="breadcrumb-link"
+            onClick={onBreadcrumbLinkClick}
+            {...styleProps}
+          >
+            <Text ellipsis variant={props.variant}>
               {props.crumb.label}
             </Text>
-          );
-        }
-        return (
-          <div data-test-id="breadcrumb-item" {...styleProps}>
+          </BreadcrumbLink>
+        ) : (
+          <Text
+            ellipsis
+            variant={props.variant}
+            data-test-id="breadcrumb-item"
+            {...styleProps}
+          >
             {props.crumb.label}
-          </div>
+          </Text>
         );
       }}
     </Container>
