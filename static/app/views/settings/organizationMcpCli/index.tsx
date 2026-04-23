@@ -9,7 +9,6 @@ import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 export default function OrganizationMcpCli() {
   const organization = useOrganization();
@@ -17,10 +16,12 @@ export default function OrganizationMcpCli() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('MCP & CLI')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('MCP & CLI')} />
-      <TextBlock>
-        {t('Connect to Sentry from AI-powered development tools and your terminal.')}
-      </TextBlock>
+      <SettingsPageHeader
+        title={t('MCP & CLI')}
+        subtitle={t(
+          'Connect to Sentry from AI-powered development tools and your terminal.'
+        )}
+      />
 
       <Flex direction="column" gap="xl">
         <Container padding="xl" border="primary" radius="md">

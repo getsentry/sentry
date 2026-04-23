@@ -532,7 +532,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:workflow-engine-rule-serializers",
+                    "organizations:workflow-engine-metric-alert-endpoints-post",
                 ]
             ),
         ):

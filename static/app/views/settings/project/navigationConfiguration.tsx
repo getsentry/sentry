@@ -151,6 +151,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
+          keywords: [t('dsn')],
         },
         {
           path: `${pathPrefix}/loader-script/`,

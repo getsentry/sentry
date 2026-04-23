@@ -19,12 +19,10 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 
 const mockSetQueryParams = jest.fn();
 
-function Wrapper(crossEvents?: CrossEvent[]) {
-  return function ({children}: {children: ReactNode}) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+function wrapper(crossEvents?: CrossEvent[]) {
+  return function Wrapped({children}: {children: ReactNode}) {
     const [query] = useResettableState(defaultQuery);
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const readableQueryParams = useMemo(
       () =>
         new ReadableQueryParams({
@@ -58,7 +56,7 @@ function Wrapper(crossEvents?: CrossEvent[]) {
 describe('useCrossEventQueries', () => {
   it('returns undefined if there are no cross event queries', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper(),
+      additionalWrapper: wrapper(),
     });
 
     expect(result.current).toBeUndefined();
@@ -66,7 +64,7 @@ describe('useCrossEventQueries', () => {
 
   it('returns undefined if cross event queries array is empty', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([]),
+      additionalWrapper: wrapper([]),
     });
 
     expect(result.current).toBeUndefined();
@@ -74,7 +72,7 @@ describe('useCrossEventQueries', () => {
 
   it('returns object of array of queries', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+      additionalWrapper: wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
@@ -90,7 +88,7 @@ describe('useCrossEventQueries', () => {
 
   it('appends queries with the same types', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+      additionalWrapper: wrapper([
         {type: 'spans', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
@@ -106,7 +104,7 @@ describe('useCrossEventQueries', () => {
 
   it('ignores queries with invalid types', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+      additionalWrapper: wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'invalid' as any, query: 'test:b'},
         {type: 'spans', query: 'test:c'},

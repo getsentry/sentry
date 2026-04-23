@@ -13,12 +13,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   // TODO(msun): Add tests for this component
   const organization = useOrganization();
   const [isEditing, setIsEditing] = useState(false);
   const user = useUser();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const {mutate: updateGroupSearchView} = useUpdateGroupSearchView();
 
@@ -55,6 +58,31 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
     setIsEditing(true);
   };
 
+  if (hasPageFrame) {
+    return (
+      <TopBar.Slot name="title">
+        {isEditing ? (
+          <EditingViewTitle
+            initialTitle={view.name}
+            onSave={handleOnSave}
+            stopEditing={() => setIsEditing(false)}
+          />
+        ) : (
+          <PageFrameViewTitleWrapper>
+            <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+            <Button
+              icon={<IconEdit />}
+              onClick={handleBeginEditing}
+              aria-label={t('Edit view name')}
+              size="sm"
+              priority="transparent"
+            />
+          </PageFrameViewTitleWrapper>
+        )}
+      </TopBar.Slot>
+    );
+  }
+
   return isEditing ? (
     <EditingViewTitle
       initialTitle={view.name}
@@ -88,6 +116,7 @@ function EditingViewTitle({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(initialTitle);
+  const hasPageFrame = useHasPageFrameFeature();
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -113,8 +142,10 @@ function EditingViewTitle({
     value: title,
   });
 
+  const GrowingInput = hasPageFrame ? PageFrameGrowingInput : StyledGrowingInput;
+
   return (
-    <StyledGrowingInput
+    <GrowingInput
       value={title}
       ref={mergeRefs(inputRef, autosizeInputRef)}
       onChange={handleOnChange}
@@ -124,6 +155,26 @@ function EditingViewTitle({
     />
   );
 }
+
+const PageFrameViewTitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+
+  > div {
+    height: auto;
+    border-bottom: none;
+  }
+
+  :not(:hover, :focus-within) {
+    button {
+      opacity: 0;
+    }
+
+    div {
+      border-bottom-color: transparent;
+    }
+  }
+`;
 
 const ViewTitleWrapper = styled(Layout.Title)`
   display: flex;
@@ -179,4 +230,11 @@ const StyledGrowingInput = styled(Input)`
   &:hover {
     box-shadow: none;
   }
+`;
+
+const PageFrameGrowingInput = styled(StyledGrowingInput)`
+  height: auto;
+  line-height: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 `;

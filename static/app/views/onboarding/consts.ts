@@ -17,6 +17,6 @@ export const ONBOARDING_WELCOME_STAGGER_ITEM: MotionProps = {
 
 /**
  * Shared layout constants for SCM onboarding steps.
- * Matches the Figma content area width (506px).
+ * Matches the Figma content area width (516px).
  */
-export const SCM_STEP_CONTENT_WIDTH = '506px';
+export const SCM_STEP_CONTENT_WIDTH = '516px';

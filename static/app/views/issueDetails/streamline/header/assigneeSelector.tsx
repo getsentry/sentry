@@ -146,6 +146,11 @@ export function GroupHeaderAssigneeCommandPaletteAction({
   const additionalOwners = owners.filter(
     owner => !assignableActorKeys.has(`${owner.type}:${owner.id}`)
   );
+  const currentAssigneeLabel = group.assignedTo
+    ? group.assignedTo.type === 'team'
+      ? `#${group.assignedTo.name}`
+      : group.assignedTo.name
+    : null;
 
   return (
     <CMDKAction
@@ -173,6 +178,15 @@ export function GroupHeaderAssigneeCommandPaletteAction({
               type: 'user',
             })
           }
+        />
+      )}
+      {group.assignedTo && (
+        <CMDKAction
+          display={{
+            label: t('Unassign from %s', currentAssigneeLabel),
+            icon: <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />,
+          }}
+          onAction={() => handleAssigneeChange(null)}
         />
       )}
       {assignableUsers.map(member => (

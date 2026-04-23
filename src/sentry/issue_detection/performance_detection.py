@@ -516,7 +516,7 @@ def sync_project_options_to_wfe_detectors(
             continue
 
         if new_enabled is not None and detector.enabled != new_enabled:
-            detector.toggle(new_enabled)
+            detector.update(enabled=new_enabled)
             updated[detector_type] = True
 
         if new_config:

@@ -2358,6 +2358,28 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         prebuilt_ids_in_response = {d["prebuiltId"] for d in prebuilt_in_response}
         assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
 
+    def test_node_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
+        """The Node.js Runtime Metrics prebuilt dashboard syncs when enabled via options."""
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        dashboard = Dashboard.objects.get(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.NODE_RUNTIME_METRICS,
+        )
+        assert dashboard.title == "Node.js Runtime Metrics"
+
+        prebuilt_in_response = [
+            d
+            for d in response.data
+            if d.get("prebuiltId") == PrebuiltDashboardId.NODE_RUNTIME_METRICS
+        ]
+        assert len(prebuilt_in_response) == 1
+
     def test_post_with_text_widget(self) -> None:
         with self.feature("organizations:dashboards-text-widgets"):
             data = {

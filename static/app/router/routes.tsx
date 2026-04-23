@@ -1252,14 +1252,12 @@ function buildRoutes(): RouteObject[] {
       },
       accountSettingsRoutes,
       {
-        name: t('Organization'),
         component: withDomainRequired(NoOp),
         customerDomainOnlyRoute: true,
         children: [orgSettingsRoutes, projectSettingsRoutes, subscriptionSettingsRoutes],
       },
       {
         path: ':orgId/',
-        name: t('Organization'),
         component: withDomainRedirect(NoOp),
         children: [
           orgSettingsRoutes,
@@ -1647,6 +1645,12 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/replays/index')),
     withOrgPath: true,
     children: replayChildren,
+  };
+
+  const seerRoutes: SentryRouteObject = {
+    path: '/seer/workflows/',
+    component: make(() => import('sentry/views/seerWorkflows')),
+    withOrgPath: true,
   };
 
   const releaseChildren: SentryRouteObject[] = [
@@ -2785,6 +2789,7 @@ function buildRoutes(): RouteObject[] {
       preprodRoutes,
       pullRequestRoutes,
       replayRoutes,
+      seerRoutes,
       releasesRoutes,
       statsRoutes,
       discoverRoutes,

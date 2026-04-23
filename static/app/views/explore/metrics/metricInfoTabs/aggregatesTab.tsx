@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -12,10 +13,10 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
@@ -71,6 +72,7 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+  const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const topEvents = useTopEvents();
@@ -82,6 +84,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       : isVisualizeEquation(visualize) && Boolean(visualize.expression.text),
     limit: RESULT_LIMIT,
     traceMetric,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
   const columns = useMemo(
@@ -100,6 +103,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: traceMetricFilter,
+      staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
     }),
     enabled: Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
@@ -146,8 +150,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [aggregateFieldCount, displayFields.length, groupByFieldCount]);
 
   const firstColumnOffset = useMemo(() => {
-    return groupBys.length > 0 ? '15px' : '8px';
-  }, [groupBys]);
+    return groupBys.length > 0 ? '15px' : theme.space.lg;
+  }, [groupBys, theme.space.lg]);
 
   // Dividers: between last groupBy and first aggregate, and between all aggregates
   const shouldShowDivider = (index: number) => {
@@ -255,7 +259,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           })
         ) : isPending ? (
           <SimpleTable.Empty>
-            <LoadingIndicator />
+            <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
@@ -268,11 +272,13 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 }
 
 const AggregatesSimpleTable = styled(StyledSimpleTable)`
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 `;
 
 const AggregatesTableBody = styled(StyledSimpleTableBody)`
-  overflow: unset;
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
 const AggregatesStyledHeader = styled(StyledSimpleTableHeader)`

@@ -9,7 +9,6 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {GroupTombstones} from 'sentry/views/settings/project/projectFilters/groupTombstones';
 import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
@@ -31,12 +30,12 @@ export default function ProjectFilters() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
-      <SettingsPageHeader title={t('Inbound Data Filters')} />
-      <TextBlock>
-        {t(
+      <SettingsPageHeader
+        title={t('Inbound Data Filters')}
+        subtitle={t(
           'Filters allow you to prevent Sentry from storing events in certain situations. Filtered events are tracked separately from rate limits, and do not apply to any project quotas.'
         )}
-      </TextBlock>
+      />
 
       <ProjectPermissionAlert project={project} />
 

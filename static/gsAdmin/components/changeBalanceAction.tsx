@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -10,7 +11,7 @@ import {InputField} from 'sentry/components/forms/fields/inputField';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form, type FormProps} from 'sentry/components/forms/form';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';

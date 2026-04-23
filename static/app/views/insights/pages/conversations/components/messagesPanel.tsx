@@ -66,6 +66,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
         padding="lg lg md md"
         background="secondary"
         minHeight="100%"
+        width="100%"
       >
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
       </Flex>
