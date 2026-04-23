@@ -196,12 +196,7 @@ export function EditableText({
   const isCompact = variant === 'compact';
 
   return (
-    <Wrapper
-      isCompact={isCompact}
-      isDisabled={isDisabled}
-      isEditing={isEditing}
-      className={className}
-    >
+    <Wrapper isDisabled={isDisabled} isEditing={isEditing} className={className}>
       {isEditing ? (
         <InputWrapper
           ref={innerWrapperRef}
@@ -227,7 +222,6 @@ export function EditableText({
         <Label
           onClick={isDisabled ? undefined : handleEditClick}
           ref={labelRef}
-          isCompact={isCompact}
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
@@ -239,21 +233,12 @@ export function EditableText({
   );
 }
 
-const Label = styled('div')<{isCompact: boolean; isDisabled: boolean}>`
+const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
   gap: ${p => p.theme.space.md};
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
-
-  ${p =>
-    p.isCompact &&
-    css`
-      svg {
-        flex-shrink: 0;
-        opacity: 0;
-      }
-    `}
 `;
 
 const InnerLabel = styled(TextOverflow)<{isCompact: boolean}>`
@@ -307,11 +292,7 @@ const InputLabel = styled('div')`
   padding: 0 ${p => p.theme.space.md};
 `;
 
-const Wrapper = styled('div')<{
-  isCompact: boolean;
-  isDisabled: boolean;
-  isEditing: boolean;
-}>`
+const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`
   display: flex;
 
   ${p =>
@@ -319,15 +300,6 @@ const Wrapper = styled('div')<{
     css`
       ${InnerLabel} {
         border-bottom-color: transparent;
-      }
-    `}
-
-  ${p =>
-    p.isCompact &&
-    css`
-      &:hover ${Label} svg,
-      &:focus-within ${Label} svg {
-        opacity: 1;
       }
     `}
 `;
