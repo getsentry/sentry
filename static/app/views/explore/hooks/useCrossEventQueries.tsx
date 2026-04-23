@@ -39,15 +39,15 @@ export function useCrossEventQueries() {
             break;
           }
           const identity = new MutableSearch('');
+          identity.addOp('(');
           identity.addFilterValue('metric.name', metric.name);
           identity.addFilterValue('metric.type', metric.type);
           if (metric.unit) {
             identity.addFilterValue('metric.unit', metric.unit);
           }
-          const combined = [identity.formatString(), crossEvent.query]
-            .filter(Boolean)
-            .join(' ');
-          metricQuery.push(combined);
+          identity.addOp(')');
+          identity.addFreeText(crossEvent.query);
+          metricQuery.push(identity.formatString());
           break;
         }
       }

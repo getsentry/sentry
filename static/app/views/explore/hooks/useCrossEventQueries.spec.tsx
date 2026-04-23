@@ -122,7 +122,7 @@ describe('useCrossEventQueries', () => {
 
   it('prepends metric identity fields to metric queries', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+      additionalWrapper: wrapper([
         {
           type: 'metrics',
           query: 'env:prod',
@@ -142,7 +142,7 @@ describe('useCrossEventQueries', () => {
 
   it('omits metric.unit when absent on the metric', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+      additionalWrapper: wrapper([
         {
           type: 'metrics',
           query: '',
@@ -160,7 +160,7 @@ describe('useCrossEventQueries', () => {
 
   it('drops metric entries without a selected metric name', () => {
     const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+      additionalWrapper: wrapper([
         {type: 'metrics', query: 'env:prod', metric: {name: '', type: ''}},
       ]),
     });
