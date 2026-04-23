@@ -135,7 +135,7 @@ describe('useCrossEventQueries', () => {
       logQuery: [],
       spanQuery: [],
       metricQuery: [
-        'metric.name:my_metric metric.type:distribution metric.unit:ms env:prod',
+        '( metric.name:my_metric metric.type:distribution metric.unit:ms ) env:prod',
       ],
     });
   });
@@ -154,7 +154,7 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: [],
       spanQuery: [],
-      metricQuery: ['metric.name:my_metric metric.type:counter'],
+      metricQuery: ['( metric.name:my_metric metric.type:counter )'],
     });
   });
 
