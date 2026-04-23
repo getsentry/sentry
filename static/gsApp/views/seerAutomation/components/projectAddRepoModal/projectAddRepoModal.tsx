@@ -107,9 +107,7 @@ export function ProjectAddRepoModal({
             addErrorMessage(t('Failed to save project settings'));
           },
         })
-        .catch(() => {
-          addErrorMessage(t('Failed to save project settings'));
-        });
+        .catch();
     },
   });
 
