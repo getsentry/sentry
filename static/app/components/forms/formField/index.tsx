@@ -409,7 +409,7 @@ export function FormField(props: FormFieldProps) {
                         <Button onClick={handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
-                        <Button priority="primary" size="xs" onClick={handleSaveField}>
+                        <Button variant="primary" size="xs" onClick={handleSaveField}>
                           {t('Save')}
                         </Button>
                       </Fragment>

@@ -314,7 +314,7 @@ export function StacktraceLinkModal({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" onClick={handleSubmit}>
+          <Button variant="primary" onClick={handleSubmit}>
             {t('Save')}
           </Button>
         </Grid>
