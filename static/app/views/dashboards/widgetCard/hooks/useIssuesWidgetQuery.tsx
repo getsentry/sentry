@@ -1,13 +1,16 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {queryOptions} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {fetchDataQuery, useQueries, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
@@ -250,9 +253,13 @@ export function useIssuesTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map(query => {
-      const queryParams: any = {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map(query => {
+      const queryParams: Record<string, unknown> = {
         project: pageFilters.projects ?? [],
         environment: pageFilters.environments ?? [],
         query: query.conditions,
@@ -261,7 +268,6 @@ export function useIssuesTableQuery(
         limit: limit ?? DEFAULT_TABLE_LIMIT,
         cursor,
       };
-
       if (pageFilters.datetime.period) {
         queryParams.statsPeriod = pageFilters.datetime.period;
       }
@@ -275,129 +281,105 @@ export function useIssuesTableQuery(
         queryParams.utc = pageFilters.datetime.utc;
       }
 
-      const baseQueryKey: ApiQueryKey = [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          data: queryParams,
+      return queryOptions({
+        ...apiOptions.as<IssuesTableResponse>()(
+          '/organizations/$organizationIdOrSlug/issues/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            data: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<IssuesTableResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: async () => {
+                  try {
+                    const result = await apiFetch<IssuesTableResponse>(context);
+                    resolve(result);
+                  } catch (error) {
+                    reject(error instanceof Error ? error : new Error(String(error)));
+                  }
+                },
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<IssuesTableResponse>(context);
         },
-      ];
-
-      return baseQueryKey;
-    });
-
-    return keys;
-  }, [filteredWidget, organization, pageFilters, cursor, limit]);
-
-  const createQueryFnTable = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<IssuesTableResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<IssuesTableResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error instanceof Error ? error : new Error(String(error)));
-                }
-              },
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-        return fetchDataQuery<IssuesTableResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFnTable(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+      });
+    }),
   });
 
-  const transformedData = (() => {
-    const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
-    const errorMessage = queryResults.find(q => q?.error)?.error?.message;
+  const isFetching = queryResults.some(q => q?.isFetching);
+  const allHaveData = queryResults.every(q => q?.data?.json);
+  const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
-    if (!allHaveData || isFetching) {
-      const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
-    }
-
-    const tableResults: any[] = [];
-    const rawData: IssuesTableResponse[] = [];
-    let responsePageLinks: string | undefined;
-
-    queryResults.forEach((q, i) => {
-      if (!q?.data?.[0]) {
-        return;
-      }
-
-      const responseData = q.data[0];
-      const responseMeta = q.data[2];
-      rawData[i] = responseData;
-
-      const transformedDataItem = {
-        ...IssuesConfig.transformTable(
-          responseData,
-          filteredWidget.queries[i]!,
-          organization,
-          pageFilters
-        ),
-        title: filteredWidget.queries[i]?.name ?? '',
-      };
-
-      tableResults.push(transformedDataItem);
-
-      responsePageLinks = responseMeta?.getResponseHeader('Link') ?? undefined;
-    });
-
-    let finalRawData = rawData;
-    if (prevRawDataRef.current?.length === rawData.length) {
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    if (finalRawData !== prevRawDataRef.current) {
-      prevRawDataRef.current = finalRawData;
-    }
-
+  if (!allHaveData || isFetching) {
+    const loading = isFetching || !errorMessage;
     return {
-      loading: false,
-      errorMessage: undefined,
-      tableResults,
-      pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      loading,
+      errorMessage,
+      rawData: EMPTY_ARRAY,
     };
-  })();
+  }
 
-  return transformedData;
+  const tableResults: any[] = [];
+  const rawData: IssuesTableResponse[] = [];
+  let responsePageLinks: string | undefined;
+
+  queryResults.forEach((q, i) => {
+    if (!q?.data?.json) {
+      return;
+    }
+
+    const responseData = q.data.json;
+    rawData[i] = responseData;
+
+    const transformedDataItem = {
+      ...IssuesConfig.transformTable(
+        responseData,
+        filteredWidget.queries[i]!,
+        organization,
+        pageFilters
+      ),
+      title: filteredWidget.queries[i]?.name ?? '',
+    };
+
+    tableResults.push(transformedDataItem);
+
+    responsePageLinks = q.data.headers.Link;
+  });
+
+  let finalRawData = rawData;
+  if (prevRawDataRef.current?.length === rawData.length) {
+    const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
+    if (allSame) {
+      finalRawData = prevRawDataRef.current;
+    }
+  }
+
+  if (finalRawData !== prevRawDataRef.current) {
+    prevRawDataRef.current = finalRawData;
+  }
+
+  return {
+    loading: false,
+    errorMessage: undefined,
+    tableResults,
+    pageLinks: responsePageLinks,
+    rawData: finalRawData,
+  };
 }
