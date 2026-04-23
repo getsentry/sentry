@@ -4,7 +4,7 @@ import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
-export interface IndexedExceptionValue extends ExceptionValue {
+interface IndexedExceptionValue extends ExceptionValue {
   exceptionIndex: number;
   stacktrace: StacktraceType;
 }
@@ -54,7 +54,7 @@ export function formatExceptionsAsText({
   isMinified,
   isStandalone,
 }: {
-  exceptions: IndexedExceptionValue[];
+  exceptions: ExceptionValue[];
   isMinified: boolean;
   isStandalone: boolean;
   platform: Event['platform'];
