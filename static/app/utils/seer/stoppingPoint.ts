@@ -47,7 +47,6 @@ export function useOrgDefaultStoppingPoint(): UserFacingStoppingPoint {
     case AutofixStoppingPoint.SOLUTION:
       return 'plan';
     case AutofixStoppingPoint.CODE_CHANGES:
-    default:
       return 'create_pr';
   }
 }
