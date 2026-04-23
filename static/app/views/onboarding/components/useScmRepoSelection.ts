@@ -50,6 +50,33 @@ export function useScmRepoSelection({
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
 
+  // Look up the repo in Sentry. The background link_all_repos task registers
+  // all repos after integration install, so most repos will already exist.
+  // The query param is an icontains filter to narrow results and avoid
+  // pagination; the exact match on Repository.name against
+  // IntegrationRepository.identifier mirrors the backend comparison in
+  // organization_integration_repos.py:61,80 used to determine isInstalled.
+  // Can't use externalSlug because it varies by provider (e.g. GitLab
+  // returns a numeric project ID).
+  const findExistingRepo = async (
+    identifier: string
+  ): Promise<Repository | undefined> => {
+    const reposQueryOptions = apiOptions.as<Repository[]>()(
+      '/organizations/$organizationIdOrSlug/repos/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          status: 'active',
+          integration_id: integration.id,
+          query: identifier,
+        },
+        staleTime: 0,
+      }
+    );
+    const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
+    return matches?.find(r => r.name === identifier);
+  };
+
   const handleSelect = async (selection: {value: string}) => {
     const repo = reposByIdentifier.get(selection.value);
     if (!repo) {
@@ -59,36 +86,9 @@ export function useScmRepoSelection({
     const optimistic = buildOptimisticRepo(repo, integration);
     onSelect(optimistic);
 
-    // Look up the repo in Sentry. The background link_all_repos task
-    // registers all repos after integration install, so most repos will
-    // already exist. Use a targeted query filtered by name to avoid
-    // pagination issues with the full list.
-    const reposQueryOptions = apiOptions.as<Repository[]>()(
-      '/organizations/$organizationIdOrSlug/repos/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          status: 'active',
-          integration_id: integration.id,
-          query: repo.identifier,
-        },
-        staleTime: 0,
-      }
-    );
-    // The query param above is an icontains filter to narrow results and
-    // avoid pagination. The exact match here uses Repository.name against
-    // IntegrationRepository.identifier — the same comparison the backend
-    // uses in organization_integration_repos.py:61,80 to determine
-    // isInstalled. Can't use externalSlug because it varies by provider
-    // (e.g. GitLab returns a numeric project ID).
-    const findExistingRepo = async () => {
-      const matches = (await queryClient.fetchQuery(reposQueryOptions)).json;
-      return matches?.find(r => r.name === repo.identifier);
-    };
-
     setBusy(true);
     try {
-      const existing = await findExistingRepo();
+      const existing = await findExistingRepo(repo.identifier);
       if (existing) {
         onSelect({...optimistic, ...existing});
         return;
@@ -115,7 +115,7 @@ export function useScmRepoSelection({
           typeof detail === 'object' &&
           detail?.code === 'repo_exists'
         ) {
-          const raced = await findExistingRepo();
+          const raced = await findExistingRepo(repo.identifier);
           if (raced) {
             onSelect({...optimistic, ...raced});
             return;

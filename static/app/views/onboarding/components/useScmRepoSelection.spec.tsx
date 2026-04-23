@@ -117,38 +117,35 @@ describe('useScmRepoSelection', () => {
   });
 
   it('recovers from repo_exists race by re-querying after POST', async () => {
-    let getCallCount = 0;
+    // Model the race: GET reflects current BE state; POST flips the BE to
+    // "repo exists" (as if the link_all_repos task landed between the two
+    // requests) and then responds 400 repo_exists.
+    let backendHasRepo = false;
+    const registeredRepo = {
+      id: '77',
+      name: 'getsentry/sentry',
+      externalSlug: 'getsentry/sentry',
+      status: 'active',
+    };
+
     const getRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
-      body: () => {
-        getCallCount++;
-        // First GET sees nothing; POST fails with repo_exists because the
-        // background task registered the repo between our GET and POST.
-        // Second GET picks up the now-registered repo.
-        if (getCallCount === 1) {
-          return [];
-        }
-        return [
-          {
-            id: '77',
-            name: 'getsentry/sentry',
-            externalSlug: 'getsentry/sentry',
-            status: 'active',
-          },
-        ];
-      },
+      body: () => (backendHasRepo ? [registeredRepo] : []),
     });
 
     const addRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        detail: {
-          code: 'repo_exists',
-          message: 'A repository with that configuration already exists',
-          extra: {},
-        },
+      body: () => {
+        backendHasRepo = true;
+        return {
+          detail: {
+            code: 'repo_exists',
+            message: 'A repository with that configuration already exists',
+            extra: {},
+          },
+        };
       },
     });
 
