@@ -272,12 +272,21 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
         self,
     ) -> AttributeAggregation | AttributeConditionalAggregation:
         if self.trace_metric is None and self.trace_filter is None:
-            return AttributeAggregation(
-                aggregate=self.internal_name,
-                key=self.key,
-                label=self.public_alias,
-                extrapolation_mode=self.extrapolation_mode,
-            )
+            if self.default_value is not None:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
+            else:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                )
 
         if self.trace_filter is None and self.trace_metric is not None:
             trace_filter = self.trace_metric.get_filter()
