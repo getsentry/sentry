@@ -5,7 +5,7 @@ from uuid import uuid4
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
@@ -35,15 +35,16 @@ class SeerRun(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
-    # Null for system runs (e.g. Night Shift).
-    user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="CASCADE")
+    # Null for system runs (e.g. Night Shift) and for runs whose triggering
+    # user has since been deleted.
+    user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     # External id so we don't leak seer run count.
     uuid = models.UUIDField(default=uuid4, unique=True, editable=False)
 
     # FK value from Seer's DbRunState.id.
     # Nullable to support outbox writing
-    seer_run_state_id = models.TextField(null=True, unique=True)
+    seer_run_state_id = BoundedBigIntegerField(null=True, unique=True)
 
     type = models.CharField(max_length=256, choices=SeerRunType.choices)
     mirror_status = models.CharField(
