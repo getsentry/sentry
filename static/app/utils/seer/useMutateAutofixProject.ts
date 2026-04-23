@@ -1,7 +1,10 @@
 import {useMutation, useQueryClient, type DefaultError} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {makeProjectSeerPreferencesQueryKey} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {
+  makeProjectSeerPreferencesQueryKey,
+  type SeerPreferencesResponse,
+} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -13,18 +16,7 @@ import {resolveStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import type {UserFacingStoppingPoint} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props {
-  onError?: (error: TError, variables: TVariables, context: TOnMutateResult) => void;
-  onSettled?: (
-    data: TData,
-    error: TError | null,
-    variables: TVariables,
-    context: TOnMutateResult
-  ) => void;
-  onSuccess?: (data: TData, variables: TVariables) => void;
-}
-
-type TData = unknown;
+type TData = [Project, SeerPreferencesResponse];
 type TError = DefaultError;
 type TVariables = {
   agent: PreferredAgent;
@@ -37,14 +29,30 @@ type TVariables = {
 };
 type TOnMutateResult = unknown;
 
+interface Props {
+  onError?: (error: TError, variables: TVariables, context: TOnMutateResult) => void;
+  onSettled?: (
+    data: TData | undefined,
+    error: TError | null,
+    variables: TVariables,
+    context: TOnMutateResult
+  ) => void;
+  onSuccess?: (data: TData, variables: TVariables) => void;
+}
+
 export function useMutateAutofixProject({onSuccess, onError, onSettled}: Props) {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
   const repositoriesById = useRepositoriesById();
 
-  return useMutation<TData, TError, TVariables, TOnMutateResult>({
-    mutationFn: async ({project, repoEntries, agent, stoppingPoint}) => {
+  return useMutation({
+    mutationFn: async ({
+      project,
+      repoEntries,
+      agent,
+      stoppingPoint,
+    }: TVariables): Promise<TData> => {
       const tuning = stoppingPoint === 'off' ? ('off' as const) : ('medium' as const);
 
       const handoff = buildHandoffPayload(agent, stoppingPoint === 'create_pr');
@@ -82,7 +90,7 @@ export function useMutateAutofixProject({onSuccess, onError, onSettled}: Props) 
           }),
           data: {autofixAutomationTuning: tuning},
         }),
-        fetchMutation({
+        fetchMutation<SeerPreferencesResponse>({
           method: 'POST',
           url: getApiUrl(
             '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
