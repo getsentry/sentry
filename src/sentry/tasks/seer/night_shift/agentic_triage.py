@@ -18,6 +18,7 @@ from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
     priority_label,
 )
+from sentry.tasks.seer.night_shift.triage_tools import get_event_details_agentic_triage
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
@@ -72,6 +73,7 @@ def _triage_candidates(
             category_value=f"org-{organization.id}",
             intelligence_level="high",
             reasoning_effort="high",
+            custom_tools=[get_event_details_agentic_triage],
         )
 
         agent_run_id = client.start_run(
@@ -218,6 +220,16 @@ def _build_triage_prompt(
 
         Use your tools to investigate each issue — look at all relevant telemetry: the stacktraces,
         event logs, event details, breadcrumbs, metrics, and the relevant code in the repository.
+
+        When fetching event data for an issue, always use the `get_event_details_agentic_triage`
+        tool instead of `get_event_details`. It returns the same data in a cleaner,
+        more readable format tuned for triage.
+
+        Before recording any verdict, you MUST read the relevant application code.
+        Surface reading of the error message and stacktrace is not enough — many
+        errors that look environmental (e.g. "file is not a database", "permission
+        denied") are actually code bugs once you inspect how the failing code is
+        called and what assumptions it makes about its inputs/environment.
 
         When evaluating each issue, consider whether an AI coding agent with full
         codebase access could fix the ROOT CAUSE of the issue — not just add try/except or defensive
