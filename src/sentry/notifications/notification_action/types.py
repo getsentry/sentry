@@ -430,7 +430,7 @@ class BaseMetricAlertHandler(ABC):
         cls,
         detector: Detector,
         evidence_data: MetricIssueEvidenceData,
-        group_status: GroupStatus,
+        group_status: int,
         detector_priority_level: DetectorPriorityLevel,
     ) -> AlertContext:
         return AlertContext.from_workflow_engine_models(

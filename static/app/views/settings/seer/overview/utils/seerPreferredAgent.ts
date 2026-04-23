@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
@@ -11,7 +12,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {processInChunks} from 'sentry/utils/array/procesInChunks';
-import {fetchDataQuery, fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery, fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

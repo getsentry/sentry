@@ -750,12 +750,3 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         )
         metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
-
-
-def sign_viewer_context(context_bytes: bytes) -> str:
-    """Sign the viewer context payload with the shared secret."""
-    return hmac.new(
-        settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-        context_bytes,
-        hashlib.sha256,
-    ).hexdigest()

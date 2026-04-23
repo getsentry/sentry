@@ -1,10 +1,10 @@
 import {useCallback, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {createDashboard, fetchDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';

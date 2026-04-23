@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type QueryStatus} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
@@ -8,7 +8,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {QueryStatus} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';

@@ -9,7 +9,7 @@ from sentry.integrations.utils.metrics import EventLifecycleMetric
 
 class SeerOperatorInteractionType(StrEnum):
     OPERATOR_TRIGGER_AUTOFIX = "trigger_autofix"
-    OPERATOR_TRIGGER_EXPLORER = "trigger_explorer"
+    OPERATOR_TRIGGER_AGENT = "trigger_agent"
     OPERATOR_PROCESS_AUTOFIX_UPDATE = "process_autofix_update"
     OPERATOR_CACHE_POPULATE_PRE_AUTOFIX = "cache_populate_pre_autofix"
     OPERATOR_CACHE_POPULATE_POST_AUTOFIX = "cache_populate_post_autofix"
@@ -20,12 +20,12 @@ class SeerOperatorInteractionType(StrEnum):
     ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS = "entrypoint_on_trigger_autofix_already_exists"
     ENTRYPOINT_CREATE_AUTOFIX_CACHE_PAYLOAD = "entrypoint_create_autofix_cache_payload"
     ENTRYPOINT_ON_AUTOFIX_UPDATE = "entrypoint_on_autofix_update"
-    ENTRYPOINT_ON_TRIGGER_EXPLORER = "entrypoint_on_trigger_explorer"
-    ENTRYPOINT_CREATE_EXPLORER_CACHE_PAYLOAD = "entrypoint_create_explorer_cache_payload"
-    ENTRYPOINT_ON_EXPLORER_UPDATE = "entrypoint_on_explorer_update"
-    OPERATOR_PROCESS_EXPLORER_COMPLETION = "process_explorer_completion"
-    OPERATOR_CACHE_SET_EXPLORER = "cache_set_explorer"
-    OPERATOR_CACHE_GET_EXPLORER = "cache_get_explorer"
+    ENTRYPOINT_ON_TRIGGER_AGENT = "entrypoint_on_trigger_agent"
+    ENTRYPOINT_CREATE_AGENT_CACHE_PAYLOAD = "entrypoint_create_agent_cache_payload"
+    ENTRYPOINT_ON_AGENT_UPDATE = "entrypoint_on_agent_update"
+    OPERATOR_PROCESS_AGENT_COMPLETION = "process_agent_completion"
+    OPERATOR_CACHE_SET_AGENT = "cache_set_agent"
+    OPERATOR_CACHE_GET_AGENT = "cache_get_agent"
 
 
 @dataclass

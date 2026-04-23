@@ -20,11 +20,10 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
-    convert_enum_keys_to_strings,
     get_seer_path_for_request,
     make_seer_request,
 )
@@ -76,12 +75,9 @@ def schedule_task(
             validated_payload = SeerCodeReviewTaskRequestForPrClosed.parse_obj(transformed_event)
         else:
             validated_payload = SeerCodeReviewTaskRequestForPrReview.parse_obj(transformed_event)
-        # Convert to dict and handle enum keys (Pydantic v1 converts string keys to enums,
-        # but JSON requires string keys, so we need to convert them back)
-        payload = convert_enum_keys_to_strings(validated_payload.dict())
-        # When upgrading to Pydantic v2, we can remove the convert_enum_keys_to_strings call.
-        # Pydantic v2 will automatically convert enum keys to strings.
-        # payload = validated_payload.model_dump(mode="json")
+        # Use json.loads(validated_payload.json()) to ensure all types are JSON-serializable
+        # (datetimes become ISO strings, enums become their values)
+        payload = json.loads(validated_payload.json())
     except ValidationError:
         logger.warning("%s.validation_failed_before_scheduling", PREFIX)
         record_webhook_filtered(

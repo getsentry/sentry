@@ -1,5 +1,6 @@
 import React, {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -32,7 +33,6 @@ import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -41,7 +41,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 import {AutofixHighlightPopup} from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
-
 function useSelectRootCause({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
   const queryClient = useQueryClient();

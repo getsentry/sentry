@@ -94,7 +94,7 @@ export function FeedbackOnboardingWebApiBanner() {
 }
 
 export const CrashReportWebApiOnboarding: OnboardingConfig = {
-  introduction: () => FeedbackOnboardingWebApiBanner(),
+  introduction: () => <FeedbackOnboardingWebApiBanner />,
   install: () => [],
   configure: () => [],
   verify: () => [],

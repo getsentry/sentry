@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/react';
-import {useQueryClient} from '@tanstack/react-query';
+import {
+  useQueryClient,
+  useMutation,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -8,12 +12,7 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useMutation,
-  type UseMutationOptions,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';

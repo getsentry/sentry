@@ -243,7 +243,7 @@ describe('ReplayList', () => {
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
-  it('renders Save as inline and Hide Widgets in the top bar when page frame is enabled', async () => {
+  it('renders Save as inline and Hide Widgets in the controls bar when page frame is enabled', async () => {
     const mockOrg = getMockOrganizationFixture({
       features: [...AM2_FEATURES, 'page-frame'],
     });
@@ -266,12 +266,14 @@ describe('ReplayList', () => {
     await screen.findByTestId('replay-table');
 
     const topbarActions = screen.getByTestId('topbar-actions-slot');
+    // With page-frame enabled, buttons are NOT in the topbar actions slot
     expect(
-      within(topbarActions).getByRole('button', {name: 'Hide Widgets'})
-    ).toBeInTheDocument();
+      within(topbarActions).queryByRole('button', {name: 'Hide Widgets'})
+    ).not.toBeInTheDocument();
     expect(
       within(topbarActions).queryByRole('button', {name: /save as/i})
     ).not.toBeInTheDocument();
+    // But they should exist in the page (in the controls bar)
     expect(screen.getAllByRole('button', {name: /save as/i})).toHaveLength(1);
     expect(screen.getAllByRole('button', {name: 'Hide Widgets'})).toHaveLength(1);
   });

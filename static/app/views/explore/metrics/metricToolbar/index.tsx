@@ -99,8 +99,8 @@ export function MetricToolbar({
       direction="column"
       gap="md"
       width="100%"
-      paddingLeft="lg"
-      paddingRight="lg"
+      paddingLeft="xl"
+      paddingRight="xl"
       paddingTop="md"
       data-test-id="metric-toolbar"
     >

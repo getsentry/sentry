@@ -1,5 +1,6 @@
 import {mutationOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -20,7 +21,7 @@ import {
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
-import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
