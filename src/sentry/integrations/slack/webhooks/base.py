@@ -29,7 +29,7 @@ LINK_USER_MESSAGE = (
     "You'll also be able to perform actions in Sentry through Slack. "
 )
 UNLINK_USER_MESSAGE = (
-    "<{associate_url}|Click here to unlink your identity.>"
+    "<{associate_url}|Click here to unlink your identity.> "
     "Once you do this, the Slack Integration will not be able to identify you. If you need to link your identity again, please use the /sentry link command"
 )
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."

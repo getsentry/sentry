@@ -20,10 +20,12 @@ GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://
 DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
+    "set org <organization_slug>": "Set your default Sentry organization for this Slack Workspace.",
+    "unset org": "Clear your default Sentry organization for this Slack Workspace.",
 }
 CHANNEL_COMMANDS = {
-    "link team [organization_slug]": "Get your Sentry team's issue alert notifications in this channel.",
-    "unlink team [organization_slug]": "Unlink a team from this channel.",
+    "link team <organization_slug>": "Get your Sentry team's alert notifications in this channel.",
+    "unlink team <organization_slug>": "Unlink a team from this channel.",
 }
 HELP_COMMANDS = {
     "support": "Get support resources.",

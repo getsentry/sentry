@@ -69,7 +69,7 @@ class SlackIdentityProvider(OAuth2Provider):
             "id": data["user"]["id"],
             "email": data["user"]["email"],
             "scopes": sorted(data["scope"].split(",")),
-            "data": {**self.get_oauth_data(data), PREFERRED_ORGANIZATION_ID_KEY: None},
+            "data": self.get_oauth_data(data),
         }
 
 

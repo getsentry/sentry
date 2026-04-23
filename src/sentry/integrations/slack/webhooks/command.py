@@ -44,13 +44,13 @@ INSUFFICIENT_ROLE_MESSAGE = (
 )
 NO_USER_ID_MESSAGE = "Could not identify your Slack user ID. Please try again."
 NO_CHANNEL_ID_MESSAGE = "Could not identify the Slack channel ID. Please try again."
-SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE = "Usage: `/sentry set org <slug>`."
-SET_DEFAULT_ORG_NOT_FOUND_PREFIX = "Could not find an organization with slug"
-SET_DEFAULT_ORG_NOT_FOUND_MESSAGE = (
-    SET_DEFAULT_ORG_NOT_FOUND_PREFIX + " `{slug}` that you're a member of."
+SET_DEFAULT_ORG_MISSING_SLUG_MESSAGE = "Which org? Try `/sentry set org <slug>`."
+SET_DEFAULT_ORG_NOT_FOUND_PREFIX = (
+    "Hmm, couldn't find an organization that you belong to with the slug"
 )
-SET_DEFAULT_ORG_SUCCESS_MESSAGE = "Default organization set to `{slug}`."
-UNSET_DEFAULT_ORG_SUCCESS_MESSAGE = "Default organization cleared."
+SET_DEFAULT_ORG_NOT_FOUND_MESSAGE = SET_DEFAULT_ORG_NOT_FOUND_PREFIX + " `{slug}`."
+SET_DEFAULT_ORG_SUCCESS_MESSAGE = "Got it — your default organization is now `{slug}`."
+UNSET_DEFAULT_ORG_SUCCESS_MESSAGE = "All set — your default organization has been cleared."
 
 
 def get_orgs_with_teams_linked_to_channel(
