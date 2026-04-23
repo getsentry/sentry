@@ -24,11 +24,11 @@ Slots control sort order and lifetime. Import from `commandPaletteSlot.tsx`:
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 ```
 
-| Slot | Order in palette | Lifetime | Use for |
-|------|-----------------|----------|---------|
-| `task` | First (highest priority) | Reserved — not yet used in production | Future transient workflow steps |
-| `page` | Second | Tied to the page component's mount/unmount | Contextual actions for the current view (issue details, settings pages) |
-| `global` | Last | Always present for any org | Org-wide navigation, create actions, help |
+| Slot     | Order in palette         | Lifetime                                   | Use for                                                                 |
+| -------- | ------------------------ | ------------------------------------------ | ----------------------------------------------------------------------- |
+| `task`   | First (highest priority) | Reserved — not yet used in production      | Future transient workflow steps                                         |
+| `page`   | Second                   | Tied to the page component's mount/unmount | Contextual actions for the current view (issue details, settings pages) |
+| `global` | Last                     | Always present for any org                 | Org-wide navigation, create actions, help                               |
 
 Wrap page-level actions in the slot provider:
 
@@ -49,10 +49,10 @@ Global actions are registered once in `GlobalCommandPaletteActions` — add to t
 interface CMDKActionProps {
   // Required: what the user sees
   display: {
-    label: string;          // primary text
-    details?: string;       // secondary description line
+    label: string; // primary text
+    details?: string; // secondary description line
     icon?: React.ReactNode; // icon on the left — use default size for section icons,
-                            // size={16} for avatars (ProjectAvatar, ActorAvatar, TeamAvatar)
+    // size={16} for avatars (ProjectAvatar, ActorAvatar, TeamAvatar)
     trailingItem?: React.ReactNode; // right-side decoration (overrides link indicator)
   };
 
@@ -107,7 +107,7 @@ import {IconIssues} from 'sentry/icons';
   }}
   keywords={['bugs', 'errors', 'problems']}
   to={`/organizations/${org.slug}/issues/`}
-/>
+/>;
 ```
 
 ### 2. Callback action
@@ -133,19 +133,30 @@ Nest `CMDKAction` children to create a drillable group. The parent label appears
     icon: <IconCellSignal bars={PRIORITY_BARS[group.priority ?? PriorityLevel.MEDIUM]} />,
   }}
 >
-  <CMDKAction display={{label: t('High'), icon: <IconCellSignal bars={3} />}} onAction={() => setPriority('high')} />
-  <CMDKAction display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}} onAction={() => setPriority('medium')} />
-  <CMDKAction display={{label: t('Low'), icon: <IconCellSignal bars={1} />}} onAction={() => setPriority('low')} />
-</CMDKAction>
+  <CMDKAction
+    display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+    onAction={() => setPriority('high')}
+  />
+  <CMDKAction
+    display={{label: t('Medium'), icon: <IconCellSignal bars={2} />}}
+    onAction={() => setPriority('medium')}
+  />
+  <CMDKAction
+    display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
+    onAction={() => setPriority('low')}
+  />
+</CMDKAction>;
 
 // Icon reflects current assignee — avatar when assigned, generic icon when not
-const assigneeIcon = group.assignedTo
-  ? <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
-  : <IconUser />;
+const assigneeIcon = group.assignedTo ? (
+  <ActorAvatar actor={group.assignedTo} size={16} hasTooltip={false} />
+) : (
+  <IconUser />
+);
 
 <CMDKAction display={{label: t('Assign to'), icon: assigneeIcon}}>
   {/* children */}
-</CMDKAction>
+</CMDKAction>;
 ```
 
 ### 4. Async resource picker
@@ -174,15 +185,19 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
       enabled: context.state === 'selected',
       select: projects =>
         projects.map(project => ({
-          display: {label: project.slug, icon: <ProjectAvatar project={project} size={16} />},
+          display: {
+            label: project.slug,
+            icon: <ProjectAvatar project={project} size={16} />,
+          },
           to: `/organizations/${org.slug}/projects/${project.slug}/`,
         })),
     })
   }
-/>
+/>;
 ```
 
 **Rules for `resource`:**
+
 - **Always** wrap with `cmdkQueryOptions(...)` — this injects `meta: { cmdk: true }` so the palette's loading spinner tracks the request via `useIsFetching`.
 - Use `enabled: context.state === 'selected'` to defer fetching until the user actually drills in.
 - The `select` field must transform the API response into `CommandPaletteAction[]`.
@@ -227,10 +242,10 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
       {members.map(renderAsyncResult)}
     </>
   )}
-</CMDKAction>
+</CMDKAction>;
 ```
 
-**Auto-render limitation**: when `children` is *not* a render-prop (static children + `resource`), resource results that are `CommandPaletteActionGroup` items are silently skipped. Only `to` and `onAction` results are auto-rendered. Use the render-prop pattern if you need groups from a resource.
+**Auto-render limitation**: when `children` is _not_ a render-prop (static children + `resource`), resource results that are `CommandPaletteActionGroup` items are silently skipped. Only `to` and `onAction` results are auto-rendered. Use the render-prop pattern if you need groups from a resource.
 
 ### 6. Static async children via hook
 
@@ -251,7 +266,13 @@ const assignableUsers = members.filter(m => m.id !== currentUser.id);
       key={`member-${member.id}`}
       display={{
         label: member.name || member.email,
-        icon: <ActorAvatar actor={{id: member.id, name: member.name, type: 'user'}} size={16} hasTooltip={false} />,
+        icon: (
+          <ActorAvatar
+            actor={{id: member.id, name: member.name, type: 'user'}}
+            size={16}
+            hasTooltip={false}
+          />
+        ),
       }}
       onAction={() => handleAssign(member)}
     />
@@ -266,17 +287,17 @@ const assignableUsers = members.filter(m => m.id !== currentUser.id);
       onAction={() => handleAssign(team)}
     />
   ))}
-</CMDKAction>
+</CMDKAction>;
 ```
 
 **When to use static children vs `resource`:**
 
-| | Static children via hook | `resource` prop |
-|---|---|---|
-| Dataset size | Small, bounded | Large or unbounded |
-| Filtering | Client-side fuzzy search | Server-side search |
-| Fetch timing | Eager (on component mount) | Deferred (on drill-in) |
-| Query updates | Fixed at render | Responds to typed query |
+|               | Static children via hook   | `resource` prop         |
+| ------------- | -------------------------- | ----------------------- |
+| Dataset size  | Small, bounded             | Large or unbounded      |
+| Filtering     | Client-side fuzzy search   | Server-side search      |
+| Fetch timing  | Eager (on component mount) | Deferred (on drill-in)  |
+| Query updates | Fixed at render            | Responds to typed query |
 
 **Key naming for mixed entity lists**: prefix keys with the entity type to prevent collisions — `member-${id}`, `team-${id}`, `${owner.type}-${owner.id}`, `coding-agent:${id}`.
 
@@ -323,7 +344,7 @@ const DSN_PATTERN = /^https?:\/\/.+@.+\/.+/;
       select: result => result.navTargets.map(/* ... */),
     })
   }
-/>
+/>;
 ```
 
 ### 8. State-conditional actions
@@ -387,7 +408,10 @@ function SeerActions({group}: {group: Group}) {
   if (!canShowSeer) return null;
   return (
     <Fragment>
-      <CMDKAction display={{label: t('Fix with Seer'), icon: <IconSeer />}} onAction={startAutofix} />
+      <CMDKAction
+        display={{label: t('Fix with Seer'), icon: <IconSeer />}}
+        onAction={startAutofix}
+      />
     </Fragment>
   );
 }
@@ -397,7 +421,12 @@ function SeerActions({group}: {group: Group}) {
 function IssueCommandPaletteActions({group, issue}: Props) {
   return (
     <CommandPaletteSlot name="page">
-      <CMDKAction display={{label: issue.title, icon: <ProjectAvatar project={project} size={16} />}}>
+      <CMDKAction
+        display={{
+          label: issue.title,
+          icon: <ProjectAvatar project={project} size={16} />,
+        }}
+      >
         <GroupPriorityActions group={group} />
         <SeerActions group={group} />
       </CMDKAction>
@@ -464,26 +493,28 @@ The new palette only activates when the org has the `cmd-k-supercharged` flag. A
 Gate on additional flags or permissions inline:
 
 ```tsx
-{organization.features.includes('my-feature') && (
-  <CMDKAction display={{label: t('My New Action')}} onAction={doThing} />
-)}
+{
+  organization.features.includes('my-feature') && (
+    <CMDKAction display={{label: t('My New Action')}} onAction={doThing} />
+  );
+}
 
-{user.isStaff && (
-  <CMDKAction display={{label: t('Admin Panel')}} to="/admin/" />
-)}
+{
+  user.isStaff && <CMDKAction display={{label: t('Admin Panel')}} to="/admin/" />;
+}
 ```
 
 **Gate the entire slot when a page is disabled** — don't render individual disabled actions; don't render the slot at all:
 
 ```tsx
 // ✅ Gate at the slot level
-{!disabled && (
-  <CommandPaletteSlot name="page">
-    <CMDKAction display={{label: entity.title}}>
-      {/* all actions */}
-    </CMDKAction>
-  </CommandPaletteSlot>
-)}
+{
+  !disabled && (
+    <CommandPaletteSlot name="page">
+      <CMDKAction display={{label: entity.title}}>{/* all actions */}</CMDKAction>
+    </CommandPaletteSlot>
+  );
+}
 ```
 
 ---
@@ -494,12 +525,16 @@ When an entity type determines which actions are available, derive that from a c
 
 ```tsx
 const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-const {actions: {resolve: resolveCap, delete: deleteCap}} = config;
+const {
+  actions: {resolve: resolveCap, delete: deleteCap},
+} = config;
 
 // Only render actions the issue type supports
-{resolveCap.enabled && (
-  <CMDKAction display={{label: t('Resolve')}} onAction={handleResolve} />
-)}
+{
+  resolveCap.enabled && (
+    <CMDKAction display={{label: t('Resolve')}} onAction={handleResolve} />
+  );
+}
 ```
 
 For new entity types, follow the same pattern: define a config shape that carries capability flags, then gate rendering on those flags rather than scattered `group.type === '...'` checks.
@@ -508,7 +543,7 @@ For new entity types, follow the same pattern: define a config shape that carrie
 
 ## Workflow / Sequential State Machine
 
-When actions represent steps in a multi-stage workflow, show only the *next valid action* — not all possible steps at once. Gate each step on the previous step being complete and the next not yet started:
+When actions represent steps in a multi-stage workflow, show only the _next valid action_ — not all possible steps at once. Gate each step on the previous step being complete and the next not yet started:
 
 ```tsx
 // Extract state into a dedicated hook in the same file
@@ -518,9 +553,15 @@ function useSeerState(group: Group, project: Project) {
 
   return {
     autofix,
-    completedRootCause: sections.some(s => isRootCauseSection(s) && s.status === 'completed'),
-    completedSolution:  sections.some(s => isSolutionSection(s) && s.status === 'completed'),
-    completedCodeChanges: sections.some(s => isCodeChangesSection(s) && s.status === 'completed'),
+    completedRootCause: sections.some(
+      s => isRootCauseSection(s) && s.status === 'completed'
+    ),
+    completedSolution: sections.some(
+      s => isSolutionSection(s) && s.status === 'completed'
+    ),
+    completedCodeChanges: sections.some(
+      s => isCodeChangesSection(s) && s.status === 'completed'
+    ),
     hasPR: sections.some(isPullRequestsSection),
     runId: autofix.runState?.run_id,
     isPolling: autofix.isPolling,
@@ -528,8 +569,15 @@ function useSeerState(group: Group, project: Project) {
 }
 
 function WorkflowActions({group, project}: Props) {
-  const {autofix, completedRootCause, completedSolution, completedCodeChanges, hasPR, runId, isPolling} =
-    useSeerState(group, project);
+  const {
+    autofix,
+    completedRootCause,
+    completedSolution,
+    completedCodeChanges,
+    hasPR,
+    runId,
+    isPolling,
+  } = useSeerState(group, project);
 
   // Guard: can only advance the workflow when not mid-operation and run exists
   const canContinue = !isPolling && defined(runId);
@@ -540,13 +588,22 @@ function WorkflowActions({group, project}: Props) {
         <CMDKAction display={{label: t('Fix with Seer')}} onAction={startFix} />
       )}
       {canContinue && completedRootCause && !completedSolution && (
-        <CMDKAction display={{label: t('Generate solution')}} onAction={() => nextStep('solution', runId)} />
+        <CMDKAction
+          display={{label: t('Generate solution')}}
+          onAction={() => nextStep('solution', runId)}
+        />
       )}
       {canContinue && completedSolution && !completedCodeChanges && (
-        <CMDKAction display={{label: t('Generate code changes')}} onAction={() => nextStep('code_changes', runId)} />
+        <CMDKAction
+          display={{label: t('Generate code changes')}}
+          onAction={() => nextStep('code_changes', runId)}
+        />
       )}
       {canContinue && completedCodeChanges && !hasPR && (
-        <CMDKAction display={{label: t('Open pull request')}} onAction={() => createPR(runId)} />
+        <CMDKAction
+          display={{label: t('Open pull request')}}
+          onAction={() => createPR(runId)}
+        />
       )}
     </Fragment>
   );
@@ -554,6 +611,7 @@ function WorkflowActions({group, project}: Props) {
 ```
 
 Key points:
+
 - Extract the state logic into a dedicated `use*State` hook within the action component file — keeps the JSX clean.
 - Use a `canContinue` guard to prevent showing progress actions while an async operation is in flight.
 - Return `null` early at the top of the component when the feature isn't applicable:
