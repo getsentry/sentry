@@ -27,9 +27,6 @@ from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
-from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-    WorkflowEngineDetectorSerializer,
-)
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
@@ -227,8 +224,6 @@ class AlertRuleDetailsBase(AlertRuleBase):
 
         assert resp.status_code == 404
 
-
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def assert_alert_detail_results_match(self, old_data: dict, new_data: dict) -> None:
         """Compare old and new alert rule serializer outputs field-by-field.
 
@@ -303,6 +298,8 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
 
         assert not mismatches, "Old vs new serializer differences:\n" + "\n".join(mismatches)
 
+
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self) -> None:
         self.create_team(organization=self.organization, members=[self.user])
         self.login_as(self.user)
@@ -1155,7 +1152,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         assert alert_rule.snuba_query.aggregate == original_aggregate  # Still upsampled_count()
 
     @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-metric-alert-endpoints-put")
+    @freeze_time("2024-12-11 03:21:34")
     def test_workflow_engine_serializer(self) -> None:
         self.create_member(
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
@@ -1167,11 +1164,15 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         serialized_alert_rule = self.get_serialized_alert_rule()
         serialized_alert_rule["name"] = "what"
 
-        resp = self.get_success_response(
+        with self.feature("organizations:workflow-engine-metric-alert-endpoints-put"):
+            resp = self.get_success_response(
+                self.organization.slug, alert_rule.id, **serialized_alert_rule
+            )
+
+        rule_resp = self.get_success_response(
             self.organization.slug, alert_rule.id, **serialized_alert_rule
         )
-        detector = Detector.objects.get(alertruledetector__alert_rule_id=int(resp.data.get("id")))
-        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
+        self.assert_alert_detail_results_match(rule_resp.data, resp.data)
 
     def test_not_updated_fields(self) -> None:
         self.create_member(
