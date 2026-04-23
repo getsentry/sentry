@@ -369,8 +369,7 @@ export function BlockComponent({
   const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
-  const isLoadingPlaceholder =
-    (blockStatus === 'loading' || blockStatus === 'pending') && !hasTools;
+  const isLoadingPlaceholder = blockStatus === 'loading' && !hasTools;
 
   return (
     <Block
@@ -390,7 +389,7 @@ export function BlockComponent({
             <ToolStatusSlot>
               <BlockStatusIndicator status={blockStatus} />
             </ToolStatusSlot>
-            <Text variant="muted">{block.message.content ?? ''}</Text>
+            <BlockContent text={block.message.content ?? ''} />
           </Flex>
         ) : (
           <Flex align="start" width="100%">
