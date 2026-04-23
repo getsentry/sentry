@@ -374,7 +374,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/types/jsSelfProfiling.d.ts                                @getsentry/profiling
 /static/app/types/profiling.d.ts                                      @getsentry/profiling
 /static/app/utils/profiling/                                          @getsentry/profiling
-/static/app/views/profiling/                                          @getsentry/profiling
+/static/app/views/explore/profiling/                                          @getsentry/profiling
 /src/sentry/api/endpoints/project_profiling_profile.py                @getsentry/profiling
 /src/sentry/api/endpoints/organization_profiling_profiles.py          @getsentry/profiling
 /src/sentry/profiles/                                                 @getsentry/profiling
