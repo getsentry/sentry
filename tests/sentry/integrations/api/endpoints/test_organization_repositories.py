@@ -475,10 +475,10 @@ class OrganizationIntegrationRepositoriesCreateTest(APITestCase):
     @patch.object(
         ExampleRepositoryProvider, "get_repository_data", return_value={"my_config_key": "some_var"}
     )
-    def test_existing_repo_reclaims_on_race(self, mock_build_repository_config: MagicMock) -> None:
+    def test_existing_repo_race_returns_201(self, mock_build_repository_config: MagicMock) -> None:
         # Simulates a concurrent writer (e.g. link_all_repos) having already
         # inserted the row: matching provider/external_id AND integration_id.
-        # Dispatch should surface this as a 201 reclaim rather than a 400.
+        # Dispatch should return the existing row as 201 rather than 400.
         existing = Repository.objects.create(
             organization_id=self.org.id,
             name="getsentry/sentry",
