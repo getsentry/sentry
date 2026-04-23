@@ -182,7 +182,7 @@ const Header = styled('header')<{
   padding: ${p => p.theme.space.lg};
   /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: ${p => p.theme.tokens.border.primary} 0 1px;
-  padding-left: ${p => (p.hideCloseButton ? '24px' : p.theme.space.xl)};
+  padding-left: ${p => p.theme.space.lg};
   padding-top: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   padding-bottom: ${p => (p.hideCloseButton ? p.theme.space.lg : p.theme.space.sm)};
   ${p =>
