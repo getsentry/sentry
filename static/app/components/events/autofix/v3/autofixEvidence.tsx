@@ -113,7 +113,7 @@ function EvidenceTrace({target, toolLink}: EvidenceLinkProps) {
 }
 
 function EvidenceIssue({target, toolLink}: EvidenceLinkProps) {
-  const {issue_id, event_id} = toolLink?.params ?? {};
+  const {event_id} = toolLink?.params ?? {};
 
   if (!defined(event_id)) {
     return null; // This isn't useful evidence as we're already on the issue details page
@@ -121,7 +121,7 @@ function EvidenceIssue({target, toolLink}: EvidenceLinkProps) {
 
   return (
     <EvidenceButton icon={<IconIssues />} to={target}>
-      {t('Issue: %s', issue_id)}
+      {t('Error: %s', getShortEventId(event_id))}
     </EvidenceButton>
   );
 }
