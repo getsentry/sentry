@@ -240,7 +240,7 @@ def has_seer_explorer_access_with_detail(
 def _collect_repos_by_project_id(
     organization: Organization, project_ids: list[int]
 ) -> dict[str, list[dict[str, Any]]]:
-    """Fetch repo lists for each project, keyed by project_id."""
+    """Fetch repo lists for each project, keyed by project id."""
     if not project_ids:
         return {}
 
@@ -276,7 +276,7 @@ def collect_user_org_context(
     repos_by_pid = _collect_repos_by_project_id(organization, [p["id"] for p in all_projects])
 
     all_org_projects = [
-        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"]), [])}
+        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in all_projects
     ]
 
@@ -313,7 +313,7 @@ def collect_user_org_context(
         .values("id", "slug")
     )
     user_projects = [
-        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"]), [])}
+        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
     ]
 
