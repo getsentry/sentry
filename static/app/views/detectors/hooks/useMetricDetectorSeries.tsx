@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {
-  getAggregateAlias,
   type AggregationOutputType,
+  getAggregateAlias,
 } from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,7 +37,7 @@ interface UseMetricDetectorSeriesProps {
 
 interface UseMetricDetectorSeriesResult {
   comparisonSeries: Series[];
-  error: RequestError | null;
+  error: Error | null;
   isLoading: boolean;
   outputType: AggregationOutputType | undefined;
   series: Series[];
@@ -90,10 +92,14 @@ export function useMetricDetectorSeries({
     extrapolationMode,
   });
 
+  type SeriesData = Parameters<typeof datasetConfig.transformSeriesQueryData>[0];
   const {data, isLoading, error} = useQuery({
-    ...seriesQueryOptions,
-    // 5 minutes
-    staleTime: 5 * 60 * 1000,
+    ...(seriesQueryOptions as unknown as UseQueryOptions<
+      ApiResponse<SeriesData>,
+      Error,
+      SeriesData,
+      ApiQueryKey
+    >),
     retry: (failureCount, err) => {
       // Disable retries for 400 status code
       if (err instanceof RequestError && err.status === 400) {

@@ -1,3 +1,5 @@
+import type {UseQueryOptions} from '@tanstack/react-query';
+
 import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
@@ -6,6 +8,8 @@ import type {
   MetricDetectorConfig,
   SnubaQuery,
 } from 'sentry/types/workflowEngine/detectors';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -14,7 +18,6 @@ import type {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {getDiscoverSeriesQueryOptions} from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 import type {
   MetricDetectorInterval,
   MetricDetectorTimePeriod,
@@ -108,7 +111,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   }) => readonly MetricDetectorInterval[];
   getSeriesQueryOptions: (
     options: DetectorSeriesQueryOptions
-  ) => ReturnType<typeof getDiscoverSeriesQueryOptions>;
+  ) => UseQueryOptions<ApiResponse<SeriesResponse>, Error, SeriesResponse, ApiQueryKey>;
   /**
    * Based on the interval, returns an array of time periods.
    */

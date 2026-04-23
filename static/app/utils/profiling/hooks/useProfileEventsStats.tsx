@@ -41,7 +41,7 @@ export function useProfileEventsStats<F extends string>({
   }
 
   const {data, isPending, isError, error} = useQuery({
-    ...apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/events-stats/', {
+    ...apiOptions.as<any>()('/organizations/$organizationIdOrSlug/events-stats/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         dataset,

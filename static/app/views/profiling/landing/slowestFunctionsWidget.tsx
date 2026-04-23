@@ -31,7 +31,6 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {EventsStatsSeries} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -45,9 +44,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {useProfileTopEventsStats} from 'sentry/utils/profiling/hooks/useProfileTopEventsStats';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -319,7 +316,7 @@ interface SlowestFunctionEntryProps<F extends BreakdownFunction> {
   query: string;
   setExpanded: () => void;
   totalDuration: number;
-  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
+  stats?: ReturnType<typeof useProfileTopEventsStats<ChartFunctions<F>>>;
 }
 
 const BARS = 10;
@@ -475,7 +472,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
 interface FunctionChartProps<F extends BreakdownFunction> {
   breakdownFunction: F;
   func: EventsResultsDataRow<FunctionsField>;
-  stats?: UseApiQueryResult<EventsStatsSeries<ChartFunctions<F>>, RequestError>;
+  stats?: ReturnType<typeof useProfileTopEventsStats<string>>;
 }
 
 function FunctionChart<F extends BreakdownFunction>({
