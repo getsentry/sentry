@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
 import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
@@ -125,15 +126,19 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
-  const visibleProjectSettingsNavItems = getNavigationConfiguration({
-    organization,
-  }).flatMap(section =>
-    section.items.filter(navItem => {
-      if (!navItem.show) return true;
-      return typeof navItem.show === 'function'
-        ? (navItem.show as () => boolean)()
-        : navItem.show;
-    })
+  const visibleProjectSettingsNavItems = useMemo(
+    () =>
+      getNavigationConfiguration({
+        organization,
+      }).flatMap(section =>
+        section.items.filter(navItem => {
+          if (!navItem.show) return true;
+          return typeof navItem.show === 'function'
+            ? (navItem.show as () => boolean)()
+            : navItem.show;
+        })
+      ),
+    [organization]
   );
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
