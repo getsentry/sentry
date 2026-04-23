@@ -987,7 +987,7 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RUN_ID_QUERY_PARAM = 'explorerRunId';
 
 /**
  * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.

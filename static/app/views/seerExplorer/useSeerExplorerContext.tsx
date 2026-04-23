@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -108,8 +109,13 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {visible: isModalOpen} = useGlobalModal();
 
   // Deep link effect while drawer closed (drawer content handles when open)
+  const deepLinkCallback = useCallback(
+    (_runId: number) => openSeerExplorerDrawer({runId: _runId}),
+    [openSeerExplorerDrawer]
+  );
+
   useSeerExplorerDeepLink({
-    callback: _runId => openSeerExplorerDrawer({runId: _runId}),
+    callback: deepLinkCallback,
     enabled: !isOpen,
   });
 
