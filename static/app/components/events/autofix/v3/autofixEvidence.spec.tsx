@@ -268,6 +268,130 @@ describe('AutofixEvidence', () => {
       expect(screen.getByText('Profile: prof1234')).toBeInTheDocument();
     });
   });
+
+  describe('EvidenceCodeSearch', () => {
+    it('renders filename for read_file mode', () => {
+      render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {
+            mode: 'read_file',
+            path: 'src/foo/bar.py',
+          })}
+          toolLink={makeToolLink('code_search', {
+            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+          })}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('File: bar.py')).toBeInTheDocument();
+      expect(screen.getByText('File: bar.py').closest('a')).toHaveAttribute(
+        'href',
+        'https://github.com/org/repo/blob/main/src/foo/bar.py'
+      );
+    });
+
+    it('renders truncated filename for read_file mode', () => {
+      render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {
+            mode: 'read_file',
+            path: 'src/foo/thisisalongfilename.py',
+          })}
+          toolLink={makeToolLink('code_search', {
+            code_url:
+              'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py',
+          })}
+        />,
+        {organization}
+      );
+      expect(screen.getByText('File: thisisal\u2026ename.py')).toBeInTheDocument();
+      expect(
+        screen.getByText('File: thisisal\u2026ename.py').closest('a')
+      ).toHaveAttribute(
+        'href',
+        'https://github.com/org/repo/blob/main/src/foo/thisisalongfilename.py'
+      );
+    });
+
+    it('renders nothing when mode is not read_file', () => {
+      const {container} = render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {mode: 'search', query: 'foo'})}
+          toolLink={makeToolLink('code_search', {
+            code_url: 'https://github.com/org/repo',
+          })}
+        />,
+        {organization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders nothing when mode is missing', () => {
+      const {container} = render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {path: 'src/foo/bar.py'})}
+          toolLink={makeToolLink('code_search', {
+            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+          })}
+        />,
+        {organization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders nothing when toolLink is missing', () => {
+      const {container} = render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {
+            mode: 'read_file',
+            path: 'src/foo/bar.py',
+          })}
+        />,
+        {organization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders nothing when code_url is missing from toolLink params', () => {
+      const {container} = render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {
+            mode: 'read_file',
+            path: 'src/foo/bar.py',
+          })}
+          toolLink={makeToolLink('code_search', {})}
+        />,
+        {organization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders nothing when path is missing from args', () => {
+      const {container} = render(
+        <AutofixEvidence
+          toolCall={makeToolCall('code_search', {mode: 'read_file'})}
+          toolLink={makeToolLink('code_search', {
+            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+          })}
+        />,
+        {organization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+
+    it('renders nothing when args is invalid JSON', () => {
+      const {container} = render(
+        <AutofixEvidence
+          toolCall={{id: 'tc-1', function: 'code_search', args: '{invalid json'}}
+          toolLink={makeToolLink('code_search', {
+            code_url: 'https://github.com/org/repo/blob/main/src/foo/bar.py',
+          })}
+        />,
+        {organization}
+      );
+      expect(container).toBeEmptyDOMElement();
+    });
+  });
 });
 
 describe('useAutofixSectionEvidence', () => {

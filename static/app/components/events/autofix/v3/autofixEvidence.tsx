@@ -3,7 +3,12 @@ import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import {IconCompass, IconIssues, IconPlay, IconProfiling, IconSpan} from 'sentry/icons';
+import {IconCompass} from 'sentry/icons/iconCompass';
+import {IconFile} from 'sentry/icons/iconFile';
+import {IconIssues} from 'sentry/icons/iconIssues';
+import {IconPlay} from 'sentry/icons/iconPlay';
+import {IconProfiling} from 'sentry/icons/iconProfiling';
+import {IconSpan} from 'sentry/icons/iconSpan';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
@@ -28,34 +33,41 @@ export function AutofixEvidence({toolCall, toolLink}: AutofixEvidenceProps) {
     return buildToolLinkUrl(toolLink, organization.slug, projects);
   }, [organization, projects, toolLink]);
 
-  if (!defined(target)) {
-    return null;
+  if (defined(target)) {
+    switch (toolCall.function) {
+      case 'telemetry_live_search': {
+        return (
+          <EvidenceTelemetry target={target} toolCall={toolCall} toolLink={toolLink} />
+        );
+      }
+      case 'get_trace_waterfall': {
+        return <EvidenceTrace target={target} toolCall={toolCall} toolLink={toolLink} />;
+      }
+      case 'get_issue_details': {
+        return <EvidenceIssue target={target} toolCall={toolCall} toolLink={toolLink} />;
+      }
+      case 'get_event_details': {
+        return <EvidenceIssue target={target} toolCall={toolCall} toolLink={toolLink} />;
+      }
+      case 'get_replay_details': {
+        return <EvidenceReplay target={target} toolCall={toolCall} toolLink={toolLink} />;
+      }
+      case 'get_profile_flamegraph': {
+        return (
+          <EvidenceProfile target={target} toolCall={toolCall} toolLink={toolLink} />
+        );
+      }
+    }
   }
 
+  // some tool calls do generate external links
   switch (toolCall.function) {
-    case 'telemetry_live_search': {
-      return (
-        <EvidenceTelemetry target={target} toolCall={toolCall} toolLink={toolLink} />
-      );
+    case 'code_search': {
+      return <EvidenceCodeSearch toolCall={toolCall} toolLink={toolLink} />;
     }
-    case 'get_trace_waterfall': {
-      return <EvidenceTrace target={target} toolCall={toolCall} toolLink={toolLink} />;
-    }
-    case 'get_issue_details': {
-      return <EvidenceIssue target={target} toolCall={toolCall} toolLink={toolLink} />;
-    }
-    case 'get_event_details': {
-      return <EvidenceIssue target={target} toolCall={toolCall} toolLink={toolLink} />;
-    }
-    case 'get_replay_details': {
-      return <EvidenceReplay target={target} toolCall={toolCall} toolLink={toolLink} />;
-    }
-    case 'get_profile_flamegraph': {
-      return <EvidenceProfile target={target} toolCall={toolCall} toolLink={toolLink} />;
-    }
+    default:
+      return null;
   }
-
-  return null;
 }
 
 interface EvidenceLinkProps {
@@ -66,11 +78,12 @@ interface EvidenceLinkProps {
 
 function EvidenceTelemetry({target, toolCall, toolLink}: EvidenceLinkProps) {
   const {args} = toolCall;
-  const question = useMemo(() => {
+  const {question} = useMemo(() => {
     try {
-      return JSON.parse(args).question || undefined;
+      const parsedArgs = JSON.parse(args) || undefined;
+      return {question: parsedArgs?.question};
     } catch {
-      return undefined;
+      return {};
     }
   }, [args]);
 
@@ -144,6 +157,45 @@ function EvidenceProfile({target, toolLink}: EvidenceLinkProps) {
   );
 }
 
+interface EvidenceCodeSearchProps {
+  toolCall: ToolCall;
+  toolLink?: ToolLink;
+}
+
+function EvidenceCodeSearch({toolCall, toolLink}: EvidenceCodeSearchProps) {
+  const {args} = toolCall;
+  const {mode, path} = useMemo(() => {
+    try {
+      const parsedArgs = JSON.parse(args) || undefined;
+      return {mode: parsedArgs?.mode, path: parsedArgs?.path};
+    } catch {
+      return {};
+    }
+  }, [args]);
+
+  switch (mode) {
+    case 'read_file': {
+      if (typeof path !== 'string') {
+        return null;
+      }
+      const filename = path.split('/').pop();
+      const {code_url} = toolLink?.params ?? {};
+
+      if (!defined(filename) || !defined(code_url)) {
+        return null;
+      }
+
+      return (
+        <EvidenceButton icon={<IconFile />} href={code_url} tooltip={path}>
+          {t('File: %s', truncateText(filename))}
+        </EvidenceButton>
+      );
+    }
+  }
+
+  return null;
+}
+
 interface EvidenceButtonInternalProps {
   children: ReactNode;
   icon: ReactNode;
@@ -192,4 +244,12 @@ function EvidenceButton({
   }
 
   return null;
+}
+
+function truncateText(text: string, maxLength = 16): string {
+  const length = text.length;
+  if (length <= maxLength) {
+    return text;
+  }
+  return `${text.substring(0, maxLength / 2)}\u2026${text.substring(length - maxLength / 2, length)}`;
 }
