@@ -22,22 +22,36 @@ import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookup
 import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {
   IconAdd,
+  IconAllProjects,
+  IconChat,
+  IconCode,
   IconCompass,
   IconDashboard,
   IconDiscord,
   IconDocs,
+  IconFile,
+  IconFilter,
+  IconFlag,
   IconGithub,
+  IconGlobe,
   IconGraph,
+  IconGroup,
   IconIssues,
+  IconLink,
   IconList,
   IconLock,
   IconOpen,
-  IconAllProjects,
+  IconPlay,
+  IconReleases,
+  IconRepository,
   IconSearch,
   IconSeer,
   IconSettings,
   IconSiren,
   IconStar,
+  IconSubscribed,
+  IconTag,
+  IconTerminal,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -83,6 +97,37 @@ const DSN_ICONS: React.ReactElement[] = [
   <IconSettings key="settings" />,
   <IconList key="list" />,
 ];
+
+const PROJECT_SETTINGS_ICONS: Record<string, React.ReactElement> = {
+  '': <IconSettings />,
+  'alerts/': <IconSiren />,
+  'debug-symbols/': <IconFile />,
+  'environments/': <IconGlobe />,
+  'filters/': <IconFilter />,
+  'keys/': <IconLock />,
+  'loader-script/': <IconCode />,
+  'release-tracking/': <IconReleases />,
+  'replays/': <IconPlay />,
+  'security-and-privacy/': <IconLock />,
+  'seer/': <IconSeer />,
+  'tags/': <IconTag />,
+  'teams/': <IconGroup />,
+  'user-feedback/': <IconChat />,
+};
+
+const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
+  '/settings/:orgId/api-keys/': <IconLock />,
+  '/settings/:orgId/auth-tokens/': <IconLock />,
+  '/settings/:orgId/feature-flags/': <IconFlag />,
+  '/settings/:orgId/projects/': <IconAllProjects />,
+  '/settings/:orgId/integrations/': <IconLink />,
+  '/settings/:orgId/mcp-cli/': <IconTerminal />,
+  '/settings/:orgId/members/': <IconUser />,
+  '/settings/:orgId/repos/': <IconRepository />,
+  '/settings/:orgId/seer/': <IconSeer />,
+  '/settings/:orgId/teams/': <IconGroup />,
+  '/settings/account/notifications/': <IconSubscribed />,
+};
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 
@@ -135,14 +180,16 @@ export function GlobalCommandPaletteActions() {
     };
     return getNavigationConfiguration({
       organization,
-    }).flatMap(section =>
-      section.items.filter(navItem => {
-        if (navItem.show === undefined) return true;
-        return typeof navItem.show === 'function'
-          ? navItem.show({...context, ...section})
-          : navItem.show;
-      })
-    );
+    })
+      .flatMap(section =>
+        section.items.filter(navItem => {
+          if (navItem.show === undefined) return true;
+          return typeof navItem.show === 'function'
+            ? navItem.show({...context, ...section})
+            : navItem.show;
+        })
+      )
+      .sort((a, b) => a.title.localeCompare(b.title));
   }, [organization]);
 
   const hasDsnLookup = organization.features.includes('cmd-k-dsn-lookup');
@@ -379,11 +426,16 @@ export function GlobalCommandPaletteActions() {
         )}
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
-          {getUserOrgNavigationConfiguration().flatMap(section =>
-            section.items.map(item => (
-              <CMDKAction key={item.path} display={{label: item.title}} to={item.path} />
-            ))
-          )}
+          {getUserOrgNavigationConfiguration()
+            .flatMap(section => section.items)
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .map(item => (
+              <CMDKAction
+                key={item.path}
+                display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+                to={item.path}
+              />
+            ))}
         </CMDKAction>
 
         <CMDKAction
@@ -400,7 +452,7 @@ export function GlobalCommandPaletteActions() {
             return (
               <CMDKAction
                 key={navItem.path}
-                display={{label: navItem.title}}
+                display={{label: navItem.title, icon: PROJECT_SETTINGS_ICONS[suffix]}}
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
                 resource={(
