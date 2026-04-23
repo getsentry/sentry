@@ -89,22 +89,6 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
 }
 
 const PageFrameEditableText = styled(EditableText)`
-  display: flex;
-  align-items: center;
-  max-width: 100%;
-
-  [data-test-id='editable-text-label'] {
-    display: flex;
-    align-items: center;
-    gap: ${p => p.theme.space['2xs']};
-    min-width: 0;
-  }
-
-  [data-test-id='editable-text-label'] > *:first-child {
-    max-width: 100%;
-    line-height: inherit;
-  }
-
   [data-test-id='editable-text-label'] svg {
     flex-shrink: 0;
     opacity: 0;
@@ -119,7 +103,6 @@ const PageFrameEditableText = styled(EditableText)`
     border-radius: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-    padding-right: calc(16px + ${p => p.theme.space['2xs']}) !important;
     box-shadow: none !important;
   }
 
@@ -134,10 +117,6 @@ const PageFrameEditableText = styled(EditableText)`
     border-radius: 0 !important;
     box-shadow: none !important;
     padding: 0 !important;
-  }
-
-  [data-test-id='editable-text-input'] > div:last-child {
-    padding: 0;
   }
 
   :hover,
