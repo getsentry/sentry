@@ -23,26 +23,19 @@ import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {
   IconAdd,
   IconAllProjects,
-  IconChat,
-  IconCode,
   IconCompass,
   IconDashboard,
   IconDiscord,
   IconDocs,
-  IconFile,
-  IconFilter,
   IconFlag,
   IconGithub,
-  IconGlobe,
-  IconGraph,
   IconGroup,
+  IconGraph,
   IconIssues,
   IconLink,
   IconList,
   IconLock,
   IconOpen,
-  IconPlay,
-  IconReleases,
   IconRepository,
   IconSearch,
   IconSeer,
@@ -50,7 +43,6 @@ import {
   IconSiren,
   IconStar,
   IconSubscribed,
-  IconTag,
   IconTerminal,
   IconUser,
 } from 'sentry/icons';
@@ -85,6 +77,7 @@ import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/i
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
+import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
@@ -98,22 +91,6 @@ const DSN_ICONS: React.ReactElement[] = [
   <IconList key="list" />,
 ];
 
-const PROJECT_SETTINGS_ICONS: Record<string, React.ReactElement> = {
-  '': <IconSettings />,
-  'alerts/': <IconSiren />,
-  'debug-symbols/': <IconFile />,
-  'environments/': <IconGlobe />,
-  'filters/': <IconFilter />,
-  'keys/': <IconLock />,
-  'loader-script/': <IconCode />,
-  'release-tracking/': <IconReleases />,
-  'replays/': <IconPlay />,
-  'security-and-privacy/': <IconLock />,
-  'seer/': <IconSeer />,
-  'tags/': <IconTag />,
-  'teams/': <IconGroup />,
-  'user-feedback/': <IconChat />,
-};
 
 const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
   '/settings/:orgId/api-keys/': <IconLock />,
