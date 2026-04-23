@@ -400,7 +400,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Replays
 /static/app/components/replays/                                          @getsentry/replay-frontend
 /static/app/utils/replays/                                               @getsentry/replay-frontend
-/static/app/views/replays/                                               @getsentry/replay-frontend
+/static/app/views/explore/replays/                                               @getsentry/replay-frontend
 /tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
 /tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
 /src/sentry/replays/                                                     @getsentry/replay-backend
