@@ -3,7 +3,7 @@ import re
 from collections.abc import Iterator
 from gzip import GzipFile
 from io import BytesIO
-from typing import IO
+from typing import IO, Protocol
 
 import zstandard
 from django.conf import settings
@@ -64,7 +64,32 @@ class ChunkTooLarge(OSError):
     """Raised when a (possibly decompressed) chunk exceeds the per-chunk size limit."""
 
 
-def _read_bounded(reader: IO[bytes], limit: int) -> bytes:
+class _Reader(Protocol):
+    """Minimal structural type for any bounded-read source.
+
+    Covers the concrete types we pass in (``GzipFile`` from ``gzip`` and
+    ``ZstdDecompressor().stream_reader`` from ``zstandard``) without forcing
+    them to satisfy the full ``IO[bytes]`` protocol -- which they don't.
+    """
+
+    def read(self, __n: int = ...) -> bytes: ...
+
+
+class _SizedChunk(Protocol):
+    """A chunk we can size and name before handing it to ``FileBlob.from_files``.
+
+    Both Django's ``UploadedFile`` (plain uploads) and our ``GzipChunk``/
+    ``ZstdChunk`` wrappers expose ``.size`` and ``.name``; the underlying
+    ``IO[bytes]`` type does not, which is why we need this narrower protocol.
+    """
+
+    size: int
+    name: str
+
+    def read(self, __n: int = ...) -> bytes: ...
+
+
+def _read_bounded(reader: _Reader, limit: int) -> bytes:
     """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
 
     We ask for ``limit + 1`` bytes and let the stream produce as much as it can within
@@ -267,7 +292,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        files: list[IO[bytes]] = []
+        files: list[_SizedChunk] = []
         checksums: list[str] = []
         total_size = 0
 
@@ -319,7 +344,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request, encoding: str) -> Iterator[tuple[IO[bytes], str]]:
+def get_files(request: Request, encoding: str) -> Iterator[tuple[_SizedChunk, str]]:
     """Yield ``(chunk, checksum)`` tuples for every uploaded chunk.
 
     ``encoding`` is the (lowercased) value of the request's ``Content-Encoding``
