@@ -14,7 +14,6 @@ from sentry import features, options
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import Serializer
     from sentry.deletions.base import ModelRelation
     from sentry.eventstream.base import GroupState
     from sentry.issues.issue_occurrence import IssueOccurrence
@@ -287,10 +286,6 @@ class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
 
-    # Optionally provide a custom serializer for Action.data
-    # If None, data will serialized with snake_to_camel_case
-    data_serializer: ClassVar[type[Serializer] | None] = None
-
     class Group(StrEnum):
         NOTIFICATION = "notification"
         TICKET_CREATION = "ticket_creation"
@@ -301,6 +296,15 @@ class ActionHandler:
     @classmethod
     def get_config_transformer(cls) -> ConfigTransformer | None:
         return None
+
+    @classmethod
+    def serialize_data(cls, data: dict[str, Any]) -> dict[str, Any]:
+        from sentry.api.serializers.rest_framework.base import (
+            convert_dict_key_case,
+            snake_to_camel_case,
+        )
+
+        return convert_dict_key_case(data, snake_to_camel_case)
 
     @staticmethod
     def execute(invocation: ActionInvocation) -> None:
