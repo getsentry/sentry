@@ -5,6 +5,7 @@ import {
   ExploreContentSection,
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
+import {ErrorsTables} from 'sentry/views/explore/errors/tables';
 import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
 import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
 
@@ -52,6 +53,7 @@ export function ErrorsContentSection({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
       </OverChartButtonGroup>
+      <ErrorsTables />
     </ExploreContentSection>
   );
 }
