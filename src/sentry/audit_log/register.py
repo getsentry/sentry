@@ -560,7 +560,7 @@ default_manager.add(
         event_id=203,
         name="UPTIME_MONITOR_DISABLE_BROKEN",
         api_name="uptime_monitor.disable_broken",
-        template="Automatically disabled broken uptime monitor {id}",
+        template="Automatically disabled broken uptime monitor {name}",
     )
 )
 default_manager.add(
