@@ -299,7 +299,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
-            mock_record_event, AtlassianConnectFailureReason.FAILED_TO_RETRIEVE_TOKEN
+            mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -315,7 +315,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(
-            mock_record_event, AtlassianConnectFailureReason.FAILED_TO_RETRIEVE_TOKEN
+            mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
         )
 
     @patch(
@@ -430,3 +430,20 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
         assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_KEY_ID)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_with_valid_token(self, mock_record_event: MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            "https://connect-install-keys.atlassian.com/bitbucket-test-kid",
+            body=RS256_PUB_KEY,
+        )
+        response = self.client.post(
+            self.path,
+            data=self.team_data_from_bitbucket,
+            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+        )
+        assert response.status_code == 200
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 3)

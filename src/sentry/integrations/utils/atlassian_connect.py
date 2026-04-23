@@ -186,12 +186,8 @@ class AtlassianConnectTokenValidator:
         self.method = method
 
     def get_token(self) -> str:
-        try:
-            token = get_token(self.request)
-        except Exception:
-            raise AtlassianConnectValidationError(
-                AtlassianConnectFailureReason.FAILED_TO_RETRIEVE_TOKEN
-            )
+        token = get_token(self.request)
+
         self._validate_token(token)
         return token
 
