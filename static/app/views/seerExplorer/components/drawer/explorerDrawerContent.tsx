@@ -25,6 +25,7 @@ import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerFeedbackOptions,
+  getExplorerUrl,
   getLangfuseUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
