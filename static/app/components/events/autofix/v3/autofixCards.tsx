@@ -23,6 +23,8 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
+import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -58,6 +60,8 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
   );
   const {startStep} = autofix;
 
+  const evidence = useAutofixSectionEvidence({section});
+
   return (
     <ArtifactCard
       icon={<IconBug />}
@@ -70,7 +74,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
     >
       {section.status === 'processing' ? (
         <LoadingDetails
-          messages={section.messages}
+          blocks={section.blocks}
           loadingMessage={t('Finding the root cause\u2026')}
         />
       ) : artifact?.data ? (
@@ -100,6 +104,22 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                   </Container>
                 </ArtifactDetails>
               ) : null}
+              <ArtifactDetails>
+                <Text bold>{t('Evidence')}</Text>
+                {evidence.length > 0 ? (
+                  <Flex gap="md" wrap="wrap">
+                    {evidence.map(e => (
+                      <AutofixEvidence
+                        key={e.toolCall.id}
+                        toolCall={e.toolCall}
+                        toolLink={e.toolLink}
+                      />
+                    ))}
+                  </Flex>
+                ) : (
+                  <Text variant="muted">{t('No evidence available')}</Text>
+                )}
+              </ArtifactDetails>
             </Fragment>
           ) : null}
         </Fragment>
@@ -151,7 +171,7 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
     >
       {section.status === 'processing' ? (
         <LoadingDetails
-          messages={section.messages}
+          blocks={section.blocks}
           loadingMessage={t('Formulating a plan\u2026')}
         />
       ) : artifact?.data ? (
@@ -248,7 +268,7 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     >
       {section.status === 'processing' ? (
         <LoadingDetails
-          messages={section.messages}
+          blocks={section.blocks}
           loadingMessage={t('Implementing changes\u2026')}
         />
       ) : (
@@ -499,11 +519,11 @@ function ArtifactDetails({children, ...flexProps}: ArtifactDetailsProps) {
 }
 
 interface LoadingDetailsProps {
+  blocks: AutofixSection['blocks'];
   loadingMessage: string;
-  messages: AutofixSection['messages'];
 }
 
-function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
+function LoadingDetails({loadingMessage, blocks}: LoadingDetailsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -519,7 +539,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
     }
 
     bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
-  }, [messages]);
+  }, [blocks]);
 
   return (
     <ArtifactDetails paddingTop="0">
@@ -531,14 +551,14 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
         maxHeight="200px"
         overflowY="auto"
       >
-        {messages.map((message, index) => {
-          if (message.role === 'user') {
+        {blocks.map((block, index) => {
+          if (block.message.role === 'user') {
             // The user role is used to pass the prompts
             return null;
           }
 
-          if (message.content && message.content !== 'Thinking...') {
-            return <StyledMarkedText key={index} text={message.content} />;
+          if (block.message.content && block.message.content !== 'Thinking...') {
+            return <StyledMarkedText key={index} text={block.message.content} />;
           }
 
           return null;
