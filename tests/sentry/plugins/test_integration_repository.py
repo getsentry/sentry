@@ -75,8 +75,8 @@ class IntegrationRepositoryTestCase(TestCase):
         with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
-        assert exc_info.value.reclaimed_repo is not None
-        assert exc_info.value.reclaimed_repo.id == existing.id
+        assert exc_info.value.existing_repo is not None
+        assert exc_info.value.existing_repo.id == existing.id
         assert Repository.objects.count() == 1
 
     def test_create_repository__transfer_repo_in_org(self, get_jwt: MagicMock) -> None:
@@ -102,10 +102,10 @@ class IntegrationRepositoryTestCase(TestCase):
         with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
-        reclaimed = exc_info.value.reclaimed_repo
-        assert reclaimed is not None
-        assert reclaimed.id == repo.id
-        assert reclaimed.name == self.repo_name
+        existing = exc_info.value.existing_repo
+        assert existing is not None
+        assert existing.id == repo.id
+        assert existing.name == self.repo_name
         repo.refresh_from_db()
         assert repo.name == self.repo_name
 
@@ -123,13 +123,11 @@ class IntegrationRepositoryTestCase(TestCase):
             self.provider.create_repository(self.config, self.organization)
 
         # Pre-existing repo is under the default external_id=123456, not the
-        # config's 654321 — the reclaim query misses, so the race fallback
-        # has nothing to surface.
-        assert exc_info.value.reclaimed_repo is None
+        # config's 654321 — the lookup by (integration_id, external_id) misses,
+        # so the race fallback has nothing to surface.
+        assert exc_info.value.existing_repo is None
 
-    def test_create_repository__integrity_error_attaches_reclaimed(
-        self, get_jwt: MagicMock
-    ) -> None:
+    def test_create_repository__integrity_error_attaches_existing(self, get_jwt: MagicMock) -> None:
         existing = self._create_repo(external_id=self.config["external_id"])
 
         with (
@@ -138,8 +136,8 @@ class IntegrationRepositoryTestCase(TestCase):
         ):
             self.provider.create_repository(self.config, self.organization)
 
-        assert exc_info.value.reclaimed_repo is not None
-        assert exc_info.value.reclaimed_repo.id == existing.id
+        assert exc_info.value.existing_repo is not None
+        assert exc_info.value.existing_repo.id == existing.id
 
     @patch("sentry.plugins.providers.integration_repository.metrics")
     def test_create_repository__activates_existing_hidden_repo(
@@ -162,6 +160,6 @@ class IntegrationRepositoryTestCase(TestCase):
         with pytest.raises(RepoExistsError) as exc_info:
             self.provider.create_repository(self.config, self.organization)
 
-        assert exc_info.value.reclaimed_repo is None
+        assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION

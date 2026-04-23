@@ -48,7 +48,7 @@ class RepoExistsError(SentryAPIException):
         message: str | None = None,
         detail: Any = None,
         repos: list[RepositoryConfig] | None = None,
-        reclaimed_repo: RpcRepository | None = None,
+        existing_repo: RpcRepository | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(code=code, message=message, detail=detail, **kwargs)
@@ -56,7 +56,7 @@ class RepoExistsError(SentryAPIException):
         # Populated when create_repository found an existing ACTIVE row matching
         # the config. Callers that can treat the race as a success (e.g. the
         # REST dispatch) should check this before surfacing the 400.
-        self.reclaimed_repo = reclaimed_repo
+        self.existing_repo = existing_repo
 
     def __str__(self) -> str:
         if self.repos:
@@ -216,7 +216,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             # prefer the historical "skip and try again" behavior (the GitHub
             # push webhook) stay unaffected by catching RepoExistsError as
             # before.
-            raise RepoExistsError(repos=[result], reclaimed_repo=active_repo)
+            raise RepoExistsError(repos=[result], existing_repo=active_repo)
 
         return result, repo
 
@@ -323,11 +323,12 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             result, repo = self.create_repository(repo_config=config, organization=organization)
         except RepoExistsError as exc:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            if exc.reclaimed_repo is None or not exc.repos:
+            if exc.existing_repo is None or not exc.repos:
                 raise
-            # Reclaim the row a concurrent writer created. Falls through to
-            # the normal success path so repo_linked/analytics still fire.
-            repo = exc.reclaimed_repo
+            # A concurrent writer created the row before we could; return it
+            # as if our create had succeeded so repo_linked/analytics still
+            # fire from the normal success path.
+            repo = exc.existing_repo
             result = exc.repos[0]
         except Exception as e:
             return self.handle_api_error(e)
