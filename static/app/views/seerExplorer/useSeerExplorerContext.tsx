@@ -11,15 +11,13 @@ import {
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   type OpenSeerExplorerDrawerOptions,
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
-import {RUN_ID_QUERY_PARAM} from 'sentry/views/seerExplorer/utils';
+import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
@@ -47,9 +45,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
     toggleSeerExplorerDrawer,
     isOpen,
   } = useSeerExplorerDrawer();
-
-  const location = useLocation();
-  const navigate = useNavigate();
 
   // Observes the shared session query so the button can reflect activity even
   // when the drawer is closed. Shares the underlying query with
@@ -113,19 +108,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   const {visible: isModalOpen} = useGlobalModal();
 
   // Deep link effect while drawer closed (drawer content handles when open)
-  useEffect(() => {
-    // Set runId and UI state to the query param and remove it from the URL.
-    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (typeof paramValue !== 'string') {
-      return;
-    }
-    const parsedRunId = Number(paramValue);
-    if (!Number.isNaN(parsedRunId)) {
-      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
-      navigate({...location, query: restQuery}, {replace: true});
-      openSeerExplorerDrawer({runId: parsedRunId});
-    }
-  }, [location, navigate, openSeerExplorerDrawer]);
+  useSeerExplorerDeepLink({
+    callback: _runId => openSeerExplorerDrawer({runId: _runId}),
+    enabled: !isOpen,
+  });
 
   useHotkeys(
     isModalOpen

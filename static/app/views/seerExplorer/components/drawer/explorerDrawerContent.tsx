@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -25,8 +23,8 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   getExplorerUrl,
   getLangfuseUrl,
-  RUN_ID_QUERY_PARAM,
   useCopySessionDataToClipboard,
+  useSeerExplorerDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent({
@@ -37,8 +35,6 @@ export function ExplorerDrawerContent({
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
-  const location = useLocation();
-  const navigate = useNavigate();
 
   const [inputValue, setInputValue] = useState('');
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
@@ -324,19 +320,7 @@ export function ExplorerDrawerContent({
   });
 
   // - Deep link effect -------------------------------------------------------
-  useEffect(() => {
-    // Switch runId and UI state to the query param and remove it from the URL.
-    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (typeof paramValue !== 'string') {
-      return;
-    }
-    const parsedRunId = Number(paramValue);
-    if (!Number.isNaN(parsedRunId)) {
-      switchToRun(parsedRunId);
-      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
-      navigate({...location, query: restQuery}, {replace: true});
-    }
-  }, [location, navigate, switchToRun]);
+  useSeerExplorerDeepLink({callback: switchToRun});
 
   return (
     <DrawerContentContainer data-seer-explorer-root="">
