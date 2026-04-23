@@ -770,7 +770,6 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
     """Read a single project's Seer preferences from Sentry DB.
 
     For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
-
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
