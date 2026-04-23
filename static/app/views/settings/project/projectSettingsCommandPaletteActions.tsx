@@ -1,5 +1,4 @@
-import {Fragment} from 'react';
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
@@ -125,7 +124,7 @@ export function getProjectSettingsCommandPaletteSections({
   return [
     {
       icon: <ProjectAvatar project={project} size={16} />,
-      label: t('Project Settings'),
+      label: project.slug,
       items: groupedSections.map(section =>
         section.id === 'settings-legacy-integrations' && section.items.length > 0
           ? section.items[0]!

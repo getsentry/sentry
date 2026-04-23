@@ -31,7 +31,7 @@ import {
   IconList,
   IconLock,
   IconOpen,
-  IconProject,
+  IconAllProjects,
   IconSearch,
   IconSeer,
   IconSettings,
@@ -369,26 +369,6 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         )}
 
-        <CMDKAction display={{label: t('Projects'), icon: <IconProject />}}>
-          <CMDKAction
-            display={{label: t('All Projects')}}
-            to={makeProjectsPathname({path: '/', organization})}
-          />
-          {projects
-            .filter(project => project.isBookmarked)
-            .slice(0, 8)
-            .map(project => (
-              <CMDKAction
-                key={project.id}
-                display={{
-                  label: project.name,
-                  icon: <ProjectAvatar project={project} size={16} />,
-                }}
-                to={makeProjectsPathname({path: `/${project.slug}/`, organization})}
-              />
-            ))}
-        </CMDKAction>
-
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
           {getUserOrgNavigationConfiguration().flatMap(section =>
             section.items.map(item => (
@@ -396,6 +376,11 @@ export function GlobalCommandPaletteActions() {
             ))
           )}
         </CMDKAction>
+
+        <CMDKAction
+          display={{label: t('Projects'), icon: <IconAllProjects />}}
+          to={makeProjectsPathname({path: '/', organization})}
+        />
 
         <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
           {visibleProjectSettingsNavItems.map(navItem => {
@@ -446,7 +431,7 @@ export function GlobalCommandPaletteActions() {
                   <CMDKAction
                     key={project.id}
                     display={{
-                      label: t('%s · %s', project.slug, navItem.title),
+                      label: project.slug,
                       icon: <ProjectAvatar project={project} size={16} />,
                       trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
                     }}
