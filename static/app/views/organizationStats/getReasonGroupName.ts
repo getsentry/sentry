@@ -253,7 +253,7 @@ export function getReasonGroupName(outcome: string | number, reason: string): st
     case Outcome.CARDINALITY_LIMITED:
     case Outcome.RATE_LIMITED:
     case Outcome.ABUSE:
-      return getRateLimitedReasonGroupName(reason as RateLimitedReason);
+      return getRateLimitedReasonGroupName(reason);
     case Outcome.FILTERED:
       return getFilteredReasonGroupName(reason);
     case Outcome.CLIENT_DISCARD:

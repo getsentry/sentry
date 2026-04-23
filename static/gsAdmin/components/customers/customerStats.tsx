@@ -108,7 +108,7 @@ function getAbuseData(
   intervals: Array<string | number>,
   groups: StatsGroup[]
 ): AbuseData {
-  const abuseByInterval = new Array(intervals.length).fill(0) as number[];
+  const abuseByInterval = Array.from({length: intervals.length}).fill(0) as number[];
 
   for (const group of groups) {
     if (isAbuseWithoutReason(group.by)) {
@@ -185,7 +185,7 @@ function useAbuseMarkAreaSeries(
           ] as [{xAxis: string}, {xAxis: string}],
         ],
       }),
-    })) as SeriesItem[];
+    }));
   }, [regions, intervalMs, theme]);
 }
 
@@ -199,7 +199,7 @@ function zeroFillDates(start: number, end: number, {color}: {color: string}) {
   const numberOfIntervals = Math.ceil((end - start) / 86400);
 
   if (numberOfIntervals >= 0) {
-    zero.data = [...new Array(numberOfIntervals).keys()].map(i => ({
+    zero.data = [...Array.from({length: numberOfIntervals}).keys()].map(i => ({
       name: new Date((start + (i + 1) * 86400) * 1000).toString(),
       value: 0,
     }));
@@ -681,7 +681,10 @@ export const CustomerStats = memo(
       ),
     ];
 
-    const {legend, subLabels} = chartSeries.reduce(
+    const {legend, subLabels} = chartSeries.reduce<{
+      legend: string[];
+      subLabels: TooltipSubLabel[];
+    }>(
       (acc, serie) => {
         if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
           acc.legend.push(serie.seriesName);
@@ -702,8 +705,8 @@ export const CustomerStats = memo(
         return acc;
       },
       {
-        legend: [] as string[],
-        subLabels: [] as TooltipSubLabel[],
+        legend: [],
+        subLabels: [],
       }
     );
 

@@ -74,7 +74,7 @@ export class VirtualizedViewManager {
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
   // original size.
-  interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
+  interval_bars = Array.from({length: Math.ceil(window.innerWidth / 100) * 3}).fill(0);
   indicators: Array<
     {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
   > = [];

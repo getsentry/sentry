@@ -78,8 +78,8 @@ def _find_relocation_transfer(
             extra={
                 "relocation_uuid": item.relocation_uuid,
                 "org_slug": item.org_slug,
-                "requesting_region": item.requesting_region,
-                "exporting_region": item.exporting_region,
+                "requesting_cell": item.requesting_cell,
+                "exporting_cell": item.exporting_cell,
             },
         )
         item.delete()
@@ -112,8 +112,8 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
         try:
             cell_relocation_export_service.request_new_export(
                 relocation_uuid=str(transfer.relocation_uuid),
-                requesting_region_name=transfer.requesting_region,
-                replying_region_name=transfer.exporting_region,
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
                 org_slug=transfer.org_slug,
                 encrypt_with_public_key=public_key,
             )
@@ -155,8 +155,8 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
                 # Move encrypted bytes to the requesting cell.
                 cell_relocation_export_service.reply_with_export(
                     relocation_uuid=str(transfer.relocation_uuid),
-                    requesting_region_name=transfer.requesting_region,
-                    replying_region_name=transfer.exporting_region,
+                    requesting_region_name=transfer.requesting_cell,
+                    replying_region_name=transfer.exporting_cell,
                     org_slug=slug,
                     # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
                     encrypted_contents=None,
@@ -218,8 +218,8 @@ def process_relocation_transfer_region(transfer_id: int) -> None:
         with encrypted_bytes:
             control_relocation_export_service.reply_with_export(
                 relocation_uuid=uuid,
-                requesting_region_name=transfer.requesting_region,
-                replying_region_name=transfer.exporting_region,
+                requesting_region_name=transfer.requesting_cell,
+                replying_region_name=transfer.exporting_cell,
                 org_slug=slug,
                 # TODO(mark): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
                 encrypted_contents=None,

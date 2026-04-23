@@ -18,11 +18,11 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
   getIntegrationFeatureGate,
+  isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -51,7 +51,7 @@ function trackExternalAnalytics({
   organization,
   provider,
 }: {
-  eventName: IntegrationAnalyticsKey;
+  eventName: 'integrations.installation_start';
   organization: Organization | null;
   provider: IntegrationProvider | null;
   startSession?: boolean;
@@ -65,6 +65,7 @@ function trackExternalAnalytics({
     {
       integration_type: 'first_party',
       integration: provider.key,
+      is_scm: isScmProvider(provider),
       // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
       already_installed: false,
       view: 'external_install',

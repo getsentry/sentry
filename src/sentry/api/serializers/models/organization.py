@@ -171,13 +171,28 @@ class BaseOrganizationSerializer(serializers.Serializer):
         max_length=DEFAULT_SLUG_MAX_LENGTH,
     )
 
+    def _log_name_blocked(self, name: str, reason: str) -> None:
+        extra: dict[str, object] = {"attempted_name": name, "reason": reason}
+        request = self.context.get("request")
+        if request is not None:
+            extra["user_id"] = getattr(request.user, "id", None)
+            extra["user_ip"] = request.META.get("REMOTE_ADDR")
+            extra["user_agent"] = request.META.get("HTTP_USER_AGENT")
+        org = self.context.get("organization")
+        if org is not None:
+            extra["org_id"] = org.id
+            extra["org_slug"] = org.slug
+        logging.getLogger("sentry.security").warning("spam.display-name-blocked", extra=extra)
+
     def validate_name(self, value: str) -> str:
         if "://" in value:
+            self._log_name_blocked(value, "url_scheme")
             raise serializers.ValidationError(
                 "Organization name cannot contain URL schemes (e.g. http:// or https://)."
             )
 
         if is_spam_display_name(value):
+            self._log_name_blocked(value, "spam_filter")
             raise serializers.ValidationError(
                 "This name contains disallowed content. Please choose a different name."
             )
@@ -593,7 +608,7 @@ class OrganizationSerializerResponse(_OrganizationSerializerResponseOptional):
     enableSeerEnhancedAlerts: bool
     enableSeerCoding: bool
     defaultCodingAgent: str
-    defaultCodingAgentIntegrationId: int | None
+    defaultCodingAgentIntegrationId: str | None
     defaultAutomatedRunStoppingPoint: str
     autoEnableCodeReview: bool
     autoOpenPrs: bool
@@ -681,6 +696,10 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         elif has_dynamic_sampling(obj):
             sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
             is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+
+        coding_agent_integration_id = obj.get_option(
+            "sentry:seer_default_coding_agent_integration_id", None
+        )
 
         context: OrganizationSerializerResponse = {
             **base,
@@ -780,8 +799,8 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "defaultCodingAgent": obj.get_option(
                 "sentry:seer_default_coding_agent", SEER_DEFAULT_CODING_AGENT_DEFAULT
             ),
-            "defaultCodingAgentIntegrationId": obj.get_option(
-                "sentry:seer_default_coding_agent_integration_id", None
+            "defaultCodingAgentIntegrationId": (
+                str(coding_agent_integration_id) if coding_agent_integration_id else None
             ),
             "defaultAutomatedRunStoppingPoint": self._get_default_automated_run_stopping_point(obj),
             "autoOpenPrs": bool(

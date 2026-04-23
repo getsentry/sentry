@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -17,7 +18,6 @@ import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDate
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';

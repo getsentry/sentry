@@ -87,9 +87,7 @@ export function AnrRootCause({event, organization}: Props) {
 
   const potentialAnrRootCause = occurrences.filter(issue => {
     const issueType = 'type' in issue ? issue.type : issue.issue_type;
-    return Object.values(AnrRootCauseAllowlist).includes(
-      issueType as AnrRootCauseAllowlist
-    );
+    return Object.values(AnrRootCauseAllowlist).includes(issueType);
   });
 
   const helpText =

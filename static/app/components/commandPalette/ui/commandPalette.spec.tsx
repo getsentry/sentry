@@ -283,8 +283,9 @@ describe('CommandPalette', () => {
       const input = await screen.findByRole('textbox', {name: 'Search commands'});
       await userEvent.type(input, 'child');
 
+      // The item now renders with its parent group as a prefix, so match by regex
       expect(
-        await screen.findByRole('option', {name: 'Child Action'})
+        await screen.findByRole('option', {name: /Child Action/})
       ).toBeInTheDocument();
     });
 

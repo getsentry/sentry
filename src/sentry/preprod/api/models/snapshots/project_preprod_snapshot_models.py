@@ -16,6 +16,7 @@ class SnapshotDiffSection(StrEnum):
     CHANGED = "changed"
     UNCHANGED = "unchanged"
     ERRORED = "errored"
+    SKIPPED = "skipped"
 
 
 # GET response
@@ -92,6 +93,9 @@ class SnapshotDetailsApiResponse(BaseModel):
 
     errored: list[SnapshotDiffPair] = []
     errored_count: int = 0
+
+    skipped: list[SnapshotImageResponse] = []
+    skipped_count: int = 0
 
     comparison_run_info: SnapshotComparisonRunInfo | None = None
 

@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -22,10 +23,7 @@ import {
   fetchMutation,
   setApiQueryData,
   useApiQuery,
-  useMutation,
-  useQueryClient,
   type ApiQueryKey,
-  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
@@ -247,7 +245,7 @@ export const useAiAutofix = (
         return false;
       },
       refetchOnWindowFocus: 'always',
-    } as UseApiQueryOptions<AutofixResponse, RequestError>
+    }
   );
 
   const triggerAutofix = useCallback(

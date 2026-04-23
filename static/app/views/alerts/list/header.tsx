@@ -71,28 +71,21 @@ export function AlertHeader({activeTab}: Props) {
       {hasPageFrameFeature ? (
         <Fragment>
           <TopBar.Slot name="actions">
-            <CreateAlertButton
-              organization={organization}
-              iconProps={{size: 'sm'}}
-              priority="primary"
-              referrer="alert_stream"
-              projectSlug={
-                selection.projects.length === 1
-                  ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
-                  : undefined
-              }
-            >
-              {t('Create Alert')}
-            </CreateAlertButton>
             <LinkButton
               onClick={handleNavigateToSettings}
               href="#"
               icon={<IconSettings size="sm" />}
+              tooltipProps={{title: t('Settings')}}
               aria-label={t('Settings')}
             />
           </TopBar.Slot>
           <TopBar.Slot name="feedback">
-            <FeedbackButton>{null}</FeedbackButton>
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
           </TopBar.Slot>
         </Fragment>
       ) : (

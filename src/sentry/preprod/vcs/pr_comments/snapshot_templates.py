@@ -10,8 +10,8 @@ from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_pr
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
 COMPARISON_TABLE_HEADER = (
-    "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
-    "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+    "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+    "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
 )
 
 
@@ -36,7 +36,7 @@ def format_snapshot_pr_comment(
         metrics = snapshot_metrics_map.get(artifact.id)
 
         if not metrics:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         comparison = comparisons_map.get(metrics.id)
@@ -45,21 +45,21 @@ def format_snapshot_pr_comment(
         if not comparison and not has_base:
             # No base to compare against — show snapshot count only
             table_rows.append(
-                f"| {name_cell} | - | - | - | - | - | ✅ {metrics.image_count} uploaded |"
+                f"| {name_cell} | - | - | - | - | - | - | ✅ {metrics.image_count} uploaded |"
             )
             continue
 
         if not comparison:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
             continue
 
         if comparison.state in (
             PreprodSnapshotComparison.State.PENDING,
             PreprodSnapshotComparison.State.PROCESSING,
         ):
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | {PROCESSING_STATUS} |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | ❌ Comparison failed |")
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
         else:
             base_artifact = base_artifact_map.get(artifact.id)
             artifact_url = (
@@ -86,6 +86,7 @@ def format_snapshot_pr_comment(
                 f" | {_section_cell(comparison.images_changed, 'changed', artifact_url)}"
                 f" | {_section_cell(comparison.images_renamed, 'renamed', artifact_url)}"
                 f" | {_section_cell(comparison.images_unchanged, 'unchanged', artifact_url)}"
+                f" | {_section_cell(comparison.images_skipped, 'skipped', artifact_url)}"
                 f" | {status} |"
             )
 

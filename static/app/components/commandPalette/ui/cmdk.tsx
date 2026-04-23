@@ -65,6 +65,12 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 interface CMDKActionProps {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  /**
+   * Stable reserved key for this node. Use the "cmdk:supplementary:" prefix to
+   * guarantee the section always sorts last in search results regardless of score.
+   * Example: id="cmdk:supplementary:help"
+   */
+  id?: string;
   keywords?: string[];
   /**
    * Maximum number of results to show. For async resources the default is 4;
@@ -87,6 +93,7 @@ export function CMDKAction({
   display,
   keywords,
   children,
+  id,
   to,
   onAction,
   prompt,
@@ -95,9 +102,10 @@ export function CMDKAction({
 }: CMDKActionProps) {
   const ref = CommandPaletteSlot.useSlotOutletRef();
 
-  // For async resources, default to 4 when no explicit limit is given.
-  // For static children, undefined means no limit.
-  const effectiveLimit = limit ?? (resource ? 4 : undefined);
+  // For async-only resource nodes (function children), default limit to 4.
+  // For nodes with static children alongside a resource, no default limit applies.
+  const effectiveLimit =
+    limit ?? (resource && typeof children === 'function' ? 4 : undefined);
 
   const nodeData: CMDKActionData =
     to === undefined
@@ -106,7 +114,7 @@ export function CMDKAction({
         : {display, keywords, ref, onAction, limit: effectiveLimit}
       : {display, keywords, ref, to, limit: effectiveLimit};
 
-  const key = CMDKCollection.useRegisterNode(nodeData);
+  const key = CMDKCollection.useRegisterNode(nodeData, id);
   const {query} = useCommandPaletteState();
 
   const resourceOptions = resource
@@ -118,16 +126,31 @@ export function CMDKAction({
     enabled: !!resource && (resourceOptions.enabled ?? true),
   });
 
-  if (!children) {
+  if (!children && !resource) {
     return null;
   }
 
+  // Render-prop: call function with async data (existing behavior).
+  // Static children: render as-is. Resource results are auto-rendered alongside
+  // static children so they register in the collection as depth-1 nodes
+  // (no prefix injection in search results).
   const resolvedChildren =
-    typeof children === 'function' ? (data ? children(data) : null) : children;
+    typeof children === 'function' ? (data ? children(data) : null) : (children ?? null);
+
+  const resolvedResourceNodes =
+    typeof children !== 'function' && data
+      ? (data as CommandPaletteAction[]).map((item, i) => {
+          // CommandPaletteActionGroup has an `actions` prop that CMDKAction doesn't
+          // accept, so we skip groups here — they can't be auto-rendered as leaf nodes.
+          if ('actions' in item) return null;
+          return <CMDKAction key={i} {...item} />;
+        })
+      : null;
 
   return (
     <CMDKCollection.Context.Provider value={key}>
       {resolvedChildren}
+      {resolvedResourceNodes}
     </CMDKCollection.Context.Provider>
   );
 }

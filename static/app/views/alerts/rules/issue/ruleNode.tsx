@@ -233,7 +233,7 @@ function MailActionFields({
       project={project}
       organization={organization}
       loading={!isInitialized}
-      ruleData={data as IssueAlertRuleAction}
+      ruleData={data}
       onChange={onMemberTeamChange}
       options={[
         {value: MailActionTargetType.ISSUE_OWNERS, label: issueOwnersLabel},

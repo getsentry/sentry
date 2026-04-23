@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -24,7 +25,8 @@ import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {isScmPlugin} from 'sentry/utils/integrationUtil';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -221,6 +223,7 @@ export function PluginConfig({
         trackAnalytics('integrations.installation_start', {
           integration: plugin.id,
           integration_type: 'plugin',
+          is_scm: isScmPlugin(plugin),
           view: 'plugin_details',
           already_installed: false,
           organization,
@@ -246,6 +249,7 @@ export function PluginConfig({
         trackAnalytics('integrations.installation_complete', {
           integration: plugin.id,
           integration_type: 'plugin',
+          is_scm: isScmPlugin(plugin),
           view: 'plugin_details',
           already_installed: false,
           organization,

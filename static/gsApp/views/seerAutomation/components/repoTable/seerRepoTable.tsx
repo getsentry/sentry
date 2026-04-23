@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
@@ -28,14 +29,12 @@ import {
   ListItemCheckboxProvider,
   useListItemCheckboxContext,
 } from 'sentry/utils/list/useListItemCheckboxState';
-import {useInfiniteQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SeerRepoTableHeader} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'getsentry/views/seerAutomation/components/repoTable/seerRepoTableRow';
-
 const GRID_COLUMNS = '40px 1fr 138px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
@@ -132,33 +131,34 @@ export function SeerRepoTable() {
     isFetchingNextPage,
   } = result;
 
-  const {mutate: mutateRepositorySettings} = useBulkUpdateRepositorySettings({
-    onSuccess: mutations => {
-      const mutationMap = new Map(mutations.map(m => [m.id, m]));
-      queryClient.setQueryData(queryOptions.queryKey, prev => {
-        if (!prev) {
-          return prev;
-        }
-        return {
-          ...prev,
-          pages: prev.pages.map(page => ({
-            ...page,
-            json: page.json.map(repo => mutationMap.get(repo.id) ?? repo),
-          })),
-        };
-      });
-    },
-    onSettled: mutations => {
-      queryClient.invalidateQueries({
-        queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
-      });
-      (mutations ?? []).forEach(mutation => {
-        queryClient.invalidateQueries({
-          queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+  const {mutate: mutateRepositorySettings, mutateAsync: mutateRepositorySettingsAsync} =
+    useBulkUpdateRepositorySettings({
+      onSuccess: mutations => {
+        const mutationMap = new Map(mutations.map(m => [m.id, m]));
+        queryClient.setQueryData(queryOptions.queryKey, prev => {
+          if (!prev) {
+            return prev;
+          }
+          return {
+            ...prev,
+            pages: prev.pages.map(page => ({
+              ...page,
+              json: page.json.map(repo => mutationMap.get(repo.id) ?? repo),
+            })),
+          };
         });
-      });
-    },
-  });
+      },
+      onSettled: mutations => {
+        queryClient.invalidateQueries({
+          queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
+        });
+        (mutations ?? []).forEach(mutation => {
+          queryClient.invalidateQueries({
+            queryKey: getRepositoryWithSettingsQueryKey(organization, mutation.id),
+          });
+        });
+      },
+    });
 
   const knownIds = useMemo(
     () => repositories?.map(repository => repository.id) ?? [],
@@ -207,8 +207,9 @@ export function SeerRepoTable() {
             gridColumns={GRID_COLUMNS}
             isFetchingNextPage={isFetchingNextPage}
             isPending={isPending}
-            mutateRepositorySettings={mutateRepositorySettings}
+            mutateRepositorySettings={mutateRepositorySettingsAsync}
             onSortClick={setSort}
+            repositories={repositories ?? []}
             sort={sort}
           />
           {isPending ? (

@@ -1,10 +1,12 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -15,12 +17,9 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
-import {
-  CrumbContainer,
-  NavigationCrumbs,
-  ShortId,
-} from 'sentry/components/events/eventDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {NavigationCrumbs} from 'sentry/components/events/eventDrawer';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -36,10 +35,10 @@ import {IconChevron, IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniq} from 'sentry/utils/array/uniq';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -53,7 +52,6 @@ import {
 import {SupergroupFeedback} from 'sentry/views/issueList/supergroups/supergroupFeedback';
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-
 const DRAWER_COLUMNS: GroupListColumn[] = [
   'graph',
   'event',
@@ -74,25 +72,34 @@ export function SupergroupDetailDrawer({
   memberList,
   filterWithCurrentSearch,
 }: SupergroupDetailDrawerProps) {
+  const organization = useOrganization();
+
+  useEffect(() => {
+    trackAnalytics('supergroup.drawer_opened', {
+      supergroup_id: supergroup.id,
+      organization,
+    });
+  }, [supergroup.id, organization]);
+
   return (
-    <Fragment>
+    <AnalyticsArea name="supergroup_drawer">
       <DrawerHeader hideBar>
         <Flex justify="between" align="center" gap="md" flexGrow={1}>
           <Flex align="center" gap="sm">
-            <NavigationCrumbs
-              crumbs={[
-                {label: t('Issue Groups')},
-                {
-                  label: (
-                    <CrumbContainer>
-                      <ShortId>{`SG-${supergroup.id}`}</ShortId>
-                    </CrumbContainer>
-                  ),
-                },
-              ]}
-            />
+            <NavigationCrumbs crumbs={[{label: t('Issue Groups')}]} />
             <Badge variant="experimental">{t('Experimental')}</Badge>
           </Flex>
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              formTitle: t('Give feedback on Issue Groups'),
+              messagePlaceholder: t('How can we make Issue Groups better for you?'),
+              tags: {
+                ['feedback.source']: 'supergroup_drawer',
+              },
+            }}
+            tooltipProps={{title: t('Give feedback on Issue Groups')}}
+          />
         </Flex>
       </DrawerHeader>
       <DrawerContentBody>
@@ -140,11 +147,19 @@ export function SupergroupDetailDrawer({
           </Container>
         )}
       </DrawerContentBody>
-    </Fragment>
+    </AnalyticsArea>
   );
 }
 
 const PAGE_SIZE = 25;
+
+/**
+ * How many items we're willing to hoist. Doubles as the inline-id cap (members
+ * we'll embed in `issue.id:[…]` before the URL gets too big) and the stream-
+ * scan window (top stream results we inspect when the id list is too big to
+ * inline).
+ */
+const HOIST_LIMIT = 50;
 
 function SupergroupIssueList({
   groupIds,
@@ -168,24 +183,10 @@ function SupergroupIssueList({
     end,
   } = location.query;
   const query = typeof searchQuery === 'string' ? searchQuery : '';
-  const totalPages = Math.ceil(groupIds.length / PAGE_SIZE);
-  const pageGroupIds = groupIds.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const issueIdFilter = `issue.id:[${pageGroupIds.join(',')}]`;
 
-  // Fetch all groups on this page
-  const {data: allGroups, isPending: allPending} = useQuery(
-    apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {
-        group: pageGroupIds.map(String),
-        project: ALL_ACCESS_PROJECTS,
-      },
-      staleTime: 30_000,
-    })
-  );
+  const inlineIdListFits = groupIds.length <= HOIST_LIMIT;
 
-  // Search with the stream query to find which ones match
-  const {data: matchedGroups} = useQuery({
+  const {data: matchedGroups, isPending: matchedPending} = useQuery({
     ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
@@ -194,14 +195,59 @@ function SupergroupIssueList({
         statsPeriod,
         start,
         end,
-        query: `${query} ${issueIdFilter}`,
+        query: inlineIdListFits ? `${query} issue.id:[${groupIds.join(',')}]` : query,
+        per_page: HOIST_LIMIT,
       },
       staleTime: 30_000,
     }),
-    enabled: !!filterWithCurrentSearch,
+    enabled: !!filterWithCurrentSearch && groupIds.length > 0,
   });
 
-  if (allPending) {
+  const matchedIds = useMemo(() => {
+    if (!matchedGroups) {
+      return new Set<string>();
+    }
+    if (inlineIdListFits) {
+      return new Set(matchedGroups.map(g => g.id));
+    }
+    const memberSet = new Set(groupIds.map(String));
+    return new Set(matchedGroups.map(g => g.id).filter(id => memberSet.has(id)));
+  }, [matchedGroups, inlineIdListFits, groupIds]);
+
+  // When filtering with the stream query, wait for the match so the IDs we
+  // fetch reflect the hoisted ordering.
+  const pageFetchReady = !filterWithCurrentSearch || !matchedPending;
+  const sortedGroupIds = useMemo(
+    () =>
+      filterWithCurrentSearch
+        ? [...groupIds].sort(
+            (a, b) =>
+              Number(matchedIds.has(String(b))) - Number(matchedIds.has(String(a)))
+          )
+        : groupIds,
+    [filterWithCurrentSearch, groupIds, matchedIds]
+  );
+
+  const totalPages = Math.max(1, Math.ceil(sortedGroupIds.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const visibleIds = sortedGroupIds.slice(
+    safePage * PAGE_SIZE,
+    (safePage + 1) * PAGE_SIZE
+  );
+
+  const {data: allGroups, isPending: allPending} = useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        group: visibleIds.map(String),
+        project: ALL_ACCESS_PROJECTS,
+      },
+      staleTime: 30_000,
+    }),
+    enabled: pageFetchReady,
+  });
+
+  if (allPending || (filterWithCurrentSearch && matchedPending)) {
     return (
       <Fragment>
         {filterWithCurrentSearch && (
@@ -218,7 +264,7 @@ function SupergroupIssueList({
             <DrawerColumnHeaders />
           </LoadingHeader>
           <PanelBody>
-            {pageGroupIds.map(id => (
+            {visibleIds.map(id => (
               <LoadingStreamGroup key={id} withChart withColumns={DRAWER_COLUMNS} />
             ))}
           </PanelBody>
@@ -227,15 +273,11 @@ function SupergroupIssueList({
     );
   }
 
-  const matchedIds = new Set(matchedGroups?.map(g => g.id));
   const groupMap = new Map(allGroups?.map(g => [g.id, g]));
-
-  // Sort: matched first, then the rest
-  const sortedGroups = [...pageGroupIds]
+  const sortedGroups = visibleIds
     .map(id => groupMap.get(String(id)))
     .filter((g): g is Group => g !== undefined)
     .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)));
-
   const visibleGroupIds = sortedGroups.map(g => g.id);
 
   return (
@@ -281,22 +323,22 @@ function SupergroupIssueList({
       {totalPages > 1 && (
         <Flex justify="end" align="center" gap="sm" padding="md 0">
           <Text size="sm" variant="muted">
-            {`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, groupIds.length)} of ${groupIds.length}`}
+            {`${safePage * PAGE_SIZE + 1}-${Math.min((safePage + 1) * PAGE_SIZE, sortedGroupIds.length)} of ${sortedGroupIds.length}`}
           </Text>
           <Flex gap="xs">
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
-              disabled={page === 0}
-              onClick={() => setPage(p => p - 1)}
+              disabled={safePage === 0}
+              onClick={() => setPage(safePage - 1)}
             />
             <Button
               size="xs"
               icon={<IconChevron direction="right" />}
               aria-label={t('Next')}
-              disabled={page >= totalPages - 1}
-              onClick={() => setPage(p => p + 1)}
+              disabled={safePage >= totalPages - 1}
+              onClick={() => setPage(safePage + 1)}
             />
           </Flex>
         </Flex>
@@ -309,6 +351,7 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const area = useAnalyticsArea();
   const {selection} = usePageFilters();
   const {toggleSelectAllVisible, deselectAll} = useIssueSelectionActions();
   const {pageSelected, anySelected, multiSelected, selectedIdsSet} =
@@ -389,8 +432,15 @@ function DrawerActionsBar({groupIds}: {groupIds: string[]}) {
       },
       {}
     );
+    trackAnalytics('issues_stream.merged', {
+      organization,
+      project_id: undefined,
+      platform: undefined,
+      items_merged: itemIds.length,
+      area,
+    });
     deselectAll();
-  }, [api, organization.slug, selectedIdsSet, selection, deselectAll]);
+  }, [api, area, organization, selectedIdsSet, selection, deselectAll]);
 
   const onShouldConfirm = useCallback(
     (action: ConfirmAction) => {

@@ -100,8 +100,8 @@ class TestDerivedCodeMappings(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.foo_repo = RepoAndBranch("Test-Organization/foo", "master")
-        self.bar_repo = RepoAndBranch("Test-Organization/bar", "main")
+        self.foo_repo = RepoAndBranch("Test-Organization/foo", "master", "1")
+        self.bar_repo = RepoAndBranch("Test-Organization/bar", "main", "2")
         self.code_mapping_helper = CodeMappingTreesHelper(
             {
                 self.foo_repo.name: RepoTree(self.foo_repo, files=SENTRY_FILES),
@@ -149,7 +149,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(frames)
         assert code_mappings == [
             CodeMapping(
-                repo=RepoAndBranch(name="Test-Organization/foo", branch="master"),
+                repo=RepoAndBranch(name="Test-Organization/foo", branch="master", external_id="1"),
                 stacktrace_root="sentry/",
                 source_path="src/sentry/",
             )

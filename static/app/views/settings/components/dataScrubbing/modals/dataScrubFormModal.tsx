@@ -142,7 +142,7 @@ export function DataScrubFormModal({
     onSubmit: async ({value}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
-      const newRules = onGetNewRules(ruleValues as EditableRule);
+      const newRules = onGetNewRules(ruleValues);
 
       try {
         const data = await submitRules(api, endpoint, newRules);
@@ -587,7 +587,7 @@ const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
     css`
       border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.tokens.border.primary};
-      box-shadow: ${p.theme.dropShadowMedium};
+      box-shadow: ${p.theme.shadow.medium};
       padding: ${p.theme.space.xl};
     `}
 `;

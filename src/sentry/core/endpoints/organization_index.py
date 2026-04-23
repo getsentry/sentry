@@ -383,7 +383,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 status=429,
             )
 
-        serializer = OrganizationPostSerializer(data=request.data)
+        serializer = OrganizationPostSerializer(data=request.data, context={"request": request})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -398,6 +398,9 @@ class OrganizationIndexEndpoint(Endpoint):
                     slug=result.get("slug") or result["name"],
                     owning_user_id=request.user.id,
                     create_default_team=create_default_team,
+                    ip_address=request.META["REMOTE_ADDR"],
+                    aggregated_data_consent=result.get("aggregatedDataConsent"),
+                    agree_terms=result.get("agreeTerms"),
                 ),
                 post_provision_options=PostProvisionOptions(
                     getsentry_options=None, sentry_options=None

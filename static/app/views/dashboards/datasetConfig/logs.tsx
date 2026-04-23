@@ -62,7 +62,7 @@ const DEFAULT_FIELD: QueryFieldValue = {
 const EAP_AGGREGATIONS = LOG_AGGREGATES.map(
   (x: {value: AggregationKey}) => x.value
 ).reduce(
-  (acc: Record<AggregationKey, Aggregation>, aggregate: AggregationKey) => {
+  (acc, aggregate) => {
     if (aggregate === AggregationKey.COUNT) {
       acc[AggregationKey.COUNT] = {
         isSortable: true,

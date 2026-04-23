@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,16 +18,15 @@ import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  useBulkMutateSelectedAgent,
-  useFetchAgentOptions,
-} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
@@ -37,6 +37,7 @@ interface Props {
 
 const COLUMNS = [
   {title: t('Project'), key: 'project', sortKey: 'project'},
+  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
   {
     title: ({organization}: {organization: Organization}) => (
       <Flex gap="sm" align="center">
@@ -48,9 +49,7 @@ const COLUMNS = [
               manageLink: (
                 <Link
                   to={{
-                    pathname: normalizeUrl(
-                      `/settings/${organization.slug}/integrations/`
-                    ),
+                    pathname: `/settings/${organization.slug}/integrations/`,
                     query: {category: 'coding agent'},
                   }}
                 >
@@ -68,17 +67,17 @@ const COLUMNS = [
   {
     title: (
       <Flex gap="sm" align="center">
-        {t('PR Creation')}
+        {t('Automation Steps')}
         <InfoTip
           title={t(
-            'This setting only applies when an Autofix Handoff is configured to run automatically.'
+            'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
           )}
         />
       </Flex>
     ),
-    key: 'pr_creation',
+    key: 'automation_steps',
+    sortKey: 'steps',
   },
-  {title: t('Repos'), key: 'repos', sortKey: 'repo_count'},
 ];
 
 function getMutationCallbacks(count: number) {
@@ -103,6 +102,7 @@ export function ProjectTableHeader({
   onSortClick,
   sort,
   updateBulkAutofixAutomationSettings,
+  agentOptions,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -125,7 +125,6 @@ export function ProjectTableHeader({
     [projects, selectedIds]
   );
 
-  const agentOptions = useFetchAgentOptions({organization});
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
 
   return (
@@ -188,29 +187,35 @@ export function ProjectTableHeader({
               triggerLabel={t('Agent')}
             />
             <DropdownMenu
-              isDisabled={!canWrite || organization.enableSeerCoding === false}
+              isDisabled={!canWrite}
               size="xs"
-              items={[
-                {
-                  key: 'open_pr',
-                  label: t('On'),
-                  onAction: () =>
+              items={PROJECT_STOPPING_POINT_OPTIONS.map(option => ({
+                key: option.value,
+                label: option.label,
+                onAction: () => {
+                  if (option.value === 'off') {
                     updateBulkAutofixAutomationSettings(
-                      {projectIds, automatedRunStoppingPoint: 'open_pr'},
+                      {projectIds, autofixAutomationTuning: 'off'},
                       getMutationCallbacks(projectIds.length)
-                    ),
-                },
-                {
-                  key: 'code_changes',
-                  label: t('Off'),
-                  onAction: () =>
+                    );
+                  } else {
+                    const stoppingPointMap = {
+                      root_cause: 'root_cause' as const,
+                      plan: 'code_changes' as const,
+                      create_pr: 'open_pr' as const,
+                    };
                     updateBulkAutofixAutomationSettings(
-                      {projectIds, automatedRunStoppingPoint: 'code_changes'},
+                      {
+                        projectIds,
+                        autofixAutomationTuning: 'medium',
+                        automatedRunStoppingPoint: stoppingPointMap[option.value],
+                      },
                       getMutationCallbacks(projectIds.length)
-                    ),
+                    );
+                  }
                 },
-              ]}
-              triggerLabel={t('Create PRs')}
+              }))}
+              triggerLabel={t('Automation Steps')}
             />
           </TableCellsRemainingContent>
         </TableHeader>

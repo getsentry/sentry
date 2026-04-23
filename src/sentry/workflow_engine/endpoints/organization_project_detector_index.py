@@ -68,7 +68,9 @@ class OrganizationProjectDetectorIndexEndpoint(ProjectEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        # Restrict creating metric issue detectors by plan type
+        # Restrict creating metric issue detectors by plan type.
+        # This is a coarse pre-check; the validator enforces the dataset-specific
+        # is_metric_subscription_allowed check after the dataset is validated.
         if detector_type == MetricIssue.slug and not features.has(
             "organizations:incidents", organization, actor=request.user
         ):

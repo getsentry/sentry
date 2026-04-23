@@ -68,6 +68,7 @@ from sentry.seer.assisted_query.issues_tools import (
     get_issue_filter_keys,
     get_issues_stats,
 )
+from sentry.seer.assisted_query.metrics_tools import get_metric_metadata
 from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
@@ -626,6 +627,7 @@ def trigger_coding_agent_launch(
             if features.has("organizations:seer-project-settings-dual-write", organization):
                 project = Project.objects.get_from_cache(id=project_id)
 
+                preference: SeerProjectPreference | None = None
                 if features.has(
                     "organizations:seer-project-settings-read-from-sentry", organization
                 ):
@@ -879,7 +881,7 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
     """Get Seer project preferences for a single project.
 
     Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
-    Returns None if the project has no configured preferences.
+    Returns None if the project has no preference row in Seer DB.
     """
     project = Project.objects.get_from_cache(id=project_id)
     if project.organization_id != organization_id:
@@ -887,13 +889,10 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> dict | 
 
     organization = Organization.objects.get_from_cache(id=organization_id)
     if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        preference = read_preference_from_sentry_db(project)
-    else:
-        preference = get_project_seer_preferences(project_id).preference
+        return read_preference_from_sentry_db(project).dict()
 
-    if preference is None:
-        return None
-    return preference.dict()
+    preference = get_project_seer_preferences(project_id).preference
+    return preference.dict() if preference else None
 
 
 def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
@@ -909,8 +908,8 @@ def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]
             str(project_id): preference.dict() if preference else None
             for project_id, preference in preferences.items()
         }
-    else:
-        return bulk_get_project_seer_preferences(organization_id, project_ids)
+
+    return bulk_get_project_seer_preferences(organization_id, project_ids)
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
@@ -943,6 +942,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_attribute_names": get_attribute_names,
     "get_attribute_values_with_substring": get_attribute_values_with_substring,
     "get_attributes_and_values": get_attributes_and_values,
+    "get_metric_metadata": get_metric_metadata,
     "get_issue_filter_keys": get_issue_filter_keys,
     "get_filter_key_values": get_filter_key_values,
     "get_issues_stats": get_issues_stats,

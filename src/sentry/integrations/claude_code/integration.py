@@ -7,16 +7,18 @@ and can be used by the coding agent system.
 
 from __future__ import annotations
 
+import hashlib
 import logging
-import uuid
 from collections.abc import Mapping, MutableMapping
 from typing import Any, Literal
 
-from django import forms
 from django.conf import settings as django_settings
+from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from pydantic import BaseModel, validator
+from rest_framework.fields import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -26,12 +28,14 @@ from sentry.integrations.base import (
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
-    CodingAgentPipelineView,
 )
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.utils.imports import import_string
@@ -126,31 +130,46 @@ def _build_environment_choices(
     return [("", default_label)] + filtered
 
 
-class ClaudeCodeApiKeyForm(forms.Form):
-    """Step 1: Collect the Anthropic API key."""
+def _build_external_id(organization_id: int) -> str:
+    digest = hashlib.sha256(f"{PROVIDER_KEY}:{organization_id}".encode()).hexdigest()
+    return digest[:32]
 
-    api_key = forms.CharField(
-        label=_("Anthropic API Key"),
-        help_text=_("Enter your Anthropic API key to use Claude Agent."),
-        widget=forms.PasswordInput(attrs={"placeholder": _("sk-ant-...")}),
-        max_length=255,
+
+def _delete_legacy_integrations(organization_id: int, external_id: str) -> None:
+    # Per-instance .delete() generates the cross-silo outboxes that bulk delete skips.
+    legacy_integration_ids = list(
+        OrganizationIntegration.objects.filter(
+            organization_id=organization_id,
+            integration__provider=PROVIDER_KEY,
+        )
+        .exclude(integration__external_id=external_id)
+        .values_list("integration_id", flat=True)
     )
+    for integration in Integration.objects.filter(id__in=legacy_integration_ids):
+        integration.delete()
 
 
-class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
-    """Pipeline step 1: Collect API key."""
+class ClaudeCodeApiKeySerializer(CamelSnakeSerializer):
+    api_key = CharField(required=True, max_length=255)
 
-    def get_form_class(self) -> type[forms.Form]:
-        return ClaudeCodeApiKeyForm
 
-    def get_template_name(self) -> str:
-        return "sentry/integrations/claude-code-config.html"
+class ClaudeCodeApiKeyApiStep:
+    step_name = "api_key_config"
 
-    def get_state_key(self) -> str:
-        return "api_key"
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
 
-    def bind_state(self, pipeline: IntegrationPipeline, form: forms.Form) -> None:
-        pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
+    def get_serializer_cls(self) -> type:
+        return ClaudeCodeApiKeySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("api_key", validated_data["api_key"])
+        return PipelineStepResult.advance()
 
 
 class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
@@ -166,7 +185,10 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     metadata = metadata
 
     def get_pipeline_views(self):
-        return [ClaudeCodeApiKeyPipelineView()]
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [ClaudeCodeApiKeyApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         api_key = state.get("api_key")
@@ -208,8 +230,13 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
             model=getattr(client, "model", None),
         )
 
+        assert self.pipeline.organization is not None
+        organization_id = self.pipeline.organization.id
+        external_id = _build_external_id(organization_id)
+        _delete_legacy_integrations(organization_id, external_id)
+
         return {
-            "external_id": uuid.uuid4().hex,
+            "external_id": external_id,
             "name": PROVIDER_NAME,
             "metadata": integration_metadata.dict(),
         }
@@ -259,16 +286,15 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
                 "choices": choices,
             },
             {
-                "name": "workspace_name",
-                "type": "text",
-                "label": _("Workspace Name"),
+                "name": "workspace_is_default",
+                "type": "boolean",
+                "label": _("I am using the default workspace"),
                 "help": _(
-                    "Your Anthropic workspace name (from platform.claude.com URL), used to link to session details. "
-                    "Defaults to 'default' — override this if your workspace has a different name."
+                    "Check this if your Anthropic workspace is named 'default'. "
+                    "When checked, an 'Open in Claude' link to the session is shown. "
+                    "Uncheck if you use a custom workspace name — the link will be hidden."
                 ),
                 "required": False,
-                "placeholder": "default",
-                "formatMessageValue": False,
             },
         ]
 
@@ -282,8 +308,8 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         if "environment_id" in data:
             metadata.environment_id = data["environment_id"] or None
 
-        if "workspace_name" in data:
-            metadata.workspace_name = data["workspace_name"] or None
+        if "workspace_is_default" in data:
+            metadata.workspace_name = "default" if data["workspace_is_default"] else None
 
         self._persist_metadata(metadata)
         super().update_organization_config({})
@@ -292,7 +318,7 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         metadata = self._get_metadata()
         return {
             "environment_id": metadata.environment_id or "",
-            "workspace_name": metadata.workspace_name or "",
+            "workspace_is_default": metadata.workspace_name == "default",
         }
 
     def get_client(self) -> Any:

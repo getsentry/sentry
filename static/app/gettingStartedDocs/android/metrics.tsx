@@ -34,7 +34,7 @@ export const metrics: OnboardingConfig<BasePlatformOptions> = {
         {
           type: 'text',
           text: tct(
-            "To start using metrics, make sure your Sentry Android SDK version is [version:8.30.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
+            "To start using metrics, make sure your Sentry Android SDK version is [version:8.34.0] or higher. If you're on an older version of the SDK, follow our [link:migration guide] to upgrade.",
             {
               version: <code />,
               link: (

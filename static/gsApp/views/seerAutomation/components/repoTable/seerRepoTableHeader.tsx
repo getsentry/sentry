@@ -1,16 +1,23 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
+import type {RepositoryWithSettings} from 'sentry/types/integrations';
+import type {CodeReviewTrigger} from 'sentry/types/seer';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
@@ -21,8 +28,11 @@ interface Props {
   gridColumns: string;
   isFetchingNextPage: boolean;
   isPending: boolean;
-  mutateRepositorySettings: ReturnType<typeof useBulkUpdateRepositorySettings>['mutate'];
+  mutateRepositorySettings: ReturnType<
+    typeof useBulkUpdateRepositorySettings
+  >['mutateAsync'];
   onSortClick: (key: Sort) => void;
+  repositories: RepositoryWithSettings[];
   sort: Sort;
 }
 
@@ -53,6 +63,7 @@ export function SeerRepoTableHeader({
   isPending,
   mutateRepositorySettings,
   onSortClick,
+  repositories,
   sort,
 }: Props) {
   const canWrite = useCanWriteSettings();
@@ -71,34 +82,163 @@ export function SeerRepoTableHeader({
     : undefined;
   const queryString = queryOptions?.query?.query;
 
-  const handleBulkCodeReview = (enabledCodeReview: boolean) => {
-    const repositoryIds = selectedIds === 'all' ? knownIds : selectedIds;
-    mutateRepositorySettings(
-      {
-        enabledCodeReview,
-        repositoryIds,
-      },
-      {
-        onError: () => {
-          addErrorMessage(
-            tn(
-              'Failed to update code review for %s repository',
-              'Failed to update code review for %s repositories',
-              repositoryIds.length
-            )
-          );
-        },
-        onSuccess: () => {
-          addSuccessMessage(
-            tn(
-              'Code review updated for %s repository',
-              'Code review updated for %s repositories',
-              repositoryIds.length
-            )
-          );
-        },
-      }
+  const selectedRepos = useMemo(() => {
+    if (selectedIds === 'all') {
+      return repositories;
+    }
+    return repositories.filter(repo => selectedIds.includes(repo.id));
+  }, [repositories, selectedIds]);
+
+  const currentCodeReviewValue = useMemo(() => {
+    const someEnabled = selectedRepos.some(repo => repo?.settings?.enabledCodeReview);
+    const someDisabled = selectedRepos.some(
+      repo => repo?.settings?.enabledCodeReview === false
     );
+    if (someEnabled && someDisabled) {
+      return undefined;
+    }
+    if (someEnabled) {
+      return 'enabled_code_review:enabled';
+    }
+    if (someDisabled) {
+      return 'enabled_code_review:disabled';
+    }
+    return undefined;
+  }, [selectedRepos]);
+
+  const currentTriggersValue = useMemo((): CodeReviewTrigger[] => {
+    const everyOnReadyForReview = selectedRepos.every(repo =>
+      repo?.settings?.codeReviewTriggers?.includes('on_ready_for_review')
+    );
+    const everyOnNewCommit = selectedRepos.every(repo =>
+      repo?.settings?.codeReviewTriggers?.includes('on_new_commit')
+    );
+    return [
+      ...(everyOnReadyForReview ? ['on_ready_for_review' as const] : []),
+      ...(everyOnNewCommit ? ['on_new_commit' as const] : []),
+    ];
+  }, [selectedRepos]);
+
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+
+  const handleBulkCodeReview = async (enabledCodeReview: boolean) => {
+    const repositoryIds = selectedIds === 'all' ? knownIds : selectedIds;
+    setIsBulkUpdating(true);
+    addLoadingMessage(
+      tn(
+        'Updating code review for %s repository…',
+        'Updating code review for %s repositories…',
+        repositoryIds.length
+      )
+    );
+    try {
+      await mutateRepositorySettings({enabledCodeReview, repositoryIds});
+      addSuccessMessage(
+        tn(
+          'Code review updated for %s repository',
+          'Code review updated for %s repositories',
+          repositoryIds.length
+        )
+      );
+    } catch {
+      addErrorMessage(
+        tn(
+          'Failed to update code review for %s repository',
+          'Failed to update code review for %s repositories',
+          repositoryIds.length
+        )
+      );
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const handleBulkTriggers = async ({
+    added,
+    removed,
+  }: {
+    added: CodeReviewTrigger | undefined;
+    removed: CodeReviewTrigger | undefined;
+  }) => {
+    const promises: Array<Promise<unknown>> = [];
+
+    if (added) {
+      const repoIdsWithZeroTriggers: string[] = [];
+      const repoIdsWithOneTrigger: string[] = [];
+      for (const repo of selectedRepos) {
+        if (!repo.settings?.codeReviewTriggers?.length) {
+          repoIdsWithZeroTriggers.push(repo.id);
+        } else if (!repo.settings?.codeReviewTriggers?.includes(added)) {
+          repoIdsWithOneTrigger.push(repo.id);
+        }
+      }
+      // Some items start with 0 triggers, they'll be saved with 1 new trigger
+      if (repoIdsWithZeroTriggers.length > 0) {
+        promises.push(
+          mutateRepositorySettings({
+            codeReviewTriggers: [added],
+            repositoryIds: repoIdsWithZeroTriggers,
+          })
+        );
+      }
+      // Some items start with 1 trigger, they'll be saved with 1 new trigger for a total of 2
+      if (repoIdsWithOneTrigger.length > 0) {
+        promises.push(
+          mutateRepositorySettings({
+            codeReviewTriggers: ['on_new_commit', 'on_ready_for_review'],
+            repositoryIds: repoIdsWithOneTrigger,
+          })
+        );
+      }
+    }
+    if (removed) {
+      const repoIdsWithOneTrigger: string[] = [];
+      const repoIdsWithTwoTriggers: string[] = [];
+      for (const repo of selectedRepos) {
+        if (repo.settings?.codeReviewTriggers?.length === 2) {
+          repoIdsWithTwoTriggers.push(repo.id);
+        } else if (repo.settings?.codeReviewTriggers?.includes(removed)) {
+          repoIdsWithOneTrigger.push(repo.id);
+        }
+      }
+      // Some items start with 2 triggers, we'll remove one
+      const remainingTrigger =
+        removed === 'on_new_commit' ? 'on_ready_for_review' : 'on_new_commit';
+      if (repoIdsWithTwoTriggers.length > 0) {
+        promises.push(
+          mutateRepositorySettings({
+            codeReviewTriggers: [remainingTrigger],
+            repositoryIds: repoIdsWithTwoTriggers,
+          })
+        );
+      }
+      // Some items start with 1 trigger, we'll remove it
+      if (repoIdsWithOneTrigger.length > 0) {
+        promises.push(
+          mutateRepositorySettings({
+            codeReviewTriggers: [],
+            repositoryIds: repoIdsWithOneTrigger,
+          })
+        );
+      }
+    }
+
+    if (promises.length === 0) {
+      return;
+    }
+
+    setIsBulkUpdating(true);
+    addLoadingMessage(t('Updating triggers…'));
+
+    const results = await Promise.allSettled(promises);
+    const hasError = results.some(r => r.status === 'rejected');
+    setIsBulkUpdating(false);
+
+    if (hasError) {
+      addErrorMessage(t('Failed to update triggers'));
+    } else {
+      addSuccessMessage(t('Triggers updated'));
+    }
   };
 
   return (
@@ -147,22 +287,62 @@ export function SeerRepoTableHeader({
             />
           </TableCellFirst>
           <TableCellsRemainingContent align="center" gap="md">
-            <DropdownMenu
-              isDisabled={!canWrite}
+            <CompactSelect
+              disabled={!canWrite}
               size="xs"
-              items={[
+              trigger={props => (
+                <OverlayTrigger.Button {...props}>
+                  {t('Code Review')}
+                </OverlayTrigger.Button>
+              )}
+              options={[
                 {
-                  key: 'on',
-                  label: t('On'),
-                  onAction: () => handleBulkCodeReview(true),
+                  value: 'enabled_code_review:enabled',
+                  label: t('Enable'),
+                  disabled: isBulkUpdating,
                 },
                 {
-                  key: 'off',
-                  label: t('Off'),
-                  onAction: () => handleBulkCodeReview(false),
+                  value: 'enabled_code_review:disabled',
+                  label: t('Disable'),
+                  disabled: isBulkUpdating,
                 },
               ]}
-              triggerLabel={t('Code Review')}
+              value={currentCodeReviewValue}
+              onChange={option => {
+                if (option.value === 'enabled_code_review:enabled') {
+                  handleBulkCodeReview(true);
+                } else {
+                  handleBulkCodeReview(false);
+                }
+              }}
+            />
+
+            <CompactSelect<CodeReviewTrigger>
+              disabled={!canWrite}
+              multiple
+              size="xs"
+              trigger={props => (
+                <OverlayTrigger.Button {...props}>{t('Triggers')}</OverlayTrigger.Button>
+              )}
+              options={[
+                {
+                  value: 'on_ready_for_review',
+                  label: t('On Ready for Review'),
+                  disabled: isBulkUpdating,
+                },
+                {
+                  value: 'on_new_commit',
+                  label: t('On New Commit'),
+                  disabled: isBulkUpdating,
+                },
+              ]}
+              value={currentTriggersValue}
+              onChange={option => {
+                const value = option.map(v => v.value);
+                const added = value.findLast(v => !currentTriggersValue.includes(v));
+                const removed = currentTriggersValue.findLast(v => !value.includes(v));
+                handleBulkTriggers({added, removed});
+              }}
             />
           </TableCellsRemainingContent>
         </TableHeader>

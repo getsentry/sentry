@@ -1,10 +1,7 @@
-import hashlib
-import hmac
 from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 
-import orjson
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
@@ -46,6 +43,13 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.security.orgauthtoken_token import hash_token
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    encode_viewer_context,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 class MockSuperUser:
@@ -328,17 +332,14 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
             )
             AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
 
-        context = orjson.dumps({"user_id": user.id, "actor_type": "user"}).decode()
-        signature = hmac.new(
-            self.VIEWER_CONTEXT_SHARED_SECRET.encode("utf-8"),
-            context.encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
+        context = encode_viewer_context(
+            ViewerContext(user_id=user.id, actor_type=ActorType.USER),
+            key=self.VIEWER_CONTEXT_SHARED_SECRET,
+        )
 
         request = RequestFactory().get("/api/0/organizations/")
         request.session = SessionBase()
         request.META["HTTP_X_VIEWER_CONTEXT"] = context
-        request.META["HTTP_X_VIEWER_CONTEXT_SIGNATURE"] = signature
 
         drf_request = drf_request_from_request(request)
         result = ViewerContextAuthentication().authenticate(drf_request)
@@ -414,6 +415,20 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
+    def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
+        request = drf_request_from_request(self.build_request(user=self.owner))
+        request._request.organization = None
+
+        with viewer_context_scope(ViewerContext(user_id=self.owner.id)):
+            self.endpoint.convert_args(request, self.org.slug)
+            ctx = get_viewer_context()
+
+        assert ctx is not None
+        assert ctx.user_id == self.owner.id
+        assert ctx.organization_id == self.org.id
 
 
 class GetProjectIdsTest(BaseOrganizationEndpointTest):

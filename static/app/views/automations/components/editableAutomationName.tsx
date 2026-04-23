@@ -1,29 +1,27 @@
+import {useContext} from 'react';
+
 import {EditableText} from 'sentry/components/editableText';
-import {FormField} from 'sentry/components/forms/formField';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function EditableAutomationName() {
+  const {form} = useContext(FormContext);
+  const value = useFormField<string>('name');
   const {setHasSetAutomationName} = useAutomationFormContext();
 
   return (
-    <FormField name="name" inline={false} flexibleControlStateSize stacked>
-      {({onChange, value}) => (
-        <EditableText
-          allowEmpty
-          value={value || ''}
-          onChange={newValue => {
-            // Mark that the user has manually set the automation name
-            setHasSetAutomationName(true);
-            onChange(newValue, {
-              target: {
-                value: newValue,
-              },
-            });
-          }}
-          placeholder={t('New Alert')}
-        />
-      )}
-    </FormField>
+    <EditableText
+      allowEmpty
+      aria-label={t('Alert Name')}
+      value={value || ''}
+      onChange={newValue => {
+        // Mark that the user has manually set the automation name
+        setHasSetAutomationName(true);
+        form?.setValue('name', newValue);
+      }}
+      placeholder={t('New Alert')}
+    />
   );
 }

@@ -190,7 +190,7 @@ export function DetectorListTable({
             {additionalColumns.map(col => (
               <Fragment key={col.id}>{col.renderHeaderCell()}</Fragment>
             ))}
-            {hasVisualization && (
+            {hasVisualization && detectors.length > 0 && (
               <VisualizationHeaderContainer
                 data-column-name="visualization"
                 ref={elementRef}
@@ -255,7 +255,7 @@ export function DetectorListTable({
             </StyledFlex>
           </SimpleTable.Empty>
         )}
-        {hasVisualization && (
+        {hasVisualization && detectors.length > 0 && (
           <PositionedGridLineOverlay
             stickyCursor
             allowZoom

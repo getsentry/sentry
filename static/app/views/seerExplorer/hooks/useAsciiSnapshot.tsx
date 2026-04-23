@@ -438,7 +438,7 @@ function processCharts(
         inst = echarts.getInstanceByDom(container as HTMLDivElement);
       }
       if (!inst && el.parentElement) {
-        inst = echarts.getInstanceByDom(el.parentElement as HTMLDivElement);
+        inst = echarts.getInstanceByDom(el.parentElement);
       }
       if (inst?.getDom && inst?.getOption) {
         const dom = inst.getDom();

@@ -20,7 +20,7 @@ export function SecondaryNavigationContent(): ReactNode {
       return <IssuesSecondaryNavigation />;
     case 'insights':
       if (organization.features.includes('insights-to-dashboards-ui-rollout')) {
-        return null;
+        return <DashboardsSecondaryNavigation />;
       }
       return <InsightsSecondaryNavigation />;
     case 'dashboards':

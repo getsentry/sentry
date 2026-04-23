@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -34,19 +36,25 @@ export function WorkflowEngineListLayout({
   return (
     <Stack flex={1}>
       <NoProjectMessage organization={organization}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Layout.Title>
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">
               {title}
               <PageHeadingQuestionTooltip docsUrl={docsUrl} title={description} />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          {hasPageFrameFeature ? (
+            </TopBar.Slot>
             <TopBar.Slot name="actions">{actions}</TopBar.Slot>
-          ) : (
+          </Fragment>
+        ) : (
+          <Layout.Header unified>
+            <Layout.HeaderContent>
+              <Layout.Title>
+                {title}
+                <PageHeadingQuestionTooltip docsUrl={docsUrl} title={description} />
+              </Layout.Title>
+            </Layout.HeaderContent>
             <Layout.HeaderActions>{actions}</Layout.HeaderActions>
-          )}
-        </Layout.Header>
+          </Layout.Header>
+        )}
         <Layout.Body>
           <Layout.Main width="full">
             <Flex direction="column" gap="lg">

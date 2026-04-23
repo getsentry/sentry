@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueries} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -12,7 +12,6 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
@@ -79,11 +78,11 @@ export function useReleases(
       const {url, options} = parseQueryKey(queryKey);
       return {
         queryKey,
-        queryFn: () => {
+        queryFn: (): Promise<TableData> => {
           return api.requestPromise(url, {
             method: 'GET',
             query: options?.query,
-          }) as Promise<TableData>;
+          });
         },
         staleTime: Infinity,
         enabled: isReady && !releaseResults.isPending,

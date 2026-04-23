@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -16,12 +16,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -74,20 +69,25 @@ function AccountSubscriptions() {
   return (
     <div>
       <SentryDocumentTitle title={subscriptionText} />
-      <SettingsPageHeader title={subscriptionText} />
-
-      <TextBlock>
-        {t(`Sentry is committed to respecting your inbox. Our goal is to
+      <SettingsPageHeader
+        title={subscriptionText}
+        subtitle={
+          <Stack gap="md">
+            <div>
+              {t(`Sentry is committed to respecting your inbox. Our goal is to
               provide useful content and resources that make fixing errors less
               painful. Enjoyable even.`)}
-      </TextBlock>
+            </div>
 
-      <TextBlock>
-        {t(`As part of our compliance with the EU's General Data Protection
+            <div>
+              {t(`As part of our compliance with the EU's General Data Protection
               Regulation (GDPR), starting on 25 May 2018, we'll only email you
               according to the marketing categories to which you've explicitly
               opted-in.`)}
-      </TextBlock>
+            </div>
+          </Stack>
+        }
+      />
 
       {subscriptions.length ? (
         <FormSearch route="/settings/account/subscriptions/">

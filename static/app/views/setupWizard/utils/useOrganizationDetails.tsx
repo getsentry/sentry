@@ -1,6 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, useQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationDetails({

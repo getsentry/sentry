@@ -22,9 +22,12 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.utils.snuba import SnubaError, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
+
+SNUBA_QUERY_MAX_ATTEMPTS = 3
 
 
 @instrumented_task(
@@ -280,8 +283,16 @@ def _batch_fetch_events(groups: Sequence[Group], organization_id: int) -> list[t
             )
         )
 
-    results = bulk_snuba_queries(
-        snuba_requests, referrer=Referrer.SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS.value
+    retry_policy = ConditionalRetryPolicy(
+        test_function=lambda attempt, exc: attempt < SNUBA_QUERY_MAX_ATTEMPTS
+        and isinstance(exc, SnubaError),
+        delay_function=exponential_delay(1.0),
+    )
+    results = retry_policy(
+        lambda: bulk_snuba_queries(
+            snuba_requests,
+            referrer=Referrer.SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS.value,
+        )
     )
 
     # Build unfetched Event objects from Snuba results, keeping groups aligned

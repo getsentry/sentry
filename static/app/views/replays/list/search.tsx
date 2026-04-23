@@ -34,7 +34,7 @@ export function ReplaysSearch() {
 
 const SearchContainer = styled('div')`
   flex: 1;
-  min-width: 400px;
+  min-width: 267px;
   max-width: 100%;
   width: auto;
 
