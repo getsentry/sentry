@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -9,7 +10,7 @@ import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
-import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {HydratedReplayRecord, ReplayListRecord} from 'sentry/views/replays/types';
