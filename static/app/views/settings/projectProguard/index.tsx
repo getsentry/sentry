@@ -2,6 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -15,6 +16,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -30,6 +32,7 @@ export default function ProjectProguard() {
   const {project} = useProjectSettingsOutlet();
   const location = useLocation();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -106,44 +109,59 @@ export default function ProjectProguard() {
           }
         )}
         action={
+          !hasPageFrameFeature && (
+            <SearchBar
+              placeholder={t('Filter mappings')}
+              onSearch={handleSearch}
+              query={query}
+              width="280px"
+            />
+          )
+        }
+      />
+
+      <Flex direction="column" gap="md">
+        {hasPageFrameFeature && (
           <SearchBar
             placeholder={t('Filter mappings')}
             onSearch={handleSearch}
             query={query}
-            width="280px"
           />
-        }
-      />
+        )}
+        <StyledPanelTable
+          headers={[
+            t('Mapping'),
+            <SizeColumn key="size">{t('File Size')}</SizeColumn>,
+            '',
+          ]}
+          emptyMessage={
+            query
+              ? t('There are no mappings that match your search.')
+              : t('There are no mappings for this project.')
+          }
+          isEmpty={mappings?.length === 0}
+          isLoading={isLoading}
+        >
+          {mappings?.length
+            ? mappings.map(mapping => {
+                const downloadUrl = `${api.baseUrl}/projects/${
+                  organization.slug
+                }/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
 
-      <StyledPanelTable
-        headers={[t('Mapping'), <SizeColumn key="size">{t('File Size')}</SizeColumn>, '']}
-        emptyMessage={
-          query
-            ? t('There are no mappings that match your search.')
-            : t('There are no mappings for this project.')
-        }
-        isEmpty={mappings?.length === 0}
-        isLoading={isLoading}
-      >
-        {mappings?.length
-          ? mappings.map(mapping => {
-              const downloadUrl = `${api.baseUrl}/projects/${
-                organization.slug
-              }/${project.slug}/files/dsyms/?id=${encodeURIComponent(mapping.id)}`;
-
-              return (
-                <ProjectProguardRow
-                  mapping={mapping}
-                  downloadUrl={downloadUrl}
-                  onDelete={handleDelete}
-                  key={mapping.id}
-                  orgSlug={organization.slug}
-                />
-              );
-            })
-          : null}
-      </StyledPanelTable>
-      <Pagination pageLinks={mappingsPageLinks} />
+                return (
+                  <ProjectProguardRow
+                    mapping={mapping}
+                    downloadUrl={downloadUrl}
+                    onDelete={handleDelete}
+                    key={mapping.id}
+                    orgSlug={organization.slug}
+                  />
+                );
+              })
+            : null}
+        </StyledPanelTable>
+        <Pagination pageLinks={mappingsPageLinks} />
+      </Flex>
     </Fragment>
   );
 }

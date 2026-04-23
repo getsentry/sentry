@@ -5,14 +5,12 @@ import contextvars
 import dataclasses
 import enum
 import hashlib
-import hmac
 import logging
 import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
-import orjson
 import sentry_sdk
 from django.conf import settings
 
@@ -275,45 +273,17 @@ def decode_viewer_context(
 
 
 def viewer_context_from_header(
-    header_value: str, signature: str | None = None
+    header_value: str,
 ) -> ViewerContext | None:
-    """Decode a ViewerContext from ``X-Viewer-Context`` header(s).
+    """Decode a ViewerContext from the JWT ``X-Viewer-Context`` header."""
+    if not is_jwt_viewer_context(header_value):
+        return None
 
-    Dual-mode for migration:
-    - JWT (HS256) — new format, self-contained
-    - Raw JSON + ``X-Viewer-Context-Signature`` HMAC — legacy format
-    """
-    if is_jwt_viewer_context(header_value):
-        try:
-            return decode_viewer_context(header_value)
-        except Exception:
-            logger.warning("viewer_context.jwt_decode_failed", exc_info=True)
-            return None
-
-    # Legacy: raw JSON + HMAC signature
-    if signature is not None:
-        return _verify_legacy_viewer_context(header_value, signature)
-
-    return None
-
-
-def _verify_legacy_viewer_context(context_json: str, signature: str) -> ViewerContext | None:
-    """Verify and decode a legacy JSON + HMAC-signed viewer context."""
-    keys_by_kid = _get_verification_keys()
-    context_bytes = context_json.encode("utf-8")
-
-    for key in keys_by_kid.values():
-        computed = hmac.new(key.encode("utf-8"), context_bytes, hashlib.sha256).hexdigest()
-        if hmac.compare_digest(computed, signature):
-            try:
-                data = orjson.loads(context_bytes)
-                return ViewerContext.deserialize(data)
-            except Exception:
-                logger.warning("viewer_context.legacy_decode_failed", exc_info=True)
-                return None
-
-    logger.warning("viewer_context.legacy_signature_mismatch")
-    return None
+    try:
+        return decode_viewer_context(header_value)
+    except Exception:
+        logger.warning("viewer_context.jwt_decode_failed", exc_info=True)
+        return None
 
 
 def is_jwt_viewer_context(header_value: str) -> bool:

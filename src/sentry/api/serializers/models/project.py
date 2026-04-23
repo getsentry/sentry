@@ -965,6 +965,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     tempestFetchScreenshots: NotRequired[bool]
     autofixAutomationTuning: NotRequired[str]
     seerScannerAutomation: NotRequired[bool]
+    seerNightshiftTweaks: NotRequired[Any]
     scmSourceContextEnabled: NotRequired[bool]
     debugFilesRole: NotRequired[str | None]
 
@@ -1123,6 +1124,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "seerScannerAutomation": self.get_value_with_default(
                 attrs, "sentry:seer_scanner_automation"
+            ),
+            "seerNightshiftTweaks": self.get_value_with_default(
+                attrs, "sentry:seer_nightshift_tweaks"
             ),
             "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
             "scmSourceContextEnabled": self.get_value_with_default(

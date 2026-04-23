@@ -3,11 +3,11 @@ from unittest.mock import patch
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.seer.entrypoints.cache import (
+    AGENT_CACHE_TIMEOUT_SECONDS,
     AUTOFIX_CACHE_TIMEOUT_SECONDS,
-    EXPLORER_CACHE_TIMEOUT_SECONDS,
     CacheHaltReason,
+    SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
-    SeerOperatorExplorerCache,
 )
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.testutils.cases import TestCase
@@ -227,20 +227,20 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         mock_cache.delete.assert_called_once_with(self.pre_cache_key)
 
 
-class SeerOperatorExplorerCacheTest(TestCase):
+class SeerOperatorAgentCacheTest(TestCase):
     def setUp(self) -> None:
         self.entrypoint_key = str(SeerEntrypointKey.SLACK)
-        self.cache_key = SeerOperatorExplorerCache._get_cache_key(
+        self.cache_key = SeerOperatorAgentCache._get_cache_key(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
     def test_get_cache_key(self) -> None:
-        assert self.cache_key == f"seer:explorer:{self.entrypoint_key}:{MOCK_RUN_ID}"
+        assert self.cache_key == f"seer:agent:{self.entrypoint_key}:{MOCK_RUN_ID}"
 
     @patch("sentry.seer.entrypoints.cache.cache.set")
     def test_set(self, mock_cache_set):
-        payload = MockCachePayload(thread_id="explorer_payload")
-        SeerOperatorExplorerCache.set(
+        payload = MockCachePayload(thread_id="agent_payload")
+        SeerOperatorAgentCache.set(
             entrypoint_key=self.entrypoint_key,
             run_id=MOCK_RUN_ID,
             cache_payload=payload,
@@ -248,19 +248,16 @@ class SeerOperatorExplorerCacheTest(TestCase):
         mock_cache_set.assert_called_once_with(
             self.cache_key,
             payload,
-            timeout=EXPLORER_CACHE_TIMEOUT_SECONDS,
+            timeout=AGENT_CACHE_TIMEOUT_SECONDS,
         )
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
     def test_get(self, mock_cache_get):
-        payload = MockCachePayload(thread_id="explorer_payload")
-        mock_cache_get.return_value = payload
+        payload = MockCachePayload(thread_id="agent_payload")
+        mock_cache_get.side_effect = lambda k: payload if k == self.cache_key else None
 
-        result = SeerOperatorExplorerCache.get(
-            entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
-        )
+        result = SeerOperatorAgentCache.get(entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID)
 
-        mock_cache_get.assert_called_once_with(self.cache_key)
         assert result == payload
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
@@ -268,9 +265,7 @@ class SeerOperatorExplorerCacheTest(TestCase):
     def test_get_cache_miss(self, mock_cache_get, mock_record_halt):
         mock_cache_get.return_value = None
 
-        result = SeerOperatorExplorerCache.get(
-            entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
-        )
+        result = SeerOperatorAgentCache.get(entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID)
 
         assert result is None
         mock_record_halt.assert_called_once_with(halt_reason=CacheHaltReason.CACHE_MISS)

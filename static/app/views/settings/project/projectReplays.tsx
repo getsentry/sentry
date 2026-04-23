@@ -16,6 +16,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -35,6 +36,7 @@ const ReplaySettingsAlert = HookOrDefault({
 export default function ProjectReplaySettings() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const hasAdminAccess = hasEveryAccess(['project:admin'], {organization, project});
@@ -65,12 +67,14 @@ export default function ProjectReplaySettings() {
         <SettingsPageHeader
           title={t('Replays')}
           action={
-            <LinkButton
-              external
-              href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
-            >
-              {t('Read the Docs')}
-            </LinkButton>
+            !hasPageFrameFeature && (
+              <LinkButton
+                external
+                href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
+              >
+                {t('Read the Docs')}
+              </LinkButton>
+            )
           }
         />
         <TabsWithGap
