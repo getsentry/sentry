@@ -166,6 +166,26 @@ class ResultsHeader extends Component<Props, State> {
       </Fragment>
     );
 
+    const pageFrameBreadcrumb = (
+      <Fragment>
+        <DiscoverBreadcrumb
+          eventView={eventView}
+          organization={organization}
+          location={location}
+          isHomepage={isHomepage}
+          lastCrumbLabel={
+            <EventInputName
+              savedQuery={savedQuery}
+              organization={organization}
+              eventView={eventView}
+              isHomepage={isHomepage}
+              compact
+            />
+          }
+        />
+      </Fragment>
+    );
+
     const breadcrumbAndInput = (
       <Fragment>
         <DiscoverBreadcrumb
@@ -174,12 +194,14 @@ class ResultsHeader extends Component<Props, State> {
           location={location}
           isHomepage={isHomepage}
         />
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-          isHomepage={isHomepage}
-        />
+        <Layout.Title>
+          <EventInputName
+            savedQuery={savedQuery}
+            organization={organization}
+            eventView={eventView}
+            isHomepage={isHomepage}
+          />
+        </Layout.Title>
       </Fragment>
     );
 
@@ -191,7 +213,7 @@ class ResultsHeader extends Component<Props, State> {
               {isHomepage ? (
                 <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
               ) : hasDiscoverQueryFeature ? (
-                breadcrumbAndInput
+                pageFrameBreadcrumb
               ) : (
                 title
               )}

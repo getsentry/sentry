@@ -17,6 +17,7 @@ type Props = {
   organization: Organization;
   event?: Event;
   isHomepage?: boolean;
+  lastCrumbLabel?: React.ReactNode;
 };
 
 export function DiscoverBreadcrumb({
@@ -25,6 +26,7 @@ export function DiscoverBreadcrumb({
   organization,
   location,
   isHomepage,
+  lastCrumbLabel,
 }: Props) {
   const crumbs: Crumb[] = [];
   const discoverTarget = organization.features.includes('discover-query')
@@ -58,7 +60,7 @@ export function DiscoverBreadcrumb({
     }
     crumbs.push({
       to: eventView.getResultsViewUrlTarget(organization, isHomepage),
-      label: eventView.name || '',
+      label: lastCrumbLabel ?? (eventView.name || ''),
     });
   }
 
