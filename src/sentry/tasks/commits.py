@@ -106,6 +106,7 @@ def fetch_commits_for_compare_range(
     start_sha: str,
     end_sha: str,
     user: RpcUser | None,
+    task_extra: Mapping[str, Any],
 ) -> list[dict[str, Any]]:
     cache_enabled = (
         isinstance(repo.provider, str) and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
@@ -119,6 +120,12 @@ def fetch_commits_for_compare_range(
         logger.info(
             "fetch_commits.compare_commits_cache_hit",
             extra={
+                "organization_id": task_extra.get("organization_id"),
+                "user_id": task_extra.get("user_id"),
+                "repository": repo.name,
+                "provider": provider.id,
+                "start_sha": start_sha,
+                "end_sha": end_sha,
                 "compare_commits_cache_hit": cached_repo_commits is not None,
                 "cache_key": cache_key,
             },
@@ -310,6 +317,7 @@ def fetch_commits_for_ref_with_lifecycle(
                         start_sha=start_sha,
                         end_sha=end_sha,
                         user=user,
+                        task_extra=task_extra,
                     )
             except NotImplementedError:
                 repo_commits = None
@@ -367,7 +375,6 @@ def fetch_commits(
     extra = {
         "organization_id": release.organization_id,
         "user_id": user_id,
-        "refs": refs,
         "num_refs": len(refs),
         "prev_release_id": prev_release_id,
     }
