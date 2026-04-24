@@ -26,7 +26,7 @@ jest.mock('sentry/actionCreators/indicator', () => ({
 
 const mockDownloadLogs = jest.fn();
 
-jest.mock('sentry/views/explore/logs/downloadLogs', () => ({
+jest.mock('sentry/views/explore/logs/exports/downloadLogs', () => ({
   get downloadLogs() {
     return mockDownloadLogs;
   },

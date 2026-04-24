@@ -12,7 +12,7 @@ import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
-import {downloadLogs} from 'sentry/views/explore/logs/downloadLogs';
+import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {
   generateLogExportRowCountOptions,
   ROW_COUNT_VALUE_SYNC_LIMIT,
