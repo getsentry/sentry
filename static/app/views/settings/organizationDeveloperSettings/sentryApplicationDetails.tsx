@@ -222,9 +222,12 @@ export default function SentryApplicationDetails() {
   const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
 
   const headerTitle = () => {
-    const action = app ? 'Edit' : 'Create';
-    const type = isInternal() ? 'Internal' : 'Public';
-    return tct('[action] [type] Integration', {action, type});
+    if (app) {
+      return isInternal() ? t('Edit Internal Integration') : t('Edit Public Integration');
+    }
+    return isInternal()
+      ? t('Create Internal Integration')
+      : t('Create Public Integration');
   };
 
   const handleSubmitSuccess = (data: SentryApp) => {
