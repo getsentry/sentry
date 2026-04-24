@@ -2,7 +2,6 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
 import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -241,9 +240,7 @@ export function Context({
       ) : null}
 
       {hasContextVars && (
-        <StyledClippedBox clipHeight={100}>
-          <FrameVariables platform={platform} data={frame.vars} meta={frameMeta?.vars} />
-        </StyledClippedBox>
+        <FrameVariables platform={platform} data={frame.vars} meta={frameMeta?.vars} />
       )}
 
       {hasContextRegisters && (
@@ -258,10 +255,6 @@ export function Context({
     </Wrapper>
   );
 }
-
-const StyledClippedBox = styled(ClippedBox)`
-  padding: 0;
-`;
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${p => p.theme.space.md};

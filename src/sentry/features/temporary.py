@@ -182,6 +182,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:more-workflows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Normalize segment names during span enrichment
     manager.add("organizations:normalize_segment_names_in_span_enrichment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Extract local variable info from native crash debug info (DWARF/PDB)
+    manager.add("organizations:native-local-variables", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics
     manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extract on demand metrics (experimental features)
