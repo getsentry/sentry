@@ -647,6 +647,7 @@ export function GlobalCommandPaletteActions() {
       >
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
+          keywords={['docs', 'documentation']}
           to="https://docs.sentry.io"
         />
         <CMDKAction

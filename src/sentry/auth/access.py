@@ -1177,7 +1177,9 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
         return SystemAccess()
     elif auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
-            auth.organization_id, settings.SENTRY_SCOPES, sso_is_valid=True
+            auth.organization_id,  # type: ignore[arg-type]
+            settings.SENTRY_SCOPES,
+            sso_is_valid=True,
         )
     else:
         return DEFAULT

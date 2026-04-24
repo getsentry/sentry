@@ -66,7 +66,7 @@ class ReconnectingMemcache(PyMemcacheCache):
                 state = None
 
         if state is None:
-            client = self._class(self.client_servers, **self._options)
+            client = self._class(self.client_servers, **self._options)  # type: ignore[arg-type]
             state = _BackendState(
                 thread_id=current_tid,
                 created_at=time.time(),
