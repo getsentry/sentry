@@ -104,7 +104,12 @@ def _get_missing_scope_settings_url(
     except Organization.DoesNotExist:
         return None
 
-    cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    # TODO: remove the legacy check once MISSING_SCOPE_FOOTER_CACHE_TIMEOUT has elapsed since deploy.
+    legacy_cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    if cache.get(legacy_cache_key):
+        return None
+
+    cache_key = f"seer:agent:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
     if not cache.add(cache_key, True, timeout=MISSING_SCOPE_FOOTER_CACHE_TIMEOUT):
         return None
 

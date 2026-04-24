@@ -73,6 +73,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             project=self.project,
             integration_id=self.integration.id,
             name="Example/rad-repo",
+            external_id="rad-repo",
         )
 
         response = self.client.get(self.path, format="json", data={"installableOnly": "true"})
@@ -123,6 +124,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             project=self.project,
             integration_id=self.integration.id,
             name="Example/rad-repo",
+            external_id="rad-repo",
         )
 
         response = self.client.get(self.path, format="json", data={"installableOnly": "true"})
@@ -164,7 +166,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                 "name": "rad-repo",
                 "identifier": "Example2/rad-repo",
                 "default_branch": "dev",
-                "external_id": "rad-repo",
+                "external_id": "example2-rad-repo",
             },
         ]
 
@@ -172,6 +174,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             project=self.project,
             integration_id=self.integration.id,
             name="Example/rad-repo",
+            external_id="rad-repo",
         )
 
         response = self.client.get(self.path, format="json")
@@ -191,7 +194,7 @@ class OrganizationIntegrationReposTest(APITestCase):
                     "name": "rad-repo",
                     "identifier": "Example2/rad-repo",
                     "defaultBranch": "dev",
-                    "externalId": "rad-repo",
+                    "externalId": "example2-rad-repo",
                     "isInstalled": False,
                     "url": None,
                 },
@@ -316,6 +319,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             project=self.project,
             integration_id=self.integration.id,
             name="Example/rad-repo",
+            external_id="rad-repo",
         )
 
         response = self.client.get(
@@ -339,6 +343,42 @@ class OrganizationIntegrationReposTest(APITestCase):
             ],
             "searchable": True,
         }
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_is_installed_matches_on_external_id_after_rename(
+        self, get_repositories: MagicMock
+    ) -> None:
+        """
+        When a repo is renamed at the provider, the API returns the new
+        identifier while the stored Repository row still has the old name.
+        isInstalled should match on the stable external_id.
+        """
+        get_repositories.return_value = [
+            {
+                "name": "new-name",
+                "identifier": "Example/new-name",
+                "default_branch": "main",
+                "external_id": "rad-repo",
+            },
+        ]
+
+        self.create_repo(
+            project=self.project,
+            integration_id=self.integration.id,
+            name="Example/old-name",
+            external_id="rad-repo",
+        )
+
+        response = self.client.get(self.path, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["repos"][0]["isInstalled"] is True
+
+        response = self.client.get(self.path, format="json", data={"installableOnly": "true"})
+        assert response.status_code == 200, response.content
+        assert response.data["repos"] == []
 
     def test_no_repository_method(self) -> None:
         integration = self.create_integration(

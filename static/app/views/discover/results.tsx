@@ -980,8 +980,11 @@ function DiscoverContextMenu({
     [organization.slug]
   );
 
+  const hasDiscoverQueryFeature = organization.features.includes('discover-query');
+
   const {data: homepageQuery} = useApiQuery<SavedQuery | undefined>(homepageQueryKey, {
     staleTime: 0,
+    enabled: hasDiscoverQueryFeature,
   });
 
   const normalizedHomepageQuery = homepageQuery

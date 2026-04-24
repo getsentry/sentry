@@ -12,7 +12,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
@@ -113,17 +113,26 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
         super().setUp()
         self.project = self.create_project()
         self.validator_class = BaseDetectorTypeValidator
+        self.registry_patcher = mock.patch(
+            "sentry.issues.grouptype.registry", new=GroupTypeRegistry()
+        )
+        self.registry_patcher.__enter__()
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.registry_patcher.__exit__(None, None, None)
 
     def test_validate_type_valid(self) -> None:
+        class TestGroupType(GroupType):
+            type_id = 1
+            slug = "test_type"
+            description = "no handler"
+            category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.METRIC.value
+            detector_settings = DetectorSettings(validator=MetricIssueDetectorValidator)
+
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
-            mock_get_by_slug.return_value = GroupType(
-                type_id=1,
-                slug="test_type",
-                description="no handler",
-                category=GroupCategory.METRIC_ALERT.value,
-                category_v2=GroupCategory.METRIC.value,
-                detector_settings=DetectorSettings(validator=MetricIssueDetectorValidator),
-            )
+            mock_get_by_slug.return_value = TestGroupType
             validator = self.validator_class()
             result = validator.validate_type("test_type")
             assert result == mock_get_by_slug.return_value
@@ -138,14 +147,15 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 validator.validate_type("unknown_type")
 
     def test_validate_type_incompatible(self) -> None:
+        class TestGroupType(GroupType):
+            type_id = 1
+            slug = "test_type"
+            description = "no handler"
+            category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.METRIC.value
+
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
-            mock_get_by_slug.return_value = GroupType(
-                type_id=1,
-                slug="test_type",
-                description="no handler",
-                category=GroupCategory.METRIC_ALERT.value,
-                category_v2=GroupCategory.METRIC.value,
-            )
+            mock_get_by_slug.return_value = TestGroupType
             validator = self.validator_class()
             with pytest.raises(
                 ValidationError,

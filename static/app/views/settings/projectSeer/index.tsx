@@ -36,7 +36,6 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -217,7 +216,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         orgSlug: organization.slug,
         projectSlug: project.slug,
       });
-      queryClient.setQueryData<ApiResponse<Project>>(projectSettingsQueryKey, prev => ({
+      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
         headers: prev?.headers ?? {},
         json: resp,
       }));
