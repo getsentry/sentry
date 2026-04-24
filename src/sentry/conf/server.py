@@ -1900,6 +1900,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
 # for user roles.
 SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     [
+        "org:ci",  # CI workflows, releases, source maps, and code mappings
         "project:distribution",  # App distribution/preprod artifacts
     ]
 )
@@ -1909,6 +1910,12 @@ SENTRY_SCOPE_SETS = (
         ("org:admin", "Read, write, and admin access to organization details."),
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
+    ),
+    (
+        (
+            "org:ci",
+            "Access to CI workflows including source map uploads, release creation, and code mappings.",
+        ),
     ),
     (
         (

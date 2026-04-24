@@ -341,27 +341,19 @@ export async function openWidgetViewerModal({
   ...options
 }: DataWidgetViewerModalOptions & {onClose?: () => void}) {
   if (options.widget.displayType === DisplayType.TEXT) {
-    const {
-      default: Modal,
-      modalCss,
-      backdropCss,
-    } = await import('sentry/components/modals/textWidgetViewerModal');
+    const {default: Modal, modalCss} =
+      await import('sentry/components/modals/textWidgetViewerModal');
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
-      backdropCss,
       onClose,
     });
   } else {
-    const {
-      default: Modal,
-      modalCss,
-      backdropCss,
-    } = await import('sentry/components/modals/dataWidgetViewerModal');
+    const {default: Modal, modalCss} =
+      await import('sentry/components/modals/dataWidgetViewerModal');
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
-      backdropCss,
       onClose,
     });
   }
