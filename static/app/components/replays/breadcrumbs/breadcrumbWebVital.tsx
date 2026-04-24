@@ -11,7 +11,7 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isCLSFrame, isWebVitalFrame} from 'sentry/utils/replays/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
 type LayoutShift = Record<string, ReactNode[]>;

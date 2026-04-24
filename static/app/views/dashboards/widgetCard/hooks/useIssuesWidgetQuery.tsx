@@ -1,15 +1,12 @@
-import {useCallback, useMemo, useRef} from 'react';
-import {queryOptions, useQueries} from '@tanstack/react-query';
+import {useMemo, useRef} from 'react';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {Group} from 'sentry/types/group';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
@@ -59,8 +56,12 @@ export function useIssuesSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -70,9 +71,6 @@ export function useIssuesSeriesQuery(
         getReferrer(filteredWidget.displayType),
         widgetInterval
       );
-
-      requestData.generatePathname = () =>
-        `/organizations/${organization.slug}/issues-timeseries/`;
 
       requestData.queryExtras = {
         ...requestData.queryExtras,
@@ -103,70 +101,45 @@ export function useIssuesSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues-timeseries/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<IssuesSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/issues-timeseries/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<IssuesSeriesResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<IssuesSeriesResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<IssuesSeriesResponse>(context);
         },
-      ] satisfies ApiQueryKey;
-    });
-
-    return keys;
-  }, [filteredWidget, organization, pageFilters, widgetInterval]);
-
-  const createQueryFn = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<IssuesSeriesResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: async () => {
-                try {
-                  const result = await fetchDataQuery<IssuesSeriesResponse>(context);
-                  resolve(result);
-                } catch (error) {
-                  reject(error instanceof Error ? error : new Error(String(error)));
-                }
-              },
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchDataQuery<IssuesSeriesResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFn(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        select: selectJsonWithHeaders,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data?.json);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -182,11 +155,11 @@ export function useIssuesSeriesQuery(
     const rawData: IssuesSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data?.json) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data.json;
       rawData[requestIndex] = responseData;
 
       const transformedResult = IssuesConfig.transformSeries!(

@@ -1,0 +1,492 @@
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
+import type {Location} from 'history';
+
+import {Alert} from '@sentry/scraps/alert';
+import {Stack} from '@sentry/scraps/layout';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+
+import Feature from 'sentry/components/acl/feature';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import * as Layout from 'sentry/components/layouts/thirds';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Pagination} from 'sentry/components/pagination';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
+import {
+  ContinuousProfilingBetaAlertBanner,
+  ContinuousProfilingBetaSDKAlertBanner,
+  ProfilingBetaAlertBanner,
+} from 'sentry/components/profiling/billing/alerts';
+import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {useProfileEventsApiOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
+import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+
+import {LandingWidgetSelector} from './landing/landingWidgetSelector';
+import type {DataState} from './useLandingAnalytics';
+import {useLandingAnalytics} from './useLandingAnalytics';
+
+const LEFT_WIDGET_CURSOR = 'leftCursor';
+const RIGHT_WIDGET_CURSOR = 'rightCursor';
+const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
+
+function validateTab(tab: unknown): tab is 'flamegraph' | 'transactions' {
+  return tab === 'flamegraph' || tab === 'transactions';
+}
+
+function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
+  // Fallback to transactions if tab is invalid. We default to transactions
+  // because that is going to be the most common perf setup when we release.
+  return validateTab(tab) ? tab : 'transactions';
+}
+
+export default function ProfilingContent() {
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const dispatchDataState = useLandingAnalytics();
+  const updateWidget1DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget1Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateWidget2DataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'widget2Data',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateFlamegraphDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'flamegraphData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+  const updateTransactionsTableDataState = useCallback(
+    (dataState: DataState) =>
+      dispatchDataState({
+        dataKey: 'transactionsTableData',
+        dataState,
+      }),
+    [dispatchDataState]
+  );
+
+  const showOnboardingPanel = useMemo(() => {
+    return shouldShowProfilingOnboardingPanel(selection, projects);
+  }, [selection, projects]);
+
+  const tab = decodeTab(location.query.tab);
+
+  const onTabChange = (newTab: 'flamegraph' | 'transactions') => {
+    // make sure to reset the state of the tabs
+    dispatchDataState({
+      dataKey: 'flamegraphData',
+      dataState: 'pending',
+    });
+    dispatchDataState({
+      dataKey: 'transactionsTableData',
+      dataState: 'pending',
+    });
+
+    trackAnalytics('profiling_views.landing.tab_change', {
+      organization,
+      tab: newTab,
+    });
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        tab: newTab,
+      },
+    });
+  };
+
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI],
+  });
+  const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
+
+  return (
+    <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
+      <PageFiltersContainer
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        defaultSelection={
+          datePageFilterProps.defaultPeriod
+            ? {
+                datetime: {
+                  period: datePageFilterProps.defaultPeriod,
+                  start: null,
+                  end: null,
+                  utc: null,
+                },
+              }
+            : undefined
+        }
+      >
+        <Stack flex={1}>
+          <ProfilingBetaAlertBanner organization={organization} />
+          <Feature features="continuous-profiling-beta-ui">
+            <ContinuousProfilingBetaAlertBanner organization={organization} />
+            <ContinuousProfilingBetaSDKAlertBanner />
+          </Feature>
+          <ProfilingContentPageHeader />
+          <LayoutBody>
+            <LayoutMain width="full">
+              <ActionBar>
+                <PageFilterBar condensed>
+                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={CURSOR_PARAMS}
+                  />
+                </PageFilterBar>
+              </ActionBar>
+              {showOnboardingPanel ? (
+                <Onboarding />
+              ) : (
+                <Fragment>
+                  {organization.features.includes(
+                    'profiling-global-suspect-functions'
+                  ) && (
+                    <WidgetsContainer>
+                      <LandingWidgetSelector
+                        cursorName={LEFT_WIDGET_CURSOR}
+                        widgetHeight="410px"
+                        defaultWidget="slowest functions"
+                        storageKey="profiling-landing-widget-0"
+                        onDataState={updateWidget1DataState}
+                      />
+                      <LandingWidgetSelector
+                        cursorName={RIGHT_WIDGET_CURSOR}
+                        widgetHeight="410px"
+                        defaultWidget={
+                          organization.features.includes('profiling-function-trends')
+                            ? 'regressed functions'
+                            : 'slowest functions avg'
+                        }
+                        storageKey="profiling-landing-widget-1"
+                        onDataState={updateWidget2DataState}
+                      />
+                    </WidgetsContainer>
+                  )}
+                  <div>
+                    <Tabs value={tab} onChange={onTabChange}>
+                      <TabList>
+                        <TabList.Item key="transactions">
+                          {t('Transactions')}
+                          <StyledQuestionTooltip
+                            position="top"
+                            size="sm"
+                            title={t(
+                              'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
+                            )}
+                          />
+                        </TabList.Item>
+                        <TabList.Item key="flamegraph">
+                          {t('Aggregate Flamegraph')}
+                          <StyledQuestionTooltip
+                            position="top"
+                            size="sm"
+                            title={t(
+                              'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                            )}
+                          />
+                        </TabList.Item>
+                      </TabList>
+                    </Tabs>
+                  </div>
+                  {tab === 'flamegraph' ? (
+                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
+                  ) : (
+                    <TransactionsTab
+                      location={location}
+                      selection={selection}
+                      onDataState={updateTransactionsTableDataState}
+                    />
+                  )}
+                </Fragment>
+              )}
+            </LayoutMain>
+          </LayoutBody>
+        </Stack>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
+  );
+}
+
+interface ProfilingTabProps {
+  onDataState?: (dataState: DataState) => void;
+}
+
+interface TabbedContentProps extends ProfilingTabProps {
+  location: Location;
+  selection: PageFilters;
+}
+
+function TransactionsTab({onDataState, location, selection}: TabbedContentProps) {
+  const navigate = useNavigate();
+  const query = decodeScalar(location.query.query, '');
+  const handleSearch = useCallback(
+    (searchQuery: string) => {
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: searchQuery || undefined,
+        },
+      });
+    },
+    [location, navigate]
+  );
+
+  const fields = ALL_FIELDS;
+
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
+    key: 'count()',
+    order: 'desc',
+  });
+
+  const cursor = decodeScalar(location.query.cursor);
+
+  const transactionsOptions = useProfileEventsApiOptions<FieldType>({
+    cursor,
+    fields,
+    query,
+    sort,
+    limit: 50,
+    referrer: 'api.profiling.landing-table',
+  });
+  const transactions = useQuery({
+    ...transactionsOptions,
+    select: selectJsonWithHeaders,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
+  const transactionsError =
+    transactions.status === 'error' ? formatError(transactions.error) : '';
+
+  const hasData = (transactions.data?.json?.data?.length || 0) > 0;
+  const isLoading = transactions.isPending;
+  const isError = transactions.isError;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasData) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasData, isLoading, isError]);
+
+  return (
+    <Fragment>
+      <SearchbarContainer>
+        <TransactionSearchQueryBuilder
+          projects={selection.projects}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="profile_landing"
+          disallowFreeText={false}
+        />
+      </SearchbarContainer>
+      {transactionsError && (
+        <Alert.Container>
+          <Alert variant="danger">{transactionsError}</Alert>
+        </Alert.Container>
+      )}
+      <ProfileEventsTable
+        columns={fields.slice()}
+        data={transactions.status === 'success' ? transactions.data.json : null}
+        error={transactions.status === 'error' ? t('Unable to load profiles') : null}
+        isLoading={transactions.status === 'pending'}
+        sort={sort}
+        sortableColumns={new Set(fields)}
+      />
+      <StyledPagination
+        pageLinks={
+          transactions.status === 'success' ? transactions.data.headers.Link : null
+        }
+      />
+    </Fragment>
+  );
+}
+
+function FlamegraphTab({onDataState}: ProfilingTabProps) {
+  return (
+    <LandingAggregateFlamegraphSizer>
+      <LandingAggregateFlamegraphContainer>
+        <LandingAggregateFlamegraph onDataState={onDataState} />
+      </LandingAggregateFlamegraphContainer>
+    </LandingAggregateFlamegraphSizer>
+  );
+}
+
+function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Project[]) {
+  // if it's My Projects or All projects, only show onboarding if we can't
+  // find any projects with profiles
+  if (selection.projects.length === 0 || selection.projects[0] === ALL_ACCESS_PROJECTS) {
+    return projects.every(project => !project.hasProfiles);
+  }
+
+  // otherwise, only show onboarding if we can't find any projects with profiles
+  // from those that were selected
+  const projectsWithProfiles = new Set(
+    projects.filter(project => project.hasProfiles).map(project => project.id)
+  );
+  return selection.projects.every(project => !projectsWithProfiles.has(String(project)));
+}
+
+function ProfilingContentPageHeader() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  return (
+    <StyledLayoutHeader unified>
+      <StyledHeaderContent unified>
+        <Layout.Title>
+          {t('Profiling')}
+          <PageHeadingQuestionTooltip
+            docsUrl="https://docs.sentry.io/product/profiling/"
+            title={t(
+              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+            )}
+          />
+        </Layout.Title>
+        {hasPageFrameFeature ? (
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        ) : (
+          <FeedbackButton />
+        )}
+      </StyledHeaderContent>
+    </StyledLayoutHeader>
+  );
+}
+
+const ALL_FIELDS = [
+  'transaction',
+  'project.id',
+  'p50()',
+  'p75()',
+  'p95()',
+  'p99()',
+  'count()',
+] as const;
+
+type FieldType = (typeof ALL_FIELDS)[number];
+
+const LayoutBody = styled(Layout.Body)`
+  display: grid;
+  align-content: stretch;
+
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
+    align-content: stretch;
+  }
+`;
+
+const LayoutMain = styled(Layout.Main)`
+  display: flex;
+  flex-direction: column;
+`;
+
+const LandingAggregateFlamegraphSizer = styled('div')`
+  height: 100%;
+  min-height: max(80vh, 300px);
+  margin-bottom: ${p => p.theme.space.xl};
+  margin-top: ${p => p.theme.space.xl};
+`;
+
+const LandingAggregateFlamegraphContainer = styled('div')`
+  height: 100%;
+  position: relative;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+`;
+
+const StyledLayoutHeader = styled(Layout.Header)`
+  display: block;
+`;
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: row;
+`;
+
+const ActionBar = styled('div')`
+  display: grid;
+  gap: ${p => p.theme.space.xl};
+  grid-template-columns: min-content auto;
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const WidgetsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${p => p.theme.space.xl};
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SearchbarContainer = styled('div')`
+  margin-top: ${p => p.theme.space['2xl']};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${p => p.theme.space.xs};
+`;
