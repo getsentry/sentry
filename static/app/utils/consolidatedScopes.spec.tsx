@@ -1,10 +1,14 @@
-import {toPermissions, toResourcePermissions} from 'sentry/utils/consolidatedScopes';
+import {
+  getSpecialPermissions,
+  toPermissions,
+  toResourcePermissions,
+} from 'sentry/utils/consolidatedScopes';
 
 describe('ConsolidatedScopes', () => {
   let scopes: any;
 
   beforeEach(() => {
-    scopes = ['event:read', 'event:admin', 'project:releases', 'org:read'];
+    scopes = ['event:read', 'event:admin', 'project:releases', 'org:read', 'org:ci'];
   });
 
   it('exposes scopes, grouped for each resource', () => {
@@ -34,5 +38,14 @@ describe('ConsolidatedScopes', () => {
       read: ['Organization'],
       write: [],
     });
+  });
+
+  it('exposes special permissions separately', () => {
+    expect(getSpecialPermissions(scopes)).toEqual([
+      expect.objectContaining({
+        label: 'Continuous Integration (CI)',
+        scope: 'org:ci',
+      }),
+    ]);
   });
 });
