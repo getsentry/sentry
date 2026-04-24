@@ -360,7 +360,7 @@ class ApiClientTest(TestCase):
         with mock.patch.object(client, "logger") as mock_logger:
             client.get("http://example.com")
             extra = mock_logger.info.call_args.kwargs["extra"]
-            assert extra["organization_id"] == 123
+            assert extra["organization_id"] == "123"
 
     @responses.activate
     def test_track_response_data_logs_organization_id_from_org_id_logging_context(self) -> None:
