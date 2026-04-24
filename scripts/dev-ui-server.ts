@@ -1,8 +1,8 @@
 'use strict';
 
+import {spawn} from 'node:child_process';
 import * as net from 'node:net';
 import * as readline from 'node:readline';
-import {spawn} from 'node:child_process';
 
 const DEFAULT_PORT = parseInt(process.env.SENTRY_WEBPACK_PROXY_PORT ?? '7999', 10);
 const MAX_PORT_SEARCH = 10;
