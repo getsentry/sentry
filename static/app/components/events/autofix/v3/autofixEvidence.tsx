@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -275,28 +275,40 @@ function getCodeSearchEvidenceProps({
 function getGitSearchEvidenceProps({
   toolLink,
 }: GetEvidencePropsPayload): EvidenceButtonProps | null {
-  const {commit_url, sha, commits_url, start_date, end_date, file_path} =
+  const {repo_name, commit_url, sha, commits_url, start_date, end_date, file_path} =
     toolLink?.params ?? {};
 
   if (typeof commit_url === 'string' && typeof sha === 'string') {
     return {
       href: commit_url,
       icon: <IconGithub />, // TODO: support other SCMs
-      label: t('Commit: %s', getShortCommitHash(sha)),
+      label: t('Commit: %s', truncateText(getShortCommitHash(sha))),
       tooltip: sha,
     };
   }
 
   if (
     typeof commits_url === 'string' &&
+    typeof repo_name === 'string' &&
     typeof start_date === 'string' &&
     typeof end_date === 'string'
   ) {
     return {
       href: commits_url,
       icon: <IconGithub />, // TODO: support other SCMs
-      label: t('Commits: %s..%s', start_date, end_date),
-      tooltip: typeof file_path === 'string' ? file_path : undefined,
+      label: t(
+        'Commits: %s',
+        typeof file_path === 'string' ? truncateText(file_path) : repo_name
+      ),
+      tooltip: (
+        <Fragment>
+          {typeof file_path === 'string' ? file_path : repo_name}
+          <br />
+          {start_date}
+          {'\u2014'}
+          {end_date}
+        </Fragment>
+      ),
     };
   }
 
