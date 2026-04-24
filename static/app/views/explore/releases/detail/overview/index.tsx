@@ -37,16 +37,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
+  getReleaseParams,
+  isReleaseArchived,
+  searchReleaseVersion,
+} from 'sentry/views/explore/releases/utils';
+import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 import type {TrendView} from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
-import {
-  getReleaseParams,
-  isReleaseArchived,
-  searchReleaseVersion,
-} from 'sentry/views/releases/utils';
 
 import {ReleaseContext} from '..';
 

@@ -21,10 +21,10 @@ import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {withApi} from 'sentry/utils/withApi';
 import {withOrganization} from 'sentry/utils/withOrganization';
+import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
+import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
+import {getReleaseParams} from 'sentry/views/explore/releases/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
-import type {ReleaseBounds} from 'sentry/views/releases/utils';
-import {getReleaseParams} from 'sentry/views/releases/utils';
 
 enum IssuesType {
   NEW = 'new',

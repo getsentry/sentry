@@ -33,13 +33,13 @@ import {useUser} from 'sentry/utils/useUser';
 import {
   cleanReleaseCursors,
   ReleasesDrawerFields,
-} from 'sentry/views/releases/drawer/utils';
+} from 'sentry/views/explore/releases/drawer/utils';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
-} from 'sentry/views/releases/releaseBubbles/constants';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
-import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
+} from 'sentry/views/explore/releases/releaseBubbles/constants';
+import type {Bucket} from 'sentry/views/explore/releases/releaseBubbles/types';
+import {createReleaseBuckets} from 'sentry/views/explore/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface LegendSelectChangedParams {
   name: string;

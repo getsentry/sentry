@@ -33,8 +33,8 @@ import {
   releaseComparisonChartHelp,
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
-} from 'sentry/views/releases/detail/utils';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+} from 'sentry/views/explore/releases/detail/utils';
+import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 type Props = {
   allSessions: SessionApiResponse | null;

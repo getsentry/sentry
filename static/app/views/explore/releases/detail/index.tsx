@@ -38,10 +38,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import type {ReleaseBounds} from 'sentry/views/releases/utils';
-import {getReleaseBounds, searchReleaseVersion} from 'sentry/views/releases/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-import {useReleaseMeta} from 'sentry/views/releases/utils/useReleaseMeta';
+import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
+import {
+  getReleaseBounds,
+  searchReleaseVersion,
+} from 'sentry/views/explore/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {useReleaseMeta} from 'sentry/views/explore/releases/utils/useReleaseMeta';
 
 import {ReleaseHeader} from './header/releaseHeader';
 

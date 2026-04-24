@@ -9,7 +9,7 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {ReleaseProject} from 'sentry/types/release';
-import {ReleaseContext} from 'sentry/views/releases/detail';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
 
 import Commits from './commits';
 

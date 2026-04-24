@@ -8,8 +8,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
+import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 
 // Mock GroupList as it throws act warnings
 jest.mock('sentry/components/issues/groupList', () => ({

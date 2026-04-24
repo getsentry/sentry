@@ -28,9 +28,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/explore/releases/drawer/releasesDrawerFeatureFlagsTable';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
-import {ReleasesDrawerFeatureFlagsTable} from 'sentry/views/releases/drawer/releasesDrawerFeatureFlagsTable';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
 
 import {ReleasesDrawerTable} from './releasesDrawerTable';
 

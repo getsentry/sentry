@@ -5,7 +5,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {
   cleanReleaseCursors,
   ReleasesDrawerFields,
-} from 'sentry/views/releases/drawer/utils';
+} from 'sentry/views/explore/releases/drawer/utils';
 
 const RELEASES_BASE_PATHNAME = 'explore/releases';
 

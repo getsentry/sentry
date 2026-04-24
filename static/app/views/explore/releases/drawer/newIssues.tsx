@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
+import {getReleaseBounds, getReleaseParams} from 'sentry/views/explore/releases/utils';
+import {useReleaseDetails} from 'sentry/views/explore/releases/utils/useReleaseDetails';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
-import {getReleaseBounds, getReleaseParams} from 'sentry/views/releases/utils';
-import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 interface Props {
   projectId: string | undefined;

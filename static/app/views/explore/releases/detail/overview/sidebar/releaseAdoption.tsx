@@ -26,13 +26,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {
   generateReleaseMarkLines,
   releaseMarkLinesLabels,
-} from 'sentry/views/releases/detail/utils';
+} from 'sentry/views/explore/releases/detail/utils';
 import {
   ADOPTION_STAGE_LABELS,
   getReleaseBounds,
   getReleaseParams,
   isMobileRelease,
-} from 'sentry/views/releases/utils';
+} from 'sentry/views/explore/releases/utils';
 
 const sessionsAxisIndex = 0;
 const usersAxisIndex = 1;

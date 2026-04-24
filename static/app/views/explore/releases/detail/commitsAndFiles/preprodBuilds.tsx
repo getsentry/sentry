@@ -23,11 +23,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
 import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQueryUtils';
-import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import {PreprodOnboarding} from './preprodOnboarding';
 

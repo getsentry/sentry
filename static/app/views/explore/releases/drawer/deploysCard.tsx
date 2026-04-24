@@ -6,7 +6,7 @@ import {Card, KeyValueData} from 'sentry/components/keyValueData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {useReleaseDeploys} from 'sentry/views/releases/utils/useReleaseDeploys';
+import {useReleaseDeploys} from 'sentry/views/explore/releases/utils/useReleaseDeploys';
 
 interface DeploysCardProps {
   projectSlug: string | undefined;

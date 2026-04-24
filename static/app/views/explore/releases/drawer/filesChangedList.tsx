@@ -16,12 +16,15 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
-import {FileChange} from 'sentry/views/releases/detail/commitsAndFiles/fileChange';
-import {RepositorySwitcher} from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
-import {getFilesByRepository, getReposToRender} from 'sentry/views/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
-import {releaseCommitFilesApiOptions} from 'sentry/views/releases/utils/releaseCommitFilesApiOptions';
+import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
+import {FileChange} from 'sentry/views/explore/releases/detail/commitsAndFiles/fileChange';
+import {RepositorySwitcher} from 'sentry/views/explore/releases/detail/commitsAndFiles/repositorySwitcher';
+import {
+  getFilesByRepository,
+  getReposToRender,
+} from 'sentry/views/explore/releases/detail/utils';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {releaseCommitFilesApiOptions} from 'sentry/views/explore/releases/utils/releaseCommitFilesApiOptions';
 
 interface FilesChangedProps {
   release: string;

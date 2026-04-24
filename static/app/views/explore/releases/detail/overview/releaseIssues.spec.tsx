@@ -6,8 +6,8 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
-import {getReleaseBounds} from 'sentry/views/releases/utils';
+import ReleaseIssues from 'sentry/views/explore/releases/detail/overview/releaseIssues';
+import {getReleaseBounds} from 'sentry/views/explore/releases/utils';
 
 describe('ReleaseIssues', () => {
   let issuesEndpoint: jest.Mock;

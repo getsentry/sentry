@@ -15,7 +15,7 @@ import type {CrashFreeTimeBreakdown} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 type Props = {
   location: Location;

@@ -35,8 +35,8 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   cleanReleaseCursors,
   ReleasesDrawerFields,
-} from 'sentry/views/releases/drawer/utils';
-import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
+} from 'sentry/views/explore/releases/drawer/utils';
+import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
 
 type ReleaseHealthItem = {
   date: string;

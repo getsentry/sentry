@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   generateReleaseMarkLines,
   releaseMarkLinesLabels,
-} from 'sentry/views/releases/detail/utils';
+} from 'sentry/views/explore/releases/detail/utils';
 
 const theme = ThemeFixture();
 

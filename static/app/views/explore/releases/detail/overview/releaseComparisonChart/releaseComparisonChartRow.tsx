@@ -12,7 +12,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-import {releaseComparisonChartLabels} from 'sentry/views/releases/detail/utils';
+import {releaseComparisonChartLabels} from 'sentry/views/explore/releases/detail/utils';
 
 import type {ReleaseComparisonRow} from '.';
 

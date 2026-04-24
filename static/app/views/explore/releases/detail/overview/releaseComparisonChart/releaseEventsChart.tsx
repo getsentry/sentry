@@ -20,12 +20,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {withOrganization} from 'sentry/utils/withOrganization';
-import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   generateReleaseMarkLines,
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
-} from 'sentry/views/releases/detail/utils';
+} from 'sentry/views/explore/releases/detail/utils';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 type Props = {
   chartType: ReleaseComparisonChartType;

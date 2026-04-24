@@ -17,13 +17,13 @@ import type {Project} from 'sentry/types/project';
 import {HealthStatsPeriodOption, type Release} from 'sentry/types/release';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ReleaseCard} from 'sentry/views/releases/list/releaseCard';
-import {ReleasesAdoptionChart} from 'sentry/views/releases/list/releasesAdoptionChart';
-import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
-import {ReleasesPromo} from 'sentry/views/releases/list/releasesPromo';
-import ReleasesRequest from 'sentry/views/releases/list/releasesRequest';
-import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
-import {isMobileRelease} from 'sentry/views/releases/utils';
+import {ReleaseCard} from 'sentry/views/explore/releases/list/releaseCard';
+import {ReleasesAdoptionChart} from 'sentry/views/explore/releases/list/releasesAdoptionChart';
+import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
+import {ReleasesPromo} from 'sentry/views/explore/releases/list/releasesPromo';
+import ReleasesRequest from 'sentry/views/explore/releases/list/releasesRequest';
+import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
+import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 
 interface Props {
   activeDisplay: ReleasesDisplayOption;

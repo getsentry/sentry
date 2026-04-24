@@ -47,7 +47,7 @@ import {
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
-} from 'sentry/views/releases/utils';
+} from 'sentry/views/explore/releases/utils';
 
 import {ReleaseComparisonChartRow} from './releaseComparisonChartRow';
 import ReleaseEventsChart from './releaseEventsChart';

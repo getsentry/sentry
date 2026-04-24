@@ -14,9 +14,9 @@ import {useRepositories} from 'sentry/utils/useRepositories';
 import {
   NoReleaseRepos,
   NoRepositories,
-} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
-import {CommitsList} from 'sentry/views/releases/drawer/commitsList';
-import {FilesChangedList} from 'sentry/views/releases/drawer/filesChangedList';
+} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
+import {CommitsList} from 'sentry/views/explore/releases/drawer/commitsList';
+import {FilesChangedList} from 'sentry/views/explore/releases/drawer/filesChangedList';
 
 interface CommitsSectionProps {
   isLoadingMeta: boolean;

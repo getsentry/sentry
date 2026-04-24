@@ -21,11 +21,11 @@ import {
   getReleaseBounds,
   getReleaseParams,
   isMobileRelease,
-} from 'sentry/views/releases/utils';
+} from 'sentry/views/explore/releases/utils';
 import {
   commonTermsDescription,
   SessionTerm,
-} from 'sentry/views/releases/utils/sessionTerm';
+} from 'sentry/views/explore/releases/utils/sessionTerm';
 
 type CommitsByRepository = Record<string, Commit[]>;
 

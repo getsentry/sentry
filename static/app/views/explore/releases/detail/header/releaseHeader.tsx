@@ -23,10 +23,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseMeta, ReleaseProject} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {isMobileRelease} from 'sentry/views/explore/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {isMobileRelease} from 'sentry/views/releases/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ReleaseActions, releaseFeedbackOptions} from './releaseActions';
 

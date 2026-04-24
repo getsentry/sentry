@@ -26,7 +26,8 @@ export function useReleasesDrawer() {
   const {data: ReleasesDrawer, isPending} = useQuery({
     queryKey: ['ReleasesDrawerComponent'],
     queryFn: async () => {
-      return (await import('sentry/views/releases/drawer/releasesDrawer')).ReleasesDrawer;
+      return (await import('sentry/views/explore/releases/drawer/releasesDrawer'))
+        .ReleasesDrawer;
     },
   });
 

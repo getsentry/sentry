@@ -12,10 +12,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HealthStatsPeriodOption} from 'sentry/types/release';
-import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
+import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import ReleasesRequest, {
   type ReleasesRequestRenderProps,
-} from 'sentry/views/releases/list/releasesRequest';
+} from 'sentry/views/explore/releases/list/releasesRequest';
 
 describe('ReleasesRequest', () => {
   const {organization, router} = initializeOrg();

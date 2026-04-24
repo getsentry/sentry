@@ -22,16 +22,16 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
-import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
-import type {ReleasesRequestRenderProps} from 'sentry/views/releases/list/releasesRequest';
+import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {
   ADOPTION_STAGE_LABELS,
   displayCrashFreePercent,
   getReleaseNewIssuesUrl,
   getReleaseUnhandledIssuesUrl,
   isMobileRelease,
-} from 'sentry/views/releases/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+} from 'sentry/views/explore/releases/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {
   AdoptionColumn,

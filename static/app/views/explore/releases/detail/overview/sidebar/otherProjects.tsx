@@ -10,7 +10,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {ReleaseProject} from 'sentry/types/release';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 type Props = {
   location: Location;

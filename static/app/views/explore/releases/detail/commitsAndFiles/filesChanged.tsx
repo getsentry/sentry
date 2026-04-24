@@ -21,13 +21,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {ReleaseContext} from 'sentry/views/releases/detail';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
 import {
   getFilesByRepository,
   getQuery,
   getReposToRender,
-} from 'sentry/views/releases/detail/utils';
-import {releaseCommitFilesApiOptions} from 'sentry/views/releases/utils/releaseCommitFilesApiOptions';
+} from 'sentry/views/explore/releases/detail/utils';
+import {releaseCommitFilesApiOptions} from 'sentry/views/explore/releases/utils/releaseCommitFilesApiOptions';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
 import {FileChange} from './fileChange';

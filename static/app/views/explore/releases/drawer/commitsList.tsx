@@ -14,15 +14,15 @@ import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
-import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
-import {RepositorySwitcher} from 'sentry/views/releases/detail/commitsAndFiles/repositorySwitcher';
+import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
+import {ReleaseCommit} from 'sentry/views/explore/releases/detail/commitsAndFiles/releaseCommit';
+import {RepositorySwitcher} from 'sentry/views/explore/releases/detail/commitsAndFiles/repositorySwitcher';
 import {
   getCommitsByRepository,
   getReposToRender,
-} from 'sentry/views/releases/detail/utils';
-import {ReleasesDrawerFields} from 'sentry/views/releases/drawer/utils';
-import {useReleaseCommits} from 'sentry/views/releases/utils/useReleaseCommits';
+} from 'sentry/views/explore/releases/detail/utils';
+import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
+import {useReleaseCommits} from 'sentry/views/explore/releases/utils/useReleaseCommits';
 
 interface CommitsProps {
   projectSlug: Project['slug'];

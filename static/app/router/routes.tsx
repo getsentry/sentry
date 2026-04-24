@@ -1656,32 +1656,34 @@ function buildRoutes(): RouteObject[] {
   const releaseChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/releases/list')),
+      component: make(() => import('sentry/views/explore/releases/list')),
     },
     {
       path: ':release/',
-      component: make(() => import('sentry/views/releases/detail')),
+      component: make(() => import('sentry/views/explore/releases/detail')),
       children: [
         {
           index: true,
-          component: make(() => import('sentry/views/releases/detail/overview')),
+          component: make(() => import('sentry/views/explore/releases/detail/overview')),
         },
         {
           path: 'commits/',
           component: make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/commits')
+            () => import('sentry/views/explore/releases/detail/commitsAndFiles/commits')
           ),
         },
         {
           path: 'files-changed/',
           component: make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/filesChanged')
+            () =>
+              import('sentry/views/explore/releases/detail/commitsAndFiles/filesChanged')
           ),
         },
         {
           path: 'builds/',
           component: make(
-            () => import('sentry/views/releases/detail/commitsAndFiles/preprodBuilds')
+            () =>
+              import('sentry/views/explore/releases/detail/commitsAndFiles/preprodBuilds')
           ),
         },
       ],
@@ -1691,7 +1693,7 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         path: '/releases/',
-        component: make(() => import('sentry/views/releases/index')),
+        component: make(() => import('sentry/views/explore/releases/index')),
         withOrgPath: true,
         children: releaseChildren,
       },
@@ -2292,7 +2294,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'releases/',
-      component: make(() => import('sentry/views/releases/index')),
+      component: make(() => import('sentry/views/explore/releases/index')),
       children: releaseChildren,
     },
     {

@@ -44,8 +44,8 @@ import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {sessionDisplayToField} from 'sentry/views/explore/releases/list/releasesRequest';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 

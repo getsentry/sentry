@@ -21,14 +21,14 @@ import {useParams} from 'sentry/utils/useParams';
 import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {ReleaseContext} from 'sentry/views/releases/detail';
-import {ReleaseCommit} from 'sentry/views/releases/detail/commitsAndFiles/releaseCommit';
+import {ReleaseContext} from 'sentry/views/explore/releases/detail';
+import {ReleaseCommit} from 'sentry/views/explore/releases/detail/commitsAndFiles/releaseCommit';
 import {
   getCommitsByRepository,
   getQuery,
   getReposToRender,
-} from 'sentry/views/releases/detail/utils';
-import {useReleaseCommits} from 'sentry/views/releases/utils/useReleaseCommits';
+} from 'sentry/views/explore/releases/detail/utils';
+import {useReleaseCommits} from 'sentry/views/explore/releases/utils/useReleaseCommits';
 
 import {EmptyState, NoReleaseRepos, NoRepositories} from './emptyState';
 import {RepositorySwitcher} from './repositorySwitcher';

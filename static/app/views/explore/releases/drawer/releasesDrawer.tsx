@@ -14,8 +14,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
-import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
+import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
+import {ReleasesDrawerList} from 'sentry/views/explore/releases/drawer/releasesDrawerList';
 
 import {RELEASES_DRAWER_FIELD_MAP} from './utils';
 
