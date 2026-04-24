@@ -389,32 +389,47 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 
 function ProfilingContentPageHeader() {
   const hasPageFrameFeature = useHasPageFrameFeature();
+
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/profiling/"
+      title={t(
+        'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+      )}
+    />
+  );
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="title">
+          {t('Profiling')}
+          {titleTooltip}
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
-    <StyledLayoutHeader unified>
-      <StyledHeaderContent unified>
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
         <Layout.Title>
           {t('Profiling')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/profiling/"
-            title={t(
-              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-            )}
-          />
+          {titleTooltip}
         </Layout.Title>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        ) : (
-          <FeedbackButton />
-        )}
-      </StyledHeaderContent>
-    </StyledLayoutHeader>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <FeedbackButton />
+      </Layout.HeaderActions>
+    </Layout.Header>
   );
 }
 
@@ -442,17 +457,6 @@ const LandingAggregateFlamegraphContainer = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const StyledLayoutHeader = styled(Layout.Header)`
-  display: block;
-`;
-
-const StyledHeaderContent = styled(Layout.HeaderContent)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-direction: row;
 `;
 
 const WidgetsContainer = styled('div')`
