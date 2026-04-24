@@ -1,14 +1,18 @@
 import {useEffect} from 'react';
 import {motion, type MotionProps} from 'framer-motion';
 
+import IllustrationBug from 'sentry-images/spot/seer-config-bug-1.svg';
+
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   IconBot,
   IconBusiness,
+  IconCheckmark,
   IconGraph,
   IconProfiling,
   IconSeer,
@@ -25,7 +29,6 @@ import {
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
 import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
-import {ScmStepHeader} from 'sentry/views/onboarding/components/scmStepHeader';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
@@ -156,13 +159,34 @@ export function NewWelcomeUI(props: StepProps) {
         <Flex direction="column" gap="2xl">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM}>
             {hasScmOnboarding ? (
-              <Flex paddingBottom="2xl" justify="center">
-                <ScmStepHeader
-                  heading={t('Welcome to Sentry')}
-                  subtitle={t("Your code is probably broken. Let's fix it faster.")}
-                  subtitleSize="xl"
-                />
-              </Flex>
+              <Stack gap="2xl" align="center">
+                <motion.div
+                  variants={{
+                    initial: {
+                      opacity: 0,
+                      scale: 0.9,
+                    },
+                    animate: {
+                      opacity: 1,
+                      scale: 1,
+                      transition: {duration: 0.5},
+                    },
+                    exit: {y: -120, opacity: 0},
+                  }}
+                  transition={{duration: 0.9}}
+                >
+                  <Image src={IllustrationBug} alt="" width="140px" />
+                </motion.div>
+                <Heading as="h2" size="4xl" align="center">
+                  <Text as="span" bold>
+                    {t('Your code is probably broken.')}
+                  </Text>
+                  <br />
+                  <Text as="span" bold>
+                    {t('Let’s fix it faster.')}
+                  </Text>
+                </Heading>
+              </Stack>
             ) : (
               <Flex direction="column" gap="sm" paddingBottom="2xl">
                 <Container>
@@ -178,27 +202,29 @@ export function NewWelcomeUI(props: StepProps) {
               </Flex>
             )}
 
-            <Stack gap="2xs" align={hasScmOnboarding ? 'center' : undefined}>
-              <Flex align="center" gap="md">
+            {hasScmOnboarding ? null : (
+              <Stack gap="2xs">
+                <Flex align="center" gap="md">
+                  <Container>
+                    <IconBusiness size="md" variant="accent" />
+                  </Container>
+                  <Container>
+                    <Text size="lg" bold density="comfortable">
+                      {t(
+                        "You've got 14 days of Business with unlimited access to everything below."
+                      )}
+                    </Text>
+                  </Container>
+                </Flex>
                 <Container>
-                  <IconBusiness size="md" variant="accent" />
-                </Container>
-                <Container>
-                  <Text size="lg" bold density="comfortable">
+                  <Text size="md" variant="muted">
                     {t(
-                      "You've got 14 days of Business with unlimited access to everything below."
+                      "We'll walk you through setup next. Start with what matters now, add the rest when you're ready."
                     )}
                   </Text>
                 </Container>
-              </Flex>
-              <Container>
-                <Text size="md" variant="muted">
-                  {t(
-                    "We'll walk you through setup next. Start with what matters now, add the rest when you're ready."
-                  )}
-                </Text>
-              </Container>
-            </Stack>
+              </Stack>
+            )}
           </MotionStack>
 
           <MotionGrid
@@ -211,13 +237,18 @@ export function NewWelcomeUI(props: StepProps) {
             ))}
           </MotionGrid>
 
-          <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
-            <Text size="md" variant="muted">
-              {t(
-                "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-              )}
-            </Text>
-          </MotionContainer>
+          {hasScmOnboarding ? null : (
+            <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
+              <Flex align="center" gap="md" justify="center">
+                <IconCheckmark size="md" variant="success" />
+                <Text size="md" variant="muted">
+                  {t(
+                    "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
+                  )}
+                </Text>
+              </Flex>
+            </MotionContainer>
+          )}
         </Flex>
         <GenericFooter gap="3xl" padding="0 3xl">
           <Flex align="center">
