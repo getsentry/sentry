@@ -26,7 +26,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {
   fetchMutation,
   setApiQueryData,
@@ -156,10 +155,7 @@ function ApiApplicationsDetails() {
           <AutoSaveForm
             name="name"
             schema={schema}
-            initialValue={getDynamicText({
-              value: app.name,
-              fixed: 'CI_APPLICATION_NAME',
-            })}
+            initialValue={app.name}
             mutationOptions={stringFieldMutationOptions}
           >
             {field => (
