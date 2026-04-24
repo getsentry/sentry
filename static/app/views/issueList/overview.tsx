@@ -196,12 +196,14 @@ function IssueListOverview({
       // `CursorPoller` updates itself with new cursors
       if (data.length > 0) {
         GroupStore.addToFront(data);
-        setQueryCount(newQueryCount);
       }
       const minLastSeenMs = getRealtimeWindowStartMs();
       if (minLastSeenMs !== null) {
         GroupStore.pruneOlderThan(minLastSeenMs);
       }
+      // Anchor on the server total, but never below what's actually in the
+      // store after pruning.
+      setQueryCount(Math.max(newQueryCount, GroupStore.getAllItems().length));
     },
     [getRealtimeWindowStartMs]
   );
