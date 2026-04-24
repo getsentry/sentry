@@ -346,6 +346,7 @@ export async function openWidgetViewerModal({
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
+      backdrop: {zIndex: 'widgetBuilderDrawer'},
       onClose,
     });
   } else {
@@ -354,6 +355,7 @@ export async function openWidgetViewerModal({
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
+      backdrop: {zIndex: 'widgetBuilderDrawer'},
       onClose,
     });
   }

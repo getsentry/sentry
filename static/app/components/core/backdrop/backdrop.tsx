@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import {motion} from 'framer-motion';
 
 interface BackdropProps {
-  zIndex: 'drawer' | 'modal';
+  zIndex: 'widgetBuilderDrawer' | 'drawer' | 'modal';
   'data-test-id'?: string;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
