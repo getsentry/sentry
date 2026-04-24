@@ -133,28 +133,6 @@ function ApiApplicationsDetails() {
     onError: onSaveError,
   };
 
-  const redirectUrisMutationOptions = {
-    mutationFn: (data: {redirectUris: string}) =>
-      fetchMutation<ApiApplication>({
-        url: apiApplicationEndpoint,
-        method: 'PUT',
-        data: {redirectUris: extractMultilineFields(data.redirectUris)},
-      }),
-    onSuccess: onSaveSuccess,
-    onError: onSaveError,
-  };
-
-  const allowedOriginsMutationOptions = {
-    mutationFn: (data: {allowedOrigins: string}) =>
-      fetchMutation<ApiApplication>({
-        url: apiApplicationEndpoint,
-        method: 'PUT',
-        data: {allowedOrigins: extractMultilineFields(data.allowedOrigins)},
-      }),
-    onSuccess: onSaveSuccess,
-    onError: onSaveError,
-  };
-
   return (
     <SentryDocumentTitle title={PAGE_TITLE}>
       <SettingsPageHeader
@@ -264,7 +242,16 @@ function ApiApplicationsDetails() {
             name="redirectUris"
             schema={schema}
             initialValue={convertMultilineFieldValue(app.redirectUris)}
-            mutationOptions={redirectUrisMutationOptions}
+            mutationOptions={{
+              mutationFn: (data: {redirectUris: string}) =>
+                fetchMutation<ApiApplication>({
+                  url: apiApplicationEndpoint,
+                  method: 'PUT',
+                  data: {redirectUris: extractMultilineFields(data.redirectUris)},
+                }),
+              onSuccess: onSaveSuccess,
+              onError: onSaveError,
+            }}
           >
             {field => (
               <field.Layout.Row
@@ -285,7 +272,16 @@ function ApiApplicationsDetails() {
             name="allowedOrigins"
             schema={schema}
             initialValue={convertMultilineFieldValue(app.allowedOrigins)}
-            mutationOptions={allowedOriginsMutationOptions}
+            mutationOptions={{
+              mutationFn: (data: {allowedOrigins: string}) =>
+                fetchMutation<ApiApplication>({
+                  url: apiApplicationEndpoint,
+                  method: 'PUT',
+                  data: {allowedOrigins: extractMultilineFields(data.allowedOrigins)},
+                }),
+              onSuccess: onSaveSuccess,
+              onError: onSaveError,
+            }}
           >
             {field => (
               <field.Layout.Row
