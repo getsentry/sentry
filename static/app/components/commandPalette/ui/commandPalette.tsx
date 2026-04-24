@@ -100,14 +100,31 @@ export function CommandPalette(props: CommandPaletteProps) {
   }, [store, state.action]);
 
   const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
+    let flatResult: [CMDKFlatItem[], Map<string, string[]>];
     if (!state.query) {
-      return flattenActions(currentNodes, null);
+      flatResult = flattenActions(currentNodes, null);
+    } else {
+      const scores = new Map<string, CommandPaletteScore>();
+      scoreTree(currentNodes, scores, state.query.toLowerCase());
+      flatResult = flattenActions(currentNodes, scores, state.action !== null);
     }
 
-    const scores = new Map<string, CommandPaletteScore>();
-    scoreTree(currentNodes, scores, state.query.toLowerCase());
-    return flattenActions(currentNodes, scores, state.action !== null);
-  }, [currentNodes, state.action, state.query]);
+    if (state.action) {
+      const parentNode = store.getSnapshot().get(state.action.value.key);
+      if (parentNode) {
+        const headerItem: CMDKFlatItem = {
+          key: `${state.action.value.key}:drill-header`,
+          parent: null,
+          children: [],
+          listItemType: 'section',
+          ...parentNode.dataRef.current,
+        };
+        return [[headerItem, ...flatResult[0]], flatResult[1]];
+      }
+    }
+
+    return flatResult;
+  }, [currentNodes, state.action, state.query, store]);
 
   const analytics = useCommandPaletteAnalytics(actions.length);
 

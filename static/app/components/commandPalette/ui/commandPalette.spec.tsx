@@ -453,9 +453,11 @@ describe('CommandPalette', () => {
       expect(
         await screen.findByRole('option', {name: 'Secondary Action'})
       ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('option', {name: 'Primary Action'})
-      ).not.toBeInTheDocument();
+      // Primary Action is still visible as a non-interactive section header
+      expect(screen.getByRole('option', {name: 'Primary Action'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       // Selecting the secondary action should invoke its callback and close the modal
       await userEvent.click(screen.getByRole('option', {name: 'Secondary Action'}));
