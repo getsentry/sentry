@@ -48,7 +48,7 @@ export type OnboardingLayoutProps = {
   projectKeyId: ProjectKey['id'];
   activeProductSelection?: ProductSolution[];
   configType?: ConfigType;
-  isScmOnboarding?: boolean;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
   /**
    * Fires after every product toggle in addition to the doc's
@@ -70,7 +70,7 @@ export function OnboardingLayout({
   projectKeyId,
   configType = 'onboarding',
   onProductSelectionSync,
-  isScmOnboarding,
+  hasScmOnboarding,
 }: OnboardingLayoutProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -115,7 +115,7 @@ export function OnboardingLayout({
       isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
-      isScmOnboarding,
+      hasScmOnboarding,
       profilingOptions: {
         defaultProfilingMode: organization.features.includes('continuous-profiling')
           ? 'continuous'
@@ -133,7 +133,7 @@ export function OnboardingLayout({
           dsn,
           onCopyDsn: () => {
             trackAnalytics(
-              isScmOnboarding ? 'onboarding.scm_dsn_copied' : 'onboarding.dsn-copied',
+              hasScmOnboarding ? 'onboarding.scm_dsn_copied' : 'onboarding.dsn-copied',
               {
                 organization,
                 platform: platformKey,
@@ -165,7 +165,7 @@ export function OnboardingLayout({
     isSelfHosted,
     api,
     projectKeyId,
-    isScmOnboarding,
+    hasScmOnboarding,
   ]);
 
   useEffect(() => {
@@ -252,7 +252,7 @@ export function OnboardingLayout({
                         href={step.link}
                         onClick={() =>
                           trackAnalytics(
-                            isScmOnboarding
+                            hasScmOnboarding
                               ? 'onboarding.scm_next_step_clicked'
                               : 'onboarding.next_step_clicked',
                             {

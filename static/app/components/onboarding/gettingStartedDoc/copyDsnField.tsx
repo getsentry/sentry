@@ -20,7 +20,7 @@ function CopyDsnField({params}: {params: DocsParams<any>}) {
       <TextCopyInput
         onCopy={() =>
           trackAnalytics(
-            params.isScmOnboarding
+            params.hasScmOnboarding
               ? 'onboarding.scm_dsn_copied'
               : 'onboarding.dsn-copied',
             {

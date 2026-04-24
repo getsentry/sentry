@@ -124,7 +124,7 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
-  isScmOnboarding?: boolean;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
 }
 
@@ -138,7 +138,7 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-  isScmOnboarding,
+  hasScmOnboarding,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
@@ -195,7 +195,7 @@ export function FrameworkSuggestionModal({
 
   useEffect(() => {
     trackAnalytics(
-      isScmOnboarding
+      hasScmOnboarding
         ? 'onboarding.scm_select_framework_modal_rendered'
         : newOrg
           ? 'onboarding.select_framework_modal_rendered'
@@ -205,14 +205,14 @@ export function FrameworkSuggestionModal({
         organization,
       }
     );
-  }, [selectedPlatform.key, organization, newOrg, isScmOnboarding]);
+  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
 
-    if (isScmOnboarding) {
+    if (hasScmOnboarding) {
       trackAnalytics('onboarding.scm_platform_selected', {
         organization,
         platform: selectedFramework.key,
@@ -238,11 +238,11 @@ export function FrameworkSuggestionModal({
     organization,
     onConfigure,
     newOrg,
-    isScmOnboarding,
+    hasScmOnboarding,
   ]);
 
   const handleSkip = useCallback(() => {
-    if (isScmOnboarding) {
+    if (hasScmOnboarding) {
       trackAnalytics('onboarding.scm_platform_selected', {
         organization,
         platform: selectedPlatform.key,
@@ -260,7 +260,7 @@ export function FrameworkSuggestionModal({
       );
     }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg, isScmOnboarding]);
+  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {

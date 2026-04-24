@@ -21,7 +21,7 @@ export function getUploadSourceMapsStep({
   platformKey,
   project,
   newOrg,
-  isScmOnboarding,
+  hasScmOnboarding,
   isSelfHosted,
   description,
 }: DocsParams & {
@@ -58,7 +58,7 @@ export function getUploadSourceMapsStep({
             language="bash"
             onCopy={() =>
               trackEvent(
-                isScmOnboarding
+                hasScmOnboarding
                   ? 'onboarding.scm_source_maps_wizard_button_copy_clicked'
                   : newOrg
                     ? 'onboarding.source_maps_wizard_button_copy_clicked'
@@ -67,7 +67,7 @@ export function getUploadSourceMapsStep({
             }
             onSelectAndCopy={() =>
               trackEvent(
-                isScmOnboarding
+                hasScmOnboarding
                   ? 'onboarding.scm_source_maps_wizard_selected_and_copied'
                   : newOrg
                     ? 'onboarding.source_maps_wizard_selected_and_copied'

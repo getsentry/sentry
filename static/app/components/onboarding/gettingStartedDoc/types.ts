@@ -125,7 +125,7 @@ export interface DocsParams<
     name?: boolean;
     screenshot?: boolean;
   };
-  isScmOnboarding?: boolean;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
   profilingOptions?: {
     defaultProfilingMode?: 'transaction' | 'continuous';

@@ -341,7 +341,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   onPageLoad: params => {
     return () => {
       trackAnalytics(
-        params.isScmOnboarding
+        params.hasScmOnboarding
           ? 'onboarding.scm_setup_loader_docs_rendered'
           : 'onboarding.setup_loader_docs_rendered',
         {
@@ -355,7 +355,7 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics(
-        params.isScmOnboarding
+        params.hasScmOnboarding
           ? 'onboarding.scm_js_loader_npm_docs_shown'
           : 'onboarding.js_loader_npm_docs_shown',
         {
@@ -461,7 +461,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   onPageLoad: params => {
     return () => {
       trackAnalytics(
-        params.isScmOnboarding
+        params.hasScmOnboarding
           ? 'onboarding.scm_js_loader_npm_docs_shown'
           : 'onboarding.js_loader_npm_docs_shown',
         {
@@ -497,7 +497,7 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   onPlatformOptionsChange: params => {
     return () => {
       trackAnalytics(
-        params.isScmOnboarding
+        params.hasScmOnboarding
           ? 'onboarding.scm_setup_loader_docs_rendered'
           : 'onboarding.setup_loader_docs_rendered',
         {
