@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Slider} from '@sentry/scraps/slider';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {IconInput, IconPause, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SnapshotDiffPair} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -29,7 +27,6 @@ interface DiffImageDisplayProps {
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
-  onDiffModeChange: (mode: DiffMode) => void;
   overlayColor: string;
   pair: SnapshotDiffPair;
 }
@@ -40,7 +37,6 @@ export function DiffImageDisplay({
   diffImageBaseUrl,
   overlayColor,
   diffMode,
-  onDiffModeChange,
 }: DiffImageDisplayProps) {
   const [diffMaskUrl, setDiffMaskUrl] = useState<string | null>(null);
   const [onionOpacity, setOnionOpacity] = useState(50);
@@ -87,21 +83,8 @@ export function DiffImageDisplay({
     };
   }, [diffImageUrl]);
 
-  // >= 1% shows 1 decimal (e.g. "93.5%"), < 1% shows up to 4 without trailing zeros (e.g. "0.0227%")
-  const diffPct = pair.diff === null ? null : pair.diff * 100;
-  const diffPercent =
-    diffPct === null
-      ? null
-      : `${diffPct >= 1 ? diffPct.toFixed(1) : parseFloat(diffPct.toFixed(4))}%`;
-
   return (
     <Flex direction="column" gap="lg" padding="xl" flex="1" minHeight="0">
-      {diffPercent && (
-        <Text variant="muted" size="sm">
-          {t('Diff: %s', diffPercent)}
-        </Text>
-      )}
-
       {diffMode === 'split' && (
         <SplitView
           baseImageUrl={baseImageUrl}
@@ -123,20 +106,6 @@ export function DiffImageDisplay({
           onOpacityChange={setOnionOpacity}
         />
       )}
-
-      <Flex justify="center" flexShrink={0}>
-        <SegmentedControl value={diffMode} onChange={onDiffModeChange}>
-          <SegmentedControl.Item key="split" icon={<IconPause />}>
-            {t('Split')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="wipe" icon={<IconInput />}>
-            {t('Wipe')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="onion" icon={<IconStack />}>
-            {t('Onion')}
-          </SegmentedControl.Item>
-        </SegmentedControl>
-      </Flex>
     </Flex>
   );
 }
