@@ -496,7 +496,7 @@ export function Provider({
     }
 
     Sentry.metrics.distribution(
-      'replay.video_replayer.video_element_count',
+      'replay.videoReplayer.videoElementCount',
       videoElementCount,
       {
         attributes: {
