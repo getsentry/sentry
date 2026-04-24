@@ -231,6 +231,76 @@ describe('Tags', () => {
     );
   });
 
+  it('appends the next page of tags without duplicating entries', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      headers: {
+        Link:
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+      },
+      body: [
+        {
+          key: 'release',
+          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
+        },
+      ],
+    });
+
+    const secondPageRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
+      body: [
+        {
+          key: 'sdk',
+          topValues: [{count: 12, value: 'tempest', name: 'tempest'}],
+        },
+      ],
+      headers: {
+        Link:
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:10:1>; rel="previous"; results="false"; cursor="0:10:1",' +
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+      },
+    });
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: '',
+      ...commonQueryConditions,
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        api={new MockApiClient()}
+        totalValues={30}
+        organization={org}
+        location={defaultLocation}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />,
+      {
+        initialRouterConfig,
+      }
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+
+    expect(screen.getByRole('listitem', {name: 'release'})).toBeInTheDocument();
+    expect(screen.queryByRole('listitem', {name: 'sdk'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
+
+    expect(secondPageRequest).toHaveBeenCalled();
+    expect(await screen.findByRole('listitem', {name: 'sdk'})).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem', {name: 'sdk'})).toHaveLength(1);
+    expect(screen.getAllByRole('listitem', {name: 'release'})).toHaveLength(1);
+  });
+
   it('has a Show More button when there are more tags', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
