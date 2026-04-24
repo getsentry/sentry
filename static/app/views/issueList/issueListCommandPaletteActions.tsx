@@ -8,10 +8,7 @@ import {
   cmdkQueryOptions,
   type CMDKQueryOptions,
 } from 'sentry/components/commandPalette/types';
-import {
-  CMDKAction,
-  type CMDKResourceContext,
-} from 'sentry/components/commandPalette/ui/cmdk';
+import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
@@ -183,7 +180,7 @@ function FilterActions({
       display: {label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`},
       keywords: [tag.key],
       prompt: t('Select a value...'),
-      resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+      resource: (): CMDKQueryOptions =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
           queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
@@ -194,25 +191,19 @@ function FilterActions({
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
             }));
           },
-          enabled: ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
   };
 
-  const makeSectionResource =
-    (
-      tags: Tag[],
-      cacheKey: string
-    ): ((q: string, ctx: CMDKResourceContext) => CMDKQueryOptions) =>
-    _ctx =>
-      // Feed query in key ensures onAction closures reference the current query.
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
-      cmdkQueryOptions({
-        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
-        queryFn: () => tags.map(makeFilterKeyItem),
-        staleTime: Infinity,
-      });
+  const makeSectionResource = (tags: Tag[], cacheKey: string) => () =>
+    // Feed query in key ensures onAction closures reference the current query.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
+    cmdkQueryOptions({
+      queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+      queryFn: () => tags.map(makeFilterKeyItem),
+      staleTime: Infinity,
+    });
 
   return (
     <CMDKAction
