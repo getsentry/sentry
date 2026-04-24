@@ -10,13 +10,11 @@ import {recreateRoute} from 'sentry/utils/recreateRoute';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
-import {OrganizationCrumb} from './organizationCrumb';
 import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
 const MENUS: Record<string, React.FC<SettingsBreadcrumbProps>> = {
-  Organization: OrganizationCrumb,
   Project: ProjectCrumb,
   Team: TeamCrumb,
 } as const;
@@ -86,6 +84,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
 // routes do not have organization information.
 export const CrumbLink = styled(RouterLink)`
   display: block;
+  line-height: ${p => p.theme.font.lineHeight.default};
 
   color: ${p => p.theme.tokens.content.secondary};
   &:hover {

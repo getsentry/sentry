@@ -310,6 +310,49 @@ def test_observability_metrics(
     emit_observability_metrics.assert_called_once()
 
 
+def test_duplicate_batch_is_idempotent(buffer: SpansBuffer) -> None:
+    spans = [
+        Span(
+            payload=_payload("a" * 16),
+            trace_id="a" * 32,
+            span_id="a" * 16,
+            parent_span_id="b" * 16,
+            segment_id=None,
+            project_id=1,
+        ),
+        Span(
+            payload=_payload("b" * 16),
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            parent_span_id=None,
+            segment_id=None,
+            is_segment_span=True,
+            project_id=1,
+        ),
+    ]
+
+    buffer.process_spans(spans, now=0)
+    buffer.process_spans(spans, now=0)
+
+    rv = buffer.flush_segments(now=11)
+    _normalize_output(rv)
+    assert rv == {
+        _segment_id(1, "a" * 32, "b" * 16): FlushedSegment(
+            queue_key=mock.ANY,
+            score=mock.ANY,
+            ingested_count=mock.ANY,
+            payload_keys=mock.ANY,
+            project_id=1,
+            spans=[
+                _output_segment(b"a" * 16, b"b" * 16, False),
+                _output_segment(b"b" * 16, b"b" * 16, True),
+            ],
+        )
+    }
+    buffer.done_flush_segments(rv)
+    assert_clean(buffer.client)
+
+
 def test_flush_segments_with_null_attributes(buffer: SpansBuffer) -> None:
     spans = [
         Span(
@@ -1055,8 +1098,10 @@ def test_to_messages_under_limit(buffer: SpansBuffer) -> None:
     ):
         messages = segment.to_messages()
     assert len(messages) == 1
-    assert messages[0] == {"spans": spans}
+    assert messages[0]["spans"] == spans
     assert "skip_enrichment" not in messages[0]
+    assert "flush_id" in messages[0]
+    assert len(messages[0]["flush_id"]) == 32  # UUID hex string
 
 
 def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
@@ -1108,6 +1153,12 @@ def test_to_messages_splits_oversized(buffer: SpansBuffer) -> None:
 
     for message in messages:
         assert message["skip_enrichment"] is True
+        assert "flush_id" in message
+        assert len(message["flush_id"]) == 32
+
+    # Each chunk gets a unique flush_id
+    flush_ids = [m["flush_id"] for m in messages]
+    assert len(set(flush_ids)) == len(flush_ids)
 
     for message in messages[:-1]:
         chunk_size = sum(len(orjson.dumps(s)) for s in message["spans"])
@@ -1130,6 +1181,28 @@ def test_to_messages_single_large_span(buffer: SpansBuffer) -> None:
         messages = segment.to_messages()
     assert len(messages) == 1
     assert messages[0]["skip_enrichment"] is True
+    assert "flush_id" in messages[0]
+    assert len(messages[0]["flush_id"]) == 32
+
+
+def test_to_messages_unique_flush_ids_across_calls(buffer: SpansBuffer) -> None:
+    """Calling to_messages() twice produces unique flush_ids (dedup detection)."""
+    spans = [{"span_id": "a"}, {"span_id": "b"}]
+    segment = FlushedSegment(
+        queue_key=b"test",
+        spans=[OutputSpan(payload=s) for s in spans],
+        project_id=1,
+    )
+    with override_options(
+        {
+            **DEFAULT_OPTIONS,
+            "spans.buffer.max-segment-bytes": 10000,
+        }
+    ):
+        messages1 = segment.to_messages()
+        messages2 = segment.to_messages()
+
+    assert messages1[0]["flush_id"] != messages2[0]["flush_id"]
 
 
 def test_kafka_slice_id(buffer: SpansBuffer) -> None:

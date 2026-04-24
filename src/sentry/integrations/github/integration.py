@@ -10,7 +10,6 @@ from urllib.parse import parse_qsl
 
 from django.db.models import Count
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -61,27 +60,15 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.organizations.services.organization.model import (
-    RpcOrganization,
-    RpcUserOrganizationContext,
-)
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import (
-    ApiPipelineSteps,
-    PipelineView,
-    render_react_view,
-)
+from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
 from sentry.snuba.referrer import Referrer
-from sentry.users.models.user import User
-from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
-from sentry.web.frontend.base import determine_active_organization
-from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient, GithubSetupApiClient
 from .issues import GitHubIssuesSpec
@@ -166,22 +153,6 @@ API_ERRORS = {
     401: ERR_UNAUTHORIZED,
 }
 
-ERR_INTEGRATION_EXISTS_ON_ANOTHER_ORG = _(
-    "It seems that your GitHub account has been installed on another Sentry organization. Please uninstall and try again."
-)
-ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST = _(
-    "We could not verify the authenticity of the installation request. We recommend restarting the installation process."
-)
-ERR_INTEGRATION_PENDING_DELETION = _(
-    "It seems that your Sentry organization has an installation pending deletion. Please wait ~15min for the uninstall to complete and try again."
-)
-ERR_INTEGRATION_INVALID_INSTALLATION = _(
-    "Your GitHub account does not have owner privileges for the chosen organization."
-)
-ERR_INTEGRATION_MISSING_ORGANIZATION = _(
-    "You must be logged into an organization to access this feature."
-)
-
 
 class GithubInstallationInfo(TypedDict):
     installation_id: str
@@ -197,41 +168,6 @@ def build_repository_query(metadata: Mapping[str, Any], name: str, query: str) -
     """
     account_type = "user" if metadata["account_type"] == "User" else "org"
     return f"fork:true {account_type}:{name} {query}".encode()
-
-
-def error(
-    request,
-    org: RpcUserOrganizationContext | None,
-    error_short="Invalid installation request.",
-    error_long=ERR_INTEGRATION_INVALID_INSTALLATION_REQUEST,
-):
-    if org is None:
-        org_id = None
-    else:
-        org_id = org.organization.id
-    logger.warning(
-        "github.installation_error",
-        extra={"org_id": org_id, "error_short": error_short},
-    )
-
-    return render_to_response(
-        "sentry/integrations/github-integration-failed.html",
-        context={
-            "error": error_long,
-            "payload": {
-                "success": False,
-                "data": {"error": _(error_short)},
-            },
-            "document_origin": get_document_origin(org),
-        },
-        request=request,
-    )
-
-
-def get_document_origin(org) -> str:
-    if org and features.has("system:multi-region"):
-        return f'"{generate_organization_url(org.organization.slug)}"'
-    return "document.origin"
 
 
 # Github App docs and list of available endpoints
@@ -820,7 +756,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     ) -> Sequence[
         PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
     ]:
-        return [OAuthLoginView(), GithubOrganizationSelection(), GitHubInstallation()]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [
@@ -1012,8 +948,7 @@ def _build_installation_info_with_counts(
     installation_info: list[GithubInstallationInfo],
 ) -> list[GithubInstallationInfo]:
     """
-    Enriches an installation info list with Sentry org install counts and appends
-    the 'install on new GitHub org' sentinel option.
+    Enriches an installation info list with Sentry org install counts.
     """
     installation_ids = [i["installation_id"] for i in installation_info]
     counts_qs = (
@@ -1026,23 +961,13 @@ def _build_installation_info_with_counts(
     )
     counts_dict = {item["integration__external_id"]: item["count"] for item in counts_qs}
 
-    result: list[GithubInstallationInfo] = []
-    for installation in installation_info:
-        result.append(
-            {
-                **installation,
-                "count": counts_dict.get(installation["installation_id"], 0),
-            }
-        )
-    result.append(
+    return [
         {
-            "installation_id": "-1",
-            "github_account": "Integrate with a new GitHub organization",
-            "avatar_url": "",
-            "count": 0,
+            **installation,
+            "count": counts_dict.get(installation["installation_id"], 0),
         }
-    )
-    return result
+        for installation in installation_info
+    ]
 
 
 def validate_org_installation_choice(
@@ -1293,10 +1218,6 @@ class GithubOrganizationSelectionApiStep:
                     "count": info.get("count"),
                 }
                 for info in enriched
-                # TODO(epurkhiser): Remove this filter once the legacy Django
-                # views are removed and _build_installation_info_with_counts is
-                # merged directly into this API pipeline step.
-                if info["installation_id"] != "-1"
             ],
         }
 
@@ -1342,149 +1263,3 @@ class GithubOrganizationSelectionApiStep:
                 return PipelineStepResult.stay(data={"installAppUrl": get_install_app_url()})
 
             return PipelineStepResult.advance()
-
-
-class OAuthLoginView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            active_user_organization = determine_active_organization(request)
-            lifecycle.add_extra(
-                "organization_id",
-                (active_user_organization.organization.id if active_user_organization else None),
-            )
-
-            installation_id = request.GET.get("installation_id")
-            if installation_id:
-                pipeline.bind_state("installation_id", installation_id)
-
-            if not request.GET.get("state"):
-                return HttpResponseRedirect(_build_github_oauth_url(pipeline))
-
-            if request.GET.get("state") != pipeline.signature:
-                lifecycle.record_failure(GitHubInstallationError.INVALID_STATE)
-                return error(
-                    request,
-                    active_user_organization,
-                    error_short=GitHubInstallationError.INVALID_STATE,
-                )
-
-            try:
-                result = exchange_github_oauth(
-                    code=request.GET.get("code", ""),
-                    fetch_installations=active_user_organization is not None,
-                )
-            except GitHubPipelineError as e:
-                lifecycle.record_failure(e.message)
-                return error(
-                    request,
-                    active_user_organization,
-                    error_short=e.message,
-                    error_long=e.message,
-                )
-
-            if result.installation_info:
-                pipeline.bind_state("existing_installation_info", result.installation_info)
-            pipeline.bind_state("github_authenticated_user", result.authenticated_user)
-            return pipeline.next_step()
-
-
-class GithubOrganizationSelection:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        self.active_user_organization = determine_active_organization(request)
-
-        if self.active_user_organization is None:
-            return error(
-                request,
-                None,
-                error_short=GitHubInstallationError.MISSING_ORGANIZATION,
-                error_long=ERR_INTEGRATION_MISSING_ORGANIZATION,
-            )
-
-        has_scm_multi_org = features.has(
-            "organizations:integrations-scm-multi-org",
-            organization=self.active_user_organization.organization,
-        )
-
-        with record_event(
-            IntegrationPipelineViewType.ORGANIZATION_SELECTION
-        ).capture() as lifecycle:
-            installation_info = pipeline.fetch_state("existing_installation_info") or []
-            if len(installation_info) == 0:
-                return pipeline.next_step()
-
-            installation_info = _build_installation_info_with_counts(installation_info)
-
-            if chosen_installation_id := request.GET.get("chosen_installation_id"):
-                if chosen_installation_id == "-1":
-                    return pipeline.next_step()
-
-                try:
-                    validate_org_installation_choice(chosen_installation_id, pipeline)
-                except GitHubPipelineError as e:
-                    lifecycle.record_failure(e.message)
-                    return error(
-                        request,
-                        self.active_user_organization,
-                        error_short=e.message,
-                        error_long=e.message,
-                    )
-
-                return pipeline.next_step()
-            pipeline.bind_state(
-                "installing_organization_slug", self.active_user_organization.organization.slug
-            )
-            serialized_organization = organization_service.serialize_organization(
-                id=self.active_user_organization.organization.id,
-                as_user=(
-                    serialize_rpc_user(request.user) if isinstance(request.user, User) else None
-                ),
-            )
-            return render_react_view(
-                request=request,
-                pipeline_name="githubInstallationSelect",
-                props={
-                    "installation_info": installation_info,
-                    "has_scm_multi_org": has_scm_multi_org,
-                    "organization": serialized_organization,
-                    "organization_slug": self.active_user_organization.organization.slug,
-                },
-            )
-
-
-class GitHubInstallation:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
-            active_user_organization = determine_active_organization(request)
-            lifecycle.add_extra(
-                "organization_id",
-                (
-                    active_user_organization.organization.id
-                    if active_user_organization is not None
-                    else None
-                ),
-            )
-
-            if active_user_organization is None:
-                return error(
-                    request,
-                    None,
-                    error_short=GitHubInstallationError.MISSING_ORGANIZATION,
-                    error_long=ERR_INTEGRATION_MISSING_ORGANIZATION,
-                )
-
-            # The template flow also picks up installation_id from query params
-            if installation_id := request.GET.get("installation_id"):
-                pipeline.bind_state("installation_id", installation_id)
-
-            try:
-                resolved_id = validate_github_installation(pipeline)
-            except GitHubPipelineError as e:
-                lifecycle.record_failure(e.message)
-                return error(
-                    request, active_user_organization, error_short=e.message, error_long=e.message
-                )
-
-            if resolved_id is None:
-                return HttpResponseRedirect(get_install_app_url())
-
-            return pipeline.next_step()

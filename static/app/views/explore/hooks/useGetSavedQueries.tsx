@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -175,18 +175,22 @@ export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['datas
 
 export const MAX_STARRED_SAVED_QUERIES_IN_NAV = 20;
 
-export function getStarredSavedQueriesQueryKey(organization: Organization): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    {
-      query: {
-        per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
-        starred: 1,
-      },
-    },
-  ];
+function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
+  organization: Organization,
+  query?: Record<string, unknown>
+) {
+  return apiOptions.as<TData>()('/organizations/$organizationIdOrSlug/explore/saved/', {
+    path: {organizationIdOrSlug: organization.slug},
+    query,
+    staleTime: 0,
+  });
+}
+
+export function starredSavedQueriesApiOptions(organization: Organization) {
+  return savedQueriesApiOptions<SavedQuery[]>(organization, {
+    per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
+    starred: 1,
+  });
 }
 
 type Props = {
@@ -208,37 +212,28 @@ export function useGetSavedQueries({
 }: Props) {
   const organization = useOrganization();
 
-  const {data, isLoading, getResponseHeader, ...rest} = useApiQuery<ReadableSavedQuery[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          sortBy,
-          exclude,
-          per_page: perPage,
-          starred: starred ? 1 : undefined,
-          cursor,
-          query,
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  const {data, isLoading, isFetched, isError} = useQuery({
+    ...savedQueriesApiOptions(organization, {
+      sortBy,
+      exclude,
+      per_page: perPage,
+      starred: starred ? 1 : undefined,
+      cursor,
+      query,
+    }),
+    select: selectJsonWithHeaders,
+  });
 
-  const pageLinks = getResponseHeader?.('Link');
+  const pageLinks = data?.headers.Link;
 
   const savedQueries = useMemo(
     () =>
-      data
+      data?.json
         ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
         .map(q => new SavedQuery(q)),
-    [data]
+    [data?.json]
   );
-  return {data: savedQueries, isLoading, pageLinks, ...rest};
+  return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
 }
 
 export function useInvalidateSavedQueries() {
@@ -246,29 +241,30 @@ export function useInvalidateSavedQueries() {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
-    });
-  }, [queryClient, organization.slug]);
+    const baseKey = savedQueriesApiOptions(organization).queryKey;
+    queryClient.invalidateQueries({queryKey: baseKey});
+  }, [queryClient, organization]);
+}
+
+function savedQueryApiOptions({
+  organization,
+  id,
+}: {
+  id: string | undefined;
+  organization: Organization;
+}) {
+  return apiOptions.as<ReadableSavedQuery>()(
+    '/organizations/$organizationIdOrSlug/explore/saved/$id/',
+    {
+      path: defined(id) ? {organizationIdOrSlug: organization.slug, id} : skipToken,
+      staleTime: 0,
+    }
+  );
 }
 
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
-  const {data, isLoading, ...rest} = useApiQuery<ReadableSavedQuery>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-        path: {organizationIdOrSlug: organization.slug, id: id!},
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: defined(id),
-    }
-  );
+  const {data, isLoading, isFetched} = useQuery(savedQueryApiOptions({organization, id}));
   const savedQuery = useMemo(() => {
     if (!defined(data)) {
       return undefined;
@@ -277,7 +273,7 @@ export function useGetSavedQuery(id?: string) {
       ? new SavedQuery(data)
       : undefined;
   }, [data]);
-  return {data: savedQuery, isLoading, ...rest};
+  return {data: savedQuery, isLoading, isFetched};
 }
 
 export function useInvalidateSavedQuery(id?: string) {
@@ -285,14 +281,13 @@ export function useInvalidateSavedQuery(id?: string) {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
+    if (!defined(id)) {
+      return;
+    }
     queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-          path: {organizationIdOrSlug: organization.slug, id: id!},
-        }),
-      ],
+      queryKey: savedQueryApiOptions({organization, id}).queryKey,
     });
-  }, [queryClient, organization.slug, id]);
+  }, [queryClient, organization, id]);
 }
 
 const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {

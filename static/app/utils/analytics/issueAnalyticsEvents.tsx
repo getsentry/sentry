@@ -146,13 +146,6 @@ export type IssueEventParameters = {
     group_id: string;
     project_id: string;
   };
-  'issue_details.similar_issues.similarity_embeddings_feedback_recieved': {
-    groupId: string;
-    parentGroupId: string;
-    value: string;
-    projectId?: string;
-    wouldGroup?: string;
-  };
   'issue_details.streamline_ui_toggle': {
     enforced_streamline_ui: boolean;
     isEnabled: boolean;
@@ -249,15 +242,18 @@ export type IssueEventParameters = {
     sort: string;
   };
   'issues_stream.archived': {
+    area: string;
     action_status_details?: string;
     action_substatus?: string | null;
   };
   'issues_stream.issue_assigned': IssueStream & {
+    area: string;
     assigned_type: string;
     did_assign_suggestion: boolean;
     assigned_suggestion_reason?: string;
   };
   'issues_stream.merged': {
+    area: string;
     items_merged: number | 'all_in_query' | undefined;
     platform: string | undefined;
     project_id: string | undefined;
@@ -268,10 +264,15 @@ export type IssueEventParameters = {
   'issues_stream.realtime_clicked': {
     enabled: boolean;
   };
+  'issues_stream.resolved': {
+    area: string;
+    action_status_details?: string;
+  };
   'issues_stream.sort_changed': {
     sort: string;
   };
   'issues_stream.updated_priority': {
+    area: string;
     priority: PriorityLevel;
   };
   'one_other_related_trace_issue.clicked': {
@@ -338,8 +339,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
-    'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
@@ -380,6 +379,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.merged': 'Merged Issues from Issues Stream',
+  'issues_stream.resolved': 'Issues Stream: Resolved',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',

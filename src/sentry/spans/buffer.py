@@ -104,6 +104,7 @@ import math
 import time
 import uuid
 from collections.abc import Generator, MutableMapping, Sequence
+from hashlib import blake2b
 from typing import Any, NamedTuple, cast
 
 import orjson
@@ -179,6 +180,13 @@ class Subsegment(NamedTuple):
     subsegment: list[Span]
 
 
+def _compute_salt(spans: Sequence[Span]) -> str:
+    return blake2b(
+        b"".join(s.span_id.encode("ascii") for s in spans),
+        digest_size=16,
+    ).hexdigest()
+
+
 class OutputSpan(NamedTuple):
     payload: SpanPayload
 
@@ -199,6 +207,9 @@ class FlushedSegment(NamedTuple):
 
         If the segment size exceeds `spans.buffer.max_segment_bytes`, the segment is split
         into multiple messages with skip_enrichment=True. Otherwise, returns a single message.
+
+        Each message gets a unique flush_id generated at call time, ensuring duplicate
+        flushes from Redis produce distinct IDs.
         """
         max_segment_bytes = options.get("spans.buffer.max-segment-bytes")
 
@@ -206,7 +217,7 @@ class FlushedSegment(NamedTuple):
 
         sizes = [len(orjson.dumps(s)) for s in spans]
         if sum(sizes) <= max_segment_bytes:
-            return [{"spans": spans}]
+            return [{"flush_id": uuid.uuid4().hex, "spans": spans}]
 
         messages: list[dict[str, Any]] = []
         current: list[SpanPayload] = []
@@ -214,14 +225,18 @@ class FlushedSegment(NamedTuple):
 
         for span, size in zip(spans, sizes):
             if current and current_size + size > max_segment_bytes:
-                messages.append({"spans": current, "skip_enrichment": True})
+                messages.append(
+                    {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
+                )
                 current = []
                 current_size = 0
             current.append(span)
             current_size += size
 
         if current:
-            messages.append({"spans": current, "skip_enrichment": True})
+            messages.append(
+                {"flush_id": uuid.uuid4().hex, "spans": current, "skip_enrichment": True}
+            )
 
         if len(messages) > 1:
             metrics.timing(
@@ -302,9 +317,10 @@ class SpansBuffer:
             for key, subsegment in trees.items():
                 if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
                     for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
-                        tree_items.append(Subsegment(key, uuid.uuid4().hex, list(chunk)))
+                        chunk_list = list(chunk)
+                        tree_items.append(Subsegment(key, _compute_salt(chunk_list), chunk_list))
                 else:
-                    tree_items.append(Subsegment(key, uuid.uuid4().hex, subsegment))
+                    tree_items.append(Subsegment(key, _compute_salt(subsegment), subsegment))
 
             tree_batches: Sequence[Sequence[Subsegment]]
             if pipeline_batch_size > 0:

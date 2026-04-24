@@ -12,7 +12,6 @@ import logging
 from collections.abc import Mapping, MutableMapping
 from typing import Any, Literal
 
-from django import forms
 from django.conf import settings as django_settings
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
@@ -29,7 +28,6 @@ from sentry.integrations.base import (
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
     CodingAgentIntegrationProvider,
-    CodingAgentPipelineView,
 )
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.models.integration import Integration
@@ -132,33 +130,6 @@ def _build_environment_choices(
     return [("", default_label)] + filtered
 
 
-class ClaudeCodeApiKeyForm(forms.Form):
-    """Step 1: Collect the Anthropic API key."""
-
-    api_key = forms.CharField(
-        label=_("Anthropic API Key"),
-        help_text=_("Enter your Anthropic API key to use Claude Agent."),
-        widget=forms.PasswordInput(attrs={"placeholder": _("sk-ant-...")}),
-        max_length=255,
-    )
-
-
-class ClaudeCodeApiKeyPipelineView(CodingAgentPipelineView):
-    """Pipeline step 1: Collect API key."""
-
-    def get_form_class(self) -> type[forms.Form]:
-        return ClaudeCodeApiKeyForm
-
-    def get_template_name(self) -> str:
-        return "sentry/integrations/claude-code-config.html"
-
-    def get_state_key(self) -> str:
-        return "api_key"
-
-    def bind_state(self, pipeline: IntegrationPipeline, form: forms.Form) -> None:
-        pipeline.bind_state(self.get_state_key(), form.cleaned_data["api_key"])
-
-
 def _build_external_id(organization_id: int) -> str:
     digest = hashlib.sha256(f"{PROVIDER_KEY}:{organization_id}".encode()).hexdigest()
     return digest[:32]
@@ -214,7 +185,7 @@ class ClaudeCodeAgentIntegrationProvider(CodingAgentIntegrationProvider):
     metadata = metadata
 
     def get_pipeline_views(self):
-        return [ClaudeCodeApiKeyPipelineView()]
+        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [ClaudeCodeApiKeyApiStep()]

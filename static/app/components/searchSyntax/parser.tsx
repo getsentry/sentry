@@ -1466,7 +1466,7 @@ export const defaultConfig: SearchConfig = {
     'team_key_transaction',
     'symbolicated_in_app',
   ]),
-  sizeKeys: new Set([]),
+  sizeKeys: new Set(),
   disallowedLogicalOperators: new Set(),
   disallowFreeText: false,
   disallowWildcard: false,

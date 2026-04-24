@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-from sentry.identity.pipeline import IdentityPipeline
 from sentry.identity.slack.provider import SlackIdentityProvider
 from sentry.integrations.base import (
     FeatureDescription,
@@ -22,6 +21,7 @@ from sentry.integrations.base import (
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.slack import workspace
 from sentry.integrations.slack.metrics import translate_slack_api_error
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
@@ -38,7 +38,6 @@ from sentry.notifications.platform.slack.provider import (
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
-from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -262,69 +261,14 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         return has_scope
 
     def has_history_scope(self, channel_id: str) -> bool:
-        """
-        Returns whether this integration is allowed to access the history in the channel.
-
-        Checks if channels:history is installed for public channels,
-        and check groups:history for private channels.
-
-        The type of channel is determined by the conversations.info API call.
-        """
-        history_scopes = [SlackScope.CHANNELS_HISTORY, SlackScope.GROUPS_HISTORY]
-        installed_scope_set = frozenset(self.model.metadata.get("scopes", []))
-
-        installed_history_scopes = [s in installed_scope_set for s in history_scopes]
-
-        if all(installed_history_scopes):
-            return True
-
-        conversation_data = self.get_conversations_info(channel_id=channel_id)
-
-        channel_info = conversation_data.get("channel", {})
-        is_channel = channel_info.get("is_channel", False)
-        is_private = channel_info.get("is_private", False)
-        is_im = channel_info.get("is_im", False)
-
-        # DMs and assistant threads: the bot is a participant and can
-        # always read its own conversation history.
-        if is_im:
-            return True
-        if is_private:
-            return SlackScope.GROUPS_HISTORY in installed_scope_set
-        if is_channel:
-            return SlackScope.CHANNELS_HISTORY in installed_scope_set
-
-        # Shouldn't reach here unless channel_info is empty (most likely
-        # an API error or an unrecognized conversation type).
-        _logger.warning(
-            "slack.has_history_scope.unrecognized_channel_type",
-            extra={"channel_id": channel_id, "channel_info": channel_info},
+        return workspace.has_history_scope(
+            integration_id=self.model.id,
+            channel_id=channel_id,
+            scopes=self.model.metadata.get("scopes"),
         )
-        return False
 
-    def get_conversations_info(
-        self,
-        *,
-        channel_id: str,
-    ) -> dict:
-        """
-        Fetch conversations info from Slack API.
-        """
-        client = self.get_client()
-
-        try:
-            conversations = client.conversations_info(
-                channel=channel_id,
-            )
-
-            assert isinstance(conversations.data, dict)
-            return conversations.data
-        except (SlackApiError, AssertionError) as e:
-            _logger.warning(
-                "slack.get_conversations_info.error",
-                extra={"channel_id": channel_id, "error": str(e)},
-            )
-            return {}
+    def get_conversations_info(self, *, channel_id: str) -> dict:
+        return workspace.get_conversations_info(integration_id=self.model.id, channel_id=channel_id)
 
     def get_thread_history(
         self,
@@ -332,26 +276,12 @@ class SlackIntegration(NotifyBasicMixin, IntegrationInstallation, IntegrationNot
         channel_id: str,
         thread_ts: str,
     ) -> list[dict[str, Any]]:
-        """
-        Fetch thread replies using the conversations.replies API.
-        Returns a list of message dicts, or an empty list on error.
-        """
-        if not self.has_history_scope(channel_id):
-            return []
-
-        client = self.get_client()
-        try:
-            response = client.conversations_replies(
-                channel=channel_id,
-                ts=thread_ts,
-            )
-            return response.get("messages", [])
-        except SlackApiError as e:
-            _logger.warning(
-                "slack.get_thread_history.error",
-                extra={"channel_id": channel_id, "thread_ts": thread_ts, "error": str(e)},
-            )
-            return []
+        return workspace.get_thread_history(
+            integration_id=self.model.id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            scopes=self.model.metadata.get("scopes"),
+        )
 
     def set_thread_status(
         self,
@@ -461,20 +391,8 @@ class SlackIntegrationProvider(IntegrationProvider):
     setup_dialog_config = {"width": 600, "height": 900}
     setup_url_path = "/extensions/slack/setup/"
 
-    def _identity_pipeline_view(self) -> PipelineView[IntegrationPipeline]:
-        return NestedPipelineView(
-            bind_key="identity",
-            provider_key=IntegrationProviderSlug.SLACK.value,
-            pipeline_cls=IdentityPipeline,
-            config={
-                "oauth_scopes": self._get_oauth_scopes(),
-                "user_scopes": self.user_scopes,
-                "redirect_url": absolute_uri(self.setup_url_path),
-            },
-        )
-
-    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
-        return [self._identity_pipeline_view()]
+    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
+        return []
 
     def _make_identity_provider(self) -> SlackIdentityProvider:
         return SlackIdentityProvider(
@@ -505,13 +423,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
-        # TODO: legacy views write token data to state["identity"]["data"] via
-        # NestedPipelineView. API steps write directly to state["oauth_data"].
-        # Remove the legacy path once the old views are retired.
-        if "oauth_data" in state:
-            data = state["oauth_data"]
-        else:
-            data = state["identity"]["data"]
+        data = state["oauth_data"]
         assert data["ok"]
 
         access_token = data["access_token"]

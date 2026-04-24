@@ -1,9 +1,11 @@
+import {useQueries} from '@tanstack/react-query';
+
 import {
   makeAutofixQueryKey,
   type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {IssueType} from 'sentry/types/group';
-import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';

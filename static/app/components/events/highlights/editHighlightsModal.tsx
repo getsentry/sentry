@@ -238,7 +238,7 @@ function EditContextHighlightSection({
   ).reduce(
     (disableMap, [contextType, contextKeys]) => ({
       ...disableMap,
-      [contextType]: new Set(contextKeys ?? []),
+      [contextType]: new Set(contextKeys),
     }),
     {}
   );

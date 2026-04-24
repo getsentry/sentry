@@ -8,7 +8,7 @@ import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   bufferLimit: number;
-  dataSource: string;
+  dataSource: 'events' | 'transactions' | 'search_issues';
   fieldName: string;
   organization: Organization;
   statsPeriod: string;

@@ -4,7 +4,9 @@ import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/
 import {
   convertTokenTypeToValueType,
   escapeTagValue,
+  escapeTagValueForSearch,
   getArgsToken,
+  unescapeAsteriskSearchValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {
@@ -663,25 +665,30 @@ function updateFilterMultipleValues(
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
 
-function multiSelectTokenValue(
+export function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
 ) {
   const tokenValue = action.token.value;
+  // Normalize to the escaped form so that a manually-typed raw value like
+  // `foo*` matches the escaped form `foo\*` dispatched from suggestion checkboxes.
+  const normalize = (value: string) =>
+    escapeTagValueForSearch(unescapeAsteriskSearchValue(value));
+  const normalizedActionValue = normalize(action.value);
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST: {
       const values = tokenValue.items.map(item => item.value?.text ?? '');
-      const containsValue = values.includes(action.value);
+      const containsValue = values.some(v => normalize(v) === normalizedActionValue);
       const newValues = containsValue
-        ? values.filter(value => value !== action.value)
+        ? values.filter(v => normalize(v) !== normalizedActionValue)
         : [...values, action.value];
 
       return updateFilterMultipleValues(state, action.token, newValues);
     }
     default: {
-      if (tokenValue.text === action.value) {
+      if (normalize(tokenValue.text) === normalizedActionValue) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
       const newValue = tokenValue.value

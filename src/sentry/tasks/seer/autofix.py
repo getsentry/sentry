@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
@@ -24,8 +25,6 @@ from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
     bulk_set_project_preferences,
     bulk_write_preferences_to_sentry_db,
-    deduplicate_repositories,
-    get_autofix_repos_from_project_code_mappings,
     get_autofix_state,
     get_org_default_seer_automation_handoff,
     get_seer_seat_based_tier_cache_key,
@@ -258,16 +257,13 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # Determine which projects need updates
     preferences_to_set = []
-    projects_by_id = {p.id: p for p in projects}
     for project_id in project_ids:
         stopping_point = default_stopping_point
         handoff = default_handoff_dict
+        repositories: list[dict[str, Any]] = []
 
         existing_pref = preferences_by_id.get(str(project_id))
-        if not existing_pref:
-            # No existing preferences, get repositories from code mappings
-            repositories = get_autofix_repos_from_project_code_mappings(projects_by_id[project_id])
-        else:
+        if existing_pref:
             repositories = existing_pref.get("repositories") or []
 
             existing_stopping_point = existing_pref.get("automated_run_stopping_point")
@@ -289,7 +285,7 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
             {
                 "organization_id": organization_id,
                 "project_id": project_id,
-                "repositories": deduplicate_repositories(repositories) or [],
+                "repositories": repositories,
                 "automated_run_stopping_point": stopping_point,
                 "automation_handoff": handoff,
             }

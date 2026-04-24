@@ -291,7 +291,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         super().setUp()
         self.action = self.create_action(
             type=Action.Type.DISCORD,
-            integration_id="1234567890",
+            integration_id=1234567890,
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )

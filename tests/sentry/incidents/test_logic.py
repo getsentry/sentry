@@ -2259,7 +2259,7 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         )
         self.data_source.detectors.set([self.detector])
 
-    def assert_detector_enabled_disabled(self, detector: Detector, enabled: bool = True) -> None:
+    def assert_detector_status(self, detector: Detector, enabled: bool = True) -> None:
         detector_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
         query_subscription_status = (
             QuerySubscription.Status.ACTIVE.value
@@ -2268,7 +2268,6 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         )
 
         detector.refresh_from_db()
-        assert detector.enabled == enabled
         assert detector.status == detector_status
 
         query_subscriptions = QuerySubscription.objects.filter(
@@ -2281,18 +2280,18 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
+        self.assert_detector_status(detector=self.detector, enabled=False)
 
         with self.tasks():
             update_detector(detector=self.detector, enabled=True)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
+        self.assert_detector_status(detector=self.detector, enabled=True)
 
     def test_disable(self) -> None:
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
+        self.assert_detector_status(detector=self.detector, enabled=False)
 
     def test_multiple_data_sources_enable_disable(self) -> None:
         with self.tasks():
@@ -2319,12 +2318,12 @@ class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):
         with self.tasks():
             update_detector(detector=self.detector, enabled=False)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=False)
+        self.assert_detector_status(detector=self.detector, enabled=False)
 
         with self.tasks():
             update_detector(detector=self.detector, enabled=True)
 
-        self.assert_detector_enabled_disabled(detector=self.detector, enabled=True)
+        self.assert_detector_status(detector=self.detector, enabled=True)
 
 
 class CreateAlertRuleTriggerTest(TestCase):
@@ -2975,7 +2974,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
-        assert action.target_identifier == str(target_identifier)
+        assert str(action.target_identifier) == str(target_identifier)
         assert action.target_display == "hellboi"
         assert action.integration_id == integration.id
 

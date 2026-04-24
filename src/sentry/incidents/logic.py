@@ -109,7 +109,6 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.utils.snuba import is_measurement
-from sentry.workflow_engine.endpoints.validators.utils import toggle_detector
 from sentry.workflow_engine.models.detector import Detector
 
 # We can return an incident as "windowed" which returns a range of points around the start of the incident
@@ -1094,15 +1093,33 @@ def enable_disable_subscriptions(
         bulk_disable_snuba_subscriptions(query_subscriptions)
 
 
-def update_detector(detector: Detector, enabled: bool) -> None:
+def update_detector_status(detector: Detector, enabled: bool) -> None:
+    """
+    Updates the status of a detector and the associated query subscriptions.
+
+    This is used to toggle whether a metric Detector is allowed for the owning
+    organization, and manages the associated subscription state.
+
+    This is separate from Detector.enabled, which is for snoozing.
+    """
     with transaction.atomic(router.db_for_write(Detector)):
-        toggle_detector(detector, enabled)
+        target_status = ObjectStatus.ACTIVE if enabled else ObjectStatus.DISABLED
+        detector.update(status=target_status)
 
         query_subscriptions = QuerySubscription.objects.filter(
             id__in=[data_source.source_id for data_source in detector.data_sources.all()]
         )
         if query_subscriptions:
             enable_disable_subscriptions(query_subscriptions, enabled)
+        # TODO: Determine whether there was work to be done, and return the result
+        # as a boolean.
+
+
+def update_detector(detector: Detector, enabled: bool) -> None:
+    """
+    Temporary alias for update_detector_status to ease cross-repo changes.
+    """
+    update_detector_status(detector, enabled)
 
 
 def delete_alert_rule(
