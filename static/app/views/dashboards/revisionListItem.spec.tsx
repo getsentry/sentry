@@ -60,6 +60,17 @@ describe('RevisionListItem', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows an error when the base revision details request fails', async () => {
+    MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
+    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, statusCode: 500, body: {}});
+
+    renderItem();
+
+    expect(
+      await screen.findByText('Failed to load revision preview.')
+    ).toBeInTheDocument();
+  });
+
   it('shows the oldest-revision message when there is no base revision', async () => {
     MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
 

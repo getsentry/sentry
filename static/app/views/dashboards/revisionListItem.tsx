@@ -74,17 +74,22 @@ export function RevisionListItem({
     revisionId: snapshotOverride ? null : (revisionId ?? null),
   });
 
-  const {data: fetchedBaseSnapshot, isPending: isBasePending} =
-    useDashboardRevisionDetails({
-      dashboardId,
-      revisionId: baseSnapshotOverride ? null : baseRevisionId,
-    });
+  const {
+    data: fetchedBaseSnapshot,
+    isPending: isBasePending,
+    isError: isBaseFetchError,
+  } = useDashboardRevisionDetails({
+    dashboardId,
+    revisionId: baseSnapshotOverride ? null : baseRevisionId,
+  });
 
   const snapshot = snapshotOverride ?? fetchedSnapshot;
   const baseSnapshot = baseSnapshotOverride ?? fetchedBaseSnapshot;
   const isSnapshotLoading = !snapshotOverride && isSnapshotPending;
   const isBaseLoading = !baseSnapshotOverride && baseRevisionId !== null && isBasePending;
   const isAnyLoading = isSnapshotLoading || isBaseLoading;
+  const isBaseError =
+    !baseSnapshotOverride && baseRevisionId !== null && isBaseFetchError;
 
   const userForAvatar = createdBy
     ? ({
@@ -133,7 +138,7 @@ export function RevisionListItem({
 
           {isAnyLoading ? (
             <LoadingIndicator />
-          ) : !snapshotOverride && isSnapshotError ? (
+          ) : (!snapshotOverride && isSnapshotError) || isBaseError ? (
             <Text size="sm" variant="muted">
               {t('Failed to load revision preview.')}
             </Text>

@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -129,7 +128,7 @@ function DashboardRevisionsModal({
             {isRestoreError && (
               <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
             )}
-            <RevisionList>
+            <Flex direction="column" maxHeight="560px" overflowY="auto">
               <RevisionListItem
                 isCurrentVersion
                 isSelected={isNewestVersionSelected}
@@ -154,7 +153,7 @@ function DashboardRevisionsModal({
                   baseRevisionId={revisions?.[index + 1]?.id ?? null}
                 />
               ))}
-            </RevisionList>
+            </Flex>
           </Flex>
         ) : (
           <Flex align="center" justify="center" padding="xl">
@@ -183,10 +182,3 @@ function DashboardRevisionsModal({
     </Fragment>
   );
 }
-
-const RevisionList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  max-height: 560px;
-  overflow-y: auto;
-`;
