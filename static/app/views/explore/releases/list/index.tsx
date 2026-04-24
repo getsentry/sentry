@@ -5,7 +5,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {TabList} from '@sentry/scraps/tabs';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -43,6 +43,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+} from 'sentry/views/explore/components/styles';
 import {ReleaseArchivedNotice} from 'sentry/views/explore/releases/detail/overview/releaseArchivedNotice';
 import {MobileBuilds} from 'sentry/views/explore/releases/list/mobileBuilds';
 import {ReleaseHealthCTA} from 'sentry/views/explore/releases/list/releaseHealthCTA';
@@ -118,7 +123,6 @@ const releasesFeedbackOptions = {
 export default function ReleasesList() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
   const location = useLocation();
@@ -366,16 +370,13 @@ export default function ReleasesList() {
     [location, navigate]
   );
 
-  const handleTabChange = useCallback(
-    (newTab: string) => {
-      if (newTab === 'mobile-builds') {
-        trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
-          organization,
-        });
-      }
-    },
-    [organization]
-  );
+  const handleTabChange = (newTab: string) => {
+    if (newTab === 'mobile-builds') {
+      trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
+        organization,
+      });
+    }
+  };
 
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
@@ -451,215 +452,236 @@ export default function ReleasesList() {
       <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
       <Stack flex={1}>
         <NoProjectMessage organization={organization}>
-          <Layout.Header noActionWrap>
-            <Stack gap="md">
-              <Flex justify="between">
-                <Layout.HeaderContent unified>
-                  <Layout.Title>
-                    {t('Releases')}
-                    <PageHeadingQuestionTooltip
-                      docsUrl="https://docs.sentry.io/product/releases/"
-                      title={t(
-                        'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
-                      )}
-                    />
-                  </Layout.Title>
-                </Layout.HeaderContent>
-                <Layout.HeaderActions>
-                  {hasPageFrameFeature ? (
-                    <TopBar.Slot name="feedback">
-                      <FeedbackButton
-                        feedbackOptions={releasesFeedbackOptions}
-                        aria-label={t('Give Feedback')}
-                        tooltipProps={{title: t('Give Feedback')}}
-                      >
-                        {null}
-                      </FeedbackButton>
-                    </TopBar.Slot>
-                  ) : (
-                    <FeedbackButton feedbackOptions={releasesFeedbackOptions} />
-                  )}
-                </Layout.HeaderActions>
-              </Flex>
-
-              <ReleasesPageFilterBar
-                condensed
-                shouldShowPreprodTabs={shouldShowPreprodTabs}
-              >
-                <ProjectPageFilter />
-                <EnvironmentPageFilter
-                  disabled={
-                    selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
-                  }
-                />
-                <DatePageFilter
-                  disallowArbitraryRelativeRanges
-                  menuFooterMessage={t(
-                    'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
-                  )}
-                />
-              </ReleasesPageFilterBar>
-
-              {shouldShowPreprodTabs && (
-                <Layout.HeaderTabs value={selectedTab} onChange={handleTabChange}>
-                  <TabList aria-label={t('Releases tab selector')}>
-                    <TabList.Item
-                      key="releases"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: undefined,
-                        },
-                      }}
-                      textValue={t('Releases')}
-                    >
-                      {t('Releases')}
-                    </TabList.Item>
-                    <TabList.Item
-                      key="mobile-builds"
-                      hidden={!shouldShowMobileBuildsTab}
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'mobile-builds',
-                        },
-                      }}
-                      textValue={t('Mobile Builds')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Mobile Builds')}
-                        <FeatureBadge type="new" />
-                      </Flex>
-                    </TabList.Item>
-                    <TabList.Item
-                      key="snapshots"
-                      hidden={!shouldShowSnapshotsTab}
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'snapshots',
-                        },
-                      }}
-                      textValue={t('Snapshots')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Snapshots')}
-                        <FeatureBadge type="alpha" />
-                      </Flex>
-                    </TabList.Item>
-                  </TabList>
-                </Layout.HeaderTabs>
-              )}
-            </Stack>
-          </Layout.Header>
-          <Layout.Body>
+          <ReleasesHeader />
+          <ReleasesBodySearch hasTabs={shouldShowPreprodTabs}>
             <Layout.Main width="full">
-              <Stack gap="xl">
-                {selectedTab === 'mobile-builds' && (
-                  <MobileBuilds
-                    organization={organization}
-                    selectedProjectIds={selectedProjectIds}
+              <Stack gap="md">
+                <PageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter
+                    disabled={
+                      selectedTab === 'mobile-builds' || selectedTab === 'snapshots'
+                    }
                   />
-                )}
-
-                {selectedTab === 'snapshots' && shouldShowSnapshotsTab && (
-                  <MobileBuilds
-                    organization={organization}
-                    selectedProjectIds={selectedProjectIds}
-                    defaultDisplay={PreprodBuildsDisplay.SNAPSHOT}
-                    hideDisplayToggle
-                  />
-                )}
-
-                {selectedTab === 'releases' && (
-                  <Fragment>
-                    <ReleaseHealthCTA
-                      organization={organization}
-                      releases={releases ?? []}
-                      selectedProject={selectedProject}
-                      selection={selection}
-                    />
-                    {shouldShowQuickstart ? null : (
-                      <SortAndFilterWrapper>
-                        <StyledSearchQueryBuilder
-                          onSearch={handleSearch}
-                          initialQuery={activeQuery}
-                          filterKeys={RELEASE_FILTER_KEYS}
-                          getTagValues={getTagValues}
-                          placeholder={t('Search by version, build, package, or stage')}
-                          searchSource="releases"
-                        />
-                        <ReleasesStatusOptions
-                          selected={activeStatus}
-                          onSelect={handleStatus}
-                        />
-                        <ReleasesSortOptions
-                          selected={activeSort}
-                          selectedDisplay={activeDisplay}
-                          onSelect={handleSortBy}
-                          environments={selection.environments}
-                        />
-                        <ReleasesDisplayOptions
-                          selected={activeDisplay}
-                          onSelect={handleDisplay}
-                        />
-                      </SortAndFilterWrapper>
+                  <DatePageFilter
+                    disallowArbitraryRelativeRanges
+                    menuFooterMessage={t(
+                      'Changing this date range will recalculate the release metrics. Select a supported date range from the options above.'
                     )}
-
-                    {!(isReleasesPending || isReleasesRefetching) &&
-                      activeStatus === ReleasesStatusOption.ARCHIVED &&
-                      !!releases?.length && <ReleaseArchivedNotice multi />}
-
-                    {releasesErrorMessage ? (
-                      <LoadingError message={releasesErrorMessage} />
-                    ) : (
-                      <DemoTourElement
-                        id={DemoTourStep.RELEASES_LIST}
-                        title={t('Latest releases')}
-                        description={t(
-                          'View the latest releases for your project. Select a release to review new and regressed issues, and business critical metrics like crash rate, and user adoption. '
-                        )}
-                        position="top-start"
+                  />
+                </PageFilterBar>
+                {shouldShowPreprodTabs && (
+                  <Tabs value={selectedTab} onChange={handleTabChange}>
+                    <TabList aria-label={t('Releases tab selector')}>
+                      <TabList.Item
+                        key="releases"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: undefined,
+                          },
+                        }}
+                        textValue={t('Releases')}
                       >
-                        {props => (
-                          <div {...props}>
-                            <ReleaseListInner
-                              activeDisplay={activeDisplay}
-                              loading={isReleasesPending}
-                              organization={organization}
-                              releases={releases ?? []}
-                              releasesPageLinks={releasesPageLinks}
-                              reloading={isReleasesRefetching}
-                              selectedProject={selectedProject}
-                              selection={selection}
-                              shouldShowQuickstart={shouldShowQuickstart}
-                              showReleaseAdoptionStages={showReleaseAdoptionStages}
-                            />
-                          </div>
-                        )}
-                      </DemoTourElement>
-                    )}
-                  </Fragment>
+                        {t('Releases')}
+                      </TabList.Item>
+                      <TabList.Item
+                        key="mobile-builds"
+                        hidden={!shouldShowMobileBuildsTab}
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'mobile-builds',
+                          },
+                        }}
+                        textValue={t('Mobile Builds')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Mobile Builds')}
+                          <FeatureBadge type="new" />
+                        </Flex>
+                      </TabList.Item>
+                      <TabList.Item
+                        key="snapshots"
+                        hidden={!shouldShowSnapshotsTab}
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'snapshots',
+                          },
+                        }}
+                        textValue={t('Snapshots')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Snapshots')}
+                          <FeatureBadge type="alpha" />
+                        </Flex>
+                      </TabList.Item>
+                    </TabList>
+                  </Tabs>
                 )}
               </Stack>
             </Layout.Main>
-          </Layout.Body>
+          </ReleasesBodySearch>
+          <ExploreBodyContent>
+            <ExploreContentSection gap="xl">
+              {selectedTab === 'mobile-builds' && (
+                <MobileBuilds
+                  organization={organization}
+                  selectedProjectIds={selectedProjectIds}
+                />
+              )}
+
+              {selectedTab === 'snapshots' && shouldShowSnapshotsTab && (
+                <MobileBuilds
+                  organization={organization}
+                  selectedProjectIds={selectedProjectIds}
+                  defaultDisplay={PreprodBuildsDisplay.SNAPSHOT}
+                  hideDisplayToggle
+                />
+              )}
+
+              {selectedTab === 'releases' && (
+                <Fragment>
+                  <ReleaseHealthCTA
+                    organization={organization}
+                    releases={releases ?? []}
+                    selectedProject={selectedProject}
+                    selection={selection}
+                  />
+                  {shouldShowQuickstart ? null : (
+                    <SortAndFilterWrapper>
+                      <StyledSearchQueryBuilder
+                        onSearch={handleSearch}
+                        initialQuery={activeQuery}
+                        filterKeys={RELEASE_FILTER_KEYS}
+                        getTagValues={getTagValues}
+                        placeholder={t('Search by version, build, package, or stage')}
+                        searchSource="releases"
+                      />
+                      <ReleasesStatusOptions
+                        selected={activeStatus}
+                        onSelect={handleStatus}
+                      />
+                      <ReleasesSortOptions
+                        selected={activeSort}
+                        selectedDisplay={activeDisplay}
+                        onSelect={handleSortBy}
+                        environments={selection.environments}
+                      />
+                      <ReleasesDisplayOptions
+                        selected={activeDisplay}
+                        onSelect={handleDisplay}
+                      />
+                    </SortAndFilterWrapper>
+                  )}
+
+                  {!(isReleasesPending || isReleasesRefetching) &&
+                    activeStatus === ReleasesStatusOption.ARCHIVED &&
+                    !!releases?.length && <ReleaseArchivedNotice multi />}
+
+                  {releasesErrorMessage ? (
+                    <LoadingError message={releasesErrorMessage} />
+                  ) : (
+                    <DemoTourElement
+                      id={DemoTourStep.RELEASES_LIST}
+                      title={t('Latest releases')}
+                      description={t(
+                        'View the latest releases for your project. Select a release to review new and regressed issues, and business critical metrics like crash rate, and user adoption. '
+                      )}
+                      position="top-start"
+                    >
+                      {props => (
+                        <div {...props}>
+                          <ReleaseListInner
+                            activeDisplay={activeDisplay}
+                            loading={isReleasesPending}
+                            organization={organization}
+                            releases={releases ?? []}
+                            releasesPageLinks={releasesPageLinks}
+                            reloading={isReleasesRefetching}
+                            selectedProject={selectedProject}
+                            selection={selection}
+                            shouldShowQuickstart={shouldShowQuickstart}
+                            showReleaseAdoptionStages={showReleaseAdoptionStages}
+                          />
+                        </div>
+                      )}
+                    </DemoTourElement>
+                  )}
+                </Fragment>
+              )}
+            </ExploreContentSection>
+          </ExploreBodyContent>
         </NoProjectMessage>
       </Stack>
     </PageFiltersContainer>
   );
 }
 
-const ReleasesPageFilterBar = styled(PageFilterBar)<{
-  shouldShowPreprodTabs: boolean;
-}>`
-  ${p => !p.shouldShowPreprodTabs && `margin-bottom: ${p.theme.space.xl};`}
+function ReleasesHeader() {
+  const hasPageFrameFeature = useHasPageFrameFeature();
+
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/releases/"
+      title={t(
+        'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
+      )}
+    />
+  );
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="title">
+          {t('Releases')}
+          {titleTooltip}
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={releasesFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
+  return (
+    <Layout.Header unified>
+      <Layout.HeaderContent unified>
+        <Layout.Title>
+          {t('Releases')}
+          {titleTooltip}
+        </Layout.Title>
+      </Layout.HeaderContent>
+      <Layout.HeaderActions>
+        <FeedbackButton feedbackOptions={releasesFeedbackOptions} />
+      </Layout.HeaderActions>
+    </Layout.Header>
+  );
+}
+
+const ReleasesBodySearch = styled(ExploreBodySearch)<{hasTabs: boolean}>`
+  ${p =>
+    p.hasTabs &&
+    `
+      padding-bottom: 0;
+
+      @media (min-width: ${p.theme.breakpoints.md}) {
+        padding-bottom: 0;
+      }
+    `}
 `;
 
 const SortAndFilterWrapper = styled('div')`
