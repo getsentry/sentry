@@ -73,7 +73,7 @@ function PipelineModal<
       </Header>
       <Body>
         <Stack gap="2xl">
-          {!pipeline.isComplete && (
+          {!pipeline.isComplete && pipeline.totalSteps > 1 && (
             <Grid columns="1fr max-content">
               <Flex gap="md" align="center">
                 <ProgressRing
