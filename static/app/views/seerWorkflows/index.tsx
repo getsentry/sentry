@@ -73,79 +73,83 @@ function SeerWorkflows() {
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <RunsTable>
-            <SimpleTable.Header>
-              <SimpleTable.HeaderCell />
-              <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Workflow')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell />
-            </SimpleTable.Header>
+          <Container width={{md: '100%', lg: '50%'}}>
+            <RunsTable>
+              <SimpleTable.Header>
+                <SimpleTable.HeaderCell />
+                <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Workflow')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Strategy')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell />
+              </SimpleTable.Header>
 
-            {data?.length === 0 ? (
-              <SimpleTable.Empty>{t('No workflow runs yet.')}</SimpleTable.Empty>
-            ) : (
-              (data ?? []).map(run => {
-                const isExpanded = expanded.has(run.id);
-                const status = run.errorMessage ? t('Error') : t('Completed');
-                const explorerRunId = getExplorerRunId(run);
-                return (
-                  <Fragment key={run.id}>
-                    <SimpleTable.Row>
-                      <SimpleTable.RowCell>
-                        <Button
-                          aria-label={isExpanded ? t('Collapse run') : t('Expand run')}
-                          size="xs"
-                          priority="transparent"
-                          icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
-                          onClick={() => toggleExpanded(run.id)}
-                        />
-                      </SimpleTable.RowCell>
-                      <SimpleTable.RowCell>
-                        <DateTime date={run.dateAdded} />
-                      </SimpleTable.RowCell>
-                      <SimpleTable.RowCell>{t('Night Shift')}</SimpleTable.RowCell>
-                      <SimpleTable.RowCell>{run.triageStrategy}</SimpleTable.RowCell>
-                      <SimpleTable.RowCell>
-                        <Text variant={run.errorMessage ? 'danger' : undefined}>
-                          {status}
-                        </Text>
-                      </SimpleTable.RowCell>
-                      <SimpleTable.RowCell>{run.issues.length}</SimpleTable.RowCell>
-                      <SimpleTable.RowCell>
-                        {explorerRunId === null ? null : (
-                          <LinkButton
+              {data?.length === 0 ? (
+                <SimpleTable.Empty>{t('No workflow runs yet.')}</SimpleTable.Empty>
+              ) : (
+                (data ?? []).map(run => {
+                  const isExpanded = expanded.has(run.id);
+                  const status = run.errorMessage ? t('Error') : t('Completed');
+                  const explorerRunId = getExplorerRunId(run);
+                  return (
+                    <Fragment key={run.id}>
+                      <SimpleTable.Row>
+                        <SimpleTable.RowCell>
+                          <Button
+                            aria-label={isExpanded ? t('Collapse run') : t('Expand run')}
                             size="xs"
-                            icon={<IconOpen />}
-                            to={{
-                              pathname: `/organizations/${organization.slug}/issues/`,
-                              query: {explorerRunId},
-                            }}
-                          >
-                            {t('Explorer')}
-                          </LinkButton>
-                        )}
-                      </SimpleTable.RowCell>
-                    </SimpleTable.Row>
-
-                    {isExpanded && (
-                      <SimpleTable.Row variant="faded">
-                        <Container
-                          background="secondary"
-                          padding="lg xl"
-                          style={{gridColumn: '1 / -1'}}
-                        >
-                          <RunDetail run={run} organizationSlug={organization.slug} />
-                        </Container>
+                            priority="transparent"
+                            icon={
+                              <IconChevron direction={isExpanded ? 'down' : 'right'} />
+                            }
+                            onClick={() => toggleExpanded(run.id)}
+                          />
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          <DateTime date={run.dateAdded} />
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>{t('Night Shift')}</SimpleTable.RowCell>
+                        <SimpleTable.RowCell>{run.triageStrategy}</SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          <Text variant={run.errorMessage ? 'danger' : undefined}>
+                            {status}
+                          </Text>
+                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>{run.issues.length}</SimpleTable.RowCell>
+                        <SimpleTable.RowCell>
+                          {explorerRunId === null ? null : (
+                            <LinkButton
+                              size="xs"
+                              icon={<IconOpen />}
+                              to={{
+                                pathname: `/organizations/${organization.slug}/issues/`,
+                                query: {explorerRunId},
+                              }}
+                            >
+                              {t('Explorer')}
+                            </LinkButton>
+                          )}
+                        </SimpleTable.RowCell>
                       </SimpleTable.Row>
-                    )}
-                  </Fragment>
-                );
-              })
-            )}
-          </RunsTable>
+
+                      {isExpanded && (
+                        <SimpleTable.Row variant="faded">
+                          <Container
+                            background="secondary"
+                            padding="lg xl"
+                            style={{gridColumn: '1 / -1'}}
+                          >
+                            <RunDetail run={run} organizationSlug={organization.slug} />
+                          </Container>
+                        </SimpleTable.Row>
+                      )}
+                    </Fragment>
+                  );
+                })
+              )}
+            </RunsTable>
+          </Container>
         )}
       </Flex>
     </SentryDocumentTitle>
