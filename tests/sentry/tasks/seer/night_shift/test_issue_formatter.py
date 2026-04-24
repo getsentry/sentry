@@ -1,11 +1,13 @@
+import textwrap
+
 from sentry.tasks.seer.night_shift.issue_formatter import format_issue_output
 
 
 def test_full_output_comprehensive() -> None:
     # Full populated Seer response: header with all fields, tag overview wrapped
     # in the nested {"tags_overview": {"tags_overview": [...]}} shape that the
-    # Seer RPC actually returns, and mixed activity (assigned + note with a
-    # system-actor fallback).
+    # Seer RPC actually returns, and mixed activity (assigned + note + system-
+    # actor fallback).
     details = {
         "issue": {
             "shortId": "PROJ-123",
@@ -58,39 +60,46 @@ def test_full_output_comprehensive() -> None:
 
     output = format_issue_output(details)
 
-    # Header.
-    assert "# PROJ-123: ValueError: bad input" in output
-    assert "**Culprit:** `app.foo in bar`" in output
-    assert "**Type:** error / error — Error" in output
-    assert "**Priority:** high" in output
-    assert "**Status:** unresolved" in output
-    assert "**Substatus:** new" in output
-    assert "**First seen:** 2026-01-01T00:00:00Z" in output
-    assert "**Events:** 42" in output
-    assert "**Users affected:** 7" in output
-    assert "**Assigned to:** alice@example.com" in output
-    assert "**Platform:** python" in output
+    expected_header = textwrap.dedent(
+        """
+        # PROJ-123: ValueError: bad input
+        **Culprit:** `app.foo in bar`
+        **Type:** error / error — Error
+        **Level:** error | **Priority:** high | **Status:** unresolved | **Substatus:** new
+        **First seen:** 2026-01-01T00:00:00Z | **Last seen:** 2026-01-02T00:00:00Z
+        **Events:** 42 | **Users affected:** 7
+        **Assigned to:** alice@example.com
+        **Platform:** python
+        """
+    ).strip()
+    assert expected_header in output
 
-    # Tag distribution: nested unwrap + unique_values + percentage formatting.
-    assert "## Tag Distribution" in output
-    assert "**Browser** (`browser`) (100 total, 3 unique)" in output
-    assert "- Chrome 120 — 70 (70%)" in output
-    assert "- Firefox 121 — 30 (30%)" in output
+    expected_tags_block = textwrap.dedent(
+        """
+        ## Tag Distribution
 
-    # Activity: user.email, user.username, and system-actor fallback.
-    assert "## Recent Activity" in output
-    assert (
-        "2026-01-03T12:00:00Z — bob@example.com (assigned): assigneeEmail=carol@example.com"
-        in output
-    )
-    assert "2026-01-03T13:00:00Z — alice (note): text=looks like a regression" in output
-    assert "2026-01-04T00:00:00Z — system (set_resolved)" in output
+        **Browser** (`browser`) (100 total, 3 unique)
+        - Chrome 120 — 70 (70%)
+        - Firefox 121 — 30 (30%)
+        """
+    ).strip()
+    assert expected_tags_block in output
+
+    expected_activity_block = textwrap.dedent(
+        """
+        ## Recent Activity
+
+        - 2026-01-03T12:00:00Z — bob@example.com (assigned): assigneeEmail=carol@example.com
+        - 2026-01-03T13:00:00Z — alice (note): text=looks like a regression
+        - 2026-01-04T00:00:00Z — system (set_resolved)
+        """
+    ).strip()
+    assert expected_activity_block in output
 
 
 def test_sparse_input_omits_missing_sections() -> None:
     # Minimal data: sparse issue, empty tag overview (missing inner key), empty
-    # activity list. All optional sections should be silently omitted rather
-    # than rendering empty headers.
+    # activity list. Optional sections should be silently omitted.
     output = format_issue_output(
         {
             "issue": {"shortId": "P-1", "title": "Oops"},

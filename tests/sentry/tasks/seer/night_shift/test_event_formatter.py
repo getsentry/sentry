@@ -1,11 +1,13 @@
+import textwrap
+
 from sentry.tasks.seer.night_shift.event_formatter import format_event_output
 
 
 def test_error_event_comprehensive() -> None:
     # One realistic Python error event exercising the main path: exception with
-    # a stacktrace + enhanced frame (context + locals), HTTP request, user with
-    # geo dedup, tags, contexts. Truncation of a long string local is included
-    # to pin the variable-value cap.
+    # stacktrace + enhanced frame (context + locals), HTTP request, user with
+    # geo dedup, tags, contexts. Truncation of a long string local pins the
+    # variable-value cap.
     event = {
         "platform": "python",
         "entries": [
@@ -51,32 +53,73 @@ def test_error_event_comprehensive() -> None:
 
     output = format_event_output(event)
 
-    # Exception header + enhanced most-relevant frame + context + locals.
+    expected_frame_block = (
+        textwrap.dedent(
+            """
+        **Most Relevant Frame:**
+        ─────────────────────
+          File "src/app.py", line 10, in do_thing
+
+             9 │ def do_thing():
+          → 10 │     raise ValueError('bad input')
+            11 │     return 1
+
+        Local Variables:
+        ├─ x: "broken"
+        └─ long_str: "{long_a}..."
+        """
+        )
+        .strip()
+        .format(long_a="a" * 75)
+    )
+    assert expected_frame_block in output
+
+    expected_request_block = textwrap.dedent(
+        """
+        ### HTTP Request
+
+        **Method:** POST
+        **URL:** https://api.example.com/x
+        """
+    ).strip()
+    assert expected_request_block in output
+
+    # User block — `geo` dedupes "US" appearing in both country_code and region.
+    expected_user_block = textwrap.dedent(
+        """
+        ### User
+
+        **user**: email:alice@example.com
+        **user.geo**: US, NYC
+        """
+    ).strip()
+    assert expected_user_block in output
+
+    expected_tags_block = textwrap.dedent(
+        """
+        ### Tags
+
+        **env**: prod
+        """
+    ).strip()
+    assert expected_tags_block in output
+
+    expected_contexts_block = textwrap.dedent(
+        """
+        ### Additional Context
+
+        These are additional context provided by the user when they're instrumenting their application.
+
+        **runtime**
+        name: "CPython"
+        version: "3.12.0"
+        """
+    ).strip()
+    assert expected_contexts_block in output
+
     assert "### Error" in output
     assert "ValueError: bad input" in output
-    assert "**Most Relevant Frame:**" in output
-    assert "do_thing" in output
-    assert "  → 10 │     raise ValueError('bad input')" in output
-    assert "Local Variables:" in output
-    assert 'x: "broken"' in output
-    assert "..." in output  # long_str was truncated
     assert "**Full Stacktrace:**" in output
-
-    # HTTP request section.
-    assert "### HTTP Request" in output
-    assert "**Method:** POST" in output
-
-    # User with deduped geo ("US" appears in country_code and region but rendered once).
-    assert "alice@example.com" in output
-    geo_line = next(line for line in output.splitlines() if line.startswith("**user.geo**"))
-    assert geo_line.count("US") == 1
-    assert "NYC" in geo_line
-
-    # Tags + contexts.
-    assert "### Tags" in output
-    assert "**env**: prod" in output
-    assert "### Additional Context" in output
-    assert "CPython" in output
 
 
 def test_chained_exceptions_rendered_outer_first() -> None:
@@ -147,9 +190,17 @@ def test_alt_interfaces_threads_message_and_csp() -> None:
 
     output = format_event_output(event)
 
+    expected_csp_block = textwrap.dedent(
+        """
+        ### CSP Violation
+
+        **Blocked URI**: https://evil.example.com/a.js
+        **Violated Directive**: script-src
+        **Document URI**: https://app.example.com/
+        """
+    ).strip()
+    assert expected_csp_block in output
+
     assert "something went wrong" in output
     assert "**Thread** (main)" in output
     assert "crash" in output
-    assert "### CSP Violation" in output
-    assert "**Blocked URI**: https://evil.example.com/a.js" in output
-    assert "**Violated Directive**: script-src" in output
