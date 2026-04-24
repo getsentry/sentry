@@ -176,46 +176,58 @@ function FilterActions({
     [filterKeys]
   );
 
-  const renderFilterKey = (tag: Tag) => {
-    const predefined = getTagValueStrings(tag);
-    const hasPredefined = predefined.length > 0;
-
-    return (
-      <CMDKAction
-        key={tag.key}
-        display={{label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`}}
-        keywords={[tag.key]}
-        prompt={t('Select a value...')}
-        resource={(_cmdkQuery: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
-          // Include the feed query in the cache key so onAction closures are
-          // always built against the current query when it changes.
-          // eslint-disable-next-line @tanstack/query/exhaustive-deps
-          cmdkQueryOptions({
-            queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
-            queryFn: async () => {
-              const values = hasPredefined ? predefined : await loadTagValues(tag.key);
-              return values.map(value => ({
-                display: {label: value},
-                onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
-              }));
-            },
-            enabled: state === 'selected',
-            staleTime: hasPredefined ? Infinity : 30_000,
-          })
-        }
-      />
-    );
-  };
-
   return (
     <CMDKAction
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
-    >
-      {issueFields.slice(0, 4).map(renderFilterKey)}
-      {eventFields.slice(0, 4).map(renderFilterKey)}
-      {eventTags.slice(0, 4).map(renderFilterKey)}
-    </CMDKAction>
+      prompt={t('Select a filter...')}
+      resource={(_cmdkQuery: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+        // Feed query is in the key so nested onAction closures always reference
+        // the current query. issueFields/eventFields/eventTags are intentionally
+        // omitted — they're stable within a session and too large to serialize.
+        // eslint-disable-next-line @tanstack/query/exhaustive-deps
+        cmdkQueryOptions({
+          queryKey: ['cmdk-filter-keys', organization.slug, pageFilterCacheKey, query],
+          queryFn: () => {
+            const tags = [
+              ...issueFields.slice(0, 4),
+              ...eventFields.slice(0, 4),
+              ...eventTags.slice(0, 4),
+            ];
+            return tags.map(tag => {
+              const predefined = getTagValueStrings(tag);
+              const hasPredefined = predefined.length > 0;
+              return {
+                display: {
+                  label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`,
+                },
+                keywords: [tag.key],
+                prompt: t('Select a value...'),
+                resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
+                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+                  cmdkQueryOptions({
+                    queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
+                    queryFn: async () => {
+                      const values = hasPredefined
+                        ? predefined
+                        : await loadTagValues(tag.key);
+                      return values.map(value => ({
+                        display: {label: value},
+                        onAction: () =>
+                          onQueryChange(appendFilterToken(query, tag.key, value)),
+                      }));
+                    },
+                    enabled: ctx.state === 'selected',
+                    staleTime: hasPredefined ? Infinity : 30_000,
+                  }),
+              };
+            });
+          },
+          enabled: state === 'selected',
+          staleTime: Infinity,
+        })
+      }
+    />
   );
 }
 
