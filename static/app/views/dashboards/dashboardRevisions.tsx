@@ -53,19 +53,8 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
       ),
       {
         modalCss: css`
-          [role='document'] {
-            max-width: 720px;
-            width: 90vw;
-            padding: 16px !important;
-          }
-          /* The header uses negative margins to break out of [role='document']'s
-             padding. Those margins are hardcoded to 32px, so we override them here
-             to match the new 16px padding so the header still reaches the edges. */
-          [role='document'] > *:first-child {
-            margin-top: -16px !important;
-            margin-left: -16px !important;
-            margin-right: -16px !important;
-          }
+          max-width: 720px;
+          width: 90vw;
         `,
       }
     );
@@ -86,6 +75,7 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
 function DashboardRevisionsModal({
   Header,
   Body,
+  Footer,
   closeModal,
   dashboard,
   dashboardCreatedBy,
@@ -165,22 +155,6 @@ function DashboardRevisionsModal({
                 />
               ))}
             </RevisionList>
-            <ModalFooterRow>
-              <Flex justify="end" gap="sm">
-                <Button size="sm" onClick={closeModal}>
-                  {t('Cancel')}
-                </Button>
-                <Button
-                  priority="primary"
-                  size="sm"
-                  onClick={() => restore()}
-                  busy={isRestoring}
-                  disabled={isNewestVersionSelected}
-                >
-                  {t('Revert to Selection')}
-                </Button>
-              </Flex>
-            </ModalFooterRow>
           </Flex>
         ) : (
           <Flex align="center" justify="center" padding="xl">
@@ -188,6 +162,24 @@ function DashboardRevisionsModal({
           </Flex>
         )}
       </Body>
+      {displayedRevisions.length ? (
+        <Footer>
+          <Flex gap="sm">
+            <Button size="sm" onClick={closeModal}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              priority="primary"
+              size="sm"
+              onClick={() => restore()}
+              busy={isRestoring}
+              disabled={isNewestVersionSelected}
+            >
+              {t('Revert to Selection')}
+            </Button>
+          </Flex>
+        </Footer>
+      ) : null}
     </Fragment>
   );
 }
@@ -197,11 +189,4 @@ const RevisionList = styled('div')`
   flex-direction: column;
   max-height: 560px;
   overflow-y: auto;
-`;
-
-const ModalFooterRow = styled('div')`
-  margin-left: -16px;
-  margin-right: -16px;
-  padding: ${p => p.theme.space.md} 16px 0;
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
