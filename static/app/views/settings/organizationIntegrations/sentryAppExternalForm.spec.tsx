@@ -154,12 +154,14 @@ describe('SentryAppExternalForm', () => {
       />
     );
 
-    // No external call should fire until `name` is populated.
-    await waitFor(() => expect(external).not.toHaveBeenCalled());
+    // On mount the gate keeps `size` from loading because `name` is empty.
+    expect(external).not.toHaveBeenCalled();
 
     await userEvent.type(screen.getByText('Name'), 'widget');
+    expect(screen.getByDisplayValue('widget')).toBeInTheDocument();
 
-    await waitFor(() => expect(external).toHaveBeenCalled());
+    // Each keystroke fires onFieldChange → handleFieldChange → one load.
+    await waitFor(() => expect(external).toHaveBeenCalledTimes('widget'.length));
   });
 
   it('preserves a saved select label via resetValues for async selects', () => {
