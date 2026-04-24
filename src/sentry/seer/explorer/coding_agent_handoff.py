@@ -150,6 +150,9 @@ def launch_coding_agents(
                     if e.text and "not licensed" in e.text.lower():
                         failure_type = "github_copilot_not_licensed"
                         error_message = "Your GitHub account does not have an active Copilot license. Please check your GitHub Copilot subscription."
+                    elif e.text and "premium quota" in e.text.lower():
+                        failure_type = "github_copilot_insufficient_quota"
+                        error_message = "Your GitHub Copilot plan does not have enough premium request quota to launch a coding agent. Upgrade your plan or wait for the next billing cycle."
                     else:
                         failure_type = "github_app_permissions"
                         error_message = f"The Sentry GitHub App installation does not have the required permissions for {repo_name}. Please update your GitHub App permissions to include 'contents:write'."

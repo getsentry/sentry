@@ -1221,6 +1221,56 @@ class OrganizationCodingAgentsPost403PermissionTest(BaseOrganizationCodingAgents
     @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
     @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
     @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
+    @patch("sentry.seer.autofix.coding_agent.GithubCopilotAgentClient")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_copilot_insufficient_premium_quota_returns_quota_failure_type(
+        self,
+        mock_identity_service,
+        mock_copilot_client_class,
+        mock_get_preferences,
+        mock_get_prompt,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint returns failure_type=github_copilot_insufficient_quota for Copilot 403 quota errors.
+
+        When GitHub Copilot returns a 403 whose body mentions insufficient premium
+        quota, the user has Copilot but has exhausted their premium request budget.
+        This is distinct from a GitHub App permissions issue or being unlicensed, so
+        we surface a dedicated failure type for the frontend to render upgrade guidance.
+        """
+        mock_get_providers.return_value = ["github"]
+        mock_get_prompt.return_value = "Test prompt"
+        mock_get_preferences.return_value = PreferenceResponse(
+            preference=None, code_mapping_repos=[]
+        )
+        mock_identity_service.get_access_token_for_user.return_value = "test-copilot-token"
+
+        mock_client_instance = MagicMock()
+        mock_copilot_client_class.return_value = mock_client_instance
+        mock_client_instance.launch.side_effect = ApiError(
+            "insufficient premium quota to create assignment", code=403
+        )
+
+        mock_get_autofix_state.return_value = self._create_mock_autofix_state()
+
+        data = {"provider": "github_copilot", "run_id": 123}
+
+        with (
+            self.feature("organizations:integrations-github-copilot-agent"),
+            patch("sentry.seer.autofix.coding_agent.store_coding_agent_states_to_seer"),
+        ):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is False
+            assert response.data["failed_count"] >= 1
+            failure = response.data["failures"][0]
+            assert failure["failure_type"] == "github_copilot_insufficient_quota"
+            assert "premium request quota" in failure["error_message"]
+
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_providers")
+    @patch("sentry.seer.autofix.coding_agent.get_autofix_state")
+    @patch("sentry.seer.autofix.coding_agent.get_coding_agent_prompt")
+    @patch("sentry.seer.autofix.coding_agent.get_project_seer_preferences")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
