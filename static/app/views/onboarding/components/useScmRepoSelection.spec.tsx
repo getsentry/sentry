@@ -29,6 +29,7 @@ describe('useScmRepoSelection', () => {
   let reposByIdentifier: Map<string, IntegrationRepository>;
 
   const mockRepo: IntegrationRepository = {
+    externalId: '1',
     identifier: 'getsentry/sentry',
     name: 'sentry',
     isInstalled: false,
