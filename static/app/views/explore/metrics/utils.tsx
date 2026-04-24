@@ -28,6 +28,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
@@ -275,7 +276,7 @@ export function getEquationMetricsTotalFilter(equation: string) {
   const expression = new Expression(stripEquationPrefix(equation));
   const aggregatesUsed = expression.tokens
     .filter(isTokenFunction)
-    .map(token => token.text);
+    .map(token => normalizeFunctionToken(token).plainAggregate);
 
   const traceMetricsUsed = aggregatesUsed.map(aggregate => {
     const {traceMetric} = parseMetricAggregate(aggregate);
