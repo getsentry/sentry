@@ -206,6 +206,12 @@ function IssueListOverview({
     [getRealtimeWindowStartMs]
   );
 
+  // Keep the poller's `success` callback fresh without recreating the poller.
+  const onRealtimePollRef = useRef(onRealtimePoll);
+  useEffect(() => {
+    onRealtimePollRef.current = onRealtimePoll;
+  }, [onRealtimePoll]);
+
   useEffect(() => {
     // Either cleanup or reuse the poller to prevent a resource leak.
     if (pollerRef.current) {
@@ -215,9 +221,9 @@ function IssueListOverview({
 
     pollerRef.current = new CursorPoller({
       linkPreviousHref: parseLinkHeader(pageLinks)?.previous?.href!,
-      success: onRealtimePoll,
+      success: (data, headers) => onRealtimePollRef.current(data, headers),
     });
-  }, [onRealtimePoll, pageLinks]);
+  }, [pageLinks]);
 
   const query = defined(location.query.query)
     ? (location.query.query as string)
