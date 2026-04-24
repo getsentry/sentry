@@ -417,11 +417,12 @@ class DetectorType(StrEnum):
     """
 
     ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
     METRIC_ISSUE = "metric_issue"
     MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
-    UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_check_failure"
-    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
     PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
 
 
 @dataclass(frozen=True)

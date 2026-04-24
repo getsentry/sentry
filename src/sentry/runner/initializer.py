@@ -695,3 +695,4 @@ def import_detectorconfigs() -> None:
     import sentry.preprod.size_analysis.detectorconfig  # noqa: F401
     import sentry.processing_errors.detectorconfig  # noqa: F401
     import sentry.uptime.detectorconfig  # noqa: F401
+    import sentry.workflow_engine.typings.detectorconfig  # noqa: F401

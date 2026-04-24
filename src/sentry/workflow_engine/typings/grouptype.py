@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.workflow_engine.types import DetectorType
 
 
 # hidden group type, used for issue stream detector
@@ -18,3 +19,4 @@ class IssueStreamGroupType(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     enable_user_status_and_priority_changes = False
+    detector_type = DetectorType.ISSUE_STREAM

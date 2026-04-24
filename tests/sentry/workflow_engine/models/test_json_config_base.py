@@ -3,9 +3,10 @@ from dataclasses import dataclass
 import pytest
 from jsonschema import ValidationError
 
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
-from sentry.workflow_engine.types import DetectorSettings, DetectorType
+from sentry.workflow_engine.types import DetectorSettings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -105,7 +106,23 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
-            detector_type = DetectorType.METRIC_ISSUE
+            detector_settings = DetectorSettings(
+                config_schema={
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "description": "A representation of a metric detector config dict",
+                    "type": "object",
+                    "required": ["detection_type"],
+                    "properties": {
+                        "comparison_delta": {
+                            "type": ["integer", "null"],
+                        },
+                        "detection_type": {
+                            "type": "string",
+                            "enum": [dt.value for dt in AlertRuleDetectionType],
+                        },
+                    },
+                },
+            )
 
     def test_detector_correct_schema(self) -> None:
         self.create_detector(
