@@ -174,6 +174,55 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert len(repos) == 1
             assert repos[0].status == ObjectStatus.ACTIVE
 
+    @responses.activate
+    def test_stamps_last_sync_on_org_integration(self, _: MagicMock) -> None:
+        self.oi.config = {
+            "last_sync": "2020-01-01T00:00:00+00:00",
+            "last_repos_change": "2020-01-01T00:00:00+00:00",
+        }
+        self.oi.save()
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.feature(
+            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
+        ):
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
+
+        self.oi.refresh_from_db()
+        assert self.oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
+        assert self.oi.config["last_repos_change"] > "2020-01-01T00:00:00+00:00"
+
+    @responses.activate
+    def test_does_not_stamp_last_repos_change_when_no_diff(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                external_id="1",
+                integration_id=self.integration.id,
+                provider="integrations:github",
+            )
+
+        self.oi.config = {
+            "last_sync": "2020-01-01T00:00:00+00:00",
+            "last_repos_change": "2020-01-01T00:00:00+00:00",
+        }
+        self.oi.save()
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.feature(
+            ["organizations:github-repo-auto-sync", "organizations:github-repo-auto-sync-apply"]
+        ):
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
+
+        self.oi.refresh_from_db()
+        assert self.oi.config["last_sync"] > "2020-01-01T00:00:00+00:00"
+        assert self.oi.config["last_repos_change"] == "2020-01-01T00:00:00+00:00"
+
     def test_missing_org_integration(self, _: MagicMock) -> None:
         sync_repos_for_org(0)
 

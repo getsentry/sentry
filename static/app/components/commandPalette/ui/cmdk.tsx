@@ -10,11 +10,16 @@ import {
   CommandPaletteStateProvider,
   useCommandPaletteState,
 } from './commandPaletteStateContext';
+export interface CMDKResourceContext {
+  /** 'selected' when the user has drilled into this action, otherwise undefined. */
+  state: 'selected' | undefined;
+}
 
 interface DisplayProps {
   label: string;
   details?: string;
   icon?: React.ReactNode;
+  trailingItem?: React.ReactNode;
 }
 
 interface CMDKActionDataBase {
@@ -34,7 +39,7 @@ interface CMDKActionDataOnAction extends CMDKActionDataBase {
 
 interface CMDKActionDataResource extends CMDKActionDataBase {
   prompt?: string;
-  resource?: (query: string) => CMDKQueryOptions;
+  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
 }
 
 /**
@@ -79,7 +84,7 @@ interface CMDKActionProps {
   limit?: number;
   onAction?: () => void;
   prompt?: string;
-  resource?: (query: string) => CMDKQueryOptions;
+  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
   to?: LocationDescriptor;
 }
 
@@ -115,10 +120,11 @@ export function CMDKAction({
       : {display, keywords, ref, to, limit: effectiveLimit};
 
   const key = CMDKCollection.useRegisterNode(nodeData, id);
-  const {query} = useCommandPaletteState();
+  const {query, action: navAction} = useCommandPaletteState();
+  const state = navAction?.value.key === key ? 'selected' : undefined;
 
   const resourceOptions = resource
-    ? resource(query)
+    ? resource(query, {state})
     : {queryKey: [] as unknown[], queryFn: () => null, enabled: false};
 
   const {data} = useQuery({

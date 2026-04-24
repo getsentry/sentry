@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from typing import NamedTuple
 
 import pymemcache
-from django.core.cache.backends.memcached import PyMemcacheCache
+from django.core.cache.backends.memcached import PyMemcacheCache  # noqa: S018
 
 from sentry.utils import metrics
 

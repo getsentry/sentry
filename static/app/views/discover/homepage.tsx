@@ -10,6 +10,7 @@ import {
 } from 'sentry/components/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/pageFilters/persistence';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Redirect} from 'sentry/components/redirect';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -21,6 +22,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
+import {makeDiscoverPathname} from './pathnames';
 import {Results} from './results';
 
 function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
@@ -130,6 +132,17 @@ function Homepage() {
 }
 
 export default function HomepageContainer() {
+  const organization = useOrganization();
+  const location = useLocation();
+
+  if (!organization.features.includes('discover-query')) {
+    return (
+      <Redirect
+        to={`${makeDiscoverPathname({path: '/results/', organization})}${location.search}${location.hash}`}
+      />
+    );
+  }
+
   return (
     <PageFiltersContainer skipInitializeUrlParams>
       <Homepage />

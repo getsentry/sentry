@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
 
@@ -32,6 +32,12 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  CommandPaletteHotkeys,
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 
 function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   return (
@@ -155,6 +161,26 @@ describe('CommandPalette', () => {
     expect(
       externalAction.querySelector('[data-test-id="command-palette-link-indicator"]')
     ).toHaveAttribute('data-link-type', 'external');
+  });
+
+  it('renders both a custom trailingItem and the link indicator for a link action', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          to="/target/"
+          display={{
+            label: 'Action with trailing',
+            trailingItem: <span data-testid="custom-trailing">Badge</span>,
+          }}
+        />
+      </GlobalActionsComponent>
+    );
+
+    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
+    expect(
+      option.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toBeInTheDocument();
   });
 
   it('clicking action with children shows sub-items, backspace returns', async () => {
@@ -1037,6 +1063,154 @@ describe('CommandPalette', () => {
       );
 
       await waitFor(() => expect(input).toHaveValue('parent'));
+    });
+  });
+
+  describe('deferred reset on close', () => {
+    // Top-level CMDKActions with children render as section headers (disabled),
+    // so to get a drillable item we nest the target group one level deeper.
+    // "Section" becomes a disabled header; "Drillable Group" is a selectable
+    // item that pushes onto the nav stack when clicked.
+    function ToggleablePalette({showPalette}: {showPalette: boolean}) {
+      return (
+        <CommandPaletteProvider>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'Drillable Group'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          {showPalette && <CommandPalette closeModal={jest.fn()} />}
+        </CommandPaletteProvider>
+      );
+    }
+
+    it('does not reset items immediately when a leaf action is triggered', async () => {
+      render(<ToggleablePalette showPalette />);
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+      await userEvent.click(screen.getByRole('option', {name: 'Child Action'}));
+
+      // pendingReset is set but the component is still mounted, so items must not
+      // swap back to the root list before the exit animation has completed
+      expect(screen.getByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+
+    it('resets action and query when the component unmounts after triggering an action', async () => {
+      const {rerender} = render(<ToggleablePalette showPalette />);
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Child Action'}));
+
+      // Unmount simulates the exit animation completing and React removing the element
+      rerender(<ToggleablePalette showPalette={false} />);
+
+      // Remount — state should have been reset by the cleanup effect
+      rerender(<ToggleablePalette showPalette />);
+
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('preserves state when closed without triggering an action', async () => {
+      const {rerender} = render(<ToggleablePalette showPalette />);
+
+      // Drill into the group but do not select a leaf action
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      // Unmount (user dismissed the palette without selecting anything)
+      rerender(<ToggleablePalette showPalette={false} />);
+
+      // Remount — state should be preserved (no pendingReset was set)
+      rerender(<ToggleablePalette showPalette />);
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('reset on open', () => {
+    // Capture dispatch so tests can open/close CMDK without going through
+    // toggleCommandPalette, keeping the setup self-contained.
+    let testDispatch: CommandPaletteDispatch;
+
+    function DispatchCapture() {
+      testDispatch = useCommandPaletteDispatch();
+      return null;
+    }
+
+    function PaletteContent() {
+      const state = useCommandPaletteState();
+      return (
+        <Fragment>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'Drillable Group'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          {state.open && <CommandPalette closeModal={jest.fn()} />}
+        </Fragment>
+      );
+    }
+
+    function Wrapper({withHotkeys}: {withHotkeys?: boolean} = {}) {
+      return (
+        <CommandPaletteProvider>
+          <DispatchCapture />
+          {withHotkeys && <CommandPaletteHotkeys />}
+          <PaletteContent />
+        </CommandPaletteProvider>
+      );
+    }
+
+    it('preserves state when toggled closed and open without navigating', async () => {
+      render(<Wrapper />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+
+    it('resets state on the next open if the route changes while CMDK is closed', async () => {
+      const {router} = render(<Wrapper withHotkeys />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      // Navigate while closed — route change must trigger reset on the next open
+      act(() => router.navigate('/new-page/'));
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
     });
   });
 

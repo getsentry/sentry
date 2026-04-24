@@ -387,6 +387,7 @@ class SlackRequestParserTest(TestCase):
         assert kwargs["thread_ts"] == "1234567890.000001"
         assert kwargs["message_ts"] == "1234567890.123456"
         assert kwargs["event_type"] == "app_mention"
+        assert kwargs["message_text"] == "hello"
         assert kwargs["payload"]["method"] == "POST"
         assert kwargs["payload"]["path"].startswith("/extensions/slack/event")
 

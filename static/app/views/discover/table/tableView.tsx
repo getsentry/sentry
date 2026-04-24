@@ -54,10 +54,10 @@ import {
   getExpandedResults,
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';

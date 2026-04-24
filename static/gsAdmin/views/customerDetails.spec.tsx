@@ -684,7 +684,7 @@ function setUpMocks(
 describe('Customer Details', () => {
   const {organization} = initializeOrg();
 
-  const mockUser = UserFixture({permissions: new Set([])});
+  const mockUser = UserFixture({permissions: new Set()});
   ConfigStore.loadInitialData(ConfigFixture({user: mockUser}));
 
   afterEach(() => {
