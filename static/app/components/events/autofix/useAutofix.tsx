@@ -196,7 +196,6 @@ export const useAutofixData = ({
   const {data, isPending} = useQuery({
     ...autofixApiOptions(orgSlug, groupId, isUserWatching),
     enabled: false,
-    notifyOnChangeProps: ['data'],
   });
 
   return {data: data?.autofix ?? null, isPending};
