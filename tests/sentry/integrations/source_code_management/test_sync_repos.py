@@ -290,13 +290,10 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         "sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request",
         return_value=MagicMock(status=200),
     )
-    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_truncated_fetch_skips_disable(
-        self, mock_get_repositories: MagicMock, _: MagicMock, __: MagicMock
+        self, mock_get_repos: MagicMock, _: MagicMock, __: MagicMock
     ) -> None:
-        # The provider fetch hit the pagination cap — it signals this via
-        # ApiPaginationTruncated with partial results attached. We must NOT
-        # disable repos absent from the partial list (they might be past the cap).
         from sentry.shared_integrations.exceptions import ApiPaginationTruncated
 
         with assume_test_silo_mode(SiloMode.CELL):
@@ -309,14 +306,11 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 status=ObjectStatus.ACTIVE,
             )
 
-        mock_get_repositories.side_effect = ApiPaginationTruncated(
+        # Raw GitHub API response shape — the integration must transform this
+        # into RepositoryInfo before it reaches sync_repos.
+        mock_get_repos.side_effect = ApiPaginationTruncated(
             partial_data=[
-                {
-                    "name": "sentry",
-                    "identifier": "getsentry/sentry",
-                    "external_id": "1",
-                    "default_branch": None,
-                }
+                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
             ]
         )
 
@@ -333,7 +327,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             repo.refresh_from_db()
             assert repo.status == ObjectStatus.ACTIVE  # not disabled
-            # Creation still runs on the partial list
+            # Creation still runs on the transformed partial list
             assert Repository.objects.filter(
                 organization_id=self.organization.id, external_id="1"
             ).exists()

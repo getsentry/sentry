@@ -664,14 +664,21 @@ class GitHubBaseClient(
             provider_key=self.integration_name,
             integration_id=self.integration.id,
             organization_id=self.organization_id,
-        ).capture():
-            return self._get_with_pagination(
-                "/installation/repositories",
-                response_key="repositories",
-                page_number_limit=page_number_limit,
-                api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
-                raise_on_page_limit=raise_on_page_limit,
-            )
+        ).capture() as lifecycle:
+            try:
+                return self._get_with_pagination(
+                    "/installation/repositories",
+                    response_key="repositories",
+                    page_number_limit=page_number_limit,
+                    api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                # Hitting the pagination cap is an expected signal.
+                # Record as halt so the lifecycle doesn't create a
+                # Sentry every time this is called.
+                lifecycle.record_halt(e, create_issue=False)
+                raise
 
     def get_repos_cached(self, ttl: int = 300) -> list[CachedRepo]:
         """
