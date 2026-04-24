@@ -2,6 +2,7 @@ import {createContext, useCallback, useContext, useEffect, useRef, useState} fro
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
+import * as Sentry from '@sentry/react';
 
 import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
@@ -476,6 +477,25 @@ export function Provider({
       replayer.setConfig({speed: prefs.playbackSpeed});
     }
   }, [getCurrentPlayerTime, isPlaying, prefs.playbackSpeed]);
+
+  // Emit a metric once per replay, after all segments have been fetched, so we
+  // can track the distribution of video segment counts on mobile replays.
+  const replayId = replay?.getReplay().id;
+  useEffect(() => {
+    if (isFetching || !isVideoReplay || !replay || !videoEvents) {
+      return;
+    }
+    Sentry.metrics.distribution(
+      'replay.video_replayer.video_element_count',
+      videoEvents.length,
+      {
+        attributes: {
+          project_id: String(replay.getReplay().project_id),
+        },
+      }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per replay load
+  }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
     (play: boolean) => {
