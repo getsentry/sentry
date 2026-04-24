@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import {Exception} from 'sentry/components/events/interfaces/exception';
 import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
-import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
 import {Threads} from 'sentry/components/events/interfaces/threads';
+import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {t} from 'sentry/locale';
 import {
   EntryType,
@@ -28,12 +27,10 @@ function EventEntryContent({entry, projectSlug, event}: EventEntryContentProps) 
   switch (entry.type) {
     case EntryType.EXCEPTION:
       return (
-        <Exception
+        <IssueStackTrace
           event={event}
-          group={undefined}
-          data={entry.data}
+          values={entry.data.values ?? []}
           projectSlug={projectSlug}
-          groupingCurrentLevel={undefined}
         />
       );
 
@@ -42,11 +39,10 @@ function EventEntryContent({entry, projectSlug, event}: EventEntryContentProps) 
 
     case EntryType.STACKTRACE:
       return (
-        <StackTrace
+        <IssueStackTrace
           event={event}
-          data={entry.data}
+          stacktrace={entry.data}
           projectSlug={projectSlug}
-          groupingCurrentLevel={undefined}
         />
       );
 
