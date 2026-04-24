@@ -384,6 +384,9 @@ class SeerExplorerClient:
             insert_index=insert_index,
             on_page_context=on_page_context,
             page_name=page_name,
+            user_org_context=collect_user_org_context(
+                self.user, self.organization, request=request
+            ),
             is_interactive=self.is_interactive,
             enable_coding=self.enable_coding,
             enable_code_mode_tools=self.enable_code_mode_tools,

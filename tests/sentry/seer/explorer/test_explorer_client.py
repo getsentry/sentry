@@ -261,9 +261,11 @@ class TestSeerExplorerClient(TestCase):
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    def test_continue_run_basic(self, mock_post, mock_access):
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_continue_run_basic(self, mock_collect_context, mock_post, mock_access):
         """Test continuing an existing run"""
         mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
         mock_response = MagicMock()
         mock_response.json.return_value = {"run_id": 456}
         mock_response.status = 200
@@ -273,13 +275,16 @@ class TestSeerExplorerClient(TestCase):
         run_id = client.continue_run(456, "Follow up query")
 
         assert run_id == 456
-        assert mock_post.called
+        body = mock_post.call_args[0][0]
+        assert body["user_org_context"] == {"user_id": self.user.id}
 
     @patch("sentry.seer.explorer.client.has_seer_access_with_detail")
     @patch("sentry.seer.explorer.client.make_explorer_chat_request")
-    def test_continue_run_with_all_params(self, mock_post, mock_access):
+    @patch("sentry.seer.explorer.client.collect_user_org_context")
+    def test_continue_run_with_all_params(self, mock_collect_context, mock_post, mock_access):
         """Test continuing a run with all optional parameters"""
         mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
         mock_response = MagicMock()
         mock_response.json.return_value = {"run_id": 789}
         mock_response.status = 200
