@@ -29,6 +29,7 @@ from sentry.preprod.analytics import (
 )
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
+    create_build_details_app_info,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotApprovalInfo,
@@ -188,8 +189,10 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not enabled"}, status=403)
 
         try:
-            artifact = PreprodArtifact.objects.select_related("commit_comparison").get(
-                id=snapshot_id, project__organization_id=organization.id
+            artifact = (
+                PreprodArtifact.objects.select_related("commit_comparison", "build_configuration")
+                .prefetch_related("mobile_app_info")
+                .get(id=snapshot_id, project__organization_id=organization.id)
             )
         except (PreprodArtifact.DoesNotExist, ValueError):
             return Response({"detail": "Snapshot not found"}, status=404)
@@ -428,6 +431,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
+                app_info=create_build_details_app_info(artifact),
                 images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,
