@@ -6,24 +6,25 @@ import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LOGS_INSTRUCTIONS_URL} from 'sentry/views/explore/logs/constants';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const organization = OrganizationFixture();
 
-function renderWithOrganization(chldren: React.ReactNode) {
-  return render(
-    <OrganizationContext.Provider value={organization}>
-      <table>
-        <tbody>{chldren}</tbody>
-      </table>
-    </OrganizationContext.Provider>
+function TableBodyWrapper({children}: {children?: React.ReactNode}) {
+  return (
+    <table>
+      <tbody>{children}</tbody>
+    </table>
   );
 }
 
 describe('LogsEmptyResults', () => {
   it('renders the default empty state when no logs are found', () => {
-    renderWithOrganization(
-      <LogsEmptyResults analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    render(
+      <LogsEmptyResults analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />,
+      {
+        organization,
+        additionalWrapper: TableBodyWrapper,
+      }
     );
 
     expect(screen.getByText('No logs found')).toBeInTheDocument();
@@ -39,13 +40,14 @@ describe('LogsEmptyResults', () => {
   it('renders the continue-scanning state when bytes were scanned and auto-fetch can resume', () => {
     const mockResumeAutoFetch = jest.fn();
 
-    renderWithOrganization(
+    render(
       <LogsEmptyResults
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         bytesScanned={4096}
         canResumeAutoFetch
         resumeAutoFetch={mockResumeAutoFetch}
-      />
+      />,
+      {organization, additionalWrapper: TableBodyWrapper}
     );
 
     const emptyState = screen.getByTestId('empty-state');
@@ -64,13 +66,14 @@ describe('LogsEmptyResults', () => {
     const resumeAutoFetch = jest.fn();
     const bytesScanned = 4096;
 
-    renderWithOrganization(
+    render(
       <LogsEmptyResults
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         bytesScanned={bytesScanned}
         canResumeAutoFetch
         resumeAutoFetch={resumeAutoFetch}
-      />
+      />,
+      {organization, additionalWrapper: TableBodyWrapper}
     );
 
     await userEvent.click(screen.getByRole('button', {name: /continue scanning/i}));
