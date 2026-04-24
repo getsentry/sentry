@@ -8,7 +8,6 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AISpanList} from 'sentry/views/explore/conversations/components/aiSpanList';
 import {
   ConversationDetailPanel,
   ConversationLeftPanel,
@@ -21,6 +20,7 @@ import {
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';

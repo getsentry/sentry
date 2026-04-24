@@ -19,7 +19,6 @@ import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {formatLLMCosts} from 'sentry/views/explore/conversations/utils/formatLLMCosts';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {
@@ -27,6 +26,7 @@ import {
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,

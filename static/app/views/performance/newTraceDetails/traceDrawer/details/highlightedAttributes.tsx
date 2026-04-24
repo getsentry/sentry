@@ -10,9 +10,9 @@ import {Count} from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import {LLMCosts} from 'sentry/views/explore/conversations/components/llmCosts';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {

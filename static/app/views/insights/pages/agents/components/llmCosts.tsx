@@ -1,4 +1,4 @@
-import {formatLLMCosts} from 'sentry/views/explore/conversations/utils/formatLLMCosts';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
 interface LLMCostsProps {
   cost: number | string | null;

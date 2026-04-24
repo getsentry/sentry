@@ -11,14 +11,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AISpanList} from 'sentry/views/explore/conversations/components/aiSpanList';
 import {
   ConversationDetailPanel,
   ConversationLeftPanel,
   ConversationSplitLayout,
 } from 'sentry/views/explore/conversations/components/conversationLayout';
-import {getDefaultSelectedNode} from 'sentry/views/explore/conversations/utils/getDefaultSelectedNode';
+import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
+import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';

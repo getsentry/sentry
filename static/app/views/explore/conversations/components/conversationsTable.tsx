@@ -23,7 +23,6 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {LLMCosts} from 'sentry/views/explore/conversations/components/llmCosts';
 import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
 import {
   useConversations,
@@ -32,6 +31,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {

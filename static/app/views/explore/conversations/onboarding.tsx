@@ -48,14 +48,16 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CopyLLMPromptButton} from 'sentry/views/explore/conversations/components/llmOnboardingInstructions';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_ICONS,
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
-} from 'sentry/views/explore/conversations/utils/agentIntegrations';
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
   BulletList,
   HeaderText,
@@ -63,9 +65,7 @@ import {
   PulsingIndicator,
   SubTitle,
   useOnboardingProject,
-} from 'sentry/views/explore/conversations/utils/onboardingUtils';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+} from 'sentry/views/insights/pages/onboardingUtils';
 
 function useConversationSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
