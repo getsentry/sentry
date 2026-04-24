@@ -43,7 +43,7 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
       border="muted"
       radius="lg"
       padding="xl"
-      background={consideredSeerCard ? 'secondary' : 'primary'}
+      background="primary"
       seer={consideredSeerCard}
     >
       <Grid
