@@ -146,17 +146,15 @@ export function ThreadSelector({
       menuWidth={450}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} size="xs">
-          {
-            <ThreadName>
-              {t('Thread #%s: ', activeThread.id)}
-              <ActiveThreadName>
-                {getThreadLabel(
-                  filterThreadInfo(event, activeThread, exception),
-                  activeThread.name
-                )}
-              </ActiveThreadName>
-            </ThreadName>
-          }
+          <ThreadName>
+            {t('Thread #%s: ', activeThread.id)}
+            <ActiveThreadName>
+              {getThreadLabel(
+                filterThreadInfo(event, activeThread, exception),
+                activeThread.name
+              )}
+            </ActiveThreadName>
+          </ThreadName>
         </OverlayTrigger.Button>
       )}
       menuBody={
