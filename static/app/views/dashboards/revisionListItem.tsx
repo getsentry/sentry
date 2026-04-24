@@ -100,7 +100,7 @@ export function RevisionListItem({
     : null;
 
   return (
-    <RevisionItem onClick={onSelect}>
+    <RevisionItem $isSelected={isSelected} onClick={onSelect}>
       <Flex align="start" gap="md">
         <RadioInput
           type="radio"
@@ -380,7 +380,7 @@ const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.DETAILS]: <IconSettings size="sm" />,
 };
 
-const RevisionItem = styled('div')`
+const RevisionItem = styled('div')<{$isSelected: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
@@ -388,9 +388,16 @@ const RevisionItem = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   cursor: pointer;
   transition: background 100ms ease;
+  background: ${p =>
+    p.$isSelected
+      ? p.theme.tokens.interactive.transparent.accent.selected.background.rest
+      : 'transparent'};
 
   &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
+    background: ${p =>
+      p.$isSelected
+        ? p.theme.tokens.interactive.transparent.accent.selected.background.hover
+        : p.theme.tokens.background.secondary};
   }
 
   &:last-child {
