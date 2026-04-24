@@ -113,8 +113,7 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
                 {evidence.map(e => (
                   <AutofixEvidence
                     key={e.toolCall.id}
-                    toolCall={e.toolCall}
-                    toolLink={e.toolLink}
+                    evidenceButtonProps={e.evidenceButtonProps}
                   />
                 ))}
               </Flex>
