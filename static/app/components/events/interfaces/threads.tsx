@@ -285,9 +285,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
                     threads={threads}
                     activeThread={activeThread}
                     event={event}
-                    onChange={thread => {
-                      setActiveThread(thread);
-                    }}
+                    onChange={setActiveThread}
                     exception={exception}
                   />
                 </Flex>

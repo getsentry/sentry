@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {filterThreadInfo, type ThreadInfo} from './filterThreadInfo';
@@ -54,69 +55,76 @@ export function ThreadSelector({
   onChange,
 }: Props) {
   const organization = useOrganization({allowNull: true});
-  const [currentThread, setCurrentThread] = useState<Thread>(activeThread);
   const [sortAttribute, setSortAttribute] = useState<SortAttribute>(SortAttribute.ID);
   const [isSortAscending, setIsSortAscending] = useState<boolean>(true);
 
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))
   );
-  const threadInfoMap = useMemo(() => {
-    return threads.reduce<Record<number, ThreadInfo>>((acc, thread) => {
+
+  const items = useMemo((): Array<SelectOptionOrSection<number>> => {
+    const threadInfoMap = threads.reduce<Record<number, ThreadInfo>>((acc, thread) => {
       acc[thread.id] = filterThreadInfo(event, thread, exception);
       return acc;
     }, {});
-  }, [threads, event, exception]);
 
-  const orderedThreads = useMemo(() => {
-    const sortedThreads: readonly Thread[] = threads.toSorted((threadA, threadB) => {
+    const direction = isSortAscending ? 1 : -1;
+    const sortedThreads = threads.toSorted((threadA, threadB) => {
       const threadInfoA = threadInfoMap[threadA.id] ?? {};
       const threadInfoB = threadInfoMap[threadB.id] ?? {};
 
       switch (sortAttribute) {
         case SortAttribute.ID:
-          return isSortAscending ? threadA.id - threadB.id : threadB.id - threadA.id;
+          return direction * (threadA.id - threadB.id);
         case SortAttribute.NAME:
-          return isSortAscending
-            ? (threadA.name?.localeCompare(threadB.name ?? '') ?? 0)
-            : (threadB.name?.localeCompare(threadA.name ?? '') ?? 0);
+          return direction * (threadA.name?.localeCompare(threadB.name ?? '') ?? 0);
         case SortAttribute.LABEL:
-          return isSortAscending
-            ? (threadInfoA.label?.localeCompare(threadInfoB.label ?? '') ?? 0)
-            : (threadInfoB.label?.localeCompare(threadInfoA.label ?? '') ?? 0);
+          return (
+            direction * (threadInfoA.label?.localeCompare(threadInfoB.label ?? '') ?? 0)
+          );
         case SortAttribute.STATE:
-          return isSortAscending
-            ? (threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0)
-            : (threadInfoB.state?.localeCompare(threadInfoA.state ?? '') ?? 0);
+          return (
+            direction * (threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0)
+          );
         default:
+          unreachable(sortAttribute);
           return 0;
       }
     });
-    const currentThreadIndex = sortedThreads.findIndex(
-      thread => thread.id === currentThread.id
-    );
-    return [
-      sortedThreads[currentThreadIndex],
-      ...sortedThreads.slice(0, currentThreadIndex),
-      ...sortedThreads.slice(currentThreadIndex + 1),
-    ].filter(defined);
-  }, [threads, sortAttribute, isSortAscending, currentThread, threadInfoMap]);
 
-  const items = orderedThreads.map((thread: Thread) => {
-    const threadInfo = threadInfoMap[thread.id] ?? {};
-    return {
-      value: thread.id,
-      textValue: `#${thread.id}: ${thread.name ?? ''} ${threadInfo.label ?? ''} ${threadInfo.filename ?? ''} ${threadInfo.state ?? ''}`,
-      label: (
-        <Option
-          thread={thread}
-          details={threadInfo}
-          crashedInfo={threadInfo?.crashedInfo}
-          hasThreadStates={hasThreadStates}
-        />
-      ),
-    };
-  });
+    // Pin the active thread to the top of the list, preserving sort order for the rest.
+    const currentThreadIndex = sortedThreads.findIndex(
+      thread => thread.id === activeThread.id
+    );
+    if (currentThreadIndex > 0) {
+      const [current] = sortedThreads.splice(currentThreadIndex, 1);
+      sortedThreads.unshift(current!);
+    }
+
+    return sortedThreads.map(thread => {
+      const threadInfo = threadInfoMap[thread.id] ?? {};
+      return {
+        value: thread.id,
+        textValue: `#${thread.id}: ${thread.name ?? ''} ${threadInfo.label ?? ''} ${threadInfo.filename ?? ''} ${threadInfo.state ?? ''}`,
+        label: (
+          <Option
+            thread={thread}
+            details={threadInfo}
+            crashedInfo={threadInfo?.crashedInfo}
+            hasThreadStates={hasThreadStates}
+          />
+        ),
+      };
+    });
+  }, [
+    threads,
+    event,
+    exception,
+    sortAttribute,
+    isSortAscending,
+    activeThread,
+    hasThreadStates,
+  ]);
 
   const sortIcon = (
     <IconArrow
@@ -141,17 +149,15 @@ export function ThreadSelector({
       menuWidth={450}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} size="xs">
-          {
-            <ThreadName>
-              {t('Thread #%s: ', activeThread.id)}
-              <ActiveThreadName>
-                {getThreadLabel(
-                  filterThreadInfo(event, activeThread, exception),
-                  activeThread.name
-                )}
-              </ActiveThreadName>
-            </ThreadName>
-          }
+          <ThreadName>
+            {t('Thread #%s: ', activeThread.id)}
+            <ActiveThreadName>
+              {getThreadLabel(
+                filterThreadInfo(event, activeThread, exception),
+                activeThread.name
+              )}
+            </ActiveThreadName>
+          </ThreadName>
         </OverlayTrigger.Button>
       )}
       menuBody={
@@ -231,7 +237,6 @@ export function ThreadSelector({
               0,
           });
           onChange(thread);
-          setCurrentThread(thread);
         }
       }}
     />

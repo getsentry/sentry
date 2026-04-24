@@ -8,6 +8,7 @@ export interface SnapshotImage {
   height: number;
   key: string;
   width: number;
+  content_hash: string;
 }
 
 export interface SnapshotDiffPair {
@@ -47,6 +48,8 @@ export interface SnapshotDetailsApiResponse {
   project_id: string;
   state: string;
   vcs_info: BuildDetailsVcsInfo;
+
+  app_id?: string | null;
 
   comparison_run_info?: SnapshotComparisonRunInfo | null;
 

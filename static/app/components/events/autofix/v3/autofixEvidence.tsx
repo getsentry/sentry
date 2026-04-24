@@ -1,4 +1,4 @@
-import {type ReactNode, useMemo} from 'react';
+import {type ReactNode} from 'react';
 import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -14,30 +14,15 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import type {ToolCall, ToolLink} from 'sentry/views/seerExplorer/types';
 import {buildToolLinkUrl} from 'sentry/views/seerExplorer/utils';
 
 interface AutofixEvidenceProps {
-  toolCall: ToolCall;
-  toolLink?: ToolLink;
+  evidenceButtonProps: EvidenceButtonProps;
 }
 
-export function AutofixEvidence({toolCall, toolLink}: AutofixEvidenceProps) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-
-  const evidenceProps = useMemo(() => {
-    const resolver = autofixEvidencePropsResolvers[toolCall.function];
-    return resolver?.({organization, projects, toolCall, toolLink}) ?? null;
-  }, [organization, projects, toolCall, toolLink]);
-
-  if (!defined(evidenceProps)) {
-    return null;
-  }
-
-  const {label, icon, tooltip, ...rest} = evidenceProps;
+export function AutofixEvidence({evidenceButtonProps}: AutofixEvidenceProps) {
+  const {label, icon, tooltip, ...rest} = evidenceButtonProps;
 
   if ('to' in rest && defined(rest.to)) {
     return (
@@ -83,7 +68,9 @@ interface EvidenceButtonExternalProps {
   tooltip?: ReactNode;
 }
 
-type EvidenceButtonProps = EvidenceButtonInternalProps | EvidenceButtonExternalProps;
+export type EvidenceButtonProps =
+  | EvidenceButtonInternalProps
+  | EvidenceButtonExternalProps;
 
 interface GetEvidencePropsPayload {
   organization: Organization;
@@ -283,7 +270,7 @@ function getCodeSearchEvidenceProps({
   return null;
 }
 
-const autofixEvidencePropsResolvers: Record<
+export const AUTOFIX_EVIDENCE_PROPS_RESOLVER: Record<
   string,
   (payload: GetEvidencePropsPayload) => EvidenceButtonProps | null
 > = {
