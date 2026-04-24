@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {keepPreviousData} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -12,6 +12,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,17 +34,13 @@ function InvoiceDetails() {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const {data: invoiceList} = useApiQuery<InvoiceBase[]>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/invoices/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      // Use a long staleTime so we share the cache with the list page
-      // without refetching on every receipt navigation.
+  const {data: invoiceList} = useQuery(
+    // Use apiOptions so the cache key matches paymentHistory.tsx's list query,
+    // avoiding a redundant network request when navigating from the receipts list.
+    apiOptions.as<InvoiceBase[]>()('/customers/$organizationIdOrSlug/invoices/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 60_000,
-    }
+    })
   );
 
   const currentIndex = invoiceList
