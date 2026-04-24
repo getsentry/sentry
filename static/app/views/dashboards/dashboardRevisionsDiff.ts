@@ -176,7 +176,7 @@ export function diffWidgets(
     const match = matchById ?? baseByUniqueTitle.get(snapshotWidget.title);
     const matchIndex = match ? base.widgets.indexOf(match) : -1;
 
-    if (!match || matchIndex === -1) {
+    if (!match || matchIndex === -1 || matchedBaseIndices.has(matchIndex)) {
       changes.push({status: 'added', widget: snapshotWidget});
       continue;
     }

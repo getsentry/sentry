@@ -121,6 +121,15 @@ describe('diffWidgets', () => {
     expect(result.find(r => r.status === 'added')).toBeDefined();
   });
 
+  it('treats a snapshot widget as added when its title matches a base already claimed by id', () => {
+    const base = makeWidget({id: '1', title: 'Widget A'});
+    const snap1 = makeWidget({id: '1', title: 'Widget B'}); // claims base by id (rename)
+    const snap2 = makeWidget({id: '3', title: 'Widget A'}); // new widget with old title
+    const result = diffWidgets(makeDashboard([base]), makeDashboard([snap1, snap2]));
+    expect(result.find(r => r.status === 'modified' && r.widget === snap1)).toBeDefined();
+    expect(result.find(r => r.status === 'added' && r.widget === snap2)).toBeDefined();
+  });
+
   it('prefixes field names when a widget has multiple queries', () => {
     const q = {conditions: '', aggregates: [], columns: [], orderby: '', name: ''} as any;
     const base = makeWidget({id: '1', queries: [q, {...q, conditions: 'level:error'}]});
