@@ -467,11 +467,6 @@ class ServiceMapUpdateRequest(TypedDict):
     edges: list[dict[str, Any]]
 
 
-class UnitTestGenerationRequest(TypedDict):
-    repo: dict[str, Any]
-    pr_id: int
-
-
 class SearchAgentStateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -611,20 +606,6 @@ def make_service_map_update_request(
         seer_autofix_default_connection_pool,
         "/v1/explorer/service-map/update",
         body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_unit_test_generation_request(
-    body: UnitTestGenerationRequest,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        seer_autofix_default_connection_pool,
-        "/v1/automation/codegen/unit-tests",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
         viewer_context=viewer_context,
     )
