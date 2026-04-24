@@ -31,6 +31,8 @@ function getSortTooltip(key: IssueSortOptions) {
       return t('Number of events.');
     case IssueSortOptions.USER:
       return t('Number of users affected.');
+    case IssueSortOptions.RECOMMENDED:
+      return t('Issues likely needing attention.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -53,6 +55,7 @@ export function IssueListSortOptions({
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
+    IssueSortOptions.RECOMMENDED,
   ];
 
   return (
