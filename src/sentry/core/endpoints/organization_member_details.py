@@ -312,8 +312,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 )
 
         if team_roles:
-            # FIXME: when organizations:team-roles is disabled, team_roles contains
-            # (team, None) tuples, which doesn't match save_team_assignments' signature.
             diff = save_team_assignments(member, None, team_roles)  # type: ignore[arg-type]
         else:
             diff = save_team_assignments(member, teams)

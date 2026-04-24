@@ -1175,10 +1175,11 @@ def from_rpc_member(
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
-    auth_organization_id = auth.organization_id
-    if auth_organization_id is not None and auth_organization_id == organization.id:
+    elif auth.organization_id == organization.id:
         return OrganizationGlobalAccess(
-            auth_organization_id, settings.SENTRY_SCOPES, sso_is_valid=True
+            auth.organization_id,  # type: ignore[arg-type]
+            settings.SENTRY_SCOPES,
+            sso_is_valid=True,
         )
     else:
         return DEFAULT
