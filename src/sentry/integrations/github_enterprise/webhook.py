@@ -75,7 +75,13 @@ class UnsupportedSignatureAlgorithmError(Exception):
 def get_host(request: HttpRequest) -> str | None:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
-    return request.headers.get("x-github-enterprise-host")
+    host = request.headers.get("x-github-enterprise-host")
+    if host:
+        return host
+    tenant = request.headers.get("x-github-tenant")
+    if tenant:
+        return f"{tenant}.ghe.com"
+    return None
 
 
 def get_installation_metadata(event, host):
