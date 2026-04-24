@@ -2066,10 +2066,14 @@ def get_dsn(
     """
     Get the public DSN for a single project in an organization.
 
-    Returns a dict with project_id, project_slug, project_name, platform, dsn_public, and
-    key_label, or None if the project does not exist or has no active client key.
+    Returns a dict with project_slug, platform, and dsn_public, or None if the
+    organization/project does not exist or the project has no active client key.
     """
-    organization = Organization.objects.get(id=organization_id)
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"organization_id": organization_id})
+        return None
 
     project = Project.objects.filter(
         organization=organization,
@@ -2097,10 +2101,7 @@ def get_dsn(
         return None
 
     return {
-        "project_id": project.id,
         "project_slug": project.slug,
-        "project_name": project.name,
         "platform": project.platform,
         "dsn_public": key.dsn_public,
-        "key_label": key.label,
     }

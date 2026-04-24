@@ -3656,9 +3656,11 @@ class TestGetDsn(APITestCase):
         result = get_dsn(organization_id=self.organization.id, project_slug="wordcraft")
 
         assert result is not None
-        assert result["project_id"] == project.id
-        assert result["project_slug"] == "wordcraft"
-        assert result["project_name"] == project.name
+        assert result == {
+            "project_slug": "wordcraft",
+            "platform": project.platform,
+            "dsn_public": result["dsn_public"],
+        }
         assert result["dsn_public"].startswith("http")
         assert result["dsn_public"].endswith(f"/{project.id}")
 
@@ -3666,6 +3668,9 @@ class TestGetDsn(APITestCase):
         self.create_project(organization=self.organization, slug="wordcraft")
 
         assert get_dsn(organization_id=self.organization.id, project_slug="does-not-exist") is None
+
+    def test_returns_none_for_unknown_organization(self) -> None:
+        assert get_dsn(organization_id=999_999_999, project_slug="wordcraft") is None
 
     def test_does_not_cross_organizations(self) -> None:
         other_org = self.create_organization()
