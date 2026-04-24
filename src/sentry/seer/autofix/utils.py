@@ -767,9 +767,7 @@ def _build_automation_handoff(
 
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
-    """Read a single project's Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Read a single project's Seer preferences from Sentry DB."""
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
@@ -794,9 +792,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
 ) -> dict[int, SeerProjectPreference]:
-    """Bulk read Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
         return {}
 
