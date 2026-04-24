@@ -2,12 +2,22 @@ import {Fragment} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
+import {
+  cmdkQueryOptions,
+  type CMDKQueryOptions,
+} from 'sentry/components/commandPalette/types';
+import {
+  CMDKAction,
+  type CMDKResourceContext,
+} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconBookmark, IconIssues, IconSort} from 'sentry/icons';
+import type {SearchGroup} from 'sentry/components/searchBar/types';
+import {IconBookmark, IconFilter, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {FieldKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -23,14 +33,110 @@ import {
   getSortLabel,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
+import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
 interface IssueListCommandPaletteActionsProps {
+  onQueryChange: (query: string) => void;
   onSortChange: (sort: string) => void;
   query: string;
   sort: IssueSortOptions;
 }
 
-function SortActions({sort, query, onSortChange}: IssueListCommandPaletteActionsProps) {
+// Issue property fields to expose as filter actions, in display order.
+const FILTER_KEY_ORDER: FieldKey[] = [
+  FieldKey.IS,
+  FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_CATEGORY,
+  FieldKey.ASSIGNED,
+  FieldKey.ISSUE_SEER_ACTIONABILITY,
+  FieldKey.ISSUE_TYPE,
+];
+
+const FILTER_LABEL: Partial<Record<FieldKey, string>> = {
+  [FieldKey.IS]: t('Status'),
+  [FieldKey.ISSUE_PRIORITY]: t('Priority'),
+  [FieldKey.ISSUE_CATEGORY]: t('Category'),
+  [FieldKey.ASSIGNED]: t('Assigned To'),
+  [FieldKey.ISSUE_SEER_ACTIONABILITY]: t('Fixability'),
+  [FieldKey.ISSUE_TYPE]: t('Issue Type'),
+};
+
+/**
+ * Extracts a flat list of string values from a tag's predefined values.
+ * Handles both plain string arrays and SearchGroup arrays (with or without
+ * child items under header groups).
+ */
+function getTagValueStrings(tag: Tag): string[] {
+  if (!tag.values?.length) return [];
+  if (typeof tag.values[0] === 'string') return tag.values as string[];
+
+  const groups = tag.values as SearchGroup[];
+  return groups.flatMap(group => {
+    if (group.type === 'header') {
+      return group.children.map(child => child.value ?? '').filter(v => v.length > 0);
+    }
+    return group.value ? [group.value] : [];
+  });
+}
+
+function appendFilterToken(currentQuery: string, key: string, value: string): string {
+  const token = value.includes(' ') ? `${key}:"${value}"` : `${key}:${value}`;
+  return currentQuery.trim() ? `${currentQuery.trim()} ${token}` : token;
+}
+
+function FilterActions({
+  query,
+  onQueryChange,
+}: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
+  const filterKeys = useIssueListFilterKeys();
+
+  return (
+    <CMDKAction
+      display={{label: t('Filter by'), icon: <IconFilter />}}
+      keywords={['search', 'filter', 'narrow', 'where', 'show']}
+    >
+      {FILTER_KEY_ORDER.map(key => {
+        const tag = filterKeys[key];
+        if (!tag) return null;
+
+        const label = FILTER_LABEL[key] ?? tag.name;
+
+        return (
+          <CMDKAction
+            key={key}
+            display={{label}}
+            keywords={[key]}
+            prompt={t('Select a value...')}
+            resource={(
+              _cmdkQuery: string,
+              {state}: CMDKResourceContext
+            ): CMDKQueryOptions =>
+              // Include the feed query in the cache key so the onAction closures
+              // are always built against the current query when it changes.
+              // eslint-disable-next-line @tanstack/query/exhaustive-deps
+              cmdkQueryOptions({
+                queryKey: ['issue-filter-values', key, query],
+                queryFn: () =>
+                  getTagValueStrings(tag).map(value => ({
+                    display: {label: value},
+                    onAction: () => onQueryChange(appendFilterToken(query, key, value)),
+                  })),
+                enabled: state === 'selected',
+                staleTime: Infinity,
+              })
+            }
+          />
+        );
+      })}
+    </CMDKAction>
+  );
+}
+
+function SortActions({
+  sort,
+  query,
+  onSortChange,
+}: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
@@ -136,10 +242,12 @@ export function IssueListCommandPaletteActions({
   query,
   sort,
   onSortChange,
+  onQueryChange,
 }: IssueListCommandPaletteActionsProps) {
   return (
     <CommandPaletteSlot name="page">
       <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>
+        <FilterActions query={query} onQueryChange={onQueryChange} />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
       </CMDKAction>
