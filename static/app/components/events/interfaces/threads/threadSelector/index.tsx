@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {filterThreadInfo, type ThreadInfo} from './filterThreadInfo';
@@ -60,53 +61,47 @@ export function ThreadSelector({
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))
   );
-  const threadInfoMap = useMemo(() => {
-    return threads.reduce<Record<number, ThreadInfo>>((acc, thread) => {
+
+  const items = useMemo((): Array<SelectOptionOrSection<number>> => {
+    const threadInfoMap = threads.reduce<Record<number, ThreadInfo>>((acc, thread) => {
       acc[thread.id] = filterThreadInfo(event, thread, exception);
       return acc;
     }, {});
-  }, [threads, event, exception]);
 
-  const orderedThreads = useMemo(() => {
-    const sortedThreads: readonly Thread[] = threads.toSorted((threadA, threadB) => {
+    const direction = isSortAscending ? 1 : -1;
+    const sortedThreads = threads.toSorted((threadA, threadB) => {
       const threadInfoA = threadInfoMap[threadA.id] ?? {};
       const threadInfoB = threadInfoMap[threadB.id] ?? {};
 
       switch (sortAttribute) {
         case SortAttribute.ID:
-          return isSortAscending ? threadA.id - threadB.id : threadB.id - threadA.id;
+          return direction * (threadA.id - threadB.id);
         case SortAttribute.NAME:
-          return isSortAscending
-            ? (threadA.name?.localeCompare(threadB.name ?? '') ?? 0)
-            : (threadB.name?.localeCompare(threadA.name ?? '') ?? 0);
+          return direction * (threadA.name?.localeCompare(threadB.name ?? '') ?? 0);
         case SortAttribute.LABEL:
-          return isSortAscending
-            ? (threadInfoA.label?.localeCompare(threadInfoB.label ?? '') ?? 0)
-            : (threadInfoB.label?.localeCompare(threadInfoA.label ?? '') ?? 0);
+          return (
+            direction * (threadInfoA.label?.localeCompare(threadInfoB.label ?? '') ?? 0)
+          );
         case SortAttribute.STATE:
-          return isSortAscending
-            ? (threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0)
-            : (threadInfoB.state?.localeCompare(threadInfoA.state ?? '') ?? 0);
+          return (
+            direction * (threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0)
+          );
         default:
+          unreachable(sortAttribute);
           return 0;
       }
     });
+
+    // Pin the active thread to the top of the list, preserving sort order for the rest.
     const currentThreadIndex = sortedThreads.findIndex(
       thread => thread.id === activeThread.id
     );
-    const current = sortedThreads[currentThreadIndex];
-    if (!current) {
-      return sortedThreads;
+    if (currentThreadIndex > 0) {
+      const [current] = sortedThreads.splice(currentThreadIndex, 1);
+      sortedThreads.unshift(current!);
     }
-    return [
-      current,
-      ...sortedThreads.slice(0, currentThreadIndex),
-      ...sortedThreads.slice(currentThreadIndex + 1),
-    ];
-  }, [threads, sortAttribute, isSortAscending, activeThread, threadInfoMap]);
 
-  const items = useMemo((): Array<SelectOptionOrSection<number>> => {
-    return orderedThreads.map((thread: Thread) => {
+    return sortedThreads.map(thread => {
       const threadInfo = threadInfoMap[thread.id] ?? {};
       return {
         value: thread.id,
@@ -121,7 +116,15 @@ export function ThreadSelector({
         ),
       };
     });
-  }, [orderedThreads, threadInfoMap, hasThreadStates]);
+  }, [
+    threads,
+    event,
+    exception,
+    sortAttribute,
+    isSortAscending,
+    activeThread,
+    hasThreadStates,
+  ]);
 
   const sortIcon = (
     <IconArrow
