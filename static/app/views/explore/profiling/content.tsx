@@ -213,7 +213,7 @@ export default function ProfilingContent() {
                       />
                     </WidgetsContainer>
                   )}
-                  <div>
+                  <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
                       <TabList>
                         <TabList.Item key="transactions">
@@ -238,16 +238,16 @@ export default function ProfilingContent() {
                         </TabList.Item>
                       </TabList>
                     </Tabs>
-                  </div>
-                  {tab === 'flamegraph' ? (
-                    <FlamegraphTab onDataState={updateFlamegraphDataState} />
-                  ) : (
-                    <TransactionsTab
-                      location={location}
-                      selection={selection}
-                      onDataState={updateTransactionsTableDataState}
-                    />
-                  )}
+                    {tab === 'flamegraph' ? (
+                      <FlamegraphTab onDataState={updateFlamegraphDataState} />
+                    ) : (
+                      <TransactionsTab
+                        location={location}
+                        selection={selection}
+                        onDataState={updateTransactionsTableDataState}
+                      />
+                    )}
+                  </Stack>
                 </Fragment>
               )}
             </ExploreContentSection>
@@ -330,16 +330,14 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
   }, [onDataState, hasData, isLoading, isError]);
 
   return (
-    <Fragment>
-      <SearchbarContainer>
-        <TransactionSearchQueryBuilder
-          projects={selection.projects}
-          initialQuery={query}
-          onSearch={handleSearch}
-          searchSource="profile_landing"
-          disallowFreeText={false}
-        />
-      </SearchbarContainer>
+    <Stack gap="lg">
+      <TransactionSearchQueryBuilder
+        projects={selection.projects}
+        initialQuery={query}
+        onSearch={handleSearch}
+        searchSource="profile_landing"
+        disallowFreeText={false}
+      />
       {transactionsError && (
         <Alert.Container>
           <Alert variant="danger">{transactionsError}</Alert>
@@ -358,7 +356,7 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
           transactions.status === 'success' ? transactions.data.headers.Link : null
         }
       />
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -466,11 +464,6 @@ const WidgetsContainer = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
   }
-`;
-
-const SearchbarContainer = styled('div')`
-  margin-top: ${p => p.theme.space['2xl']};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPagination = styled(Pagination)`
