@@ -2,12 +2,12 @@ import {useTheme} from '@emotion/react';
 import {motion} from 'framer-motion';
 
 interface BackdropProps {
+  zIndex: 'drawer' | 'modal';
   'data-test-id'?: string;
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-  zIndex?: 'drawer' | 'modal';
 }
 
-export function Backdrop({onClick, zIndex = 'drawer', ...rest}: BackdropProps) {
+export function Backdrop({onClick, zIndex, ...rest}: BackdropProps) {
   const theme = useTheme();
   // TODO(design-engineering): These should be exposed as `theme.tokens`
   const background = theme.type === 'light' ? '#10082845' : '#10082080';
