@@ -312,7 +312,7 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
         payload = MockCachePayload(thread_id="pending_payload")
         mock_cache_get.return_value = payload
 
-        result = SeerOperatorPendingMentionCache.pop(
+        result = SeerOperatorPendingMentionCache[MockCachePayload].pop(
             entrypoint_key=self.entrypoint_key,
             integration_id=MOCK_INTEGRATION_ID,
             user_ext_id=MOCK_USER_EXT_ID,
@@ -328,7 +328,7 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
     def test_pop_miss(self, mock_cache_get, mock_cache_delete, mock_record_halt):
         mock_cache_get.return_value = None
 
-        result = SeerOperatorPendingMentionCache.pop(
+        result = SeerOperatorPendingMentionCache[MockCachePayload].pop(
             entrypoint_key=self.entrypoint_key,
             integration_id=MOCK_INTEGRATION_ID,
             user_ext_id=MOCK_USER_EXT_ID,
