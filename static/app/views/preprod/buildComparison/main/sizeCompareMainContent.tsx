@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useMutation} from '@tanstack/react-query';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,7 +16,7 @@ import {IconChevron, IconRefresh, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseApiError} from 'sentry/utils/parseApiError';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

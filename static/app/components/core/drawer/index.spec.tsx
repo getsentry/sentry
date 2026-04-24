@@ -260,6 +260,53 @@ describe('GlobalDrawer', () => {
     expect(content).not.toBeInTheDocument();
   });
 
+  it('scopes isDrawerOpen to the useDrawer call-site', async () => {
+    function ScopedConsumer({label}: {label: string}) {
+      const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
+      return (
+        <Fragment>
+          <button
+            data-test-id={`open-${label}`}
+            onClick={() =>
+              openDrawer(() => <DrawerBody>{label} drawer</DrawerBody>, {
+                ariaLabel: `${label}-drawer`,
+              })
+            }
+          >
+            Open {label}
+          </button>
+          <span data-test-id={`is-open-${label}`}>
+            {isDrawerOpen ? 'mine' : 'not mine'}
+          </span>
+          <span data-test-id={`is-any-open-${label}`}>
+            {isAnyDrawerOpen ? 'any' : 'none'}
+          </span>
+        </Fragment>
+      );
+    }
+
+    render(
+      <Fragment>
+        <ScopedConsumer label="a" />
+        <ScopedConsumer label="b" />
+      </Fragment>
+    );
+
+    expect(screen.getByTestId('is-open-a')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-open-b')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-any-open-a')).toHaveTextContent('none');
+
+    await userEvent.click(screen.getByTestId('open-a'));
+
+    expect(
+      await screen.findByRole('complementary', {name: 'a-drawer'})
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('is-open-a')).toHaveTextContent('mine');
+    expect(screen.getByTestId('is-open-b')).toHaveTextContent('not mine');
+    expect(screen.getByTestId('is-any-open-a')).toHaveTextContent('any');
+    expect(screen.getByTestId('is-any-open-b')).toHaveTextContent('any');
+  });
+
   it('renders custom header content when specified', async () => {
     const closeSpy = jest.fn();
     const customHeader = 'Look at my neat drawer header';

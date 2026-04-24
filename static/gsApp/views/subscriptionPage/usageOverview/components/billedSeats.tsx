@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -13,8 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
@@ -40,22 +40,24 @@ export function BilledSeats({
   );
   const shouldShowBilledSeats =
     selectedProduct === AddOnCategory.SEER && defined(billedCategory) && isEnabled;
-  const billedSeatsQueryKey = [
-    getApiUrl('/customers/$organizationIdOrSlug/billing-seats/current/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    {query: {billingMetric: billedCategory}},
-  ] as const;
   const {
-    data: billedSeats,
+    data,
     isPending: seatsLoading,
     error: seatsError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<BillingSeatAssignment[]>(billedSeatsQueryKey, {
-    staleTime: 0,
+  } = useQuery({
+    ...apiOptions.as<BillingSeatAssignment[]>()(
+      '/customers/$organizationIdOrSlug/billing-seats/current/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {billingMetric: billedCategory},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
     enabled: shouldShowBilledSeats,
   });
+  const billedSeats = data?.json;
 
   if (!shouldShowBilledSeats) {
     // eventually we should expand this to support other seat-based products
@@ -114,7 +116,7 @@ export function BilledSeats({
       </Table>
       {billedSeats && billedSeats.length > 0 && (
         <Container padding="0 lg lg" borderTop="primary">
-          <Pagination pageLinks={getResponseHeader?.('Link') ?? null} />
+          <Pagination pageLinks={data?.headers.Link ?? null} />
         </Container>
       )}
     </Fragment>

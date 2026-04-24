@@ -187,6 +187,10 @@ register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuning
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
+# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# stable API; the shape of the blob is expected to change.
+register(key="sentry:seer_nightshift_tweaks", default=None)
+
 # Seer project preferences
 register(
     key="sentry:seer_automated_run_stopping_point",

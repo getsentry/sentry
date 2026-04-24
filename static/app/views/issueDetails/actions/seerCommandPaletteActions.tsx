@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
@@ -21,7 +22,6 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';

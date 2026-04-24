@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
+from sentry import options
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -784,7 +785,9 @@ def query_trace_data(
                 if span.get("span.status", "") == "ok":
                     metrics.incr(
                         "performance.trace.span_with_errors_ok_status",
-                        sample_rate=0.01,
+                        sample_rate=options.get(
+                            "performance.trace.span_with_errors_ok_status.sample_rate"
+                        ),
                         tags={
                             "sdk_name": span.get("sdk.name", ""),
                             "sdk_version": span.get("sdk.version", ""),

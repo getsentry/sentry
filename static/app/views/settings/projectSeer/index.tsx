@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -35,9 +36,7 @@ import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -217,7 +216,7 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
         orgSlug: organization.slug,
         projectSlug: project.slug,
       });
-      queryClient.setQueryData<ApiResponse<Project>>(projectSettingsQueryKey, prev => ({
+      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
         headers: prev?.headers ?? {},
         json: resp,
       }));

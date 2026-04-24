@@ -1,5 +1,7 @@
 import {Fragment, memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
+import type {InfiniteData} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
@@ -24,7 +26,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
-import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
@@ -97,7 +98,6 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 import type {TableExpando} from './tables/useTableExpando';
-
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
   tableExpando: TableExpando;

@@ -1,5 +1,6 @@
 import {mutationOptions} from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
@@ -14,13 +15,12 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
-import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -114,7 +114,7 @@ export default function ProjectCspReports() {
         data: {options: data},
       }),
     onSuccess: (updatedProject: Project) => {
-      queryClient.setQueryData<ApiResponse<Project>>(projectQueryKey, prev => {
+      queryClient.setQueryData(projectQueryKey, prev => {
         const previous = prev?.json;
         const merged = previous
           ? {

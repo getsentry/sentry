@@ -58,6 +58,7 @@ export interface LLMContextNodeSnapshot {
   children: LLMContextNodeSnapshot[];
   data: unknown;
   nodeType: string;
+  priority: number;
 }
 
 /**

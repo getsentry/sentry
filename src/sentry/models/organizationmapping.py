@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Self
 
 from django.db import models
 from django.db.models.functions import Now, TruncSecond
@@ -11,6 +11,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
+from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.rpc import CELL_NAME_LENGTH, IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import OrganizationStatus
 
@@ -29,6 +30,11 @@ class OrganizationMapping(Model):
     # This model is "autocreated" via an outbox write from the `Organization` in the cell it
     # references, so there is no need to explicitly include it in the export.
     __relocation_scope__ = RelocationScope.Excluded
+
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("organization_id", "slug"),
+        cache_ttl=60 * 60,  # 1 hour
+    )
 
     organization_id = BoundedBigIntegerField(db_index=True, unique=True)
     slug = models.SlugField(unique=True)
