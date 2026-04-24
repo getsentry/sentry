@@ -13,6 +13,7 @@ import {
   type CMDKResourceContext,
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {IconBookmark, IconFilter, IconIssues, IconSort} from 'sentry/icons';
@@ -351,6 +352,23 @@ function SaveViewActions({
   );
 }
 
+function DynamicFilterAction({
+  onQueryChange,
+}: Pick<IssueListCommandPaletteActionsProps, 'onQueryChange'>) {
+  const {query: cmdkQuery} = useCommandPaletteState();
+
+  if (!cmdkQuery.trim()) {
+    return null;
+  }
+
+  return (
+    <CMDKAction
+      display={{label: cmdkQuery, icon: <IconFilter />}}
+      onAction={() => onQueryChange(cmdkQuery)}
+    />
+  );
+}
+
 export function IssueListCommandPaletteActions({
   query,
   sort,
@@ -360,6 +378,7 @@ export function IssueListCommandPaletteActions({
   return (
     <CommandPaletteSlot name="page">
       <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>
+        <DynamicFilterAction onQueryChange={onQueryChange} />
         <FilterActions query={query} onQueryChange={onQueryChange} />
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
