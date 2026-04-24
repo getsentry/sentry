@@ -221,7 +221,9 @@ export function GlobalModal({onClose}: Props) {
 
   return createPortal(
     <Fragment>
-      {backdrop && visible && <Backdrop key="backdrop" zIndex="modal" />}
+      <AnimatePresence>
+        {backdrop && visible && <Backdrop key="backdrop" zIndex="modal" />}
+      </AnimatePresence>
       <Container
         data-test-id="modal-backdrop"
         ref={containerRef}
