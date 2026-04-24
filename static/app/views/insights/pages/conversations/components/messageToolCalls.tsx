@@ -71,9 +71,9 @@ function ToolInputPreview({node}: {node: AITraceSpanNode}) {
     return null;
   }
   return (
-      <Text size="xs" monospace variant="muted" ellipsis>
-        {firstInputValue}
-      </Text>
+    <Text size="xs" monospace variant="muted" ellipsis>
+      {firstInputValue}
+    </Text>
   );
 }
 
