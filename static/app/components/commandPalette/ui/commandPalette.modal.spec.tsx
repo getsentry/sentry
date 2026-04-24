@@ -25,7 +25,7 @@ import {
   CMDKAction,
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
-import CommandPaletteModal from 'sentry/components/commandPalette/ui/commandPalette';
+import {CommandPalette as CommandPaletteModal} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {
   makeCloseButton,
