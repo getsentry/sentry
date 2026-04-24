@@ -488,22 +488,20 @@ export function Provider({
 
   const replayId = replay?.getReplay().id;
   const projectId = replay?.getReplay().project_id;
-  const videoElementCount = videoEvents?.length ?? 0;
 
-  const emitVideoElementCountMetric = useEffectEvent(() => {
-    if (!isVideoReplay) {
-      return;
-    }
+  const onLoadAllEvents = useEffectEvent(() => {
+    const attributes = {
+      projectId: String(projectId),
+      replayId,
+    };
 
-    Sentry.metrics.distribution(
-      'replay.videoReplayer.videoElementCount',
-      videoElementCount,
-      {
-        attributes: {
-          project_id: String(projectId),
-        },
-      }
-    );
+    Sentry.metrics.distribution('replay.eventCount', events?.length ?? 0, {
+      attributes,
+    });
+
+    Sentry.metrics.distribution('replay.videoEventCount', videoEvents?.length ?? 0, {
+      attributes,
+    });
   });
 
   useEffect(() => {
@@ -511,7 +509,7 @@ export function Provider({
       return;
     }
 
-    emitVideoElementCountMetric();
+    onLoadAllEvents();
   }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
