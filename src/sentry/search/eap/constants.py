@@ -93,6 +93,7 @@ TYPE_TO_STRING_MAP = {
     BOOLEAN: "boolean",
     DOUBLE: "double",
     INT: "integer",
+    ARRAY: "array",
 }
 
 # TODO: we need a datetime type
