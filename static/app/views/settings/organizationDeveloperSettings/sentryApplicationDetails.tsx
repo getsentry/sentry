@@ -397,10 +397,11 @@ export default function SentryApplicationDetails() {
 
   return (
     <div>
-      {hasPageFrame && (!isEditingApp || app) && (
+      {hasPageFrame ? (
         <BreadcrumbTitle routes={routes} title={isEditingApp ? app!.name : t('New')} />
+      ) : (
+        <SettingsPageHeader title={headerTitle()} />
       )}
-      {!hasPageFrame && <SettingsPageHeader title={headerTitle()} />}
       {isEditingApp && isPending ? (
         <LoadingIndicator />
       ) : isEditingApp && isError ? (
