@@ -10,24 +10,13 @@ Object.defineProperty(globalThis.crypto, 'randomUUID', {
 });
 
 import {awsLambdaIntegrationPipeline} from './pipelineIntegrationAwsLambda';
-import type {PipelineStepProps} from './types';
+import {createMakeStepProps} from './testUtils';
 
 const ProjectSelectStep = awsLambdaIntegrationPipeline.steps[0].component;
 const CloudFormationStep = awsLambdaIntegrationPipeline.steps[1].component;
 const InstrumentationStep = awsLambdaIntegrationPipeline.steps[2].component;
 
-function makeStepProps<D, A>(
-  overrides: Partial<PipelineStepProps<D, A>> & {stepData: D}
-): PipelineStepProps<D, A> {
-  return {
-    advance: jest.fn(),
-    advanceError: null,
-    isAdvancing: false,
-    stepIndex: 0,
-    totalSteps: 3,
-    ...overrides,
-  };
-}
+const makeStepProps = createMakeStepProps({totalSteps: 3});
 
 describe('ProjectSelectStep', () => {
   it('renders project selector', () => {
@@ -67,6 +56,16 @@ describe('ProjectSelectStep', () => {
     render(<ProjectSelectStep {...makeStepProps({stepData: {}, isAdvancing: true})} />);
 
     expect(screen.getByRole('button', {name: 'Submitting...'})).toBeDisabled();
+  });
+
+  it('disables submit button when isInitializing', () => {
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+
+    render(
+      <ProjectSelectStep {...makeStepProps({stepData: null, isInitializing: true})} />
+    );
+
+    expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
 });
 

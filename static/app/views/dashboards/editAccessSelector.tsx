@@ -18,6 +18,7 @@ import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -245,7 +246,7 @@ export function EditAccessSelector({
         key="avatar-list-many-teams"
         listonly={listOnly}
         typeAvatars="users"
-        users={new Array(selectedOptions.length).fill(dashboardCreator)}
+        users={Array.from<User>({length: selectedOptions.length}).fill(dashboardCreator)}
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         tooltipOptions={{disabled: !userCanEditDashboardPermissions}}

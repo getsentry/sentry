@@ -36,13 +36,10 @@ export function ErrorCounts({replayErrors}: Props) {
   const countsPerProject = useMemo(() => {
     const data = Object.entries(countBy(replayErrors, 'project.name'))
       .sort(([, a], [, b]) => b - a)
-      .reduce(
-        (memo, [projectSlug]) => {
-          memo[projectSlug] = {};
-          return memo;
-        },
-        {} as Record<string, Record<string, number>>
-      );
+      .reduce<Record<string, Record<string, number>>>((memo, [projectSlug]) => {
+        memo[projectSlug] = {};
+        return memo;
+      }, {});
     for (const error of replayErrors) {
       const projectSlug = error['project.name'];
       const level = error.level;

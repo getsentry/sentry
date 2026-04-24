@@ -9,6 +9,7 @@ import {DataCategory} from 'sentry/types/core';
 import * as useMedia from 'sentry/utils/useMedia';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
+import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
@@ -133,6 +134,182 @@ describe('UsageOverview', () => {
 
     await screen.findByRole('heading', {name: 'Errors'});
     expect(screen.queryByRole('heading', {name: 'Transactions'})).not.toBeInTheDocument();
+  });
+
+  it('selects gifted-only product from URL query parameter', async () => {
+    jest
+      .spyOn(useMedia, 'useMedia')
+      .mockImplementation(query => query.includes('min-width'));
+    const originalMonitorSeats = subscription.categories.monitorSeats;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    render(
+      <UsageOverview
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: DataCategory.MONITOR_SEATS},
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    subscription.categories.monitorSeats = originalMonitorSeats;
+  });
+
+  it('does not select product from URL when no quota at all', async () => {
+    jest
+      .spyOn(useMedia, 'useMedia')
+      .mockImplementation(query => query.includes('min-width'));
+    const originalMonitorSeats = subscription.categories.monitorSeats;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+    };
+    render(
+      <UsageOverview
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: DataCategory.MONITOR_SEATS},
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Errors'});
+    expect(
+      screen.queryByRole('heading', {name: 'Cron Monitors'})
+    ).not.toBeInTheDocument();
+    subscription.categories.monitorSeats = originalMonitorSeats;
+  });
+
+  it('selects product with softCapType from URL query parameter', async () => {
+    jest
+      .spyOn(useMedia, 'useMedia')
+      .mockImplementation(query => query.includes('min-width'));
+    const originalMonitorSeats = subscription.categories.monitorSeats;
+    const originalHasSoftCap = subscription.hasSoftCap;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    subscription.hasSoftCap = true;
+    render(
+      <UsageOverview
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: DataCategory.MONITOR_SEATS},
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    subscription.categories.monitorSeats = originalMonitorSeats;
+    subscription.hasSoftCap = originalHasSoftCap;
+  });
+
+  it('selects product from URL when subscription has hasSoftCap=true and category has null softCapType', async () => {
+    jest
+      .spyOn(useMedia, 'useMedia')
+      .mockImplementation(query => query.includes('min-width'));
+    const originalMonitorSeats = subscription.categories.monitorSeats;
+    const originalHasSoftCap = subscription.hasSoftCap;
+    subscription.hasSoftCap = true;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    render(
+      <UsageOverview
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: DataCategory.MONITOR_SEATS},
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    subscription.categories.monitorSeats = originalMonitorSeats;
+    subscription.hasSoftCap = originalHasSoftCap;
+  });
+
+  it('selects product from URL when category has unlimited prepaid (UNLIMITED_RESERVED sentinel)', async () => {
+    jest
+      .spyOn(useMedia, 'useMedia')
+      .mockImplementation(query => query.includes('min-width'));
+    const originalMonitorSeats = subscription.categories.monitorSeats;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: UNLIMITED_RESERVED,
+      free: 0,
+      prepaid: UNLIMITED_RESERVED,
+      softCapType: null,
+    };
+    render(
+      <UsageOverview
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+      />,
+      {
+        additionalWrapper: SecondaryNavigationContextProvider,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: DataCategory.MONITOR_SEATS},
+          },
+        },
+      }
+    );
+
+    await screen.findByRole('heading', {name: 'Cron Monitors'});
+    expect(screen.queryByRole('heading', {name: 'Errors'})).not.toBeInTheDocument();
+    subscription.categories.monitorSeats = originalMonitorSeats;
   });
 
   it('can switch panel by clicking table rows', async () => {

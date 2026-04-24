@@ -6,6 +6,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {useIsFetching} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
@@ -36,13 +37,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
@@ -100,7 +99,7 @@ export function CommandPalette(props: CommandPaletteProps) {
     return nodes;
   }, [store, state.action]);
 
-  const actions = useMemo<CMDKFlatItem[]>(() => {
+  const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
     if (!state.query) {
       return flattenActions(currentNodes, null);
     }
@@ -123,7 +122,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const treeState = useTreeState({
     disabledKeys: sectionKeys,
     children: actions.map(action => {
-      const menuItem = makeMenuItemFromAction(action);
+      const menuItem = makeMenuItemFromAction(action, prefixMap);
 
       if (action.listItemType === 'section') {
         return (
@@ -135,11 +134,13 @@ export function CommandPalette(props: CommandPaletteProps) {
               leadingItems: null,
               label: (
                 <Text size="sm" bold variant="primary">
-                  <Flex align="center" gap="md">
+                  <Flex align="center" gap="md" width="100%" minWidth={0}>
                     <IconDefaultsProvider size="sm">
                       {action.display.icon}
                     </IconDefaultsProvider>
-                    {action.display.label}
+                    <Text size="sm" bold variant="primary" ellipsis>
+                      {action.display.label}
+                    </Text>
                   </Flex>
                 </Text>
               ),
@@ -157,11 +158,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         );
       }
 
+      const prefix = prefixMap.get(action.key);
       return (
         <Item<CommandPaletteActionMenuItem>
           {...menuItem}
           key={action.key}
-          textValue={action.display.label}
+          textValue={
+            prefix?.length
+              ? `${prefix.join(' ')} ${action.display.label}`
+              : action.display.label
+          }
         >
           {menuItem.label}
         </Item>
@@ -224,7 +230,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       const resultIndex = actions.indexOf(action);
-      const sourceAction = getSourceAction(action, actions);
+      const sourceAction = getSourceAction(action, actions, prefixMap);
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
@@ -257,6 +263,12 @@ export function CommandPalette(props: CommandPaletteProps) {
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
 
+      // Close the palette before running the action. ModalStore is a single-slot
+      // system: calling openModal() inside onAction would replace the palette's
+      // renderer, and a closeModal() call afterwards would immediately close the
+      // newly opened modal instead of the palette.
+      closeModal?.();
+
       if ('to' in action) {
         const normalizedTo = normalizeUrl(action.to);
         if (isExternalLocation(normalizedTo) || options?.modifierKeys?.shiftKey) {
@@ -267,11 +279,23 @@ export function CommandPalette(props: CommandPaletteProps) {
       } else if ('onAction' in action) {
         action.onAction();
       }
-
-      closeModal?.();
     },
-    [actions, analytics, closeModal, dispatch, navigate, state.query]
+    [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
   );
+
+  // Dispatch the deferred reset once the close animation finishes. framer-motion
+  // only unmounts this component after the exit animation completes, so the
+  // cleanup runs at exactly the right time. If the user re-opens the palette
+  // before the animation ends, the component stays mounted and nothing fires.
+  const pendingResetRef = useRef(state.pendingReset);
+  pendingResetRef.current = state.pendingReset;
+  useEffect(() => {
+    return () => {
+      if (pendingResetRef.current) {
+        dispatch({type: 'reset'});
+      }
+    };
+  }, [dispatch]);
 
   const resultsListRef = useRef<HTMLDivElement>(null);
   const modifierKeysRef = useRef({shiftKey: false});
@@ -300,7 +324,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isLoading =
     (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
   const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && state.query.length === 0;
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
   return (
     <Fragment>
@@ -387,11 +411,9 @@ export function CommandPalette(props: CommandPaletteProps) {
                         }
                       }
 
-                      if (e.key === 'Enter' || e.key === 'Tab') {
-                        // Only forward shiftKey for Enter — Shift+Tab is reverse tab
-                        // navigation, not an "open in new tab" gesture.
+                      if (e.key === 'Enter') {
                         onActionSelection(treeState.selectionManager.focusedKey, {
-                          modifierKeys: {shiftKey: e.key === 'Enter' && e.shiftKey},
+                          modifierKeys: {shiftKey: e.shiftKey},
                         });
                         return;
                       }
@@ -424,7 +446,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery ? null : (
+        isEmptyPromptQuery || isLoading ? null : (
           <CommandPaletteNoResults />
         )
       ) : (
@@ -565,7 +587,7 @@ function flattenActions(
   nodes: Array<CollectionTreeNode<CMDKActionData>>,
   scores: Map<string, CommandPaletteScore> | null,
   sortLeafResults = false
-): CMDKFlatItem[] {
+): [CMDKFlatItem[], Map<string, string[]>] {
   // Browse mode: show each top-level node and its direct children.
   if (!scores) {
     const results: CMDKFlatItem[] = [];
@@ -600,7 +622,7 @@ function flattenActions(
         results.push({...node, listItemType: 'action'});
       }
     }
-    return results;
+    return [results, new Map()];
   }
 
   // Search mode: DFS all nodes, collect as flat list, sort groups by max child
@@ -620,19 +642,75 @@ function flattenActions(
     dfs(node);
   }
 
-  // Keep the existing top-level search ordering by default, but when we are
-  // inside an expanded group we also sort leaf actions by their own score so
-  // the full result list matches the limited preview ordering.
-  collected.sort((a, b) =>
-    compareCommandPaletteScores(
+  const nodeMap = new Map<string, CollectionTreeNode<CMDKActionData>>();
+  for (const item of collected) {
+    nodeMap.set(item.key, item);
+  }
+
+  // Pre-compute the root ancestor key for every node. The sort below uses this
+  // as the primary key so all results from the same top-level section stay
+  // grouped together, regardless of how individual sub-groups score.
+  const nodeRootKey = new Map<string, string>();
+  for (const item of collected) {
+    let root: CollectionTreeNode<CMDKActionData> = item;
+    while (root.parent !== null) {
+      const parent = nodeMap.get(root.parent);
+      if (!parent) break;
+      root = parent;
+    }
+    nodeRootKey.set(item.key, root.key);
+  }
+
+  // Best score among all matched descendants for each root section. Used as
+  // the primary sort key so sections are ordered by their top relevance signal.
+  // Root-level leaf nodes (parent === null, no children) are excluded: they are
+  // their own root and inherit the old behaviour of sorting by DFS order rather
+  // than match quality, consistent with getBestItemScore returning undefined for
+  // leaves when sortLeafResults is false.
+  const rootBestScore = new Map<string, CommandPaletteScore>();
+  for (const [key, score] of scores) {
+    const node = nodeMap.get(key);
+    if (node?.parent === null && node.children.length === 0) continue;
+    const rootKey = nodeRootKey.get(key);
+    if (rootKey === undefined) continue;
+    const current = rootBestScore.get(rootKey);
+    if (current === undefined || compareCommandPaletteScores(score, current) < 0) {
+      rootBestScore.set(rootKey, score);
+    }
+  }
+
+  // Sort with root section as the primary key so every node from the same
+  // top-level section stays together in the output. Within each root, order
+  // groups by their best child score so the most relevant sub-section surfaces
+  // first. When we are inside an expanded group we also sort leaf actions by
+  // their own score so the full result list matches the limited preview ordering.
+  // Sections with a "cmdk:supplementary:" reserved key always sort last,
+  // regardless of score.
+  collected.sort((a, b) => {
+    const aRootKey = nodeRootKey.get(a.key)!;
+    const bRootKey = nodeRootKey.get(b.key)!;
+    if (aRootKey !== bRootKey) {
+      const aIsSupplementary = aRootKey.startsWith('cmdk:supplementary:');
+      const bIsSupplementary = bRootKey.startsWith('cmdk:supplementary:');
+      if (aIsSupplementary !== bIsSupplementary) {
+        return aIsSupplementary ? 1 : -1;
+      }
+      return compareCommandPaletteScores(
+        rootBestScore.get(aRootKey),
+        rootBestScore.get(bRootKey)
+      );
+    }
+    return compareCommandPaletteScores(
       getBestItemScore(a, scores, sortLeafResults),
       getBestItemScore(b, scores, sortLeafResults)
-    )
-  );
+    );
+  });
 
   // Track processed keys so children beyond a group's limit cannot resurface as
   // standalone flat items later in the traversal.
   const seen = new Set<string>();
+  const prefixMap = new Map<string, string[]>();
+  const usedSectionHeaders = new Set<string>();
 
   const flattened = collected.flatMap((item): CMDKFlatItem[] => {
     if (seen.has(item.key)) return [];
@@ -640,7 +718,7 @@ function flattenActions(
 
     if (item.children.length > 0) {
       const matched = item.children.filter(
-        c => scores.get(c.key)?.matched && !isEmptyResourceNode(c)
+        c => scores.get(c.key)?.matched && !isEmptyResourceNode(c) && !seen.has(c.key)
       );
       if (!matched.length) return [];
       const sortedMatches = matched.sort((a, b) =>
@@ -653,12 +731,52 @@ function flattenActions(
       for (const child of item.children) {
         markSubtreeSeen(child, seen);
       }
+      // Walk the ancestor chain inline to find the root section for this group.
+      let root: CollectionTreeNode<CMDKActionData> = item;
+      const intermediatePath: string[] = [];
+      while (root.parent !== null) {
+        const parent = nodeMap.get(root.parent);
+        if (!parent) break;
+        intermediatePath.unshift(root.display.label);
+        root = parent;
+      }
+      const isNested = root.key !== item.key;
+      const seeMore = shouldShowSeeMore(matched.length, item.limit);
+
+      if (isNested) {
+        for (const child of limitedMatches) {
+          prefixMap.set(child.key, intermediatePath);
+        }
+        if (seeMore) {
+          // Render-time prefix for the "See all" item — same path as its siblings.
+          prefixMap.set(`${item.key}:see-more`, intermediatePath);
+          // Source-label hint so getSourceAction can recover the group label for
+          // analytics/navigation even though the original section header is not
+          // emitted. The distinct `:source-label` suffix avoids collision with the
+          // render-time prefix entry above.
+          prefixMap.set(`${item.key}:see-more:source-label`, [item.display.label]);
+        }
+        const sectionHeader = usedSectionHeaders.has(root.key)
+          ? []
+          : [makeSectionAction(root)];
+        usedSectionHeaders.add(root.key);
+        return [
+          ...sectionHeader,
+          ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
+          ...(seeMore ? [makeSeeMoreAction(item)] : []),
+        ];
+      }
+
+      // A nested descendant processed earlier may have already emitted this item's
+      // section header via the root-bubbling path — skip it to avoid a duplicate key.
+      const sectionHeader = usedSectionHeaders.has(item.key)
+        ? []
+        : [makeSectionAction(item)];
+      usedSectionHeaders.add(item.key);
       return [
-        makeSectionAction(item),
+        ...sectionHeader,
         ...limitedMatches.map(c => ({...c, listItemType: 'action' as const})),
-        ...(shouldShowSeeMore(matched.length, item.limit)
-          ? [makeSeeMoreAction(item)]
-          : []),
+        ...(seeMore ? [makeSeeMoreAction(item)] : []),
       ];
     }
 
@@ -670,7 +788,7 @@ function flattenActions(
     return scores.get(item.key)?.matched ? [{...item, listItemType: 'action'}] : [];
   });
 
-  return flattened;
+  return [flattened, prefixMap];
 }
 
 function getLimitedChildren<T>(children: T[], limit?: number): T[] {
@@ -693,7 +811,6 @@ function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
     display: {
       details: node.display.details,
       label: t('See all'),
-      icon: <IconArrow direction="right" />,
     },
   };
 }
@@ -706,15 +823,29 @@ function makeSectionAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
   };
 }
 
-function getSourceAction(action: CMDKFlatItem, actions: CMDKFlatItem[]): CMDKFlatItem {
+function getSourceAction(
+  action: CMDKFlatItem,
+  actions: CMDKFlatItem[],
+  prefixMap: Map<string, string[]>
+): CMDKFlatItem {
   if (!isSeeMoreAction(action.key)) {
     return action;
   }
 
   const sourceActionKey = getSourceActionKey(action.key);
-  return (
-    actions.find(candidate => candidate.key === `${sourceActionKey}:header`) ?? action
+  const headerMatch = actions.find(
+    candidate => candidate.key === `${sourceActionKey}:header`
   );
+  if (headerMatch) return headerMatch;
+
+  // For nested groups the original header was replaced by the root ancestor header.
+  // The prefix map stores the group label under a distinct `:source-label` key.
+  const groupLabel = prefixMap.get(`${action.key}:source-label`)?.[0];
+  if (groupLabel) {
+    return {...action, display: {...action.display, label: groupLabel}};
+  }
+
+  return action;
 }
 
 function isSeeMoreAction(key: string): boolean {
@@ -735,9 +866,13 @@ function isEmptyResourceNode(node: CollectionTreeNode<CMDKActionData>): boolean 
   );
 }
 
-function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuItem {
+function makeMenuItemFromAction(
+  action: CMDKFlatItem,
+  prefixMap: Map<string, string[]>
+): CommandPaletteActionMenuItem {
+  const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
-  const trailingItems =
+  const linkIndicator =
     'to' in action ? (
       <Flex
         align="center"
@@ -749,10 +884,31 @@ function makeMenuItemFromAction(action: CMDKFlatItem): CommandPaletteActionMenuI
         </IconDefaultsProvider>
       </Flex>
     ) : undefined;
+  const trailingItems =
+    (action.display.trailingItem ?? linkIndicator) ? (
+      <Fragment>
+        {action.display.trailingItem}
+        {linkIndicator}
+      </Fragment>
+    ) : undefined;
 
   return {
     key: action.key,
-    label: action.display.label,
+    label: prefix?.length ? (
+      <Flex align="center" gap="xs">
+        {prefix.map((segment, i) => (
+          <Fragment key={i}>
+            <Text variant="muted">{segment}</Text>
+            <IconDefaultsProvider size="xs" variant="muted">
+              <IconArrow direction="right" />
+            </IconDefaultsProvider>
+          </Fragment>
+        ))}
+        <Text>{action.display.label}</Text>
+      </Flex>
+    ) : (
+      action.display.label
+    ),
     details: action.display.details,
     leadingItems: (
       <Flex

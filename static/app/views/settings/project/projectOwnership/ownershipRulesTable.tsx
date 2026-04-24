@@ -27,6 +27,7 @@ import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnersh
 interface OwnershipRulesTableProps {
   codeowners: CodeOwner[];
   projectRules: ParsedOwnershipRule[];
+  actions?: React.ReactNode;
 }
 
 /**
@@ -41,6 +42,7 @@ const PAGE_LIMIT = 25;
 export function OwnershipRulesTable({
   projectRules,
   codeowners,
+  actions,
 }: OwnershipRulesTableProps) {
   const user = useUser();
   const [search, setSearch] = useState<string>('');
@@ -164,6 +166,7 @@ export function OwnershipRulesTable({
           query={search}
           onChange={handleSearch}
         />
+        {actions}
       </Flex>
 
       <StyledPanelTable

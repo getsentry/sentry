@@ -9,9 +9,10 @@ import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetecto
 
 export function ProjectField() {
   const {projects, fetching} = useProjects();
-  const {detectorType} = useDetectorFormContext();
+  const {detectorType, detector} = useDetectorFormContext();
   const project = useDetectorFormProject();
   const canEditDetector = useCanEditDetector({projectId: project.id, detectorType});
+  const isEditing = !!detector;
 
   return (
     <StyledProjectField
@@ -28,7 +29,7 @@ export function ProjectField() {
       label={t('Project')}
       placeholder={t('Project')}
       aria-label={t('Select Project')}
-      disabled={fetching}
+      disabled={fetching || isEditing}
       size="sm"
       required
       validate={() => {

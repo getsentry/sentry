@@ -1,9 +1,10 @@
 import {useCallback, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {
@@ -25,13 +26,12 @@ import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {
   PermissionSelection,
   permissionStateToList,
@@ -61,11 +61,8 @@ const DISPLAYED_PERMISSIONS = SENTRY_APP_PERMISSIONS.filter(
   o => o !== DISTRIBUTION_SENTRY_APP_PERMISSION
 );
 
-function getPermissionsPreview(permissions: Permissions): string {
-  return Object.entries(permissions)
-    .filter(([, access]) => access !== 'no-access')
-    .map(([resource, access]) => `${resource.toLowerCase()}:${access}`)
-    .join(', ');
+function getPermissionsPreview(scopes: string[]): string {
+  return scopes.join(', ');
 }
 
 export default function ApiNewToken() {
@@ -78,9 +75,15 @@ export default function ApiNewToken() {
     [navigate]
   );
 
-  const allPermissionsNoAccess = Object.values(permissions).every(
-    value => value === 'no-access'
-  );
+  const scopes = Array.from(
+    new Set(
+      permissionStateToList(permissions, false).filter(
+        (value): value is NonNullable<typeof value> => value !== undefined
+      )
+    )
+  ).sort();
+
+  const allPermissionsNoAccess = scopes.length === 0;
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
@@ -89,9 +92,7 @@ export default function ApiNewToken() {
         method: 'POST',
         data: {
           ...data,
-          scopes: permissionStateToList(permissions).filter(
-            (v): v is NonNullable<typeof v> => v !== undefined
-          ),
+          scopes,
         },
       }),
     onSuccess: token => {
@@ -116,25 +117,31 @@ export default function ApiNewToken() {
     },
   });
 
-  const permissionsPreview = getPermissionsPreview(permissions);
+  const permissionsPreview = getPermissionsPreview(scopes);
 
   return (
     <SentryDocumentTitle title={t('Create New Personal Token')}>
       <div>
-        <SettingsPageHeader title={t('Create New Personal Token')} />
-        <TextBlock>
-          {t(
-            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-          )}
-        </TextBlock>
-        <TextBlock>
-          {tct(
-            'For more information on how to use the web API, see our [link:documentation].',
-            {
-              link: <ExternalLink href="https://docs.sentry.io/api/" />,
-            }
-          )}
-        </TextBlock>
+        <SettingsPageHeader
+          title={t('Create New Personal Token')}
+          subtitle={
+            <Stack gap="md">
+              <div>
+                {t(
+                  "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+                )}
+              </div>
+              <div>
+                {tct(
+                  'For more information on how to use the web API, see our [link:documentation].',
+                  {
+                    link: <ExternalLink href="https://docs.sentry.io/api/" />,
+                  }
+                )}
+              </div>
+            </Stack>
+          }
+        />
         <form.AppForm form={form}>
           <form.FieldGroup title={t('General')}>
             <form.AppField name="name">
@@ -153,8 +160,11 @@ export default function ApiNewToken() {
             <PanelBody>
               <PermissionSelection
                 appPublished={false}
+                displaySpecialPermissions={false}
                 permissions={permissions}
-                onChange={p => setPermissions({...p})}
+                onChange={nextPermissions => {
+                  setPermissions({...nextPermissions});
+                }}
                 displayedPermissions={DISPLAYED_PERMISSIONS}
               />
             </PanelBody>

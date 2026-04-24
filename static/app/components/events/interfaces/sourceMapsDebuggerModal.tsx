@@ -1029,14 +1029,11 @@ function getToolUsedToUploadSourceMaps({
     'esbuild-plugin',
   ];
 
-  return tools.reduce(
-    (acc, tool) => {
-      const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
-      acc[key] = releaseUserAgent?.includes(tool) ?? false;
-      return acc;
-    },
-    {} as Record<string, boolean>
-  );
+  return tools.reduce<Record<string, boolean>>((acc, tool) => {
+    const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
+    acc[key] = releaseUserAgent?.includes(tool) ?? false;
+    return acc;
+  }, {});
 }
 
 type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMaps>;

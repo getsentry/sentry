@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
@@ -30,7 +31,10 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+  SENTRY_APP_PERMISSIONS,
+} from 'sentry/constants';
 import {
   internalIntegrationForms,
   publicIntegrationForms,
@@ -41,12 +45,7 @@ import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -101,6 +100,15 @@ const getResourceFromScope = (scope: Scope): Resource | undefined => {
   return undefined;
 };
 
+const getPermissionFieldNameFromScope = (scope: Scope): string | undefined => {
+  if (scope === CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.scope) {
+    return CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION.fieldName;
+  }
+
+  const resource = getResourceFromScope(scope);
+  return resource ? `${resource}--permission` : undefined;
+};
+
 /**
  * We need to map the API response errors to the actual form fields.
  * We do this by pulling out scopes and mapping each scope error to the correct input.
@@ -117,10 +125,9 @@ const mapFormErrors = (responseJSON?: any) => {
       const matches = message.match(/Requested permission of (\w+:\w+)/);
       if (matches) {
         const scope = matches[1];
-        const resource = getResourceFromScope(scope as Scope);
-        // should always match but technically resource can be undefined
-        if (resource) {
-          formErrors[`${resource}--permission`] = [message];
+        const fieldName = getPermissionFieldNameFromScope(scope as Scope);
+        if (fieldName) {
+          formErrors[fieldName] = [message];
         }
       }
     });
@@ -275,7 +282,7 @@ export default function SentryApplicationDetails() {
 
   const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
     const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
-    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
+    const updatedTokens = tokens.concat(newToken);
     setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
     setNewTokens(updatedNewTokens);
   };

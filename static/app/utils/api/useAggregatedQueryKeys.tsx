@@ -1,10 +1,11 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -95,11 +96,12 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
     () =>
       cache
         .findAll({queryKey: [key]})
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
         .filter(defined)
-        .reduce(
+        .reduce<Data | undefined>(
           (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
-          undefined as Data | undefined
+          undefined
         ),
     [cache, key, queryClient, responseReducer]
   );
@@ -131,6 +133,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         predicate: isQueryKeyInBatch,
       });
       queuedAggregatableBatch.forEach(queryKey => {
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         queryClient.setQueryData<boolean>(
           ['aggregate', cacheKey, key, 'inFlight', queryKey],
           true
@@ -196,6 +199,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       // Cache sentinel data for the new cacheKeys
       newQueryKeys
         .map(agg => ['aggregate', cacheKey, key, 'queued', agg])
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         .forEach(queryKey => queryClient.setQueryData<boolean>(queryKey, true));
 
       if (newQueryKeys.length) {

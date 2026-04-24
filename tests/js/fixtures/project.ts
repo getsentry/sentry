@@ -1,4 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import type {Project} from 'sentry/types/project';
@@ -47,7 +46,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     hasInsightsAgentMonitoring: false,
     hasInsightsMCP: false,
     isInternal: false,
-    organization: OrganizationFixture(),
+    organization: {id: '3', slug: 'org-slug'},
     plugins: [],
     processingIssues: 0,
     relayPiiConfig: '',

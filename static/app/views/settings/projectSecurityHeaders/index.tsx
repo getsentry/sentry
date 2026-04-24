@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 
@@ -12,9 +13,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {ProjectKey} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,16 +34,7 @@ function ProjectSecurityHeaders() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<ProjectKey[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  } = useQuery(projectKeysApiOptions({orgSlug: organization.slug, projSlug: projectId}));
 
   const reports = useMemo(
     () => [

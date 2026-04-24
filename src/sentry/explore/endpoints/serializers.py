@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
@@ -7,6 +9,9 @@ from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import is_equation
 from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.utils.dates import parse_stats_period, validate_interval
+
+MAX_CROSS_EVENT_QUERIES = 2
+MAX_CROSS_EVENT_RANGE = timedelta(days=7)
 
 
 class VisualizeSerializer(serializers.Serializer):
@@ -139,6 +144,19 @@ class QuerySerializer(serializers.Serializer):
     )
 
 
+class CrossEventSerializer(serializers.Serializer):
+    query = serializers.CharField(
+        required=True,
+        allow_blank=True,
+        help_text="The search query for this cross-event entry.",
+    )
+    type = serializers.ChoiceField(
+        choices=["spans", "logs"],
+        required=True,
+        help_text="The event type this cross-event query targets.",
+    )
+
+
 class ExploreSavedQuerySerializer(serializers.Serializer):
     name = serializers.CharField(
         required=True, max_length=255, help_text="The user-defined saved query name."
@@ -178,6 +196,13 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
     interval = serializers.CharField(
         required=False, allow_null=True, help_text="Resolution of the time series."
     )
+    crossEvents = ListField(
+        child=CrossEventSerializer(),
+        required=False,
+        allow_null=True,
+        max_length=MAX_CROSS_EVENT_QUERIES,
+        help_text="Optional cross-event queries across event types. Max 2 entries.",
+    )
     query = ListField(child=QuerySerializer(), required=True, min_length=1)
 
     def validate_projects(self, projects):
@@ -194,6 +219,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "start",
             "end",
             "interval",
+            "crossEvents",
         ]
 
         inner_query_keys = [
@@ -214,7 +240,17 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
                 value = data[key]
                 if key in ("start", "end"):
                     value = value.isoformat()
+                if key == "crossEvents":
+                    value = [dict(ce) for ce in value]
                 query[key] = value
+
+        if query.get("crossEvents"):
+            start = self.context["params"].get("start")
+            end = self.context["params"].get("end")
+            if start is not None and end is not None:
+                date_range = end - start
+                if date_range > MAX_CROSS_EVENT_RANGE:
+                    raise serializers.ValidationError("Cross event queries are limited to 7 days.")
 
         if "query" in data:
             query["query"] = []

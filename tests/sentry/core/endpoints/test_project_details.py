@@ -115,6 +115,17 @@ class ProjectDetailsTest(APITestCase):
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
+    def test_collapse_organization(self) -> None:
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"collapse": ["organization"]},
+        )
+        assert response.data["organization"] == {
+            "id": str(self.project.organization.id),
+            "slug": self.project.organization.slug,
+        }
+
     def test_filters_disabled_plugins(self) -> None:
         from sentry.plugins.base import plugins
 

@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {GetTagValuesParams} from 'sentry/components/searchQueryBuilder';
@@ -6,10 +8,10 @@ import {defined} from 'sentry/utils';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {FieldKind} from 'sentry/utils/fields';
-import {useMutation, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TRACE_ITEM_ATTRIBUTE_STALE_TIME} from 'sentry/views/explore/constants';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import type {
   TraceItemDataset,
   UseTraceItemAttributeBaseProps,
@@ -26,6 +28,7 @@ interface TraceItemAttributeValue {
 interface UseGetTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProps {
   datetime?: PageFilters['datetime'];
   projectIds?: PageFilters['projects'];
+  query?: string;
 }
 
 function traceItemAttributeValuesQueryKey({
@@ -36,12 +39,14 @@ function traceItemAttributeValuesQueryKey({
   datetime,
   traceItemType,
   type = 'string',
+  query: filterQuery,
 }: {
   attributeKey: string;
   orgSlug: string;
   traceItemType: TraceItemDataset;
   datetime?: PageFilters['datetime'];
   projectIds?: number[];
+  query?: string;
   search?: string;
   type?: 'string' | 'number' | 'boolean';
 }): ApiQueryKey {
@@ -49,6 +54,10 @@ function traceItemAttributeValuesQueryKey({
     itemType: traceItemType,
     attributeType: type,
   };
+
+  if (filterQuery) {
+    query.query = filterQuery;
+  }
 
   if (search) {
     query.substringMatch = search;
@@ -86,6 +95,7 @@ export function useGetTraceItemAttributeValues({
   projectIds,
   datetime,
   type = 'string',
+  query: filterQuery,
 }: UseGetTraceItemAttributeValuesProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -107,6 +117,7 @@ export function useGetTraceItemAttributeValues({
         datetime: datetime ?? selection.datetime,
         traceItemType,
         type,
+        query: filterQuery,
       });
 
       try {
@@ -118,7 +129,7 @@ export function useGetTraceItemAttributeValues({
               method: 'GET',
               query: {...options?.query},
             }),
-          staleTime: TRACE_ITEM_ATTRIBUTE_STALE_TIME,
+          staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
         });
         return result
           .filter((item: TraceItemAttributeValue) => defined(item.value))

@@ -202,6 +202,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         assert "`com.example.app`" in result
         # Zero counts are plain text, non-zero unchanged is linked
         assert "| 0 | 0 | 0 | 0 |" in result
+        assert "| 0 | ✅ Unchanged |" in result
         assert "?section=unchanged" in result
 
     def test_changes_show_needs_approval(self) -> None:
@@ -352,7 +353,10 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
             project=self.project,
         )
 
-        assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in result
+        assert (
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            in result
+        )
 
     def test_settings_link_included(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics()
@@ -387,7 +391,10 @@ class FormatSnapshotPrCommentNoBaseTest(SnapshotPrCommentTestBase):
             [artifact], {artifact.id: metrics}, {}, {}, {}, project=self.project
         )
 
-        assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in result
+        assert (
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            in result
+        )
 
     def test_no_base_multiple_artifacts(self) -> None:
         artifacts = []

@@ -434,7 +434,7 @@ describe('useCopyIssueDetails', () => {
         metaKey: true,
         altKey: true,
         bubbles: true,
-      } as KeyboardEventInit);
+      });
       document.dispatchEvent(keyboardEvent);
 
       expect(capturedText).toContain(`# ${group.title}`);
@@ -462,7 +462,7 @@ describe('useCopyIssueDetails', () => {
         metaKey: true,
         altKey: true,
         bubbles: true,
-      } as KeyboardEventInit);
+      });
       document.dispatchEvent(keyboardEvent);
 
       expect(capturedText).toContain(`# ${group.title}`);

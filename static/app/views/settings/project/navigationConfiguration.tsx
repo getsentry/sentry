@@ -134,6 +134,13 @@ export function getNavigationConfiguration({
           badge: () => 'new',
           description: t('Size analysis and build distribution configuration.'),
         },
+        {
+          path: `${pathPrefix}/snapshots/`,
+          title: t('Snapshots'),
+          badge: () => 'alpha',
+          show: () => !!organization?.features?.includes('preprod-snapshots'),
+          description: t('Configure snapshot status checks and PR comments.'),
+        },
       ],
     },
     {
@@ -144,6 +151,7 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/keys/`,
           title: t('Client Keys (DSN)'),
           description: t("View and manage the project's client keys (DSN)"),
+          keywords: [t('dsn')],
         },
         {
           path: `${pathPrefix}/loader-script/`,

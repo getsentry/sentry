@@ -35,17 +35,12 @@ from sentry.seer.autofix.types import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    get_autofix_repos_from_project_code_mappings,
-    get_org_default_seer_automation_handoff,
-    get_project_seer_preferences,
     make_autofix_start_request,
     make_autofix_update_request,
     read_preference_from_sentry_db,
-    set_project_seer_preference,
-    write_preference_to_sentry_db,
 )
 from sentry.seer.explorer.utils import _convert_profile_to_execution_tree, fetch_profile_data
-from sentry.seer.models import SeerApiError, SeerApiResponseValidationError, SeerProjectPreference
+from sentry.seer.models import SeerProjectPreference
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.utils import get_github_username_for_user
 from sentry.services import eventstore
@@ -461,7 +456,7 @@ def _call_autofix(
     *,
     user: User | AnonymousUser | RpcUser,
     group: Group,
-    repos: list[dict],
+    preference: SeerProjectPreference,
     serialized_event: dict[str, Any],
     profile: dict[str, Any] | None,
     trace_tree: dict[str, Any] | None,
@@ -474,13 +469,13 @@ def _call_autofix(
     auto_run_source: str | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     github_username: str | None = None,
-    preference: SeerProjectPreference | None = None,
 ):
     body = orjson.dumps(
         {
             "organization_id": group.organization.id,
             "project_id": group.project.id,
-            "repos": repos,
+            "preference": preference.dict(),
+            "repos": [repo.dict() for repo in preference.repositories],
             "issue": {
                 "id": group.id,
                 "title": group.title,
@@ -513,7 +508,6 @@ def _call_autofix(
                 ),
                 "stopping_point": stopping_point.value if stopping_point else None,
             },
-            "preference": preference.dict() if preference else None,
         },
         option=orjson.OPT_NON_STR_KEYS,
     )
@@ -637,61 +631,6 @@ def get_all_tags_overview(
     }
 
 
-def _resolve_project_preference(
-    organization: Organization, project: Project, fallback_repos: list[dict]
-) -> SeerProjectPreference | None:
-    """
-    Resolve the Seer project preference for a project before triggering autofix.
-
-    If an existing preference is found in Seer, returns it.
-    If not, creates one from fallback_repos.
-    """
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        preference = read_preference_from_sentry_db(project)
-    else:
-        try:
-            preference = get_project_seer_preferences(project.id).preference
-        except (SeerApiError, SeerApiResponseValidationError):
-            logger.exception(
-                "seer.resolve_project_preference.get_failed",
-                extra={"project_id": project.id, "organization_id": organization.id},
-            )
-            return None
-
-    if preference:
-        return preference
-
-    default_stopping_point, default_handoff = get_org_default_seer_automation_handoff(organization)
-    preference = SeerProjectPreference(
-        organization_id=organization.id,
-        project_id=project.id,
-        repositories=fallback_repos,
-        automated_run_stopping_point=default_stopping_point,
-        automation_handoff=default_handoff,
-    )
-
-    try:
-        set_project_seer_preference(preference)
-    except (SeerApiError, SeerApiResponseValidationError):
-        logger.exception(
-            "seer.resolve_project_preference.set_failed",
-            extra={"project_id": project.id, "organization_id": organization.id},
-        )
-        return None
-
-    if features.has("organizations:seer-project-settings-dual-write", organization):
-        try:
-            write_preference_to_sentry_db(project, preference)
-        except Exception:
-            logger.exception(
-                "seer.write_preferences.resolve_project_preference.sentry_db_write_failed",
-                extra={"project_id": project.id, "organization_id": organization.id},
-                exc_info=True,
-            )
-
-    return preference
-
-
 def trigger_autofix(
     *,
     group: Group,
@@ -738,19 +677,8 @@ def trigger_autofix(
         return _respond_with_error("Cannot fix issues without an event.", 400)
 
     code_mappings = get_sorted_code_mapping_configs(group.project)
-    code_mappings_repos = get_autofix_repos_from_project_code_mappings(
-        group.project, code_mappings=code_mappings
-    )
 
-    # Resolve the project preference from Seer, or bootstrap one from code mapping repos.
-    # On success, preference.repositories becomes the source of truth for repos
-    # (even if empty — matching Seer's behavior of unconditionally using preference repos).
-    # On failure, we fall back to the original code mapping repos above.
-    preference = _resolve_project_preference(group.organization, group.project, code_mappings_repos)
-    if preference:
-        repos = [repo.dict() for repo in preference.repositories]
-    else:
-        repos = code_mappings_repos
+    preference = read_preference_from_sentry_db(group.project)
 
     # Pre-resolve stacktrace frame paths using code mappings so Seer can skip
     # expensive git tree fetches for large repos.
@@ -796,7 +724,7 @@ def trigger_autofix(
         run_id = _call_autofix(
             user=user,
             group=group,
-            repos=repos,
+            preference=preference,
             serialized_event=serialized_event,
             profile=profile,
             trace_tree=trace_tree,
@@ -809,7 +737,6 @@ def trigger_autofix(
             auto_run_source=auto_run_source,
             stopping_point=stopping_point,
             github_username=github_username,
-            preference=preference,
         )
     except Exception:
         logger.exception("Failed to send autofix to seer")

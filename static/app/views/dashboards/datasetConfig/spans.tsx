@@ -122,7 +122,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
       aggregate === AggregationKey.OPPORTUNITY_SCORE
     ) {
       acc[aggregate] = AGGREGATIONS[aggregate];
-    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate as AggregationKey)) {
+    } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate)) {
       acc[aggregate] = {
         isSortable: true,
         outputType: null,
@@ -474,12 +474,14 @@ function renderTransactionAsLinkable(data: EventData, baggage: RenderFunctionBag
 
   const filters = new MutableSearch('');
 
-  // Filters on the transaction summary page won't match the dashboard because transaction summary isn't on eap yet.
+  const isEap = organization.features.includes('performance-transaction-summary-eap');
   if (data[SpanFields.SPAN_OP]) {
-    filters.addFilterValue('transaction.op', data[SpanFields.SPAN_OP]);
+    filters.addFilterValue(
+      isEap ? SpanFields.SPAN_OP : SpanFields.TRANSACTION_OP,
+      data[SpanFields.SPAN_OP]
+    );
   }
   if (data[SpanFields.REQUEST_METHOD]) {
-    const isEap = organization.features.includes('performance-transaction-summary-eap');
     filters.addFilterValue(
       isEap ? 'request.method' : 'http.method',
       data[SpanFields.REQUEST_METHOD]

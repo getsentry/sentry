@@ -17,8 +17,6 @@ export type KnownGetsentryApiUrls =
   | '/billingadmins/'
   | '/broadcasts/'
   | '/broadcasts/$broadcastId/'
-  | '/copilot/'
-  | '/copilot/webhook/'
   | '/customers/'
   | '/_admin/customers/$organizationIdOrSlug/contract/'
   | '/customers/$organizationIdOrSlug/'

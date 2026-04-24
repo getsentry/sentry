@@ -903,19 +903,7 @@ export class TokenConverter {
       return null;
     }
 
-    const keyName = getKeyName(
-      key as TokenResult<
-        | Token.KEY_SIMPLE
-        | Token.KEY_EXPLICIT_TAG
-        | Token.KEY_EXPLICIT_FLAG
-        | Token.KEY_AGGREGATE
-        | Token.KEY_EXPLICIT_BOOLEAN_TAG
-        | Token.KEY_EXPLICIT_NUMBER_TAG
-        | Token.KEY_EXPLICIT_NUMBER_FLAG
-        | Token.KEY_EXPLICIT_STRING_TAG
-        | Token.KEY_EXPLICIT_STRING_FLAG
-      >
-    );
+    const keyName = getKeyName(key);
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
 
@@ -1478,7 +1466,7 @@ export const defaultConfig: SearchConfig = {
     'team_key_transaction',
     'symbolicated_in_app',
   ]),
-  sizeKeys: new Set([]),
+  sizeKeys: new Set(),
   disallowedLogicalOperators: new Set(),
   disallowFreeText: false,
   disallowWildcard: false,

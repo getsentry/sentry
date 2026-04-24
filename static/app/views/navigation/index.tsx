@@ -10,6 +10,7 @@ import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPal
 import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
+import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MobileNavigation,
@@ -104,15 +105,15 @@ function NavigationLayout({children}: {children: React.ReactNode}) {
   const {layout} = usePrimaryNavigation();
   const {currentStepId} = useNavigationTour();
   const hoverProps = useResetActiveNavigationGroup();
-  const topOffset = useTopOffset();
+  const {barTop} = useTopOffset();
 
   return (
     <Flex
-      top={topOffset}
+      top={barTop}
       left={0}
       position={currentStepId ? undefined : 'sticky'}
       bottom={layout === 'mobile' ? undefined : 0}
-      height={layout === 'mobile' ? undefined : `calc(100dvh - ${topOffset})`}
+      height={layout === 'mobile' ? undefined : `calc(100dvh - ${barTop})`}
       style={{
         zIndex: currentStepId ? undefined : theme.zIndex.sidebarPanel,
         userSelect: 'none',
@@ -129,14 +130,20 @@ export function Navigation() {
 
   if (!organization) {
     // @TODO(JonasBadalic): When this page gets any content, we should add the skip link back in.
-    return <UserOnlyNavigation />;
+    return (
+      <HoverOverlayGroupProvider>
+        <UserOnlyNavigation />
+      </HoverOverlayGroupProvider>
+    );
   }
 
   return (
-    <NavigationTourProvider>
-      <SkipLink />
-      <UserAndOrganizationNavigation />
-    </NavigationTourProvider>
+    <HoverOverlayGroupProvider>
+      <NavigationTourProvider>
+        <SkipLink />
+        <UserAndOrganizationNavigation />
+      </NavigationTourProvider>
+    </HoverOverlayGroupProvider>
   );
 }
 

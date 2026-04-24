@@ -463,3 +463,110 @@ describe('useExplorerAutofix - createPR', () => {
     });
   });
 });
+
+describe('useExplorerAutofix - codingAgentErrors', () => {
+  const GROUP_ID = '123';
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const integration = {id: '42', name: 'Claude Agent', provider: 'claude_code'};
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+  });
+
+  it('accumulates generic failures across multiple launch attempts', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {
+        successes: [],
+        failures: [{error_message: 'first error', repo_name: 'org/repo'}],
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'first error',
+      ]);
+    });
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {
+        successes: [],
+        failures: [{error_message: 'second error', repo_name: 'org/repo'}],
+      },
+    });
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'first error',
+        'second error',
+      ]);
+    });
+  });
+
+  it('appends API-level errors (rejected request) to the list', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 500,
+      body: {detail: 'boom'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await expect(
+      act(() => result.current.triggerCodingAgentHandoff(1, integration))
+    ).rejects.toBeDefined();
+
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['boom']);
+    });
+  });
+
+  it('dismissCodingAgentError removes the error with the given id', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      body: {
+        successes: [],
+        failures: [
+          {error_message: 'a', repo_name: 'org/repo'},
+          {error_message: 'b', repo_name: 'org/repo'},
+          {error_message: 'c', repo_name: 'org/repo'},
+        ],
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(GROUP_ID));
+
+    await act(() => result.current.triggerCodingAgentHandoff(1, integration));
+    await waitFor(() => {
+      expect(result.current.codingAgentErrors.map(e => e.message)).toEqual([
+        'a',
+        'b',
+        'c',
+      ]);
+    });
+
+    const bId = result.current.codingAgentErrors[1]!.id;
+    act(() => result.current.dismissCodingAgentError(bId));
+    expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['a', 'c']);
+  });
+});

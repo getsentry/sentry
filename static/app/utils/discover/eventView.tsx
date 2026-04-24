@@ -1092,13 +1092,10 @@ export class EventView {
   }
 
   getSorts(): Array<TableColumnSort<string | number>> {
-    return this.sorts.map(
-      sort =>
-        ({
-          key: sort.field,
-          order: sort.kind,
-        }) as TableColumnSort<string>
-    );
+    return this.sorts.map(sort => ({
+      key: sort.field,
+      order: sort.kind,
+    }));
   }
 
   // returns query input for the search

@@ -344,6 +344,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# POST rate limit for ProjectTransferEndpoint, overridable via automator.
+register(
+    "api.project-transfer.rate-limit-overrides",
+    type=Int,
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Beacon
 register("beacon.anonymous", type=Bool, flags=FLAG_REQUIRED)
 register(
@@ -656,9 +664,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rollout rate for expanding the unreal report in the endpoint rather than during processing
+# Rollout rate for expanding the unreal report in the endpoint rather than during processing.
 register(
     "relay.unreal-report-expansion.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for fetching project configs in the minidump endpoint.
+register(
+    "relay.minidump-endpoint-fetch-config.rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -748,6 +764,12 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-app.fetch-commits.max-compare-commits",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "github.webhook.mailbox-bucketing.enabled",
@@ -1377,7 +1399,7 @@ register(
 )
 register(
     "seer.night_shift.issues_per_org",
-    default=5,
+    default=10,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2260,6 +2282,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.trace.span_with_errors_ok_status.sample_rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "insights.span-samples-query.sample-rate",
     type=Float,
     default=0.0,  # 0 acts as 'no sampling'
@@ -2727,9 +2755,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("metric_alerts.extended_max_subscriptions", default=1250, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
-    "metric_alerts.extended_max_subscriptions_orgs", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+    "metric_alerts.extended_max_subscriptions",
+    default=1250,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "metric_alerts.extended_max_subscriptions_orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # SDK Crash Detection
@@ -3167,12 +3201,6 @@ register(
     "spans.buffer.max-segment-bytes",
     type=Int,
     default=10 * 1024 * 1024,
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When enabled, oversized segments are split into chunks instead of being dropped.
-register(
-    "spans.buffer.chunk-oversized-segments",
-    default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Whether to enforce max-segment-bytes during ingestion via the Lua script.
@@ -3688,6 +3716,14 @@ register(
 )
 register(
     "eventstore.adjacent_event_ids_use_snql",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Bug fix for prev/next event navigation
+register(
+    "eventstore.adjacent_event_ids_apply_query_conditions",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

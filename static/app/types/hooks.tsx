@@ -299,6 +299,7 @@ export type FeatureDisabledHooks = {
  * Interface chrome hooks.
  */
 type InterfaceChromeHooks = {
+  'cmdk:global-settings-actions': GenericComponentHook;
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
   'sidebar:billing-status': GenericOrganizationComponentHook;

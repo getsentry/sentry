@@ -11,7 +11,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
 
 export function useReplaysFromIssue({
   group,

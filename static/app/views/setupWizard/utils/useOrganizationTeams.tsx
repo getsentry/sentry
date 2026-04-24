@@ -1,6 +1,7 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
+
 import type {Team} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, useQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {OrganizationWithRegion} from 'sentry/views/setupWizard/types';
 
 export function useOrganizationTeams({
@@ -9,18 +10,11 @@ export function useOrganizationTeams({
   organization?: OrganizationWithRegion;
 }) {
   return useQuery({
-    queryKey: [
-      getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
-        path: {organizationIdOrSlug: organization?.slug!},
-      }),
-      {
-        host: organization?.region.url,
-      },
-    ] satisfies ApiQueryKey,
-    queryFn: context => {
-      return fetchDataQuery<Team[]>(context).then(result => result[0]);
-    },
-    enabled: !!organization,
+    ...apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+      path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
+      host: organization?.region.url,
+      staleTime: 0,
+    }),
     refetchOnWindowFocus: true,
     retry: false,
   });

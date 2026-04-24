@@ -93,7 +93,8 @@ class WorkflowEngineDetectorSerializer(Serializer):
         for serialized in serialized_data_conditions:
             errors = []
             alert_rule_id = serialized.get("alertRuleId")
-            assert alert_rule_id
+            if not alert_rule_id:
+                continue
             detector_id = detector_ids_by_alert_rule_id.get(
                 int(alert_rule_id),
                 get_object_id_from_fake_id(int(alert_rule_id)),

@@ -46,8 +46,8 @@ describe('MetricSelector', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'device.name', type: 'string'},
-        {key: 'release', type: 'string'},
+        {attributeType: 'string', key: 'device.name', name: 'device.name'},
+        {attributeType: 'string', key: 'release', name: 'release'},
       ],
     });
 
@@ -55,8 +55,8 @@ describe('MetricSelector', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'device.name', type: 'string'},
-        {key: 'release', type: 'string'},
+        {attributeType: 'string', key: 'device.name', name: 'device.name'},
+        {attributeType: 'string', key: 'release', name: 'release'},
       ],
     });
   });
@@ -330,8 +330,8 @@ describe('MetricSelector', () => {
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
         body: [
-          {key: 'device.name', type: 'string'},
-          {key: 'release', type: 'string'},
+          {attributeType: 'string', key: 'device.name', name: 'device.name'},
+          {attributeType: 'string', key: 'release', name: 'release'},
         ],
       });
       setupEventsMock(

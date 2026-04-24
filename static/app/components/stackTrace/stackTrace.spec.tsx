@@ -724,6 +724,37 @@ describe('Core StackTrace', () => {
     expect(screen.queryByText('MainActivity.java')).not.toBeInTheDocument();
   });
 
+  it('renders <unknown> with line number when frame has no filename or module', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+
+    render(
+      <TestStackTraceProvider
+        event={event}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: null,
+              module: null,
+              absPath: null,
+              function: 'eval',
+              lineNo: 5,
+              colNo: 20,
+              inApp: true,
+            },
+          ],
+        }}
+      >
+        <StackTraceFrames frameContextComponent={FrameContent} />
+      </TestStackTraceProvider>
+    );
+
+    expect(await screen.findByText('<unknown>')).toBeInTheDocument();
+    expect(screen.queryByText(':5:20')).not.toBeInTheDocument();
+  });
+
   it('does not render line number when lineNo is zero', async () => {
     const {event, stacktrace} = makeStackTraceData();
     const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
@@ -751,34 +782,6 @@ describe('Core StackTrace', () => {
     expect(await screen.findByText('native_module.c')).toBeInTheDocument();
     expect(screen.queryByText(':0')).not.toBeInTheDocument();
     expect(screen.queryByText(':0:0')).not.toBeInTheDocument();
-  });
-
-  it('does not render line number for non-in-app frames', async () => {
-    const {event, stacktrace} = makeStackTraceData();
-    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
-
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              filename: 'library_internal.py',
-              lineNo: 42,
-              inApp: false,
-            },
-          ],
-        }}
-      >
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
-
-    expect(await screen.findByText('library_internal.py')).toBeInTheDocument();
-    // Line number not shown for non-in-app frames
-    expect(screen.queryByText(/42/)).not.toBeInTheDocument();
   });
 
   it('falls back to raw function and renders trimmed package in title metadata', async () => {

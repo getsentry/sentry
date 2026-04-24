@@ -531,8 +531,11 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
             {},
         )
 
-        assert "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |" in summary
-        assert "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |" in summary
+        assert (
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |"
+            in summary
+        )
+        assert "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |" in summary
 
     def test_summary_has_no_settings_link(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -640,11 +643,12 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "No changes detected"
 
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
-            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
             f" | 0 | 0 | 0 | 0"
             f" | [{15}]({artifact_url}?section=unchanged)"
+            f" | 0"
             f" | ✅ Unchanged |"
         )
         assert summary == expected
@@ -682,14 +686,15 @@ class SnapshotSummaryFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
-            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
             f" | [{1}]({artifact_url}?section=added)"
             f" | [{2}]({artifact_url}?section=removed)"
             f" | [{3}]({artifact_url}?section=changed)"
             f" | [{1}]({artifact_url}?section=renamed)"
             f" | [{4}]({artifact_url}?section=unchanged)"
+            f" | 0"
             f" | ⏳ Needs approval |"
         )
         assert summary == expected
@@ -1035,14 +1040,15 @@ class SnapshotApprovalFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "3 modified, 1 added, 2 removed, 1 renamed, 4 unchanged"
 
         expected = (
-            "| Name | Added | Removed | Modified | Renamed | Unchanged | Status |\n"
-            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n"
+            "| Name | Added | Removed | Modified | Renamed | Unchanged | Skipped | Status |\n"
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app`"
             f" | [{1}]({artifact_url}?section=added)"
             f" | [{2}]({artifact_url}?section=removed)"
             f" | [{3}]({artifact_url}?section=changed)"
             f" | [{1}]({artifact_url}?section=renamed)"
             f" | [{4}]({artifact_url}?section=unchanged)"
+            f" | 0"
             f" | ✅ Approved |"
         )
         assert summary == expected

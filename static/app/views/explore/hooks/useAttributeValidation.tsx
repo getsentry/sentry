@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {queryOptions, useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
@@ -8,7 +9,7 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery, queryOptions, useQuery} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 

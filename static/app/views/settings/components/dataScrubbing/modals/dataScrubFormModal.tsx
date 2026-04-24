@@ -23,6 +23,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submitRules';
 import type {
   EditableRule,
@@ -97,6 +98,13 @@ export function DataScrubFormModal({
 }: DataScrubFormModalProps) {
   const organization = useOrganization();
   const traceItemDatasetsEnabled = areScrubbingDatasetsEnabled(organization);
+  const enabledDatasets = [AllowedDataScrubbingDatasets.DEFAULT];
+  if (organization.features.includes('ourlogs-enabled')) {
+    enabledDatasets.push(AllowedDataScrubbingDatasets.LOGS);
+  }
+  if (canUseMetricsPiiScrubbingUI(organization)) {
+    enabledDatasets.push(AllowedDataScrubbingDatasets.METRICS);
+  }
   const {sourceGroupData} = useSourceGroupData();
 
   // Compute initial dataset from initialState
@@ -134,7 +142,7 @@ export function DataScrubFormModal({
     onSubmit: async ({value}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
-      const newRules = onGetNewRules(ruleValues as EditableRule);
+      const newRules = onGetNewRules(ruleValues);
 
       try {
         const data = await submitRules(api, endpoint, newRules);
@@ -250,7 +258,7 @@ export function DataScrubFormModal({
                     variant="compact"
                   >
                     <Flex gap="lg">
-                      {sortBy(Object.values(AllowedDataScrubbingDatasets)).map(value => (
+                      {sortBy(enabledDatasets).map(value => (
                         <field.Radio.Item key={value} value={value}>
                           {getDatasetLabelLong(value)}
                         </field.Radio.Item>
@@ -579,7 +587,7 @@ const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
     css`
       border-radius: ${p.theme.radius.md};
       border: 1px solid ${p.theme.tokens.border.primary};
-      box-shadow: ${p.theme.dropShadowMedium};
+      box-shadow: ${p.theme.shadow.medium};
       padding: ${p.theme.space.xl};
     `}
 `;

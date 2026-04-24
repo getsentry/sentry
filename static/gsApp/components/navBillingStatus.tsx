@@ -370,7 +370,7 @@ export function PrimaryNavigationQuotaExceeded({
       ([category]) =>
         category !== DataCategory.SPANS_INDEXED || subscription?.hadCustomDynamicSampling
     )
-    .reduce((acc, [category, currentHistory]) => {
+    .reduce<DataCategory[]>((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
         const designatedBudget =
           subscription?.onDemandBudgets?.budgetMode === OnDemandBudgetMode.PER_CATEGORY
@@ -390,7 +390,7 @@ export function PrimaryNavigationQuotaExceeded({
         acc.push(category);
       }
       return acc;
-    }, [] as DataCategory[]);
+    }, []);
   const promptsToCheck = exceededCategories
     .map(category => {
       return `${snakeCase(category)}_overage_alert`;

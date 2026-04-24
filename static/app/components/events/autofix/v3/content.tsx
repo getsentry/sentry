@@ -1,5 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {
@@ -21,6 +23,8 @@ import {
 } from 'sentry/components/events/autofix/v3/autofixCards';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {Placeholder} from 'sentry/components/placeholder';
+import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -59,6 +63,23 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
       {autofix.runState?.status === 'completed' && (
         <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
       )}
+      {autofix.codingAgentErrors.map(({id, message}) => (
+        <Alert
+          key={id}
+          variant="danger"
+          trailingItems={
+            <Button
+              size="zero"
+              priority="transparent"
+              icon={<IconClose size="sm" />}
+              aria-label={t('Dismiss error')}
+              onClick={() => autofix.dismissCodingAgentError(id)}
+            />
+          }
+        >
+          {message}
+        </Alert>
+      ))}
     </Flex>
   );
 }

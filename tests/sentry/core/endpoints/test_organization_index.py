@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from unittest import mock
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from django.urls import reverse
 
+from sentry import audit_log
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.apitoken import ApiToken
@@ -17,9 +23,12 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import (
     assume_test_silo_mode,
     cell_silo_test,
@@ -272,6 +281,19 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             )
             self.get_error_response(name="http://evil.com", slug="legit-slug-2", status_code=400)
 
+    def test_name_with_spam_signals_rejected(self) -> None:
+        response = self.get_error_response(
+            name="Win $50 ETH bit.ly/offer Claim Now",
+            slug="spam-org",
+            status_code=400,
+        )
+        assert "disallowed content" in str(response.data)
+
+    def test_name_with_single_signal_allowed(self) -> None:
+        response = self.get_success_response(name="BTC Analytics", slug="btc-analytics")
+        org = Organization.objects.get(id=response.data["id"])
+        assert org.name == "BTC Analytics"
+
     def test_name_with_periods_allowed(self) -> None:
         response = self.get_success_response(name="Acme Inc.", slug="acme-inc")
         org = Organization.objects.get(id=response.data["id"])
@@ -373,6 +395,34 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             organization_id=response.data["id"], user_id=self.user.id
         )
         self.assert_org_member_mapping(org_member=org_member)
+
+    @mock.patch("sentry.analytics.record")
+    def test_success_analytics_recorded(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(user=self.user)
+
+        with outbox_runner():
+            response = self.get_success_response(name="org name", aggregatedDataConsent=True)
+        assert response.status_code == 201
+
+        org = Organization.objects.get(slug="org-name")
+
+        assert_any_analytics_event(
+            mock_record,
+            OrganizationCreatedEvent(
+                id=org.id,
+                actor_id=self.user.id,
+                name=org.name,
+                slug=org.slug,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record, AggregatedDataConsentOrganizationCreatedEvent(organization_id=org.id)
+        )
+        assert_org_audit_log_exists(
+            organization=org,
+            event=audit_log.get_event_id("ORG_ADD"),
+        )
+        assert org.get_option("sentry:aggregated_data_consent") is True
 
     def test_data_consent(self) -> None:
         data = {"name": "hello world original", "agreeTerms": True}

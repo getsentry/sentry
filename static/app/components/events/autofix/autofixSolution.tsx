@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -33,7 +34,7 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -655,7 +656,7 @@ function AutofixSolutionDisplay({
                     {
                       settings: (
                         <Link
-                          to={`/settings/${organization.slug}/seer/#enableSeerCoding`}
+                          to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
                         />
                       ),
                     }
@@ -722,7 +723,7 @@ const SolutionContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding: ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.primary};
 `;

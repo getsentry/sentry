@@ -244,8 +244,15 @@ export function ProjectMapperNextButton({config, value}: ProjectMapperNextButton
     return null;
   }
 
-  if (!nextUrl.startsWith(nextButton.allowedDomain)) {
-    Sentry.captureMessage(`Got invalid next url: ${nextUrl}`);
+  try {
+    const parsedUrl = new URL(nextUrl);
+    const allowedOrigin = new URL(nextButton.allowedDomain).origin;
+    if (parsedUrl.origin !== allowedOrigin) {
+      Sentry.captureMessage(`Got invalid next url: ${nextUrl}`);
+      return null;
+    }
+  } catch {
+    Sentry.captureMessage(`Failed to parse next url: ${nextUrl}`);
     return null;
   }
 

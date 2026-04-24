@@ -1,6 +1,11 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
-import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {AutofixCursorGithubAccessModal} from 'sentry/components/events/autofix/autofixCursorGithubAccessModal';
 import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
@@ -14,14 +19,7 @@ import {isArrayOf, isString} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -40,6 +38,11 @@ import {
 /**
  * Available autofix steps that can be triggered via the Explorer.
  */
+interface CodingAgentError {
+  id: number;
+  message: string;
+}
+
 export type AutofixExplorerStep =
   | 'root_cause'
   | 'solution'
@@ -277,7 +280,7 @@ export function getOrderedArtifactKeys(
 
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
-  messages: Array<Block['message']>;
+  blocks: Block[];
   status: 'processing' | 'completed';
   step: string;
 }
@@ -309,16 +312,16 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   let section: AutofixSection = {
     step: 'unknown',
     artifacts: [],
-    messages: [],
+    blocks: [],
     status: 'processing',
   };
 
   // Closes the current section and pushes it to `sections` (if non-empty).
   function finalizeSection() {
-    if (section.messages.length) {
+    if (section.blocks.length) {
       // Mark the section as completed if the last message is a terminal marker.
-      const lastMessage = section.messages[section.messages.length - 1];
-      if (isLastMessageOfSection(lastMessage)) {
+      const lastBlock = section.blocks[section.blocks.length - 1];
+      if (isLastBlockOfSection(lastBlock)) {
         section.status = 'completed';
       }
 
@@ -354,13 +357,13 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       section = {
         step: metadata.step,
         artifacts: [],
-        messages: [],
+        blocks: [],
         status: 'processing',
       };
     }
 
     // Append the block's message and any inline artifacts to the current section.
-    section.messages.push(message);
+    section.blocks.push(block);
     section.artifacts.push(...(block.artifacts ?? []));
   }
 
@@ -373,7 +376,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     sections.push({
       step: 'pull_request',
       artifacts: [pullRequests],
-      messages: [],
+      blocks: [],
       status: pullRequests.some(
         pullRequest => pullRequest.pr_creation_status === 'creating'
       )
@@ -387,7 +390,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     sections.push({
       step: 'coding_agents',
       artifacts: [codingAgents],
-      messages: [],
+      blocks: [],
       status: codingAgents.some(
         codingAgent =>
           codingAgent.status === CodingAgentStatus.PENDING ||
@@ -448,11 +451,11 @@ export function getAutofixArtifactFromSection(
   return null;
 }
 
-function isLastMessageOfSection(message?: Block['message']): boolean {
+function isLastBlockOfSection(block?: Block): boolean {
   return (
-    message?.role === 'assistant' &&
-    message?.content !== 'Thinking...' &&
-    !message?.tool_calls?.length
+    block?.message?.role === 'assistant' &&
+    block?.message?.content !== 'Thinking...' &&
+    !block?.message?.tool_calls?.length
   );
 }
 
@@ -521,6 +524,15 @@ export function useExplorerAutofix(
    */
   const [waitingForCodingAgent, setWaitingForCodingAgent] = useState(false);
 
+  const [codingAgentErrors, setCodingAgentErrors] = useState<CodingAgentError[]>([]);
+  const nextCodingAgentErrorId = useRef(0);
+  const appendCodingAgentErrors = useCallback((messages: string[]) => {
+    setCodingAgentErrors(prev => [
+      ...prev,
+      ...messages.map(message => ({id: nextCodingAgentErrorId.current++, message})),
+    ]);
+  }, []);
+
   const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
     makeExplorerAutofixQueryKey(orgSlug, groupId),
     {
@@ -536,7 +548,7 @@ export function useExplorerAutofix(
           waitingForResponse
         );
       },
-    } as UseApiQueryOptions<ExplorerAutofixResponse, RequestError>
+    }
   );
 
   const runState = apiData?.autofix ?? null;
@@ -731,9 +743,11 @@ export function useExplorerAutofix(
             openModal(deps => <AutofixCursorGithubAccessModal {...deps} />);
           }
 
-          otherFailures.forEach(failure => {
-            addErrorMessage(failure.error_message ?? 'Failed to launch coding agent');
-          });
+          if (otherFailures.length > 0) {
+            appendCodingAgentErrors(
+              otherFailures.map(f => f.error_message ?? 'Failed to launch coding agent')
+            );
+          }
         }
 
         // Invalidate to fetch fresh data
@@ -746,13 +760,16 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to launch coding agent');
+        appendCodingAgentErrors([
+          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
+        ]);
         throw e;
       } finally {
+        clearIndicators();
         setWaitingForCodingAgent(false);
       }
     },
-    [api, orgSlug, groupId, queryClient, organization, user.id]
+    [api, orgSlug, groupId, queryClient, organization, user.id, appendCodingAgentErrors]
   );
 
   // Clear waiting state when we get a response
@@ -793,6 +810,16 @@ export function useExplorerAutofix(
      * Trigger coding agent handoff for an existing run.
      */
     triggerCodingAgentHandoff,
+    /**
+     * Errors from coding agent launch attempts, accumulated across launches and
+     * persisted for the lifetime of the hook mount. Displayed inline in the panel.
+     */
+    codingAgentErrors,
+    /**
+     * Dismiss a single coding agent error by its id.
+     */
+    dismissCodingAgentError: (id: number) =>
+      setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
   };
 }
 

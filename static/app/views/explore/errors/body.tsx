@@ -5,6 +5,7 @@ import {
   ExploreContentSection,
   ExploreControlSection,
 } from 'sentry/views/explore/components/styles';
+import {ErrorsToolbar} from 'sentry/views/explore/errors/toolbar';
 import {ChevronButton} from 'sentry/views/explore/spans/spansTab';
 
 interface ErrorsControlSectionProps {
@@ -14,7 +15,11 @@ interface ErrorsControlSectionProps {
 export function ErrorsControlSection({
   controlSectionExpanded,
 }: ErrorsControlSectionProps) {
-  return <ExploreControlSection expanded={controlSectionExpanded} />;
+  return (
+    <ExploreControlSection expanded={controlSectionExpanded}>
+      <ErrorsToolbar />
+    </ExploreControlSection>
+  );
 }
 
 interface ErrorsContentSectionProps {

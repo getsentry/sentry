@@ -149,7 +149,7 @@ export function getChartProps({
     | 'cardStats'
   >;
   dataCategory: DataCategory;
-  error: RequestError | null;
+  error: Error | null;
   handleChangeState: (state: {
     clientDiscard?: boolean;
     dataCategory?: DataCategory;

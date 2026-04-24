@@ -126,9 +126,7 @@ function FrameLocation({
 }) {
   const {event} = useStackTraceFrameContext();
   const frameDisplayPath = getFrameDisplayPath(frame, platform, event);
-  const frameLocationSuffix = frame.inApp
-    ? formatFrameLocation('', frame.lineNo, frame.colNo)
-    : '';
+  const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
 
   return (
     <LocationWrapper>
@@ -141,8 +139,16 @@ function FrameLocation({
       <FrameLocationTooltip frame={frame} frameDisplayPath={frameDisplayPath}>
         <Path>
           <span>
-            <span>{frameDisplayPath}</span>
-            {frameLocationSuffix ? <span>{frameLocationSuffix}</span> : null}
+            {frameDisplayPath ? (
+              <span>{frameDisplayPath}</span>
+            ) : (
+              <Text as="span" variant="muted">
+                {t('<unknown>')}
+              </Text>
+            )}
+            {frameDisplayPath && frameLocationSuffix ? (
+              <span>{frameLocationSuffix}</span>
+            ) : null}
           </span>
         </Path>
       </FrameLocationTooltip>

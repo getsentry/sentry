@@ -267,7 +267,7 @@ export function Chart({
           ],
         ] as PairOfSeries;
       },
-      [[], []] as PairOfSeries
+      [[], []]
     );
   }
 

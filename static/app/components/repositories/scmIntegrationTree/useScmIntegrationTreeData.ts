@@ -1,4 +1,5 @@
 import {useEffect, useMemo} from 'react';
+import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
 
 import {organizationConfigIntegrationsQueryOptions} from 'sentry/components/repositories/scmIntegrationTree/organizationConfigIntegrationsQueryOptions';
 import type {
@@ -8,11 +9,10 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useInfiniteQuery, useQueries, useQuery} from 'sentry/utils/queryClient';
+import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {organizationIntegrationsQueryOptions} from 'sentry/views/settings/seer/overview/utils/organizationIntegrationsQueryOptions';
-
 type ScmIntegrationTreeData = {
   connectedIdentifiers: Set<string>;
   connectedRepos: Repository[];
@@ -39,7 +39,7 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
   const scmProviders = useMemo(
     () =>
       (providersQuery.data?.providers ?? [])
-        .filter(p => p.metadata.features.some(f => f.featureGate.includes('commits')))
+        .filter(isScmProvider)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [providersQuery.data]
   );

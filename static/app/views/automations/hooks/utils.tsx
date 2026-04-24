@@ -65,7 +65,7 @@ export function useAutomationProjectSlugs(automation: Automation) {
   });
 
   const projectIds = [
-    ...new Set(detectors?.map(detector => detector.projectId).filter(defined) ?? []),
+    ...new Set(detectors?.map(detector => detector.projectId).filter(defined)),
   ];
 
   const projectSlugs = projectIds

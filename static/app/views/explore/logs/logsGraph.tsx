@@ -224,7 +224,9 @@ function Graph({
     <Widget
       Title={Title}
       Actions={Actions}
-      Visualization={visualize.visible && <ChartVisualization chartInfo={chartInfo} />}
+      Visualization={
+        visualize.visible && <ChartVisualization chartInfo={chartInfo} notMerge={false} />
+      }
       Footer={
         visualize.visible && (
           <ConfidenceFooter

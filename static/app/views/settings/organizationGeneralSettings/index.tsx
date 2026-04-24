@@ -23,6 +23,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -36,6 +37,7 @@ export default function OrganizationGeneralSettings() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   const removeConfirmMessage = (
     <Fragment>
@@ -103,17 +105,17 @@ export default function OrganizationGeneralSettings() {
     });
   };
 
-  const organizationRegionInfo = OrganizationRegionAction({
-    organization,
-  });
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader
           title={t('Organization Settings')}
-          action={organizationRegionInfo}
+          action={
+            hasPageFrameFeature ? undefined : (
+              <OrganizationRegionAction organization={organization} />
+            )
+          }
         />
         <OrganizationPermissionAlert />
 

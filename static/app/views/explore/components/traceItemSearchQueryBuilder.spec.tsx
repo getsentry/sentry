@@ -195,38 +195,22 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
   });
 
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
-    const stringMock = MockApiClient.addMockResponse({
+    const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.message', name: 'log.message'}],
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.attributeType === 'string' && query.itemType === TraceItemDataset.SPANS
-          );
-        },
+      body: [
+        {attributeType: 'string', key: 'log.message', name: 'log.message'},
+        {attributeType: 'number', key: 'log.duration', name: 'log.duration'},
+        {attributeType: 'boolean', key: 'log.flag', name: 'log.flag'},
       ],
-    });
-    const numberMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.duration', name: 'log.duration'}],
       match: [
         (_url, options) => {
           const query = options?.query || {};
           return (
-            query.attributeType === 'number' && query.itemType === TraceItemDataset.SPANS
-          );
-        },
-      ],
-    });
-    const booleanMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/',
-      body: [{key: 'log.flag', name: 'log.flag'}],
-      match: [
-        (_url, options) => {
-          const query = options?.query || {};
-          return (
-            query.attributeType === 'boolean' && query.itemType === TraceItemDataset.SPANS
+            query.itemType === TraceItemDataset.SPANS &&
+            Array.isArray(query.attributeType) &&
+            query.attributeType.includes('string') &&
+            query.attributeType.includes('number') &&
+            query.attributeType.includes('boolean')
           );
         },
       ],
@@ -238,9 +222,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
     const tags = await result.current.getTagKeys?.('search-query');
 
-    expect(stringMock).toHaveBeenCalled();
-    expect(numberMock).toHaveBeenCalled();
-    expect(booleanMock).toHaveBeenCalled();
+    expect(traceItemAttributesMock).toHaveBeenCalled();
     expect(tags?.map(tag => tag.key)).toEqual([
       'log.message',
       'log.duration',

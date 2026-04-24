@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {createMockTraceItemAttributesResponse} from 'sentry-fixture/traceItemAttributeKeys';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -260,13 +261,7 @@ describe('Data Scrubbing', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
-        body: [
-          {key: 'user.email', name: 'user.email', kind: 'tag'},
-          {key: 'user.id', name: 'user.id', kind: 'tag'},
-          {key: 'custom.field', name: 'custom.field', kind: 'tag'},
-          {key: 'request.method', name: 'request.method', kind: 'tag'},
-          {key: 'response.status', name: 'response.status', kind: 'tag'},
-        ],
+        body: createMockTraceItemAttributesResponse(),
       });
     });
 

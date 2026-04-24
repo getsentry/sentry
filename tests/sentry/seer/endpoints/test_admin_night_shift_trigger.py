@@ -28,9 +28,45 @@ class SeerAdminNightShiftTriggerTest(APITestCase):
 
         assert response.data["success"] is True
         assert response.data["organization_id"] == self.organization.id
+        assert response.data["max_candidates"] is None
         mock_task.apply_async.assert_called_once_with(
-            args=[self.organization.id], kwargs={"dry_run": False}
+            args=[self.organization.id],
+            kwargs={"dry_run": False, "max_candidates": None},
         )
+
+    def test_trigger_with_max_candidates_override(self) -> None:
+        with patch(
+            "sentry.seer.endpoints.admin_night_shift_trigger.run_night_shift_for_org"
+        ) as mock_task:
+            response = self.get_success_response(
+                organization_id=self.organization.id,
+                max_candidates=3,
+                dry_run=True,
+                status_code=200,
+            )
+
+        assert response.data["max_candidates"] == 3
+        mock_task.apply_async.assert_called_once_with(
+            args=[self.organization.id],
+            kwargs={"dry_run": True, "max_candidates": 3},
+        )
+
+    def test_trigger_rejects_invalid_max_candidates(self) -> None:
+        response = self.get_response(
+            organization_id=self.organization.id,
+            max_candidates="not-a-number",
+        )
+        assert response.status_code == 400
+        assert response.data["detail"] == "max_candidates must be a valid integer"
+
+    def test_trigger_rejects_non_positive_max_candidates(self) -> None:
+        for value in (0, -1):
+            response = self.get_response(
+                organization_id=self.organization.id,
+                max_candidates=value,
+            )
+            assert response.status_code == 400, value
+            assert response.data["detail"] == "max_candidates must be >= 1"
 
     def test_missing_organization_id(self) -> None:
         response = self.get_response()
