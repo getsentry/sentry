@@ -175,7 +175,7 @@ export function NewWelcomeUI(props: StepProps) {
                   }}
                   transition={{duration: 0.9}}
                 >
-                  <Image src={IllustrationBug} alt="" width="140px" />
+                  <Image src={IllustrationBug} alt="" width="200px" />
                 </motion.div>
                 <Heading as="h2" size="4xl" align="center">
                   <Text as="span" bold>
