@@ -52,7 +52,7 @@ function InvoiceDetails() {
   // The list is newest-first, so "previous" is the older receipt (higher index)
   // and "next" is the more recent receipt (lower index).
   const prevId =
-    invoiceList && currentIndex < invoiceList.length - 1
+    invoiceList && currentIndex >= 0 && currentIndex < invoiceList.length - 1
       ? invoiceList[currentIndex + 1]!.id
       : null;
   const nextId =
