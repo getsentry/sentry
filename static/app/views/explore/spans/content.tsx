@@ -158,87 +158,78 @@ function SpansTabHeader() {
   const hasSavedQueryTitle =
     defined(id) && defined(savedQuery) && savedQuery.name.length > 0;
 
+  const documentTitle = hasSavedQueryTitle ? (
+    <SentryDocumentTitle
+      title={`${savedQuery.name} — ${t('Traces')}`}
+      orgSlug={organization?.slug}
+    />
+  ) : null;
+
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
+      title={t(
+        'Find problematic spans/traces or compute real-time metrics via aggregation.'
+      )}
+      linkLabel={t('Read the Docs')}
+    />
+  );
+
+  const hasBreadcrumb = Boolean(title && defined(id));
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        {documentTitle}
+        <TopBar.Slot name="title">
+          {hasBreadcrumb ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.SPANS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : (
+            title || t('Traces')
+          )}
+          {titleTooltip}
+        </TopBar.Slot>
+        <TopBar.Slot name="actions">
+          <StarSavedQueryButton />
+          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Traces')}`}
-            orgSlug={organization?.slug}
+        {documentTitle}
+        {hasBreadcrumb ? (
+          <ExploreBreadcrumb
+            traceItemDataset={TraceItemDataset.SPANS}
+            savedQueryName={savedQuery?.name}
           />
         ) : null}
-        {hasPageFrameFeature ? (
-          title && defined(id) ? (
-            <TopBar.Slot name="title">
-              <ExploreBreadcrumb
-                traceItemDataset={TraceItemDataset.SPANS}
-                savedQueryName={savedQuery?.name}
-              />
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-                title={t(
-                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </TopBar.Slot>
-          ) : (
-            <TopBar.Slot name="title">
-              {title ? title : t('Traces')}
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-                title={t(
-                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </TopBar.Slot>
-          )
-        ) : (
-          <Fragment>
-            {title && defined(id) ? (
-              <ExploreBreadcrumb
-                traceItemDataset={TraceItemDataset.SPANS}
-                savedQueryName={savedQuery?.name}
-              />
-            ) : null}
-            <Layout.Title>
-              {title ? title : t('Traces')}
-              <PageHeadingQuestionTooltip
-                docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-                title={t(
-                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                )}
-                linkLabel={t('Read the Docs')}
-              />
-            </Layout.Title>
-          </Fragment>
-        )}
+        <Layout.Title>
+          {title || t('Traces')}
+          {titleTooltip}
+        </Layout.Title>
       </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <Fragment>
-          <TopBar.Slot name="actions">
-            <StarSavedQueryButton />
-            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-          </TopBar.Slot>
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <StarSavedQueryButton />
-            {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-            <FeedbackButton />
-          </Grid>
-        </Layout.HeaderActions>
-      )}
+      <Layout.HeaderActions>
+        <Grid flow="column" align="center" gap="md">
+          <StarSavedQueryButton />
+          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+          <FeedbackButton />
+        </Grid>
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }

@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import cast
 
 from rest_framework.request import Request
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
@@ -119,6 +118,6 @@ def get_trace_metric_from_request(
 
     return TraceMetric(
         metric_name=metric_name,
-        metric_type=cast(TraceMetricType, metric_type),  # type: ignore[redundant-cast]
+        metric_type=metric_type,
         metric_unit=metric_unit,
     )

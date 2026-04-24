@@ -193,6 +193,19 @@ class Access(abc.ABC):
         pass
 
 
+def _intersect_member_and_token_scopes(
+    member_scopes: Collection[str], token_scopes: Iterable[str] | None
+) -> frozenset[str]:
+    member_scopes = frozenset(member_scopes)
+    if token_scopes is None:
+        return member_scopes
+
+    token_scopes = frozenset(token_scopes)
+    token_only_scopes = token_scopes & settings.SENTRY_TOKEN_ONLY_SCOPES
+
+    return (token_scopes & member_scopes) | token_only_scopes
+
+
 @dataclass
 class DbAccess(Access):
     # TODO(dcramer): this is still a little gross, and ideally backend access
@@ -440,8 +453,9 @@ class RpcBackedAccess(Access):
         if self.scopes_upper_bound is None:
             return frozenset(self.rpc_user_organization_context.member.scopes)
 
-        return frozenset(self.rpc_user_organization_context.member.scopes) & frozenset(
-            self.scopes_upper_bound
+        return _intersect_member_and_token_scopes(
+            self.rpc_user_organization_context.member.scopes,
+            self.scopes_upper_bound,
         )
 
     # TODO(cathy): remove this
@@ -1133,10 +1147,7 @@ def from_member(
     is_superuser: bool = False,
     is_staff: bool = False,
 ) -> Access:
-    if scopes is not None:
-        scope_intersection = frozenset(scopes) & member.get_scopes()
-    else:
-        scope_intersection = member.get_scopes()
+    scope_intersection = _intersect_member_and_token_scopes(member.get_scopes(), scopes)
 
     if (is_superuser or is_staff) and member.user_id is not None:
         # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you

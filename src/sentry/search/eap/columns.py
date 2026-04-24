@@ -495,9 +495,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 trace_metric.metric_unit in constants.DURATION_TYPE
                 or trace_metric.metric_unit in constants.SIZE_TYPE
             ):
-                resolved_search_type = cast(  # type: ignore[redundant-cast]
-                    constants.SearchType, trace_metric.metric_unit
-                )
+                resolved_search_type = trace_metric.metric_unit
 
         return ResolvedTraceMetricAggregate(
             public_alias=alias,
