@@ -28,6 +28,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
@@ -2053,4 +2054,39 @@ def get_comparative_attribute_distributions(
         "outliers_distribution": distributions_result["cohort_1_distribution"],
         "total_outliers": distributions_result["total_cohort_1"],
         "outliers_function_value": distributions_result["cohort_1_function_value"],
+    }
+
+
+def get_dsn(
+    *,
+    organization_id: int,
+    project_slug: str,
+) -> dict[str, Any] | None:
+    """
+    Get the public DSN for a single project in an organization.
+
+    Returns a dict with project_id, project_slug, project_name, platform, dsn_public, and
+    key_label, or None if the project does not exist or has no active client key.
+    """
+    organization = Organization.objects.get(id=organization_id)
+
+    project = Project.objects.filter(
+        organization=organization,
+        status=ObjectStatus.ACTIVE,
+        slug=project_slug,
+    ).first()
+    if project is None:
+        return None
+
+    key = ProjectKey.get_default(project)
+    if key is None:
+        return None
+
+    return {
+        "project_id": project.id,
+        "project_slug": project.slug,
+        "project_name": project.name,
+        "platform": project.platform,
+        "dsn_public": key.dsn_public,
+        "key_label": key.label,
     }
