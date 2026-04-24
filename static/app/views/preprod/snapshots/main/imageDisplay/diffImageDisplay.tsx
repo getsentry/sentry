@@ -30,14 +30,12 @@ interface DiffImageDisplayProps {
   onDiffModeChange: (mode: DiffMode) => void;
   overlayColor: string;
   pair: SnapshotDiffPair;
-  showOverlay: boolean;
 }
 
 export function DiffImageDisplay({
   pair,
   imageBaseUrl,
   diffImageBaseUrl,
-  showOverlay,
   overlayColor,
   diffMode,
   onDiffModeChange,
@@ -106,7 +104,6 @@ export function DiffImageDisplay({
         <SplitView
           baseImageUrl={baseImageUrl}
           headImageUrl={headImageUrl}
-          showOverlay={showOverlay}
           overlayColor={overlayColor}
           diffMaskUrl={diffMaskUrl}
         />
@@ -147,13 +144,11 @@ interface SplitViewProps {
   diffMaskUrl: string | null;
   headImageUrl: string;
   overlayColor: string;
-  showOverlay: boolean;
 }
 
 function SplitView({
   baseImageUrl,
   headImageUrl,
-  showOverlay,
   overlayColor,
   diffMaskUrl,
 }: SplitViewProps) {
@@ -190,7 +185,7 @@ function SplitView({
             >
               <ImageWrapper>
                 <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
-                {showOverlay && diffMaskUrl && (
+                {diffMaskUrl && overlayColor !== 'transparent' && (
                   <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
                 )}
               </ImageWrapper>
@@ -295,6 +290,8 @@ const ConstrainedImage = styled(Image)`
 
 const ImageWrapper = styled('div')`
   position: relative;
+  display: inline-block;
+  max-width: 100%;
 `;
 
 const DiffOverlay = styled('span')<{$maskUrl: string; $overlayColor: string}>`

@@ -23,11 +23,9 @@ interface SnapshotMainContentProps {
   imageBaseUrl: string;
   onDiffModeChange: (mode: DiffMode) => void;
   onOverlayColorChange: (color: string) => void;
-  onShowOverlayChange: (show: boolean) => void;
   onVariantChange: (index: number) => void;
   overlayColor: string;
   selectedItem: SidebarItem | null;
-  showOverlay: boolean;
   variantIndex: number;
 }
 
@@ -37,8 +35,6 @@ export function SnapshotMainContent({
   onVariantChange,
   imageBaseUrl,
   diffImageBaseUrl,
-  showOverlay,
-  onShowOverlayChange,
   overlayColor,
   onOverlayColorChange,
   diffMode,
@@ -87,8 +83,6 @@ export function SnapshotMainContent({
           </Flex>
           {diffMode === 'split' && (
             <OverlayControls
-              showOverlay={showOverlay}
-              onShowOverlayChange={onShowOverlayChange}
               overlayColor={overlayColor}
               onOverlayColorChange={onOverlayColorChange}
             />
@@ -99,7 +93,6 @@ export function SnapshotMainContent({
           pair={currentPair}
           imageBaseUrl={imageBaseUrl}
           diffImageBaseUrl={diffImageBaseUrl}
-          showOverlay={showOverlay}
           overlayColor={overlayColor}
           diffMode={diffMode}
           onDiffModeChange={onDiffModeChange}
@@ -304,22 +297,20 @@ function ImageFileName({
   return <InlineCode variant="neutral">{fileName}</InlineCode>;
 }
 
+export const TRANSPARENT_COLOR = 'transparent';
+
 function OverlayControls({
-  showOverlay,
-  onShowOverlayChange,
   overlayColor,
   onOverlayColorChange,
 }: {
   onOverlayColorChange: (color: string) => void;
-  onShowOverlayChange: (show: boolean) => void;
   overlayColor: string;
-  showOverlay: boolean;
 }) {
   const theme = useTheme();
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const overlayColors = theme.chart.getColorPalette(10);
+  const overlayColors = [TRANSPARENT_COLOR, ...theme.chart.getColorPalette(10)];
 
   useEffect(() => {
     if (!isColorPickerOpen) {
@@ -336,40 +327,31 @@ function OverlayControls({
   }, [isColorPickerOpen]);
 
   return (
-    <Flex align="center" gap="sm">
-      <Button
-        size="xs"
-        priority={showOverlay ? 'primary' : 'default'}
-        onClick={() => onShowOverlayChange(!showOverlay)}
-      >
-        {showOverlay ? t('Hide Overlay') : t('Show Overlay')}
-      </Button>
-      <ColorPickerWrapper ref={pickerRef}>
-        <ColorTrigger
-          color={overlayColor}
-          aria-label={t('Pick overlay color')}
-          onClick={() => setIsColorPickerOpen(open => !open)}
-        />
-        {isColorPickerOpen && (
-          <ColorPickerDropdown>
-            <Flex gap="xs">
-              {overlayColors.map(color => (
-                <ColorSwatch
-                  key={color}
-                  color={color}
-                  selected={overlayColor === color}
-                  onClick={() => {
-                    onOverlayColorChange(color);
-                    setIsColorPickerOpen(false);
-                  }}
-                  aria-label={t('Overlay color %s', color)}
-                />
-              ))}
-            </Flex>
-          </ColorPickerDropdown>
-        )}
-      </ColorPickerWrapper>
-    </Flex>
+    <ColorPickerWrapper ref={pickerRef}>
+      <ColorTrigger
+        color={overlayColor}
+        aria-label={t('Pick overlay color')}
+        onClick={() => setIsColorPickerOpen(open => !open)}
+      />
+      {isColorPickerOpen && (
+        <ColorPickerDropdown>
+          <Flex gap="xs">
+            {overlayColors.map(color => (
+              <ColorSwatch
+                key={color}
+                color={color}
+                selected={overlayColor === color}
+                onClick={() => {
+                  onOverlayColorChange(color);
+                  setIsColorPickerOpen(false);
+                }}
+                aria-label={t('Overlay color %s', color)}
+              />
+            ))}
+          </Flex>
+        </ColorPickerDropdown>
+      )}
+    </ColorPickerWrapper>
   );
 }
 

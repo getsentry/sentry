@@ -11,6 +11,7 @@ import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -76,11 +77,11 @@ export default function SnapshotsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [variantIndex, setVariantIndex] = useState(0);
-  const [showOverlay, setShowOverlay] = useState(true);
-  const [overlayColor, setOverlayColor] = useState<string>(() => {
-    const palette = theme.chart.getColorPalette(10);
-    return palette.at(-5) ?? palette[0];
-  });
+  const palette = theme.chart.getColorPalette(10);
+  const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
+    'snapshot-overlay-color',
+    palette.at(-5) ?? palette[0]
+  );
   const [diffMode, setDiffMode] = useState<DiffMode>('split');
 
   const {
@@ -357,8 +358,6 @@ export default function SnapshotsPage() {
           onVariantChange={setVariantIndex}
           imageBaseUrl={imageBaseUrl}
           diffImageBaseUrl={diffImageBaseUrl}
-          showOverlay={showOverlay}
-          onShowOverlayChange={setShowOverlay}
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
           diffMode={diffMode}
