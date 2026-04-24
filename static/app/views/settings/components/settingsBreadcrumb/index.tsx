@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -46,8 +47,12 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         if (!route.name) {
           return null;
         }
-        const pathTitle =
-          pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
+        // Only routes with their own path participate in the pathTitle
+        // override; an index child with no path would otherwise collide with
+        // its parent's key and show the parent's title.
+        const pathTitle = route.path
+          ? pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})]
+          : undefined;
         const isLast = i === lastRouteIndex;
         const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
@@ -64,13 +69,19 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         }
         return (
           <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
-            <CrumbLink
-              to={recreateRoute(route, {routes, params})}
-              onClick={onSettingsBreadcrumbLinkClick}
-            >
-              {pathTitle || route.name}
-            </CrumbLink>
-            {isLast ? null : <Divider />}
+            {isLast ? (
+              <CurrentCrumb aria-current="page">{pathTitle || route.name}</CurrentCrumb>
+            ) : (
+              <Fragment>
+                <CrumbLink
+                  to={recreateRoute(route, {routes, params})}
+                  onClick={onSettingsBreadcrumbLinkClick}
+                >
+                  {pathTitle || route.name}
+                </CrumbLink>
+                <Divider />
+              </Fragment>
+            )}
           </Flex>
         );
       })}
@@ -90,4 +101,10 @@ export const CrumbLink = styled(RouterLink)`
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
   }
+`;
+
+const CurrentCrumb = styled('span')`
+  display: block;
+  line-height: ${p => p.theme.font.lineHeight.default};
+  color: ${p => p.theme.tokens.content.primary};
 `;

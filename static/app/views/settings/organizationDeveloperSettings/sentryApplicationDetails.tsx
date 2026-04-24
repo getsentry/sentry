@@ -395,7 +395,9 @@ export default function SentryApplicationDetails() {
 
   return (
     <div>
-      {app && <BreadcrumbTitle routes={routes.slice(0, -1)} title={app.name} />}
+      {isEditingApp && (
+        <BreadcrumbTitle routes={routes.slice(0, -1)} title={app?.name ?? appSlug} />
+      )}
       <SettingsPageHeader title={headerTitle()} />
       {isEditingApp && isPending ? (
         <LoadingIndicator />
