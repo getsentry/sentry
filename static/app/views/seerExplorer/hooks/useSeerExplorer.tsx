@@ -47,12 +47,13 @@ type SeerExplorerUpdateResponse = {
 };
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set([
+const STRUCTURED_CONTEXT_ROUTES = new Set([
+  '/dashboard/:dashboardId/',
   '/dashboard/:dashboardId/widget-builder/widget/new/',
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
 ]);
+/** New experimental routes where the LLMContext tree provides structured page context. */
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([]);
 
 function supportsStructuredContext(
   referrer: string,

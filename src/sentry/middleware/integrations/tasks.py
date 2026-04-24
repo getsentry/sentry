@@ -13,7 +13,7 @@ from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.requests.event import resolve_seer_organization_for_slack_user
+from sentry.integrations.slack.requests.event import resolve_seer_organization
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.seer.entrypoints.slack.messaging import send_halt_message
 from sentry.silo.base import SiloMode
@@ -195,9 +195,10 @@ def route_slack_seer_event(
     thread_ts: str,
     message_ts: str,
     event_type: str,
+    message_text: str,
 ) -> None:
     """
-    Use the algorithm in resolve_seer_organization_for_slack_user to resolve the target organization.
+    Use the algorithm in `resolve_seer_organization` to resolve the target organization.
     Since this can route to organizations sharing Slack across cells, we need to run it at the parser.
 
     We run this as a task because the algorithm will make calls to Slack, increasing the likelihood
@@ -212,6 +213,8 @@ def route_slack_seer_event(
         "slack_user_id": slack_user_id,
         "channel_id": channel_id,
         "thread_ts": thread_ts,
+        "message_ts": message_ts,
+        "event_type": event_type,
     }
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
@@ -220,13 +223,14 @@ def route_slack_seer_event(
         logger.warning("route_slack_seer_event.integration_not_found", extra=logging_ctx)
         return
 
-    organization_id, halt_reason = resolve_seer_organization_for_slack_user(
+    organization_id, halt_reason = resolve_seer_organization(
         integration=integration,
         slack_user_id=slack_user_id,
         channel_id=channel_id,
         thread_ts=thread_ts,
         message_ts=message_ts,
         event_type=event_type,
+        message_text=message_text,
     )
     logging_ctx["organization_id"] = organization_id
     logging_ctx["halt_reason"] = halt_reason

@@ -1,8 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -21,9 +24,11 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
+  getExplorerFeedbackOptions,
   getExplorerUrl,
   getLangfuseUrl,
   useCopySessionDataToClipboard,
+  useSeerExplorerDeepLink,
 } from 'sentry/views/seerExplorer/utils';
 
 export function ExplorerDrawerContent({
@@ -34,6 +39,7 @@ export function ExplorerDrawerContent({
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const user = useUser();
+  const {closeDrawer} = useDrawer();
 
   const [inputValue, setInputValue] = useState('');
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
@@ -119,7 +125,7 @@ export function ExplorerDrawerContent({
   });
 
   // - Topbar, menu, and slash command handlers -------------------------------
-  const copySessionEnabled = Boolean(runId && organization?.slug);
+  const copySessionEnabled = runId !== null && !!organization?.slug;
   const {copySessionToClipboard} = useCopySessionDataToClipboard({
     blocks: sessionData?.blocks,
     status: sessionData?.status,
@@ -127,6 +133,18 @@ export function ExplorerDrawerContent({
     projects,
     enabled: copySessionEnabled,
   });
+
+  const handleCopyLink = useCallback(async () => {
+    if (runId === null) return;
+    try {
+      const url = getExplorerUrl(runId);
+      await navigator.clipboard.writeText(url);
+      addSuccessMessage('Copied link to current chat');
+      trackAnalytics('seer.explorer.session_link_copied', {organization});
+    } catch {
+      addErrorMessage('Failed to copy link to current chat');
+    }
+  }, [runId, organization]);
 
   const langfuseUrl = runId ? getLangfuseUrl(runId) : undefined;
   const conversationsUrl = runId ? getConversationsUrl('sentry', runId) : undefined;
@@ -148,20 +166,10 @@ export function ExplorerDrawerContent({
   const openFeedbackForm = useFeedbackForm();
   const handleFeedback = useCallback(() => {
     if (openFeedbackForm) {
-      openFeedbackForm({
-        formTitle: 'Seer Agent Feedback',
-        messagePlaceholder: 'How can we make Seer better for you?',
-        tags: {
-          ['feedback.source']: 'seer_explorer',
-          ['feedback.owner']: 'ml-ai',
-          ...(runId === null ? {} : {['seer.run_id']: runId}),
-          ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-          ...(langfuseUrl ? {['langfuse_url']: langfuseUrl} : {}),
-          ...(conversationsUrl ? {['conversations_url']: conversationsUrl} : {}),
-        },
-      });
+      const feedbackOptions = getExplorerFeedbackOptions(runId);
+      openFeedbackForm(feedbackOptions);
     }
-  }, [openFeedbackForm, runId, langfuseUrl, conversationsUrl]);
+  }, [openFeedbackForm, runId]);
 
   // - Pop-up menu component --------------------------------------------------
 
@@ -222,12 +230,12 @@ export function ExplorerDrawerContent({
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         handleSend();
-      } else if (e.key === 'Escape' && canInterrupt && !waitingForInterrupt) {
+      } else if (e.key === 'Escape') {
         e.preventDefault();
-        interruptRun();
+        closeDrawer();
       }
     },
-    [readOnly, handleSend, canInterrupt, waitingForInterrupt, interruptRun]
+    [readOnly, handleSend, closeDrawer]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -298,7 +306,7 @@ export function ExplorerDrawerContent({
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // Block keyboard navigation
+  // Block keyboard listeners
   useBlockNavigation({
     isOpen: true, // Drawer content is always visible when rendered
     isMinimized: false,
@@ -318,6 +326,9 @@ export function ExplorerDrawerContent({
     },
   });
 
+  // - Deep link effect -------------------------------------------------------
+  useSeerExplorerDeepLink({callback: switchToRun});
+
   return (
     <DrawerContentContainer data-seer-explorer-root="">
       <ExplorerDrawerHeader
@@ -326,8 +337,9 @@ export function ExplorerDrawerContent({
           focusInput();
         }}
         onChangeSession={switchToRun}
-        copySessionEnabled={copySessionEnabled}
-        onCopySessionClick={copySessionToClipboard}
+        isEmptyState={isEmptyState}
+        onCopySessionClick={copySessionEnabled ? copySessionToClipboard : undefined}
+        onCopyLinkClick={runId === null ? undefined : handleCopyLink}
         overrideCtxEngEnable={overrideCtxEngEnable}
         onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
         showContextEngineToggle={
