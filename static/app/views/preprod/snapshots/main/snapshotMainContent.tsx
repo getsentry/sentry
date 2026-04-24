@@ -5,11 +5,12 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconExpand, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -20,17 +21,23 @@ import {
   TRANSPARENT_COLOR,
 } from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
+import {SnapshotListView} from './snapshotListView';
+
+export type ViewMode = 'single' | 'list';
 
 interface SnapshotMainContentProps {
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
+  items: SidebarItem[];
   onDiffModeChange: (mode: DiffMode) => void;
   onOverlayColorChange: (color: string) => void;
   onVariantChange: (index: number) => void;
+  onViewModeChange: (mode: ViewMode) => void;
   overlayColor: string;
   selectedItem: SidebarItem | null;
   variantIndex: number;
+  viewMode: ViewMode;
 }
 
 export function SnapshotMainContent({
@@ -39,29 +46,154 @@ export function SnapshotMainContent({
   onVariantChange,
   imageBaseUrl,
   diffImageBaseUrl,
+  items,
   overlayColor,
   onOverlayColorChange,
   diffMode,
   onDiffModeChange,
+  viewMode,
+  onViewModeChange,
 }: SnapshotMainContentProps) {
-  if (!selectedItem) {
+  if (viewMode === 'list') {
     return (
-      <Flex align="center" justify="center" padding="3xl" width="100%">
-        <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
+      <Flex direction="column" flex="1" minHeight="0" width="100%">
+        <Flex justify="end" padding="md">
+          <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        </Flex>
+        <Separator orientation="horizontal" />
+        <SnapshotListView
+          items={items}
+          imageBaseUrl={imageBaseUrl}
+          diffImageBaseUrl={diffImageBaseUrl}
+          diffMode={diffMode}
+          overlayColor={overlayColor}
+        />
       </Flex>
     );
   }
 
-  if (selectedItem.type === 'changed') {
-    const currentPair = selectedItem.pairs[variantIndex];
-    if (!currentPair) {
-      return null;
+  const body = renderBody();
+
+  return (
+    <Flex direction="column" flex="1" minHeight="0" width="100%">
+      <Flex justify="end" padding="md">
+        <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+      </Flex>
+      <Separator orientation="horizontal" />
+      {body}
+    </Flex>
+  );
+
+  function renderBody() {
+    if (!selectedItem) {
+      return (
+        <Flex align="center" justify="center" padding="3xl" width="100%">
+          <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
+        </Flex>
+      );
     }
-    const totalVariants = selectedItem.pairs.length;
-    return (
-      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" justify="between" gap="md" padding="xl">
-          <Flex align="center" gap="md">
+
+    if (selectedItem.type === 'changed') {
+      const currentPair = selectedItem.pairs[variantIndex];
+      if (!currentPair) {
+        return null;
+      }
+      const totalVariants = selectedItem.pairs.length;
+      return (
+        <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+          <Flex align="center" justify="between" gap="md" padding="xl">
+            <Flex align="center" gap="md">
+              {totalVariants > 1 && (
+                <VariantNavigation
+                  variantIndex={variantIndex}
+                  totalVariants={totalVariants}
+                  onVariantChange={onVariantChange}
+                />
+              )}
+              <Stack gap="md">
+                <Flex align="center" gap="md">
+                  {currentPair.head_image.display_name && (
+                    <Text size="lg" bold>
+                      {currentPair.head_image.display_name}
+                    </Text>
+                  )}
+                  <ImageFileName fileName={currentPair.head_image.image_file_name} />
+                </Flex>
+                {totalVariants > 1 && (
+                  <Text variant="muted" size="sm">
+                    {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                  </Text>
+                )}
+              </Stack>
+            </Flex>
+            {diffMode === 'split' && (
+              <OverlayControls
+                overlayColor={overlayColor}
+                onOverlayColorChange={onOverlayColorChange}
+              />
+            )}
+          </Flex>
+          <Separator orientation="horizontal" />
+          <DiffImageDisplay
+            pair={currentPair}
+            imageBaseUrl={imageBaseUrl}
+            diffImageBaseUrl={diffImageBaseUrl}
+            overlayColor={overlayColor}
+            diffMode={diffMode}
+            onDiffModeChange={onDiffModeChange}
+          />
+        </Flex>
+      );
+    }
+
+    if (selectedItem.type === 'solo') {
+      const currentImage = selectedItem.images[variantIndex];
+      if (!currentImage) {
+        return null;
+      }
+      const displayName = getImageName(currentImage);
+      const totalVariants = selectedItem.images.length;
+      const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
+
+      return (
+        <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+          <Flex align="center" gap="md" padding="xl">
+            {totalVariants > 1 && (
+              <VariantNavigation
+                variantIndex={variantIndex}
+                totalVariants={totalVariants}
+                onVariantChange={onVariantChange}
+              />
+            )}
+            <Stack gap="md">
+              <Text size="lg" bold>
+                {displayName}
+              </Text>
+              {totalVariants > 1 && (
+                <Text variant="muted" size="sm">
+                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                </Text>
+              )}
+            </Stack>
+          </Flex>
+          <Separator orientation="horizontal" />
+          <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
+        </Flex>
+      );
+    }
+
+    if (selectedItem.type === 'renamed') {
+      const currentPair = selectedItem.pairs[variantIndex];
+      if (!currentPair) {
+        return null;
+      }
+      const totalVariants = selectedItem.pairs.length;
+      const imageUrl = `${imageBaseUrl}${currentPair.head_image.key}/`;
+      const displayName = getImageName(currentPair.head_image);
+
+      return (
+        <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+          <Flex align="center" gap="md" padding="xl">
             {totalVariants > 1 && (
               <VariantNavigation
                 variantIndex={variantIndex}
@@ -76,79 +208,42 @@ export function SnapshotMainContent({
                     {currentPair.head_image.display_name}
                   </Text>
                 )}
-                <ImageFileName fileName={currentPair.head_image.image_file_name} />
+                <ImageFileName
+                  fileName={currentPair.head_image.image_file_name}
+                  previousFileName={currentPair.base_image.image_file_name}
+                />
               </Flex>
-              {totalVariants > 1 && (
+              <Flex align="center" gap="sm">
                 <Text variant="muted" size="sm">
-                  {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                  ({t('Renamed')})
                 </Text>
-              )}
+                {totalVariants > 1 && (
+                  <Text variant="muted" size="sm">
+                    {t('Variant %s / %s', variantIndex + 1, totalVariants)}
+                  </Text>
+                )}
+              </Flex>
             </Stack>
           </Flex>
-          {diffMode === 'split' && (
-            <OverlayControls
-              overlayColor={overlayColor}
-              onOverlayColorChange={onOverlayColorChange}
-            />
-          )}
+          <Separator orientation="horizontal" />
+          <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
         </Flex>
-        <Separator orientation="horizontal" />
-        <DiffImageDisplay
-          pair={currentPair}
-          imageBaseUrl={imageBaseUrl}
-          diffImageBaseUrl={diffImageBaseUrl}
-          overlayColor={overlayColor}
-          diffMode={diffMode}
-          onDiffModeChange={onDiffModeChange}
-        />
-      </Flex>
-    );
-  }
+      );
+    }
 
-  if (selectedItem.type === 'solo') {
+    // added, removed, unchanged
     const currentImage = selectedItem.images[variantIndex];
     if (!currentImage) {
       return null;
     }
     const displayName = getImageName(currentImage);
-    const totalVariants = selectedItem.images.length;
     const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
-
-    return (
-      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-        <Flex align="center" gap="md" padding="xl">
-          {totalVariants > 1 && (
-            <VariantNavigation
-              variantIndex={variantIndex}
-              totalVariants={totalVariants}
-              onVariantChange={onVariantChange}
-            />
-          )}
-          <Stack gap="md">
-            <Text size="lg" bold>
-              {displayName}
-            </Text>
-            {totalVariants > 1 && (
-              <Text variant="muted" size="sm">
-                {t('Variant %s / %s', variantIndex + 1, totalVariants)}
-              </Text>
-            )}
-          </Stack>
-        </Flex>
-        <Separator orientation="horizontal" />
-        <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
-      </Flex>
-    );
-  }
-
-  if (selectedItem.type === 'renamed') {
-    const currentPair = selectedItem.pairs[variantIndex];
-    if (!currentPair) {
-      return null;
-    }
-    const totalVariants = selectedItem.pairs.length;
-    const imageUrl = `${imageBaseUrl}${currentPair.head_image.key}/`;
-    const displayName = getImageName(currentPair.head_image);
+    const totalVariants = selectedItem.images.length;
+    const STATUS_LABELS: Record<string, string> = {
+      added: t('Added'),
+      removed: t('Removed'),
+    };
+    const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
 
     return (
       <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
@@ -162,19 +257,16 @@ export function SnapshotMainContent({
           )}
           <Stack gap="md">
             <Flex align="center" gap="md">
-              {currentPair.head_image.display_name && (
+              {currentImage.display_name && (
                 <Text size="lg" bold>
-                  {currentPair.head_image.display_name}
+                  {currentImage.display_name}
                 </Text>
               )}
-              <ImageFileName
-                fileName={currentPair.head_image.image_file_name}
-                previousFileName={currentPair.base_image.image_file_name}
-              />
+              <ImageFileName fileName={currentImage.image_file_name} />
             </Flex>
             <Flex align="center" gap="sm">
               <Text variant="muted" size="sm">
-                ({t('Renamed')})
+                ({statusLabel})
               </Text>
               {totalVariants > 1 && (
                 <Text variant="muted" size="sm">
@@ -189,55 +281,30 @@ export function SnapshotMainContent({
       </Flex>
     );
   }
+}
 
-  // added, removed, unchanged
-  const currentImage = selectedItem.images[variantIndex];
-  if (!currentImage) {
-    return null;
-  }
-  const displayName = getImageName(currentImage);
-  const imageUrl = `${imageBaseUrl}${currentImage.key}/`;
-  const totalVariants = selectedItem.images.length;
-  const STATUS_LABELS: Record<string, string> = {
-    added: t('Added'),
-    removed: t('Removed'),
-  };
-  const statusLabel = STATUS_LABELS[selectedItem.type] ?? t('Unchanged');
-
+function ViewModeToggle({
+  viewMode,
+  onViewModeChange,
+}: {
+  onViewModeChange: (mode: ViewMode) => void;
+  viewMode: ViewMode;
+}) {
   return (
-    <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
-      <Flex align="center" gap="md" padding="xl">
-        {totalVariants > 1 && (
-          <VariantNavigation
-            variantIndex={variantIndex}
-            totalVariants={totalVariants}
-            onVariantChange={onVariantChange}
-          />
-        )}
-        <Stack gap="md">
-          <Flex align="center" gap="md">
-            {currentImage.display_name && (
-              <Text size="lg" bold>
-                {currentImage.display_name}
-              </Text>
-            )}
-            <ImageFileName fileName={currentImage.image_file_name} />
-          </Flex>
-          <Flex align="center" gap="sm">
-            <Text variant="muted" size="sm">
-              ({statusLabel})
-            </Text>
-            {totalVariants > 1 && (
-              <Text variant="muted" size="sm">
-                {t('Variant %s / %s', variantIndex + 1, totalVariants)}
-              </Text>
-            )}
-          </Flex>
-        </Stack>
-      </Flex>
-      <Separator orientation="horizontal" />
-      <SingleImageDisplay imageUrl={imageUrl} alt={displayName} />
-    </Flex>
+    <SegmentedControl size="xs" value={viewMode} onChange={onViewModeChange}>
+      <SegmentedControl.Item
+        key="single"
+        icon={<IconExpand />}
+        aria-label={t('Single image view')}
+        tooltip={t('Single image view')}
+      />
+      <SegmentedControl.Item
+        key="list"
+        icon={<IconList />}
+        aria-label={t('List view')}
+        tooltip={t('List view')}
+      />
+    </SegmentedControl>
   );
 }
 
