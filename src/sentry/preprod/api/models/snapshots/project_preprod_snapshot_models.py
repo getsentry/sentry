@@ -5,10 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from sentry.preprod.api.models.project_preprod_build_details_models import (
-    BuildDetailsAppInfo,
-    BuildDetailsVcsInfo,
-)
+from sentry.preprod.api.models.project_preprod_build_details_models import BuildDetailsVcsInfo
 from sentry.preprod.models import PreprodArtifact
 
 
@@ -73,7 +70,7 @@ class SnapshotDetailsApiResponse(BaseModel):
     comparison_type: str
     state: PreprodArtifact.ArtifactState
     vcs_info: BuildDetailsVcsInfo
-    app_info: BuildDetailsAppInfo | None = None
+    app_id: str | None = None
 
     # Solo fields (comparison_type == SOLO)
     images: list[SnapshotImageResponse] = []
