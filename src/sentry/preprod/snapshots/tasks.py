@@ -58,9 +58,8 @@ class _ImageDiffResult(NamedTuple):
 def categorize_image_diff(
     head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
 ) -> _ImageDiffResult:
-    # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
-    head_by_name = {key: (meta.content_hash or key) for key, meta in head_manifest.images.items()}
-    base_by_name = {key: (meta.content_hash or key) for key, meta in base_manifest.images.items()}
+    head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
+    base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
 
     all_image_file_names = head_manifest.all_image_file_names
 
@@ -441,9 +440,8 @@ def compare_snapshots(
         head_images = head_manifest.images
         base_images = base_manifest.images
 
-        # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
-        head_meta_by_hash = {(m.content_hash or k): m for k, m in head_images.items()}
-        base_meta_by_hash = {(m.content_hash or k): m for k, m in base_images.items()}
+        head_meta_by_hash = {m.content_hash: m for m in head_images.values()}
+        base_meta_by_hash = {m.content_hash: m for m in base_images.values()}
 
         categories = categorize_image_diff(head_manifest, base_manifest)
         renamed_pairs = categories.renamed_pairs
