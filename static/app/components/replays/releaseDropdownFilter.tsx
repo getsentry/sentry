@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
 import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 export function ReleaseDropdownFilter({version}: {version: string}) {
   const location = useLocation<ReplayListLocationQuery>();

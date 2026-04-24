@@ -30,12 +30,12 @@ import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggre
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {
   FlamegraphProvider,
   useFlamegraph,
-} from 'sentry/views/profiling/flamegraphProvider';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/views/explore/profiling/flamegraphProvider';
+import {ProfileGroupProvider} from 'sentry/views/explore/profiling/profileGroupProvider';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 
 const PROFILE_TYPE = 'transaction aggregate flamegraph';
 

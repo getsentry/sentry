@@ -25,6 +25,7 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
@@ -34,7 +35,6 @@ import {
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag

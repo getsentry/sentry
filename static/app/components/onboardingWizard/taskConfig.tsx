@@ -15,10 +15,10 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects === undefined

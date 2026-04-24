@@ -57,10 +57,10 @@ import {
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
