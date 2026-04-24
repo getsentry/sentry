@@ -168,7 +168,7 @@ class LLMIssueDetectionTest(TestCase):
         assert "timestamp" in event_data
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_create_issue_occurrence_uses_group_for_fingerprint_when_set(
+    def test_create_issue_occurrence_fingerprint_uses_transaction_name(
         self, mock_produce_occurrence
     ):
         detected_issue = DetectedIssue(
