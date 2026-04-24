@@ -140,7 +140,7 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         }
 
     def test_incompatible_group_type(self) -> None:
-        with mock.patch.object(MetricIssue, "detector_settings", None):
+        with mock.patch("sentry.workflow_engine.types.get_detector_settings", return_value=None):
             data = {**self.valid_data, "type": MetricIssue.slug}
             response = self.get_error_response(
                 self.organization.slug,

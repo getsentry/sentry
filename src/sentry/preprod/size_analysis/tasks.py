@@ -34,7 +34,7 @@ from sentry.taskworker.namespaces import preprod_tasks
 from sentry.utils import metrics
 
 # Threshold type categories for filtering detectors by path.
-# These must stay in sync with the enum in PreprodSizeAnalysisGroupType.detector_settings.config_schema.
+# These must stay in sync with the config_schema registered in sentry.preprod.size_analysis.detectorconfig.
 DIFF_THRESHOLD_TYPES = frozenset({"absolute_diff", "relative_diff"})
 ABSOLUTE_THRESHOLD_TYPES = frozenset({"absolute"})
 from sentry.utils.json import dumps_htmlsafe

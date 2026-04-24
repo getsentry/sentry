@@ -461,17 +461,14 @@ def get_detector_settings(group_type: type[GroupType]) -> DetectorSettings | Non
     DetectorSettingsRegistry. Use this instead of depending directly on
     DetectorSettings from GroupType code.
 
-    Falls back to the deprecated group_type.detector_settings field for
-    test GroupTypes that haven't migrated to the registry yet.
     """
-    if group_type.detector_type is not None:
-        settings = detector_settings_registry.get(group_type.detector_type)
-        if settings is None:
-            raise ValueError(
-                f"DetectorType {group_type.detector_type!r} on {group_type.__name__} "
-                f"has no registered DetectorSettings. This usually means the module "
-                f"that registers settings for this DetectorType was not imported."
-            )
-        return settings
-    # Deprecated fallback for tests that set detector_settings directly.
-    return group_type.detector_settings
+    if group_type.detector_type is None:
+        return None
+    settings = detector_settings_registry.get(group_type.detector_type)
+    if settings is None:
+        raise ValueError(
+            f"DetectorType {group_type.detector_type!r} on {group_type.__name__} "
+            f"has no registered DetectorSettings. This usually means the module "
+            f"that registers settings for this DetectorType was not imported."
+        )
+    return settings
