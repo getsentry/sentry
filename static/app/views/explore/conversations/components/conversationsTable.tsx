@@ -30,9 +30,9 @@ import {
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {
