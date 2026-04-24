@@ -270,6 +270,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
       }
 
       if ('prompt' in action && action.prompt) {
+        animatePress();
         dispatch({
           type: 'push action',
           key: action.key,
