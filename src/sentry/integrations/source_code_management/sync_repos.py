@@ -229,11 +229,14 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             raise
         except IntegrationError as e:
             # VSTS's get_repositories re-wraps ApiError/IdentityNotValid into an
-            # IntegrationError with message_from_error; recognize the auth-failure
-            # message so broken VSTS installs don't retry or page us. Gated to
-            # VSTS because other providers may raise IntegrationError for
-            # unrelated reasons that shouldn't be silenced.
-            if provider_key == "vsts" and "Unauthorized" in str(e):
+            # IntegrationError via message_from_error. Message text isn't a
+            # reliable signal: ApiUnauthorized maps to ERR_UNAUTHORIZED but
+            # IdentityNotValid maps to ERR_INTERNAL ("An internal error..."),
+            # which wouldn't match a "Unauthorized" string match. Python sets
+            # __context__ to the original exception when you raise inside an
+            # except block, so inspect that directly.
+            cause = e.__context__
+            if provider_key == "vsts" and isinstance(cause, (IdentityNotValid, ApiUnauthorized)):
                 _halt_broken_integration(
                     lifecycle, e, integration.id, rpc_org.id, provider_key, "unauthorized"
                 )
