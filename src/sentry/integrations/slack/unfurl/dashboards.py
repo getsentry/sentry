@@ -74,6 +74,7 @@ _WIDGET_TYPE_TO_DATASET: dict[int, str] = {
     DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS.value,
     DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS.value,
     DashboardWidgetTypes.ERROR_EVENTS: "errors",
+    DashboardWidgetTypes.PREPROD_APP_SIZE: "preprodSize",
 }
 
 

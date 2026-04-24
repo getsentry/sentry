@@ -2451,6 +2451,18 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert all_params[0]["yAxis"] == ["count()"]
         assert all_params[0]["query"] == "level:error"
 
+    def test_preprod_app_size_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.PREPROD_APP_SIZE,
+            queries=[{"aggregates": ["max(install_size)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "preprodSize"
+        assert all_params[0]["yAxis"] == ["max(install_size)"]
+
     def test_multiple_queries_returns_one_dict_each_in_order(self) -> None:
         widget = self._make_widget(
             queries=[
