@@ -18,7 +18,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {InstallableAppErrorCode} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
 export function getDistributionErrorTooltip(
@@ -29,7 +28,7 @@ export function getDistributionErrorTooltip(
   // error_message as a short-code string. Translate those to real sentences.
   // Drop once launchpad has been emitting the new codes long enough that old
   // rows have aged out.
-  if (errorCode === InstallableAppErrorCode.SKIPPED) {
+  if (errorCode === 'skipped') {
     if (errorMessage === 'invalid_signature') {
       return t('Code signature is invalid');
     }
@@ -44,7 +43,7 @@ export function getDistributionErrorTooltip(
 interface InstallDetailsContentProps {
   artifactId: string;
   projectSlug: string;
-  distributionErrorCode?: InstallableAppErrorCode | string | null;
+  distributionErrorCode?: string | null;
   distributionErrorMessage?: string | null;
   size?: 'sm' | 'lg';
 }
@@ -289,7 +288,7 @@ export function InstallDetailsContent({
         </Fragment>
       </Flex>
     );
-  } else if (distributionErrorCode === InstallableAppErrorCode.DISTRIBUTION_DISABLED) {
+  } else if (distributionErrorCode === 'distribution_disabled') {
     body = distributionDisabledBody;
   } else {
     let message: string;

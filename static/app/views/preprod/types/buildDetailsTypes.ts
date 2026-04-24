@@ -22,19 +22,8 @@ interface BuildDetailsDistributionInfo {
   is_installable: boolean;
   download_count: number;
   release_notes: string | null;
-  error_code?: InstallableAppErrorCode | null;
+  error_code?: string | null;
   error_message?: string | null;
-}
-
-export enum InstallableAppErrorCode {
-  NO_QUOTA = 'no_quota',
-  SKIPPED = 'skipped',
-  PROCESSING_ERROR = 'processing_error',
-  DISTRIBUTION_DISABLED = 'distribution_disabled',
-  DISTRIBUTION_FILTERED = 'distribution_filtered',
-  INVALID_CODE_SIGNATURE = 'invalid_code_signature',
-  SIMULATOR_BUILD = 'simulator_build',
-  UNSUPPORTED_ARTIFACT_TYPE = 'unsupported_artifact_type',
 }
 
 export interface BuildDetailsAppInfo {
