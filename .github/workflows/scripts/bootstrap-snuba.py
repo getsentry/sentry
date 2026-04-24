@@ -20,7 +20,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from typing import Any, Callable, NoReturn
+from typing import Any, Callable
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -55,7 +55,7 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def fail(msg: str) -> NoReturn:
+def fail(msg: str) -> None:
     log(f"::error::{msg}")
     sys.exit(1)
 
@@ -211,7 +211,7 @@ def main() -> None:
     workers_str = os.environ.get("XDIST_WORKERS")
     if not workers_str:
         fail("XDIST_WORKERS must be set")
-    workers = range(int(workers_str))
+    workers = range(int(workers_str))  # type: ignore[arg-type]
     start = time.monotonic()
 
     wait_for_prerequisites()
