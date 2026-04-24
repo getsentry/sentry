@@ -35,7 +35,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
@@ -292,7 +291,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     apiMethod: 'PUT' as const,
     apiEndpoint: endpoint,
     onSubmitSuccess: resp => {
-      queryClient.setQueryData<ApiResponse<Project>>(projectSettingsQueryKey, prev => ({
+      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
         headers: prev?.headers ?? {},
         json: resp,
       }));

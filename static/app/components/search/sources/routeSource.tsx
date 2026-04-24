@@ -67,8 +67,8 @@ export function RouteSource({searchOptions, query, children}: Props) {
     const context = {
       project,
       organization,
-      access: new Set(organization?.access ?? []),
-      features: new Set(project?.features ?? []),
+      access: new Set(organization?.access),
+      features: new Set(project?.features),
     } as Context;
 
     const navigationFromHook = organization

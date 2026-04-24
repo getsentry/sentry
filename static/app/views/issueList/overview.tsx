@@ -54,6 +54,7 @@ import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssueP
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {IssueListFilters} from './filters';
+import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
@@ -878,6 +879,11 @@ function IssueListOverview({
 
   return (
     <Stack flex={1}>
+      <IssueListCommandPaletteActions
+        query={query}
+        sort={sort}
+        onSortChange={onSortChange}
+      />
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}

@@ -263,6 +263,12 @@ export function CommandPalette(props: CommandPaletteProps) {
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
 
+      // Close the palette before running the action. ModalStore is a single-slot
+      // system: calling openModal() inside onAction would replace the palette's
+      // renderer, and a closeModal() call afterwards would immediately close the
+      // newly opened modal instead of the palette.
+      closeModal?.();
+
       if ('to' in action) {
         const normalizedTo = normalizeUrl(action.to);
         if (isExternalLocation(normalizedTo) || options?.modifierKeys?.shiftKey) {
@@ -273,8 +279,6 @@ export function CommandPalette(props: CommandPaletteProps) {
       } else if ('onAction' in action) {
         action.onAction();
       }
-
-      closeModal?.();
     },
     [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
   );
@@ -320,7 +324,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isLoading =
     (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
   const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && state.query.length === 0;
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
   return (
     <Fragment>
@@ -868,7 +872,7 @@ function makeMenuItemFromAction(
 ): CommandPaletteActionMenuItem {
   const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
-  const trailingItems =
+  const linkIndicator =
     'to' in action ? (
       <Flex
         align="center"
@@ -879,6 +883,13 @@ function makeMenuItemFromAction(
           {isExternal ? <IconOpen /> : <IconLink />}
         </IconDefaultsProvider>
       </Flex>
+    ) : undefined;
+  const trailingItems =
+    (action.display.trailingItem ?? linkIndicator) ? (
+      <Fragment>
+        {action.display.trailingItem}
+        {linkIndicator}
+      </Fragment>
     ) : undefined;
 
   return {

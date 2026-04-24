@@ -126,7 +126,7 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
           <ListBox
             listState={state}
             hasSearch={!!state.inputValue}
-            hiddenOptions={new Set([])}
+            hiddenOptions={new Set()}
             overlayIsOpen={state.isOpen}
             size="sm"
             {...listBoxProps}

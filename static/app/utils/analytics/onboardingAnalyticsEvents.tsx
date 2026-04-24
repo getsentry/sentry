@@ -39,12 +39,40 @@ export type OnboardingEventParameters = {
     project_id: string;
     step: string;
   };
+  'onboarding.scm_back_button_clicked': {
+    browserBackButton: boolean;
+    from: string;
+    to: string;
+  };
   'onboarding.scm_connect_repo_selected': {
     provider: string;
     repo: string;
   };
   'onboarding.scm_connect_step_viewed': Record<string, unknown>;
+  'onboarding.scm_data_removal_modal_confirm_button_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_data_removed': {
+    date_created: string;
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_dsn_copied': {
+    platform: string;
+  };
   'onboarding.scm_header_skip_clicked': {
+    step: string;
+  };
+  'onboarding.scm_js_loader_npm_docs_shown': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_next_step_clicked': {
+    newOrg: boolean;
+    platform: string;
+    products: string[];
+    project_id: string;
     step: string;
   };
   'onboarding.scm_platform_change_platform_clicked': Record<string, unknown>;
@@ -73,7 +101,22 @@ export type OnboardingEventParameters = {
   'onboarding.scm_project_details_team_selected': {
     team: string;
   };
+  'onboarding.scm_select_framework_modal_rendered': {
+    platform: string;
+  };
+  'onboarding.scm_setup_loader_docs_rendered': {
+    platform: string;
+    project_id: string;
+  };
   'onboarding.scm_setup_platform_later_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_source_maps_wizard_button_copy_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_source_maps_wizard_selected_and_copied': {
     platform: string;
     project_id: string;
   };
@@ -147,8 +190,24 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
+  'onboarding.scm_back_button_clicked': 'Onboarding: SCM Back Button Clicked',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
+  'onboarding.scm_data_removal_modal_confirm_button_clicked':
+    'Onboarding: SCM Data Removal Modal Confirm Button Clicked',
+  'onboarding.scm_data_removed': 'Onboarding: SCM Data Removed',
+  'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
+  'onboarding.scm_js_loader_npm_docs_shown':
+    'Onboarding: SCM JS Loader Switch to npm Instructions',
+  'onboarding.scm_next_step_clicked': 'Onboarding: SCM Next Step Clicked',
+  'onboarding.scm_select_framework_modal_rendered':
+    'Onboarding: SCM Framework Modal Rendered',
+  'onboarding.scm_setup_loader_docs_rendered':
+    'Onboarding: SCM Setup Loader Docs Rendered',
+  'onboarding.scm_source_maps_wizard_button_copy_clicked':
+    'Onboarding: SCM Source Maps Wizard Copy Button Clicked',
+  'onboarding.scm_source_maps_wizard_selected_and_copied':
+    'Onboarding: SCM Source Maps Wizard Selected and Copied',
   'onboarding.scm_header_skip_clicked': 'Onboarding: SCM Header Skip Clicked',
   'onboarding.scm_platform_change_platform_clicked':
     'Onboarding: SCM Platform Change Platform Clicked',

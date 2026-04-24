@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 jest.unmock('lodash/debounce');
 
@@ -32,6 +32,12 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import type {CommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  CommandPaletteHotkeys,
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 
 function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   return (
@@ -157,6 +163,26 @@ describe('CommandPalette', () => {
     ).toHaveAttribute('data-link-type', 'external');
   });
 
+  it('renders both a custom trailingItem and the link indicator for a link action', async () => {
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          to="/target/"
+          display={{
+            label: 'Action with trailing',
+            trailingItem: <span data-testid="custom-trailing">Badge</span>,
+          }}
+        />
+      </GlobalActionsComponent>
+    );
+
+    const option = await screen.findByRole('option', {name: 'Action with trailing'});
+    expect(option.querySelector('[data-testid="custom-trailing"]')).toBeInTheDocument();
+    expect(
+      option.querySelector('[data-test-id="command-palette-link-indicator"]')
+    ).toBeInTheDocument();
+  });
+
   it('clicking action with children shows sub-items, backspace returns', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     render(
@@ -207,6 +233,34 @@ describe('CommandPalette', () => {
 
     expect(onChild).toHaveBeenCalled();
     expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('onAction that opens a modal leaves the new modal open', async () => {
+    // ModalStore is single-slot: openModal() replaces whatever renderer is set.
+    // The palette must close itself before invoking onAction so that a subsequent
+    // openModal() call inside the callback is not immediately wiped by closeModal().
+    const openModalSpy = jest.spyOn(modalActions, 'openModal');
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          display={{label: 'Open a modal'}}
+          onAction={() => modalActions.openModal(() => <div>modal content</div>)}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Open a modal'}));
+
+    // The palette closed itself once
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    // The action's openModal was called after closeModal, so it is not clobbered
+    expect(openModalSpy).toHaveBeenCalledTimes(1);
+    // closeModal was called before openModal — verify ordering
+    const closeOrder = closeSpy.mock.invocationCallOrder[0]!;
+    const openOrder = openModalSpy.mock.invocationCallOrder[0]!;
+    expect(closeOrder).toBeLessThan(openOrder);
   });
 
   describe('search', () => {
@@ -1109,6 +1163,82 @@ describe('CommandPalette', () => {
         await screen.findByRole('option', {name: 'Child Action'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('reset on open', () => {
+    // Capture dispatch so tests can open/close CMDK without going through
+    // toggleCommandPalette, keeping the setup self-contained.
+    let testDispatch: CommandPaletteDispatch;
+
+    function DispatchCapture() {
+      testDispatch = useCommandPaletteDispatch();
+      return null;
+    }
+
+    function PaletteContent() {
+      const state = useCommandPaletteState();
+      return (
+        <Fragment>
+          <CMDKAction display={{label: 'Section'}}>
+            <CMDKAction display={{label: 'Drillable Group'}}>
+              <CMDKAction onAction={jest.fn()} display={{label: 'Child Action'}} />
+            </CMDKAction>
+          </CMDKAction>
+          <CMDKAction to="/root/" display={{label: 'Root Action'}} />
+          {state.open && <CommandPalette closeModal={jest.fn()} />}
+        </Fragment>
+      );
+    }
+
+    function Wrapper({withHotkeys}: {withHotkeys?: boolean} = {}) {
+      return (
+        <CommandPaletteProvider>
+          <DispatchCapture />
+          {withHotkeys && <CommandPaletteHotkeys />}
+          <PaletteContent />
+        </CommandPaletteProvider>
+      );
+    }
+
+    it('preserves state when toggled closed and open without navigating', async () => {
+      render(<Wrapper />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Child Action'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Root Action'})).not.toBeInTheDocument();
+    });
+
+    it('resets state on the next open if the route changes while CMDK is closed', async () => {
+      const {router} = render(<Wrapper withHotkeys />);
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      await userEvent.click(await screen.findByRole('option', {name: 'Drillable Group'}));
+      await screen.findByRole('option', {name: 'Child Action'});
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      // Navigate while closed — route change must trigger reset on the next open
+      act(() => router.navigate('/new-page/'));
+
+      act(() => testDispatch({type: 'toggle modal'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Root Action'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'Child Action'})
+      ).not.toBeInTheDocument();
     });
   });
 
