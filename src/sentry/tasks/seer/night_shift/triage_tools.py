@@ -100,16 +100,13 @@ class get_event_details_agentic_triage(  # noqa: N801
             return "Event not found. Check the issue_id/event_id and time range."
 
         event = result.get("event") or {}
-        project_id = result.get("project_id")
-        linked_repos = _format_linked_repos(project_id) if project_id else ""
         body = format_event_output(event)
         return (
             f"Event ID: {result.get('event_id')}\n"
             f"Trace ID: {result.get('event_trace_id') or 'N/A'}\n"
             f"Issue ID: {event.get('groupID') or 'N/A'}\n"
-            f"Project ID: {project_id}\n"
+            f"Project ID: {result.get('project_id')}\n"
             f"Project Slug: {result.get('project_slug')}\n"
-            f"{linked_repos}"
             f"\n{body}"
         )
 
@@ -144,10 +141,9 @@ class get_issue_details_agentic_triage(  # noqa: N801
 
     Returns the same underlying issue metadata as Seer's built-in `get_issue_details`,
     but reformats it as triage-tuned markdown: header (title/culprit/priority/counts/
-    first-last seen), aggregated tag distribution, and recent human activity. The
-    latest-event stacktrace excerpt is intentionally omitted so the agent is steered
-    toward `get_event_details_agentic_triage` for stack inspection (which exposes
-    the full stack, locals on the first in-app frame, and linked repos).
+    first-last seen), linked repos, aggregated tag distribution, and recent human
+    activity. The latest-event stacktrace excerpt is intentionally omitted so the
+    agent is steered toward `get_event_details_agentic_triage` for stack inspection.
     """
 
     params_model = GetIssueDetailsAgenticTriageParams
@@ -157,8 +153,9 @@ class get_issue_details_agentic_triage(  # noqa: N801
         return (
             "Fetch issue-level metadata for a Sentry issue: title, culprit, "
             "level/priority/status, first/last seen, event and user counts, "
-            "assignee, aggregated tag distribution across all events, and "
-            "recent human activity (notes, assignments, resolutions).\n\n"
+            "assignee, linked repositories (repo name + source/stack roots), "
+            "aggregated tag distribution across all events, and recent human "
+            "activity (notes, assignments, resolutions).\n\n"
             "Use this to decide whether an issue is worth investigating. For "
             "the actual stacktrace and failing code context, call "
             "`get_event_details_agentic_triage` separately."
@@ -183,11 +180,14 @@ class get_issue_details_agentic_triage(  # noqa: N801
         if result is None:
             return "Issue not found. Check the issue_id and time range."
 
+        project_id = result.get("project_id")
+        linked_repos = _format_linked_repos(project_id) if project_id else ""
         body = format_issue_output(result)
         return (
             f"Issue ID: {params.issue_id}\n"
-            f"Project ID: {result.get('project_id')}\n"
+            f"Project ID: {project_id}\n"
             f"Project Slug: {result.get('project_slug')}\n"
+            f"{linked_repos}"
             f"\n{body}"
         )
 
