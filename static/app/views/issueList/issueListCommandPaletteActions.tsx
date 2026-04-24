@@ -183,7 +183,7 @@ function FilterActions({
     return (
       <CMDKAction
         key={tag.key}
-        display={{label: tag.name}}
+        display={{label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`}}
         keywords={[tag.key]}
         prompt={t('Select a value...')}
         resource={(_cmdkQuery: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
@@ -212,19 +212,9 @@ function FilterActions({
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
-      <CMDKAction display={{label: t('Issues')}}>
-        {issueFields.map(renderFilterKey)}
-      </CMDKAction>
-      {eventFields.length > 0 && (
-        <CMDKAction display={{label: t('Event Filters')}} limit={10}>
-          {eventFields.map(renderFilterKey)}
-        </CMDKAction>
-      )}
-      {eventTags.length > 0 && (
-        <CMDKAction display={{label: t('Event Tags')}} limit={10}>
-          {eventTags.map(renderFilterKey)}
-        </CMDKAction>
-      )}
+      {issueFields.slice(0, 4).map(renderFilterKey)}
+      {eventFields.slice(0, 4).map(renderFilterKey)}
+      {eventTags.slice(0, 4).map(renderFilterKey)}
     </CMDKAction>
   );
 }
