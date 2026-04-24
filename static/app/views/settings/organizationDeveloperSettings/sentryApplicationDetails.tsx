@@ -49,8 +49,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
@@ -169,6 +172,7 @@ export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
+  const routes = useRoutes();
   const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
   const isEditingApp = !!appSlug;
@@ -219,6 +223,12 @@ export default function SentryApplicationDetails() {
   };
 
   const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
+
+  const headerTitle = () => {
+    const action = app ? 'Edit' : 'Create';
+    const type = isInternal() ? 'Internal' : 'Public';
+    return tct('[action] [type] Integration', {action, type});
+  };
 
   const handleSubmitSuccess = (data: SentryApp) => {
     const type = isInternal() ? 'internal' : 'public';
@@ -385,6 +395,8 @@ export default function SentryApplicationDetails() {
 
   return (
     <div>
+      {app && <BreadcrumbTitle routes={routes.slice(0, -1)} title={app.name} />}
+      <SettingsPageHeader title={headerTitle()} />
       {isEditingApp && isPending ? (
         <LoadingIndicator />
       ) : isEditingApp && isError ? (
