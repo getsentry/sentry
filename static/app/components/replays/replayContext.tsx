@@ -1,4 +1,12 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
@@ -481,10 +489,12 @@ export function Provider({
   const replayId = replay?.getReplay().id;
   const projectId = replay?.getReplay().project_id;
   const videoElementCount = videoEvents?.length ?? 0;
-  useEffect(() => {
-    if (isFetching || !isVideoReplay || !replayId) {
+
+  const emitVideoElementCountMetric = useEffectEvent(() => {
+    if (!isVideoReplay) {
       return;
     }
+
     Sentry.metrics.distribution(
       'replay.video_replayer.video_element_count',
       videoElementCount,
@@ -494,7 +504,15 @@ export function Provider({
         },
       }
     );
-  }, [replayId, isFetching, isVideoReplay, videoElementCount, projectId]);
+  });
+
+  useEffect(() => {
+    if (isFetching || !replayId) {
+      return;
+    }
+
+    emitVideoElementCountMetric();
+  }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
     (play: boolean) => {
