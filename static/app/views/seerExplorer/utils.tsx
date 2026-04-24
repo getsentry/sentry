@@ -17,7 +17,7 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {
   Block,
   ToolCall,

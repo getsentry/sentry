@@ -26,6 +26,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
@@ -34,7 +35,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface EventTagTreeRowConfig {
   // Omits the dropdown of actions applicable to this tag
@@ -142,7 +142,7 @@ function EventTagsTreeRowDropdown({
   }
 
   const referrer = 'event-tags-table';
-  const highlightTagSet = new Set(project?.highlightTags ?? []);
+  const highlightTagSet = new Set(project?.highlightTags);
   const hideAddHighlightsOption =
     // Check for existing highlight record to prevent replacing all with a single tag if we receive a project summary (instead of a detailed project)
     project?.highlightTags &&

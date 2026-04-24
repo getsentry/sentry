@@ -1,5 +1,5 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import type {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import type {Output} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 
 export type ReplayEventParameters = {
   'replay.ai-summary.chapter-clicked': {
