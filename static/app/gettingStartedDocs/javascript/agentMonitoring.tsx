@@ -18,8 +18,8 @@ import {
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {getImport} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
+import {AgentIntegration} from 'sentry/views/explore/conversations/utils/agentIntegrations';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 // Meta-frameworks currently have a technical limitation: our server-side integrations do not work,
 // even when added manually. Users must use Sentry’s helper functions or manually instrument their

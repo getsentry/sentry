@@ -6,9 +6,9 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
+import {ManualInstrumentationNote} from 'sentry/views/explore/conversations/components/llmOnboardingInstructions';
+import {AgentIntegration} from 'sentry/views/explore/conversations/utils/agentIntegrations';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 import {getPythonInstallCodeBlock} from './utils';
 

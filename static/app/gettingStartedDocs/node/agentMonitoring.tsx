@@ -9,12 +9,12 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
-import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {ManualInstrumentationNote} from 'sentry/views/explore/conversations/components/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+} from 'sentry/views/explore/conversations/utils/agentIntegrations';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 
 export const MIN_REQUIRED_VERSION = '10.28.0';
 

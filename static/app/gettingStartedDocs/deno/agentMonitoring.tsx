@@ -7,9 +7,9 @@ import {
   getManualConfigureStep,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {t, tct} from 'sentry/locale';
+import {ManualInstrumentationNote} from 'sentry/views/explore/conversations/components/llmOnboardingInstructions';
+import {AgentIntegration} from 'sentry/views/explore/conversations/utils/agentIntegrations';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
-import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
-import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 
 const PACKAGE_NAME = '@sentry/deno';
 const MIN_VERSION = '10.45.0';

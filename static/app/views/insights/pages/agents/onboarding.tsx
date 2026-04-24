@@ -49,6 +49,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
+  CopyLLMPromptButton,
+  LLM_ONBOARDING_COPY_MARKDOWN,
+} from 'sentry/views/explore/conversations/components/llmOnboardingInstructions';
+import {
+  AGENT_INTEGRATION_ICONS,
+  AGENT_INTEGRATION_LABELS,
+  DENO_AGENT_INTEGRATIONS,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from 'sentry/views/explore/conversations/utils/agentIntegrations';
+import {
   BulletList,
   HeaderText,
   PulseSpacer,
@@ -57,20 +68,8 @@ import {
   useOnboardingProject,
 } from 'sentry/views/explore/conversations/utils/onboardingUtils';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  CopyLLMPromptButton,
-  LLM_ONBOARDING_COPY_MARKDOWN,
-} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  DENO_AGENT_INTEGRATIONS,
-  NODE_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from './utils/agentIntegrations';
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();
