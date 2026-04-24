@@ -287,7 +287,7 @@ export function useIssuesTableQuery(
           {
             path: {organizationIdOrSlug: organization.slug},
             method: 'GET' as const,
-            query: queryParams,
+            data: queryParams,
             staleTime: getWidgetStaleTime(pageFilters),
           }
         ),
