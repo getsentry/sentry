@@ -176,9 +176,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
         # Skip removals entirely if we didn't manage to fetch all repos for this integration.
         # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
-        removed_ids: set[str] = (
-            set() if fetch_truncated else sentry_active_ids - provider_external_ids
-        )
+        removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
         metric_tags = {
