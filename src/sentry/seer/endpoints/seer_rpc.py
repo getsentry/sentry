@@ -47,7 +47,10 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
-from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
+from sentry.integrations.github_enterprise.integration import (
+    GitHubEnterpriseIntegration,
+    _api_base_url,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization, OrganizationStatus
@@ -520,7 +523,7 @@ def get_github_enterprise_integration_config(
 
     return {
         "success": True,
-        "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
+        "base_url": _api_base_url(installation.model.metadata["domain_name"].split("/")[0]),
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
         "permissions": permissions,
