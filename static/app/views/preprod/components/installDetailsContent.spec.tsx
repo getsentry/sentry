@@ -44,7 +44,58 @@ describe('InstallDetailsContent', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows friendly error with settings link when API returns 404', async () => {
+  it('shows settings link on 404 when distribution is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      statusCode: 404,
+      body: {error: 'Installable file not available'},
+    });
+
+    render(
+      <InstallDetailsContent
+        artifactId="artifact-1"
+        projectSlug="my-project"
+        distributionErrorCode="distribution_disabled"
+        distributionErrorMessage="Distribution disabled for this project"
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText('Build distribution is not enabled')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'project settings'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/my-project/mobile-builds/?tab=distribution`
+    );
+  });
+
+  it('shows backend error message on 404 for non-disabled distribution errors', async () => {
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      statusCode: 404,
+      body: {error: 'Installable file not available'},
+    });
+
+    render(
+      <InstallDetailsContent
+        artifactId="artifact-1"
+        projectSlug="my-project"
+        distributionErrorCode="no_quota"
+        distributionErrorMessage="Distribution quota exceeded"
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Distribution quota exceeded')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'project settings'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  });
+
+  it('shows generic fallback on 404 when no error code is provided', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
       statusCode: 404,
@@ -56,13 +107,11 @@ describe('InstallDetailsContent', () => {
     });
 
     expect(
-      await screen.findByText('Build distribution is not enabled')
+      await screen.findByText('No install download link available')
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'project settings'})).toHaveAttribute(
-      'href',
-      `/settings/${organization.slug}/projects/my-project/mobile-builds/?tab=distribution`
-    );
+    expect(
+      screen.queryByRole('link', {name: 'project settings'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows generic error with retry for non-404 errors', async () => {

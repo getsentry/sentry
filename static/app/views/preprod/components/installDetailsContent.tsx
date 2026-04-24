@@ -119,7 +119,21 @@ export function InstallDetailsContent({
     );
   } else if (isError || !installDetails) {
     if (error?.status === 404) {
-      body = distributionDisabledBody;
+      // 404 means there's no installable file. Use the error_code/message the
+      // parent passes from build-details to explain why — only show the
+      // settings link when distribution is actually disabled for the project.
+      if (distributionErrorCode === 'distribution_disabled') {
+        body = distributionDisabledBody;
+      } else {
+        const message = distributionErrorCode
+          ? getDistributionErrorTooltip(distributionErrorCode, distributionErrorMessage)
+          : t('No install download link available');
+        body = (
+          <Flex direction="column" align="center" gap={outerGap}>
+            <Text>{message}</Text>
+          </Flex>
+        );
+      }
     } else {
       body = (
         <Flex direction="column" align="center" gap={outerGap}>
