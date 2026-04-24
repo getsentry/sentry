@@ -6,16 +6,15 @@ from django.db.migrations.state import StateApps
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcRemoteException
-from sentry.models.organization import Organization
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.types.cell import CellMappingNotFound
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 logger = logging.getLogger(__name__)
 
 # Maps OrganizationOption key -> (integration provider, OI config key).
-# Mirrors the mapping used by the live fan-out write in
-# src/sentry/core/endpoints/organization_details.py so a backfill and
+# Mirrors the live fan-out write in
+# src/sentry/core/endpoints/organization_details.py so the backfill and
 # any newly installed OI end up consistent.
 _PROVIDER_KEYS = {
     "github": [
@@ -27,63 +26,68 @@ _PROVIDER_KEYS = {
     ],
 }
 
+_LEGACY_KEYS = [opt_key for pairs in _PROVIDER_KEYS.values() for opt_key, _ in pairs]
+
+
+def _opt_is_true(value: object) -> bool:
+    # sentry_organizationoptions.value is jsonb; historical writers stored
+    # booleans as JSON true/false, but a few older rows hold ints or string
+    # booleans. Normalize the same way the live read path does.
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        return value.lower() in ("true", "1", "t", "yes")
+    return bool(value)
+
 
 def backfill_scm_integration_config(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    # `sentry_organizationintegration` is control-silo; `sentry_organizationoptions`
-    # is region-silo. This migration is routed to control via the `tables` hint
-    # below, so we read OI rows locally but fetch the legacy option values over
-    # the cell RPC instead of a cross-silo SQL query (which is impossible).
-    from sentry.organizations.services.organization import organization_service
+    # Iterate the legacy OrganizationOption rows on the region silo (only orgs
+    # that ever flipped one of the three toggles — a few thousand in prod) and
+    # fan out updates to the control-silo OrganizationIntegration via RPC. We
+    # skip rows whose value coerces to false — the new read path treats a
+    # missing OI config key as false, so those rows are a no-op.
+    from sentry.integrations.services.integration import integration_service
 
-    OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
+    OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
-    # Iterate the whole OI table — the approx wrapper needs an unfiltered
-    # queryset, and we don't have an index on (status, id) or
-    # (integration_id, id) for a filtered range scan. Filtering in Python
-    # is cheaper than either alternative.
-    queryset = OrganizationIntegration.objects.all().select_related("integration")
+    queryset = OrganizationOption.objects.filter(key__in=_LEGACY_KEYS)
 
-    option_cache: dict[tuple[int, str], object] = {}
-
-    for oi in RangeQuerySetWrapperWithProgressBarApprox(queryset):
-        if oi.status != ObjectStatus.ACTIVE:
+    opts_by_org: dict[int, dict[str, bool]] = {}
+    for opt in RangeQuerySetWrapperWithProgressBar(queryset):
+        if not _opt_is_true(opt.value):
             continue
-        provider = oi.integration.provider
-        key_pairs = _PROVIDER_KEYS.get(provider)
-        if not key_pairs:
-            continue
+        opts_by_org.setdefault(opt.organization_id, {})[opt.key] = True
 
-        config = dict(oi.config or {})
-        changed = False
-        for opt_key, cfg_key in key_pairs:
-            if cfg_key in config:
+    for organization_id, opts in opts_by_org.items():
+        for provider, key_pairs in _PROVIDER_KEYS.items():
+            if not any(opt_key in opts for opt_key, _ in key_pairs):
                 continue
-            cache_key = (oi.organization_id, opt_key)
-            if cache_key not in option_cache:
-                try:
-                    option_cache[cache_key] = organization_service.get_option(
-                        organization_id=oi.organization_id, key=opt_key
+
+            try:
+                ois = integration_service.get_organization_integrations(
+                    organization_id=organization_id,
+                    providers=[provider],
+                    status=ObjectStatus.ACTIVE,
+                )
+            except (CellMappingNotFound, RpcRemoteException):
+                continue
+
+            for oi in ois:
+                config = dict(oi.config or {})
+                changed = False
+                for opt_key, cfg_key in key_pairs:
+                    if opt_key in opts and cfg_key not in config:
+                        config[cfg_key] = True
+                        changed = True
+
+                if changed:
+                    integration_service.update_organization_integration(
+                        org_integration_id=oi.id, config=config
                     )
-                except (Organization.DoesNotExist, CellMappingNotFound, RpcRemoteException):
-                    # OI references an org that's already been deleted on the
-                    # region silo. The HybridCloudForeignKey cascade is async
-                    # across silos so this window is expected. In monolith /
-                    # tests the region raises Organization.DoesNotExist; in
-                    # split-silo the cell resolver raises CellMappingNotFound
-                    # (mapping gone) or RpcRemoteException (mapping intact,
-                    # region-side DoesNotExist wrapped by the RPC framework).
-                    option_cache[cache_key] = None
-            value = option_cache[cache_key]
-            if value is None:
-                continue
-            config[cfg_key] = bool(value)
-            changed = True
-
-        if changed:
-            oi.config = config
-            oi.save(update_fields=["config"])
 
 
 class Migration(CheckedMigration):
@@ -109,6 +113,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_scm_integration_config,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_organizationintegration"]},
+            hints={"tables": ["sentry_organizationoptions"]},
         ),
     ]
