@@ -113,10 +113,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 
             <Flex justify={accountCredit > 0 ? 'between' : 'end'}>
               {accountCredit > 0 ? (
-                <Flex gap="md" align="center">
-                  <Text>{t('Your account credit:')}</Text>
-                  <Text>{'$' + accountCredit.toString()}</Text>
-                </Flex>
+               <Text>{tct('Your account credit: $[credit]', { credit: String(accountCredit) })}</Text>
               ) : null}
               <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
             </Flex>
