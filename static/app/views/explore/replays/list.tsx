@@ -162,24 +162,21 @@ export default function ReplaysListContainer() {
                 <Layout.Body>
                   <Layout.Main width="full">
                     <Grid gap="xl" columns="100%">
+                      <ReplayListControls
+                        onToggleWidgets={toggleWidgets}
+                        showDeadRageClickCards={showDeadRageClickCards}
+                        widgetIsOpen={widgetIsOpen}
+                      />
                       <ReplayListPageHeaderHook />
                       {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
                         <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
                           <ReplayIndexContainer
-                            onToggleWidgets={toggleWidgets}
                             showDeadRageClickCards={showDeadRageClickCards}
                             widgetIsOpen={widgetIsOpen}
                           />
                         </ReplayAccess>
                       ) : (
-                        <Fragment>
-                          <ReplayListControls
-                            onToggleWidgets={toggleWidgets}
-                            showDeadRageClickCards={showDeadRageClickCards}
-                            widgetIsOpen={widgetIsOpen}
-                          />
-                          <ReplayOnboardingPanel />
-                        </Fragment>
+                        <ReplayOnboardingPanel />
                       )}
                     </Grid>
                   </Layout.Main>
