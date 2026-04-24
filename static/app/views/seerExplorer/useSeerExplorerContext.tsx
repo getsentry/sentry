@@ -1,12 +1,12 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
-  type SetStateAction,
 } from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
@@ -18,6 +18,7 @@ import {
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
@@ -25,12 +26,7 @@ type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
-  runId: number | null;
   sessionState: SeerExplorerSessionState;
-  /**
-   * XXX: For useSeerExplorer hook only. Do not manually call this to update the drawer UI.
-   */
-  setRunId: (value: SetStateAction<number | null>) => void;
   toggleSeerExplorer: () => void;
 };
 
@@ -38,15 +34,12 @@ export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
   isOpen: false,
   openSeerExplorer: () => {},
-  runId: null,
   sessionState: 'inactive',
-  setRunId: () => {},
   toggleSeerExplorer: () => {},
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  const [runId, setRunId] = useSeerExplorerRunId();
-
+  const [runId] = useSeerExplorerRunId();
   const {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
@@ -102,8 +95,6 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       openSeerExplorer: openSeerExplorerDrawer,
       closeSeerExplorer: closeSeerExplorerDrawer,
       toggleSeerExplorer: toggleSeerExplorerDrawer,
-      runId,
-      setRunId,
       sessionState,
     }),
     [
@@ -111,13 +102,22 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       openSeerExplorerDrawer,
       closeSeerExplorerDrawer,
       toggleSeerExplorerDrawer,
-      runId,
-      setRunId,
       sessionState,
     ]
   );
 
   const {visible: isModalOpen} = useGlobalModal();
+
+  // Deep link effect while drawer closed (drawer content handles when open)
+  const deepLinkCallback = useCallback(
+    (_runId: number) => openSeerExplorerDrawer({runId: _runId}),
+    [openSeerExplorerDrawer]
+  );
+
+  useSeerExplorerDeepLink({
+    callback: deepLinkCallback,
+    enabled: !isOpen,
+  });
 
   useHotkeys(
     isModalOpen

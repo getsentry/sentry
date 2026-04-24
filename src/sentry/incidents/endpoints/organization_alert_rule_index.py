@@ -211,7 +211,7 @@ def create_metric_alert(
         return Response({"uuid": client.uuid}, status=202)
     else:
         alert_rule = validator.save()
-        if features.has("organizations:workflow-engine-rule-serializers", organization):
+        if features.has("organizations:workflow-engine-metric-alert-endpoints-post", organization):
             try:
                 detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
                 return Response(
@@ -223,7 +223,11 @@ def create_metric_alert(
                     status=status.HTTP_201_CREATED,
                 )
             except Detector.DoesNotExist:
-                return Response(status=status.HTTP_404_NOT_FOUND)
+                logger.error(
+                    "Alert rule was not dual written. Returning serialized rule instead of detector",
+                    extra={"rule_id": alert_rule.id},
+                )
+                return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
         return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
 

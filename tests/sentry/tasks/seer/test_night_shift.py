@@ -21,10 +21,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 
-NIGHT_SHIFT_FEATURES = [
-    "organizations:seer-project-settings-read-from-sentry",
-    "projects:seer-night-shift",
-]
+NIGHT_SHIFT_FEATURES = ["projects:seer-night-shift"]
 
 
 class FakeExplorerClient:
@@ -178,12 +175,7 @@ class TestGetEligibleProjects(TestCase):
         repo = self.create_repo(project=project, provider="github", name="owner/repo")
         SeerProjectRepository.objects.create(project=project, repository=repo)
 
-        with self.feature(
-            {
-                "organizations:seer-project-settings-read-from-sentry": True,
-                "projects:seer-night-shift": False,
-            }
-        ):
+        with self.feature({"projects:seer-night-shift": False}):
             projects, _ = _get_eligible_projects(org)
             assert projects == []
 
