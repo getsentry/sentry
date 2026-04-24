@@ -28,12 +28,13 @@ export const LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES = 500;
 /**
  * Initial duration to keep high-fidelity "needle in a haystack" auto-fetching.
  */
-export const LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS = 10_000;
+export const LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS = 15_000;
 
 /**
- * Additional durations to keep high-fidelity "needle in a haystack" auto-fetching.
+ * Base additional duration to keep high-fidelity "needle in a haystack"
+ * auto-fetching after each resume attempt.
  */
-export const LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS = 20_000;
+export const LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS = 30_000;
 
 /**
  * These are required fields are always added to the query when fetching the log table.

@@ -764,11 +764,17 @@ interface AutoFetchWindowOptions {
   queryKey: QueryKey;
 }
 
+function getAutoFetchWindowDurationMs(resumeCount: number) {
+  return resumeCount === 0
+    ? LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS
+    : LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS * resumeCount;
+}
+
 /**
  * Time-bounds the high-fidelity "needle in a haystack" auto-fetching.
  * Whenever the caller reports it wants to start (`canAutoFetchNextPage`),
  * this hook continuously calls `fetchNextPage` until the window closes.
- * `resumeAutoFetch` reopens a fresh (longer) window after the first.
+ * `resumeAutoFetch` reopens progressively longer windows after the first.
  */
 function useAutoFetchWindow({
   queryKey,
@@ -777,8 +783,13 @@ function useAutoFetchWindow({
   nextPageCursor,
   fetchNextPage,
 }: AutoFetchWindowOptions) {
-  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
+  const [windowStartMs, setWindowStartMs] = useState<number | null>(null);
+  const [resumeCount, setResumeCount] = useState(0);
   const timesFetched = useRef(0);
+  const deadlineMs =
+    windowStartMs === null
+      ? null
+      : windowStartMs + getAutoFetchWindowDurationMs(resumeCount);
 
   const queryKeyHash = useMemo(() => {
     const [url, endpointOptions] = queryKey;
@@ -786,7 +797,8 @@ function useAutoFetchWindow({
   }, [queryKey]);
 
   useEffect(() => {
-    setDeadlineMs(null);
+    setWindowStartMs(null);
+    setResumeCount(0);
     timesFetched.current = 0;
   }, [queryKeyHash]);
 
@@ -795,12 +807,12 @@ function useAutoFetchWindow({
       return;
     }
 
-    if (deadlineMs === null) {
-      setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS);
+    if (windowStartMs === null) {
+      setWindowStartMs(Date.now());
       return;
     }
 
-    if (Date.now() >= deadlineMs) {
+    if (deadlineMs !== null && Date.now() >= deadlineMs) {
       Sentry.metrics.distribution(
         'explore.logs.flex_time_pages_before_data',
         timesFetched.current,
@@ -819,16 +831,19 @@ function useAutoFetchWindow({
     fetchNextPage();
   }, [
     canAutoFetchNextPage,
-    isFetchingNextPage,
-    fetchNextPage,
-    nextPageCursor,
     deadlineMs,
+    fetchNextPage,
+    isFetchingNextPage,
+    nextPageCursor,
+    resumeCount,
+    windowStartMs,
   ]);
 
-  const resumeAutoFetch = useCallback(
-    () => setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS),
-    []
-  );
+  const resumeAutoFetch = useCallback(() => {
+    const nextResumeCount = resumeCount + 1;
+    setResumeCount(nextResumeCount);
+    setWindowStartMs(Date.now());
+  }, [resumeCount]);
 
   const shouldAutoFetchNextPage =
     canAutoFetchNextPage && (deadlineMs === null || Date.now() < deadlineMs);
