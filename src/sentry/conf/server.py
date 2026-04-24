@@ -2783,6 +2783,10 @@ SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "jvm": "...",
 }
 
+# URL of the teapot GPU crash dump symbolication service.
+# Falls back to the `teapot.options` option when unset.
+TEAPOT_URL: str | None = None
+
 SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.web.api",
     "sentry.web.frontend",

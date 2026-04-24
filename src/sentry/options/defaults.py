@@ -448,6 +448,18 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Teapot (GPU crash dump symbolication service)
+register(
+    "teapot.enabled",
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "teapot.options",
+    default={"url": "http://127.0.0.1:8125"},
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for symbolication sources, based on a list of source IDs. Meant to be used in extreme
 # situations where it is preferable to break symbolication in a few places as opposed to letting
 # it break everywhere.

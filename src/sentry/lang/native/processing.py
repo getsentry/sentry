@@ -42,6 +42,10 @@ MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 # Attachment type used for Apple Crash Reports
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
+# Attachment type used for NVIDIA Aftermath GPU crash dumps.
+# Processed by teapot (sibling service to Symbolicator).
+GPU_CRASH_DUMP_ATTACHMENT_TYPE = "event.nv_gpudmp"
+
 # Rules for rewriting the debug file of the first module
 # in an Electron minidump.
 #
@@ -370,6 +374,88 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
             except Exception as e:
                 sentry_sdk.capture_exception(e)
 
+    return data
+
+
+def _merge_gpu_response(data: Any, response: Mapping[str, Any]) -> None:
+    """Write teapot's response into the event's gpu_crash context.
+
+    Never mutates the primary exception, debug_meta images, or trace context —
+    GPU symbolication is additive enrichment. Frames for the Phase 2
+    IssueOccurrence are stashed privately on ``data["_gpu_crash_private"]``
+    and never land in the user-visible event.
+    """
+
+    status = response.get("status")
+    if status == "failed":
+        set_path(
+            data,
+            "contexts",
+            "gpu_crash",
+            value={
+                "type": "gpu_crash",
+                "status": "failed",
+                "error": response.get("error", {}),
+                "handler": response.get("handler"),
+            },
+        )
+        return
+
+    gpu_context: dict[str, Any] = {
+        "type": "gpu_crash",
+        "status": status,
+        "handler": response.get("handler"),
+        "sdk_version": response.get("sdk_version"),
+        "decode_time_ms": response.get("decode_time_ms"),
+    }
+    for key in ("fault", "gpu_state", "shader_context"):
+        value = response.get(key)
+        if value:
+            gpu_context[key] = value
+    missing = response.get("missing_difs") or []
+    if missing:
+        gpu_context["missing_difs"] = missing
+    warnings = response.get("warnings") or []
+    if warnings:
+        gpu_context["warnings"] = warnings
+
+    set_path(data, "contexts", "gpu_crash", value=gpu_context)
+
+    frames = response.get("frames") or []
+    if frames:
+        # Private channel: picked up by Phase 2 to build the IssueOccurrence.
+        # Not persisted into Snuba / not shown in the UI.
+        data.setdefault("_gpu_crash_private", {})["frames"] = frames
+
+
+def process_gpu_crash_dump(data: Any, project: Any, event_id: str) -> Any:
+    """Enrich ``data`` with GPU crash symbolication from teapot, if available.
+
+    Safe to call on events that don't carry a GPU dump — returns unchanged.
+    Teapot being unavailable or erroring never fails the primary event.
+    """
+
+    # Deferred import: avoids importing `requests` at module import time for
+    # processes that don't touch this path.
+    from sentry.lang.native.teapot import submit_to_teapot
+
+    dump = get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    if not dump:
+        return data
+
+    metrics.incr("process.gpu.symbolicate.request")
+    response = submit_to_teapot(project, event_id, dump.load_data(project))
+    if response is None:
+        # Either misconfigured or teapot is down. Leave the event untouched —
+        # the CPU side still lands a full issue.
+        metrics.incr("process.gpu.symbolicate.skipped")
+        return data
+
+    _merge_gpu_response(data, response)
+    metrics.incr(
+        "process.gpu.symbolicate.completed",
+        tags={"status": response.get("status") or "unknown"},
+    )
     return data
 
 

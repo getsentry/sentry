@@ -160,6 +160,16 @@ def is_applecrashreport_event(data):
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
 
 
+def has_gpu_crash_dump_attachment(data: Any) -> bool:
+    """True iff the event carries a GPU crash dump attachment (e.g. .nv-gpudmp).
+
+    The attachment itself is the signal — no SDK-set mechanism marker required.
+    """
+    from sentry.lang.native.processing import GPU_CRASH_DUMP_ATTACHMENT_TYPE
+
+    return get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE) is not None
+
+
 class Backoff:
     """
     Creates a new exponential backoff.
