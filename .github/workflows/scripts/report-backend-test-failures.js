@@ -1,3 +1,21 @@
+// Backend test failure reporter — per-shard, append-only PR comment model.
+//
+// Design goals:
+//   - Failures appear on the PR immediately as each shard finishes, not after
+//     all shards complete. Each shard calls reportShard() independently.
+//   - A single PR comment accumulates all failures for a given commit. Shards
+//     append to it; nodeids already present are skipped (idempotent appends).
+//   - A new push (new SHA) triggers cleanup: stale comments from the previous
+//     commit are deleted and a fresh comment is started.
+//
+// Concurrency: the workflow uses cancel-in-progress, so when a new push lands
+// all prior shards are killed before new ones start. Stale comment deletion is
+// therefore safe: multiple new-push shards may all attempt to delete the same
+// old comment, but the first wins and the rest receive a 404 (caught and
+// swallowed). The one remaining race is two shards from the same push both
+// finding no existing comment and each calling createComment — this produces a
+// short-lived duplicate that subsequent shard appends will converge onto.
+
 import {readFileSync} from 'node:fs';
 import {basename, dirname} from 'node:path';
 
@@ -181,7 +199,7 @@ export async function reportShard({github, context, core}) {
   const failures = shardFailures.map(f => ({...f, jobUrl: jobUrls[f.artifactDir]}));
 
   // Only match comments for the same commit — a new push gets a fresh comment.
-  const existing = comments.find(c => c.body?.includes(marker) && !stale.includes(c));
+  const existing = comments.find(c => c.body?.includes(marker));
 
   // Append-only: skip failures whose nodeid is already in the comment.
   const seen = extractNodeids(existing?.body);
