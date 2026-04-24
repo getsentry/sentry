@@ -2,18 +2,19 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {keepPreviousData} from '@tanstack/react-query';
 
-import {ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconNext, IconPrevious, IconSentry} from 'sentry/icons';
+import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -30,6 +31,7 @@ function InvoiceDetails() {
   const {invoiceGuid} = useParams<{invoiceGuid: string}>();
 
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const {data: invoiceList} = useApiQuery<InvoiceBase[]>(
     [
@@ -59,6 +61,20 @@ function InvoiceDetails() {
   function receiptUrl(id: string) {
     return `/settings/${organization.slug}/billing/receipts/${id}/`;
   }
+
+  // Build a synthetic Link header string so <Pagination> can derive
+  // disabled state from results="false" / results="true".
+  // parseLinkHeader reads the cursor from the ; cursor="…" attribute, not the URL.
+  const pageLinks = invoiceList
+    ? [
+        prevId
+          ? `<.>; rel="previous"; results="true"; cursor="${prevId}"`
+          : `<.>; rel="previous"; results="false"`,
+        nextId
+          ? `<.>; rel="next"; results="true"; cursor="${nextId}"`
+          : `<.>; rel="next"; results="false"`,
+      ].join(', ')
+    : null;
 
   const {
     data: billingDetails,
@@ -110,26 +126,10 @@ function InvoiceDetails() {
       <SettingsPageHeader
         title={t('Receipt Details')}
         action={
-          invoiceList && (
-            <ButtonBar>
-              <LinkButton
-                size="sm"
-                to={prevId ? receiptUrl(prevId) : ''}
-                disabled={!prevId}
-                icon={<IconPrevious />}
-              >
-                {t('Previous')}
-              </LinkButton>
-              <LinkButton
-                size="sm"
-                to={nextId ? receiptUrl(nextId) : ''}
-                disabled={!nextId}
-                icon={<IconNext />}
-              >
-                {t('Next')}
-              </LinkButton>
-            </ButtonBar>
-          )
+          <InvoicePagination
+            pageLinks={pageLinks}
+            onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
+          />
         }
       />
       <Panel>
@@ -421,4 +421,10 @@ const FinePrint = styled('div')`
   margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.colors.gray400};
+`;
+
+// Strip the default top margin from Pagination so it sits cleanly in the
+// SettingsPageHeader action slot without extra spacing.
+const InvoicePagination = styled(Pagination)`
+  margin: 0;
 `;
