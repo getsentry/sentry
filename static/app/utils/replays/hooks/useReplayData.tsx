@@ -15,7 +15,7 @@ import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectS
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type Options = {
   /**

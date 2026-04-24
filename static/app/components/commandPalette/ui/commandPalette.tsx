@@ -279,6 +279,20 @@ export function CommandPalette(props: CommandPaletteProps) {
     [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
   );
 
+  // Dispatch the deferred reset once the close animation finishes. framer-motion
+  // only unmounts this component after the exit animation completes, so the
+  // cleanup runs at exactly the right time. If the user re-opens the palette
+  // before the animation ends, the component stays mounted and nothing fires.
+  const pendingResetRef = useRef(state.pendingReset);
+  pendingResetRef.current = state.pendingReset;
+  useEffect(() => {
+    return () => {
+      if (pendingResetRef.current) {
+        dispatch({type: 'reset'});
+      }
+    };
+  }, [dispatch]);
+
   const resultsListRef = useRef<HTMLDivElement>(null);
   const modifierKeysRef = useRef({shiftKey: false});
 
@@ -306,7 +320,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isLoading =
     (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
   const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && state.query.length === 0;
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
   return (
     <Fragment>
@@ -854,7 +868,7 @@ function makeMenuItemFromAction(
 ): CommandPaletteActionMenuItem {
   const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
-  const trailingItems =
+  const linkIndicator =
     'to' in action ? (
       <Flex
         align="center"
@@ -865,6 +879,13 @@ function makeMenuItemFromAction(
           {isExternal ? <IconOpen /> : <IconLink />}
         </IconDefaultsProvider>
       </Flex>
+    ) : undefined;
+  const trailingItems =
+    (action.display.trailingItem ?? linkIndicator) ? (
+      <Fragment>
+        {action.display.trailingItem}
+        {linkIndicator}
+      </Fragment>
     ) : undefined;
 
   return {

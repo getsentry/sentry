@@ -43,6 +43,10 @@ export function useBlockNavigation({
         e.preventDefault();
         onKeyPress?.(focusedBlockIndex, 'Enter');
       }
+
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);

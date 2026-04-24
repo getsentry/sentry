@@ -31,7 +31,7 @@ function makeSection(
   status: AutofixSection['status'],
   artifacts: AutofixArtifact[]
 ): AutofixSection {
-  return {step, artifacts, messages: [], status};
+  return {step, artifacts, blocks: [], status};
 }
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
