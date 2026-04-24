@@ -12,6 +12,7 @@ from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
@@ -342,6 +343,9 @@ class TestCommentWorkflow(GitlabCommentTestCase):
         self.app_id = "app_1"
         self.pr = self.create_pr_issues()
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:gitlab_pr_bot", value=True
+        )
 
     @patch(
         "sentry.integrations.gitlab.integration.GitlabPRCommentWorkflow.get_top_5_issues_by_count"

@@ -175,6 +175,7 @@ def process_mention_for_slack(
             linked_user_count = 0
 
         analytics_event = SlackSeerAgentResponded(
+            organization_id=organization.id,
             org_slug=organization.slug,
             user_id=user.id,
             username=user.username,

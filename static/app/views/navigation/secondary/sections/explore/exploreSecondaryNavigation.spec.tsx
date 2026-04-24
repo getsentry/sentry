@@ -57,4 +57,65 @@ describe('ExploreSecondaryNavigation', () => {
 
     expect(screen.getByText('Traces')).toBeInTheDocument();
   });
+
+  it('links Discover to homepage when discover-query is enabled', () => {
+    const {organization: orgWithQuery} = initializeOrg({
+      organization: {
+        features: [
+          'performance-view',
+          'visibility-explore-view',
+          'discover-basic',
+          'discover-query',
+        ],
+      },
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: orgWithQuery,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
+        },
+      }
+    );
+
+    expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/discover/homepage/'
+    );
+  });
+
+  it('links Discover to results when discover-query is disabled', () => {
+    const {organization: orgWithoutQuery} = initializeOrg({
+      organization: {
+        features: ['performance-view', 'visibility-explore-view', 'discover-basic'],
+      },
+    });
+
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization: orgWithoutQuery,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
+        },
+      }
+    );
+
+    expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/discover/results/'
+    );
+  });
 });

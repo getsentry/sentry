@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid, Stack, type GridProps} from '@sentry/scraps/layout';
@@ -14,8 +15,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageOverlay} from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -46,16 +46,12 @@ function DisabledMemberView(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<Organization>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/', {
-        path: {organizationIdOrSlug: orgSlug},
-      }),
-      {query: {detailed: '0', include_feature_flags: '1'}},
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {detailed: '0', include_feature_flags: '1'},
       staleTime: 0,
-    }
+    })
   );
 
   useEffect(() => {

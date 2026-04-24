@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -72,6 +72,7 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+  const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const topEvents = useTopEvents();
@@ -149,8 +150,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [aggregateFieldCount, displayFields.length, groupByFieldCount]);
 
   const firstColumnOffset = useMemo(() => {
-    return groupBys.length > 0 ? '15px' : '8px';
-  }, [groupBys]);
+    return groupBys.length > 0 ? '15px' : theme.space.lg;
+  }, [groupBys, theme.space.lg]);
 
   // Dividers: between last groupBy and first aggregate, and between all aggregates
   const shouldShowDivider = (index: number) => {
@@ -258,7 +259,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           })
         ) : isPending ? (
           <SimpleTable.Empty>
-            <LoadingIndicator />
+            <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
@@ -271,11 +272,13 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 }
 
 const AggregatesSimpleTable = styled(StyledSimpleTable)`
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
 `;
 
 const AggregatesTableBody = styled(StyledSimpleTableBody)`
-  overflow: unset;
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
 const AggregatesStyledHeader = styled(StyledSimpleTableHeader)`

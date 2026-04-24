@@ -91,7 +91,7 @@ function makeSection(
   return {
     step,
     artifacts: artifacts ?? defaultArtifacts(step),
-    messages: [],
+    blocks: [],
     status: 'completed',
   };
 }
