@@ -454,7 +454,7 @@ export function BlockComponent({
                           size="xs"
                           variant="muted"
                           monospace
-                          isHighlighted={hasLink}
+                          isHighlighted={hasLink && isHighlighted}
                         >
                           {toolString}
                         </ToolCallText>
