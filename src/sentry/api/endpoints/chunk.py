@@ -237,7 +237,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         encoding = request.headers.get("Content-Encoding", "").strip().lower()
         if encoding and encoding not in CHUNK_UPLOAD_COMPRESSION:
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response(
                 {"error": "Unsupported Content-Encoding"}, status=status.HTTP_400_BAD_REQUEST
             )
@@ -246,7 +246,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         files_gzip_legacy = request.FILES.getlist("file_gzip")
 
         if encoding and files_gzip_legacy:
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response(
                 {"error": "Cannot combine Content-Encoding with file_gzip field"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -271,14 +271,14 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         try:
             for chunk, name in get_files(request, encoding):
                 if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
-                    logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
                         {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
                     )
 
                 total_size += chunk.size
                 if total_size > MAX_REQUEST_SIZE:
-                    logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
                     return Response(
                         {"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST
                     )
@@ -286,13 +286,13 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
                 files.append(chunk)
                 checksums.append(name)
         except ChunkTooLarge:
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST)
         except zstandard.ZstdError:
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Invalid zstd payload"}, status=status.HTTP_400_BAD_REQUEST)
         except (BadGzipFile, EOFError):
-            logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
             return Response({"error": "Invalid gzip payload"}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.post.files", extra={"len": len(files)})
