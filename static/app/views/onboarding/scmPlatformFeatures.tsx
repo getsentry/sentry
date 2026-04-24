@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Separator} from '@sentry/scraps/separator';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {closeModal, openConsoleModal, openModal} from 'sentry/actionCreators/modal';
@@ -37,7 +37,6 @@ import {ScmPlatformCard} from 'sentry/views/onboarding/components/scmPlatformCar
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import {ScmSearchControl} from './components/scmSearchControl';
-import {ScmStepHeader} from './components/scmStepHeader';
 import {ScmVirtualizedMenuList} from './components/scmVirtualizedMenuList';
 import {
   useScmPlatformDetection,
@@ -442,13 +441,22 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
     (!currentPlatformKey || currentPlatformIsDetected);
 
   return (
-    <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
-      <ScmStepHeader
-        heading={t('Platform & features')}
-        subtitle={t('Select your SDK first, then choose the features to enable.')}
-      />
+    <Stack align="center" gap="3xl" flexGrow={1}>
+      <Heading as="h2" size="4xl">
+        {t('Create your first project')}
+      </Heading>
 
       <LayoutGroup>
+        <MotionStack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="md">
+          <Heading as="h3" size="xl">
+            {t('Choose your SDK')}
+          </Heading>
+          <Text variant="muted" size="lg" density="comfortable">
+            {t(
+              'Each Sentry project collects data from one service or app. Select a language or framework you want to get started monitoring with our SDKs.'
+            )}
+          </Text>
+        </MotionStack>
         {showDetectedPlatforms ? (
           <MotionStack
             key="detected"
@@ -569,7 +577,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           </Button>
         </Flex>
       </GenericFooter>
-    </Flex>
+    </Stack>
   );
 }
 

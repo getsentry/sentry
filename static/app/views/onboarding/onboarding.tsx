@@ -85,7 +85,7 @@ const scmOnboardingSteps: StepDescriptor[] = [
   },
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
-    title: t('Platform & features'),
+    title: t('Create your first project'),
     Component: ScmPlatformFeatures,
     hasFooter: true,
     cornerVariant: 'top-left',

@@ -829,7 +829,7 @@ describe('Onboarding', () => {
         },
       });
 
-      expect(screen.getByText('Platform & features')).toBeInTheDocument();
+      expect(screen.getByText('Create your first project')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
