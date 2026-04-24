@@ -1,21 +1,18 @@
 import logging
+from collections import defaultdict
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.constants import ObjectStatus
-from sentry.hybridcloud.rpc.service import RpcRemoteException
-from sentry.models.organization import Organization
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.types.cell import CellMappingNotFound
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
 
-# Maps OrganizationOption key -> (integration provider, OI config key).
-# Mirrors the mapping used by the live fan-out write in
-# src/sentry/core/endpoints/organization_details.py so a backfill and
+# Maps integration provider -> list of (OrganizationOption key, OI config key)
+# pairs. Mirrors the live fan-out write in
+# src/sentry/core/endpoints/organization_details.py so the backfill and
 # any newly installed OI end up consistent.
 _PROVIDER_KEYS = {
     "github": [
@@ -27,63 +24,120 @@ _PROVIDER_KEYS = {
     ],
 }
 
+_LEGACY_KEYS = [opt_key for pairs in _PROVIDER_KEYS.values() for opt_key, _ in pairs]
+
 
 def backfill_scm_integration_config(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
-    # `sentry_organizationintegration` is control-silo; `sentry_organizationoptions`
-    # is region-silo. This migration is routed to control via the `tables` hint
-    # below, so we read OI rows locally but fetch the legacy option values over
-    # the cell RPC instead of a cross-silo SQL query (which is impossible).
-    from sentry.organizations.services.organization import organization_service
+    """
+    Iterate the legacy OrganizationOption rows on the region silo (only orgs
+    that ever flipped one of the three toggles — a few thousand in prod) and
+    fan out updates to the control-silo OrganizationIntegration via RPC.
 
-    OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
+    We only consider rows whose value is exactly True; the new read path
+    treats a missing OI config key as false, so any other shape is a no-op.
+    """
+    # Imports are deferred so that breakage in these modules surfaces
+    # at runtime (when this migration is replayed on a fresh DB),
+    # not at migration-plan resolution time for every `migrate`.
+    #
+    # The bigger risk isn't the symbol surface, though -- it's that
+    # `integration_service` reads and writes the live
+    # `sentry_organizationintegration` table, not the historical
+    # snapshot we'd get via `apps.get_model`. If that table's schema
+    # or the meaning of `config` changes in a way this backfill's
+    # payload doesn't account for, replays on fresh self-hosted DBs
+    # will misbehave. We accept that: if/when it happens, this
+    # migration body is noop'd. By then getsentry prod and most
+    # self-hosted installs will already have run it; the residual
+    # risk is a small set of self-hosted users on a very old version
+    # with one of the legacy toggles set to true, who upgrade past
+    # the noop and don't get those toggles carried over to the
+    # per-OI config. That's preferable to keeping the OI table
+    # frozen indefinitely.
+    #
+    # We considered using a new outbox category to drive the
+    # cross-silo write instead. That doesn't actually remove the
+    # risk, it just relocates it onto the outbox tables: the live
+    # worker still dispatches against the current
+    # `sentry_organizationintegration` schema, and our rows would be
+    # tagged with a category enum entry that future code may retire
+    # -- leaving un-migrated installs with outbox rows the worker
+    # can't decode. Same cleanup shape (noop the migration body),
+    # with extra plumbing (category enum, signal receiver, drain
+    # semantics) and no real decoupling. The RPC path is also
+    # synchronous and observable, which is what an operator running
+    # a post-deploy migration wants.
+    from sentry.hybridcloud.rpc.service import RpcRemoteException
+    from sentry.integrations.services.integration import integration_service
+    from sentry.types.cell import CellMappingNotFound
 
-    # Iterate the whole OI table — the approx wrapper needs an unfiltered
-    # queryset, and we don't have an index on (status, id) or
-    # (integration_id, id) for a filtered range scan. Filtering in Python
-    # is cheaper than either alternative.
-    queryset = OrganizationIntegration.objects.all().select_related("integration")
+    OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
-    option_cache: dict[tuple[int, str], object] = {}
+    queryset = OrganizationOption.objects.filter(key__in=_LEGACY_KEYS, value=True)
 
-    for oi in RangeQuerySetWrapperWithProgressBarApprox(queryset):
-        if oi.status != ObjectStatus.ACTIVE:
-            continue
-        provider = oi.integration.provider
-        key_pairs = _PROVIDER_KEYS.get(provider)
-        if not key_pairs:
-            continue
+    opts_by_org: defaultdict[int, set[str]] = defaultdict(set)
+    for opt in queryset:
+        opts_by_org[opt.organization_id].add(opt.key)
 
-        config = dict(oi.config or {})
-        changed = False
-        for opt_key, cfg_key in key_pairs:
-            if cfg_key in config:
+    # For each org with at least one true-valued legacy option, find the
+    # ACTIVE OIs of each provider that owns one of the matching keys.
+    for organization_id, opts in opts_by_org.items():
+        for provider, key_pairs in _PROVIDER_KEYS.items():
+            # Skip providers whose owned keys aren't set on this org. e.g.
+            # if only sentry:gitlab_pr_bot is true, don't bother RPC-listing
+            # the github OIs.
+            if not any(opt_key in opts for opt_key, _ in key_pairs):
                 continue
-            cache_key = (oi.organization_id, opt_key)
-            if cache_key not in option_cache:
-                try:
-                    option_cache[cache_key] = organization_service.get_option(
-                        organization_id=oi.organization_id, key=opt_key
+
+            try:
+                ois = integration_service.get_organization_integrations(
+                    organization_id=organization_id,
+                    providers=[provider],
+                    status=ObjectStatus.ACTIVE,
+                )
+            except (CellMappingNotFound, RpcRemoteException):
+                logger.exception(
+                    "scm_backfill.list_failed",
+                    extra={
+                        "organization_id": organization_id,
+                        "provider": provider,
+                    },
+                )
+                continue
+
+            # An org can have multiple ACTIVE installs of the same provider
+            # (multi-org GitHub apps); each gets its own per-install config.
+            for oi in ois:
+                config = dict(oi.config or {})
+                set_keys: list[str] = []
+                # Backfill every owned key that's true on the org and not
+                # already present on the OI. Keys already set are left
+                # alone — the per-install UI may have set them explicitly.
+                for opt_key, cfg_key in key_pairs:
+                    if opt_key in opts and cfg_key not in config:
+                        config[cfg_key] = True
+                        set_keys.append(cfg_key)
+
+                if set_keys:
+                    # Exceptions from the write are deliberately uncaught: if
+                    # this fails we want the migration to abort loudly so an
+                    # operator can investigate, rather than silently dropping
+                    # a true toggle on the floor and leaving an org with the
+                    # wrong setting.
+                    integration_service.update_organization_integration(
+                        org_integration_id=oi.id, config=config
                     )
-                except (Organization.DoesNotExist, CellMappingNotFound, RpcRemoteException):
-                    # OI references an org that's already been deleted on the
-                    # region silo. The HybridCloudForeignKey cascade is async
-                    # across silos so this window is expected. In monolith /
-                    # tests the region raises Organization.DoesNotExist; in
-                    # split-silo the cell resolver raises CellMappingNotFound
-                    # (mapping gone) or RpcRemoteException (mapping intact,
-                    # region-side DoesNotExist wrapped by the RPC framework).
-                    option_cache[cache_key] = None
-            value = option_cache[cache_key]
-            if value is None:
-                continue
-            config[cfg_key] = bool(value)
-            changed = True
-
-        if changed:
-            oi.config = config
-            oi.save(update_fields=["config"])
+                    logger.info(
+                        "scm_backfill.set",
+                        extra={
+                            "organization_id": organization_id,
+                            "org_integration_id": oi.id,
+                            "provider": provider,
+                            "keys": set_keys,
+                        },
+                    )
 
 
 class Migration(CheckedMigration):
@@ -109,6 +163,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_scm_integration_config,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_organizationintegration"]},
+            hints={"tables": ["sentry_organizationoptions"]},
         ),
     ]
