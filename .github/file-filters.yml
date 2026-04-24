@@ -111,7 +111,7 @@ acceptance: &acceptance
 # Used in `getsentry-dispatch.js` to decide whether to run getsentry's
 # acceptance suite against a sentry PR. Scoped to gsApp frontend changes.
 gsapp: &gsapp
-  - added|modified: 'static/gsApp/**/*.{ts,tsx}'
+  - added|deleted|modified: 'static/gsApp/**/*.{ts,tsx}'
 
 api_docs: &api_docs
   - *backend_all
