@@ -385,7 +385,7 @@ describe('AutofixEvidence', () => {
         })
       );
       render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
-      expect(screen.getByText('Commits: src/foo/bar.py')).toBeInTheDocument();
+      expect(screen.getByText('Commits: bar.py')).toBeInTheDocument();
     });
 
     it('renders commits label with truncated file_path when file_path is long', () => {
@@ -396,11 +396,11 @@ describe('AutofixEvidence', () => {
           repo_name: REPO_NAME,
           start_date: START_DATE,
           end_date: END_DATE,
-          file_path: 'src/components/evidence.tsx',
+          file_path: 'src/components/thisisalongfilename.tsx',
         })
       );
       render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
-      expect(screen.getByText('Commits: src/comp…ence.tsx')).toBeInTheDocument();
+      expect(screen.getByText('Commits: thisisal\u2026name.tsx')).toBeInTheDocument();
     });
 
     it('prefers single commit path when both param sets are present', () => {

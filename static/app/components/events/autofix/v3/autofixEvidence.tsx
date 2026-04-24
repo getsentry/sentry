@@ -254,7 +254,7 @@ function getCodeSearchEvidenceProps({
     if (typeof path !== 'string') {
       return null;
     }
-    const filename = path.split('/').pop();
+    const filename = extractFileName(path);
     const {code_url} = toolLink?.params ?? {};
 
     if (!defined(filename) || !defined(code_url)) {
@@ -293,13 +293,12 @@ function getGitSearchEvidenceProps({
     typeof start_date === 'string' &&
     typeof end_date === 'string'
   ) {
+    const fileName =
+      typeof file_path === 'string' ? extractFileName(file_path) : undefined;
     return {
       href: commits_url,
       icon: <IconGithub />, // TODO: support other SCMs
-      label: t(
-        'Commits: %s',
-        typeof file_path === 'string' ? truncateText(file_path) : repo_name
-      ),
+      label: t('Commits: %s', fileName ? truncateText(fileName) : repo_name),
       tooltip: (
         <Fragment>
           {typeof file_path === 'string' ? file_path : repo_name}
@@ -336,6 +335,10 @@ function parseArgs(toolCall: ToolCall): any {
   } catch {
     return {};
   }
+}
+
+function extractFileName(filePath: string): string | undefined {
+  return filePath.split('/').pop();
 }
 
 function truncateText(text: string, maxLength = 16): string {
