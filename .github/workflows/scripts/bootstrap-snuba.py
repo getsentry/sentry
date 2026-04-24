@@ -20,7 +20,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, NoReturn
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -55,7 +55,7 @@ def log(msg: str) -> None:
     print(msg, flush=True)
 
 
-def fail(msg: str) -> None:
+def fail(msg: str) -> NoReturn:
     log(f"::error::{msg}")
     sys.exit(1)
 

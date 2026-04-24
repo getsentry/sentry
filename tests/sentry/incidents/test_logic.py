@@ -1024,6 +1024,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=Actor.from_identifier(f"team:{self.team.id}"),
         )
+        alert_rule = AlertRule.objects.get(id=alert_rule.id)
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
@@ -1031,6 +1032,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=Actor.from_identifier(f"user:{self.user.id}"),
         )
+        alert_rule = AlertRule.objects.get(id=alert_rule.id)
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
@@ -1038,6 +1040,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=Actor.from_identifier(self.user.id),
         )
+        alert_rule = AlertRule.objects.get(id=alert_rule.id)
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
@@ -1045,6 +1048,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             name="not updating owner",
         )
+        alert_rule = AlertRule.objects.get(id=alert_rule.id)
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
@@ -1052,6 +1056,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule=alert_rule,
             owner=None,
         )
+        alert_rule = AlertRule.objects.get(id=alert_rule.id)
         assert alert_rule.user_id is None
         assert alert_rule.team_id is None
 
