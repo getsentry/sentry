@@ -142,7 +142,7 @@ function EventTagsTreeRowDropdown({
   }
 
   const referrer = 'event-tags-table';
-  const highlightTagSet = new Set(project?.highlightTags ?? []);
+  const highlightTagSet = new Set(project?.highlightTags);
   const hideAddHighlightsOption =
     // Check for existing highlight record to prevent replacing all with a single tag if we receive a project summary (instead of a detailed project)
     project?.highlightTags &&
