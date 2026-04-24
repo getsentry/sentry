@@ -595,11 +595,10 @@ class PushEventWebhook(GitHubWebhook):
                             author.update(**update_kwargs)
                     except IntegrityError:
                         pass
+
+                author.preload_users()
             else:
                 author = authors[author_email]
-
-            if author:
-                author.preload_users()
             try:
                 with transaction.atomic(router.db_for_write(Commit)):
                     c = Commit.objects.create(

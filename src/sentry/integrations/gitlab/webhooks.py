@@ -403,11 +403,10 @@ class PushEventWebhook(GitlabWebhook):
                     email=author_email,
                     defaults={"name": commit["author"]["name"]},
                 )[0]
+                author.preload_users()
             else:
                 author = authors[author_email]
             try:
-                if author is not None:
-                    author.preload_users()
                 with transaction.atomic(router.db_for_write(Commit)):
                     Commit.objects.create(
                         repository_id=repo.id,
