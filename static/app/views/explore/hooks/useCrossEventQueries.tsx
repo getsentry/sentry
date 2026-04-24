@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
 import {
   createTraceMetricEventsFilter,
@@ -41,9 +40,8 @@ export function useCrossEventQueries() {
           if (!isCompleteTraceMetric(metric)) {
             break;
           }
-          const search = new MutableSearch(createTraceMetricEventsFilter([metric]));
-          search.addFreeText(crossEvent.query);
-          metricQuery.push(search.formatString());
+          const filter = createTraceMetricEventsFilter([metric]);
+          metricQuery.push(crossEvent.query ? `${filter} ${crossEvent.query}` : filter);
           break;
         }
       }

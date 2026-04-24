@@ -178,6 +178,26 @@ describe('useCrossEventQueries', () => {
     });
   });
 
+  it('preserves multi-filter queries alongside metric identity filters', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {
+          type: 'metrics',
+          query: 'env:prod status:ok',
+          metric: {name: 'my_metric', type: 'distribution', unit: 'ms'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:distribution metric.unit:ms ) env:prod status:ok',
+      ],
+    });
+  });
+
   it('drops metric entries without a selected metric name', () => {
     const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
