@@ -27,6 +27,9 @@ describe('AutofixGithubCopilotQuotaModal', () => {
     const manageButton = await screen.findByRole('button', {
       name: 'Manage Copilot Plan',
     });
-    expect(manageButton).toHaveAttribute('href', 'https://github.com/settings/copilot');
+    expect(manageButton).toHaveAttribute(
+      'href',
+      'https://github.com/features/copilot/plans'
+    );
   });
 });

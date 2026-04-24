@@ -8,9 +8,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 
-const COPILOT_PLANS_URL = 'https://github.com/settings/copilot';
+const COPILOT_PLANS_URL = 'https://github.com/features/copilot/plans';
 const COPILOT_QUOTA_DOCS_URL =
-  'https://docs.github.com/en/copilot/managing-copilot/understanding-and-managing-copilot-usage/understanding-and-managing-requests-in-copilot';
+  'https://docs.github.com/en/copilot/concepts/billing/copilot-requests';
 
 export function AutofixGithubCopilotQuotaModal({
   Header,
