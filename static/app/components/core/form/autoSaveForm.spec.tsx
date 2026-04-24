@@ -6,6 +6,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
+import {RequestError} from 'sentry/utils/requestError/requestError';
+
 const testSchema = z.object({
   testField: z.string(),
 });
@@ -92,6 +94,144 @@ describe('AutoSaveForm', () => {
       await waitFor(() => {
         expect(input).toHaveValue('HELLO');
       });
+    });
+  });
+
+  describe('error handling', () => {
+    it('shows generic error for non-RequestError', async () => {
+      function TestComponent() {
+        return (
+          <AutoSaveForm
+            name="testField"
+            schema={testSchema}
+            initialValue="initial"
+            mutationOptions={{
+              mutationFn: () => {
+                throw new Error('network failure');
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row label="Name">
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Meta />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        );
+      }
+
+      render(<TestComponent />);
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'new value');
+      await userEvent.tab();
+
+      expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+    });
+
+    it('shows backend field error from RequestError', async () => {
+      function TestComponent() {
+        return (
+          <AutoSaveForm
+            name="testField"
+            schema={testSchema}
+            initialValue="initial"
+            mutationOptions={{
+              mutationFn: () => {
+                const error = new RequestError('POST', '/test/', new Error('test'));
+                error.responseJSON = {testField: ['This value is not allowed']};
+                throw error;
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row label="Name">
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Meta />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        );
+      }
+
+      render(<TestComponent />);
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'new value');
+      await userEvent.tab();
+
+      expect(await screen.findByText('This value is not allowed')).toBeInTheDocument();
+    });
+
+    it('shows generic error when RequestError has no matching field errors', async () => {
+      function TestComponent() {
+        return (
+          <AutoSaveForm
+            name="testField"
+            schema={testSchema}
+            initialValue="initial"
+            mutationOptions={{
+              mutationFn: () => {
+                const error = new RequestError('POST', '/test/', new Error('test'));
+                error.responseJSON = {unrelatedField: ['some error']};
+                throw error;
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row label="Name">
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Meta />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        );
+      }
+
+      render(<TestComponent />);
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'new value');
+      await userEvent.tab();
+
+      expect(await screen.findByText('Failed to save')).toBeInTheDocument();
+    });
+
+    it('shows generic error when RequestError has no responseJSON', async () => {
+      function TestComponent() {
+        return (
+          <AutoSaveForm
+            name="testField"
+            schema={testSchema}
+            initialValue="initial"
+            mutationOptions={{
+              mutationFn: () => {
+                throw new RequestError('POST', '/test/', new Error('test'));
+              },
+            }}
+          >
+            {field => (
+              <field.Layout.Row label="Name">
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Meta />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        );
+      }
+
+      render(<TestComponent />);
+
+      const input = screen.getByRole('textbox', {name: 'Name'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'new value');
+      await userEvent.tab();
+
+      expect(await screen.findByText('Failed to save')).toBeInTheDocument();
     });
   });
 });

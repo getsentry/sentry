@@ -1,11 +1,11 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t, tct} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
-  useMutation,
-  useQueryClient,
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';

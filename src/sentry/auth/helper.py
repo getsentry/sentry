@@ -1017,7 +1017,11 @@ class AuthHelper(Pipeline[AuthProvider, AuthHelperSessionStore]):
             organization_id=self.organization.id, provider=self.provider.key, config=config
         )
 
-        self.auth_handler(identity).handle_attach_identity(om)
+        # The setup flow should always link the identity to the admin who is
+        # performing setup, so override the email to ensure resolve_email_to_user
+        # returns the authenticated user rather than whoever the IdP asserted.
+        setup_identity = {**identity, "email": request.user.email}
+        self.auth_handler(setup_identity).handle_attach_identity(om)
 
         auth.mark_sso_complete(request, self.organization.id)
 

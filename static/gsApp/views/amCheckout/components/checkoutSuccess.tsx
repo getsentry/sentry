@@ -16,8 +16,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -516,7 +514,6 @@ export function CheckoutSuccess({
   previewData,
 }: CheckoutSuccessProps) {
   const organization = useOrganization();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const viewSubscriptionQueryParams =
     nextQueryParams.length > 0 ? `?${nextQueryParams.join('&')}` : '';
 
@@ -619,18 +616,7 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions}>
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            ) : (
-              <FeedbackButton
-                feedbackOptions={checkoutSuccessFeedbackOptions}
-                size="md"
-              />
-            )}
+            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
           </Flex>
         </Flex>
       </Flex>

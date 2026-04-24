@@ -1,3 +1,4 @@
+import {noCallingComponentsAsFunctions} from './no-calling-components-as-functions';
 import {noDefaultExports} from './no-default-exports';
 import {noDigitsInTn} from './no-digits-in-tn';
 import {noDynamicTranslations} from './no-dynamic-translations';
@@ -9,6 +10,7 @@ import {noUnnecessaryTypeNarrowing} from './no-unnecessary-type-narrowing';
 import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';
 
 export const rules = {
+  'no-calling-components-as-functions': noCallingComponentsAsFunctions,
   'no-default-exports': noDefaultExports,
   'no-digits-in-tn': noDigitsInTn,
   'no-dynamic-translations': noDynamicTranslations,

@@ -4,16 +4,20 @@ import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {
   Block,
   ToolCall,
@@ -377,10 +381,17 @@ export function getToolsStringFromBlock(block: Block): string[] {
   const isLoading = block.loading ?? false;
   const toolCalls = block.message.tool_calls || [];
   const toolLinks = block.tool_links || [];
+  const toolResults = block.tool_results || [];
 
-  for (let i = 0; i < toolCalls.length; i++) {
-    const tool = toolCalls[i] as ToolCall;
-    const toolLink = toolLinks[i];
+  const toolLinkByCallId = new Map<string, ToolLink | null>();
+  toolResults.forEach((result, idx) => {
+    if (result?.tool_call_id) {
+      toolLinkByCallId.set(result.tool_call_id, toolLinks[idx] ?? null);
+    }
+  });
+
+  for (const tool of toolCalls) {
+    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
@@ -416,7 +427,9 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  // Allows multi-hyphen project slugs like FRONTEND-REACT-59A or BACKEND-RUBY-ON-RAILS-58
+  const shortIdPattern =
+    /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -976,7 +989,37 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+/**
+ * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ */
+export function useSeerExplorerDeepLink({
+  callback,
+  enabled = true,
+}: {
+  callback: (runId: number) => void;
+  enabled?: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (!paramValue || typeof paramValue !== 'string') {
+      return;
+    }
+
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+      callback(parsedRunId);
+    }
+  }, [location, navigate, callback, enabled]);
+}
 
 /**
  * Returns the URL of the current window with the run ID query param set.
@@ -989,6 +1032,23 @@ export function getExplorerUrl(runId: number | string): string {
 
 export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
+}
+
+export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+  return {
+    formTitle: 'Seer Agent Feedback',
+    messagePlaceholder: 'How can we make Seer better for you?',
+    tags: {
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      ...(runId === null
+        ? {}
+        : {['conversations_url']: getConversationsUrl('sentry', runId)}),
+    },
+  };
 }
 
 /**

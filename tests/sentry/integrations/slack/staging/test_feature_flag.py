@@ -1,4 +1,7 @@
-from sentry.testutils.cases import APITestCase, TestCase
+from django.urls import reverse
+
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
@@ -24,22 +27,34 @@ class SlackStagingConfigVisibilityTest(APITestCase):
 
 
 @control_silo_test
-class SlackStagingSetupAccessTest(TestCase):
+class SlackStagingSetupAccessTest(APITestCase):
     """Test that the slack-staging install flow is gated by the feature flag."""
+
+    endpoint = "sentry-api-0-organization-pipeline"
 
     def setUp(self) -> None:
         super().setUp()
-        self.organization = self.create_organization(name="test", owner=self.user)
         self.login_as(self.user)
-        self.path = f"/organizations/{self.organization.slug}/integrations/slack_staging/setup/"
+        self.pipeline_url = reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
 
     def test_setup_blocked_without_flag(self) -> None:
-        resp = self.client.get(self.path)
+        resp = self.client.post(
+            self.pipeline_url,
+            data={"action": "initialize", "provider": "slack_staging"},
+            content_type="application/json",
+        )
         assert resp.status_code == 404
 
     def test_setup_allowed_with_flag(self) -> None:
         with self.feature("organizations:integrations-slack-staging"):
-            resp = self.client.get(self.path)
-        # 302 to Slack OAuth is the expected behavior for a valid setup flow
-        assert resp.status_code == 302
-        assert "slack.com/oauth" in resp["Location"]
+            resp = self.client.post(
+                self.pipeline_url,
+                data={"action": "initialize", "provider": "slack_staging"},
+                content_type="application/json",
+            )
+        assert resp.status_code == 200
+        assert resp.data["step"] == "oauth_login"
+        assert "slack.com/oauth" in resp.data["data"]["oauthUrl"]

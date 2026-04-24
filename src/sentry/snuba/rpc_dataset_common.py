@@ -1118,6 +1118,9 @@ class RPCBase:
         referrer: str,
         config: SearchResolverConfig,
         search_resolver: SearchResolver | None = None,
+        attributes: list[AttributeKey] | None = None,
+        max_buckets: int = 75,
+        skip_translate_internal_to_public_alias: bool = False,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError()
 

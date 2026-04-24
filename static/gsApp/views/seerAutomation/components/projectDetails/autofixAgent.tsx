@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -11,10 +12,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {
   getProjectAgentMutationOptions,
-  useCodingAgentSelectOptions,
+  getCodingAgentSelectQueryOptions,
   getSelectedAgentForProject,
 } from 'sentry/utils/seer/preferredAgent';
 import {
@@ -23,7 +23,6 @@ import {
   getProjectStoppingPointValue,
 } from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
@@ -34,7 +33,7 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  const agentOptions = useCodingAgentSelectOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
 
   // Derive the integration objects from the options data for the agent selector
   const integrations = useMemo(
@@ -57,7 +56,6 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
 
   const stoppingPointMutationOptions = getProjectStoppingPointMutationOptions({
     organization,
-    project,
     queryClient,
   });
 
@@ -124,7 +122,27 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
         })}
         initialValue={stoppingPointValue}
-        mutationOptions={stoppingPointMutationOptions}
+        mutationOptions={{
+          mutationFn: (vars, fnCtx) =>
+            stoppingPointMutationOptions.mutationFn!({...vars, project}, fnCtx),
+          onMutate: (vars, fnCtx) =>
+            stoppingPointMutationOptions.onMutate!({...vars, project}, fnCtx),
+          onError: (error, vars, mutateResult, fnCtx) =>
+            stoppingPointMutationOptions.onError?.(
+              error,
+              {...vars, project},
+              mutateResult,
+              fnCtx
+            ),
+          onSettled: (data, error, vars, mutateResult, fnCtx) =>
+            stoppingPointMutationOptions.onSettled?.(
+              data,
+              error,
+              {...vars, project},
+              mutateResult,
+              fnCtx
+            ),
+        }}
       >
         {field => (
           <field.Layout.Row

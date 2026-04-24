@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import logging
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
@@ -206,6 +206,11 @@ class BulkRemoveRepositoriesRequest(TypedDict):
     repositories: list[RepoIdentifier]
 
 
+class RemoveHandoffsForIntegrationRequest(TypedDict):
+    organization_id: int
+    integration_id: int
+
+
 class ExplorerIndexProject(TypedDict):
     org_id: int
     project_id: int
@@ -232,6 +237,8 @@ class LlmGenerateRequest(TypedDict):
     temperature: float
     max_tokens: int
     response_schema: NotRequired[dict[str, Any]]
+    timeout: NotRequired[float | None]
+    reasoning: NotRequired[Literal["off", "low", "med", "high"] | None]
 
 
 class RepoDetails(TypedDict):
@@ -313,6 +320,20 @@ def make_bulk_remove_repositories_request(
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
         "/v1/project-preference/bulk-remove-repositories",
+        body=orjson.dumps(body),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+def make_remove_handoffs_for_integration_request(
+    body: RemoveHandoffsForIntegrationRequest,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        "/v1/project-preference/remove-handoffs-for-integration",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -729,12 +750,3 @@ def sign_with_seer_secret(body: bytes) -> dict[str, str]:
         )
         metrics.incr("seer.unsigned_request", sample_rate=1.0)
     return auth_headers
-
-
-def sign_viewer_context(context_bytes: bytes) -> str:
-    """Sign the viewer context payload with the shared secret."""
-    return hmac.new(
-        settings.SEER_API_SHARED_SECRET.encode("utf-8"),
-        context_bytes,
-        hashlib.sha256,
-    ).hexdigest()

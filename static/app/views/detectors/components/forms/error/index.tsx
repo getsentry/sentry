@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import {Observer} from 'mobx-react-lite';
@@ -7,30 +8,39 @@ import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormContext} from 'sentry/components/forms/formContext';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationFeedbackButton} from 'sentry/views/automations/components/automationFeedbackButton';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {EditDetectorBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
+import {
+  makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
+  makeMonitorTypePathname,
+} from 'sentry/views/detectors/pathnames';
+import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getNoPermissionToEditMonitorTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
 import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type ErrorDetectorFormData = {
   workflowIds: string[];
 };
 
-function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
+function ErrorDetectorForm({project}: {project: Project}) {
   const organization = useOrganization();
-  const project = useProjectFromId({project_id: detector.projectId});
   const theme = useTheme();
 
   return (
@@ -43,7 +53,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               {
                 link: (
                   <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/issue-grouping/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/issue-grouping/`}
                   />
                 ),
               }
@@ -59,7 +69,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               {
                 link: (
                   <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/ownership/`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
                   />
                 ),
               }
@@ -89,7 +99,7 @@ function ErrorDetectorForm({detector}: {detector: ErrorDetector}) {
               {
                 link: (
                   <Link
-                    to={`/settings/${organization.slug}/projects/${project?.slug}/#resolveAge`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/#resolveAge`}
                   />
                 ),
               }
@@ -114,10 +124,17 @@ export function NewErrorDetectorForm() {
   );
 }
 
-export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetector}) {
-  const project = useProjectFromId({project_id: detector.projectId});
+export function EditExistingErrorDetectorForm({
+  detector,
+  project,
+}: {
+  detector: ErrorDetector;
+  project: Project;
+}) {
+  const organization = useOrganization();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   // Error monitors only allow editing workflow connections right now, so that's the only permission we need to check
   const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
@@ -147,18 +164,45 @@ export function EditExistingErrorDetectorForm({detector}: {detector: ErrorDetect
         onSubmit: handleFormSubmit,
       }}
     >
-      <EditLayout.Header>
-        <EditLayout.HeaderContent>
-          <EditDetectorBreadcrumbs detector={detector} />
-          <EditLayout.Title title={detector.name} project={project} />
-        </EditLayout.HeaderContent>
-        <EditLayout.Actions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="title">
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Monitors'),
+                  to: makeMonitorBasePathname(organization.slug),
+                },
+                {
+                  label: getDetectorTypeLabel(detector.type),
+                  to: makeMonitorTypePathname(organization.slug, detector.type),
+                },
+                {
+                  label: <ProjectBadge disableLink project={project} avatarSize={16} />,
+                  to: makeMonitorDetailsPathname(organization.slug, detector.id),
+                },
+                {label: t('Configure')},
+              ]}
+            />
+          </TopBar.Slot>
           <AutomationFeedbackButton />
-        </EditLayout.Actions>
-      </EditLayout.Header>
+        </Fragment>
+      ) : (
+        <EditLayout.Header>
+          <EditLayout.HeaderContent>
+            <Fragment>
+              <EditDetectorBreadcrumbs detector={detector} />
+              <EditLayout.Title title={detector.name} project={project} />
+            </Fragment>
+          </EditLayout.HeaderContent>
+          <EditLayout.Actions>
+            <AutomationFeedbackButton />
+          </EditLayout.Actions>
+        </EditLayout.Header>
+      )}
 
       <EditLayout.Body>
-        <ErrorDetectorForm detector={detector} />
+        <ErrorDetectorForm project={project} />
       </EditLayout.Body>
 
       <FormContext.Consumer>

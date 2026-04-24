@@ -64,6 +64,7 @@ def send_translate_agentic_request(
     natural_language_query: str,
     strategy: str = "Traces",
     model_name: str | None = None,
+    metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
 ) -> Any:
     """
@@ -79,6 +80,8 @@ def send_translate_agentic_request(
     options: dict[str, Any] = {}
     if model_name is not None:
         options["model_name"] = model_name
+    if metric_context is not None:
+        options["metric_context"] = metric_context
     if options:
         body["options"] = options
 
@@ -114,6 +117,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
         strategy = validated_data.get("strategy", "Traces")
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
+        metric_context = options.get("metric_context")
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -147,6 +151,7 @@ class SearchAgentTranslateEndpoint(OrganizationEndpoint):
             natural_language_query,
             strategy=strategy,
             model_name=model_name,
+            metric_context=metric_context,
             viewer_context=viewer_context,
         )
         return Response(data)

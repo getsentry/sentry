@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -12,7 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCreateGroupSearchView} from 'sentry/views/issueList/mutations/useCreateGroupSearchView';
 import {useUpdateGroupSearchViewStarred} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViewStarred';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   GroupSearchViewCreatedBy,
   type GroupSearchView,
@@ -69,21 +70,25 @@ export function StarFixabilityViewButton({
   });
 
   // Fetch all views to check for existing ones with our target name
-  const {data: othersViews = []} = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-    limit: 20,
-    query: 'Easy Fixes 🤖', // Search by name
-    sort: ['-popularity'],
-    createdBy: GroupSearchViewCreatedBy.OTHERS,
-  });
+  const {data: othersViews = []} = useQuery(
+    groupSearchViewsApiOptions({
+      orgSlug: organization.slug,
+      limit: 20,
+      query: 'Easy Fixes 🤖', // Search by name
+      sort: ['-popularity'],
+      createdBy: GroupSearchViewCreatedBy.OTHERS,
+    })
+  );
 
-  const {data: myViews = []} = useFetchGroupSearchViews({
-    orgSlug: organization.slug,
-    limit: 20,
-    query: 'Easy Fixes 🤖', // Search by name
-    sort: ['-popularity'],
-    createdBy: GroupSearchViewCreatedBy.ME,
-  });
+  const {data: myViews = []} = useQuery(
+    groupSearchViewsApiOptions({
+      orgSlug: organization.slug,
+      limit: 20,
+      query: 'Easy Fixes 🤖', // Search by name
+      sort: ['-popularity'],
+      createdBy: GroupSearchViewCreatedBy.ME,
+    })
+  );
 
   const allViews = useMemo(() => [...othersViews, ...myViews], [othersViews, myViews]);
 

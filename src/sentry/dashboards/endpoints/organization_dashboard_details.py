@@ -158,7 +158,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
 
         if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
-            return self.respond({"Cannot delete prebuilt Dashboards."}, status=409)
+            return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
         if isinstance(dashboard, dict):
             if num_dashboards > 0:
@@ -166,11 +166,11 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                     organization=organization, slug=dashboard["id"]
                 )
             else:
-                return self.respond({"Cannot delete last Dashboard."}, status=409)
+                return self.respond({"detail": "Cannot delete last Dashboard."}, status=409)
         elif (num_dashboards > 1) or (num_tombstones == 0):
             dashboard.delete()
         else:
-            return self.respond({"Cannot delete last Dashboard."}, status=409)
+            return self.respond({"detail": "Cannot delete last Dashboard."}, status=409)
 
         return self.respond(status=204)
 
@@ -244,17 +244,23 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         ):
             snapshot = _take_dashboard_snapshot(dashboard, request.user)
 
+        revision_source = request.data.get("revisionSource", "edit")
+        if revision_source not in ("edit", "edit-with-agent"):
+            revision_source = "edit"
+
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
                 if snapshot is not None and isinstance(dashboard, Dashboard):
-                    DashboardRevision.create_for_dashboard(dashboard, request.user, snapshot)
+                    DashboardRevision.create_for_dashboard(
+                        dashboard, request.user, snapshot, source=revision_source
+                    )
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(
                         organization=organization, slug=tombstone
                     )
         except IntegrityError:
-            return self.respond({"Dashboard with that title already exists."}, status=409)
+            return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
         return self.respond(serialize(serializer.instance, request.user), status=200)
 

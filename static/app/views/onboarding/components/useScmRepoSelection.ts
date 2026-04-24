@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -10,7 +11,7 @@ import type {
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {fetchMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {

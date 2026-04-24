@@ -1,5 +1,6 @@
 import {isValidElement, useEffect, useLayoutEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -24,7 +25,7 @@ import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {useApiQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';

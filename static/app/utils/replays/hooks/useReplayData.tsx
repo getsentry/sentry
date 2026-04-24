@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -8,13 +9,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type Options = {
   /**
@@ -39,6 +40,17 @@ type Options = {
    */
   segmentsPerPage?: number;
 };
+
+const REPLAY_ERROR_FIELDS = [
+  'error.type',
+  'id',
+  'issue',
+  'issue.id',
+  'level',
+  'project.name',
+  'timestamp_ms',
+  'title',
+] as const;
 
 interface Result {
   attachmentError: undefined | RequestError[];
@@ -162,21 +174,21 @@ export function useReplayData({
 
   const getErrorsQueryKey = useCallback(
     ({cursor, per_page}: any): ApiQueryKey => {
-      // Clone the `finished_at` time and bump it up one second because finishedAt
-      // has the `ms` portion truncated, while replays-events-meta operates on
-      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
-      // while the event is saved with `12:00:00.450Z`.
+      // Bump `finished_at` up one second because it's truncated to whole
+      // seconds, while events carry ms precision — e.g. finished_at of
+      // `12:00:00.000Z` could miss an event stored at `12:00:00.450Z`.
       const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
         {
           query: {
             referrer: 'replay_details',
-            dataset: DiscoverDatasets.DISCOVER,
+            dataset: DiscoverDatasets.ERRORS,
+            field: REPLAY_ERROR_FIELDS,
             start: replayRecord?.started_at?.toISOString() ?? '',
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
@@ -192,21 +204,18 @@ export function useReplayData({
 
   const getPlatformErrorsQueryKey = useCallback(
     ({cursor, per_page}: any): ApiQueryKey => {
-      // Clone the `finished_at` time and bump it up one second because finishedAt
-      // has the `ms` portion truncated, while replays-events-meta operates on
-      // timestamps with `ms` attached. So finishedAt could be at time `12:00:00.000Z`
-      // while the event is saved with `12:00:00.450Z`.
       const finishedAtClone = new Date(replayRecord?.finished_at ?? '');
       finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
       return [
-        getApiUrl('/organizations/$organizationIdOrSlug/replays-events-meta/', {
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
         {
           query: {
             referrer: 'replay_details',
             dataset: DiscoverDatasets.ISSUE_PLATFORM,
+            field: REPLAY_ERROR_FIELDS,
             start: replayRecord?.started_at?.toISOString() ?? '',
             end: finishedAtClone.toISOString(),
             project: ALL_ACCESS_PROJECTS,
@@ -262,10 +271,17 @@ export function useReplayData({
         `/projects/${orgSlug}/${projectSlug}/replays/${replayId}/recording-segments/`,
       ],
     });
-    // The next one isn't optimized
-    // This statement will invalidate the cache of fetched error events for all replayIds
+    // Invalidate fetched replay error events for all replayIds. Narrow to
+    // `referrer=replay_details` so unrelated /events/ queries aren't refetched.
+    const eventsUrl = `/organizations/${orgSlug}/events/`;
     queryClient.invalidateQueries({
-      queryKey: [`/organizations/${orgSlug}/replays-events-meta/`],
+      predicate: query => {
+        const [url, options] = query.queryKey as [
+          string,
+          {query?: {referrer?: string}} | undefined,
+        ];
+        return url === eventsUrl && options?.query?.referrer === 'replay_details';
+      },
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
