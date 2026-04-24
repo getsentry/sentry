@@ -205,13 +205,12 @@ function FilterActions({
       tags: Tag[],
       cacheKey: string
     ): ((q: string, ctx: CMDKResourceContext) => CMDKQueryOptions) =>
-    (_q, {state}) =>
+    () =>
       // Feed query in key ensures onAction closures reference the current query.
       // eslint-disable-next-line @tanstack/query/exhaustive-deps
       cmdkQueryOptions({
         queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
         queryFn: () => tags.map(makeFilterKeyItem),
-        enabled: state === 'selected',
         staleTime: Infinity,
       });
 
