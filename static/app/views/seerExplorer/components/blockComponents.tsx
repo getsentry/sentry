@@ -441,6 +441,26 @@ export function BlockComponent({
                       block.todos &&
                       block.todos.length > 0;
 
+                    const toolCallText = (
+                      <Tooltip
+                        title={
+                          isFailed
+                            ? t('Tool call failed')
+                            : t('Tool call returned empty results')
+                        }
+                        disabled={!isFailed && !isEmptyResults}
+                      >
+                        <ToolCallText
+                          size="xs"
+                          variant="muted"
+                          monospace
+                          isHighlighted={hasLink}
+                        >
+                          {toolString}
+                        </ToolCallText>
+                      </Tooltip>
+                    );
+
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
                         <ToolCallTextContainer>
@@ -457,14 +477,7 @@ export function BlockComponent({
                               }
                               isHighlighted={isHighlighted}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={isHighlighted}
-                              >
-                                {toolString}
-                              </ToolCallText>
+                              {toolCallText}
                               <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
                                 <ToolCallLinkIcon
                                   size="xs"
@@ -476,31 +489,10 @@ export function BlockComponent({
                             <ToolCallPlainRow
                               onMouseEnter={() => setSelectedLinkIndex(-1)}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={false}
-                              >
-                                {toolString}
-                              </ToolCallText>
-                              {isFailed || isEmptyResults ? (
-                                <ToolCallBrokenLinkIconWrapper>
-                                  <Tooltip
-                                    title={
-                                      isFailed
-                                        ? t('Tool call failed')
-                                        : t('Tool call returned empty results')
-                                    }
-                                  >
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                </ToolCallBrokenLinkIconWrapper>
-                              ) : (
-                                <ToolCallBrokenLinkIconWrapper>
-                                  <ToolCallBrokenLinkIcon size="xs" />
-                                </ToolCallBrokenLinkIconWrapper>
-                              )}
+                              {toolCallText}
+                              <ToolCallBrokenLinkIconWrapper>
+                                <ToolCallBrokenLinkIcon size="xs" />
+                              </ToolCallBrokenLinkIconWrapper>
                             </ToolCallPlainRow>
                           )}
                         </ToolCallTextContainer>
