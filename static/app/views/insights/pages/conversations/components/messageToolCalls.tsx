@@ -42,10 +42,12 @@ export function MessageToolCalls({
               }
             }}
           >
-            <Flex align="center" gap="sm">
-              <NoShrinkText size="xs" monospace variant="muted">
-                {t('Called tool')}
-              </NoShrinkText>
+            <Flex align="baseline" gap="sm">
+              <Flex flexShrink={0}>
+                <Text size="xs" monospace variant="muted">
+                  {t('Called tool')}
+                </Text>
+              </Flex>
               <ClickableTag
                 variant={tool.hasError ? 'danger' : 'info'}
                 icon={tool.hasError ? <IconFire /> : undefined}
@@ -74,10 +76,6 @@ function ToolInputPreview({node}: {node: AITraceSpanNode}) {
     </Text>
   );
 }
-
-const NoShrinkText = styled(Text)`
-  flex-shrink: 0;
-`;
 
 const ToolCallLine = styled(Container)`
   &:hover {
