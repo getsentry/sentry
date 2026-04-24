@@ -81,7 +81,7 @@ export default function SnapshotsPage() {
     const palette = theme.chart.getColorPalette(10);
     return palette.at(-5) ?? palette[0];
   });
-  const [diffMode, setDiffMode] = useState<DiffMode>('split');
+  const [diffMode] = useState<DiffMode>('split');
 
   const {
     size: sidebarWidth,
@@ -362,7 +362,6 @@ export default function SnapshotsPage() {
           overlayColor={overlayColor}
           onOverlayColorChange={setOverlayColor}
           diffMode={diffMode}
-          onDiffModeChange={setDiffMode}
         />
       </Flex>
     </Flex>

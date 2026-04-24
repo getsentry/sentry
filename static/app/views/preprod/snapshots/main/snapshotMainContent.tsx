@@ -21,7 +21,6 @@ interface SnapshotMainContentProps {
   diffImageBaseUrl: string;
   diffMode: DiffMode;
   imageBaseUrl: string;
-  onDiffModeChange: (mode: DiffMode) => void;
   onOverlayColorChange: (color: string) => void;
   onShowOverlayChange: (show: boolean) => void;
   onVariantChange: (index: number) => void;
@@ -42,7 +41,6 @@ export function SnapshotMainContent({
   overlayColor,
   onOverlayColorChange,
   diffMode,
-  onDiffModeChange,
 }: SnapshotMainContentProps) {
   if (!selectedItem) {
     return (
@@ -99,10 +97,8 @@ export function SnapshotMainContent({
           pair={currentPair}
           imageBaseUrl={imageBaseUrl}
           diffImageBaseUrl={diffImageBaseUrl}
-          showOverlay={showOverlay}
-          overlayColor={overlayColor}
+          overlayColor={showOverlay ? overlayColor : 'transparent'}
           diffMode={diffMode}
-          onDiffModeChange={onDiffModeChange}
         />
       </Flex>
     );
