@@ -3681,3 +3681,18 @@ class TestGetDsn(APITestCase):
         )
 
         assert get_dsn(organization_id=self.organization.id, project_slug="archived") is None
+
+    def test_excludes_internal_use_case_keys(self) -> None:
+        """Internal keys (PROFILING, TEMPEST, DEMO) must not be returned to the agent."""
+        from sentry.models.projectkey import ProjectKey, UseCase
+
+        project = self.create_project(organization=self.organization, slug="wordcraft")
+        # Default USER key is created by signal. Delete it so the only eligible key
+        # would be the internal PROFILING key.
+        default_key = ProjectKey.objects.get(project=project)
+        default_key.delete()
+        ProjectKey.objects.create(
+            project=project, label="Profiling", use_case=UseCase.PROFILING.value
+        )
+
+        assert get_dsn(organization_id=self.organization.id, project_slug="wordcraft") is None

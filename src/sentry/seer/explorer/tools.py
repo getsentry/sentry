@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
 from django.core.exceptions import BadRequest
+from django.db import models
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -28,7 +29,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
@@ -2078,7 +2079,20 @@ def get_dsn(
     if project is None:
         return None
 
-    key = ProjectKey.get_default(project)
+    # Mirror the filters applied by OrganizationProjectKeysEndpoint for non-superuser
+    # callers: user-visible keys only (exclude internal use cases like PROFILING,
+    # TEMPEST, DEMO), with the store role, active. Newest first to match the
+    # endpoint's `-id` ordering.
+    key = (
+        ProjectKey.objects.filter(
+            project=project,
+            status=ProjectKeyStatus.ACTIVE,
+            use_case=UseCase.USER.value,
+            roles=models.F("roles").bitor(ProjectKey.roles.store),
+        )
+        .order_by("-id")
+        .first()
+    )
     if key is None:
         return None
 
