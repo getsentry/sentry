@@ -17,6 +17,7 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {FocusArea} from 'sentry/views/replays/detail/layout/focusArea';
 import {FocusTabs} from 'sentry/views/replays/detail/layout/focusTabs';
 import {ReplaySplitPanel as SplitPanel} from 'sentry/views/replays/detail/layout/splitPanel';
@@ -29,15 +30,25 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-export function ReplayLayout({
-  isVideoReplay = false,
-  replayRecord,
-  isLoading,
-}: {
+interface ReplayLayoutProps {
   isLoading: boolean;
   replayRecord: ReplayRecord | undefined;
   isVideoReplay?: boolean;
-}) {
+}
+
+export function ReplayLayout(props: ReplayLayoutProps) {
+  return (
+    <ViewportConstrainedPage>
+      <ReplayLayoutBody {...props} />
+    </ViewportConstrainedPage>
+  );
+}
+
+function ReplayLayoutBody({
+  isVideoReplay = false,
+  replayRecord,
+  isLoading,
+}: ReplayLayoutProps) {
   const organization = useOrganization();
   const defaultLayout = useDefaultReplayLayout();
   const [layout, setLayout] = useReplayLayout();

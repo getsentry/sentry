@@ -17,6 +17,7 @@ import {
 import {logsTimestampAscendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {LogsItemContainer} from 'sentry/views/explore/logs/styles';
 import {
   LoadingRenderer,
   LogsInfiniteTable,
@@ -120,7 +121,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   return (
     <OurLogsContentWrapper>
       <OurLogFilters logItems={logItems} replayId={replayId} {...filterProps} />
-      <TableScrollContainer>
+      <LogsItemContainer border="primary" radius="md" flex="1 1 auto">
         {isPending ? (
           <Placeholder height="100%" />
         ) : (
@@ -144,15 +145,15 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             )}
           />
         )}
-      </TableScrollContainer>
+      </LogsItemContainer>
     </OurLogsContentWrapper>
   );
 }
 
 const OurLogsContentWrapper = styled('div')`
-  display: grid;
-  grid-template-rows: min-content 1fr;
-  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
 `;
 
@@ -160,13 +161,4 @@ const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   ${p => p.isStatus && 'justify-content: center;'}
-`;
-
-const TableScrollContainer = styled('div')`
-  overflow-y: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
 `;
