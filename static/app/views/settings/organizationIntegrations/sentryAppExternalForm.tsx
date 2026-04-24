@@ -1,10 +1,9 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import type {GeneralSelectValue} from '@sentry/scraps/select';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {Form} from 'sentry/components/forms/form';
@@ -12,7 +11,7 @@ import {FormModel} from 'sentry/components/forms/model';
 import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
-import {withApi} from 'sentry/utils/withApi';
+import {useApi} from 'sentry/utils/useApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = (value: any) => !!value || value === 0;
@@ -41,15 +40,8 @@ type SentryAppSetting = {
   label?: string;
 };
 
-// only need required_fields and optional_fields
-type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
-  optionsByField: Map<string, Array<{label: string; value: any}>>;
-  selectedOptions: Record<string, GeneralSelectValue>;
-};
-
 type Props = {
   action: 'create' | 'link';
-  api: Client;
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
@@ -89,91 +81,47 @@ type Props = {
  *
  *  See (#28465) for more details.
  */
-class SentryAppExternalForm extends Component<Props, State> {
-  state: State = {optionsByField: new Map(), selectedOptions: {}};
+export function SentryAppExternalForm({
+  action,
+  appName,
+  config,
+  element,
+  onSubmitSuccess,
+  sentryAppInstallationUuid,
+  extraFields,
+  extraRequestBody,
+  getFieldDefault,
+  resetValues,
+}: Props) {
+  const api = useApi();
 
-  componentDidMount() {
-    this.resetStateFromProps();
+  const modelRef = useRef<FormModel | null>(null);
+  if (modelRef.current === null) {
+    modelRef.current = new FormModel();
   }
+  const model = modelRef.current;
 
-  componentDidUpdate(prevProps: Props) {
-    if (prevProps.action !== this.props.action) {
-      this.model.reset();
-      this.resetStateFromProps();
-    }
-  }
+  const [requiredFields, setRequiredFields] = useState<FieldFromSchema[] | undefined>(
+    undefined
+  );
+  const [optionalFields, setOptionalFields] = useState<FieldFromSchema[] | undefined>(
+    undefined
+  );
+  const [optionsByField, setOptionsByField] = useState<
+    Map<string, Array<{label: string; value: any}>>
+  >(() => new Map());
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<string, GeneralSelectValue>
+  >({});
 
-  model = new FormModel();
+  // Mirror state into refs so async callbacks (handleFieldChange, setTimeout)
+  // read the latest value without needing to be recreated on every state change.
+  const requiredFieldsRef = useRef(requiredFields);
+  requiredFieldsRef.current = requiredFields;
+  const optionalFieldsRef = useRef(optionalFields);
+  optionalFieldsRef.current = optionalFields;
 
-  // reset the state when we mount or the action changes
-  resetStateFromProps() {
-    const {config, action, extraFields, element} = this.props;
-    this.setState({
-      required_fields: config.required_fields,
-      optional_fields: config.optional_fields,
-    });
-
-    this.model.reset();
-
-    // For alert-rule-actions, the forms are entirely custom, extra fields are
-    // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
-    if (element === 'alert-rule-action') {
-      const defaultResetValues = this.props.resetValues?.settings || [];
-      const initialData = defaultResetValues.reduce((acc, curr) => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        acc[curr.name] = curr.value;
-        return acc;
-      }, {});
-      this.model.setInitialData({...initialData});
-    } else {
-      this.model.setInitialData({
-        ...extraFields,
-        // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
-        action,
-        uri: config.uri,
-      });
-    }
-    // let the state update before we try and load the dependent options
-    setTimeout(() => {
-      this.tryAndLoadDependentOptions();
-    }, 0);
-  }
-
-  tryAndLoadDependentOptions = () => {
-    const {required_fields, optional_fields} = this.state;
-
-    // first find every field where we don't load the values on open
-    const fieldsToLoad = [...(required_fields || []), ...(optional_fields || [])].filter(
-      field =>
-        field.skip_load_on_open || (field.depends_on && field.depends_on.length > 0)
-    );
-
-    fieldsToLoad.forEach(field => {
-      if (field.depends_on && field.depends_on.length > 0) {
-        // check that we can load this field
-        const isReadyToLoad = field.depends_on.every(dependentField => {
-          return !!this.model.getValue(dependentField);
-        });
-        // if ready to load, trigger a field change to trigger the api request to load options
-        if (isReadyToLoad) {
-          this.handleFieldChange(field.depends_on[0]!);
-        }
-      }
-    });
-  };
-
-  onSubmitError = () => {
-    const {action, appName} = this.props;
-    addErrorMessage(t('Unable to %s %s %s.', action, appName, this.getElementText()));
-  };
-
-  getOptions = (field: FieldFromSchema, input: string) =>
-    new Promise(resolve => {
-      this.debouncedOptionLoad(field, input, resolve);
-    });
-
-  getElementText = () => {
-    const {element} = this.props;
+  const getElementText = useCallback(() => {
     switch (element) {
       case 'issue-link':
         return 'issue';
@@ -182,96 +130,119 @@ class SentryAppExternalForm extends Component<Props, State> {
       default:
         return 'connection';
     }
-  };
+  }, [element]);
 
-  getDefaultOptions = (field: FieldFromSchema) => {
-    const savedOption = (this.props.resetValues?.settings || []).find(
-      value => value.name === field.name
-    );
-    const currentOptions = (field.choices || []).map(([value, label]) => ({
-      value,
-      label,
-    }));
+  const onSubmitError = useCallback(() => {
+    addErrorMessage(t('Unable to %s %s %s.', action, appName, getElementText()));
+  }, [action, appName, getElementText]);
 
-    const shouldAddSavedOption =
-      // We only render saved options if they have preserved the label, otherwise it appears unselcted.
-      // The next time the user saves, the label should be preserved.
-      savedOption?.value &&
-      savedOption?.label &&
-      // The option isn't in the current options already
-      !currentOptions.some(option => option.value === savedOption?.value);
+  const getDefaultOptions = useCallback(
+    (field: FieldFromSchema) => {
+      const savedOption = (resetValues?.settings || []).find(
+        value => value.name === field.name
+      );
+      const currentOptions = (field.choices || []).map(([value, label]) => ({
+        value,
+        label,
+      }));
 
-    return shouldAddSavedOption
-      ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
-      : currentOptions;
-  };
+      const shouldAddSavedOption =
+        // We only render saved options if they have preserved the label, otherwise it appears unselcted.
+        // The next time the user saves, the label should be preserved.
+        savedOption?.value &&
+        savedOption?.label &&
+        // The option isn't in the current options already
+        !currentOptions.some(option => option.value === savedOption?.value);
 
-  getDefaultFieldValue = (field: FieldFromSchema) => {
-    // Interpret the default if a getFieldDefault function is provided.
-    const {resetValues, getFieldDefault} = this.props;
-    let defaultValue = field?.defaultValue;
-
-    // Override this default if a reset value is provided
-    if (field.default && getFieldDefault) {
-      defaultValue = getFieldDefault(field);
-    }
-
-    const reset = resetValues?.settings?.find(value => value.name === field.name);
-
-    if (reset) {
-      defaultValue = reset.value;
-    }
-    return defaultValue;
-  };
-
-  debouncedOptionLoad = debounce(
-    // debounce is used to prevent making a request for every input change and
-    // instead makes the requests every 200ms
-    async (field: FieldFromSchema, input, resolve) => {
-      const choices = await this.makeExternalRequest(field, input);
-      // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
-      const options = choices.map(([value, label]) => ({value, label}));
-      const optionsByField = new Map(this.state.optionsByField);
-      optionsByField.set(field.name, options);
-      this.setState({
-        optionsByField,
-      });
-      return resolve(options);
+      return shouldAddSavedOption
+        ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
+        : currentOptions;
     },
-    200,
-    {trailing: true}
+    [resetValues]
   );
 
-  makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
-    const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
-    const query: Record<string, any> = {
-      ...extraRequestBody,
-      uri: field.uri,
-      query: input,
-    };
+  const getDefaultFieldValue = useCallback(
+    (field: FieldFromSchema) => {
+      // Interpret the default if a getFieldDefault function is provided.
+      let defaultValue = field?.defaultValue;
 
-    if (field.depends_on) {
-      const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        accum[dependentField] = this.model.getValue(dependentField);
-        return accum;
-      }, {});
-      // stringify the data
-      query.dependentData = JSON.stringify(dependentData);
-    }
+      // Override this default if a reset value is provided
+      if (field.default && getFieldDefault) {
+        defaultValue = getFieldDefault(field);
+      }
 
-    const {choices, defaultValue} = await this.props.api.requestPromise(
-      `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
-      {query}
-    );
+      const reset = resetValues?.settings?.find(value => value.name === field.name);
 
-    // If there is a default choice prepopulate the select with it
-    if (defaultValue) {
-      this.model.setValue(field.name, defaultValue);
-    }
+      if (reset) {
+        defaultValue = reset.value;
+      }
+      return defaultValue;
+    },
+    [getFieldDefault, resetValues]
+  );
 
-    return choices || [];
-  };
+  const makeExternalRequest = useCallback(
+    async (field: FieldFromSchema, input: FieldValue) => {
+      const query: Record<string, any> = {
+        ...extraRequestBody,
+        uri: field.uri,
+        query: input,
+      };
+
+      if (field.depends_on) {
+        const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          accum[dependentField] = model.getValue(dependentField);
+          return accum;
+        }, {});
+        // stringify the data
+        query.dependentData = JSON.stringify(dependentData);
+      }
+
+      const {choices, defaultValue} = await api.requestPromise(
+        `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
+        {query}
+      );
+
+      // If there is a default choice prepopulate the select with it
+      if (defaultValue) {
+        model.setValue(field.name, defaultValue);
+      }
+
+      return choices || [];
+    },
+    [api, extraRequestBody, model, sentryAppInstallationUuid]
+  );
+
+  const debouncedOptionLoad = useMemo(
+    () =>
+      // debounce is used to prevent making a request for every input change and
+      // instead makes the requests every 200ms
+      debounce(
+        async (field: FieldFromSchema, input, resolve) => {
+          const choices = await makeExternalRequest(field, input);
+          // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
+          const options = choices.map(([value, label]) => ({value, label}));
+          setOptionsByField(prev => {
+            const next = new Map(prev);
+            next.set(field.name, options);
+            return next;
+          });
+          return resolve(options);
+        },
+        200,
+        {trailing: true}
+      ),
+    [makeExternalRequest]
+  );
+
+  const getOptions = useCallback(
+    (field: FieldFromSchema, input: string) =>
+      new Promise(resolve => {
+        debouncedOptionLoad(field, input, resolve);
+      }),
+    [debouncedOptionLoad]
+  );
 
   /**
    * This function determines which fields need to be reset and new options fetched
@@ -279,77 +250,123 @@ class SentryAppExternalForm extends Component<Props, State> {
    * This is done because the autoload flag causes fields to load at different times
    * if you have multiple dependent fields while this solution updates state at once.
    */
-  handleFieldChange = async (id: string) => {
-    const config = this.state;
+  const handleFieldChange = useCallback(
+    async (id: string) => {
+      const currentRequired = requiredFieldsRef.current || [];
+      const currentOptional = optionalFieldsRef.current || [];
 
-    let requiredFields = config.required_fields || [];
-    let optionalFields = config.optional_fields || [];
+      const fieldList = currentRequired.concat(currentOptional);
 
-    const fieldList = requiredFields.concat(optionalFields);
+      // could have multiple impacted fields
+      const impactedFields = fieldList.filter(({depends_on}) => {
+        if (!depends_on) {
+          return false;
+        }
+        // must be dependent on the field we just set
+        return depends_on.includes(id);
+      });
 
-    // could have multiple impacted fields
-    const impactedFields = fieldList.filter(({depends_on}) => {
-      if (!depends_on) {
-        return false;
-      }
-      // must be dependent on the field we just set
-      return depends_on.includes(id);
-    });
+      // load all options in parallel
+      const choiceArray = await Promise.all(
+        impactedFields.map(field => {
+          // reset all impacted fields first
+          const defaultValue = getDefaultFieldValue(field);
+          model.setValue(field.name || '', defaultValue || '', {quiet: true});
+          return makeExternalRequest(field, '');
+        })
+      );
 
-    // load all options in parallel
-    const choiceArray = await Promise.all(
-      impactedFields.map(field => {
-        // reset all impacted fields first
-        const defaultValue = this.getDefaultFieldValue(field);
-        this.model.setValue(field.name || '', defaultValue || '', {quiet: true});
-        return this.makeExternalRequest(field, '');
-      })
-    );
+      const applyUpdates = (
+        prev: FieldFromSchema[] | undefined
+      ): FieldFromSchema[] | undefined => {
+        let updated = prev || [];
+        // iterate through all the impacted fields and get new values
+        impactedFields.forEach((impactedField, i) => {
+          const index = updated.indexOf(impactedField);
+          // immutably update the list only if this field lives here
+          if (index > -1) {
+            updated = replaceAtArrayIndex(updated, index, {
+              ...impactedField,
+              choices: choiceArray[i],
+            });
+          }
+        });
+        return updated;
+      };
 
-    this.setState(state => {
-      // pull the field lists from latest state
-      requiredFields = state.required_fields || [];
-      optionalFields = state.optional_fields || [];
-      // iterate through all the impacted fields and get new values
-      impactedFields.forEach((impactedField, i) => {
-        const choices = choiceArray[i];
-        const requiredIndex = requiredFields.indexOf(impactedField);
-        const optionalIndex = optionalFields.indexOf(impactedField);
+      setRequiredFields(applyUpdates);
+      setOptionalFields(applyUpdates);
+    },
+    [getDefaultFieldValue, makeExternalRequest, model]
+  );
 
-        const updatedField = {...impactedField, choices};
+  // reset the state when we mount or the action changes
+  useEffect(() => {
+    // These fields are seeded from config but mutated by handleFieldChange to
+    // overwrite `choices` as dependent options load, so they can't be purely derived.
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setRequiredFields(config.required_fields);
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+    setOptionalFields(config.optional_fields);
 
-        // immutably update the lists with the updated field depending where we got it from
-        if (requiredIndex > -1) {
-          requiredFields = replaceAtArrayIndex(
-            requiredFields,
-            requiredIndex,
-            updatedField
-          );
-        } else if (optionalIndex > -1) {
-          optionalFields = replaceAtArrayIndex(
-            optionalFields,
-            optionalIndex,
-            updatedField
-          );
+    model.reset();
+
+    // For alert-rule-actions, the forms are entirely custom, extra fields are
+    // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
+    if (element === 'alert-rule-action') {
+      const defaultResetValues = resetValues?.settings || [];
+      const initialData = defaultResetValues.reduce((acc, curr) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        acc[curr.name] = curr.value;
+        return acc;
+      }, {});
+      model.setInitialData({...initialData});
+    } else {
+      model.setInitialData({
+        ...extraFields,
+        // we need to pass these fields in the API so just set them as values so we don't need hidden form fields
+        action,
+        uri: config.uri,
+      });
+    }
+
+    // let the state update before we try and load the dependent options
+    const timer = setTimeout(() => {
+      // first find every field where we don't load the values on open
+      const fieldsToLoad = [
+        ...(config.required_fields || []),
+        ...(config.optional_fields || []),
+      ].filter(
+        field =>
+          field.skip_load_on_open || (field.depends_on && field.depends_on.length > 0)
+      );
+
+      fieldsToLoad.forEach(field => {
+        if (field.depends_on && field.depends_on.length > 0) {
+          // check that we can load this field
+          const isReadyToLoad = field.depends_on.every(dependentField => {
+            return !!model.getValue(dependentField);
+          });
+          // if ready to load, trigger a field change to trigger the api request to load options
+          if (isReadyToLoad) {
+            handleFieldChange(field.depends_on[0]!);
+          }
         }
       });
-      return {
-        required_fields: requiredFields,
-        optional_fields: optionalFields,
-      };
-    });
-  };
+    }, 0);
+    return () => clearTimeout(timer);
+    // Preserve original componentDidUpdate behavior: only reset on action changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [action]);
 
-  createPreserveOptionFunction = (name: string) => (option: any, _event: any) => {
-    this.setState({
-      selectedOptions: {
-        ...this.state.selectedOptions,
-        [name]: option,
-      },
-    });
-  };
+  const createPreserveOptionFunction = useCallback(
+    (name: string) => (option: any, _event: any) => {
+      setSelectedOptions(prev => ({...prev, [name]: option}));
+    },
+    []
+  );
 
-  renderField = (field: FieldFromSchema, required: boolean) => {
+  const renderField = (field: FieldFromSchema, required: boolean) => {
     // This function converts the field we get from the backend into
     // the field we need to pass down
     let fieldToPass: Field = {
@@ -364,14 +381,14 @@ class SentryAppExternalForm extends Component<Props, State> {
     }
     if (['select', 'select_async'].includes(fieldToPass.type || '')) {
       // find the options from state to pass down
-      const defaultOptions = this.getDefaultOptions(field);
-      const options = this.state.optionsByField.get(field.name) || defaultOptions;
+      const defaultOptions = getDefaultOptions(field);
+      const options = optionsByField.get(field.name) || defaultOptions;
 
       fieldToPass = {
         ...fieldToPass,
         options,
         defaultOptions,
-        defaultValue: this.getDefaultFieldValue(field),
+        defaultValue: getDefaultFieldValue(field),
         // filter by what the user is typing
         filterOption: createFilter({}),
         allowClear: !required,
@@ -380,7 +397,7 @@ class SentryAppExternalForm extends Component<Props, State> {
       if (field.depends_on) {
         // check if this is dependent on other fields which haven't been set yet
         const shouldDisable = field.depends_on.some(
-          dependentField => !hasValue(this.model.getValue(dependentField))
+          dependentField => !hasValue(model.getValue(dependentField))
         );
         if (shouldDisable) {
           fieldToPass = {...fieldToPass, disabled: true};
@@ -390,21 +407,21 @@ class SentryAppExternalForm extends Component<Props, State> {
     if (['text', 'textarea'].includes(fieldToPass.type || '')) {
       fieldToPass = {
         ...fieldToPass,
-        defaultValue: this.getDefaultFieldValue(field),
+        defaultValue: getDefaultFieldValue(field),
       };
     }
 
     // if we have a uri, we need to set extra parameters
     const extraProps = field.uri
       ? {
-          loadOptions: (input: string) => this.getOptions(field, input),
+          loadOptions: (input: string) => getOptions(field, input),
           async: field?.async ?? true,
           cache: false,
           onSelectResetsInput: false,
           onCloseResetsInput: false,
           onBlurResetsInput: false,
           autoload: false,
-          onChangeOption: this.createPreserveOptionFunction(field.name),
+          onChangeOption: createPreserveOptionFunction(field.name),
         }
       : {};
 
@@ -418,14 +435,13 @@ class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
-  handleAlertRuleSubmit: OnSubmitCallback = (formData, onSubmitSuccess) => {
-    const {sentryAppInstallationUuid} = this.props;
-    if (this.model.validateForm()) {
-      onSubmitSuccess({
+  const handleAlertRuleSubmit: OnSubmitCallback = (formData, onSuccess) => {
+    if (model.validateForm()) {
+      onSuccess({
         // The form data must be nested in 'settings' to ensure they don't overlap with any other field names.
         settings: Object.entries(formData).map(([name, value]) => {
           const savedSetting: SentryAppSetting = {name, value};
-          const stateOption = this.state.selectedOptions[name];
+          const stateOption = selectedOptions[name];
           // If the field is a SelectAsync, we need to preserve the label since the next time it's rendered,
           // we can't be sure the options will contain this selection
           if (stateOption?.value === value) {
@@ -441,43 +457,30 @@ class SentryAppExternalForm extends Component<Props, State> {
     }
   };
 
-  render() {
-    const {sentryAppInstallationUuid, action, element, onSubmitSuccess} = this.props;
-
-    const requiredFields = this.state.required_fields || [];
-    const optionalFields = this.state.optional_fields || [];
-
-    if (!sentryAppInstallationUuid) {
-      return '';
-    }
-
-    return (
-      <Form
-        key={action}
-        apiEndpoint={`/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`}
-        apiMethod="POST"
-        // Without defining onSubmit, the Form will send an `apiMethod` request to the above `apiEndpoint`
-        onSubmit={
-          element === 'alert-rule-action' ? this.handleAlertRuleSubmit : undefined
-        }
-        onSubmitSuccess={(...params) => {
-          onSubmitSuccess(...params);
-        }}
-        onSubmitError={this.onSubmitError}
-        onFieldChange={this.handleFieldChange}
-        preventFormResetOnUnmount
-        model={this.model}
-      >
-        {requiredFields.map((field: FieldFromSchema) => {
-          return this.renderField(field, true);
-        })}
-
-        {optionalFields.map((field: FieldFromSchema) => {
-          return this.renderField(field, false);
-        })}
-      </Form>
-    );
+  if (!sentryAppInstallationUuid) {
+    return '';
   }
-}
 
-export default withApi(SentryAppExternalForm);
+  const requiredList = requiredFields || [];
+  const optionalList = optionalFields || [];
+
+  return (
+    <Form
+      key={action}
+      apiEndpoint={`/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`}
+      apiMethod="POST"
+      // Without defining onSubmit, the Form will send an `apiMethod` request to the above `apiEndpoint`
+      onSubmit={element === 'alert-rule-action' ? handleAlertRuleSubmit : undefined}
+      onSubmitSuccess={(...params) => {
+        onSubmitSuccess(...params);
+      }}
+      onSubmitError={onSubmitError}
+      onFieldChange={handleFieldChange}
+      preventFormResetOnUnmount
+      model={model}
+    >
+      {requiredList.map((field: FieldFromSchema) => renderField(field, true))}
+      {optionalList.map((field: FieldFromSchema) => renderField(field, false))}
+    </Form>
+  );
+}
