@@ -8,7 +8,7 @@ import {DashboardFilterKeys} from './types';
 
 export type FieldChange = {after: string; before: string; field: string};
 
-export type FilterChange = {after: string; before: string; label: string};
+type FilterChange = {after: string; before: string; label: string};
 
 function formatTime(d: DashboardDetails): string | null {
   if (d.period) return getRelativeSummary(d.period);
