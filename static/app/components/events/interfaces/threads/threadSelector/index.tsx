@@ -36,17 +36,6 @@ const enum SortAttribute {
   STATE = 'state',
 }
 
-function getThreadLabel(
-  details: ReturnType<typeof getThreadInfo>,
-  name: string | null | undefined
-) {
-  if (name?.length) {
-    return name;
-  }
-
-  return details?.label || `<${t('unknown')}>`;
-}
-
 export function ThreadSelector({
   threads,
   event,
@@ -152,10 +141,10 @@ export function ThreadSelector({
           <ThreadName>
             {t('Thread #%s: ', activeThread.id)}
             <ActiveThreadName>
-              {getThreadLabel(
-                getThreadInfo(event, activeThread, exception),
-                activeThread.name
-              )}
+              {activeThread.name
+                ? activeThread.name
+                : getThreadInfo(event, activeThread, exception).label ||
+                  `<${t('unknown')}>`}
             </ActiveThreadName>
           </ThreadName>
         </OverlayTrigger.Button>
