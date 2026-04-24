@@ -1,4 +1,3 @@
-import pytest
 import responses
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
@@ -895,8 +894,8 @@ class WorkflowRuleSerializerTest(TestCase):
             include_legacy_rule_id=False,
             include_workflow_id=False,
         )
-        with pytest.raises(ValidationError):
-            self.assert_equal_serializers(rule)
+
+        self.assert_equal_serializers(rule)
 
     @responses.activate
     def test_sentry_app_render_label_no_installation(self) -> None:

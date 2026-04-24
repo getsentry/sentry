@@ -2,7 +2,7 @@ import {formatDollars} from 'sentry/utils/formatters';
 
 export function formatLLMCosts(cost: string | number | null) {
   if (cost === null) {
-    return '\u2014';
+    return '—';
   }
   const number = Number(cost);
 

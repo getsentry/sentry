@@ -66,11 +66,11 @@ import {
 } from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {
   useProfiles,
   useProfileTransaction,
-} from 'sentry/views/profiling/profilesProvider';
+} from 'sentry/views/explore/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';

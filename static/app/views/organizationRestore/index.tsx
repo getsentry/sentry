@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {Navigate} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -13,8 +14,8 @@ import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
@@ -36,12 +37,12 @@ type BodyProps = {
 };
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
-  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
-    path: {organizationIdOrSlug: orgSlug},
-  });
-  const {isPending, isError, data} = useApiQuery<Organization>([endpoint], {
-    staleTime: 0,
-  });
+  const {isPending, isError, data} = useQuery(
+    apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: orgSlug},
+      staleTime: 0,
+    })
+  );
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -58,7 +59,7 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
     return <Navigate replace to={normalizeUrl(`/organizations/${orgSlug}/issues/`)} />;
   }
   if (data.status.id === 'pending_deletion') {
-    return <RestoreForm organization={data} endpoint={endpoint} />;
+    return <RestoreForm organization={data} orgSlug={orgSlug} />;
   }
   return (
     <p>
@@ -70,11 +71,14 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
 }
 
 type RestoreFormProps = {
-  endpoint: string;
+  orgSlug: string;
   organization: Organization;
 };
 
-function RestoreForm({endpoint, organization}: RestoreFormProps) {
+function RestoreForm({organization, orgSlug}: RestoreFormProps) {
+  const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: orgSlug},
+  });
   return (
     <Fragment>
       <ApiForm

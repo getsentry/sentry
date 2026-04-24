@@ -27,6 +27,7 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
     get_issue_and_event_response,
@@ -3646,3 +3647,57 @@ class TestGetComparativeAttributeDistributions(TestCase):
                 range_start="2024-01-01T00:00:00",
                 range_end="2024-01-01T00:00:30",
             )
+
+
+class TestGetDsn(APITestCase):
+    def test_returns_dsn_for_project(self) -> None:
+        project = self.create_project(organization=self.organization, slug="wordcraft")
+
+        result = get_dsn(organization_id=self.organization.id, project_slug="wordcraft")
+
+        assert result is not None
+        assert result == {
+            "project_slug": "wordcraft",
+            "platform": project.platform,
+            "dsn_public": result["dsn_public"],
+        }
+        assert result["dsn_public"].startswith("http")
+        assert result["dsn_public"].endswith(f"/{project.id}")
+
+    def test_returns_none_for_unknown_slug(self) -> None:
+        self.create_project(organization=self.organization, slug="wordcraft")
+
+        assert get_dsn(organization_id=self.organization.id, project_slug="does-not-exist") is None
+
+    def test_returns_none_for_unknown_organization(self) -> None:
+        assert get_dsn(organization_id=999_999_999, project_slug="wordcraft") is None
+
+    def test_does_not_cross_organizations(self) -> None:
+        other_org = self.create_organization()
+        self.create_project(organization=other_org, slug="wordcraft")
+
+        assert get_dsn(organization_id=self.organization.id, project_slug="wordcraft") is None
+
+    def test_ignores_disabled_project(self) -> None:
+        self.create_project(
+            organization=self.organization,
+            slug="archived",
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        assert get_dsn(organization_id=self.organization.id, project_slug="archived") is None
+
+    def test_excludes_internal_use_case_keys(self) -> None:
+        """Internal keys (PROFILING, TEMPEST, DEMO) must not be returned to the agent."""
+        from sentry.models.projectkey import ProjectKey, UseCase
+
+        project = self.create_project(organization=self.organization, slug="wordcraft")
+        # Default USER key is created by signal. Delete it so the only eligible key
+        # would be the internal PROFILING key.
+        default_key = ProjectKey.objects.get(project=project)
+        default_key.delete()
+        ProjectKey.objects.create(
+            project=project, label="Profiling", use_case=UseCase.PROFILING.value
+        )
+
+        assert get_dsn(organization_id=self.organization.id, project_slug="wordcraft") is None
