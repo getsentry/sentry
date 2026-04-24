@@ -161,6 +161,24 @@ def build_envelope(
         )
         chunks.append(gpu_dump_bytes + b"\n")
 
+    # Canary attachment to test whether a known-accepted attachment_type makes
+    # it through the same envelope — if this shows up but .nv-gpudmp doesn't,
+    # Relay is stripping `event.nv_gpudmp` specifically.
+    canary = b"canary-attachment\n"
+    chunks.append(
+        orjson.dumps(
+            {
+                "type": "attachment",
+                "length": len(canary),
+                "attachment_type": "event.attachment",
+                "filename": "demo.log",
+                "content_type": "text/plain",
+            }
+        )
+        + b"\n"
+    )
+    chunks.append(canary + b"\n")
+
     return b"".join(chunks)
 
 

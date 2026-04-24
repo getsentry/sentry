@@ -441,8 +441,9 @@ def process_gpu_crash_dump(data: Any, project: Any, event_id: str) -> Any:
     # Deferred imports: avoids importing `requests` and the issue platform
     # at module import time for processes that don't touch this path.
     from sentry.lang.native.teapot import submit_to_teapot
+    from sentry.lang.native.utils import find_gpu_crash_dump_attachment
 
-    dump = get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    dump = find_gpu_crash_dump_attachment(data)
     if not dump:
         return data
 
@@ -500,10 +501,46 @@ def _produce_gpu_occurrence(
     from sentry.lang.native.grouptype import GpuCrashGroupType
 
     fault = response.get("fault") or {}
+    gpu_state = response.get("gpu_state") or {}
     shader = response.get("shader_context") or {}
-    fault_type = fault.get("type") or "UnknownFault"
-    shader_hash = shader.get("shader_hash") or "unknown"
-    entry_point = shader.get("entry_point") or shader_hash
+
+    # Shader hash may sit at the top level (per the schema's happy path) or
+    # under `active_shaders[]` (what teapot actually emits for an Aftermath
+    # hang, where there may be multiple in-flight shaders with no obvious
+    # "primary"). Pick the first active shader when the top-level field is
+    # absent so we still get stable grouping.
+    shader_hash = shader.get("shader_hash")
+    active_shaders = shader.get("active_shaders") or []
+    primary_shader = active_shaders[0] if active_shaders else {}
+    if not shader_hash and primary_shader:
+        shader_hash = primary_shader.get("shader_hash")
+
+    # `entry_point` is the human-readable name for the title. Fall back to
+    # "<shader_type> shader" (e.g. "Vertex shader") when the decoder only
+    # knows the shader class, not the exact entry symbol.
+    entry_point = shader.get("entry_point")
+    if not entry_point and primary_shader.get("shader_type"):
+        entry_point = f"{primary_shader['shader_type']} shader"
+
+    # `fault.type` is frequently "Unknown" for TDR-style hangs where the
+    # decoder couldn't pinpoint a memory fault. Fall back to secondary
+    # signals in the GPU state — an engine or adapter reset is the most
+    # common cause of an Aftermath hang — so the title stays meaningful
+    # and the fingerprint groups repeated crashes of the same class.
+    fault_type = fault.get("type")
+    if not fault_type or fault_type == "Unknown":
+        device_status = gpu_state.get("device_status")
+        if gpu_state.get("engine_reset"):
+            fault_type = "TDR / engine reset"
+        elif gpu_state.get("adapter_reset"):
+            fault_type = "Adapter reset"
+        elif isinstance(device_status, str) and device_status:
+            fault_type = f"Device {device_status}"
+        else:
+            fault_type = "GPU crash"
+
+    shader_hash = shader_hash or "unknown"
+    entry_point = entry_point or shader_hash
 
     fingerprint = [f"gpu-crash:{fault_type}:{shader_hash}"]
     issue_title = f"GPU crash: {fault_type} in {entry_point}"
@@ -513,17 +550,43 @@ def _produce_gpu_occurrence(
         subtitle_parts.append(f"@ {fault['virtual_address']}")
     if shader.get("source_language"):
         subtitle_parts.append(shader["source_language"])
-    subtitle = " · ".join(subtitle_parts) or fault.get("code") or ""
+    if not subtitle_parts and gpu_state.get("device_name"):
+        subtitle_parts.append(gpu_state["device_name"])
+    subtitle = " · ".join(subtitle_parts) or fault.get("code") or fault.get("description") or ""
 
     evidence_display = [
         IssueEvidence(name="Fault", value=fault_type, important=True),
         IssueEvidence(name="Shader", value=shader_hash, important=False),
     ]
+    if primary_shader.get("shader_type"):
+        evidence_display.append(
+            IssueEvidence(
+                name="Shader type",
+                value=str(primary_shader["shader_type"]),
+                important=False,
+            )
+        )
     if fault.get("virtual_address"):
         evidence_display.append(
             IssueEvidence(
                 name="Virtual address",
                 value=str(fault["virtual_address"]),
+                important=False,
+            )
+        )
+    if gpu_state.get("device_name"):
+        evidence_display.append(
+            IssueEvidence(
+                name="GPU",
+                value=str(gpu_state["device_name"]),
+                important=False,
+            )
+        )
+    if gpu_state.get("driver_version"):
+        evidence_display.append(
+            IssueEvidence(
+                name="Driver",
+                value=str(gpu_state["driver_version"]),
                 important=False,
             )
         )
@@ -562,8 +625,13 @@ def _produce_gpu_occurrence(
     )
 
     # Pass a shallow copy of `data` without our private frame stash so the
-    # occurrence consumer never sees the internal channel.
+    # occurrence consumer never sees the internal channel. Ingest stores the
+    # numeric project id under the key `project`; the occurrence consumer
+    # validates `project_id` on the event payload (see
+    # src/sentry/issues/occurrence_consumer.py:244). Set both so the check
+    # passes regardless of which key the event was serialized under.
     event_data_for_kafka = {k: v for k, v in data.items() if k != "_gpu_crash_private"}
+    event_data_for_kafka.setdefault("project_id", project.id)
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,

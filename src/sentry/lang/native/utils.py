@@ -160,14 +160,40 @@ def is_applecrashreport_event(data):
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
 
 
+def find_gpu_crash_dump_attachment(data: Any) -> Any:
+    """Return the GPU crash dump attachment for this event, or None.
+
+    Matches in priority order:
+      1. an attachment with the canonical type `event.nv_gpudmp`
+      2. a generic `event.attachment` whose filename ends in `.nv-gpudmp`
+
+    The second path exists because Relay versions without an `NvGpuDump`
+    variant in their `AttachmentType` enum downgrade unknown types to
+    `event.attachment` when `accept_unknown_items` is set. Matching by
+    filename keeps the flow working end-to-end until Relay lands native
+    support for the type.
+    """
+    from sentry.lang.native.processing import GPU_CRASH_DUMP_ATTACHMENT_TYPE
+
+    canonical = get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    if canonical is not None:
+        return canonical
+
+    for attachment in get_attachments_for_event(data):
+        if attachment.type != "event.attachment":
+            continue
+        name = getattr(attachment, "name", None) or ""
+        if name.endswith(".nv-gpudmp"):
+            return attachment
+    return None
+
+
 def has_gpu_crash_dump_attachment(data: Any) -> bool:
     """True iff the event carries a GPU crash dump attachment (e.g. .nv-gpudmp).
 
     The attachment itself is the signal — no SDK-set mechanism marker required.
     """
-    from sentry.lang.native.processing import GPU_CRASH_DUMP_ATTACHMENT_TYPE
-
-    return get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE) is not None
+    return find_gpu_crash_dump_attachment(data) is not None
 
 
 class Backoff:

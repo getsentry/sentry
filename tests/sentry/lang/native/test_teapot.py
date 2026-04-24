@@ -395,7 +395,7 @@ def test_process_gpu_crash_dump_no_attachment_returns_unchanged() -> None:
     project = _FakeProject()
 
     with mock.patch(
-        "sentry.lang.native.processing.get_event_attachment",
+        "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
         return_value=None,
     ):
         result = process_gpu_crash_dump(data, project, "abc")
@@ -411,7 +411,7 @@ def test_process_gpu_crash_dump_teapot_unavailable_returns_unchanged() -> None:
 
     with (
         mock.patch(
-            "sentry.lang.native.processing.get_event_attachment",
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
         ),
         mock.patch(
@@ -443,7 +443,7 @@ def test_process_gpu_crash_dump_success_populates_context() -> None:
 
     with (
         mock.patch(
-            "sentry.lang.native.processing.get_event_attachment",
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
         ),
         mock.patch(
@@ -491,7 +491,7 @@ def test_occurrence_fired_on_completed_status() -> None:
 
     with (
         mock.patch(
-            "sentry.lang.native.processing.get_event_attachment",
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
         ),
         mock.patch(
@@ -578,7 +578,7 @@ def test_occurrence_not_fired_on_failed_status() -> None:
 
     with (
         mock.patch(
-            "sentry.lang.native.processing.get_event_attachment",
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
         ),
         mock.patch(
@@ -609,7 +609,7 @@ def test_occurrence_producer_error_is_swallowed() -> None:
 
     with (
         mock.patch(
-            "sentry.lang.native.processing.get_event_attachment",
+            "sentry.lang.native.utils.find_gpu_crash_dump_attachment",
             return_value=attachment,
         ),
         mock.patch(

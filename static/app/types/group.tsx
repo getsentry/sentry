@@ -217,6 +217,9 @@ export enum IssueType {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'sourcemap_configuration',
+
+  // Native / GPU
+  GPU_CRASH = 'gpu_crash',
 }
 
 // Issue types that should not be visible to users anywhere in the UI
@@ -303,6 +306,9 @@ export enum IssueTitle {
 
   // Configuration Issues
   SOURCEMAP_CONFIGURATION = 'Missing or Broken Source Maps',
+
+  // Native / GPU
+  GPU_CRASH = 'GPU Crash',
 }
 
 export const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -355,6 +361,8 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
   preprod_size_analysis: IssueTitle.PREPROD_SIZE_ANALYSIS,
 
   sourcemap_configuration: IssueTitle.SOURCEMAP_CONFIGURATION,
+
+  gpu_crash: IssueTitle.GPU_CRASH,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -395,6 +403,7 @@ const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
   3506: IssueType.AI_DETECTED_SECURITY,
   3507: IssueType.AI_DETECTED_CODE_HEALTH,
   3508: IssueType.AI_DETECTED_GENERAL,
+  9100: IssueType.GPU_CRASH,
   10001: IssueType.WEB_VITALS,
   11001: IssueType.PREPROD_STATIC,
   11002: IssueType.PREPROD_DELTA,

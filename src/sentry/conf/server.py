@@ -477,6 +477,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
     "sentry.lang.dart.apps.Config",
+    "sentry.lang.native.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
