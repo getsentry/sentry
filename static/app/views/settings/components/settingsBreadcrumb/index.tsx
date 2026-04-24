@@ -69,7 +69,7 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         // non-interactive label; legacy mode keeps the original self-link.
         if (isLast && hasPageFrame) {
           return (
-            <Text key={`${route.name}:${route.path}`} as="span" aria-current="page">
+            <Text key={`${route.name}:${route.path}`} as="span">
               {pathTitle || route.name}
             </Text>
           );
