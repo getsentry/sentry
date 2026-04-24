@@ -95,32 +95,39 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
       <SubscriptionContext>
         <SentryDocumentTitle title={t('Redeem Promo Code')} orgSlug={organization.slug} />
         <SettingsPageHeader title={t('Redeem Promotional Code')} />
-        <form.AppForm form={form}>
-          <form.FieldGroup title={t('Redeem Promotional Code')}>
-            <form.AppField name="code">
-              {field => (
-                <field.Layout.Row
-                  label={t('Promotional Code')}
-                  hintText={t(
-                    'Received a promotional code? Enter it here to apply credit to your organization.'
-                  )}
-                  required
-                >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
-                </field.Layout.Row>
-              )}
-            </form.AppField>
+        <div className="ref-redeem-code">
+          <form.AppForm form={form}>
+            <form.FieldGroup title={t('Redeem Promotional Code')}>
+              <form.AppField name="code">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Promotional Code')}
+                    hintText={t(
+                      'Received a promotional code? Enter it here to apply credit to your organization.'
+                    )}
+                    required
+                  >
+                    <field.Input
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
 
-            <Flex justify={accountCredit > 0 ? 'between' : 'end'}>
-              {accountCredit > 0 ? (
-                <Text>
-                  {tct('Your account credit: $[credit]', {credit: String(accountCredit)})}
-                </Text>
-              ) : null}
-              <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
-            </Flex>
-          </form.FieldGroup>
-        </form.AppForm>
+              <Flex justify={accountCredit > 0 ? 'between' : 'end'}>
+                {accountCredit > 0 ? (
+                  <Text>
+                    {tct('Your account credit: $[credit]', {
+                      credit: String(accountCredit),
+                    })}
+                  </Text>
+                ) : null}
+                <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
+              </Flex>
+            </form.FieldGroup>
+          </form.AppForm>
+        </div>
       </SubscriptionContext>
     </SubscriptionPageContainer>
   );
