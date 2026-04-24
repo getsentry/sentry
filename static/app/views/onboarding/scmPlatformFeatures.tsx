@@ -4,9 +4,8 @@ import {LayoutGroup, motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
-import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -21,7 +20,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {platforms} from 'sentry/data/platforms';
-import {IconBroadcast, IconGeneric} from 'sentry/icons';
+import {IconBroadcast, IconGeneric, IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
@@ -448,7 +447,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
       </Heading>
 
       <LayoutGroup>
-        <MotionStack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="md">
+        <MotionStack maxWidth={SCM_STEP_CONTENT_WIDTH} gap="md" paddingTop="3xl">
           <Heading as="h3" size="xl">
             {t('Choose your SDK')}
           </Heading>
@@ -550,20 +549,35 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
           </MotionStack>
         )}
 
-        <MotionContainer layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
-          {availableFeatures.length > 0 && (
-            <Separator orientation="horizontal" border="primary" />
-          )}
-        </MotionContainer>
-
         <MotionStack layout="position" maxWidth={SCM_STEP_CONTENT_WIDTH} width="100%">
           {availableFeatures.length > 0 && (
-            <ScmFeatureSelectionCards
-              availableFeatures={availableFeatures}
-              selectedFeatures={currentFeatures}
-              disabledProducts={disabledProducts}
-              onToggleFeature={handleToggleFeature}
-            />
+            <Stack gap="2xl" paddingTop="3xl" borderTop="muted">
+              <Flex
+                padding="lg"
+                background="secondary"
+                border="secondary"
+                radius="md"
+                gap="lg"
+              >
+                <IconBusiness size="lg" variant="accent" />
+
+                <Text size="md" density="comfortable">
+                  {t('You’ve got ')}
+                  <Text as="span" bold variant="accent">
+                    {t('unlimited volume for 14 days')}
+                  </Text>
+                  {t(
+                    ' to try out everything. After that, free plan volumes apply ⋅ No credit card required'
+                  )}
+                </Text>
+              </Flex>
+              <ScmFeatureSelectionCards
+                availableFeatures={availableFeatures}
+                selectedFeatures={currentFeatures}
+                disabledProducts={disabledProducts}
+                onToggleFeature={handleToggleFeature}
+              />
+            </Stack>
           )}
         </MotionStack>
       </LayoutGroup>
@@ -595,4 +609,3 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
 }
 
 const MotionStack = motion.create(Stack);
-const MotionContainer = motion.create(Container);
