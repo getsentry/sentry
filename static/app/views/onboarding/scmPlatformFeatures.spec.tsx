@@ -210,7 +210,9 @@ describe('ScmPlatformFeatures', () => {
     expect(
       await screen.findByRole('heading', {name: 'Select a platform'})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Auto-detected from your repository')
+    ).not.toBeInTheDocument();
   });
 
   it('renders manual picker when no repository in context', async () => {
@@ -229,7 +231,9 @@ describe('ScmPlatformFeatures', () => {
     expect(
       await screen.findByRole('heading', {name: 'Select a platform'})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Recommended SDK')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Auto-detected from your repository')
+    ).not.toBeInTheDocument();
   });
 
   it('continue button is disabled when no platform selected', async () => {

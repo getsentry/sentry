@@ -21,6 +21,7 @@ import {
 } from 'sentry/components/onboarding/productSelection';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {platforms} from 'sentry/data/platforms';
+import {IconBroadcast, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Team} from 'sentry/types/organization';
@@ -463,11 +464,23 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
             initial={{opacity: 0}}
             animate={{opacity: 1}}
             gap="md"
-            align="center"
             width="100%"
+            maxWidth={SCM_STEP_CONTENT_WIDTH}
           >
-            <Heading as="h3">{t('Recommended SDK')}</Heading>
-            <Stack gap="lg" align="center" width="100%">
+            <Flex justify="between" align="center">
+              <Flex align="center" gap="sm">
+                <IconBroadcast size="sm" variant="secondary" />
+                <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+                  {t('Auto-detected from your repository')}
+                </Text>
+              </Flex>
+              <Button size="xs" priority="link" onClick={handleChangePlatformClick}>
+                {isDetecting
+                  ? t('Skip detection and select manually')
+                  : t("Doesn't look right? Change platform")}
+              </Button>
+            </Flex>
+            <Stack gap="lg" width="100%">
               {isDetecting ? (
                 <LoadingIndicator mini />
               ) : (
@@ -494,25 +507,30 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
                   ))}
                 </Grid>
               )}
-
-              <Button size="xs" priority="link" onClick={handleChangePlatformClick}>
-                {isDetecting
-                  ? t('Skip detection and select manually')
-                  : t("Doesn't look right? Change platform")}
-              </Button>
             </Stack>
           </MotionStack>
         ) : (
           <MotionStack
             key="manual"
             gap="md"
-            align="center"
             width="100%"
             maxWidth={SCM_STEP_CONTENT_WIDTH}
             initial={{opacity: 0}}
             animate={{opacity: 1}}
           >
-            <Heading as="h3">{t('Select a platform')}</Heading>
+            <Flex justify="between" align="center">
+              <Flex align="center" gap="sm">
+                <IconGeneric size="sm" variant="secondary" />
+                <Text variant="secondary" bold size="sm" density="comfortable" uppercase>
+                  {t('Select a platform')}
+                </Text>
+              </Flex>
+              {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
+                <Button size="xs" priority="link" onClick={handleBackToRecommended}>
+                  {t('Back to recommended platforms')}
+                </Button>
+              )}
+            </Flex>
             <Select<(typeof platformOptions)[number]>
               placeholder={t('Search SDKs...')}
               options={manualPickerOptions}
@@ -529,11 +547,6 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               }}
               styles={{container: base => ({...base, width: '100%'})}}
             />
-            {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
-              <Button size="xs" priority="link" onClick={handleBackToRecommended}>
-                {t('Back to recommended platforms')}
-              </Button>
-            )}
           </MotionStack>
         )}
 
