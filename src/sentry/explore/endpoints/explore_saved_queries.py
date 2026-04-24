@@ -205,7 +205,7 @@ def sync_prebuilt_queries(organization):
                 continue
             if prebuilt_query["prebuilt_id"] in saved_prebuilt_query_ids:
                 saved_prebuilt_query = saved_prebuilt_queries.get(
-                    prebuilt_id=prebuilt_query["prebuilt_id"]  # type: ignore[misc]
+                    prebuilt_id=prebuilt_query["prebuilt_id"]
                 )
                 if prebuilt_query["prebuilt_version"] > saved_prebuilt_query.prebuilt_version:
                     queries_to_update.append(

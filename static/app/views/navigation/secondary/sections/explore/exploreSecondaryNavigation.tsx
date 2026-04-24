@@ -9,12 +9,12 @@ import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 

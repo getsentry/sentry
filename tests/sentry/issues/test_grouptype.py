@@ -87,19 +87,17 @@ class GroupTypeTest(BaseGroupTypeTest):
         assert get_group_type_by_slug("meow") is None
 
     def test_category_validation(self) -> None:
-        @dataclass(frozen=True)
-        class TestGroupType(GroupType):
-            type_id = 1
-            slug = "error"
-            description = "Error"
-            category = 22
-            category_v2 = 22
-
         with self.assertRaisesMessage(
             ValueError,
             f"Category must be one of {[category.value for category in GroupCategory]} from GroupCategory",
         ):
-            TestGroupType(1, "error", "Error", 22, 22)
+
+            class TestGroupType(GroupType):
+                type_id = 1
+                slug = "error"
+                description = "Error"
+                category = 22
+                category_v2 = 22
 
     def test_default_noise_config(self) -> None:
         @dataclass(frozen=True)

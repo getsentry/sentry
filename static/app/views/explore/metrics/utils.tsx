@@ -1,5 +1,7 @@
 import qs from 'query-string';
 
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -9,6 +11,7 @@ import {
   DurationUnit,
   RateUnit,
   SizeUnit,
+  stripEquationPrefix,
   type ColumnType,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -25,6 +28,8 @@ import {
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
+import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
   type SampleTableColumnKey,
@@ -298,4 +303,22 @@ export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
     return {fieldType: 'percentage', unit: metricUnit};
   }
   return {fieldType: 'number', unit: undefined};
+}
+
+/**
+ * Takes an equation and returns a filter that looks for all metric events
+ * that are used in the equation.
+ */
+export function getEquationMetricsTotalFilter(equation: string) {
+  const expression = new Expression(stripEquationPrefix(equation));
+  const aggregatesUsed = expression.tokens
+    .filter(isTokenFunction)
+    .map(token => normalizeFunctionToken(token).plainAggregate);
+
+  const traceMetricsUsed = aggregatesUsed.map(aggregate => {
+    const {traceMetric} = parseMetricAggregate(aggregate);
+    return traceMetric;
+  });
+
+  return createTraceMetricEventsFilter(traceMetricsUsed);
 }

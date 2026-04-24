@@ -40,9 +40,12 @@ import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsO
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
+import type {
+  ReplayListLocationQuery,
+  ReplayListRecord,
+} from 'sentry/views/explore/replays/types';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
-import {useAllMobileProj} from 'sentry/views/replays/detail/useAllMobileProj';
-import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 

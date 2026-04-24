@@ -14,8 +14,8 @@ import type {
   IntegrationRepository,
   Repository,
 } from 'sentry/types/integrations';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,31 +45,33 @@ export function IntegrationReposAddRepository({
   const [search, setSearch] = useState<string>();
   const debouncedSearch = useDebouncedValue(search, 200);
 
-  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const query = useQuery({
-    queryKey: [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
-        {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
-      ),
-      {method: 'GET', query: {search: debouncedSearch, installableOnly: false}},
-    ] as const,
+    ...apiOptions.as<IntegrationRepoSearchResult>()(
+      '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          integrationId: integration.id,
+        },
+        query: {search: debouncedSearch, installableOnly: false},
+        staleTime: 20_000,
+      }
+    ),
     queryFn: async context => {
       try {
         onSearchError(null);
-        return await fetchDataQuery<IntegrationRepoSearchResult>(context);
+        return await apiFetch<IntegrationRepoSearchResult>(context);
       } catch (error: any) {
         onSearchError(error?.status);
         throw error;
       }
     },
     retry: 0,
-    staleTime: 20_000,
     placeholderData: previousData => (debouncedSearch ? previousData : undefined),
     enabled: !!debouncedSearch,
   });
 
-  const searchResult = query.data?.[0] ?? defaultSearchResult;
+  const searchResult = query.data ?? defaultSearchResult;
 
   const addRepo = async (selection: {value: string}) => {
     setAdding(true);

@@ -349,8 +349,8 @@ export function SeerRepoTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <FullGridAlert variant="info" system>
+          <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
             <a onClick={selectAll}>
               {queryString
@@ -365,23 +365,19 @@ export function SeerRepoTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap">
-            <span>
-              {queryString
-                ? tct('Selected all [count] repositories matching: [queryString].', {
-                    count: countSelected,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > knownIds.length
-                  ? t('Selected all %s+ repositories.', knownIds.length)
-                  : tn(
-                      'Selected %s repository.',
-                      'Selected all %s repositories.',
-                      countSelected
-                    )}
-            </span>
-          </Flex>
+        <FullGridAlert variant="info" system>
+          {queryString
+            ? tct('Selected all [count] repositories matching: [queryString].', {
+                count: countSelected,
+                queryString: <var>{queryString}</var>,
+              })
+            : countSelected > knownIds.length
+              ? t('Selected all %s+ repositories.', knownIds.length)
+              : tn(
+                  'Selected %s repository.',
+                  'Selected all %s repositories.',
+                  countSelected
+                )}
         </FullGridAlert>
       ) : null}
     </Fragment>

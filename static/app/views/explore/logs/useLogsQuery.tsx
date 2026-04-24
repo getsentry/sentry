@@ -411,6 +411,7 @@ type QueryKey = [
  * query cache (same snapshot React Query will use for this key).
  */
 function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): number {
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const cached = client.getQueryData<InfiniteData<ApiResult<EventsLogsResult>>>(queryKey);
   const rows =
     cached?.pages?.reduce((n, page) => n + (page[0]?.data?.length ?? 0), 0) ?? 0;

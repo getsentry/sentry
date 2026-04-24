@@ -1201,11 +1201,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    # TODO(constantinius): Remove fetch-ai-model-costs once all consumers have migrated to fetch-ai-model-metadata
-    "fetch-ai-model-costs": {
-        "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
-        "schedule": crontab("*/30", "*", "*", "*", "*"),
-    },
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),

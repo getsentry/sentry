@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {createContext, useContext, useMemo} from 'react';
 
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   children: ReactNode;

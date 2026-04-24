@@ -119,6 +119,6 @@ def get_trace_metric_from_request(
 
     return TraceMetric(
         metric_name=metric_name,
-        metric_type=cast(TraceMetricType, metric_type),
+        metric_type=cast(TraceMetricType, metric_type),  # type: ignore[redundant-cast]
         metric_unit=metric_unit,
     )

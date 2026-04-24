@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Mapping, Sequence
+from enum import StrEnum
 
 import requests
 from django.http import HttpRequest
-from jwt import ExpiredSignatureError, InvalidSignatureError
+from jwt import DecodeError, ExpiredSignatureError, InvalidKeyError, InvalidSignatureError
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -13,6 +14,23 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode
+
+
+class AtlassianConnectFailureReason(StrEnum):
+    MISSING_AUTHORIZATION_HEADER = "Missing/Invalid authorization header"
+    NO_TOKEN_PARAMETER = "No token parameter"
+    NO_INTEGRATION_FOUND = "No integration found"
+    INVALID_SIGNATURE = "Signature is invalid"
+    EXPIRED_SIGNATURE = "Signature is expired"
+    QUERY_HASH_MISMATCH = "Query hash mismatch"
+    UNABLE_TO_VERIFY_ASYMMETRIC_JWT = "Unable to verify asymmetric installation JWT"
+    FAILED_TO_RETRIEVE_TOKEN = "Failed to retrieve token from request headers"
+    FAILED_TO_FETCH_KEY_ID = "Failed to fetch key_id (kid)"
+    MISSING_KEY_ID = "Missing key_id (kid)"
+    INVALID_KEY_ID = "JWT contained invalid key_id (kid)"
+    EXPIRED_SIGNATURE_TOKEN = "Expired signature"
+    INVALID_SIGNATURE_TOKEN = "JWT contained invalid signature"
+    COULD_NOT_DECODE_JWT = "Could not decode JWT token"
 
 
 class AtlassianConnectValidationError(Exception):
@@ -49,7 +67,9 @@ def get_token(request: HttpRequest) -> str:
         auth_header: str = request.META["HTTP_AUTHORIZATION"]
         return auth_header.split(" ", 1)[1]
     except (KeyError, IndexError):
-        raise AtlassianConnectValidationError("Missing/Invalid authorization header")
+        raise AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+        )
 
 
 def get_integration_from_jwt(
@@ -63,7 +83,7 @@ def get_integration_from_jwt(
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
     if token is None:
-        raise AtlassianConnectValidationError("No token parameter")
+        raise AtlassianConnectValidationError(AtlassianConnectFailureReason.NO_TOKEN_PARAMETER)
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
     claims = jwt.peek_claims(token)
@@ -77,7 +97,7 @@ def get_integration_from_jwt(
     # by the add-on during the installation handshake
     integration = integration_service.get_integration(provider=provider, external_id=issuer)
     if not integration:
-        raise AtlassianConnectValidationError("No integration found")
+        raise AtlassianConnectValidationError(AtlassianConnectFailureReason.NO_INTEGRATION_FOUND)
     # Verify the signature with the sharedSecret and the algorithm specified in the header's
     # alg field.  We only need the token + shared secret and do not want to provide an
     # audience to the JWT validation that is require to match.  Bitbucket does give us an
@@ -93,9 +113,13 @@ def get_integration_from_jwt(
             else jwt.decode(token, integration.metadata["shared_secret"], audience=False)
         )
     except InvalidSignatureError as e:
-        raise AtlassianConnectValidationError("Signature is invalid") from e
+        raise AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.INVALID_SIGNATURE
+        ) from e
     except ExpiredSignatureError as e:
-        raise AtlassianConnectValidationError("Signature is expired") from e
+        raise AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.EXPIRED_SIGNATURE
+        ) from e
 
     verify_claims(decoded_claims, path, query_params, method)
 
@@ -112,7 +136,7 @@ def verify_claims(
     # and comparing it against the qsh claim on the verified token.
     qsh = get_query_hash(path, method, query_params)
     if qsh != claims["qsh"]:
-        raise AtlassianConnectValidationError("Query hash mismatch")
+        raise AtlassianConnectValidationError(AtlassianConnectFailureReason.QUERY_HASH_MISMATCH)
 
 
 def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str]:
@@ -121,7 +145,7 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
     See: https://community.developer.atlassian.com/t/action-required-atlassian-connect-installation-lifecycle-security-improvements/49046
     """
     if token is None:
-        raise AtlassianConnectValidationError("No token parameter")
+        raise AtlassianConnectValidationError(AtlassianConnectFailureReason.NO_TOKEN_PARAMETER)
     headers = jwt.peek_header(token)
     key_response = requests.get(f"https://connect-install-keys.atlassian.com/{key_id}")
     public_key = key_response.content.decode("utf-8").strip()
@@ -129,7 +153,9 @@ def authenticate_asymmetric_jwt(token: str | None, key_id: str) -> dict[str, str
         token, public_key, audience=absolute_uri(), algorithms=[headers.get("alg")]
     )
     if not decoded_claims:
-        raise AtlassianConnectValidationError("Unable to verify asymmetric installation JWT")
+        raise AtlassianConnectValidationError(
+            AtlassianConnectFailureReason.UNABLE_TO_VERIFY_ASYMMETRIC_JWT
+        )
     return decoded_claims
 
 
@@ -152,3 +178,42 @@ def parse_integration_from_request(request: HttpRequest, provider: str) -> Integ
         method=request.method if request.method else "POST",
     )
     return Integration.objects.filter(id=rpc_integration.id).first()
+
+
+class AtlassianConnectTokenValidator:
+    def __init__(self, request: HttpRequest, method: str) -> None:
+        self.request = request
+        self.method = method
+
+    def get_token(self) -> str:
+        token = get_token(self.request)
+
+        self._validate_token(token)
+        return token
+
+    def _validate_token(self, token: str) -> None:
+        try:
+            key_id = jwt.peek_header(token).get("kid")
+        except DecodeError:
+            raise AtlassianConnectValidationError(
+                AtlassianConnectFailureReason.FAILED_TO_FETCH_KEY_ID
+            )
+        if not key_id:
+            raise AtlassianConnectValidationError(AtlassianConnectFailureReason.MISSING_KEY_ID)
+        try:
+            decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+            verify_claims(decoded_claims, self.request.path, self.request.GET, self.method)
+        except InvalidKeyError:
+            raise AtlassianConnectValidationError(AtlassianConnectFailureReason.INVALID_KEY_ID)
+        except ExpiredSignatureError:
+            raise AtlassianConnectValidationError(
+                AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN
+            )
+        except InvalidSignatureError:
+            raise AtlassianConnectValidationError(
+                AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN
+            )
+        except DecodeError:
+            raise AtlassianConnectValidationError(
+                AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT
+            )

@@ -29,7 +29,12 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class ReplayCountQueryParamsValidator(serializers.Serializer):
     query = serializers.CharField(required=True)
     data_source = serializers.ChoiceField(
-        choices=(Dataset.Discover.value, Dataset.IssuePlatform.value),
+        choices=(
+            Dataset.Discover.value,
+            Dataset.Events.value,
+            Dataset.Transactions.value,
+            Dataset.IssuePlatform.value,
+        ),
         default=Dataset.Discover.value,
     )
     returnIds = serializers.BooleanField(default=False)

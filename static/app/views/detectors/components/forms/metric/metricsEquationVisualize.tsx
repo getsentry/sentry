@@ -35,6 +35,7 @@ import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricS
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {
   LocalMultiMetricsQueryParamsProvider,
+  MAX_METRICS_ALLOWED,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -230,7 +231,7 @@ function MetricsEquationVisualizeContent({
       <Flex gap="md" align="center">
         <ToolbarVisualizeAddChart
           add={addAggregate}
-          disabled={false}
+          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
           label={t('Add Metric')}
           display="button"
         />
@@ -238,7 +239,7 @@ function MetricsEquationVisualizeContent({
           <ToolbarVisualizeAddChart
             display="button"
             add={addEquation}
-            disabled={false}
+            disabled={equationQuery || metricQueries.length >= MAX_METRICS_ALLOWED}
             label={t('Add Equation')}
           />
         )}

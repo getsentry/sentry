@@ -339,6 +339,37 @@ DEFAULT_PARAMETERIZATION_REGEXES = [
             (\b(?=[a-f]*[0-9])(?=[0-9]*[a-f])[0-9a-f]{7}\b)
         """,
     ),
+    # This pattern must come after the hex-based patterns so it doesn't catch strings which happen
+    # to contain only letters between A and F.
+    ParameterizationRegex(
+        name="random_id",
+        raw_pattern=r"""
+            \b
+            # Random nonsense alphanumeric id strings. To avoid false positives, we require the
+            # following:
+            #   - A mix of uppercase letters, lowercase letters, and numbers
+            #   - A minimum of 4 characters, with at least a certain level of "mixed-up-ness". For
+            #     our purposes, that means the string must switch back and forth between letters and
+            #     numbers at least 3 times. This rules out human-readable strings like `dogNumber1`
+            #     (1 switch) and `bball4lyfe` (2 switches), while catching strings like `aKj8XLr2`.
+            #
+            # Lookahead guaranteeing at least one uppercase letter
+            (?= [a-z0-9]* [A-Z])
+            # Lookahead guaranteeing at least one lowercase letter
+            (?= [A-Z0-9]* [a-z])
+            # Lookahead enforcing letter/number switches. Two versions depending on whether the
+            # string starts with a letter or number. This also takes care of the "contains a number"
+            # requirement.
+            (?=
+                \d+ [a-zA-Z]+ \d+ [a-zA-Z]+
+                |
+                [a-zA-Z]+ \d+ [a-zA-Z]+ \d+
+            )
+            # The pattern itself
+            [a-zA-Z0-9]{4,128}
+            \b
+        """,
+    ),
     ParameterizationRegex(name="float", raw_pattern=r"""-\d+\.\d+\b | \b\d+\.\d+\b"""),
     ParameterizationRegex(
         name="int",
