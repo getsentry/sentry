@@ -569,7 +569,9 @@ def process_workflows(
 
     enqueue_workflows(batch_client, queue_items_by_workflow_id)
 
-    actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
+    actions, all_workflow_ids = filter_recently_fired_workflow_actions(
+        actions_to_trigger, event_data
+    )
 
     workflow_evaluation_data.action_groups = actions_to_trigger
     workflow_evaluation_data.triggered_actions = set(actions)
@@ -591,6 +593,7 @@ def process_workflows(
         event_data,
         is_delayed=False,
         start_timestamp=event_start_time,
+        workflow_ids=all_workflow_ids,
     )
 
     # Create mapping: workflow_id -> notification_uuid for propagation

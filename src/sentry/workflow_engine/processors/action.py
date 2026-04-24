@@ -31,7 +31,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context, scopedstats
 
 logger = log_context.get_logger(__name__)
@@ -271,17 +271,20 @@ def fire_actions(
 
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> BaseQuerySet[Action]:
+) -> tuple[BaseQuerySet[Action], set[WorkflowId]]:
     """
-    Returns actions associated with the provided DataConditionsGroups, excluding those that have been recently fired. Also updates associated WorkflowActionGroupStatus objects.
+    Returns a tuple of (actions, all_workflow_ids) where actions are deduplicated by
+    configuration and filtered by firing frequency, and all_workflow_ids includes every
+    workflow that should be recorded as fired (including those whose actions were
+    deduplicated away). Also updates associated WorkflowActionGroupStatus objects.
     """
 
     data_condition_group_actions = DataConditionGroupAction.objects.filter(
         condition_group__in=filtered_action_groups
     ).values_list("action_id", "condition_group__workflowdataconditiongroup__workflow_id")
 
-    action_to_workflows_ids: dict[int, set[int]] = defaultdict(set)
-    workflow_ids: set[int] = set()
+    action_to_workflows_ids: dict[int, set[WorkflowId]] = defaultdict(set)
+    workflow_ids: set[WorkflowId] = set()
 
     for action_id, workflow_id in data_condition_group_actions:
         # If we are mid-deletion, the workflow_id can be none.
@@ -314,6 +317,34 @@ def filter_recently_fired_workflow_actions(
         if not action_to_workflows_ids[action_id]:
             action_to_workflows_ids.pop(action_id)
 
+    # Deduplicate actions by dedup_key so functionally identical actions
+    # (same type, integration, config, data) only fire once, even if they
+    # appear in multiple workflows.
+    if features.has(
+        "organizations:workflow-engine-deduplicate-actions",
+        event_data.event.project.organization,
+    ):
+        actions_for_dedup = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
+        dedup_key_to_entry: dict[str, tuple[int, set[int]]] = {}
+        for action in actions_for_dedup:
+            dedup_key = action.get_dedup_key()
+            if dedup_key in dedup_key_to_entry:
+                kept_action_id, kept_workflows = dedup_key_to_entry[dedup_key]
+                kept_workflows.update(action_to_workflows_ids[action.id])
+            else:
+                dedup_key_to_entry[dedup_key] = (
+                    action.id,
+                    set(action_to_workflows_ids[action.id]),
+                )
+
+        action_to_workflows_ids = {
+            action_id: wf_ids for action_id, wf_ids in dedup_key_to_entry.values()
+        }
+
+    all_workflow_ids: set[WorkflowId] = set()
+    for wf_ids in action_to_workflows_ids.values():
+        all_workflow_ids.update(wf_ids)
+
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
     # annotate actions with workflow_id they are firing for (deduped)
@@ -324,8 +355,14 @@ def filter_recently_fired_workflow_actions(
         for action_id, workflow_ids in action_to_workflows_ids.items()
     ]
 
-    return actions_queryset.annotate(
-        workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
+    return (
+        actions_queryset.annotate(
+            workflow_id=Case(
+                *workflow_id_cases,
+                output_field=models.IntegerField(),
+            ),
+        ),
+        all_workflow_ids,
     )
 
 

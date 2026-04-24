@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.integrations.base import IntegrationFeatures
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -52,7 +53,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             workflow=self.workflow, action=action, group=self.group
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
@@ -85,7 +86,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
@@ -103,7 +104,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )  # shared action
         self.create_workflow_data_condition_group(workflow, action_group)
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # dedupes action if both workflows will fire it
@@ -127,7 +128,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status.update(date_updated=timezone.now() - timedelta(hours=1))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # fires one action for the workflow that can fire it
@@ -280,7 +281,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
@@ -300,13 +301,14 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         assert set(triggered_actions) == {self.action}
         assert getattr(triggered_actions[0], "workflow_id") == workflow.id
 
+    @with_feature("organizations:workflow-engine-deduplicate-actions")
     def test_deduplicates_different_actions_with_same_dedup_key(self) -> None:
         """
         Two different Action objects with the same dedup_key (same type, config, data)
@@ -334,12 +336,15 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         self.create_workflow_data_condition_group(workflow_2, action_group_2)
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         # Should deduplicate to a single action since both have the same dedup_key
         assert len(triggered_actions) == 1
+
+        # all_workflow_ids should include both workflows for fire history tracking
+        assert all_workflow_ids == {self.workflow.id, workflow_2.id}
 
         # WAGS should be created for both workflows
         assert (
@@ -349,6 +354,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             == 2
         )
 
+    @with_feature("organizations:workflow-engine-deduplicate-actions")
     def test_deduplicates_different_actions_with_same_dedup_key__later_fire(self) -> None:
         """
         Same as above but with existing WAGS entries. Both workflows should be
@@ -382,12 +388,15 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_2.update(date_updated=timezone.now() - timedelta(days=1))
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         # Should deduplicate to a single action
         assert len(triggered_actions) == 1
+
+        # all_workflow_ids should include both workflows
+        assert all_workflow_ids == {self.workflow.id, workflow_2.id}
 
         # Both WAGS should be updated
         for status in [status_1, status_2]:
@@ -403,7 +412,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         # No WorkflowDataConditionGroup links orphan_group to any workflow
 
-        triggered_actions = filter_recently_fired_workflow_actions(
+        triggered_actions, _ = filter_recently_fired_workflow_actions(
             {self.action_group, orphan_group}, self.event_data
         )
 

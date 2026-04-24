@@ -31,19 +31,21 @@ def create_workflow_fire_histories(
     event_data: WorkflowEventData,
     is_delayed: bool = False,
     start_timestamp: datetime | None = None,
+    workflow_ids: set[int] | None = None,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
     event.
 
     If we're reporting a fire due to delayed processing, is_delayed should be True.
+    If workflow_ids is provided, use it directly instead of deriving from actions.
     """
-    # Create WorkflowFireHistory objects for workflows we fire actions for
-    workflow_ids = set(
-        WorkflowDataConditionGroup.objects.filter(
-            condition_group__dataconditiongroupaction__action__in=actions_to_fire
-        ).values_list("workflow_id", flat=True)
-    )
+    if workflow_ids is None:
+        workflow_ids = set(
+            WorkflowDataConditionGroup.objects.filter(
+                condition_group__dataconditiongroupaction__action__in=actions_to_fire
+            ).values_list("workflow_id", flat=True)
+        )
 
     event_id = (
         event_data.event.event_id
