@@ -146,7 +146,9 @@ describe('ScmPlatformFeatures', () => {
       }
     );
 
-    expect(await screen.findByText('We’re more than just errors')).toBeInTheDocument();
+    expect(
+      await screen.findByText('What do you want to instrument?')
+    ).toBeInTheDocument();
   });
 
   it('clicking "Change platform" shows manual picker', async () => {
@@ -310,7 +312,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for feature cards to appear
-    await screen.findByText('We’re more than just errors');
+    await screen.findByText('What do you want to instrument?');
 
     // Neither profiling nor tracing should be checked initially
     expect(screen.getByRole('checkbox', {name: /Profiling/})).not.toBeChecked();
@@ -417,7 +419,7 @@ describe('ScmPlatformFeatures', () => {
     );
 
     // Wait for feature cards to appear
-    await screen.findByText('We’re more than just errors');
+    await screen.findByText('What do you want to instrument?');
 
     // Both should be checked initially
     expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeChecked();
@@ -571,7 +573,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('We’re more than just errors');
+      await screen.findByText('What do you want to instrument?');
 
       const detectedCalls = trackAnalyticsSpy.mock.calls.filter(
         ([event, params]) =>
@@ -605,7 +607,7 @@ describe('ScmPlatformFeatures', () => {
         }
       );
 
-      await screen.findByText('We’re more than just errors');
+      await screen.findByText('What do you want to instrument?');
 
       await userEvent.click(screen.getByRole('checkbox', {name: /Tracing/}));
 

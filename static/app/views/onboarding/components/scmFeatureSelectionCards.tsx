@@ -1,7 +1,7 @@
 import type {ComponentType} from 'react';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -79,17 +79,15 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Flex direction="column" gap="2xl" width="100%" justify="center">
-      <Stack gap="sm">
-        <Text bold size="lg">
-          {t('We’re more than just errors')}
+    <Flex direction="column" gap="xl" width="100%" justify="center">
+      <Flex justify="between" align="center">
+        <Heading as="h3" size="xl">
+          {t('What do you want to instrument?')}
+        </Heading>
+        <Text size="md" variant="secondary">
+          {t('Choose one or more')}
         </Text>
-        <Text size="lg" density="comfortable" variant="secondary">
-          {t(
-            'Sentry can trace slow requests, replay user sessions, profile your code, and more.'
-          )}
-        </Text>
-      </Stack>
+      </Flex>
       <Stack gap="xl">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
