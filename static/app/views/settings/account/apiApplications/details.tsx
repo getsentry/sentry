@@ -13,7 +13,7 @@ import {
   FormSearch,
 } from '@sentry/scraps/form';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
@@ -120,6 +120,7 @@ function ApiApplicationsDetails() {
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
     setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
+    addSuccessMessage(t('Changes applied.'));
   };
 
   const stringFieldMutationOptions = {
