@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0008_add_seer_run_models
 
-sentry: 1072_backfill_scm_integration_config
+sentry: 1073_add_org_ci_scope
 
 social_auth: 0003_social_auth_json_field
 

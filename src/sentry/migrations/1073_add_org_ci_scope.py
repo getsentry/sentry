@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1071_add_broadcast_sync_locked"),
+        ("sentry", "1072_backfill_scm_integration_config"),
     ]
 
     operations = [
