@@ -1,7 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
+import orderBy from 'lodash/orderBy';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   cmdkQueryOptions,
   type CMDKQueryOptions,
@@ -17,11 +19,20 @@ import {IconBookmark, IconFilter, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FieldKey} from 'sentry/utils/fields';
+import {getUtcDateString} from 'sentry/utils/dates';
+import {
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKey,
+  FieldKind,
+  isDeviceClass,
+} from 'sentry/utils/fields';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useIssueViewUnsavedChanges';
@@ -41,25 +52,6 @@ interface IssueListCommandPaletteActionsProps {
   query: string;
   sort: IssueSortOptions;
 }
-
-// Issue property fields to expose as filter actions, in display order.
-const FILTER_KEY_ORDER: FieldKey[] = [
-  FieldKey.IS,
-  FieldKey.ISSUE_PRIORITY,
-  FieldKey.ISSUE_CATEGORY,
-  FieldKey.ASSIGNED,
-  FieldKey.ISSUE_SEER_ACTIONABILITY,
-  FieldKey.ISSUE_TYPE,
-];
-
-const FILTER_LABEL: Partial<Record<FieldKey, string>> = {
-  [FieldKey.IS]: t('Status'),
-  [FieldKey.ISSUE_PRIORITY]: t('Priority'),
-  [FieldKey.ISSUE_CATEGORY]: t('Category'),
-  [FieldKey.ASSIGNED]: t('Assigned To'),
-  [FieldKey.ISSUE_SEER_ACTIONABILITY]: t('Fixability'),
-  [FieldKey.ISSUE_TYPE]: t('Issue Type'),
-};
 
 /**
  * Extracts a flat list of string values from a tag's predefined values.
@@ -88,46 +80,151 @@ function FilterActions({
   query,
   onQueryChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
+
+  // Stable string derived from page filters for use in query cache keys — ensures
+  // API-fetched tag values are invalidated when the project or date selection changes.
+  const pageFilterCacheKey = useMemo(
+    () =>
+      [
+        pageFilters.projects.join(','),
+        pageFilters.datetime.period ?? '',
+        pageFilters.datetime.start?.toString() ?? '',
+        pageFilters.datetime.end?.toString() ?? '',
+      ].join('|'),
+    [pageFilters]
+  );
+
+  // Fetches the top tag values from the events/issue-platform datasets.
+  // Mirrors tagValueLoader in searchBar.tsx, but always searches with an empty
+  // string so the cmdk shows the most common values rather than filtered results.
+  const loadTagValues = async (key: string): Promise<string[]> => {
+    if (isDeviceClass(key)) {
+      return DEVICE_CLASS_TAG_VALUES;
+    }
+
+    const projectIds = pageFilters.projects.map(id => id.toString());
+    const endpointParams = {
+      start: pageFilters.datetime.start
+        ? getUtcDateString(pageFilters.datetime.start)
+        : undefined,
+      end: pageFilters.datetime.end
+        ? getUtcDateString(pageFilters.datetime.end)
+        : undefined,
+      statsPeriod: pageFilters.datetime.period,
+    };
+    const fetchParams = {
+      api,
+      orgSlug: organization.slug,
+      tagKey: key,
+      search: '',
+      projectIds,
+      endpointParams,
+      sort: '-count' as const,
+    };
+
+    if (filterKeys[key]?.kind === FieldKind.FEATURE_FLAG) {
+      const values = await fetchFeatureFlagValues({...fetchParams, organization});
+      return values.map(v => v.value);
+    }
+
+    if (key === FieldKey.FIRST_RELEASE) {
+      const values = await fetchTagValues({
+        ...fetchParams,
+        tagKey: 'release',
+        dataset: Dataset.ERRORS,
+      });
+      return ['latest', ...values.map(v => v.value)];
+    }
+
+    const [errorsValues, platformValues] = await Promise.all([
+      fetchTagValues({...fetchParams, dataset: Dataset.ERRORS}),
+      fetchTagValues({...fetchParams, dataset: Dataset.ISSUE_PLATFORM}),
+    ]);
+
+    return mergeAndSortTagValues(errorsValues, platformValues, 'count').map(v => v.value);
+  };
+
+  const issueFields = useMemo(
+    () =>
+      orderBy(
+        Object.values(filterKeys).filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
+        ['key']
+      ),
+    [filterKeys]
+  );
+
+  const eventFields = useMemo(
+    () =>
+      orderBy(
+        Object.values(filterKeys).filter(tag => tag.kind === FieldKind.EVENT_FIELD),
+        ['key']
+      ),
+    [filterKeys]
+  );
+
+  const eventTags = useMemo(
+    () =>
+      orderBy(
+        Object.values(filterKeys).filter(tag => tag.kind === FieldKind.TAG),
+        ['totalValues', 'key'],
+        ['desc', 'asc']
+      ),
+    [filterKeys]
+  );
+
+  const renderFilterKey = (tag: Tag) => {
+    const predefined = getTagValueStrings(tag);
+    const hasPredefined = predefined.length > 0;
+
+    return (
+      <CMDKAction
+        key={tag.key}
+        display={{label: tag.name}}
+        keywords={[tag.key]}
+        prompt={t('Select a value...')}
+        resource={(_cmdkQuery: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+          // Include the feed query in the cache key so onAction closures are
+          // always built against the current query when it changes.
+          // eslint-disable-next-line @tanstack/query/exhaustive-deps
+          cmdkQueryOptions({
+            queryKey: ['cmdk-filter-values', tag.key, query, pageFilterCacheKey],
+            queryFn: async () => {
+              const values = hasPredefined ? predefined : await loadTagValues(tag.key);
+              return values.map(value => ({
+                display: {label: value},
+                onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
+              }));
+            },
+            enabled: state === 'selected',
+            staleTime: hasPredefined ? Infinity : 30_000,
+          })
+        }
+      />
+    );
+  };
 
   return (
     <CMDKAction
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
-      {FILTER_KEY_ORDER.map(key => {
-        const tag = filterKeys[key];
-        if (!tag) return null;
-
-        const label = FILTER_LABEL[key] ?? tag.name;
-
-        return (
-          <CMDKAction
-            key={key}
-            display={{label}}
-            keywords={[key]}
-            prompt={t('Select a value...')}
-            resource={(
-              _cmdkQuery: string,
-              {state}: CMDKResourceContext
-            ): CMDKQueryOptions =>
-              // Include the feed query in the cache key so the onAction closures
-              // are always built against the current query when it changes.
-              // eslint-disable-next-line @tanstack/query/exhaustive-deps
-              cmdkQueryOptions({
-                queryKey: ['issue-filter-values', key, query],
-                queryFn: () =>
-                  getTagValueStrings(tag).map(value => ({
-                    display: {label: value},
-                    onAction: () => onQueryChange(appendFilterToken(query, key, value)),
-                  })),
-                enabled: state === 'selected',
-                staleTime: Infinity,
-              })
-            }
-          />
-        );
-      })}
+      <CMDKAction display={{label: t('Issues')}}>
+        {issueFields.map(renderFilterKey)}
+      </CMDKAction>
+      {eventFields.length > 0 && (
+        <CMDKAction display={{label: t('Event Filters')}} limit={10}>
+          {eventFields.map(renderFilterKey)}
+        </CMDKAction>
+      )}
+      {eventTags.length > 0 && (
+        <CMDKAction display={{label: t('Event Tags')}} limit={10}>
+          {eventTags.map(renderFilterKey)}
+        </CMDKAction>
+      )}
     </CMDKAction>
   );
 }
