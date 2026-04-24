@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -54,7 +54,6 @@ export function ThreadSelector({
   onChange,
 }: Props) {
   const organization = useOrganization({allowNull: true});
-  const [currentThread, setCurrentThread] = useState<Thread>(activeThread);
   const [sortAttribute, setSortAttribute] = useState<SortAttribute>(SortAttribute.ID);
   const [isSortAscending, setIsSortAscending] = useState<boolean>(true);
 
@@ -93,30 +92,36 @@ export function ThreadSelector({
       }
     });
     const currentThreadIndex = sortedThreads.findIndex(
-      thread => thread.id === currentThread.id
+      thread => thread.id === activeThread.id
     );
+    const current = sortedThreads[currentThreadIndex];
+    if (!current) {
+      return sortedThreads;
+    }
     return [
-      sortedThreads[currentThreadIndex],
+      current,
       ...sortedThreads.slice(0, currentThreadIndex),
       ...sortedThreads.slice(currentThreadIndex + 1),
-    ].filter(defined);
-  }, [threads, sortAttribute, isSortAscending, currentThread, threadInfoMap]);
+    ];
+  }, [threads, sortAttribute, isSortAscending, activeThread, threadInfoMap]);
 
-  const items = orderedThreads.map((thread: Thread) => {
-    const threadInfo = threadInfoMap[thread.id] ?? {};
-    return {
-      value: thread.id,
-      textValue: `#${thread.id}: ${thread.name ?? ''} ${threadInfo.label ?? ''} ${threadInfo.filename ?? ''} ${threadInfo.state ?? ''}`,
-      label: (
-        <Option
-          thread={thread}
-          details={threadInfo}
-          crashedInfo={threadInfo?.crashedInfo}
-          hasThreadStates={hasThreadStates}
-        />
-      ),
-    };
-  });
+  const items = useMemo((): Array<SelectOptionOrSection<number>> => {
+    return orderedThreads.map((thread: Thread) => {
+      const threadInfo = threadInfoMap[thread.id] ?? {};
+      return {
+        value: thread.id,
+        textValue: `#${thread.id}: ${thread.name ?? ''} ${threadInfo.label ?? ''} ${threadInfo.filename ?? ''} ${threadInfo.state ?? ''}`,
+        label: (
+          <Option
+            thread={thread}
+            details={threadInfo}
+            crashedInfo={threadInfo?.crashedInfo}
+            hasThreadStates={hasThreadStates}
+          />
+        ),
+      };
+    });
+  }, [orderedThreads, threadInfoMap, hasThreadStates]);
 
   const sortIcon = (
     <IconArrow
@@ -231,7 +236,6 @@ export function ThreadSelector({
               0,
           });
           onChange(thread);
-          setCurrentThread(thread);
         }
       }}
     />
