@@ -45,8 +45,7 @@ If you are not sure: most new models that store a customer's working state are `
 The FK type is an architectural statement, not a style choice:
 
 - `FlexibleForeignKey("sentry.Project", on_delete=...)` — the FK target lives in the same silo. A real database constraint is created. Cascading delete is enforced by Postgres.
-- `HybridCloudForeignKey("sentry.User", on_delete="...", ...)` — the FK target lives in the _opposite_ silo. No database constraint. Cascade is eventually consistent via outbox tombstones. `on_delete` is passed as a string (`"CASCADE"`, `"SET_NULL"`, `"DO_NOTHING"`).
-- `FlexibleForeignKey(..., db_constraint=False)` — same silo, but you are opting out of the FK constraint. Reasonable when the target table is hot enough that the constraint causes lock contention, or when you intend to manage cascades manually.
+- `HybridCloudForeignKey("sentry.User", on_delete="...", ...)` — the FK target lives in the _opposite_ silo. No database constraint. Cascade is eventually consistent via outbox tombstones. `on_delete` is passed as a string (`"CASCADE"`, `"SET_NULL"`, `"DO_NOTHING"`). Name the field with an explicit `_id` suffix (e.g. `user_id = HybridCloudForeignKey(...)`) since there's no ORM relationship to resolve — only an ID. Compare with `FlexibleForeignKey`, where Django gives you both `project` (the related object) and `project_id` (the column) from a single `project = FlexibleForeignKey(...)`.
 - Plain Django `ForeignKey` — avoid. A couple of older `workflow_engine` models still use it, but for new code the convention is `FlexibleForeignKey` (same-silo) or `HybridCloudForeignKey` (cross-silo). Both plug into Sentry's deletion framework and hybrid-cloud plumbing in ways plain `ForeignKey` does not.
 
 If a model has both kinds of FKs, that is fine and common. The presence of an HCFK is _not_ a signal that the model should be in the other silo — it just means the relationship crosses silos.
@@ -55,12 +54,13 @@ If a model has both kinds of FKs, that is fine and common. The presence of an HC
 
 ### Base class and timestamps
 
-Prefer `DefaultFieldsModel` when you want `date_added` (`auto_now_add=True`) and `date_updated` (`auto_now=True`) for free — which covers most new models. Plain `Model` is only right when you genuinely don't want either timestamp. `DefaultFieldsModelExisting` is legacy-only — its docstring explicitly says don't use it on new models (it leaves `date_added` nullable for backward compat with models that predate the field).
+Use `DefaultFieldsModel` for new models. It gives you `date_added` (`auto_now_add=True`) and `date_updated` (`auto_now=True`) for free, and it's almost always what you want — tables that genuinely shouldn't track either timestamp are rare. `DefaultFieldsModelExisting` is legacy-only — its docstring explicitly says don't use it on new models (it leaves `date_added` nullable for backward compat with models that predate the field).
 
 ### Field-type intent
 
 - `BoundedBigAutoField` for primary keys, `BoundedBigIntegerField` / `BoundedPositiveIntegerField` for non-PK numeric IDs and counts. The "bounded" part is a runtime overflow guard, not a Django nicety — it catches values that would silently corrupt downstream consumers.
-- For free-form text without a known business cap, prefer `CharField(max_length=256)`. Postgres `varchar(n)` storage is identical regardless of `n` below the TOAST threshold, so picking 64 prematurely is a constraint without a benefit. Pick a smaller value only when the column has a real meaning (hash=40/64, UUID=32, slug, identifier with a spec).
+- For bounded text fields without a strict spec, prefer `CharField(max_length=256)`. Postgres `varchar(n)` storage is identical regardless of `n` below the TOAST threshold, so picking 64 prematurely is a constraint without a benefit. Pick a smaller value only when the column has a real meaning (hash=40/64, UUID=32, slug, identifier with a spec).
+- For free-form text fields, use `TextField`.
 - For new JSON columns, prefer Django's `models.JSONField()` (jsonb-backed). The legacy `sentry.db.models.fields.jsonfield.JSONField` is text-backed and exists for compatibility with old columns — only use it when intentionally matching one.
 - Mutable callable defaults (`default=dict`, `default=list`) — never bare `default={}` / `default=[]`.
 
@@ -78,8 +78,8 @@ If you filter on `(org_id, project_id, type)` together, you need an index whose 
 
 ### Where the file lives
 
-- App-scoped data: `src/sentry/<app>/models.py` (single file) or `src/sentry/<app>/models/<thing>.py` (one model per file) — pick by precedent in the app.
-- Core models: `src/sentry/models/<thing>.py`, one model per file.
+- Default: put new models in an app under `src/sentry/<app>/models.py` (single file) or `src/sentry/<app>/models/<thing>.py` (one model per file) — pick by precedent in the app.
+- `src/sentry/models/<thing>.py` is the legacy location. Only put a new model there if it's tightly coupled to a model that already lives there and moving it would be disruptive.
 - New apps under `src/sentry/<app>/` should set up a real Django app (`apps.py`, `__init__.py` with `default_app_config`).
 
 ## A minimal cell-silo model skeleton
@@ -126,4 +126,4 @@ For a control-silo model, swap `@cell_silo_model` for `@control_silo_model`. For
 
 1. Generate the migration: invoke the `generate-migration` skill.
 2. If the model is replicated: invoke the `hybrid-cloud-outboxes` skill to wire up payload, signal receivers, and deletion handlers.
-3. Add the model import to its app's `models/__init__.py` if the app uses one, so Django picks it up.
+3. If the app's `models/__init__.py` re-exports its models, add your new one there too — it's a convenience for callers (`from sentry.<app>.models import Thing`), not a Django requirement, so match the app's precedent.
