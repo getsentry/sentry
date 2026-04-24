@@ -231,9 +231,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/alerts/rules/uptime                     @getsentry/crons
-/static/app/views/releases/                               @getsentry/replay-frontend
-/static/app/views/releases/drawer/                        @getsentry/replay-frontend
-/static/app/views/releases/releaseBubbles/                @getsentry/replay-frontend
+/static/app/views/explore/releases/                               @getsentry/replay-frontend
+/static/app/views/explore/releases/drawer/                        @getsentry/replay-frontend
+/static/app/views/explore/releases/releaseBubbles/                @getsentry/replay-frontend
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
