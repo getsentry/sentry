@@ -1703,3 +1703,23 @@ class TestTriggerCodingAgentLaunchClearsHandoff(APITestCase):
 
         assert result == {"success": False, "error_code": "integration_not_found"}
         assert self.project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
+
+    @with_feature("organizations:seer-project-settings-dual-write")
+    @patch("sentry.seer.endpoints.seer_rpc.launch_coding_agents_for_run")
+    def test_integration_not_found_skips_clear_when_project_outside_org(self, mock_launch):
+        """Project IDs outside the caller org must not have their preferences mutated."""
+        mock_launch.side_effect = IntegrationNotFound()
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+
+        result = trigger_coding_agent_launch(
+            organization_id=self.organization.id,
+            project_id=other_project.id,
+            integration_id=42,
+            run_id=99,
+        )
+
+        assert result == {"success": False, "error_code": "integration_not_found"}
+        assert other_project.get_option("sentry:seer_automation_handoff_point") == "root_cause"

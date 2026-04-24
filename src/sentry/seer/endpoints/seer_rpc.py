@@ -622,6 +622,8 @@ def trigger_coding_agent_launch(
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
                 project = Project.objects.get_from_cache(id=project_id)
+                if project.organization_id != organization_id:
+                    raise Project.DoesNotExist
                 preference = read_preference_from_sentry_db(project)
 
                 if preference.automation_handoff is not None:
