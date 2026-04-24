@@ -12,7 +12,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import (
@@ -113,6 +113,14 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
         super().setUp()
         self.project = self.create_project()
         self.validator_class = BaseDetectorTypeValidator
+        self.registry_patcher = mock.patch(
+            "sentry.issues.grouptype.registry", new=GroupTypeRegistry()
+        )
+        self.registry_patcher.__enter__()
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self.registry_patcher.__exit__(None, None, None)
 
     def test_validate_type_valid(self) -> None:
         class TestGroupType(GroupType):
