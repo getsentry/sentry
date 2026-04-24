@@ -3,7 +3,10 @@ import {useMemo} from 'react';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
-import {isCompleteTraceMetric} from 'sentry/views/explore/metrics/utils';
+import {
+  createTraceMetricEventsFilter,
+  isCompleteTraceMetric,
+} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -38,16 +41,9 @@ export function useCrossEventQueries() {
           if (!isCompleteTraceMetric(metric)) {
             break;
           }
-          const identity = new MutableSearch('');
-          identity.addOp('(');
-          identity.addFilterValue('metric.name', metric.name);
-          identity.addFilterValue('metric.type', metric.type);
-          if (metric.unit) {
-            identity.addFilterValue('metric.unit', metric.unit);
-          }
-          identity.addOp(')');
-          identity.addFreeText(crossEvent.query);
-          metricQuery.push(identity.formatString());
+          const search = new MutableSearch(createTraceMetricEventsFilter([metric]));
+          search.addFreeText(crossEvent.query);
+          metricQuery.push(search.formatString());
           break;
         }
       }

@@ -55,7 +55,7 @@ function wrapper(crossEvents?: CrossEvent[]) {
 
 describe('useCrossEventQueries', () => {
   it('returns undefined if there are no cross event queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper(),
     });
 
@@ -63,7 +63,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('returns undefined if cross event queries array is empty', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([]),
     });
 
@@ -71,7 +71,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('returns object of array of queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
@@ -88,7 +88,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('appends queries with the same types', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {type: 'spans', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
@@ -105,7 +105,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('ignores queries with invalid types', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'invalid' as any, query: 'test:b'},
@@ -121,7 +121,7 @@ describe('useCrossEventQueries', () => {
   });
 
   it('prepends metric identity fields to metric queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {
           type: 'metrics',
@@ -140,8 +140,8 @@ describe('useCrossEventQueries', () => {
     });
   });
 
-  it('omits metric.unit when absent on the metric', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+  it('defaults metric.unit to none when absent on the metric', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {
           type: 'metrics',
@@ -154,12 +154,32 @@ describe('useCrossEventQueries', () => {
     expect(result.current).toStrictEqual({
       logQuery: [],
       spanQuery: [],
-      metricQuery: ['( metric.name:my_metric metric.type:counter )'],
+      metricQuery: ['( metric.name:my_metric metric.type:counter metric.unit:none )'],
+    });
+  });
+
+  it('matches both !has:metric.unit and metric.unit:none when unit is explicitly none', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {
+          type: 'metrics',
+          query: 'env:prod',
+          metric: {name: 'my_metric', type: 'counter', unit: 'none'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) env:prod',
+      ],
     });
   });
 
   it('drops metric entries without a selected metric name', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
       additionalWrapper: wrapper([
         {type: 'metrics', query: 'env:prod', metric: {name: '', type: ''}},
       ]),
