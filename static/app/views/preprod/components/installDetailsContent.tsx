@@ -18,34 +18,33 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {InstallableAppErrorCode} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {InstallDetailsApiResponse} from 'sentry/views/preprod/types/installDetailsTypes';
 
 export function getDistributionErrorTooltip(
   errorCode?: string | null,
   errorMessage?: string | null
 ): string {
-  if (errorCode === 'no_quota') {
-    return t('Distribution quota exceeded');
-  }
-  if (errorCode === 'skipped') {
+  // Legacy rows: before the granular codes existed, the reason was stuffed into
+  // error_message as a short-code string. Translate those to real sentences.
+  // Drop once launchpad has been emitting the new codes long enough that old
+  // rows have aged out.
+  if (errorCode === InstallableAppErrorCode.SKIPPED) {
     if (errorMessage === 'invalid_signature') {
       return t('Code signature is invalid');
     }
     if (errorMessage === 'simulator') {
       return t('Simulator builds cannot be distributed');
     }
-    return t('Distribution was skipped');
   }
-  if (errorCode === 'processing_error') {
-    return t('Distribution failed due to a processing error');
-  }
-  return t('Not installable');
+
+  return errorMessage || t('Not installable');
 }
 
 interface InstallDetailsContentProps {
   artifactId: string;
   projectSlug: string;
-  distributionErrorCode?: string | null;
+  distributionErrorCode?: InstallableAppErrorCode | string | null;
   distributionErrorMessage?: string | null;
   size?: 'sm' | 'lg';
 }
@@ -93,6 +92,24 @@ export function InstallDetailsContent({
     }
   );
 
+  const distributionDisabledBody = (
+    <Flex direction="column" align="center" gap={outerGap}>
+      <Text>{t('Build distribution is not enabled')}</Text>
+      <Text size="sm" variant="muted" align="center">
+        {tct(
+          'The installable file is not available for this build. Enable build distribution in your [link:project settings].',
+          {
+            link: (
+              <Link
+                to={`/settings/${organization.slug}/projects/${projectSlug}/mobile-builds/?tab=distribution`}
+              />
+            ),
+          }
+        )}
+      </Text>
+    </Flex>
+  );
+
   let body: ReactNode;
   if (isPending) {
     body = (
@@ -103,23 +120,7 @@ export function InstallDetailsContent({
     );
   } else if (isError || !installDetails) {
     if (error?.status === 404) {
-      body = (
-        <Flex direction="column" align="center" gap={outerGap}>
-          <Text>{t('Build distribution is not enabled')}</Text>
-          <Text size="sm" variant="muted" align="center">
-            {tct(
-              'The installable file is not available for this build. Enable build distribution in your [link:project settings].',
-              {
-                link: (
-                  <Link
-                    to={`/settings/${organization.slug}/projects/${projectSlug}/mobile-builds/?tab=distribution`}
-                  />
-                ),
-              }
-            )}
-          </Text>
-        </Flex>
-      );
+      body = distributionDisabledBody;
     } else {
       body = (
         <Flex direction="column" align="center" gap={outerGap}>
@@ -288,6 +289,8 @@ export function InstallDetailsContent({
         </Fragment>
       </Flex>
     );
+  } else if (distributionErrorCode === InstallableAppErrorCode.DISTRIBUTION_DISABLED) {
+    body = distributionDisabledBody;
   } else {
     let message: string;
     if (distributionErrorCode) {
