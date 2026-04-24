@@ -1,3 +1,4 @@
+import {useQueryClient} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -11,7 +12,6 @@ import {
 } from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {
   useMutateSelectedAgent,
   useSelectedAgentFromBulkSettings,

@@ -779,7 +779,7 @@ class HmacSignatureAuthentication(StandardAuthentication):
 class ViewerContextAuthentication(BaseAuthentication):
     """Authenticate requests using X-Viewer-Context headers.
 
-    Accepts both JWT (HS256) and legacy JSON + HMAC signature formats.
+    Accepts JWT (HS256) ``X-Viewer-Context`` headers.
     Used by trusted services (e.g., Seer) that echo back the viewer context
     originally signed by Sentry.
 
@@ -795,9 +795,8 @@ class ViewerContextAuthentication(BaseAuthentication):
         if not header:
             return None
 
-        signature = request.META.get("HTTP_X_VIEWER_CONTEXT_SIGNATURE")
         verification_keys = _get_verification_keys()
-        vc = viewer_context_from_header(header, signature)
+        vc = viewer_context_from_header(header)
 
         if vc is None or vc.user_id is None:
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
@@ -809,8 +808,6 @@ class ViewerContextAuthentication(BaseAuthentication):
                     "reason": "vc_not_resolved" if vc is None else "no_user_id",
                     "header_length": len(header),
                     "header_is_jwt": "." in header and header.count(".") == 2,
-                    "signature_present": signature is not None,
-                    "signature_length": len(signature) if signature else 0,
                     "verification_key_count": len(verification_keys),
                     "path": request.path,
                 },

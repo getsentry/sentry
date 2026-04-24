@@ -117,7 +117,7 @@ def _extract_text_from_blocks(blocks: Sequence[Mapping[str, Any]]) -> str:
 
 
 def build_thread_context(messages: Sequence[Mapping[str, Any]]) -> str:
-    """Build a context string from thread history for Seer Explorer."""
+    """Build a context string from thread history for Seer Agent."""
     if not messages:
         return ""
 

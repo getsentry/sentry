@@ -322,6 +322,33 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
+    def test_member_already_exists_with_member_id_from_another_organization(self) -> None:
+        user = self.create_user("alreadymember@example.com")
+        self.login_as(user)
+        Factories.create_member(user=user, organization=self.organization, role="member")
+
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
+            other_organization = self.create_organization(
+                owner=self.create_user("otherowner@example.com")
+            )
+        other_om = Factories.create_member(
+            email="pending@example.com",
+            role="member",
+            token="abc",
+            organization=other_organization,
+        )
+
+        path = self._get_path(
+            "sentry-api-0-organization-accept-organization-invite",
+            [other_om.id, other_om.token],
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 400
+
+        with assume_test_silo_mode_of(OrganizationMember):
+            assert OrganizationMember.objects.filter(id=other_om.id).exists()
+        self.assert_org_member_mapping(org_member=other_om)
+
     def test_can_accept_when_user_has_2fa(self) -> None:
         urls = self._get_urls()
 

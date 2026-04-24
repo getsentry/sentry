@@ -629,22 +629,9 @@ class GitHubPRCommentWorkflow(PRCommentWorkflow):
         comment_body: str,
         issue_ids: list[int],
     ) -> dict[str, Any]:
-        enabled_copilot = features.has("organizations:gen-ai-features", organization)
-
-        comment_data: dict[str, Any] = {
+        return {
             "body": comment_body,
         }
-        if enabled_copilot:
-            comment_data["actions"] = [
-                {
-                    "name": f"Root cause #{i + 1}",
-                    "type": "copilot-chat",
-                    "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr.key)}",
-                }
-                for i, issue_id in enumerate(issue_ids[:3])
-            ]
-
-        return comment_data
 
 
 def process_api_error(e: ApiError) -> list[dict[str, Any]] | None:

@@ -11,7 +11,6 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {createTraceMetricEventsFilter} from 'sentry/views/dashboards/widgetCard/hooks/useWidgetRawCounts';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
@@ -27,9 +26,14 @@ import {
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
+  createTraceMetricEventsFilter,
+  getEquationMetricsTotalFilter,
+} from 'sentry/views/explore/metrics/utils';
+import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -113,8 +117,12 @@ function Graph({
   const traceMetric = useTraceMetric();
   const rawMetricCounts = useRawCounts({
     dataset: DiscoverDatasets.TRACEMETRICS,
-    enabled: Boolean(traceMetric.name),
-    query: createTraceMetricEventsFilter([traceMetric]),
+    enabled:
+      Boolean(traceMetric.name) ||
+      (isVisualizeEquation(visualize) && Boolean(visualize.expression.text)),
+    query: isVisualizeEquation(visualize)
+      ? getEquationMetricsTotalFilter(visualize.expression.text)
+      : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
 

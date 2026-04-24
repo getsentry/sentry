@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 
@@ -15,8 +16,7 @@ import {GroupChart} from 'sentry/components/stream/groupChart';
 import {IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IssueSummary} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issueSummary';
 
@@ -90,28 +90,22 @@ function useInsightIssues(
   // matches in application code
   query += ` message:"${message?.slice(0, 200).replaceAll('"', '\\"')}"`;
 
-  const {isPending, data: maybeMatchingIssues} = useApiQuery<Group[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          query,
-          // hack: set an arbitrary large upper limit so that the api response likely contains the exact message,
-          // even though we only search for the first 200 characters of the message
-          limit: 100,
-          project: selection.projects,
-          environment: selection.environments,
-          ...normalizeDateTimeParams(selection.datetime),
-        },
+  const {isPending, data: maybeMatchingIssues} = useQuery({
+    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        query,
+        // hack: set an arbitrary large upper limit so that the api response likely contains the exact message,
+        // even though we only search for the first 200 characters of the message
+        limit: 100,
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(selection.datetime),
       },
-    ],
-    {
       staleTime: 2 * 60 * 1000,
-      enabled: !!message,
-    }
-  );
+    }),
+    enabled: !!message,
+  });
 
   if (!message) {
     return {isLoading: false, issues: []};

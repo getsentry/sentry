@@ -6,6 +6,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {
   getTraceSamplesTableFields,
   TraceSamplesTableColumns,
@@ -58,6 +59,7 @@ export function MetricsSamplesTable({
     traceMetric,
     fields,
     ingestionDelaySeconds: TWO_MINUTE_DELAY,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
   const metaWithValueUnit = useMemo<EventsMetaType>(() => {
@@ -113,7 +115,7 @@ const SimpleTableGrid = styled(StyledSimpleTable)<{
 }>`
   grid-template-columns: ${p =>
     p.embedded
-      ? 'min-content min-content min-content minmax(0, 1fr) min-content min-content'
-      : 'min-content min-content minmax(0, 1fr) min-content min-content'};
+      ? `${p.theme.space['3xl']} min-content min-content minmax(0, 1fr) min-content min-content`
+      : `${p.theme.space['3xl']} min-content minmax(0, 1fr) min-content min-content`};
   grid-column: 1 / -1;
 `;

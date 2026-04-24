@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from 'react';
 import * as Sentry from '@sentry/react';
+import {useInfiniteQuery} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 
 import type {
@@ -17,13 +18,11 @@ import type {
   RepositoryWithSettings,
 } from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {useInfiniteQuery} from 'sentry/utils/queryClient';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useIntegrationInstallation} from './useIntegrationInstallation';
 import {useIntegrationProvider} from './useIntegrationProvider';
-
 interface SeerOnboardingContextProps {
   addRepositoryProjectMappings: (additionalMappings: Record<string, string[]>) => void;
   addRootCauseAnalysisRepository: (repoId: string) => void;

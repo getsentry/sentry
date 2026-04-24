@@ -9,7 +9,7 @@ import {useApi} from 'sentry/utils/useApi';
 import type {
   ReplayListLocationQuery,
   ReplayListQueryReferrer,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
 
 type Options = {
   enabled: boolean;
