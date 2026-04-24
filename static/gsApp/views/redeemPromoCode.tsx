@@ -115,7 +115,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
                 )}
               </form.AppField>
 
-              <Flex justify={accountCredit > 0 ? 'between' : 'end'}>
+              <Flex align="center" justify={accountCredit > 0 ? 'between' : 'end'}>
                 {accountCredit > 0 ? (
                   <Text id="account-balance">
                     {tct('Your account credit: $[credit]', {
