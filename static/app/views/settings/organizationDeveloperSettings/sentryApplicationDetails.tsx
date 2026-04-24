@@ -398,7 +398,10 @@ export default function SentryApplicationDetails() {
   return (
     <div>
       {hasPageFrame ? (
-        <BreadcrumbTitle routes={routes} title={isEditingApp ? app!.name : t('New')} />
+        <BreadcrumbTitle
+          routes={routes}
+          title={isEditingApp ? (app?.name ?? '') : t('New')}
+        />
       ) : (
         <SettingsPageHeader title={headerTitle()} />
       )}
