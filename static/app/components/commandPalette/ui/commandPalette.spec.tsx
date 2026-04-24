@@ -38,12 +38,28 @@ import {
   useCommandPaletteDispatch,
   useCommandPaletteState,
 } from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
+
+function makeRenderProps(onClose: () => void) {
+  return {
+    closeModal: onClose,
+    Body: ModalBody,
+    Footer: ModalFooter,
+    Header: makeClosableHeader(onClose),
+    CloseButton: makeCloseButton(onClose),
+  };
+}
 
 function GlobalActionsComponent({children}: {children?: React.ReactNode}) {
   return (
     <CommandPaletteProvider>
       {children}
-      <CommandPalette closeModal={closeModal} />
+      <CommandPalette {...makeRenderProps(closeModal)} />
     </CommandPaletteProvider>
   );
 }
@@ -436,7 +452,7 @@ describe('CommandPalette', () => {
               />
             </CMDKAction>
           </CMDKAction>
-          <CommandPalette closeModal={closeModal} />
+          <CommandPalette {...makeRenderProps(closeModal)} />
         </CommandPaletteProvider>
       );
 
@@ -904,7 +920,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Reverse DSN lookup'}} prompt="Paste a DSN..." />
-          <CommandPalette />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
       expect(
@@ -1080,7 +1096,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction to="/root/" display={{label: 'Root Action'}} />
-          {showPalette && <CommandPalette closeModal={jest.fn()} />}
+          {showPalette && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </CommandPaletteProvider>
       );
     }
@@ -1158,7 +1174,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction to="/root/" display={{label: 'Root Action'}} />
-          {state.open && <CommandPalette closeModal={jest.fn()} />}
+          {state.open && <CommandPalette {...makeRenderProps(jest.fn())} />}
         </Fragment>
       );
     }
@@ -1222,7 +1238,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1240,7 +1256,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Task Action'}} onAction={onAction} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1255,7 +1271,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1273,7 +1289,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Page Action'}} onAction={onAction} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1298,7 +1314,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Page Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1321,7 +1337,7 @@ describe('CommandPalette', () => {
             <CMDKAction display={{label: 'Task Action'}} onAction={jest.fn()} />
           </CommandPaletteSlot>
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1349,7 +1365,7 @@ describe('CommandPalette', () => {
         <CommandPaletteProvider>
           <ActionsViaGlobalSlot />
           <SlotOutlets />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1366,7 +1382,7 @@ describe('CommandPalette', () => {
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Empty Group'}} />
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1380,7 +1396,7 @@ describe('CommandPalette', () => {
       render(
         <CommandPaletteProvider>
           <CMDKAction display={{label: 'Direct Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1409,7 +1425,7 @@ describe('CommandPalette', () => {
             }
           </CMDKAction>
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1432,7 +1448,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
             <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
           </CMDKAction>
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1458,7 +1474,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction display={{label: 'Real Action'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1482,7 +1498,7 @@ describe('CommandPalette', () => {
             </CMDKAction>
           </CMDKAction>
           <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 
@@ -1509,7 +1525,7 @@ describe('CommandPalette', () => {
             }
           </CMDKAction>
           <CMDKAction display={{label: 'Other'}} onAction={jest.fn()} />
-          <CommandPalette closeModal={jest.fn()} />
+          <CommandPalette {...makeRenderProps(jest.fn())} />
         </CommandPaletteProvider>
       );
 

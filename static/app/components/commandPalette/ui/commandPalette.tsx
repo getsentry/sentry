@@ -76,11 +76,7 @@ interface CommandPaletteScore {
   score: number;
 }
 
-interface CommandPaletteProps {
-  closeModal?: () => void;
-}
-
-export function CommandPalette(props: CommandPaletteProps) {
+export function CommandPalette({Body, closeModal}: ModalRenderProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const store = CMDKCollection.useStore();
@@ -217,7 +213,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     disallowTypeAhead: true,
   });
 
-  const {closeModal} = props;
   const onActionSelection = useCallback(
     (
       key: string | number | null,
@@ -323,7 +318,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isEmptyPromptQuery =
     state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
-  return (
+  const content = (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
@@ -474,6 +469,8 @@ export function CommandPalette(props: CommandPaletteProps) {
       )}
     </Fragment>
   );
+
+  return <Body>{content}</Body>;
 }
 
 /**
@@ -988,13 +985,7 @@ const ResultsList = styled(Flex)`
   }
 `;
 
-export default function CommandPaletteModal({Body, closeModal}: ModalRenderProps) {
-  return (
-    <Body>
-      <CommandPalette closeModal={closeModal} />
-    </Body>
-  );
-}
+export default CommandPalette;
 
 export const modalCss = (theme: Theme) => {
   return css`

@@ -4,6 +4,12 @@ import {
   CommandPaletteProvider,
 } from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 
 export function CommandPaletteDemo() {
   return (
@@ -29,7 +35,13 @@ export function CommandPaletteDemo() {
           onAction={() => addSuccessMessage('Deselect all')}
         />
       </CMDKAction>
-      <CommandPalette />
+      <CommandPalette
+        Body={ModalBody}
+        Footer={ModalFooter}
+        Header={makeClosableHeader(() => {})}
+        CloseButton={makeCloseButton(() => {})}
+        closeModal={() => {}}
+      />
     </CommandPaletteProvider>
   );
 }
