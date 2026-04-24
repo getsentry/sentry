@@ -1,5 +1,7 @@
 import qs from 'query-string';
 
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -7,12 +9,15 @@ import {defined} from 'sentry/utils';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
+  isEquation,
   RateUnit,
   SizeUnit,
+  stripEquationPrefix,
   type ColumnType,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {createTraceMetricEventsFilter} from 'sentry/views/dashboards/widgetCard/hooks/useWidgetRawCounts';
 import type {
   RawVisualize,
   SavedQuery,
@@ -24,6 +29,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
   TraceMetricKnownFieldKey,
   type SampleTableColumnKey,
@@ -260,4 +266,26 @@ export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
     return {fieldType: 'percentage', unit: metricUnit};
   }
   return {fieldType: 'number', unit: undefined};
+}
+
+/**
+ * Takes an equation and returns a filter that looks for all metric events
+ * that are used in the equation.
+ */
+export function getEquationMetricsTotalFilter(equation: string) {
+  if (!isEquation(equation)) {
+    return '';
+  }
+
+  const expression = new Expression(stripEquationPrefix(equation));
+  const aggregatesUsed = expression.tokens
+    .filter(isTokenFunction)
+    .map(token => token.text);
+
+  const traceMetricsUsed = aggregatesUsed.map(aggregate => {
+    const {traceMetric} = parseMetricAggregate(aggregate);
+    return traceMetric;
+  });
+
+  return createTraceMetricEventsFilter(traceMetricsUsed);
 }

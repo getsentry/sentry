@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
+  getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
 } from 'sentry/views/explore/metrics/utils';
@@ -239,5 +240,16 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
 
     const decoded = decodeMetricFromUrl(url);
     expect(decoded?.queryParams.sortBys).toEqual([{field: 'timestamp', kind: 'desc'}]);
+  });
+});
+
+describe('getEquationMetricsTotalFilter', () => {
+  it('returns the correct filter for an equation', () => {
+    const equation =
+      'equation|sum(value,metricA,counter,none) + count(value,metricB,distribution,millisecond)';
+    const result = getEquationMetricsTotalFilter(equation);
+    expect(result).toBe(
+      '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )'
+    );
   });
 });
