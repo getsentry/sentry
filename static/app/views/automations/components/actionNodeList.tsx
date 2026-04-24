@@ -73,30 +73,6 @@ export function ActionNodeList({
   const {errors, removeError} = useAutomationBuilderErrorContext();
   const {connectedDetectors} = useConnectedDetectors();
 
-  const selectMenuComponents = useMemo(
-    () => ({
-      Menu: ({children, ...props}: any) => (
-        <selectComponents.Menu {...props}>
-          <Fragment>
-            {children}
-            <Container padding="md" borderTop="muted">
-              <LinkButton
-                size="xs"
-                priority="default"
-                icon={<IconAdd />}
-                href={`/settings/${organization.slug}/integrations/`}
-                external
-              >
-                {t('Add another integration')}
-              </LinkButton>
-            </Container>
-          </Fragment>
-        </selectComponents.Menu>
-      ),
-    }),
-    [organization.slug]
-  );
-
   const options = useMemo(() => {
     const notificationActions: Option[] = [];
     const ticketCreationActions: Option[] = [];
@@ -205,7 +181,26 @@ export function ActionNodeList({
         }}
         placeholder={placeholder}
         value={null}
-        components={selectMenuComponents}
+        components={{
+          Menu: ({children, ...props}) => (
+            <selectComponents.Menu {...props}>
+              <Fragment>
+                {children}
+                <Container padding="md" borderTop="muted">
+                  <LinkButton
+                    size="xs"
+                    priority="default"
+                    icon={<IconAdd />}
+                    href={`/settings/${organization.slug}/integrations/`}
+                    external
+                  >
+                    {t('Add another integration')}
+                  </LinkButton>
+                </Container>
+              </Fragment>
+            </selectComponents.Menu>
+          ),
+        }}
       />
       {errors[conditionGroupId] && (
         <Alert variant="danger">{errors[conditionGroupId]}</Alert>
