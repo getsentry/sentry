@@ -6,6 +6,7 @@ import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Backdrop} from '@sentry/scraps/backdrop';
 import {Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
@@ -26,11 +27,6 @@ type ModalOptions = {
    * Set to `true` (the default) to show a translucent backdrop.
    */
   backdrop?: boolean;
-  /**
-   * Additional CSS which will be applied to the modal's backdrop.
-   * Allows specific control over the positioning of z-index for the entire modal
-   */
-  backdropCss?: ReturnType<typeof css>;
   /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
@@ -225,21 +221,14 @@ export function GlobalModal({onClose}: Props) {
 
   return createPortal(
     <Fragment>
-      <Backdrop
-        data-overlay
-        style={
-          backdrop && visible
-            ? {opacity: hasPageFrame ? 0.2 : 0.5, pointerEvents: 'auto'}
-            : {}
-        }
-        css={options?.backdropCss}
-      />
+      <AnimatePresence>
+        {backdrop && visible && <Backdrop key="backdrop" zIndex="modal" />}
+      </AnimatePresence>
       <Container
         data-test-id="modal-backdrop"
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
-        css={options?.backdropCss}
       >
         <TooltipContext
           value={{
@@ -294,16 +283,6 @@ const fullPageCss = css`
   right: 0;
   bottom: 0;
   left: 0;
-`;
-
-const Backdrop = styled('div')`
-  ${fullPageCss};
-  z-index: ${p => p.theme.zIndex.modal};
-  background: ${p => p.theme.colors.black};
-  will-change: opacity;
-  transition: opacity 200ms;
-  pointer-events: none;
-  opacity: 0;
 `;
 
 const Container = styled('div')`
