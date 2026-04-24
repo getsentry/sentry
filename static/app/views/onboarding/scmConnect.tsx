@@ -1,14 +1,12 @@
 import {useCallback, useEffect} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -85,16 +83,16 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
             width="100%"
             maxWidth={SCM_STEP_CONTENT_WIDTH}
           >
-            <Container>
-              <Tag variant="success" icon={<IconCheckmark />}>
+            <Stack gap="md" paddingTop="2xl">
+              <Text variant="secondary" bold size="sm" density="compressed" uppercase>
                 {t(
-                  'Connected to %s org %s',
+                  'Connected to %s / %s',
                   effectiveIntegration.provider.name,
                   effectiveIntegration.name
                 )}
-              </Tag>
-            </Container>
-            <ScmRepoSelector integration={effectiveIntegration} />
+              </Text>
+              <ScmRepoSelector integration={effectiveIntegration} />
+            </Stack>
           </MotionStack>
         ) : (
           <MotionStack
