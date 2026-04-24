@@ -68,6 +68,7 @@ import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidg
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {CurrencyCell} from 'sentry/views/insights/common/components/tableCells/currencyCell';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
@@ -84,7 +85,6 @@ import {
 } from 'sentry/views/performance/transactionSummary/filter';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {ADOPTION_STAGE_LABELS} from 'sentry/views/releases/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import {ArrayValue} from './arrayValue';
 import {

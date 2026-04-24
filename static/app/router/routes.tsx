@@ -1629,7 +1629,7 @@ function buildRoutes(): RouteObject[] {
   const replayChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/replays/list')),
+      component: make(() => import('sentry/views/explore/replays/list')),
     },
     {
       path: 'selectors/',
@@ -1637,12 +1637,12 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: ':replaySlug/',
-      component: make(() => import('sentry/views/replays/details')),
+      component: make(() => import('sentry/views/explore/replays/details')),
     },
   ];
   const replayRoutes: SentryRouteObject = {
     path: '/replays/',
-    component: make(() => import('sentry/views/replays/index')),
+    component: make(() => import('sentry/views/explore/replays/index')),
     withOrgPath: true,
     children: replayChildren,
   };
@@ -2228,39 +2228,47 @@ function buildRoutes(): RouteObject[] {
   const profilingChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/profiling/content')),
+      component: make(() => import('sentry/views/explore/profiling/content')),
     },
     {
       path: 'summary/:projectId/',
-      component: make(() => import('sentry/views/profiling/profileSummaryRedirect')),
+      component: make(
+        () => import('sentry/views/explore/profiling/profileSummaryRedirect')
+      ),
     },
     traceView,
     {
       path: 'profile/:projectId/',
-      component: make(() => import('sentry/views/profiling/continuousProfileProvider')),
+      component: make(
+        () => import('sentry/views/explore/profiling/continuousProfileProvider')
+      ),
       children: [
         {
           path: 'flamegraph/',
           component: make(
-            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+            () => import('sentry/views/explore/profiling/continuousProfileFlamegraph')
           ),
         },
       ],
     },
     {
       path: 'profile/:projectId/:eventId/',
-      component: make(() => import('sentry/views/profiling/transactionProfileProvider')),
+      component: make(
+        () => import('sentry/views/explore/profiling/transactionProfileProvider')
+      ),
       children: [
         {
           path: 'flamegraph/',
-          component: make(() => import('sentry/views/profiling/profileFlamechart')),
+          component: make(
+            () => import('sentry/views/explore/profiling/profileFlamechart')
+          ),
         },
       ],
     },
   ];
   const profilingRoutes: SentryRouteObject = {
     path: '/profiling/',
-    component: make(() => import('sentry/views/profiling')),
+    component: make(() => import('sentry/views/explore/profiling')),
     withOrgPath: true,
     children: profilingChildren,
   };
@@ -2272,7 +2280,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'profiling/',
-      component: make(() => import('sentry/views/profiling')),
+      component: make(() => import('sentry/views/explore/profiling')),
       children: profilingChildren,
     },
     {
@@ -2282,7 +2290,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'replays/',
-      component: make(() => import('sentry/views/replays/index')),
+      component: make(() => import('sentry/views/explore/replays/index')),
       children: replayChildren,
     },
     {
