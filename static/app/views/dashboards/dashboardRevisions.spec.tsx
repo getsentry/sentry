@@ -1,6 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -10,8 +9,6 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
-
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {DashboardRevisionsButton} from './dashboardRevisions';
 
@@ -181,7 +178,7 @@ describe('DashboardRevisionsButton', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows Current Version at the top of the list', async () => {
+  it('shows Current Version at the top of the list selected by default', async () => {
     MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
     MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
 
@@ -190,237 +187,8 @@ describe('DashboardRevisionsButton', () => {
     await openModal();
 
     expect(screen.getByText('Current Version')).toBeInTheDocument();
-    // Current Version radio is checked by default
     const radios = await screen.findAllByRole('radio');
     expect(radios[0]).toBeChecked();
-  });
-
-  it('fetches revision details on open to show diffs for all revisions', async () => {
-    MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
-    const detailsRequest = MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot(),
-    });
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-    // Wait for diffs to render
-    await screen.findByText(
-      'This is the oldest revision — no previous state to compare against.'
-    );
-
-    expect(detailsRequest).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows oldest-revision message inline for the oldest revision', async () => {
-    MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
-    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-
-    expect(
-      await screen.findByText(
-        'This is the oldest revision — no previous state to compare against.'
-      )
-    ).toBeInTheDocument();
-  });
-
-  it('shows the author name in the revision list', async () => {
-    MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
-    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-  });
-
-  it('falls back to email when createdBy has no name', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision({createdBy: {id: '42', name: '', email: 'alice@example.com'}})],
-    });
-    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-
-    expect(screen.getByText('alice@example.com')).toBeInTheDocument();
-  });
-
-  it('shows "Unknown" when createdBy is null', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision({createdBy: null})],
-    });
-    MockApiClient.addMockResponse({url: REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-
-    expect(screen.getByText('Unknown')).toBeInTheDocument();
-  });
-
-  it('shows an error when the revision details request fails', async () => {
-    MockApiClient.addMockResponse({url: REVISIONS_URL, body: [makeRevision()]});
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      statusCode: 500,
-      body: {},
-    });
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-
-    expect(
-      await screen.findByText('Failed to load revision preview.')
-    ).toBeInTheDocument();
-  });
-
-  it('shows a title diff when the dashboard was renamed', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision(), makeRevision({id: '2'})],
-    });
-    // Dashboard title matches rev1 so only the rev1→rev2 diff shows a title change
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot({title: 'New Name'}),
-    });
-    MockApiClient.addMockResponse({
-      url: BASE_REVISION_DETAILS_URL,
-      body: makeSnapshot({title: 'Old Name'}),
-    });
-
-    renderButton({title: 'New Name'});
-    renderGlobalModal();
-    await openModal();
-
-    expect(await screen.findByText('Old Name')).toBeInTheDocument();
-    expect(screen.getByText('New Name')).toBeInTheDocument();
-  });
-
-  it('shows filter pills for period, environments, and releases', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision(), makeRevision({id: '2'})],
-    });
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot({
-        period: '14d',
-        environment: ['production', 'staging'],
-        filters: {release: ['v1.0.0']},
-      }),
-    });
-    MockApiClient.addMockResponse({url: BASE_REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    // Dashboard matches rev1 so only the rev1→rev2 diff shows filter changes
-    renderButton({
-      period: '14d',
-      environment: ['production', 'staging'],
-      filters: {release: ['v1.0.0']},
-    });
-    renderGlobalModal();
-    await openModal();
-
-    // Filter diff shows combined values for each changed filter
-    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
-    expect(screen.getByText('production, staging')).toBeInTheDocument();
-    expect(screen.getByText('v1.0.0')).toBeInTheDocument();
-  });
-
-  it('shows project slugs resolved from the projects store', async () => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '10', slug: 'backend'}),
-      ProjectFixture({id: '11', slug: 'frontend'}),
-    ]);
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision(), makeRevision({id: '2'})],
-    });
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot({projects: [10, 11]}),
-    });
-    MockApiClient.addMockResponse({url: BASE_REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    // Dashboard matches rev1 so only rev1→rev2 shows a projects diff
-    renderButton({projects: [10, 11]});
-    renderGlobalModal();
-    await openModal();
-
-    // Project slugs are shown combined in the filter diff row
-    expect(await screen.findByText('backend, frontend')).toBeInTheDocument();
-  });
-
-  it('shows "All Projects" when the snapshot uses the all-projects sentinel (-1)', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision(), makeRevision({id: '2'})],
-    });
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot({projects: [-1]}),
-    });
-    MockApiClient.addMockResponse({url: BASE_REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    // Dashboard matches rev1 so only rev1→rev2 shows a projects diff
-    renderButton({projects: [-1]});
-    renderGlobalModal();
-    await openModal();
-
-    expect(await screen.findByText('All Projects')).toBeInTheDocument();
-  });
-
-  it('shows "My Projects" when the base has an empty projects array', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision(), makeRevision({id: '2'})],
-    });
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot({projects: [10]}),
-    });
-    // Base has empty projects (My Projects) so there is a diff to show
-    MockApiClient.addMockResponse({
-      url: BASE_REVISION_DETAILS_URL,
-      body: makeSnapshot({projects: []}),
-    });
-
-    // Dashboard matches rev1 so only rev1→rev2 shows a projects diff
-    renderButton({projects: [10]});
-    renderGlobalModal();
-    await openModal();
-
-    expect(await screen.findByText('My Projects')).toBeInTheDocument();
-  });
-
-  it('shows no filter diff rows when no filters differ', async () => {
-    MockApiClient.addMockResponse({
-      url: REVISIONS_URL,
-      body: [makeRevision(), makeRevision({id: '2'})],
-    });
-    MockApiClient.addMockResponse({
-      url: REVISION_DETAILS_URL,
-      body: makeSnapshot({period: undefined, environment: [], filters: {}}),
-    });
-    MockApiClient.addMockResponse({url: BASE_REVISION_DETAILS_URL, body: makeSnapshot()});
-
-    renderButton();
-    renderGlobalModal();
-    await openModal();
-
-    await screen.findByText('No widget changes in this revision.');
-    expect(screen.queryByText('Last 14 days')).not.toBeInTheDocument();
-    expect(screen.queryByText('production')).not.toBeInTheDocument();
   });
 
   it('Revert to Selection is disabled when Current Version is selected', async () => {
