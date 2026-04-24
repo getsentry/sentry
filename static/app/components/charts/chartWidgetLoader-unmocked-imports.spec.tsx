@@ -32,34 +32,6 @@ jest.mock(
   }
 );
 
-jest.mock('sentry/views/insights/sessions/queries/useReleaseNewIssues', () => ({
-  useReleaseNewIssues: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    isError: false,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useRecentIssues', () => ({
-  useRecentIssues: jest.fn(() => ({
-    recentIssues: [],
-    isPending: false,
-    isError: false,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useNewAndResolvedIssues', () => ({
-  useNewAndResolvedIssues: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    isError: false,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useCrashFreeSessions', () => ({
-  useCrashFreeSessions: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    isError: false,
-  })),
-}));
 jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   useSpans: jest.fn(() => ({
     data: [
@@ -104,41 +76,6 @@ jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
         mockTimeSeries('count()'),
       ],
     },
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useErroredSessions', () => ({
-  useErroredSessions: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useSessionHealthBreakdown', () => ({
-  useSessionHealthBreakdown: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useReleaseSessionPercentage', () => ({
-  useReleaseSessionPercentage: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useReleaseSessionCounts', () => ({
-  useReleaseSessionCounts: jest.fn(() => ({
-    series: [{}],
-    isPending: false,
-    error: null,
-  })),
-}));
-jest.mock('sentry/views/insights/sessions/queries/useUserHealthBreakdown', () => ({
-  useUserHealthBreakdown: jest.fn(() => ({
-    series: [{}],
     isPending: false,
     error: null,
   })),

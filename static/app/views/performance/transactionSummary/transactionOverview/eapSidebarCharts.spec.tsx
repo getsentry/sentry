@@ -23,6 +23,11 @@ describe('EAPSidebarCharts', () => {
         ],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
   });
 
   it('renders Performance Score widget when hasWebVitals is true', async () => {
