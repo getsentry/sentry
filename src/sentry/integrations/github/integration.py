@@ -262,6 +262,7 @@ class GitHubIntegration(
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         """
         args:
@@ -271,6 +272,10 @@ class GitHubIntegration(
           (which may return repos outside the installation's scope)
         * use_cache - when True, serve repos from a short-lived cache instead
           of re-fetching all pages from GitHub on every call
+        * raise_on_page_limit - when True and GitHub pagination stops at the
+          page_number_limit cap with more data still available, raise
+          ApiPaginationTruncated (partial result attached). Ignored when
+          ``use_cache`` is True.
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -291,7 +296,10 @@ class GitHubIntegration(
         def _get_all_repos():
             if use_cache:
                 return client.get_repos_cached()
-            return client.get_repos(page_number_limit=page_number_limit)
+            return client.get_repos(
+                page_number_limit=page_number_limit,
+                raise_on_page_limit=raise_on_page_limit,
+            )
 
         if not query:
             all_repos = _get_all_repos()

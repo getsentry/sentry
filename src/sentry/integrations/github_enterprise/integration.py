@@ -227,9 +227,13 @@ class GitHubEnterpriseIntegration(
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         if not query:
-            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
+            all_repos = self.get_client().get_repos(
+                page_number_limit=page_number_limit,
+                raise_on_page_limit=raise_on_page_limit,
+            )
             return [
                 {
                     "name": i["name"],

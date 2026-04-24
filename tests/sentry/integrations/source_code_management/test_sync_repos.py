@@ -283,6 +283,77 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             with self.tasks():
                 sync_repos_for_org(self.oi.id)
 
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch(
+        "sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request",
+        return_value=MagicMock(status=200),
+    )
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_truncated_fetch_skips_disable(
+        self, mock_get_repositories: MagicMock, _: MagicMock, __: MagicMock
+    ) -> None:
+        # The provider fetch hit the pagination cap — it signals this via
+        # ApiPaginationTruncated with partial results attached. We must NOT
+        # disable repos absent from the partial list (they might be past the cap).
+        from sentry.shared_integrations.exceptions import ApiPaginationTruncated
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-repo",
+                external_id="99",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        mock_get_repositories.side_effect = ApiPaginationTruncated(
+            partial_data=[
+                {
+                    "name": "sentry",
+                    "identifier": "getsentry/sentry",
+                    "external_id": "1",
+                    "default_branch": None,
+                }
+            ]
+        )
+
+        with self.feature(
+            [
+                "organizations:github-repo-auto-sync",
+                "organizations:github-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE  # not disabled
+            # Creation still runs on the partial list
+            assert Repository.objects.filter(
+                organization_id=self.organization.id, external_id="1"
+            ).exists()
+
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_repositories")
+    def test_installation_suspended_halts_without_retry(
+        self, mock_get_repositories: MagicMock, _: MagicMock
+    ) -> None:
+        from sentry.shared_integrations.exceptions import ApiForbiddenError
+
+        mock_get_repositories.side_effect = ApiForbiddenError(
+            '{"message":"This installation has been suspended"}'
+        )
+
+        with self.feature("organizations:github-repo-auto-sync"), self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
 
 @control_silo_test
 class SyncReposForOrgGHETestCase(TestCase):
