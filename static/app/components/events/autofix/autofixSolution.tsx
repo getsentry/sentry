@@ -24,7 +24,6 @@ import {
   autofixApiOptions,
   useAutofixData,
   useAutofixRepos,
-  type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
@@ -32,7 +31,6 @@ import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {useApi} from 'sentry/utils/useApi';
@@ -68,40 +66,37 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: (_, params) => {
-      queryClient.setQueryData<ApiResponse<AutofixResponse>>(
-        autofixApiOptions(orgSlug, groupId).queryKey,
-        prev => {
-          if (!prev?.json?.autofix) {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            json: {
-              ...prev.json,
-              autofix: {
-                ...prev.json.autofix,
-                status: AutofixStatus.PROCESSING,
-                steps: prev.json.autofix.steps?.map(step => {
-                  if (step.type !== AutofixStepType.SOLUTION) {
-                    return step;
-                  }
-
-                  return {
-                    ...step,
-                    selection:
-                      'customSolution' in params
-                        ? {
-                            custom_solution: params.customSolution,
-                          }
-                        : {},
-                  };
-                }),
-              },
-            },
-          };
+      queryClient.setQueryData(autofixApiOptions(orgSlug, groupId).queryKey, prev => {
+        if (!prev?.json?.autofix) {
+          return prev;
         }
-      );
+
+        return {
+          ...prev,
+          json: {
+            ...prev.json,
+            autofix: {
+              ...prev.json.autofix,
+              status: AutofixStatus.PROCESSING,
+              steps: prev.json.autofix.steps?.map(step => {
+                if (step.type !== AutofixStepType.SOLUTION) {
+                  return step;
+                }
+
+                return {
+                  ...step,
+                  selection:
+                    'customSolution' in params
+                      ? {
+                          custom_solution: params.customSolution,
+                        }
+                      : {},
+                };
+              }),
+            },
+          },
+        };
+      });
       queryClient.invalidateQueries({
         queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });

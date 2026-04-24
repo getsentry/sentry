@@ -23,7 +23,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type AutofixResponse = {
+type AutofixResponse = {
   autofix: AutofixData | null;
 };
 
