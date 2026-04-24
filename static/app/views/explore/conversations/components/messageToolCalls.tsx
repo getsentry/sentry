@@ -6,8 +6,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {getFirstToolInputValue} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import type {ToolCall} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 
 interface MessageToolCallsProps {
   nodeMap: Map<string, AITraceSpanNode>;
@@ -41,10 +42,12 @@ export function MessageToolCalls({
               }
             }}
           >
-            <Flex align="center" gap="sm">
-              <Text size="xs" monospace variant="muted">
-                {t('Called tool')}
-              </Text>
+            <Flex align="baseline" gap="sm">
+              <Container flexShrink={0}>
+                <Text size="xs" monospace variant="muted">
+                  {t('Called tool')}
+                </Text>
+              </Container>
               <ClickableTag
                 variant={tool.hasError ? 'danger' : 'info'}
                 icon={tool.hasError ? <IconFire /> : undefined}
@@ -53,11 +56,24 @@ export function MessageToolCalls({
               >
                 {tool.name}
               </ClickableTag>
+              {toolNode && <ToolInputPreview node={toolNode} />}
             </Flex>
           </ToolCallLine>
         );
       })}
     </Flex>
+  );
+}
+
+function ToolInputPreview({node}: {node: AITraceSpanNode}) {
+  const firstInputValue = getFirstToolInputValue(node);
+  if (!firstInputValue) {
+    return null;
+  }
+  return (
+    <Text size="xs" monospace variant="muted" ellipsis>
+      {firstInputValue}
+    </Text>
   );
 }
 

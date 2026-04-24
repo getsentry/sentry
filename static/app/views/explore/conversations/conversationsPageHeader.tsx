@@ -5,7 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {
   CONVERSATIONS_LANDING_TITLE,
   CONVERSATIONS_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/conversations/settings';
+} from 'sentry/views/explore/conversations/settings';
 import {
   DomainViewHeader,
   type Props as HeaderProps,

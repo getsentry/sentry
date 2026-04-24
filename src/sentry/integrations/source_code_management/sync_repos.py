@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
@@ -55,6 +56,25 @@ SCM_SYNC_PROVIDERS = [
 ]
 
 SYNC_BATCH_SIZE = 100
+
+
+def bump_org_integration_last_sync(
+    organization_integration_id: int, *, repos_changed: bool = False
+) -> None:
+    """
+    Record the time we most recently synced repositories from the provider for
+    a given OrganizationIntegration by stamping `config["last_sync"]`. When
+    `repos_changed` is True, also stamp `config["last_repos_change"]` to record
+    the last time the repo set actually changed.
+    """
+    oi = OrganizationIntegration.objects.filter(id=organization_integration_id).first()
+    if oi is None:
+        return
+    now = timezone.now().isoformat()
+    oi.config["last_sync"] = now
+    if repos_changed:
+        oi.config["last_repos_change"] = now
+    oi.save(update_fields=["config"])
 
 
 def _has_feature(flag: str, org: object) -> bool:
@@ -184,6 +204,12 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         if dry_run:
             return
 
+        removals_enabled = _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org)
+        bump_org_integration_last_sync(
+            organization_integration_id,
+            repos_changed=bool(new_ids or restored_ids or (removed_ids and removals_enabled)),
+        )
+
         # Build repo configs for new repos
         new_repo_configs = [
             {
@@ -206,7 +232,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 }
             )
 
-        if _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org):
+        if removals_enabled:
             for removed_batch in chunked(removed_id_list, SYNC_BATCH_SIZE):
                 disable_repos_batch.apply_async(
                     kwargs={

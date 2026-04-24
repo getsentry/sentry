@@ -223,7 +223,7 @@ export function LogsInfiniteTable({
   const tableBodyRef = useRef<HTMLTableSectionElement>(null);
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const [expandedLogRows, setExpandedLogRows] = useState<Set<string>>(
-    new Set(embeddedOptions?.openWithExpandedIds ?? [])
+    new Set(embeddedOptions?.openWithExpandedIds)
   );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
@@ -426,6 +426,11 @@ export function LogsInfiniteTable({
       const newSet = new Set(prev);
       newSet.delete(logItemId);
       return newSet;
+    });
+    setExpandedLogRowsHeights(prev => {
+      const next = {...prev};
+      delete next[logItemId];
+      return next;
     });
   }, []);
 

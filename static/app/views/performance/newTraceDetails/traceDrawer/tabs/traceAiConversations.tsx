@@ -9,19 +9,19 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getTimeBoundsFromNodes} from 'sentry/views/insights/pages/agents/utils/timeBounds';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {
   ConversationDetailPanel,
   ConversationLeftPanel,
   ConversationSplitLayout,
   ConversationViewSkeleton,
-} from 'sentry/views/insights/pages/conversations/components/conversationLayout';
-import {ConversationAggregatesBar} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
-import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
-import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
-import {useConversationSelection} from 'sentry/views/insights/pages/conversations/hooks/useConversationSelection';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
+} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
+import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {getTimeBoundsFromNodes} from 'sentry/views/insights/pages/agents/utils/timeBounds';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';

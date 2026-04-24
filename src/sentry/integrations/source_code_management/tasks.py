@@ -99,7 +99,7 @@ def pr_comment_workflow(pr_id: int, project_id: int) -> None:
     if not OrganizationOption.objects.get_value(
         organization=organization,
         key=pr_comment_workflow.organization_option_key,
-        default=True,
+        default=False,
     ):
         logger.info(
             _pr_comment_log(integration_name=integration_name, suffix="option_missing"),

@@ -8,9 +8,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ConversationSummary} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
-import {ConversationViewContent} from 'sentry/views/insights/pages/conversations/components/conversationView';
-import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
+import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
+import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
+import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
 function useConversationDetailQueryState() {
   return useQueryStates(

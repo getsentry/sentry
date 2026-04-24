@@ -606,7 +606,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
-/static/app/views/insights/pages/conversations/                                  @getsentry/telemetry-experience
+/static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## Value Discovery

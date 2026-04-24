@@ -47,18 +47,13 @@ type SeerExplorerUpdateResponse = {
 };
 
 /** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set(['/dashboard/:dashboardId/']);
+const STRUCTURED_CONTEXT_ROUTES = new Set([
+  '/dashboard/:dashboardId/',
+  '/dashboard/:dashboardId/widget-builder/widget/new/',
+  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
+]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set([
-  '/dashboard/:dashboardId/widget-builder/widget/new/',
-  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
-]);
-
-/** Widget builder routes — only the builder node is relevant, not the full dashboard tree. */
-const WIDGET_BUILDER_ROUTES = new Set([
-  '/dashboard/:dashboardId/widget-builder/widget/new/',
-  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
-]);
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([]);
 
 function supportsStructuredContext(
   referrer: string,
@@ -350,14 +345,7 @@ export const useSeerExplorer = () => {
       let screenshot: string | undefined;
       if (supportsStructuredContext(getPageReferrer(), organization)) {
         try {
-          let snapshot = getLLMContext();
-          if (WIDGET_BUILDER_ROUTES.has(getPageReferrer())) {
-            snapshot = {
-              ...snapshot,
-              nodes: snapshot.nodes.filter(n => n.nodeType === 'widget-builder'),
-            };
-          }
-          screenshot = JSON.stringify(snapshot);
+          screenshot = JSON.stringify(getLLMContext());
         } catch (e) {
           Sentry.captureException(e);
           screenshot = captureAsciiSnapshot?.();

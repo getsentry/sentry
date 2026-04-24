@@ -344,6 +344,7 @@ class SlackRequestParser(BaseRequestParser):
                     "thread_ts": self.slack_request.thread_ts,
                     "message_ts": self.slack_request.dm_data.get("ts", ""),
                     "event_type": self.slack_request.dm_data.get("type", ""),
+                    "message_text": self.slack_request.text,
                 }
             )
             logger.info(
