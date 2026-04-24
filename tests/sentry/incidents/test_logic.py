@@ -2976,7 +2976,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest):
         assert action.alert_rule_trigger == self.trigger
         assert action.type == type.value
         assert action.target_type == target_type.value
-        assert action.target_identifier == target_identifier
+        assert str(action.target_identifier) == str(target_identifier)
         assert action.target_display == "hellboi"
         assert action.integration_id == integration.id
 

@@ -1,8 +1,9 @@
 import logging
 import re
-from gzip import GzipFile
+from gzip import BadGzipFile, GzipFile
 from io import BytesIO
 
+import zstandard
 from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
@@ -48,10 +49,50 @@ CHUNK_UPLOAD_ACCEPT = (
     "dartsymbolmap",  # Dart/Flutter symbol mapping files
 )
 
+CHUNK_UPLOAD_COMPRESSION = ("gzip", "zstd")
+
+
+class ChunkTooLarge(OSError):
+    """Raised when a (possibly decompressed) chunk exceeds the per-chunk size limit."""
+
+
+def _read_bounded(reader, limit):
+    """Read up to ``limit`` bytes from ``reader``; raise :class:`ChunkTooLarge` if more.
+
+    Loops until the reader signals EOF or we exceed ``limit``. The loop matters
+    for ``ZstdDecompressor.stream_reader``, which may short-read when its
+    underlying source does (a real file-backed ``TemporaryUploadedFile`` can);
+    without looping, a bomb payload that happens to short-read past the cap
+    could slip through. Peak memory stays bounded at ``limit + 1`` bytes.
+    """
+    buf = bytearray()
+    while True:
+        chunk = reader.read(limit + 1 - len(buf))
+        if not chunk:
+            return bytes(buf)
+        buf.extend(chunk)
+        if len(buf) > limit:
+            raise ChunkTooLarge("Chunk size too large")
+
 
 class GzipChunk(BytesIO):
     def __init__(self, file):
-        data = GzipFile(fileobj=file, mode="rb").read()
+        reader = GzipFile(fileobj=file, mode="rb")
+        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
+        self.size = len(data)
+        self.name = file.name
+        super().__init__(data)
+
+
+class ZstdChunk(BytesIO):
+    def __init__(self, file):
+        # `read_across_frames=True` mirrors the behaviour of `GzipFile.read()`
+        # (which reads across concatenated gzip members) and matches the
+        # convention in `src/sentry/models/eventattachment.py`. Without it a
+        # multi-frame zstd payload would silently decode only the first frame
+        # and produce a misleading checksum-mismatch error.
+        reader = zstandard.ZstdDecompressor().stream_reader(file, read_across_frames=True)
+        data = _read_bounded(reader, settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
         self.size = len(data)
         self.name = file.name
         super().__init__(data)
@@ -146,7 +187,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             url = absolute_uri(relative_url, endpoint)
 
         compression = (
-            [] if organization.id in options.get("chunk-upload.no-compression") else ["gzip"]
+            []
+            if organization.id in options.get("chunk-upload.no-compression")
+            else list(CHUNK_UPLOAD_COMPRESSION)
         )
         accept = CHUNK_UPLOAD_ACCEPT
 
@@ -176,6 +219,11 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         Requests to this endpoint should use the region-specific domain
         eg. `us.sentry.io` or `de.sentry.io`
 
+        Chunks may be compressed with ``gzip`` or ``zstd``. Codec is selected
+        via the ``Content-Encoding`` request header; the legacy ``file_gzip``
+        multipart field is still accepted but cannot be combined with the
+        header.
+
         :pparam file file: The filename should be sha1 hash of the content.
                             Also not you can add up to MAX_CHUNKS_PER_REQUEST files
                             in this request.
@@ -187,12 +235,29 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger = logging.getLogger("sentry.files")
         logger.info("chunkupload.start")
 
+        encoding = request.headers.get("Content-Encoding", "").strip().lower()
+        if encoding and encoding not in CHUNK_UPLOAD_COMPRESSION:
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response(
+                {"error": "Unsupported Content-Encoding"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        files_plain = request.FILES.getlist("file")
+        files_gzip_legacy = request.FILES.getlist("file_gzip")
+
+        if encoding and files_gzip_legacy:
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response(
+                {"error": "Cannot combine Content-Encoding with file_gzip field"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         files = []
         checksums = []
         total_size = 0
 
         # Validate if chunks exceed the maximum chunk limit before attempting to decompress them.
-        num_files = len(request.FILES.getlist("file")) + len(request.FILES.getlist("file_gzip"))
+        num_files = len(files_plain) + len(files_gzip_legacy)
 
         if num_files > MAX_CHUNKS_PER_REQUEST:
             logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
@@ -203,20 +268,32 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             logger.info("chunkupload.end", extra={"status": status.HTTP_200_OK})
             return Response(status=status.HTTP_200_OK)
 
-        for chunk, name in get_files(request):
-            if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
-                logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-                return Response(
-                    {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
-                )
+        try:
+            for chunk, name in get_files(request, encoding):
+                if chunk.size > settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE:
+                    logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    return Response(
+                        {"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            total_size += chunk.size
-            if total_size > MAX_REQUEST_SIZE:
-                logger.info("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
-                return Response({"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST)
+                total_size += chunk.size
+                if total_size > MAX_REQUEST_SIZE:
+                    logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+                    return Response(
+                        {"error": "Request too large"}, status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            files.append(chunk)
-            checksums.append(name)
+                files.append(chunk)
+                checksums.append(name)
+        except ChunkTooLarge:
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Chunk size too large"}, status=status.HTTP_400_BAD_REQUEST)
+        except zstandard.ZstdError:
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Invalid zstd payload"}, status=status.HTTP_400_BAD_REQUEST)
+        except (BadGzipFile, EOFError):
+            logger.warning("chunkupload.end", extra={"status": status.HTTP_400_BAD_REQUEST})
+            return Response({"error": "Invalid gzip payload"}, status=status.HTTP_400_BAD_REQUEST)
 
         logger.info("chunkupload.post.files", extra={"len": len(files)})
 
@@ -230,10 +307,16 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
 
-def get_files(request: Request):
+def get_files(request: Request, encoding: str):
     for chunk in request.FILES.getlist("file"):
-        yield chunk, chunk.name
+        if encoding == "gzip":
+            yield GzipChunk(chunk), chunk.name
+        elif encoding == "zstd":
+            yield ZstdChunk(chunk), chunk.name
+        else:
+            yield chunk, chunk.name
 
+    # Legacy: older clients send gzipped chunks under `file_gzip` with no
+    # Content-Encoding header. Prefer `Content-Encoding: gzip` on `file`.
     for chunk in request.FILES.getlist("file_gzip"):
-        decompressed_chunk = GzipChunk(chunk)
-        yield decompressed_chunk, chunk.name
+        yield GzipChunk(chunk), chunk.name

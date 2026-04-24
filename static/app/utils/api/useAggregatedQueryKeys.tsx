@@ -96,6 +96,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
     () =>
       cache
         .findAll({queryKey: [key]})
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
         .filter(defined)
         .reduce<Data | undefined>(
@@ -132,6 +133,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
         predicate: isQueryKeyInBatch,
       });
       queuedAggregatableBatch.forEach(queryKey => {
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         queryClient.setQueryData<boolean>(
           ['aggregate', cacheKey, key, 'inFlight', queryKey],
           true
@@ -197,6 +199,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
       // Cache sentinel data for the new cacheKeys
       newQueryKeys
         .map(agg => ['aggregate', cacheKey, key, 'queued', agg])
+        // eslint-disable-next-line @sentry/no-query-data-type-parameters
         .forEach(queryKey => queryClient.setQueryData<boolean>(queryKey, true));
 
       if (newQueryKeys.length) {

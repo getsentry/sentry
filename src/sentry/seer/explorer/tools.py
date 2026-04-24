@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, cast
 
 from django.core.exceptions import BadRequest
+from django.db import models
 from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -28,6 +29,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.repository import Repository
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_id_by_prefix, query_replay_instance
@@ -2053,4 +2055,53 @@ def get_comparative_attribute_distributions(
         "outliers_distribution": distributions_result["cohort_1_distribution"],
         "total_outliers": distributions_result["total_cohort_1"],
         "outliers_function_value": distributions_result["cohort_1_function_value"],
+    }
+
+
+def get_dsn(
+    *,
+    organization_id: int,
+    project_slug: str,
+) -> dict[str, Any] | None:
+    """
+    Get the public DSN for a single project in an organization.
+
+    Returns a dict with project_slug, platform, and dsn_public, or None if the
+    organization/project does not exist or the project has no active client key.
+    """
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning("Organization not found", extra={"organization_id": organization_id})
+        return None
+
+    project = Project.objects.filter(
+        organization=organization,
+        status=ObjectStatus.ACTIVE,
+        slug=project_slug,
+    ).first()
+    if project is None:
+        return None
+
+    # Mirror the filters applied by OrganizationProjectKeysEndpoint for non-superuser
+    # callers: user-visible keys only (exclude internal use cases like PROFILING,
+    # TEMPEST, DEMO), with the store role, active. Newest first to match the
+    # endpoint's `-id` ordering.
+    key = (
+        ProjectKey.objects.filter(
+            project=project,
+            status=ProjectKeyStatus.ACTIVE,
+            use_case=UseCase.USER.value,
+            roles=models.F("roles").bitor(ProjectKey.roles.store),
+        )
+        .order_by("-id")
+        .first()
+    )
+    if key is None:
+        return None
+
+    return {
+        "project_slug": project.slug,
+        "platform": project.platform,
+        "dsn_public": key.dsn_public,
     }

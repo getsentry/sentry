@@ -231,9 +231,9 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/alerts/rules/uptime                     @getsentry/crons
-/static/app/views/releases/                               @getsentry/replay-frontend
-/static/app/views/releases/drawer/                        @getsentry/replay-frontend
-/static/app/views/releases/releaseBubbles/                @getsentry/replay-frontend
+/static/app/views/explore/releases/                               @getsentry/replay-frontend
+/static/app/views/explore/releases/drawer/                        @getsentry/replay-frontend
+/static/app/views/explore/releases/releaseBubbles/                @getsentry/replay-frontend
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
@@ -374,7 +374,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/types/jsSelfProfiling.d.ts                                @getsentry/profiling
 /static/app/types/profiling.d.ts                                      @getsentry/profiling
 /static/app/utils/profiling/                                          @getsentry/profiling
-/static/app/views/profiling/                                          @getsentry/profiling
+/static/app/views/explore/profiling/                                          @getsentry/profiling
 /src/sentry/api/endpoints/project_profiling_profile.py                @getsentry/profiling
 /src/sentry/api/endpoints/organization_profiling_profiles.py          @getsentry/profiling
 /src/sentry/profiles/                                                 @getsentry/profiling
@@ -400,7 +400,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## Replays
 /static/app/components/replays/                                          @getsentry/replay-frontend
 /static/app/utils/replays/                                               @getsentry/replay-frontend
-/static/app/views/replays/                                               @getsentry/replay-frontend
+/static/app/views/explore/replays/                                               @getsentry/replay-frontend
 /tests/acceptance/test_replay_details.py                                 @getsentry/replay-frontend
 /tests/acceptance/test_replay_list.py                                    @getsentry/replay-frontend
 /src/sentry/replays/                                                     @getsentry/replay-backend
@@ -606,7 +606,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
-/static/app/views/insights/pages/conversations/                                  @getsentry/telemetry-experience
+/static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## Value Discovery

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
@@ -95,8 +95,8 @@ class CrashFreeRatesWithHealthData(CurrentAndPreviousCrashFreeRate):
 
 
 def _get_team_memberships(
-    team_list: Sequence[int], user: User | RpcUser | AnonymousUser
-) -> Iterable[OrganizationMemberTeam]:
+    team_list: Collection[int], user: User | RpcUser | AnonymousUser
+) -> list[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
@@ -104,7 +104,7 @@ def _get_team_memberships(
     return list(
         OrganizationMemberTeam.objects.filter(
             organizationmember__user_id=user.id, team__in=team_list
-        )
+        ).select_related("organizationmember__organization")
     )
 
 
@@ -118,12 +118,16 @@ def get_access_by_project(
     )
 
     project_to_teams = defaultdict(list)
-    teams_list = []
+    teams_set: set[int] = set()
     for project_id, team_id in project_teams:
         project_to_teams[project_id].append(team_id)
-        teams_list.append(team_id)
+        teams_set.add(team_id)
 
-    team_memberships = _get_team_memberships(teams_list, user)
+    team_memberships = _get_team_memberships(teams_set, user)
+
+    memberships_by_team: dict[int, OrganizationMemberTeam] = {
+        m.team_id: m for m in team_memberships
+    }
 
     org_ids = {i.organization_id for i in projects}
     org_roles = get_org_roles(org_ids, user)
@@ -134,8 +138,11 @@ def get_access_by_project(
     has_team_roles_cache: dict[int, bool] = {}
     with sentry_sdk.start_span(op="project.check-access"):
         for project in projects:
-            parent_teams = [t for t in project_to_teams.get(project.id, [])]
-            member_teams = [m for m in team_memberships if m.team_id in parent_teams]
+            member_teams = [
+                memberships_by_team[tid]
+                for tid in project_to_teams.get(project.id, ())
+                if tid in memberships_by_team
+            ]
             is_member = any(member_teams)
             org_role = org_roles.get(project.organization_id)
 

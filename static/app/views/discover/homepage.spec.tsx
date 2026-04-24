@@ -18,6 +18,28 @@ import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 
 import Homepage from './homepage';
 
+describe('Discover > HomepageContainer', () => {
+  it('redirects to results page when organization lacks discover-query feature', () => {
+    const org = OrganizationFixture({features: ['discover-basic']});
+    const {router} = render(<Homepage />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${org.slug}/explore/discover/homepage/`,
+          query: {query: 'event.type:error', dataset: 'errors'},
+        },
+        route: '/organizations/:orgId/explore/discover/homepage/',
+      },
+      organization: org,
+    });
+
+    expect(router.location.pathname).toBe(
+      `/organizations/${org.slug}/explore/discover/results/`
+    );
+    expect(router.location.search).toContain('query=event.type%3Aerror');
+    expect(router.location.search).toContain('dataset=errors');
+  });
+});
+
 describe('Discover > Homepage', () => {
   const features = ['discover-query'];
   let organization: ReturnType<typeof OrganizationFixture>;

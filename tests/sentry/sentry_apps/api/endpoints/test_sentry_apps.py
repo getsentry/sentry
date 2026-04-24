@@ -186,7 +186,7 @@ class SentryAppsTest(APITestCase):
         return getattr(self.client, method)(
             reverse(endpoint),
             format="json",
-            **data,
+            **(data or {}),
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
             headers={"Content-Type": "application/json"},
         )
