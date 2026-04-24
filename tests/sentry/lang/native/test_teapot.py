@@ -426,7 +426,10 @@ def test_process_gpu_crash_dump_teapot_unavailable_returns_unchanged() -> None:
 
 
 def test_process_gpu_crash_dump_success_populates_context() -> None:
-    data: dict[str, Any] = {"contexts": {"trace": {"trace_id": "x" * 32}}}
+    data: dict[str, Any] = {
+        "event_id": "ev-1",
+        "contexts": {"trace": {"trace_id": "x" * 32}},
+    }
     project = _FakeProject()
     attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
     response = {
@@ -447,8 +450,10 @@ def test_process_gpu_crash_dump_success_populates_context() -> None:
             "sentry.lang.native.teapot.submit_to_teapot",
             return_value=response,
         ),
+        # Don't actually fire Kafka in this test — exercised separately below.
+        mock.patch("sentry.issues.producer.produce_occurrence_to_kafka"),
     ):
-        result = process_gpu_crash_dump(data, project, "abc")
+        result = process_gpu_crash_dump(data, project, "ev-1")
 
     assert result is data
     assert data["contexts"]["gpu_crash"]["status"] == "partial"
@@ -457,3 +462,179 @@ def test_process_gpu_crash_dump_success_populates_context() -> None:
     assert data["contexts"]["trace"]["trace_id"] == "x" * 32
     # Frames stashed privately.
     assert data["_gpu_crash_private"]["frames"] == [{"function": "main"}]
+
+
+# ---------------------------------------------------------------------------
+# IssueOccurrence production (Phase 2)
+# ---------------------------------------------------------------------------
+
+
+def test_occurrence_fired_on_completed_status() -> None:
+    data: dict[str, Any] = {
+        "event_id": "ev-1",
+        "contexts": {"trace": {"trace_id": "x" * 32}},
+    }
+    project = _FakeProject()
+    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    response = {
+        "status": "completed",
+        "handler": "aftermath",
+        "fault": {"type": "PageFault", "virtual_address": "0xdeadbeef"},
+        "shader_context": {
+            "shader_hash": "abc123",
+            "entry_point": "ComputeLighting",
+            "source_language": "HLSL",
+        },
+        "frames": [{"function": "ComputeLighting", "lineno": 142}],
+        "missing_difs": [],
+    }
+
+    with (
+        mock.patch(
+            "sentry.lang.native.processing.get_event_attachment",
+            return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.teapot.submit_to_teapot",
+            return_value=response,
+        ),
+        mock.patch("sentry.issues.producer.produce_occurrence_to_kafka") as mock_produce,
+    ):
+        process_gpu_crash_dump(data, project, "ev-1")
+
+    assert mock_produce.call_count == 1
+    kwargs = mock_produce.call_args.kwargs
+    occ = kwargs["occurrence"]
+
+    # Fingerprint: stable across the same fault + shader.
+    assert occ.fingerprint == ["gpu-crash:PageFault:abc123"]
+    assert occ.event_id == "ev-1"
+    assert occ.project_id == project.id
+    assert occ.level == "fatal"
+    assert "PageFault" in occ.issue_title
+    assert "ComputeLighting" in occ.issue_title
+    assert occ.culprit == "ComputeLighting"
+
+    # The GPU crash type must be the 9001 GroupType.
+    from sentry.lang.native.grouptype import GpuCrashGroupType
+
+    assert occ.type is GpuCrashGroupType
+
+    # The event payload forwarded to Kafka omits the private frame stash.
+    event_payload = kwargs["event_data"]
+    assert "_gpu_crash_private" not in event_payload
+    assert event_payload["event_id"] == "ev-1"
+    # But the public gpu_crash context is there.
+    assert event_payload["contexts"]["gpu_crash"]["fault"]["type"] == "PageFault"
+
+
+def test_occurrence_fingerprint_groups_by_shader_and_fault() -> None:
+    """Two crashes of the same shader + fault produce the same fingerprint."""
+
+    from sentry.lang.native.processing import _produce_gpu_occurrence
+
+    project = _FakeProject()
+
+    response_a = {
+        "status": "completed",
+        "fault": {"type": "PageFault"},
+        "shader_context": {"shader_hash": "sh1", "entry_point": "Main"},
+    }
+    response_b = {
+        "status": "completed",
+        "fault": {"type": "PageFault"},
+        "shader_context": {"shader_hash": "sh1", "entry_point": "Main"},
+    }
+    response_c_diff_shader = {
+        "status": "completed",
+        "fault": {"type": "PageFault"},
+        "shader_context": {"shader_hash": "sh2", "entry_point": "Main"},
+    }
+
+    fingerprints: list[list[str]] = []
+
+    def _capture(**kwargs: Any) -> None:
+        fingerprints.append(list(kwargs["occurrence"].fingerprint))
+
+    with mock.patch(
+        "sentry.issues.producer.produce_occurrence_to_kafka",
+        side_effect=_capture,
+    ):
+        _produce_gpu_occurrence({"event_id": "a"}, project, "a", response_a)
+        _produce_gpu_occurrence({"event_id": "b"}, project, "b", response_b)
+        _produce_gpu_occurrence({"event_id": "c"}, project, "c", response_c_diff_shader)
+
+    assert fingerprints[0] == fingerprints[1]  # same shader + fault → grouped
+    assert fingerprints[0] != fingerprints[2]  # different shader → separate
+
+
+def test_occurrence_not_fired_on_failed_status() -> None:
+    """`failed` status means teapot couldn't decode. No fingerprint → no issue."""
+
+    data: dict[str, Any] = {"event_id": "ev-1"}
+    project = _FakeProject()
+    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    response = {"status": "failed", "error": {"code": "DUMP_CORRUPTED"}}
+
+    with (
+        mock.patch(
+            "sentry.lang.native.processing.get_event_attachment",
+            return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.teapot.submit_to_teapot",
+            return_value=response,
+        ),
+        mock.patch("sentry.issues.producer.produce_occurrence_to_kafka") as mock_produce,
+    ):
+        process_gpu_crash_dump(data, project, "ev-1")
+
+    # Context still populated, but no occurrence — a failed decode can't be
+    # meaningfully grouped or reasoned about.
+    assert data["contexts"]["gpu_crash"]["status"] == "failed"
+    assert mock_produce.call_count == 0
+
+
+def test_occurrence_producer_error_is_swallowed() -> None:
+    """Issue platform errors must never fail the primary CPU event."""
+
+    data: dict[str, Any] = {"event_id": "ev-1"}
+    project = _FakeProject()
+    attachment = _FakeAttachment(b"dump", GPU_CRASH_DUMP_ATTACHMENT_TYPE)
+    response = {
+        "status": "completed",
+        "fault": {"type": "PageFault"},
+        "shader_context": {"shader_hash": "sh1"},
+    }
+
+    with (
+        mock.patch(
+            "sentry.lang.native.processing.get_event_attachment",
+            return_value=attachment,
+        ),
+        mock.patch(
+            "sentry.lang.native.teapot.submit_to_teapot",
+            return_value=response,
+        ),
+        mock.patch(
+            "sentry.issues.producer.produce_occurrence_to_kafka",
+            side_effect=RuntimeError("kafka broken"),
+        ),
+        mock.patch("sentry.lang.native.processing.sentry_sdk.capture_exception") as cap,
+    ):
+        # No exception propagates.
+        result = process_gpu_crash_dump(data, project, "ev-1")
+
+    assert result is data
+    assert data["contexts"]["gpu_crash"]["status"] == "completed"
+    cap.assert_called_once()
+
+
+def test_grouptype_registered_at_import_time() -> None:
+    """Just importing the grouptype module must register it."""
+
+    from sentry.issues.grouptype import registry
+    from sentry.lang.native.grouptype import GpuCrashGroupType
+
+    assert registry.get_by_type_id(GpuCrashGroupType.type_id) is GpuCrashGroupType
+    assert registry.get_by_slug("gpu_crash") is GpuCrashGroupType

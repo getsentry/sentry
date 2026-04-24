@@ -433,10 +433,13 @@ def process_gpu_crash_dump(data: Any, project: Any, event_id: str) -> Any:
 
     Safe to call on events that don't carry a GPU dump — returns unchanged.
     Teapot being unavailable or erroring never fails the primary event.
+    When teapot returns a decoded dump, this also produces a secondary
+    `IssueOccurrence` — a distinct issue grouped by shader + fault type,
+    referencing the same event_id as the CPU issue.
     """
 
-    # Deferred import: avoids importing `requests` at module import time for
-    # processes that don't touch this path.
+    # Deferred imports: avoids importing `requests` and the issue platform
+    # at module import time for processes that don't touch this path.
     from sentry.lang.native.teapot import submit_to_teapot
 
     dump = get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
@@ -456,7 +459,118 @@ def process_gpu_crash_dump(data: Any, project: Any, event_id: str) -> Any:
         "process.gpu.symbolicate.completed",
         tags={"status": response.get("status") or "unknown"},
     )
+
+    # Produce a secondary issue for actionable dumps. `failed` means teapot
+    # couldn't decode — no useful fingerprint, so no second issue.
+    status = response.get("status")
+    if status in ("completed", "partial"):
+        try:
+            _produce_gpu_occurrence(data, project, event_id, response)
+        except Exception as e:
+            # Issue platform failures must never fail the primary event.
+            metrics.incr("process.gpu.occurrence.error")
+            sentry_sdk.capture_exception(e)
+
     return data
+
+
+def _produce_gpu_occurrence(
+    data: Any,
+    project: Any,
+    event_id: str,
+    response: Mapping[str, Any],
+) -> None:
+    """Fire a secondary IssueOccurrence for the GPU crash.
+
+    The occurrence references the same `event_id` as the primary CPU event,
+    so both issues land on the same event row and naturally share
+    `contexts.trace.trace_id`. Grouping is by `{fault.type, shader_hash}`
+    so repeated crashes of the same shader roll up into one issue.
+    """
+
+    # Deferred imports: keep issue-platform plumbing out of module import.
+    import uuid
+    from datetime import datetime, timezone
+
+    from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+    from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+
+    # Importing the module triggers `__init_subclass__`, registering the type
+    # with the global GroupType registry before we reference it.
+    from sentry.lang.native.grouptype import GpuCrashGroupType
+
+    fault = response.get("fault") or {}
+    shader = response.get("shader_context") or {}
+    fault_type = fault.get("type") or "UnknownFault"
+    shader_hash = shader.get("shader_hash") or "unknown"
+    entry_point = shader.get("entry_point") or shader_hash
+
+    fingerprint = [f"gpu-crash:{fault_type}:{shader_hash}"]
+    issue_title = f"GPU crash: {fault_type} in {entry_point}"
+
+    subtitle_parts: list[str] = []
+    if fault.get("virtual_address"):
+        subtitle_parts.append(f"@ {fault['virtual_address']}")
+    if shader.get("source_language"):
+        subtitle_parts.append(shader["source_language"])
+    subtitle = " · ".join(subtitle_parts) or fault.get("code") or ""
+
+    evidence_display = [
+        IssueEvidence(name="Fault", value=fault_type, important=True),
+        IssueEvidence(name="Shader", value=shader_hash, important=False),
+    ]
+    if fault.get("virtual_address"):
+        evidence_display.append(
+            IssueEvidence(
+                name="Virtual address",
+                value=str(fault["virtual_address"]),
+                important=False,
+            )
+        )
+    if response.get("handler"):
+        evidence_display.append(
+            IssueEvidence(
+                name="Handler",
+                value=str(response["handler"]),
+                important=False,
+            )
+        )
+
+    frames = (data.get("_gpu_crash_private") or {}).get("frames") or []
+
+    occurrence = IssueOccurrence(
+        id=uuid.uuid4().hex,
+        project_id=project.id,
+        event_id=event_id,
+        fingerprint=fingerprint,
+        issue_title=issue_title,
+        subtitle=subtitle,
+        resource_id=None,
+        evidence_data={
+            "fault": fault,
+            "shader_context": shader,
+            "gpu_state": response.get("gpu_state") or {},
+            "frames": frames,
+            "missing_difs": response.get("missing_difs") or [],
+            "handler": response.get("handler"),
+        },
+        evidence_display=evidence_display,
+        type=GpuCrashGroupType,
+        detection_time=datetime.now(timezone.utc),
+        level="fatal",
+        culprit=entry_point,
+    )
+
+    # Pass a shallow copy of `data` without our private frame stash so the
+    # occurrence consumer never sees the internal channel.
+    event_data_for_kafka = {k: v for k, v in data.items() if k != "_gpu_crash_private"}
+
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.OCCURRENCE,
+        occurrence=occurrence,
+        event_data=event_data_for_kafka,
+    )
+    metrics.incr("process.gpu.occurrence.produced")
 
 
 def _handles_frame(data, frame):
