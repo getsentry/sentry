@@ -14,7 +14,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 type Props = {
   columns: readonly ReplayTableColumn[];

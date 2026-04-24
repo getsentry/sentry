@@ -4,9 +4,9 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type OpenSeerExplorerDrawerOptions = {
@@ -24,8 +24,8 @@ export type OpenSeerExplorerDrawerOptions = {
 
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
-
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const [_, setRunId] = useSeerExplorerRunId();
   const {getPageReferrer} = usePageReferrer();
 
   // Track drawer open state in a ref so callbacks don't go stale
@@ -55,21 +55,18 @@ export const useSeerExplorerDrawer = () => {
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
       if (isDrawerOpenRef.current) {
-        // runId seeding doesn't work when the drawer is already open
+        // TODO: runId seeding doesn't work when the drawer is already open.
+        // A hack could be to navigate to the deep link with RUN_ID_QUERY_PARAM set.
         return;
       }
 
-      const {runId, startNewRun} = options ?? {};
+      const {runId: openRunId, startNewRun} = options ?? {};
 
-      // Seed runId state with sessionStorage, before rendering drawer
-      try {
-        if (runId !== undefined) {
-          sessionStorageWrapper.setItem('seer-explorer-run-id', JSON.stringify(runId));
-        } else if (startNewRun) {
-          sessionStorageWrapper.removeItem('seer-explorer-run-id');
-        }
-      } catch {
-        // Best effort
+      // Update runId store before opening drawer
+      if (openRunId !== undefined) {
+        setRunId(openRunId);
+      } else if (startNewRun) {
+        setRunId(null);
       }
 
       openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
@@ -80,7 +77,7 @@ export const useSeerExplorerDrawer = () => {
         onOpen,
       });
     },
-    [openDrawer, onOpen, getPageReferrer]
+    [openDrawer, onOpen, setRunId, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {

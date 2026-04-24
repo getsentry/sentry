@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
@@ -29,6 +30,10 @@ COMMANDS = ["link", "unlink", "link team", "unlink team"]
 SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 logger = logging.getLogger(__name__)
+
+# Slack wraps URLs in the form `<url>` or `<url|display text>`; this regex
+# extracts the URL portion while stopping at any of those delimiters.
+_URL_REGEX = re.compile(r"https?://[^\s<>|]+")
 
 
 def has_discover_links(links: list[str]) -> bool:
