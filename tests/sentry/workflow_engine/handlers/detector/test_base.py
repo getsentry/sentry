@@ -162,32 +162,48 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type_id = 2
             slug = "handler"
             description = "handler"
-            category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
+            category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.METRIC.value
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
             slug = "handler_with_state"
             description = "handler with state"
-            category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorStateHandler)
+            category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.METRIC.value
 
         class HandlerUpdateGroupType(GroupType):
             type_id = 4
             slug = "handler_update"
             description = "handler update"
-            category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
+            category = GroupCategory.METRIC_ALERT.value
+            category_v2 = GroupCategory.METRIC.value
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType
         self.handler_state_type = HandlerStateGroupType
         self.update_handler_type = HandlerUpdateGroupType
 
+        self._settings_by_slug: dict[str, DetectorSettings] = {
+            "handler": DetectorSettings(handler=MockDetectorHandler),
+            "handler_with_state": DetectorSettings(handler=MockDetectorStateHandler),
+            "handler_update": DetectorSettings(handler=MockDetectorWithUpdateHandler),
+        }
+
+        def _mock_get_detector_settings(group_type: type[GroupType]) -> DetectorSettings | None:
+            return self._settings_by_slug.get(group_type.slug)
+
+        self._gds_patcher = mock.patch(
+            "sentry.workflow_engine.types.get_detector_settings",
+            side_effect=_mock_get_detector_settings,
+        )
+        self._gds_patcher.start()
+
     def tearDown(self) -> None:
         super().tearDown()
         self.uuid_patcher.stop()
         self.sm_comp_patcher.stop()
+        self._gds_patcher.stop()
 
     def create_detector_and_condition(self, type: str | None = None) -> tuple[Detector, Any]:
         if type is None:
