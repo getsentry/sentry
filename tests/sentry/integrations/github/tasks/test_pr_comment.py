@@ -375,8 +375,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.pr = self.create_pr_issues()
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
         OrganizationOption.objects.set_value(
-            organization=self.organization, key="sentry:github_pr_bot", value=True
-        )
 
     @patch(
         "sentry.integrations.github.integration.GitHubPRCommentWorkflow.get_top_5_issues_by_count"
