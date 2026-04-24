@@ -2,8 +2,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
 import {Select} from '@sentry/scraps/select';
 
+import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -11,6 +14,7 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
   actionNodesMap,
@@ -35,6 +39,28 @@ interface Option {
   label: string;
   value: ActionHandler;
 }
+
+function MenuListWithFooter(props: any) {
+  const orgSlug = props.selectProps?.orgSlug;
+  return (
+    <selectComponents.MenuList {...props}>
+      {props.children}
+      <AddIntegrationFooter>
+        <LinkButton
+          size="xs"
+          priority="default"
+          icon={<IconAdd />}
+          href={`/settings/${orgSlug}/integrations/`}
+          external
+        >
+          {t('Add another integration')}
+        </LinkButton>
+      </AddIntegrationFooter>
+    </selectComponents.MenuList>
+  );
+}
+
+const MENU_COMPONENTS = {MenuList: MenuListWithFooter};
 
 function getActionHandler(
   action: Action,
@@ -62,6 +88,7 @@ export function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
+  const {slug: orgSlug} = useOrganization();
   const {data: availableActions = [], isLoading: isLoadingActions} =
     useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
@@ -175,6 +202,9 @@ export function ActionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        // @ts-expect-error custom prop accessed via selectProps in MenuListWithFooter
+        orgSlug={orgSlug}
+        components={MENU_COMPONENTS}
       />
       {errors[conditionGroupId] && (
         <Alert variant="danger">{errors[conditionGroupId]}</Alert>
@@ -193,4 +223,9 @@ function Node() {
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
+`;
+
+const AddIntegrationFooter = styled('div')`
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  border-top: 1px solid ${p => p.theme.border};
 `;
