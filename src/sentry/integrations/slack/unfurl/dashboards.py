@@ -67,12 +67,13 @@ _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.TOP_N: "area",
 }
 
-# Widget types that map to EAP trace-item datasets on the events-timeseries
-# endpoint. Other widget types (discover, issue, metrics, etc.) are skipped.
-_WIDGET_TYPE_TO_DATASET = {
-    DashboardWidgetTypes.SPANS: SupportedTraceItemType.SPANS,
-    DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS,
-    DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS,
+# Widget types that map to datasets on the events-timeseries endpoint. Other
+# widget types (discover, issue, metrics, transaction-like, etc.) are skipped.
+_WIDGET_TYPE_TO_DATASET: dict[int, str] = {
+    DashboardWidgetTypes.SPANS: SupportedTraceItemType.SPANS.value,
+    DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS.value,
+    DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS.value,
+    DashboardWidgetTypes.ERROR_EVENTS: "errors",
 }
 
 
@@ -234,7 +235,7 @@ def build_widget_timeseries_params(
 def _params_for_widget_query(
     widget_query: DashboardWidgetQuery,
     url_params: QueryDict,
-    dataset: SupportedTraceItemType,
+    dataset: str,
     dashboard_filters: Mapping[str, Any],
 ) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {}
@@ -260,7 +261,7 @@ def _params_for_widget_query(
 
     _apply_page_filters(params, url_params, dashboard_filters)
 
-    params["dataset"] = dataset.value
+    params["dataset"] = dataset
     params["referrer"] = Referrer.DASHBOARDS_SLACK_UNFURL.value
 
     return params
