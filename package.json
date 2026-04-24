@@ -26,7 +26,7 @@
     "fix:eslint": "eslint --fix",
     "fix:format": "oxfmt",
     "dev": "pnpm install --frozen-lockfile && sentry devserver",
-    "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 rspack serve",
+    "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_UI_HOT_RELOAD=1 node scripts/dev-ui-server.ts",
     "dev-ui-production": "NODE_ENV=production SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 rspack --mode production serve",
     "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 pnpm run dev-ui",
     "dev-ui-storybook": "pnpm run dev-ui",
