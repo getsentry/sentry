@@ -713,15 +713,11 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             )
 
         return ScmConfigBools(
-            github_pr_bot=bool(
-                obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
+            github_pr_bot=bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
             github_nudge_invite=bool(
                 obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
             ),
-            gitlab_pr_bot=bool(
-                obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)
-            ),
+            gitlab_pr_bot=bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
         )
 
     def serialize(  # type: ignore[override]
