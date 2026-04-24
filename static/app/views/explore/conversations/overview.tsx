@@ -3,6 +3,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -95,40 +96,46 @@ function ConversationsOverviewPage() {
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
       <ExploreBodySearch>
-        <Stack gap="md" width="100%">
-          <Flex gap="md" align="center" wrap="wrap">
-            <PageFilterBar condensed>
-              <InsightsProjectSelector resetParamsOnChange={[TableUrlParams.CURSOR]} />
-              <InsightsEnvironmentSelector
-                resetParamsOnChange={[TableUrlParams.CURSOR]}
-              />
-              <DatePageFilter
-                {...datePageFilterProps}
-                resetParamsOnChange={[TableUrlParams.CURSOR]}
-              />
-            </PageFilterBar>
-            <AgentSelector
-              storageKeyPrefix="conversations:agent-filter"
-              referrer="api.insights.conversations.get-agent-names"
-            />
-            {!showOnboarding && !isOnboardingLoading && (
-              <Flex flex={2}>
-                <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+        <Layout.Main width="full">
+          <Stack gap="md">
+            <Flex gap="md" align="center" wrap="wrap">
+              <Flex gap="md" align="center">
+                <PageFilterBar condensed>
+                  <InsightsProjectSelector
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                  />
+                  <InsightsEnvironmentSelector
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                  />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
+                  />
+                </PageFilterBar>
+                <AgentSelector
+                  storageKeyPrefix="conversations:agent-filter"
+                  referrer="api.insights.conversations.get-agent-names"
+                />
               </Flex>
+              {!showOnboarding && !isOnboardingLoading && (
+                <Flex flex={1} minWidth="300px">
+                  <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                </Flex>
+              )}
+            </Flex>
+            {!showOnboarding && !isOnboardingLoading && (
+              <SchemaHintsList
+                supportedAggregates={DISABLE_AGGREGATES}
+                booleanTags={booleanTags as TagCollection}
+                numberTags={numberTags as TagCollection}
+                stringTags={stringTags as TagCollection}
+                isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+                exploreQuery={searchQuery ?? ''}
+                source={SchemaHintsSources.CONVERSATIONS}
+              />
             )}
-          </Flex>
-          {!showOnboarding && !isOnboardingLoading && (
-            <SchemaHintsList
-              supportedAggregates={DISABLE_AGGREGATES}
-              booleanTags={booleanTags as TagCollection}
-              numberTags={numberTags as TagCollection}
-              stringTags={stringTags as TagCollection}
-              isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
-              exploreQuery={searchQuery ?? ''}
-              source={SchemaHintsSources.CONVERSATIONS}
-            />
-          )}
-        </Stack>
+          </Stack>
+        </Layout.Main>
       </ExploreBodySearch>
       <ExploreBodyContent>
         <Stack flex={1} padding="xl" gap="md">
