@@ -1,3 +1,4 @@
+import type {ComponentProps} from 'react';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -29,10 +30,10 @@ describe('SentryAppExternalForm', () => {
     optional_fields: [{type: 'text', label: 'Notes', name: 'notes'}],
   };
 
-  const baseProps = {
-    action: 'create' as const,
+  const baseProps: ComponentProps<typeof SentryAppExternalForm> = {
+    action: 'create',
     appName: 'Test App',
-    element: 'issue-link' as const,
+    element: 'issue-link',
     sentryAppInstallationUuid: sentryAppInstallation.uuid,
     config: baseConfig,
     onSubmitSuccess: jest.fn(),
