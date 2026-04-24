@@ -9,7 +9,6 @@ import {defined} from 'sentry/utils';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
-  isEquation,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -273,10 +272,6 @@ export function mapMetricUnitToFieldType(metricUnit: string | undefined): {
  * that are used in the equation.
  */
 export function getEquationMetricsTotalFilter(equation: string) {
-  if (!isEquation(equation)) {
-    return '';
-  }
-
   const expression = new Expression(stripEquationPrefix(equation));
   const aggregatesUsed = expression.tokens
     .filter(isTokenFunction)

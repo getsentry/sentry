@@ -252,4 +252,10 @@ describe('getEquationMetricsTotalFilter', () => {
       '( metric.name:metricA metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) OR ( metric.name:metricB metric.type:distribution metric.unit:millisecond )'
     );
   });
+
+  it('returns an empty string when provided a non-equation', () => {
+    const equation = 'i dont know what this is';
+    const result = getEquationMetricsTotalFilter(equation);
+    expect(result).toBe('');
+  });
 });
