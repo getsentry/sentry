@@ -11,8 +11,9 @@ import {
   ModalBody,
   ModalFooter,
 } from 'sentry/components/globalModal/components';
-import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
-import {LogsExportModal} from 'sentry/views/explore/logs/logsExportModal';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {LogsExportModal} from 'sentry/views/explore/logs/exports/logsExportModal';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockAddSuccessMessage = jest.fn();
@@ -42,7 +43,7 @@ const queryInfo: LogsQueryInfo = {
   sort: ['-timestamp'],
 };
 
-const tableData = Array.from({length: 500}).map((_, i) =>
+const tableData = Array.from({length: 1500}).map((_, i) =>
   LogFixture({
     id: `log-${i}`,
     [OurLogKnownFieldKey.PROJECT_ID]: `${i}`,
@@ -50,18 +51,49 @@ const tableData = Array.from({length: 500}).map((_, i) =>
   })
 );
 
-function renderModal(estimatedRowCount: number) {
+function mockTimeseriesCount(sampleCount = 0) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-timeseries/`,
+    method: 'GET',
+    body: {
+      timeSeries: [
+        {
+          yAxis: 'count(message)',
+          values: [
+            {
+              value: 1,
+              timestamp: 1729796400000,
+              sampleCount,
+              sampleRate: 1,
+            },
+          ],
+          meta: {
+            dataScanned: 'full',
+            interval: 3_600_000,
+            valueType: 'number',
+          },
+        },
+      ],
+    },
+  });
+}
+
+function renderModal() {
   return render(
-    <LogsExportModal
-      Body={ModalBody}
-      Footer={ModalFooter}
-      Header={makeClosableHeader(closeModal)}
-      CloseButton={makeCloseButton(closeModal)}
-      closeModal={closeModal}
-      estimatedRowCount={estimatedRowCount}
-      queryInfo={queryInfo}
-      tableData={tableData}
-    />,
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
+      <LogsExportModal
+        Body={ModalBody}
+        Footer={ModalFooter}
+        Header={makeClosableHeader(closeModal)}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        queryInfo={queryInfo}
+        tableData={tableData}
+      />
+    </LogsQueryParamsProvider>,
     {organization}
   );
 }
@@ -73,7 +105,8 @@ describe('LogsExportModal', () => {
   });
 
   it('calls closeModal when Cancel is clicked', async () => {
-    renderModal(500);
+    mockTimeseriesCount();
+    renderModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
@@ -81,13 +114,14 @@ describe('LogsExportModal', () => {
   });
 
   it('downloads in the browser and shows a success toast when Export is clicked without any options', async () => {
+    mockTimeseriesCount();
     const dataExportMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,
       method: 'POST',
       body: {id: 721},
     });
 
-    renderModal(500);
+    renderModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
@@ -106,7 +140,8 @@ describe('LogsExportModal', () => {
   });
 
   it('POSTs to data-export when row limit is above the sync limit', async () => {
-    const aboveSyncLimit = QUERY_PAGE_LIMIT + 1;
+    const aboveSyncLimit = tableData.length;
+    mockTimeseriesCount();
     const dataExportMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,
       method: 'POST',
@@ -114,11 +149,11 @@ describe('LogsExportModal', () => {
       body: {id: 721},
     });
 
-    renderModal(aboveSyncLimit);
+    renderModal();
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.click(
-      screen.getByRole('menuitemradio', {
+      await screen.findByRole('menuitemradio', {
         name: new RegExp(`^${aboveSyncLimit.toLocaleString()} \\(All\\)$`),
       })
     );

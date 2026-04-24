@@ -1,7 +1,7 @@
 import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {LogsExportButton} from 'sentry/views/explore/logs/logsExportButton';
-import {LogsExportModalButton} from 'sentry/views/explore/logs/logsExportModalButton';
+import {LogsExportButton} from 'sentry/views/explore/logs/exports/logsExportButton';
+import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useShowModalExport} from 'sentry/views/explore/logs/useShowModalExport';
 import {
@@ -11,18 +11,12 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 
 type LogsExportSwitchProps = {
-  estimatedRowCount: number;
   isLoading: boolean;
   tableData: OurLogsResponseItem[];
   error?: Error | null;
 };
 
-export function LogsExportSwitch({
-  isLoading,
-  tableData,
-  error,
-  estimatedRowCount,
-}: LogsExportSwitchProps) {
+export function LogsExportSwitch({isLoading, tableData, error}: LogsExportSwitchProps) {
   const showModalExport = useShowModalExport();
 
   const {selection} = usePageFilters();
@@ -52,7 +46,7 @@ export function LogsExportSwitch({
   };
 
   return showModalExport ? (
-    <LogsExportModalButton {...exportButtonProps} estimatedRowCount={estimatedRowCount} />
+    <LogsExportModalButton {...exportButtonProps} />
   ) : (
     <LogsExportButton {...exportButtonProps} />
   );

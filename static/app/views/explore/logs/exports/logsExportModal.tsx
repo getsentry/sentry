@@ -15,6 +15,7 @@ import type {SelectValue} from 'sentry/types/core';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 import {downloadLogs} from 'sentry/views/explore/logs/downloadLogs';
+import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/useLogsExportEstimatedRowCount';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -42,7 +43,6 @@ const exportModalFormSchema = z.object({
 type ExportModalFormValues = z.infer<typeof exportModalFormSchema>;
 
 type LogsExportModalProps = ModalRenderProps & {
-  estimatedRowCount: number;
   queryInfo: LogsQueryInfo;
   tableData: OurLogsResponseItem[];
 };
@@ -72,10 +72,10 @@ export function LogsExportModal({
   Footer,
   Header,
   closeModal,
-  estimatedRowCount,
   queryInfo,
   tableData,
 }: LogsExportModalProps) {
+  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
   const payload = useMemo(
     () => ({
       queryType: ExportQueryType.EXPLORE,

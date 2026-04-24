@@ -4,12 +4,13 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
-import {LogsExportModal} from 'sentry/views/explore/logs/logsExportModal';
+import {LogsExportModal} from 'sentry/views/explore/logs/exports/logsExportModal';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 type LogsExportModalButtonProps = {
-  estimatedRowCount: number;
   isLoading: boolean;
   queryInfo: LogsQueryInfo;
   tableData: OurLogsResponseItem[];
@@ -18,7 +19,6 @@ type LogsExportModalButtonProps = {
 
 export function LogsExportModalButton({
   error,
-  estimatedRowCount,
   isLoading,
   queryInfo,
   tableData,
@@ -37,12 +37,12 @@ export function LogsExportModalButton({
       icon={<IconDownload />}
       onClick={() => {
         openModal(deps => (
-          <LogsExportModal
-            {...deps}
-            queryInfo={queryInfo}
-            estimatedRowCount={estimatedRowCount}
-            tableData={tableData}
-          />
+          <LogsQueryParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            source="location"
+          >
+            <LogsExportModal {...deps} queryInfo={queryInfo} tableData={tableData} />
+          </LogsQueryParamsProvider>
         ));
       }}
       tooltipProps={{
