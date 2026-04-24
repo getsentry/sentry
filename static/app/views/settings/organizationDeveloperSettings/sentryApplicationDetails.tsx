@@ -51,7 +51,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
-import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
@@ -221,15 +220,6 @@ export default function SentryApplicationDetails() {
 
   const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
 
-  const headerTitle = () => {
-    if (app) {
-      return isInternal() ? t('Edit Internal Integration') : t('Edit Public Integration');
-    }
-    return isInternal()
-      ? t('Create Internal Integration')
-      : t('Create Public Integration');
-  };
-
   const handleSubmitSuccess = (data: SentryApp) => {
     const type = isInternal() ? 'internal' : 'public';
     const baseUrl = `/settings/${organization.slug}/developer-settings/`;
@@ -395,7 +385,6 @@ export default function SentryApplicationDetails() {
 
   return (
     <div>
-      <SettingsPageHeader title={headerTitle()} />
       {isEditingApp && isPending ? (
         <LoadingIndicator />
       ) : isEditingApp && isError ? (
