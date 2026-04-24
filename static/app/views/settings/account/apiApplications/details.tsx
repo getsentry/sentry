@@ -19,9 +19,6 @@ import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
@@ -300,62 +297,58 @@ function ApiApplicationsDetails() {
         </FormFieldGroup>
       </FormSearch>
 
-      <Panel>
-        <PanelHeader>{t('Credentials')}</PanelHeader>
+      <FormFieldGroup title={t('Credentials')}>
+        <FieldGroup label={t('Client ID')} flexibleControlStateSize>
+          <TextCopyInput>{app.clientID}</TextCopyInput>
+        </FieldGroup>
 
-        <PanelBody>
-          <FieldGroup label={t('Client ID')} flexibleControlStateSize>
-            <TextCopyInput>{app.clientID}</TextCopyInput>
-          </FieldGroup>
-
-          {!app.isPublic && (
-            <FieldGroup
-              label={t('Client Secret')}
-              help={t(`Your secret is only available briefly after application creation. Make
+        {!app.isPublic && (
+          <FieldGroup
+            label={t('Client Secret')}
+            help={t(`Your secret is only available briefly after application creation. Make
                     sure to save this value!`)}
-              flexibleControlStateSize
-            >
-              {app.clientSecret ? (
-                <TextCopyInput>{app.clientSecret}</TextCopyInput>
-              ) : (
-                <ClientSecret>
-                  <HiddenSecret>{t('hidden')}</HiddenSecret>
-                  <Confirm
-                    onConfirm={rotateClientSecret}
-                    message={t(
-                      'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
-                    )}
-                  >
-                    <Button size="xs" priority="danger">
-                      {t('Rotate client secret')}
-                    </Button>
-                  </Confirm>
-                </ClientSecret>
-              )}
+            flexibleControlStateSize
+          >
+            {app.clientSecret ? (
+              <TextCopyInput>{app.clientSecret}</TextCopyInput>
+            ) : (
+              <ClientSecret>
+                <HiddenSecret>{t('hidden')}</HiddenSecret>
+                <Confirm
+                  onConfirm={rotateClientSecret}
+                  message={t(
+                    'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                  )}
+                >
+                  <Button size="xs" priority="danger">
+                    {t('Rotate client secret')}
+                  </Button>
+                </Confirm>
+              </ClientSecret>
+            )}
+          </FieldGroup>
+        )}
+
+        <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
+          <TextCopyInput>{`${oauthBaseUrl}/authorize/`}</TextCopyInput>
+        </FieldGroup>
+
+        <FieldGroup label={t('Token URL')} flexibleControlStateSize>
+          <TextCopyInput>{`${oauthBaseUrl}/token/`}</TextCopyInput>
+        </FieldGroup>
+
+        {app.isPublic && (
+          <Fragment>
+            <FieldGroup label={t('Device Authorization URL')} flexibleControlStateSize>
+              <TextCopyInput>{`${oauthBaseUrl}/device/code/`}</TextCopyInput>
             </FieldGroup>
-          )}
 
-          <FieldGroup label={t('Authorization URL')} flexibleControlStateSize>
-            <TextCopyInput>{`${oauthBaseUrl}/authorize/`}</TextCopyInput>
-          </FieldGroup>
-
-          <FieldGroup label={t('Token URL')} flexibleControlStateSize>
-            <TextCopyInput>{`${oauthBaseUrl}/token/`}</TextCopyInput>
-          </FieldGroup>
-
-          {app.isPublic && (
-            <Fragment>
-              <FieldGroup label={t('Device Authorization URL')} flexibleControlStateSize>
-                <TextCopyInput>{`${oauthBaseUrl}/device/code/`}</TextCopyInput>
-              </FieldGroup>
-
-              <FieldGroup label={t('Device Verification URL')} flexibleControlStateSize>
-                <TextCopyInput>{`${oauthBaseUrl}/device/`}</TextCopyInput>
-              </FieldGroup>
-            </Fragment>
-          )}
-        </PanelBody>
-      </Panel>
+            <FieldGroup label={t('Device Verification URL')} flexibleControlStateSize>
+              <TextCopyInput>{`${oauthBaseUrl}/device/`}</TextCopyInput>
+            </FieldGroup>
+          </Fragment>
+        )}
+      </FormFieldGroup>
     </SentryDocumentTitle>
   );
 }
