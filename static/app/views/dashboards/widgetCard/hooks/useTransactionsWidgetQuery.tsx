@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {queryOptions, useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
@@ -213,6 +213,7 @@ export function useTransactionsSeriesQuery(
               );
             },
         retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
       });
     }),
   });

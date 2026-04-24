@@ -1,5 +1,5 @@
 import {useMemo, useRef} from 'react';
-import {queryOptions, useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
@@ -126,6 +126,7 @@ export function useMobileAppSizeSeriesQuery(
               );
             },
         retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
       });
     }),
   });

@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {queryOptions, useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -236,6 +236,7 @@ export function useErrorsAndTransactionsSeriesQuery(
               );
             },
         retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
       });
     }),
   });

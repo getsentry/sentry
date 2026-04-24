@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {queryOptions, useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
 import type {ApiResult} from 'sentry/api';
@@ -161,6 +161,7 @@ export function useSpansSeriesQuery(
               );
             },
         retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
       });
     }),
   });
