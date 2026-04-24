@@ -478,24 +478,23 @@ export function Provider({
     }
   }, [getCurrentPlayerTime, isPlaying, prefs.playbackSpeed]);
 
-  // Emit a metric once per replay, after all segments have been fetched, so we
-  // can track the distribution of video segment counts on mobile replays.
   const replayId = replay?.getReplay().id;
+  const projectId = replay?.getReplay().project_id;
+  const videoElementCount = videoEvents?.length ?? 0;
   useEffect(() => {
-    if (isFetching || !isVideoReplay || !replay || !videoEvents) {
+    if (isFetching || !isVideoReplay || !replayId) {
       return;
     }
     Sentry.metrics.distribution(
       'replay.video_replayer.video_element_count',
-      videoEvents.length,
+      videoElementCount,
       {
         attributes: {
-          project_id: String(replay.getReplay().project_id),
+          project_id: String(projectId),
         },
       }
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per replay load
-  }, [replayId, isFetching]);
+  }, [replayId, isFetching, isVideoReplay, videoElementCount, projectId]);
 
   const togglePlayPause = useCallback(
     (play: boolean) => {
