@@ -131,30 +131,27 @@ export function SentryAppExternalForm({
   const optionalFieldsRef = useRef(optionalFields);
   optionalFieldsRef.current = optionalFields;
 
-  const getDefaultOptions = useCallback(
-    (field: FieldFromSchema) => {
-      const savedOption = (resetValues?.settings || []).find(
-        value => value.name === field.name
-      );
-      const currentOptions = (field.choices || []).map(([value, label]) => ({
-        value,
-        label,
-      }));
+  const getDefaultOptions = (field: FieldFromSchema) => {
+    const savedOption = (resetValues?.settings || []).find(
+      value => value.name === field.name
+    );
+    const currentOptions = (field.choices || []).map(([value, label]) => ({
+      value,
+      label,
+    }));
 
-      const shouldAddSavedOption =
-        // We only render saved options if they have preserved the label, otherwise it appears unselcted.
-        // The next time the user saves, the label should be preserved.
-        savedOption?.value &&
-        savedOption?.label &&
-        // The option isn't in the current options already
-        !currentOptions.some(option => option.value === savedOption?.value);
+    const shouldAddSavedOption =
+      // We only render saved options if they have preserved the label, otherwise it appears unselcted.
+      // The next time the user saves, the label should be preserved.
+      savedOption?.value &&
+      savedOption?.label &&
+      // The option isn't in the current options already
+      !currentOptions.some(option => option.value === savedOption?.value);
 
-      return shouldAddSavedOption
-        ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
-        : currentOptions;
-    },
-    [resetValues]
-  );
+    return shouldAddSavedOption
+      ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
+      : currentOptions;
+  };
 
   const getDefaultFieldValue = useCallback(
     (field: FieldFromSchema) => {
@@ -231,13 +228,10 @@ export function SentryAppExternalForm({
     [makeExternalRequest]
   );
 
-  const getOptions = useCallback(
-    (field: FieldFromSchema, input: string) =>
-      new Promise(resolve => {
-        debouncedOptionLoad(field, input, resolve);
-      }),
-    [debouncedOptionLoad]
-  );
+  const getOptions = (field: FieldFromSchema, input: string) =>
+    new Promise(resolve => {
+      debouncedOptionLoad(field, input, resolve);
+    });
 
   /**
    * This function determines which fields need to be reset and new options fetched
@@ -354,12 +348,9 @@ export function SentryAppExternalForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action]);
 
-  const createPreserveOptionFunction = useCallback(
-    (name: string) => (option: any, _event: any) => {
-      setSelectedOptions(prev => ({...prev, [name]: option}));
-    },
-    []
-  );
+  const createPreserveOptionFunction = (name: string) => (option: any, _event: any) => {
+    setSelectedOptions(prev => ({...prev, [name]: option}));
+  };
 
   const renderField = (field: FieldFromSchema, required: boolean) => {
     // This function converts the field we get from the backend into
@@ -453,7 +444,7 @@ export function SentryAppExternalForm({
   };
 
   if (!sentryAppInstallationUuid) {
-    return '';
+    return null;
   }
 
   const requiredList = requiredFields || [];
@@ -466,9 +457,7 @@ export function SentryAppExternalForm({
       apiMethod="POST"
       // Without defining onSubmit, the Form will send an `apiMethod` request to the above `apiEndpoint`
       onSubmit={element === 'alert-rule-action' ? handleAlertRuleSubmit : undefined}
-      onSubmitSuccess={(...params) => {
-        onSubmitSuccess(...params);
-      }}
+      onSubmitSuccess={onSubmitSuccess}
       onSubmitError={() => {
         addErrorMessage(
           t('Unable to %s %s %s.', action, appName, getElementText(element))
