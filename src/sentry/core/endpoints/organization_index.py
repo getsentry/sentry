@@ -410,12 +410,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 ),
                 post_provision_options=PostProvisionOptions(
                     getsentry_options={
-                        # Define a self-serve trial account for saas.
+                        # Define a self-serve free account for saas. Historically
+                        # these were not trial accounts.
                         # See getsentry/utils/provisioning.py
-                        "subscription_options": {
+                        "subscription": {
                             "channel": 0,
                             "type": 0,
-                            "trial_options": {"should_start_trial": True},
                         },
                         "ip_address": request.META["REMOTE_ADDR"],
                         "provisioning_user_id": request.user.id,
