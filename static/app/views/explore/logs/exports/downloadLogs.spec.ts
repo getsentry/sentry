@@ -1,10 +1,10 @@
-import {downloadLogs} from 'sentry/views/explore/logs/downloadLogs';
+import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 const mockDownloadLogsAsCsv = jest.fn();
 
-jest.mock('sentry/views/explore/logs/downloadLogsAsCsv', () => ({
+jest.mock('sentry/views/explore/logs/exports/downloadLogsAsCsv', () => ({
   get downloadLogsAsCsv() {
     return mockDownloadLogsAsCsv;
   },
@@ -12,7 +12,7 @@ jest.mock('sentry/views/explore/logs/downloadLogsAsCsv', () => ({
 
 const mockDownloadLogsAsJsonl = jest.fn();
 
-jest.mock('sentry/views/explore/logs/downloadLogsAsJsonl', () => ({
+jest.mock('sentry/views/explore/logs/exports/downloadLogsAsJsonl', () => ({
   get downloadLogsAsJsonl() {
     return mockDownloadLogsAsJsonl;
   },

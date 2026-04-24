@@ -54,9 +54,9 @@ import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
 } from 'sentry/views/explore/logs/constants';
+import {LogsExportSwitch} from 'sentry/views/explore/logs/exports/logsExportSwitch';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
-import {LogsExportSwitch} from 'sentry/views/explore/logs/logsExportSwitch';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -78,7 +78,6 @@ import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsS
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
-import {useShowModalExport} from 'sentry/views/explore/logs/useShowModalExport';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
@@ -245,7 +244,6 @@ const LogsSearchSection = memo(function LogsSearchSection({
 export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
-  const logsSearch = useQueryParamsSearch();
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
@@ -276,19 +274,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   }, [autorefreshEnabled]);
 
   const rawLogCountsAll = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
-
-  const showModalExport = useShowModalExport();
-  const rawLogCountsFiltered = showModalExport
-    ? // This is a bit hacky, but: we only use rawLogCountsFiltered deep inside:
-      //   LogsExportSwitch > LogsExportModalButton > LogsExportModal
-      // We don't want to send extra network requests unnecessarily.
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      useRawCounts({
-        dataset: DiscoverDatasets.OURLOGS,
-        normalModeExtrapolated: true,
-        query: logsSearch.formatString(),
-      })
-    : undefined;
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
@@ -471,10 +456,6 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
                 isLoading={tableData.isPending}
                 tableData={tableData.data}
                 error={tableData.error}
-                estimatedRowCount={Math.max(
-                  tableData.data.length,
-                  rawLogCountsFiltered?.total.count ?? 0
-                )}
               />
             </OverChartButtonGroup>
           )}

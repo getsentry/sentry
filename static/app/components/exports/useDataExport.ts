@@ -35,19 +35,13 @@ interface UseDataExportOptions {
 }
 
 interface DataExportData {
-  checksum: null;
+  checksum: string | null;
   dateCreated: string;
-  dateExpired: null;
-  dateFinished: null;
+  dateExpired: string | null;
+  dateFinished: string | null;
   fileName: null;
-  id: 99184;
-  query: {info: unknown; type: string};
+  id: number;
   status: string;
-  user: {
-    email: string;
-    id: string;
-    username: string;
-  };
 }
 
 function handleDataExportResponse(

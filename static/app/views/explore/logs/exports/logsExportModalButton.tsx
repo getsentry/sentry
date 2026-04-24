@@ -5,9 +5,11 @@ import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
-import {LogsExportModal} from 'sentry/views/explore/logs/logsExportModal';
+import {LogsExportModal} from 'sentry/views/explore/logs/exports/logsExportModal';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
@@ -17,7 +19,6 @@ const GLOBAL_MODAL_DISMISS_TO_CLOSE_REASON = {
 } as const;
 
 type LogsExportModalButtonProps = {
-  estimatedRowCount: number;
   isLoading: boolean;
   queryInfo: LogsQueryInfo;
   tableData: OurLogsResponseItem[];
@@ -26,7 +27,6 @@ type LogsExportModalButtonProps = {
 
 export function LogsExportModalButton({
   error,
-  estimatedRowCount,
   isLoading,
   queryInfo,
   tableData,
@@ -51,12 +51,12 @@ export function LogsExportModalButton({
         });
         openModal(
           deps => (
-            <LogsExportModal
-              {...deps}
-              queryInfo={queryInfo}
-              estimatedRowCount={estimatedRowCount}
-              tableData={tableData}
-            />
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              source="location"
+            >
+              <LogsExportModal {...deps} queryInfo={queryInfo} tableData={tableData} />
+            </LogsQueryParamsProvider>
           ),
           {
             onClose: reason => {

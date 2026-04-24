@@ -92,7 +92,9 @@ export function useRawCounts({
         ...baseQueryParams,
         referrer: `${baseReferrer}.high-accuracy`,
         sampling: SAMPLING_MODE.HIGH_ACCURACY,
-        ...(normalModeExtrapolated && normalModeExtrapolatedOptions),
+        ...(normalModeExtrapolated && dataset === DiscoverDatasets.TRACEMETRICS
+          ? normalModeExtrapolatedOptions
+          : {}),
       },
     },
   ];

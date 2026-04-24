@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
-import {LogsExportModalButton} from 'sentry/views/explore/logs/logsExportModalButton';
+import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockTrackAnalytics = jest.fn();
