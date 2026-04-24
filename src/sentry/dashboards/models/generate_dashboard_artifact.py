@@ -168,7 +168,10 @@ class GeneratedWidget(BaseModel):
         ...,
         description="Dataset to query. Use 'spans' as the default — it covers most use cases. Use 'error-events' for error-specific data, 'issue' for issue tracking, 'logs' for log data, 'tracemetrics' for trace metrics. Text widgets do not have a widget_type and should be set to None. Required for non-text widgets.",
     )
-    queries: list[GeneratedWidgetQuery]
+    queries: list[GeneratedWidgetQuery] = Field(
+        ...,
+        description="One query per series/filter on the widget. All queries must share the same `aggregates`, `columns`, and `orderby` — they should only differ by `conditions` and `name`. To plot multiple aggregates (e.g. p50 and p95), put them all in a single query's `aggregates` array rather than creating a query per aggregate.",
+    )
     layout: GeneratedWidgetLayout
     limit: int = Field(
         default=5,
@@ -200,6 +203,27 @@ class GeneratedWidget(BaseModel):
         if is_text and widget_type is not None:
             raise ValueError("widget_type is not allowed for text widgets")
 
+        return values
+
+    @root_validator
+    def check_query_consistency(cls, values: dict[str, Any]) -> dict[str, Any]:
+        queries = values.get("queries") or []
+        if len(queries) <= 1:
+            return values
+
+        first_query = queries[0]
+        for query in queries[1:]:
+            if (
+                query.aggregates != first_query.aggregates
+                or query.columns != first_query.columns
+                or query.orderby != first_query.orderby
+            ):
+                raise ValueError(
+                    "All queries in a widget must share the same aggregates, columns, "
+                    "and orderby; queries should only differ by `conditions` and `name`. "
+                    "To plot multiple aggregates (e.g. p50 and p95), put them all in a "
+                    "single query's `aggregates` array rather than creating a query per aggregate."
+                )
         return values
 
 
