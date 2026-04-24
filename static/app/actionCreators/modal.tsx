@@ -160,7 +160,7 @@ export async function toggleCommandPalette(
   dispatch: CommandPaletteDispatch,
   source: 'button' | 'keyboard'
 ) {
-  const {default: Modal, modalCss} =
+  const {CommandPalette: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/commandPalette');
 
   function closeCommandPaletteModal() {

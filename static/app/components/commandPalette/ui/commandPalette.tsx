@@ -985,8 +985,6 @@ const ResultsList = styled(Flex)`
   }
 `;
 
-export default CommandPalette;
-
 export const modalCss = (theme: Theme) => {
   return css`
     [role='document'] {
