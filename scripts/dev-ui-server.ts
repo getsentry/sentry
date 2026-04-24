@@ -31,7 +31,7 @@ function ask(question: string): Promise<boolean> {
     rl.question(question, answer => {
       rl.close();
       const normalized = answer.trim().toLowerCase();
-      resolve(normalized === 'y' || normalized === 'yes');
+      resolve(normalized === '' || normalized === 'y' || normalized === 'yes');
     });
   });
 }
