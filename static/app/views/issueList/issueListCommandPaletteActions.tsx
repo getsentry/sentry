@@ -30,11 +30,7 @@ interface IssueListCommandPaletteActionsProps {
   sort: IssueSortOptions;
 }
 
-function SortActions({
-  sort,
-  query,
-  onSortChange,
-}: IssueListCommandPaletteActionsProps) {
+function SortActions({sort, query, onSortChange}: IssueListCommandPaletteActionsProps) {
   const sortKeys = [
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
@@ -143,7 +139,7 @@ export function IssueListCommandPaletteActions({
 }: IssueListCommandPaletteActionsProps) {
   return (
     <CommandPaletteSlot name="page">
-      <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
+      <CMDKAction display={{label: t('Issues Feed'), icon: <IconIssues />}}>
         <SortActions sort={sort} query={query} onSortChange={onSortChange} />
         <SaveViewActions query={query} sort={sort} />
       </CMDKAction>
