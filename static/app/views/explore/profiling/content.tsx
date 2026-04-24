@@ -43,6 +43,11 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+} from 'sentry/views/explore/components/styles';
 import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
 import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -166,18 +171,20 @@ export default function ProfilingContent() {
             <ContinuousProfilingBetaSDKAlertBanner />
           </Feature>
           <ProfilingContentPageHeader />
-          <LayoutBody>
-            <LayoutMain width="full">
-              <ActionBar>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
-                  <DatePageFilter
-                    {...datePageFilterProps}
-                    resetParamsOnChange={CURSOR_PARAMS}
-                  />
-                </PageFilterBar>
-              </ActionBar>
+          <ExploreBodySearch>
+            <Layout.Main width="full">
+              <PageFilterBar condensed>
+                <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                <DatePageFilter
+                  {...datePageFilterProps}
+                  resetParamsOnChange={CURSOR_PARAMS}
+                />
+              </PageFilterBar>
+            </Layout.Main>
+          </ExploreBodySearch>
+          <ExploreBodyContent>
+            <ExploreContentSection gap="md">
               {showOnboardingPanel ? (
                 <Onboarding />
               ) : (
@@ -243,8 +250,8 @@ export default function ProfilingContent() {
                   )}
                 </Fragment>
               )}
-            </LayoutMain>
-          </LayoutBody>
+            </ExploreContentSection>
+          </ExploreBodyContent>
         </Stack>
       </PageFiltersContainer>
     </SentryDocumentTitle>
@@ -423,20 +430,6 @@ const ALL_FIELDS = [
 
 type FieldType = (typeof ALL_FIELDS)[number];
 
-const LayoutBody = styled(Layout.Body)`
-  display: grid;
-  align-content: stretch;
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    align-content: stretch;
-  }
-`;
-
-const LayoutMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-`;
-
 const LandingAggregateFlamegraphSizer = styled('div')`
   height: 100%;
   min-height: max(80vh, 300px);
@@ -460,13 +453,6 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
   align-items: center;
   justify-content: space-between;
   flex-direction: row;
-`;
-
-const ActionBar = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  grid-template-columns: min-content auto;
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const WidgetsContainer = styled('div')`
