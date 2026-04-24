@@ -9,6 +9,8 @@ is user-controllable: without org+project scoping, a stolen or
 malformed public_key could delete keys from unrelated projects.
 """
 
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.projectkey import ProjectKey
 from sentry.projects.services.project_key.service import project_key_service
 from sentry.testutils.factories import Factories
@@ -182,3 +184,40 @@ def test_delete_project_key_refuses_internal_keys() -> None:
 
     assert result is False
     assert ProjectKey.objects.filter(id=internal_key.id).exists()
+
+
+@django_db_all(transaction=True)
+def test_delete_project_key_emits_outbox() -> None:
+    """The reason we fetch-then-delete (rather than
+    ``ProjectKey.objects.filter(...).delete()``) is that QuerySet.delete()
+    bypasses the per-instance override on ``CellOutboxProducingModel``
+    that emits the replication outbox. This test asserts the outbox IS
+    emitted so a "performance optimization" back to QuerySet.delete()
+    fails loudly."""
+    org = Factories.create_organization()
+    project = Factories.create_project(organization=org)
+    key = Factories.create_project_key(project=project)
+    key_id = key.id
+
+    # Clear any outboxes from key creation so we can assert specifically
+    # on the delete-emitted outbox.
+    CellOutbox.objects.filter(
+        category=OutboxCategory.PROJECT_KEY_UPDATE.value,
+        object_identifier=key_id,
+    ).delete()
+
+    result = project_key_service.delete_project_key(
+        organization_id=org.id,
+        project_id=project.id,
+        public_key=key.public_key,
+    )
+
+    assert result is True
+    assert not ProjectKey.objects.filter(id=key_id).exists()
+    # Delete outbox must exist so the control-silo replica also gets
+    # cleaned up. Without this, stale replica rows would continue to
+    # validate DSN lookups and auth checks for a deleted key.
+    assert CellOutbox.objects.filter(
+        category=OutboxCategory.PROJECT_KEY_UPDATE.value,
+        object_identifier=key_id,
+    ).exists()
