@@ -6,7 +6,9 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
@@ -29,8 +31,6 @@ import {ConversationsTable} from 'sentry/views/explore/conversations/components/
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
-import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
-import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
@@ -101,12 +101,8 @@ function ConversationsOverviewPage() {
             <Flex gap="md" align="center" wrap="wrap">
               <Flex gap="md" align="center">
                 <PageFilterBar condensed>
-                  <InsightsProjectSelector
-                    resetParamsOnChange={[TableUrlParams.CURSOR]}
-                  />
-                  <InsightsEnvironmentSelector
-                    resetParamsOnChange={[TableUrlParams.CURSOR]}
-                  />
+                  <ProjectPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
+                  <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
                   <DatePageFilter
                     {...datePageFilterProps}
                     resetParamsOnChange={[TableUrlParams.CURSOR]}
