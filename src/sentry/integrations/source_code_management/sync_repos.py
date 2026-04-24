@@ -60,6 +60,11 @@ SCM_SYNC_PROVIDERS = [
 
 SYNC_BATCH_SIZE = 100
 
+# Final safety guard before auto-disabling a repo: if it has any commit, PR,
+# or code review event row in the last DISABLE_ACTIVITY_CUTOFF_DAYS days, we
+# skip the disable even if the provider isn't returning the repo right now.
+DISABLE_ACTIVITY_CUTOFF_DAYS = 30
+
 
 def bump_org_integration_last_sync(
     organization_integration_id: int, *, repos_changed: bool = False
@@ -248,7 +253,41 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             for repo in provider_repos
             if repo["external_id"] in new_ids
         ]
+        # Filter out any repo with recent activity (commits, PRs, code review
+        # events) before disable.
         removed_id_list = list(removed_ids)
+        active_skipped: set[str] = set()
+        if removed_id_list:
+            active_skipped = set(
+                repository_service.find_recently_active_repo_external_ids(
+                    organization_id=rpc_org.id,
+                    integration_id=integration.id,
+                    provider=provider,
+                    external_ids=removed_id_list,
+                    cutoff_days=DISABLE_ACTIVITY_CUTOFF_DAYS,
+                )
+            )
+            if active_skipped:
+                logger.info(
+                    "scm.repo_sync.disable_skipped_due_to_activity",
+                    extra={
+                        "provider": provider_key,
+                        "integration_id": integration.id,
+                        "organization_id": rpc_org.id,
+                        "candidate_count": len(removed_id_list),
+                        "skipped_count": len(active_skipped),
+                        "skipped_ids": active_skipped,
+                        "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
+                    },
+                )
+                metrics.distribution(
+                    "scm.repo_sync.disable_skipped_due_to_activity",
+                    len(active_skipped),
+                    tags={"provider": provider_key},
+                    sample_rate=1.0,
+                )
+
+        safe_to_disable = [eid for eid in removed_id_list if eid not in active_skipped]
         restored_id_list = list(restored_ids)
 
         for config_batch in chunked(new_repo_configs, SYNC_BATCH_SIZE):
@@ -260,7 +299,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             )
 
         if removals_enabled:
-            for removed_batch in chunked(removed_id_list, SYNC_BATCH_SIZE):
+            for removed_batch in chunked(safe_to_disable, SYNC_BATCH_SIZE):
                 disable_repos_batch.apply_async(
                     kwargs={
                         "organization_integration_id": organization_integration_id,
