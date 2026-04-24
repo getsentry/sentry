@@ -20,7 +20,8 @@ from sentry.integrations.slack.utils.auth import is_valid_role
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 _logger = logging.getLogger("sentry.integration.slack.bot-commands")
@@ -210,7 +211,11 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         membership = (
             OrganizationMember.objects.get_for_integration(slack_request.integration, identity_user)
-            .filter(organization__slug=slug)
+            .filter(
+                organization__slug=slug,
+                organization__status=OrganizationStatus.ACTIVE,
+                invite_status=InviteStatus.APPROVED.value,
+            )
             .first()
         )
         if membership is None:

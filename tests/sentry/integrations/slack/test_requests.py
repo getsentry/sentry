@@ -20,6 +20,7 @@ from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
@@ -394,6 +395,14 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         non_member = self.create_user()
         with assume_test_silo_mode_of(self.identity):
             self.identity.update(user=non_member)
+        result = self.slack_request.resolve_seer_organization()
+        assert result.organization_id is None
+        assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION
+
+    def test_user_membership_unapproved(self):
+        OrganizationMember.objects.filter(
+            user_id=self.slack_user.id, organization_id=self.organization.id
+        ).update(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
         assert result.halt_reason == SeerSlackHaltReason.NO_VALID_ORGANIZATION

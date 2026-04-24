@@ -18,6 +18,7 @@ from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.workspace import get_thread_history
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import InviteStatus
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
@@ -85,6 +86,10 @@ def _resolve_available_organizations(
 
         if ctx.member is None:
             logger.info("_resolve_available_organizations.missing_membership", extra=logging_ctx)
+            continue
+
+        if ctx.member.invite_status != InviteStatus.APPROVED.value:
+            logger.info("_resolve_available_organizations.unapproved_membership", extra=logging_ctx)
             continue
 
         logger.info("_resolve_available_organizations.success", extra=logging_ctx)
