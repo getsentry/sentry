@@ -310,6 +310,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-night-shift", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Per-project gate for Seer Night Shift (requires organizations:seer-night-shift on the org)
     manager.add("projects:seer-night-shift", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Display nightshift settings
+    manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine for Seer Explorer
     manager.add("organizations:seer-explorer-context-engine", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine experimental contexts
