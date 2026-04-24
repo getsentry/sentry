@@ -23,16 +23,16 @@ import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
-import {ToolTags} from 'sentry/views/insights/pages/conversations/components/toolTags';
+import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
 import {
   useConversations,
   type Conversation,
   type ConversationUser,
-} from 'sentry/views/insights/pages/conversations/hooks/useConversations';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
+} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {

@@ -8,11 +8,11 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ConversationsPageHeader} from 'sentry/views/insights/pages/conversations/conversationsPageHeader';
+import {ConversationsPageHeader} from 'sentry/views/explore/conversations/conversationsPageHeader';
 import {
   CONVERSATIONS_LANDING_SUB_PATH,
   CONVERSATIONS_SIDEBAR_LABEL,
-} from 'sentry/views/insights/pages/conversations/settings';
+} from 'sentry/views/explore/conversations/settings';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 

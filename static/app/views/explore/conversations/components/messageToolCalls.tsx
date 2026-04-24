@@ -6,9 +6,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getFirstToolInputValue} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import type {ToolCall} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 
 interface MessageToolCallsProps {
   nodeMap: Map<string, AITraceSpanNode>;

@@ -8,10 +8,10 @@ import {ClippedBox} from 'sentry/components/clippedBox';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
+import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {MessageToolCalls} from 'sentry/views/insights/pages/conversations/components/messageToolCalls';
-import type {ConversationMessage} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
-import {extractMessagesFromNodes} from 'sentry/views/insights/pages/conversations/utils/conversationMessages';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelProps {

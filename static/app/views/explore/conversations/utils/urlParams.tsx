@@ -1,5 +1,5 @@
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 
 export function getConversationsUrl(
   organizationSlug: string,
