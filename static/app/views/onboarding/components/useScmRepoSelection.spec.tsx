@@ -51,6 +51,7 @@ describe('useScmRepoSelection', () => {
         {
           id: '99',
           name: 'getsentry/sentry',
+          externalId: '1',
           externalSlug: 'getsentry/sentry',
           status: 'active',
         },
@@ -191,6 +192,7 @@ describe('useScmRepoSelection', () => {
         {
           id: '99',
           name: 'getsentry/sentry',
+          externalId: '1',
           externalSlug: 'getsentry/sentry',
           status: 'active',
         },
