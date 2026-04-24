@@ -427,9 +427,8 @@ export function BlockComponent({
                     const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
                     const hasLink = correspondingLinkIndex !== undefined;
                     const toolLinkParams = toolLinkByCallId.get(toolCall.id);
-                    const isFailed = Boolean(
-                      toolLinkParams?.is_error || toolLinkParams?.empty_results
-                    );
+                    const isFailed = Boolean(toolLinkParams?.is_error);
+                    const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isHighlighted =
                       isHovered &&
                       hasValidLinks &&
@@ -467,16 +466,10 @@ export function BlockComponent({
                                 {toolString}
                               </ToolCallText>
                               <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
-                                {isFailed ? (
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                ) : (
-                                  <ToolCallLinkIcon
-                                    size="xs"
-                                    isHighlighted={isHighlighted}
-                                  />
-                                )}
+                                <ToolCallLinkIcon
+                                  size="xs"
+                                  isHighlighted={isHighlighted}
+                                />
                               </ToolCallLinkIconWrapper>
                             </ToolCallLink>
                           ) : (
@@ -491,11 +484,21 @@ export function BlockComponent({
                               >
                                 {toolString}
                               </ToolCallText>
-                              {isFailed && (
+                              {isFailed || isEmptyResults ? (
                                 <ToolCallBrokenLinkIconWrapper>
-                                  <Tooltip title={t('Tool call failed')}>
+                                  <Tooltip
+                                    title={
+                                      isFailed
+                                        ? t('Tool call failed')
+                                        : t('Tool call returned empty results')
+                                    }
+                                  >
                                     <ToolCallBrokenLinkIcon size="xs" />
                                   </Tooltip>
+                                </ToolCallBrokenLinkIconWrapper>
+                              ) : (
+                                <ToolCallBrokenLinkIconWrapper>
+                                  <ToolCallBrokenLinkIcon size="xs" />
                                 </ToolCallBrokenLinkIconWrapper>
                               )}
                             </ToolCallPlainRow>
