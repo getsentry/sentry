@@ -409,7 +409,18 @@ class OrganizationIndexEndpoint(Endpoint):
                     agree_terms=result.get("agreeTerms"),
                 ),
                 post_provision_options=PostProvisionOptions(
-                    getsentry_options=None, sentry_options=None
+                    getsentry_options={
+                        # Define a self-serve trial account for saas.
+                        # See getsentry/utils/provisioning.py
+                        "subscription_options": {
+                            "channel": 0,
+                            "type": 0,
+                            "trial_options": {"should_start_trial": True},
+                        },
+                        "ip_address": request.META["REMOTE_ADDR"],
+                        "provisioning_user_id": request.user.id,
+                    },
+                    sentry_options=None,
                 ),
             )
 
