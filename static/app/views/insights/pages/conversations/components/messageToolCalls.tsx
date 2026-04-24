@@ -43,11 +43,11 @@ export function MessageToolCalls({
             }}
           >
             <Flex align="baseline" gap="sm">
-              <Flex flexShrink={0}>
+              <Container flexShrink={0}>
                 <Text size="xs" monospace variant="muted">
                   {t('Called tool')}
                 </Text>
-              </Flex>
+              </Container>
               <ClickableTag
                 variant={tool.hasError ? 'danger' : 'info'}
                 icon={tool.hasError ? <IconFire /> : undefined}
@@ -71,9 +71,9 @@ function ToolInputPreview({node}: {node: AITraceSpanNode}) {
     return null;
   }
   return (
-    <Text size="xs" monospace variant="muted" ellipsis>
-      {firstInputValue}
-    </Text>
+      <Text size="xs" monospace variant="muted" ellipsis>
+        {firstInputValue}
+      </Text>
   );
 }
 
