@@ -60,7 +60,7 @@ const STAGGER_CHILDREN = {
   initial: {},
   animate: {
     transition: {
-      staggerChildren: 0.08,
+      staggerChildren: 0.04,
     },
   },
 };
