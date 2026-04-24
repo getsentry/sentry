@@ -3,17 +3,10 @@ import {DisplayType, WidgetType, type Widget} from 'sentry/views/dashboards/type
 import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/nodeRuntimeMetrics/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const INTERVAL = '5m';
-
-// Trace metric tuple format: `aggregation(value,metric_name,metric_type,unit)`
-const metric = (
-  aggregation: 'avg' | 'sum' | 'max',
-  name: string,
-  metricType: 'gauge' | 'counter',
-  unit: 'none' | 'byte' | 'second'
-) => `${aggregation}(value,${name},${metricType},${unit})`;
 
 const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -29,9 +22,21 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [metric('avg', 'node.runtime.event_loop.utilization', 'gauge', 'none')],
+          fields: [
+            traceMetricField(
+              'avg',
+              'node.runtime.event_loop.utilization',
+              'gauge',
+              'none'
+            ),
+          ],
           aggregates: [
-            metric('avg', 'node.runtime.event_loop.utilization', 'gauge', 'none'),
+            traceMetricField(
+              'avg',
+              'node.runtime.event_loop.utilization',
+              'gauge',
+              'none'
+            ),
           ],
           columns: [],
           conditions: '',
@@ -51,8 +56,12 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [metric('avg', 'node.runtime.cpu.utilization', 'gauge', 'none')],
-          aggregates: [metric('avg', 'node.runtime.cpu.utilization', 'gauge', 'none')],
+          fields: [
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+          ],
+          aggregates: [
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+          ],
           columns: [],
           conditions: '',
           orderby: '',
@@ -71,8 +80,12 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [metric('sum', 'node.runtime.process.uptime', 'counter', 'second')],
-          aggregates: [metric('sum', 'node.runtime.process.uptime', 'counter', 'second')],
+          fields: [
+            traceMetricField('sum', 'node.runtime.process.uptime', 'counter', 'second'),
+          ],
+          aggregates: [
+            traceMetricField('sum', 'node.runtime.process.uptime', 'counter', 'second'),
+          ],
           columns: [],
           conditions: '',
           orderby: '',
@@ -90,7 +103,7 @@ const RUNTIME_WIDGETS = spaceWidgetsEquallyOnRow(
       id: 'node-runtime-memory-usage',
       title: t('Memory Usage'),
       description: t(
-        'RSS (total memory footprint), V8 heap total (allocated), and heap used (in-use). Growing RSS without matching heap growth may indicate native memory leaks. Heap used approaching heap total triggers more frequent garbage collection.'
+        'Resident Set Size (RSS, total memory footprint), V8 heap total (allocated), and heap used (in-use). Growing RSS without matching heap growth may indicate native memory leaks. Heap used approaching heap total triggers more frequent garbage collection.'
       ),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.TRACEMETRICS,
@@ -99,14 +112,14 @@ const RUNTIME_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           fields: [
-            metric('avg', 'node.runtime.mem.rss', 'gauge', 'byte'),
-            metric('avg', 'node.runtime.mem.heap_total', 'gauge', 'byte'),
-            metric('avg', 'node.runtime.mem.heap_used', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.rss', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.heap_total', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.heap_used', 'gauge', 'byte'),
           ],
           aggregates: [
-            metric('avg', 'node.runtime.mem.rss', 'gauge', 'byte'),
-            metric('avg', 'node.runtime.mem.heap_total', 'gauge', 'byte'),
-            metric('avg', 'node.runtime.mem.heap_used', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.rss', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.heap_total', 'gauge', 'byte'),
+            traceMetricField('avg', 'node.runtime.mem.heap_used', 'gauge', 'byte'),
           ],
           columns: [],
           conditions: '',
@@ -130,12 +143,32 @@ const RUNTIME_WIDGETS = spaceWidgetsEquallyOnRow(
           // event loop delay histogram. Averaging precomputed percentiles is statistically
           // incorrect; max() surfaces the worst-observed value per bucket.
           fields: [
-            metric('max', 'node.runtime.event_loop.delay.p50', 'gauge', 'second'),
-            metric('max', 'node.runtime.event_loop.delay.p99', 'gauge', 'second'),
+            traceMetricField(
+              'max',
+              'node.runtime.event_loop.delay.p50',
+              'gauge',
+              'second'
+            ),
+            traceMetricField(
+              'max',
+              'node.runtime.event_loop.delay.p99',
+              'gauge',
+              'second'
+            ),
           ],
           aggregates: [
-            metric('max', 'node.runtime.event_loop.delay.p50', 'gauge', 'second'),
-            metric('max', 'node.runtime.event_loop.delay.p99', 'gauge', 'second'),
+            traceMetricField(
+              'max',
+              'node.runtime.event_loop.delay.p50',
+              'gauge',
+              'second'
+            ),
+            traceMetricField(
+              'max',
+              'node.runtime.event_loop.delay.p99',
+              'gauge',
+              'second'
+            ),
           ],
           columns: [],
           conditions: '',
@@ -161,8 +194,12 @@ const CORRELATION_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          fields: [metric('avg', 'node.runtime.cpu.utilization', 'gauge', 'none')],
-          aggregates: [metric('avg', 'node.runtime.cpu.utilization', 'gauge', 'none')],
+          fields: [
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+          ],
+          aggregates: [
+            traceMetricField('avg', 'node.runtime.cpu.utilization', 'gauge', 'none'),
+          ],
           columns: [],
           conditions: '',
           orderby: '',
