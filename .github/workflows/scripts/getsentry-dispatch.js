@@ -11,6 +11,10 @@ const DISPATCHES = [
     workflow: 'backend.yml',
     pathFilterName: 'backend_all',
   },
+  {
+    workflow: 'acceptance.yml',
+    pathFilterName: 'gsapp',
+  },
 ];
 
 export async function dispatch({
