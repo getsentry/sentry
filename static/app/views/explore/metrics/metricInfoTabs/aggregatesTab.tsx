@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -51,6 +52,14 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+
+// TODO: add back filter actions or just revert this commit
+// once the metrics search bar supports filters on aggregates
+const METRICS_AGGREGATES_CELL_ACTIONS: Actions[] = [
+  Actions.COPY_TO_CLIPBOARD,
+  Actions.OPEN_EXTERNAL_LINK,
+  Actions.OPEN_INTERNAL_LINK,
+];
 
 const RESULT_LIMIT = 50;
 
@@ -250,6 +259,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                       data={displayRow}
                       unit={getMetricsUnit(meta, field)}
                       meta={meta}
+                      allowActions={METRICS_AGGREGATES_CELL_ACTIONS}
                       usePortalOnDropdown
                     />
                   </AggregatesStyledRowCell>
