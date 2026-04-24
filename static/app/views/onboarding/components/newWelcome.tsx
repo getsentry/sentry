@@ -11,7 +11,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {
   IconBot,
-  IconBusiness,
+  IconLightning,
   IconCheckmark,
   IconGraph,
   IconProfiling,
@@ -28,7 +28,6 @@ import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {NewWelcomeSeerFlag} from 'sentry/views/onboarding/components/newWelcomeSeerFlag';
 import {WelcomeBackgroundNewUi} from 'sentry/views/onboarding/components/welcomeBackground';
 import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
 import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
@@ -125,7 +124,6 @@ const PRODUCT_OPTIONS: ProductOption[] = [
     description: t(
       'Catch breaking changes, automatically root cause issues in production, and fix what you missed.'
     ),
-    footer: <NewWelcomeSeerFlag />,
     badge: <FeatureBadge type="new" tooltipProps={{disabled: true}} />,
   },
 ];
@@ -150,13 +148,9 @@ export function NewWelcomeUI(props: StepProps) {
 
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
-      <MotionFlex
-        direction="column"
-        align={hasScmOnboarding ? undefined : 'center'}
-        {...STAGGER_CONTAINER}
-      >
+      <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
         {hasScmOnboarding ? null : <WelcomeBackgroundNewUi />}
-        <Flex direction="column" gap="2xl">
+        <Stack gap="2xl" align="center">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM}>
             {hasScmOnboarding ? (
               <Stack gap="2xl" align="center">
@@ -206,7 +200,7 @@ export function NewWelcomeUI(props: StepProps) {
               <Stack gap="2xs">
                 <Flex align="center" gap="md">
                   <Container>
-                    <IconBusiness size="md" variant="accent" />
+                    <IconLightning size="md" variant="accent" />
                   </Container>
                   <Container>
                     <Text size="lg" bold density="comfortable">
@@ -237,7 +231,15 @@ export function NewWelcomeUI(props: StepProps) {
             ))}
           </MotionGrid>
 
-          {hasScmOnboarding ? null : (
+          {hasScmOnboarding ? (
+            <Button
+              priority="primary"
+              onClick={handleComplete}
+              data-test-id="onboarding-welcome-start"
+            >
+              {t('Get started')}
+            </Button>
+          ) : (
             <MotionContainer {...ONBOARDING_WELCOME_STAGGER_ITEM}>
               <Flex align="center" gap="md" justify="center">
                 <IconCheckmark size="md" variant="success" />
@@ -249,24 +251,24 @@ export function NewWelcomeUI(props: StepProps) {
               </Flex>
             </MotionContainer>
           )}
-        </Flex>
-        <GenericFooter gap="3xl" padding="0 3xl">
-          <Flex align="center">
-            {hasScmOnboarding ? null : (
+        </Stack>
+        {hasScmOnboarding ? null : (
+          <GenericFooter gap="3xl" padding="0 3xl">
+            <Flex align="center">
               <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
-            )}
-          </Flex>
+            </Flex>
 
-          <Flex align="center">
-            <Button
-              priority="primary"
-              onClick={handleComplete}
-              data-test-id="onboarding-welcome-start"
-            >
-              {t('Begin setup')}
-            </Button>
-          </Flex>
-        </GenericFooter>
+            <Flex align="center">
+              <Button
+                priority="primary"
+                onClick={handleComplete}
+                data-test-id="onboarding-welcome-start"
+              >
+                {t('Begin setup')}
+              </Button>
+            </Flex>
+          </GenericFooter>
+        )}
       </MotionFlex>
     </MotionContainer>
   );
