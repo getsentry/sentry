@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
@@ -20,6 +20,7 @@ import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
@@ -986,3 +987,23 @@ const ResultsList = styled(Flex)`
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;
+
+export default function CommandPaletteModal({Body, closeModal}: ModalRenderProps) {
+  return (
+    <Body>
+      <CommandPalette closeModal={closeModal} />
+    </Body>
+  );
+}
+
+export const modalCss = (theme: Theme) => {
+  return css`
+    [role='document'] {
+      padding: 0;
+
+      background-color: ${theme.tokens.background.primary};
+      border-top-left-radius: calc(${theme.radius.lg} + 1px);
+      border-top-right-radius: calc(${theme.radius.lg} + 1px);
+    }
+  `;
+};
