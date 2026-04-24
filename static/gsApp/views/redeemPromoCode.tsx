@@ -117,7 +117,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 
               <Flex justify={accountCredit > 0 ? 'between' : 'end'}>
                 {accountCredit > 0 ? (
-                  <Text>
+                  <Text id="account-balance">
                     {tct('Your account credit: $[credit]', {
                       credit: String(accountCredit),
                     })}
