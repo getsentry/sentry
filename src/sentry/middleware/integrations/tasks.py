@@ -253,6 +253,7 @@ def route_slack_seer_event(
                     thread_ts=thread_ts,
                     message_ts=message_ts,
                     event_type=event_type,
+                    message_text=message_text,
                 ),
             )
         send_halt_message(

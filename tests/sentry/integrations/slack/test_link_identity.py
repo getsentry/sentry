@@ -151,6 +151,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
             thread_ts="100.000",
             message_ts="123.456",
             event_type="app_mention",
+            message_text="hello",
         )
         SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
             entrypoint_key=str(SeerEntrypointKey.SLACK),

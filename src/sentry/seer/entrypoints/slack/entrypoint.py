@@ -85,6 +85,7 @@ class SlackPendingMentionPayload(TypedDict):
     thread_ts: str
     message_ts: str
     event_type: str
+    message_text: str
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60

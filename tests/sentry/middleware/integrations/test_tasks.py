@@ -370,10 +370,11 @@ class RouteSlackSeerEventTest(TestCase):
         assert cached["thread_ts"] == "100.000"
         assert cached["message_ts"] == "123.456"
         assert cached["event_type"] == "app_mention"
+        assert cached["message_text"] == "hello"
         assert cached["payload"] == self.payload
 
     @patch("sentry.middleware.integrations.tasks.send_halt_message")
-    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
     def test_does_not_cache_on_other_halt_reasons(
         self, mock_resolve: MagicMock, mock_send_halt: MagicMock
     ) -> None:
