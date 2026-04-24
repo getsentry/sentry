@@ -81,7 +81,7 @@ function SaveViewActions({
     : false;
 
   const openSaveAsModal = () => {
-    trackAnalytics('issue_views.save_as.clicked', {organization});
+    trackAnalytics('issue_views.save_as.clicked', {organization, source: 'cmdk'});
     openModal(props => (
       <CreateIssueViewModal
         {...props}
@@ -98,7 +98,7 @@ function SaveViewActions({
 
   const saveView = () => {
     if (view) {
-      trackAnalytics('issue_views.save.clicked', {organization});
+      trackAnalytics('issue_views.save.clicked', {organization, source: 'cmdk'});
       updateGroupSearchView(
         {
           id: view.id,
