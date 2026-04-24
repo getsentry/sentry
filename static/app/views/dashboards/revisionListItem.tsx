@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -179,7 +179,7 @@ function FilterDiffSection({
   return (
     <Flex direction="column" gap="xs">
       {changes.map(({label, before, after}) => (
-        <FieldChangeRow key={label}>
+        <Grid key={label} columns="90px 1fr" gap="sm" align="baseline">
           <Text size="sm" variant="muted">
             {label}
           </Text>
@@ -190,7 +190,7 @@ function FilterDiffSection({
             </Text>
             <DiffAfter>{after}</DiffAfter>
           </Flex>
-        </FieldChangeRow>
+        </Grid>
       ))}
     </Flex>
   );
@@ -252,7 +252,7 @@ function WidgetDiffCard({
   else tagVariant = 'warning';
 
   return (
-    <WidgetCard>
+    <Flex direction="column" gap="sm" border="secondary" radius="sm" padding="md">
       <Flex align="center" justify="between" gap="sm">
         <Flex align="center" gap="xs" style={{minWidth: 0}}>
           <WidgetTileIcon>
@@ -269,7 +269,7 @@ function WidgetDiffCard({
         <Tag variant={tagVariant}>{statusLabel}</Tag>
       </Flex>
       {fields?.map(({field, before, after}) => (
-        <FieldChangeRow key={field}>
+        <Grid key={field} columns="90px 1fr" gap="sm" align="baseline">
           <Text size="sm" variant="muted">
             {field}
           </Text>
@@ -280,14 +280,14 @@ function WidgetDiffCard({
             </Text>
             <DiffAfter>{after}</DiffAfter>
           </Flex>
-        </FieldChangeRow>
+        </Grid>
       ))}
       {layoutChanged && (
         <Text size="sm" variant="muted">
           {t('Layout position or size changed')}
         </Text>
       )}
-    </WidgetCard>
+    </Flex>
   );
 }
 
@@ -339,22 +339,6 @@ const WidgetTileIcon = styled('div')`
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
-`;
-
-const WidgetCard = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.secondary};
-  border-radius: ${p => p.theme.radius.sm};
-  padding: ${p => p.theme.space.md};
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.sm};
-`;
-
-const FieldChangeRow = styled('div')`
-  display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: ${p => p.theme.space.sm};
-  align-items: baseline;
 `;
 
 const DiffBefore = styled('span')`
