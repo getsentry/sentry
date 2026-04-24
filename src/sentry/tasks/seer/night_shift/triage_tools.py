@@ -9,8 +9,9 @@ from sentry.integrations.models.repository_project_path_config import (
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.explorer.custom_tool_utils import ExplorerTool
-from sentry.seer.explorer.tools import get_event_details
+from sentry.seer.explorer.tools import get_event_details, get_issue_details
 from sentry.tasks.seer.night_shift.event_formatter import format_event_output
+from sentry.tasks.seer.night_shift.issue_formatter import format_issue_output
 
 
 class GetEventDetailsAgenticTriageParams(BaseModel):
@@ -109,6 +110,84 @@ class get_event_details_agentic_triage(  # noqa: N801
             f"Project ID: {project_id}\n"
             f"Project Slug: {result.get('project_slug')}\n"
             f"{linked_repos}"
+            f"\n{body}"
+        )
+
+
+class GetIssueDetailsAgenticTriageParams(BaseModel):
+    issue_id: str = Field(
+        description="The issue ID (numeric) or qualified short ID (e.g. PROJECT-123).",
+    )
+    start: str | None = Field(
+        default=None,
+        description=(
+            "ISO timestamp for the start of the time range. Must be provided together with end."
+        ),
+    )
+    end: str | None = Field(
+        default=None,
+        description=(
+            "ISO timestamp for the end of the time range. Must be provided together with start."
+        ),
+    )
+    project_slug: str | None = Field(
+        default=None,
+        description="The slug of the project (optional).",
+    )
+
+
+# Class name intentionally snake_case — see comment on `get_event_details_agentic_triage`.
+class get_issue_details_agentic_triage(  # noqa: N801
+    ExplorerTool[GetIssueDetailsAgenticTriageParams]
+):
+    """Custom Explorer tool for Night Shift agentic triage.
+
+    Returns the same underlying issue metadata as Seer's built-in `get_issue_details`,
+    but reformats it as triage-tuned markdown: header (title/culprit/priority/counts/
+    first-last seen), aggregated tag distribution, and recent human activity. The
+    latest-event stacktrace excerpt is intentionally omitted so the agent is steered
+    toward `get_event_details_agentic_triage` for stack inspection (which exposes
+    the full stack, locals on the first in-app frame, and linked repos).
+    """
+
+    params_model = GetIssueDetailsAgenticTriageParams
+
+    @classmethod
+    def get_description(cls) -> str:
+        return (
+            "Fetch issue-level metadata for a Sentry issue: title, culprit, "
+            "level/priority/status, first/last seen, event and user counts, "
+            "assignee, aggregated tag distribution across all events, and "
+            "recent human activity (notes, assignments, resolutions).\n\n"
+            "Use this to decide whether an issue is worth investigating. For "
+            "the actual stacktrace and failing code context, call "
+            "`get_event_details_agentic_triage` separately."
+        )
+
+    @classmethod
+    def execute(
+        cls,
+        organization: Organization,
+        params: GetIssueDetailsAgenticTriageParams,
+    ) -> str:
+        try:
+            result = get_issue_details(
+                organization_id=organization.id,
+                issue_id=params.issue_id,
+                start=params.start,
+                end=params.end,
+                project_slug=params.project_slug,
+            )
+        except (BadRequest, Group.DoesNotExist, ValueError) as e:
+            return f"Could not fetch issue: {e}"
+        if result is None:
+            return "Issue not found. Check the issue_id and time range."
+
+        body = format_issue_output(result)
+        return (
+            f"Issue ID: {params.issue_id}\n"
+            f"Project ID: {result.get('project_id')}\n"
+            f"Project Slug: {result.get('project_slug')}\n"
             f"\n{body}"
         )
 
