@@ -431,7 +431,7 @@ export function BlockComponent({
                     const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isHighlighted =
                       isHovered &&
-                      correspondingLinkIndex !== undefined && // = hasLink
+                      hasLink &&
                       correspondingLinkIndex === selectedLinkIndex;
                     const isTodoWriteCall = toolCall.function === 'todo_write';
                     const showTodoList =
