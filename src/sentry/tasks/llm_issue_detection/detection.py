@@ -188,6 +188,10 @@ def get_group_type_for_title(title: str) -> type[GroupType]:
     return TITLE_TO_GROUP_TYPE.get(title, AIDetectedGeneralGroupType)
 
 
+def _slug_for_fingerprint(value: str) -> str:
+    return value.strip().lower().replace(" ", "-")
+
+
 def create_issue_occurrence_from_detection(
     detected_issue: DetectedIssue,
     project: Project,
@@ -209,9 +213,11 @@ def create_issue_occurrence_from_detection(
     transaction_name = normalize_description(detected_issue.transaction_name)
     group_for_fingerprint = detected_issue.group_for_fingerprint
 
-    fingerprint = [
-        f"1-{group_type.type_id}-{group_for_fingerprint.strip().lower().replace(' ', '-')}"
-    ]
+    group_slug = _slug_for_fingerprint(group_for_fingerprint)
+    transaction_slug = (
+        _slug_for_fingerprint(transaction_name) if transaction_name.strip() else "no-transaction"
+    )
+    fingerprint = [f"1-{group_type.type_id}-{group_slug}-{transaction_slug}"]
 
     evidence_data = {
         "trace_id": trace_id,

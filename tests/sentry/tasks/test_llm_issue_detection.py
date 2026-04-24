@@ -136,7 +136,7 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.level == "warning"
 
         assert occurrence.fingerprint == [
-            f"1-{AIDetectedGeneralGroupType.type_id}-slow-database-query"
+            f"1-{AIDetectedGeneralGroupType.type_id}-slow-database-query-test_transaction"
         ]
 
         assert occurrence.evidence_data["trace_id"] == "abc123xyz"
@@ -187,7 +187,9 @@ class LLMIssueDetectionTest(TestCase):
             project=self.project,
         )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
-        assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-n+1-database-queries"]
+        assert occurrence.fingerprint == [
+            f"1-{AIDetectedDBGroupType.type_id}-n+1-database-queries-get-/api"
+        ]
         assert occurrence.type == AIDetectedDBGroupType
 
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
