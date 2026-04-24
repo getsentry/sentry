@@ -30,7 +30,8 @@ function ask(question: string): Promise<boolean> {
   return new Promise(resolve => {
     rl.question(question, answer => {
       rl.close();
-      resolve(answer.trim().toLowerCase() !== 'n');
+      const normalized = answer.trim().toLowerCase();
+      resolve(normalized === 'y' || normalized === 'yes');
     });
   });
 }
