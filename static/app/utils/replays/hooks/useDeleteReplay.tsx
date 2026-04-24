@@ -9,7 +9,7 @@ import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 
 interface DeleteButtonProps {
   projectSlug: string | null;

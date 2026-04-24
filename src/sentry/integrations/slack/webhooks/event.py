@@ -387,11 +387,11 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 }
             )
 
-            organization_id, error_reason = slack_request.resolve_seer_organization()
-            if error_reason:
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
                 # The control parser route Seer events through `route_slack_seer_event`. It'll send
                 # messages about re-installing, checking settings, or linking before proceeding.
-                lifecycle.record_halt(error_reason)
+                lifecycle.record_halt(halt_reason)
                 return self.respond()
 
             if not organization_id:
@@ -461,9 +461,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             spec=SlackMessagingSpec(),
         ).capture() as lifecycle:
             lifecycle.add_extra("integration_id", slack_request.integration.id)
-            organization_id, error_reason = slack_request.resolve_seer_organization()
-            if error_reason:
-                lifecycle.record_halt(error_reason)
+            organization_id, halt_reason = slack_request.resolve_seer_organization()
+            if halt_reason:
+                lifecycle.record_halt(halt_reason)
                 return self.respond()
 
             if not organization_id:

@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -25,21 +27,38 @@ export default function ErrorsContent() {
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
-      <Layout.Page>
-        <ErrorsHeader />
-        <PageFiltersContainer>
-          <ExploreBodySearch>
-            <ErrorsFilterSection />
-          </ExploreBodySearch>
-        </PageFiltersContainer>
-        <ErrorsBody />
-      </Layout.Page>
+      <ErrorsHeader />
+      <PageFiltersContainer>
+        <ExploreBodySearch>
+          <ErrorsFilterSection />
+        </ExploreBodySearch>
+      </PageFiltersContainer>
+      <ErrorsBody />
     </SentryDocumentTitle>
   );
 }
 
 function ErrorsHeader() {
   const hasPageFrameFeature = useHasPageFrameFeature();
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="title">
+          {t('Errors')} <FeatureBadge type="alpha" />
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
@@ -48,18 +67,7 @@ function ErrorsHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        ) : (
-          <FeedbackButton />
-        )}
+        <FeedbackButton />
       </Layout.HeaderActions>
     </Layout.Header>
   );

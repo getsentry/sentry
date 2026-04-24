@@ -93,6 +93,30 @@ describe('DataDownload', () => {
     ).toBeInTheDocument();
   });
 
+  it('should render CSV file extension when export format is csv', async () => {
+    const status = DownloadStatus.VALID;
+    getDataExportDetails({dateExpired, status, export_format: 'csv'});
+
+    render(<DataDownload />, {initialRouterConfig});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(screen.getByRole('button', {name: 'Download CSV'})).toHaveAttribute(
+      'href',
+      `/api/0/organizations/${organization.slug}/data-export/${dataExportId}/?download=true`
+    );
+  });
+
+  it('should render JSONL file extension when export format is jsonl', async () => {
+    const status = DownloadStatus.VALID;
+    getDataExportDetails({dateExpired, status, export_format: 'jsonl'});
+
+    render(<DataDownload />, {initialRouterConfig});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(screen.getByRole('button', {name: 'Download JSONL'})).toHaveAttribute(
+      'href',
+      `/api/0/organizations/${organization.slug}/data-export/${dataExportId}/?download=true`
+    );
+  });
+
   it('should render the Open in Discover button when needed', async () => {
     const status = DownloadStatus.VALID;
     getDataExportDetails({

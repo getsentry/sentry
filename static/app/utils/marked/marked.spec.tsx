@@ -48,18 +48,13 @@ describe('marked', () => {
     }
   });
 
-  it('normal images get rendered as html', () => {
+  it('strips images from markdown output', () => {
     for (const test of [
-      ['![](http://example.com)', '<img src="http://example.com" alt="">'],
-      ['![x](http://example.com)', '<img src="http://example.com" alt="x">'],
-      ['![x](https://example.com)', '<img src="https://example.com" alt="x">'],
+      ['![](http://example.com)', ''],
+      ['![x](http://example.com)', ''],
+      ['![x](https://example.com)', ''],
+      ['![x](javascript:foo)', ''],
     ]) {
-      expectMarkdown(test);
-    }
-  });
-
-  it("rejected images shouldn't be rendered at all", () => {
-    for (const test of [['![x](javascript:foo)', '<img alt="x">']]) {
       expectMarkdown(test);
     }
   });
@@ -191,7 +186,7 @@ describe('marked', () => {
 
   it('strips event handler attributes', () => {
     const imgResult = sanitizedMarked('<img src="x" onerror="alert(1)">');
-    expect(imgResult).toContain('<img src="x">');
+    expect(imgResult).not.toContain('<img');
     expect(imgResult).not.toContain('onerror');
 
     const linkResult = sanitizedMarked(

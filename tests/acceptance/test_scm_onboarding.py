@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from unittest import mock
 
@@ -45,7 +46,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
 
     @contextmanager
-    def projects_born_active(self):
+    def projects_born_active(self) -> Generator[None]:
         """Mark newly-created Projects as active so useRecentCreatedProject sees
         isProjectActive=true on the first render of setup-docs.
 
@@ -57,7 +58,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
         """
         original_create = Project.objects.create
 
-        def create_active(*args, **kwargs):
+        def create_active(*args: object, **kwargs: object) -> Project:
             project = original_create(*args, **kwargs)
             now = timezone.now()
             Project.objects.filter(id=project.id).update(first_event=now)
@@ -584,6 +585,7 @@ class ScmOnboardingTest(AcceptanceTestCase):
             active = Project.objects.filter(organization=self.org, status=0).order_by("id")
             assert active.count() == 2
             project2 = active.last()
+            assert project2 is not None
             assert project2.id != project1.id
             assert project2.platform == "javascript-react"
             # "create later" → no alert rule on the new project; old rule survives.

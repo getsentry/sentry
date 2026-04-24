@@ -3,7 +3,7 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isVersionInfoSemver} from 'sentry/views/releases/utils';
+import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 
 export function useProjectReleaseVersionIsSemver({
   version,

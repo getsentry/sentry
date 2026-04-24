@@ -30,6 +30,7 @@ interface UseMetricAggregatesTableOptions {
   limit: number;
   traceMetric: TraceMetric;
   queryExtras?: RPCQueryExtras;
+  staleTime?: number;
 }
 
 interface MetricAggregatesTableResult {
@@ -51,6 +52,7 @@ export function useMetricAggregatesTable({
   limit,
   traceMetric,
   queryExtras,
+  staleTime,
 }: UseMetricAggregatesTableOptions) {
   const visualize = useMetricVisualize();
   const canTriggerHighAccuracy = useCallback(
@@ -75,6 +77,7 @@ export function useMetricAggregatesTable({
       limit,
       traceMetric,
       queryExtras,
+      staleTime,
     },
     queryOptions: {
       canTriggerHighAccuracy,
@@ -87,6 +90,7 @@ function useMetricAggregatesTableImp({
   limit,
   traceMetric,
   queryExtras,
+  staleTime,
 }: UseMetricAggregatesTableOptions): MetricAggregatesTableResult {
   const {selection} = usePageFilters();
   const visualizes = useMetricVisualizes();
@@ -146,6 +150,7 @@ function useMetricAggregatesTableImp({
     referrer: 'api.explore.metric-aggregates-table',
     trackResponseAnalytics: false,
     queryExtras,
+    staleTime,
   });
 
   return useMemo(() => {

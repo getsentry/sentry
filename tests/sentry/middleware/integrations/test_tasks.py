@@ -271,7 +271,14 @@ class RouteSlackSeerEventTest(TestCase):
         slack_body = {
             "type": "event_callback",
             "team_id": "T1",
-            "event": {"type": "app_mention", "user": "U_SLACK", "channel": "C1", "ts": "1.0"},
+            "event": {
+                "type": "app_mention",
+                "user": "U_SLACK",
+                "channel": "C1",
+                "ts": "123.456",
+                "thread_ts": "100.000",
+                "text": "hello",
+            },
         }
         event_request = self.factory.post(
             reverse("sentry-integration-slack-event"),
@@ -286,14 +293,17 @@ class RouteSlackSeerEventTest(TestCase):
             integration_id=integration_id if integration_id is not None else self.integration.id,
             slack_user_id="U_SLACK",
             channel_id="C1",
-            thread_ts="",
+            thread_ts="100.000",
+            message_ts="123.456",
+            event_type="app_mention",
+            message_text="hello",
         )
 
     @responses.activate
-    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
     def test_forwards_to_resolved_cell(self, mock_resolve: MagicMock) -> None:
         mock_resolve.return_value = SeerResolutionResult(
-            organization_id=self.organization.id, error_reason=None
+            organization_id=self.organization.id, halt_reason=None
         )
         cell_response = responses.add(
             responses.POST,
@@ -308,14 +318,14 @@ class RouteSlackSeerEventTest(TestCase):
 
     @responses.activate
     @patch("sentry.middleware.integrations.tasks.send_halt_message")
-    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
     def test_sends_halt_message_when_unresolved(
         self, mock_resolve: MagicMock, mock_send_halt: MagicMock
     ) -> None:
         from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 
         mock_resolve.return_value = SeerResolutionResult(
-            organization_id=None, error_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
+            organization_id=None, halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
         )
         cell_response = responses.add(
             responses.POST,
@@ -332,7 +342,7 @@ class RouteSlackSeerEventTest(TestCase):
             SeerSlackHaltReason.IDENTITY_NOT_LINKED
         )
 
-    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization_for_slack_user")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
     def test_missing_integration_is_noop(self, mock_resolve: MagicMock) -> None:
         self._run_task(integration_id=99999)
         mock_resolve.assert_not_called()
