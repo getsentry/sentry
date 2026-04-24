@@ -124,6 +124,7 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  isScmOnboarding?: boolean;
   newOrg?: boolean;
 }
 
@@ -137,6 +138,7 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
+  isScmOnboarding,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
@@ -193,47 +195,66 @@ export function FrameworkSuggestionModal({
 
   useEffect(() => {
     trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_rendered'
-        : 'project_creation.select_framework_modal_rendered',
+      isScmOnboarding
+        ? 'onboarding.scm_select_framework_modal_rendered'
+        : newOrg
+          ? 'onboarding.select_framework_modal_rendered'
+          : 'project_creation.select_framework_modal_rendered',
       {
         platform: selectedPlatform.key,
         organization,
       }
     );
-  }, [selectedPlatform.key, organization, newOrg]);
+  }, [selectedPlatform.key, organization, newOrg, isScmOnboarding]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
 
-    trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
-        : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
-      {
-        platform: selectedPlatform.key,
-        framework: selectedFramework.key,
-        organization,
-      }
-    );
+    // In the SCM onboarding flow, the caller fires `scm_platform_selected`
+    // from its `onConfigure` handler, so we skip the generic event here to
+    // avoid double-firing into the non-SCM funnel.
+    if (!isScmOnboarding) {
+      trackAnalytics(
+        newOrg
+          ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
+          : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+        {
+          platform: selectedPlatform.key,
+          framework: selectedFramework.key,
+          organization,
+        }
+      );
+    }
 
     onConfigure(selectedFramework);
-  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
+  }, [
+    selectedPlatform,
+    selectedFramework,
+    organization,
+    onConfigure,
+    newOrg,
+    isScmOnboarding,
+  ]);
 
   const handleSkip = useCallback(() => {
-    trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_skip_button_clicked'
-        : 'project_creation.select_framework_modal_skip_button_clicked',
-      {
-        platform: selectedPlatform.key,
-        organization,
-      }
-    );
+    // In the SCM onboarding flow, the caller fires `scm_platform_selected`
+    // from its `onSkip` handler, so we skip the generic event here to avoid
+    // double-firing into the non-SCM funnel.
+    if (!isScmOnboarding) {
+      trackAnalytics(
+        newOrg
+          ? 'onboarding.select_framework_modal_skip_button_clicked'
+          : 'project_creation.select_framework_modal_skip_button_clicked',
+        {
+          platform: selectedPlatform.key,
+          organization,
+        }
+      );
+    }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg, isScmOnboarding]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {

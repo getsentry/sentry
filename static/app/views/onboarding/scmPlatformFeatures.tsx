@@ -298,6 +298,7 @@ export function ScmPlatformFeatures({onComplete, genBackButton}: StepProps) {
               closeModal();
             }}
             newOrg
+            isScmOnboarding
           />
         ),
         {modalCss}
