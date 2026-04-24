@@ -16,6 +16,16 @@ import {useApi} from 'sentry/utils/useApi';
 // 0 is a valid choice but empty string, undefined, and null are not
 const hasValue = (value: any) => !!value || value === 0;
 
+function getElementText(element: 'issue-link' | 'alert-rule-action') {
+  if (element === 'issue-link') {
+    return 'issue';
+  }
+  if (element === 'alert-rule-action') {
+    return 'alert';
+  }
+  return 'connection';
+}
+
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   type: 'select' | 'textarea' | 'text';
@@ -120,21 +130,6 @@ export function SentryAppExternalForm({
   requiredFieldsRef.current = requiredFields;
   const optionalFieldsRef = useRef(optionalFields);
   optionalFieldsRef.current = optionalFields;
-
-  const getElementText = useCallback(() => {
-    switch (element) {
-      case 'issue-link':
-        return 'issue';
-      case 'alert-rule-action':
-        return 'alert';
-      default:
-        return 'connection';
-    }
-  }, [element]);
-
-  const onSubmitError = useCallback(() => {
-    addErrorMessage(t('Unable to %s %s %s.', action, appName, getElementText()));
-  }, [action, appName, getElementText]);
 
   const getDefaultOptions = useCallback(
     (field: FieldFromSchema) => {
@@ -474,7 +469,11 @@ export function SentryAppExternalForm({
       onSubmitSuccess={(...params) => {
         onSubmitSuccess(...params);
       }}
-      onSubmitError={onSubmitError}
+      onSubmitError={() => {
+        addErrorMessage(
+          t('Unable to %s %s %s.', action, appName, getElementText(element))
+        );
+      }}
       onFieldChange={handleFieldChange}
       preventFormResetOnUnmount
       model={model}
