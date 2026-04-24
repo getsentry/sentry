@@ -49,7 +49,7 @@ export interface SnapshotDetailsApiResponse {
   state: string;
   vcs_info: BuildDetailsVcsInfo;
 
-  app_id: string | null;
+  app_id?: string | null;
 
   comparison_run_info?: SnapshotComparisonRunInfo | null;
 
