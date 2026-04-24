@@ -79,7 +79,7 @@ function findIndex(
  *    - copies outside canvas to iframe canvas
  *    - this avoids having to remove iframe sandbox
  */
-export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
+export function canvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
   const PRELOAD_SIZE = 50;
   const BUFFER_TIME = 20_000;
   const canvases = new Map<number, HTMLCanvasElement>();

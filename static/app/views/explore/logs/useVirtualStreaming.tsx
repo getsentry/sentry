@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {logger} from '@sentry/react';
+import type {InfiniteData} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import type {ApiResult} from 'sentry/api';
-import type {InfiniteData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {
@@ -22,7 +22,6 @@ import type {
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
-
 /**
  * Virtual Streaming
  *

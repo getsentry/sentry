@@ -450,9 +450,11 @@ export default typescript.config([
     name: 'plugin/@sentry/sentry',
     plugins: {'@sentry': sentryPlugin},
     rules: {
+      '@sentry/no-calling-components-as-functions': 'error',
       '@sentry/no-digits-in-tn': 'error',
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
+      '@sentry/no-query-data-type-parameters': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-styled-shortcut': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',
@@ -628,7 +630,6 @@ export default typescript.config([
           '@typescript-eslint/prefer-includes': 'off',
           '@typescript-eslint/prefer-nullish-coalescing': 'off',
           '@typescript-eslint/prefer-regexp-exec': 'off',
-          '@typescript-eslint/prefer-return-this-type': 'off',
           '@typescript-eslint/prefer-string-starts-ends-with': 'off',
           '@typescript-eslint/restrict-plus-operands': 'off',
           '@typescript-eslint/restrict-template-expressions': 'off',
@@ -835,7 +836,6 @@ export default typescript.config([
       'unicorn/no-unnecessary-array-splice-count': 'off',
       'unicorn/no-unnecessary-slice-end': 'off',
       'unicorn/no-unreadable-array-destructuring': 'off',
-      'unicorn/no-useless-collection-argument': 'off',
       'unicorn/no-useless-promise-resolve-reject': 'off',
       'unicorn/no-useless-spread': 'off',
       'unicorn/no-useless-switch-case': 'off',
@@ -955,6 +955,13 @@ export default typescript.config([
     },
     rules: {
       'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'files/fixtures',
+    files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
+    rules: {
+      '@sentry/no-calling-components-as-functions': 'off',
     },
   },
   {

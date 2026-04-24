@@ -97,7 +97,6 @@ export function RelatedIssues({
 
   const {start, end} = timePeriod;
 
-  const path = `/organizations/${organization.slug}/issues/`;
   const queryParams = {
     start,
     end,
@@ -126,7 +125,6 @@ export function RelatedIssues({
 
       <TableWrapper>
         <GroupList
-          endpointPath={path}
           queryParams={queryParams}
           canSelectGroups={false}
           renderEmptyMessage={renderEmptyMessage}

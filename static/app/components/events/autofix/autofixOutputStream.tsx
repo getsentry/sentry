@@ -1,6 +1,7 @@
 import {startTransition, useEffect, useRef, useState, type FormEvent} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -19,7 +20,6 @@ import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils'
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

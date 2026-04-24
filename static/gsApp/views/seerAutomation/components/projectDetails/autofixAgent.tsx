@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -11,7 +12,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {
   getProjectAgentMutationOptions,
   getCodingAgentSelectQueryOptions,
@@ -23,7 +23,6 @@ import {
   getProjectStoppingPointValue,
 } from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 interface Props {
   canWrite: boolean;
   preference: ProjectSeerPreferences;
