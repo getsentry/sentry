@@ -26,8 +26,15 @@ class GpuCrashGroupType(GroupType):
     type_id = 9100
     slug = "gpu_crash"
     description = "GPU Crash"
-    category = GroupCategory.ERROR.value
-    category_v2 = GroupCategory.ERROR.value
+    # OUTAGE category — a TDR-style GPU hang or device reset is the most
+    # literal outage signal we have: the graphics subsystem is unresponsive.
+    # Must also be a non-ERROR category because the search pipeline at
+    # src/sentry/issues/search.py:225-234 routes `GroupCategory.ERROR` to
+    # the Errors Snuba dataset while everything else goes through the
+    # IssuePlatform dataset where our occurrences actually live. Staying
+    # non-ERROR is what makes the issue show up in the default feed.
+    category = GroupCategory.OUTAGE.value
+    category_v2 = GroupCategory.OUTAGE.value
     # Dark until the organizations:gpu-crash-symbolication flag enables the
     # producer side. `released=False` additionally gates ingest via the
     # auto-generated `organizations:issue-gpu-crash-ingest` feature.

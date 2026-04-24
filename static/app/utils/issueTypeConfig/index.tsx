@@ -136,6 +136,16 @@ function shouldShowCustomErrorResourceConfig(
 }
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
+  // Explicit overrides for issue types that don't fit the "anything >= 1000
+  // is performance" heuristic. Keep this list short — when a new bucket
+  // exists for a type, add it here rather than back-doing category mapping
+  // on the backend.
+  if (eventOccurrenceType === 9100) {
+    // GpuCrashGroupType — a TDR-style GPU hang is an outage, not a perf issue.
+    // Picking PERFORMANCE here triggers SpanEvidenceKeyValueList which
+    // expects spans that a synthetic GPU event doesn't carry.
+    return IssueCategory.OUTAGE;
+  }
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
   }

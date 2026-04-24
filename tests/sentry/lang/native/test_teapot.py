@@ -81,11 +81,23 @@ def test_merge_gpu_response_writes_context() -> None:
     assert ctx["status"] == "completed"
     assert ctx["handler"] == "aftermath"
     assert ctx["sdk_version"] == "2025.5.0"
-    assert ctx["fault"]["type"] == "PageFault"
-    assert ctx["gpu_state"]["device_name"] == "Test GPU"
-    assert ctx["shader_context"]["shader_hash"] == "abc123"
-    assert "missing_difs" not in ctx  # empty list → omitted
-    assert "warnings" not in ctx
+    # Flat shape: UI-friendly top-level scalars instead of nested blobs.
+    assert ctx["fault_type"] == "PageFault"
+    assert ctx["device_name"] == "Test GPU"
+    assert ctx["shader_hash"] == "abc123"
+    # Nested fault/gpu_state/shader_context do not appear on the flat context.
+    assert "fault" not in ctx
+    assert "gpu_state" not in ctx
+    assert "shader_context" not in ctx
+    # Empty missing_difs surfaces as a zero count rather than a list.
+    assert ctx["missing_dif_count"] == 0
+
+    # Raw nested blobs still available under gpu_crash_raw (hidden in UI).
+    raw = data["contexts"]["gpu_crash_raw"]
+    assert raw["type"] == "default"
+    assert raw["fault"]["type"] == "PageFault"
+    assert raw["gpu_state"]["device_name"] == "Test GPU"
+    assert raw["shader_context"]["shader_hash"] == "abc123"
 
     # Frames go to the private channel, not user-visible context.
     assert data["_gpu_crash_private"]["frames"] == [{"function": "main", "module": "abc123"}]
@@ -141,10 +153,15 @@ def test_merge_gpu_response_omits_missing_sections() -> None:
 
     ctx = data["contexts"]["gpu_crash"]
     assert ctx["status"] == "completed"
-    # Absent sections don't get written as empty dicts.
+    # Absent sections don't get written as empty dicts — the flat context
+    # drops None-valued keys so the UI doesn't render empty rows.
     assert "fault" not in ctx
     assert "gpu_state" not in ctx
     assert "shader_context" not in ctx
+    assert "device_name" not in ctx
+    assert "shader_hash" not in ctx
+    # Fault type falls back to a generic label when teapot reports nothing.
+    assert ctx["fault_type"] == "GPU crash"
 
 
 def test_merge_gpu_response_preserves_exception() -> None:
@@ -457,7 +474,8 @@ def test_process_gpu_crash_dump_success_populates_context() -> None:
 
     assert result is data
     assert data["contexts"]["gpu_crash"]["status"] == "partial"
-    assert data["contexts"]["gpu_crash"]["fault"]["type"] == "PageFault"
+    assert data["contexts"]["gpu_crash"]["fault_type"] == "PageFault"
+    assert data["contexts"]["gpu_crash_raw"]["fault"]["type"] == "PageFault"
     # Trace preserved.
     assert data["contexts"]["trace"]["trace_id"] == "x" * 32
     # Frames stashed privately.
@@ -498,6 +516,10 @@ def test_occurrence_fired_on_completed_status() -> None:
             "sentry.lang.native.teapot.submit_to_teapot",
             return_value=response,
         ),
+        mock.patch(
+            "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
+            return_value=None,
+        ),
         mock.patch("sentry.issues.producer.produce_occurrence_to_kafka") as mock_produce,
     ):
         process_gpu_crash_dump(data, project, "ev-1")
@@ -508,7 +530,11 @@ def test_occurrence_fired_on_completed_status() -> None:
 
     # Fingerprint: stable across the same fault + shader.
     assert occ.fingerprint == ["gpu-crash:PageFault:abc123"]
-    assert occ.event_id == "ev-1"
+    # Occurrence references a FRESH event, not the CPU minidump event, so
+    # the issue detail page can render GPU frames instead of the CPU stack.
+    # Both events share the trace_id via contexts.trace.
+    assert occ.event_id != "ev-1"
+    assert len(occ.event_id) == 32  # uuid hex
     assert occ.project_id == project.id
     assert occ.level == "fatal"
     assert "PageFault" in occ.issue_title
@@ -520,18 +546,31 @@ def test_occurrence_fired_on_completed_status() -> None:
 
     assert occ.type is GpuCrashGroupType
 
-    # The event payload forwarded to Kafka omits the private frame stash.
+    # The event payload forwarded to Kafka is the fresh GPU event — matching
+    # the occurrence's event_id, platform native, and carrying the GPU
+    # stacktrace at the top level (not under `exception`, which the
+    # occurrence consumer strips).
     event_payload = kwargs["event_data"]
+    assert event_payload["event_id"] == occ.event_id
+    assert event_payload["platform"] == "native"
     assert "_gpu_crash_private" not in event_payload
-    assert event_payload["event_id"] == "ev-1"
-    # But the public gpu_crash context is there.
-    assert event_payload["contexts"]["gpu_crash"]["fault"]["type"] == "PageFault"
+    # The GPU stack is what the issue detail page will render.
+    stacktrace_frames = event_payload["stacktrace"]["frames"]
+    assert stacktrace_frames[0]["function"] == "ComputeLighting"
+    # Back-reference + trace continuation so both events co-locate in trace view.
+    assert event_payload["tags"]["cpu_event_id"] == "ev-1"
+    assert event_payload["contexts"]["trace"]["trace_id"] == "x" * 32
+    # gpu_crash context is flattened — fault fields hoisted to top-level scalars.
+    assert event_payload["contexts"]["gpu_crash"]["fault_type"] == "PageFault"
+    assert event_payload["contexts"]["gpu_crash"]["shader_hash"] == "abc123"
+    # Full nested blob still available under gpu_crash_raw for deep inspection.
+    assert event_payload["contexts"]["gpu_crash_raw"]["fault"]["type"] == "PageFault"
 
 
 def test_occurrence_fingerprint_groups_by_shader_and_fault() -> None:
     """Two crashes of the same shader + fault produce the same fingerprint."""
 
-    from sentry.lang.native.processing import _produce_gpu_occurrence
+    from sentry.lang.native.gpu import _produce_gpu_occurrence
 
     project = _FakeProject()
 
@@ -616,11 +655,17 @@ def test_occurrence_producer_error_is_swallowed() -> None:
             "sentry.lang.native.teapot.submit_to_teapot",
             return_value=response,
         ),
+        # Skip the real Detector.objects.get_or_create call which would raise
+        # TypeError on our _FakeProject and double-count the capture_exception.
+        mock.patch(
+            "sentry.lang.native.gpu._get_or_create_gpu_detector_id",
+            return_value=None,
+        ),
         mock.patch(
             "sentry.issues.producer.produce_occurrence_to_kafka",
             side_effect=RuntimeError("kafka broken"),
         ),
-        mock.patch("sentry.lang.native.processing.sentry_sdk.capture_exception") as cap,
+        mock.patch("sentry.lang.native.gpu.sentry_sdk.capture_exception") as cap,
     ):
         # No exception propagates.
         result = process_gpu_crash_dump(data, project, "ev-1")

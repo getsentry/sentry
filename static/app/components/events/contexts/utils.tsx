@@ -19,6 +19,7 @@ import {getCloudResourceContextData} from 'sentry/components/events/contexts/kno
 import {getCultureContextData} from 'sentry/components/events/contexts/knownContext/culture';
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
 import {getGPUContextData} from 'sentry/components/events/contexts/knownContext/gpu';
+import {getGPUCrashContextData} from 'sentry/components/events/contexts/knownContext/gpuCrash';
 import {getMemoryInfoContext} from 'sentry/components/events/contexts/knownContext/memoryInfo';
 import {getMissingInstrumentationContextData} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import {getOperatingSystemContextData} from 'sentry/components/events/contexts/knownContext/os';
@@ -261,6 +262,8 @@ export function getContextTitle({
       return t('User');
     case 'gpu':
       return t('Graphics Processing Unit');
+    case 'gpu_crash':
+      return t('GPU Crash');
     case 'runtime':
       return t('Runtime');
     case 'trace':
@@ -407,6 +410,8 @@ export function getFormattedContextData({
       return getUserContextData({data: contextValue, meta});
     case 'gpu':
       return getGPUContextData({data: contextValue, meta});
+    case 'gpu_crash':
+      return getGPUCrashContextData({data: contextValue, meta});
     case 'trace':
       return getTraceContextData({
         data: contextValue,
