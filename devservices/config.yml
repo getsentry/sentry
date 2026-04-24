@@ -53,13 +53,6 @@ x-sentry-service-config:
         branch: master
         repo_link: https://github.com/getsentry/symbolicator.git
         mode: default
-    teapot:
-      description: GPU crash dump symbolication service (sibling to symbolicator)
-      remote:
-        repo_name: teapot
-        branch: main
-        repo_link: https://github.com/getsentry/teapot.git
-        mode: default
     launchpad:
       description: Service for analyzing iOS and Android apps
       remote:
@@ -183,23 +176,6 @@ x-sentry-service-config:
     backend-ci:
       [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight]
-    teapot:
-      [
-        postgres,
-        snuba,
-        relay,
-        spotlight,
-        symbolicator,
-        teapot,
-        objectstore,
-        taskbroker,
-        taskworker,
-        ingest-events,
-        ingest-attachments,
-        post-process-forwarder-errors,
-        post-process-forwarder-issue-platform,
-        ingest-occurrences,
-      ]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:
       [
