@@ -83,6 +83,29 @@ type Props = {
   };
 };
 
+function getDefaultOptions(
+  field: FieldFromSchema,
+  resetSettings: SentryAppSetting[] | undefined
+) {
+  const savedOption = (resetSettings || []).find(value => value.name === field.name);
+  const currentOptions = (field.choices || []).map(([value, label]) => ({
+    value,
+    label,
+  }));
+
+  const shouldAddSavedOption =
+    // We only render saved options if they have preserved the label, otherwise it appears unselcted.
+    // The next time the user saves, the label should be preserved.
+    savedOption?.value &&
+    savedOption?.label &&
+    // The option isn't in the current options already
+    !currentOptions.some(option => option.value === savedOption?.value);
+
+  return shouldAddSavedOption
+    ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
+    : currentOptions;
+}
+
 /**
  *  This component is the result of a refactor of sentryAppExternalIssueForm.tsx.
  *  Most of it contains a direct copy of the code from that original file (comments included)
@@ -130,28 +153,6 @@ export function SentryAppExternalForm({
   requiredFieldsRef.current = requiredFields;
   const optionalFieldsRef = useRef(optionalFields);
   optionalFieldsRef.current = optionalFields;
-
-  const getDefaultOptions = (field: FieldFromSchema) => {
-    const savedOption = (resetValues?.settings || []).find(
-      value => value.name === field.name
-    );
-    const currentOptions = (field.choices || []).map(([value, label]) => ({
-      value,
-      label,
-    }));
-
-    const shouldAddSavedOption =
-      // We only render saved options if they have preserved the label, otherwise it appears unselcted.
-      // The next time the user saves, the label should be preserved.
-      savedOption?.value &&
-      savedOption?.label &&
-      // The option isn't in the current options already
-      !currentOptions.some(option => option.value === savedOption?.value);
-
-    return shouldAddSavedOption
-      ? [{value: savedOption.value, label: savedOption.label}, ...currentOptions]
-      : currentOptions;
-  };
 
   const getDefaultFieldValue = useCallback(
     (field: FieldFromSchema) => {
@@ -348,10 +349,6 @@ export function SentryAppExternalForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [action]);
 
-  const createPreserveOptionFunction = (name: string) => (option: any, _event: any) => {
-    setSelectedOptions(prev => ({...prev, [name]: option}));
-  };
-
   const renderField = (field: FieldFromSchema, required: boolean) => {
     // This function converts the field we get from the backend into
     // the field we need to pass down
@@ -367,7 +364,7 @@ export function SentryAppExternalForm({
     }
     if (['select', 'select_async'].includes(fieldToPass.type || '')) {
       // find the options from state to pass down
-      const defaultOptions = getDefaultOptions(field);
+      const defaultOptions = getDefaultOptions(field, resetValues?.settings);
       const options = optionsByField.get(field.name) || defaultOptions;
 
       fieldToPass = {
@@ -407,7 +404,8 @@ export function SentryAppExternalForm({
           onCloseResetsInput: false,
           onBlurResetsInput: false,
           autoload: false,
-          onChangeOption: createPreserveOptionFunction(field.name),
+          onChangeOption: (option: any, _event: any) =>
+            setSelectedOptions(prev => ({...prev, [field.name]: option})),
         }
       : {};
 
