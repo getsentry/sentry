@@ -193,15 +193,19 @@ class DatabaseBackedCellOrganizationProvisioningRpcService(CellOrganizationProvi
         if provision_options.channel_name:
             audit_data["channel"] = provision_options.channel_name
             actor_label = f"provision_channel:{provision_options.channel_name}"
-        create_audit_entry_from_user(
-            user=provision_options.owner,
-            ip_address=provision_options.ip_address,
-            organization=organization,
-            target_object=organization.id,
-            event=audit_log.get_event_id("ORG_ADD"),
-            data=audit_data,
-            actor_label=actor_label,
-        )
+        try:
+            create_audit_entry_from_user(
+                user=provision_options.owner,
+                ip_address=provision_options.ip_address,
+                organization=organization,
+                target_object=organization.id,
+                event=audit_log.get_event_id("ORG_ADD"),
+                data=audit_data,
+                actor_label=actor_label,
+            )
+        except Exception as e:
+            capture_exception(e)
+
         try:
             analytics.record(
                 OrganizationCreatedEvent(
