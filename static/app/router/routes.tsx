@@ -1073,7 +1073,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'new-public/',
-          name: t('New'),
+          name: t('Create Integration'),
           component: make(
             () =>
               import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
@@ -1081,7 +1081,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'new-internal/',
-          name: t('New'),
+          name: t('Create Integration'),
           component: make(
             () =>
               import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
@@ -1089,25 +1089,19 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: ':appSlug/',
-          name: t('Integration'),
-          children: [
-            {
-              index: true,
-              name: t('Edit'),
-              component: make(
-                () =>
-                  import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
-              ),
-            },
-            {
-              path: 'dashboard/',
-              name: t('Integration Dashboard'),
-              component: make(
-                () =>
-                  import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
-              ),
-            },
-          ],
+          name: t('Edit Integration'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails')
+          ),
+        },
+        {
+          path: ':appSlug/dashboard/',
+          name: t('Integration Dashboard'),
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard')
+          ),
         },
       ],
     },

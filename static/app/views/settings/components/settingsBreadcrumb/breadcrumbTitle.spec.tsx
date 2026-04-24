@@ -21,11 +21,10 @@ describe('BreadcrumbTitle', () => {
       </BreadcrumbProvider>
     );
 
-    // Non-terminal crumbs render as links; the current page renders as
-    // non-interactive text.
-    const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(2);
-    expect(screen.getByText('Last Title')).toHaveAttribute('aria-current', 'page');
+    const crumbs = screen.getAllByRole('link');
+
+    expect(crumbs).toHaveLength(3);
+    expect(crumbs[2]).toHaveTextContent('Last Title');
   });
 
   it('cleans up routes', () => {
@@ -39,10 +38,11 @@ describe('BreadcrumbTitle', () => {
       </BreadcrumbProvider>
     );
 
-    const links = screen.getAllByRole('link');
-    expect(links).toHaveLength(2);
-    expect(links[1]).toHaveTextContent('Second Title');
-    expect(screen.getByText('Last Title')).toHaveAttribute('aria-current', 'page');
+    const crumbs = screen.getAllByRole('link');
+
+    expect(crumbs).toHaveLength(3);
+    expect(crumbs[1]).toHaveTextContent('Second Title');
+    expect(crumbs[2]).toHaveTextContent('Last Title');
 
     // Mutate the object so that breadcrumbTitle re-renders
     upOneRoutes = testRoutes.slice(0, -1);
@@ -55,8 +55,9 @@ describe('BreadcrumbTitle', () => {
       </BreadcrumbProvider>
     );
 
-    const linksNext = screen.getAllByRole('link');
-    expect(linksNext).toHaveLength(1);
-    expect(screen.getByText('Second Title')).toHaveAttribute('aria-current', 'page');
+    const crumbsNext = screen.getAllByRole('link');
+
+    expect(crumbsNext).toHaveLength(2);
+    expect(crumbsNext[1]).toHaveTextContent('Second Title');
   });
 });

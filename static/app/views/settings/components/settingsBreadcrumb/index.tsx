@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -8,6 +7,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {useBreadcrumbsPathmap} from './context';
 import {Divider} from './divider';
@@ -28,6 +28,7 @@ type Props = {
 
 export function SettingsBreadcrumb({className, routes, params}: Props) {
   const pathMap = useBreadcrumbsPathmap();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
@@ -67,21 +68,24 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
             />
           );
         }
+        // In page-frame mode the current-page crumb is rendered as a
+        // non-interactive label; legacy mode keeps the original self-link.
+        if (isLast && hasPageFrame) {
+          return (
+            <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
+              <CurrentCrumb aria-current="page">{pathTitle || route.name}</CurrentCrumb>
+            </Flex>
+          );
+        }
         return (
           <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
-            {isLast ? (
-              <CurrentCrumb aria-current="page">{pathTitle || route.name}</CurrentCrumb>
-            ) : (
-              <Fragment>
-                <CrumbLink
-                  to={recreateRoute(route, {routes, params})}
-                  onClick={onSettingsBreadcrumbLinkClick}
-                >
-                  {pathTitle || route.name}
-                </CrumbLink>
-                <Divider />
-              </Fragment>
-            )}
+            <CrumbLink
+              to={recreateRoute(route, {routes, params})}
+              onClick={onSettingsBreadcrumbLinkClick}
+            >
+              {pathTitle || route.name}
+            </CrumbLink>
+            {isLast ? null : <Divider />}
           </Flex>
         );
       })}
