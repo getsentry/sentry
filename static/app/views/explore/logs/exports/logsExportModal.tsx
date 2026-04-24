@@ -11,29 +11,15 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {formatNumber} from 'sentry/utils/number/formatNumber';
-import {QUERY_PAGE_LIMIT} from 'sentry/views/explore/logs/constants';
 import {downloadLogs} from 'sentry/views/explore/logs/downloadLogs';
+import {
+  generateLogExportRowCountOptions,
+  ROW_COUNT_VALUE_SYNC_LIMIT,
+} from 'sentry/views/explore/logs/exports/generateLogExportRowCountOptions';
 import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/useLogsExportEstimatedRowCount';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-const ROW_COUNT_VALUE_DEFAULT = 100;
-
-/**
- * Keep this in sync with data_export.py on the backend
- */
-const ROW_COUNT_VALUE_SYNC_LIMIT = QUERY_PAGE_LIMIT;
-
-const ROW_COUNT_VALUES = [
-  ROW_COUNT_VALUE_DEFAULT,
-  500,
-  ROW_COUNT_VALUE_SYNC_LIMIT,
-  10_000,
-  50_000,
-  100_000,
-];
 
 const exportModalFormSchema = z.object({
   format: z.enum(['csv', 'jsonl']),
@@ -46,26 +32,6 @@ type LogsExportModalProps = ModalRenderProps & {
   queryInfo: LogsQueryInfo;
   tableData: OurLogsResponseItem[];
 };
-
-function generateRowOptions(estimatedRowCount: number) {
-  const rowOptions: Array<SelectValue<number>> = ROW_COUNT_VALUES.map(value => ({
-    label: formatNumber(value),
-    value,
-  })).filter(({value}) => value <= estimatedRowCount);
-
-  if (
-    !rowOptions.length ||
-    (estimatedRowCount > rowOptions[rowOptions.length - 1]!.value &&
-      rowOptions.length < ROW_COUNT_VALUES.length)
-  ) {
-    rowOptions.push({
-      label: t('%s (All)', formatNumber(estimatedRowCount)),
-      value: estimatedRowCount,
-    });
-  }
-
-  return rowOptions;
-}
 
 export function LogsExportModal({
   Body,
@@ -87,10 +53,10 @@ export function LogsExportModal({
     [queryInfo]
   );
   const handleDataExport = useDataExport();
-  const rowOptions = generateRowOptions(estimatedRowCount);
+  const rowCountOptions = generateLogExportRowCountOptions(estimatedRowCount);
   const defaultValues: ExportModalFormValues = {
     format: 'csv',
-    limit: rowOptions[0]!.value,
+    limit: rowCountOptions[0]!.value,
   };
 
   const form = useScrapsForm({
@@ -155,11 +121,11 @@ export function LogsExportModal({
             {field => (
               <field.Layout.Stack label={t('Number of rows')}>
                 <field.Select
-                  disabled={rowOptions.length === 1}
-                  options={rowOptions}
+                  disabled={rowCountOptions.length === 1}
+                  options={rowCountOptions}
                   onChange={field.handleChange}
                   value={field.state.value}
-                  defaultValue={rowOptions[0]}
+                  defaultValue={rowCountOptions[0]}
                 />
               </field.Layout.Stack>
             )}

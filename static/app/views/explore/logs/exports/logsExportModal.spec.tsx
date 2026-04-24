@@ -154,7 +154,7 @@ describe('LogsExportModal', () => {
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.click(
       await screen.findByRole('menuitemradio', {
-        name: new RegExp(`^${aboveSyncLimit.toLocaleString()} \\(All\\)$`),
+        name: /\(All\)$/,
       })
     );
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
