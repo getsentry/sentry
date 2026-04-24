@@ -23,15 +23,19 @@ import {
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEvidence';
+import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
+import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconRefresh} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
+import {IconCopy} from 'sentry/icons/iconCopy';
 import {IconList} from 'sentry/icons/iconList';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {MarkedText} from 'sentry/utils/marked/markedText';
@@ -49,13 +53,28 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
     return isRootCauseArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const {startStep} = autofix;
 
+  const evidence = useAutofixSectionEvidence({section});
+
   return (
-    <ArtifactCard icon={<IconBug />} title={t('Root Cause')}>
+    <ArtifactCard
+      icon={<IconBug />}
+      title={t('Root Cause')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
-          messages={section.messages}
+          blocks={section.blocks}
           loadingMessage={t('Finding the root cause\u2026')}
         />
       ) : artifact?.data ? (
@@ -87,6 +106,20 @@ export function RootCauseCard({autofix, section}: AutofixCardProps) {
               ) : null}
             </Fragment>
           ) : null}
+          {evidence.length > 0 && (
+            <ArtifactDetails>
+              <Text bold>{t('Evidence')}</Text>
+              <Flex gap="md" wrap="wrap">
+                {evidence.map(e => (
+                  <AutofixEvidence
+                    key={e.toolCall.id}
+                    toolCall={e.toolCall}
+                    toolLink={e.toolLink}
+                  />
+                ))}
+              </Flex>
+            </ArtifactDetails>
+          )}
         </Fragment>
       ) : (
         <ArtifactDetails>
@@ -116,14 +149,27 @@ export function SolutionCard({autofix, section}: AutofixCardProps) {
     return isSolutionArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const {runState, startStep} = autofix;
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconList />} title={t('Plan')}>
+    <ArtifactCard
+      icon={<IconList />}
+      title={t('Plan')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
-          messages={section.messages}
+          blocks={section.blocks}
           loadingMessage={t('Formulating a plan\u2026')}
         />
       ) : artifact?.data ? (
@@ -175,6 +221,12 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
     return isCodeChangesArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
+
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
   const summary = useMemo(() => {
@@ -203,10 +255,18 @@ export function CodeChangesCard({autofix, section}: AutofixCardProps) {
   const runId = runState?.run_id;
 
   return (
-    <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>
+    <ArtifactCard
+      icon={<IconCode />}
+      title={t('Code Changes')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {section.status === 'processing' ? (
         <LoadingDetails
-          messages={section.messages}
+          blocks={section.blocks}
           loadingMessage={t('Implementing changes\u2026')}
         />
       ) : (
@@ -262,9 +322,21 @@ export function PullRequestsCard({section}: AutofixCardProps) {
     return isPullRequestsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
   const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
 
   return (
-    <ArtifactCard icon={<IconPullRequest />} title={t('Pull Requests')}>
+    <ArtifactCard
+      icon={<IconPullRequest />}
+      title={t('Pull Requests')}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {artifact?.map(pullRequest => {
         if (pullRequest.pr_creation_status === 'creating') {
           return (
@@ -320,12 +392,25 @@ export function CodingAgentCard({section}: AutofixCardProps) {
     return isCodingAgentsArtifact(sectionArtifact) ? sectionArtifact : null;
   }, [section]);
 
+  const {copy} = useCopyToClipboard();
+  const markdown = useMemo(
+    () => (artifact ? artifactToMarkdown(artifact) : null),
+    [artifact]
+  );
   const provider = artifact?.[0]?.provider;
 
   const agentName = useMemo(() => getCodingAgentName(provider), [provider]);
 
   return (
-    <ArtifactCard icon={<IconBot />} title={agentName}>
+    <ArtifactCard
+      icon={<IconBot />}
+      title={agentName}
+      onCopy={
+        markdown
+          ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
+          : undefined
+      }
+    >
       {artifact?.map(codingAgent => {
         const statusVariant =
           codingAgent.status === CodingAgentStatus.PENDING
@@ -383,13 +468,27 @@ interface ArtifactCardProps {
   children: ReactNode;
   icon: ReactNode;
   title: ReactNode;
+  onCopy?: () => void;
 }
 
-function ArtifactCard({children, icon, title}: ArtifactCardProps) {
+function ArtifactCard({children, icon, title, onCopy}: ArtifactCardProps) {
   return (
     <Container border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
-        <Disclosure.Title>
+        <Disclosure.Title
+          trailingItems={
+            onCopy ? (
+              <Button
+                size="xs"
+                priority="transparent"
+                icon={<IconCopy size="xs" />}
+                aria-label={t('Copy as Markdown')}
+                tooltipProps={{title: t('Copy as Markdown')}}
+                onClick={onCopy}
+              />
+            ) : null
+          }
+        >
           <Flex gap="md" align="center">
             {icon}
             <Text bold>{title}</Text>
@@ -418,11 +517,11 @@ function ArtifactDetails({children, ...flexProps}: ArtifactDetailsProps) {
 }
 
 interface LoadingDetailsProps {
+  blocks: AutofixSection['blocks'];
   loadingMessage: string;
-  messages: AutofixSection['messages'];
 }
 
-function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
+function LoadingDetails({loadingMessage, blocks}: LoadingDetailsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -438,7 +537,7 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
     }
 
     bottomRef.current?.scrollIntoView({behavior: 'smooth', block: 'end'});
-  }, [messages]);
+  }, [blocks]);
 
   return (
     <ArtifactDetails paddingTop="0">
@@ -450,14 +549,14 @@ function LoadingDetails({loadingMessage, messages}: LoadingDetailsProps) {
         maxHeight="200px"
         overflowY="auto"
       >
-        {messages.map((message, index) => {
-          if (message.role === 'user') {
+        {blocks.map((block, index) => {
+          if (block.message.role === 'user') {
             // The user role is used to pass the prompts
             return null;
           }
 
-          if (message.content && message.content !== 'Thinking...') {
-            return <StyledMarkedText key={index} text={message.content} />;
+          if (block.message.content && block.message.content !== 'Thinking...') {
+            return <StyledMarkedText key={index} text={block.message.content} />;
           }
 
           return null;

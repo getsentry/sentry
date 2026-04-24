@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0007_organizationmember_replay_access
 
-seer: 0007_add_extras_to_nightshiftrun
+seer: 0008_add_seer_run_models
 
-sentry: 1070_increase_integration_external_id_length
+sentry: 1072_backfill_scm_integration_config
 
 social_auth: 0003_social_auth_json_field
 

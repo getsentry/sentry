@@ -104,6 +104,7 @@ import math
 import time
 import uuid
 from collections.abc import Generator, MutableMapping, Sequence
+from hashlib import blake2b
 from typing import Any, NamedTuple, cast
 
 import orjson
@@ -177,6 +178,13 @@ class Subsegment(NamedTuple):
     project_and_trace: tuple[str, str]
     salt: str
     subsegment: list[Span]
+
+
+def _compute_salt(spans: Sequence[Span]) -> str:
+    return blake2b(
+        b"".join(s.span_id.encode("ascii") for s in spans),
+        digest_size=16,
+    ).hexdigest()
 
 
 class OutputSpan(NamedTuple):
@@ -309,9 +317,10 @@ class SpansBuffer:
             for key, subsegment in trees.items():
                 if max_spans_per_evalsha > 0 and len(subsegment) > max_spans_per_evalsha:
                     for chunk in itertools.batched(subsegment, max_spans_per_evalsha):
-                        tree_items.append(Subsegment(key, uuid.uuid4().hex, list(chunk)))
+                        chunk_list = list(chunk)
+                        tree_items.append(Subsegment(key, _compute_salt(chunk_list), chunk_list))
                 else:
-                    tree_items.append(Subsegment(key, uuid.uuid4().hex, subsegment))
+                    tree_items.append(Subsegment(key, _compute_salt(subsegment), subsegment))
 
             tree_batches: Sequence[Sequence[Subsegment]]
             if pipeline_batch_size > 0:

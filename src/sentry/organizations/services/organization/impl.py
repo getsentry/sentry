@@ -288,7 +288,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         self, *, organization_id: int, organization_member_id: int
     ) -> bool:
         try:
-            member = OrganizationMember.objects.get(id=organization_member_id)
+            member = OrganizationMember.objects.get(
+                id=organization_member_id, organization_id=organization_id
+            )
         except OrganizationMember.DoesNotExist:
             return False
         num_deleted, _deleted = member.delete()

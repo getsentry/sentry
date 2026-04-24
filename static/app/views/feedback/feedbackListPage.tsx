@@ -14,8 +14,8 @@ import {FeedbackSearch} from 'sentry/components/feedback/feedbackSearch';
 import {FeedbackSetupPanel} from 'sentry/components/feedback/feedbackSetupPanel';
 import {FeedbackList} from 'sentry/components/feedback/list/feedbackList';
 import {FeedbackSummaryCategories} from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
+import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useHaveSelectedProjectsSetupFeedback} from 'sentry/components/feedback/useFeedbackOnboarding';
-import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
 import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -42,14 +42,34 @@ const userFeedbackFeedbackOptions = {
 };
 
 function PageContent({
+  feedbackProjectSlug,
   hideTop,
   hasFeedbackContent,
   content,
 }: {
   content: ReactNode;
+  feedbackProjectSlug: string;
   hasFeedbackContent: boolean;
   hideTop: boolean;
 }) {
+  const organization = useOrganization();
+  const hasPageFrameFeature = useHasPageFrameFeature();
+  const createAlertAction = {
+    icon: <IconSiren />,
+    to: {
+      pathname: makeAlertsPathname({
+        path: '/new/issue/',
+        organization,
+      }),
+      query: {
+        alert_option: 'issues',
+        referrer: 'feedback-list-page',
+        detectorType: 'metric_issue',
+        ...(feedbackProjectSlug ? {project: feedbackProjectSlug} : {}),
+      },
+    },
+  };
+
   return (
     <PageFiltersContainer>
       <ErrorBoundary>
@@ -64,9 +84,21 @@ function PageContent({
                 align={{xs: 'stretch', sm: 'start'}}
               >
                 <FeedbackFilters />
-                <SearchContainer>
-                  <FeedbackSearch />
-                </SearchContainer>
+                <Flex
+                  flexGrow={1}
+                  gap="md"
+                  direction={{xs: 'column', md: 'row'}}
+                  align={{xs: 'stretch', md: 'center'}}
+                >
+                  <SearchContainer>
+                    <FeedbackSearch />
+                  </SearchContainer>
+                  {hasPageFrameFeature ? (
+                    <LinkButton {...createAlertAction} priority="primary">
+                      {t('Create Alert')}
+                    </LinkButton>
+                  ) : null}
+                </Flex>
               </Stack>
             )}
             {hasFeedbackContent ? (
@@ -220,22 +252,25 @@ export default function FeedbackListPage() {
     return (
       <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
         <Stack flex={1} contain="size">
-          <FeedbackQueryKeys organization={organization}>
+          <FeedbackApiOptions organization={organization}>
             <TopBar.Slot name="title">{titleContent}</TopBar.Slot>
-            <TopBar.Slot name="actions">
-              <LinkButton {...createAlertAction}>{t('Create Alert')}</LinkButton>
-            </TopBar.Slot>
             <TopBar.Slot name="feedback">
-              <FeedbackButton size="sm" feedbackOptions={userFeedbackFeedbackOptions}>
+              <FeedbackButton
+                size="sm"
+                feedbackOptions={userFeedbackFeedbackOptions}
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
                 {null}
               </FeedbackButton>
             </TopBar.Slot>
             <PageContent
+              feedbackProjectSlug={feedbackProjectSlug}
               hideTop={hideTop}
               hasFeedbackContent={hasFeedbackContent}
               content={pageContent}
             />
-          </FeedbackQueryKeys>
+          </FeedbackApiOptions>
         </Stack>
       </SentryDocumentTitle>
     );
@@ -244,7 +279,7 @@ export default function FeedbackListPage() {
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
-        <FeedbackQueryKeys organization={organization}>
+        <FeedbackApiOptions organization={organization}>
           <Layout.Header unified>
             <Layout.HeaderContent unified>
               <Layout.Title>{titleContent}</Layout.Title>
@@ -259,11 +294,12 @@ export default function FeedbackListPage() {
             </Layout.HeaderActions>
           </Layout.Header>
           <PageContent
+            feedbackProjectSlug={feedbackProjectSlug}
             hideTop={hideTop}
             hasFeedbackContent={hasFeedbackContent}
             content={pageContent}
           />
-        </FeedbackQueryKeys>
+        </FeedbackApiOptions>
       </FullViewport>
     </SentryDocumentTitle>
   );

@@ -76,8 +76,10 @@ class SlackCommandsHelpTest(SlackCommandsTest):
             )
         data = self.send_slack_message("help")
         text = get_response_text(data)
-        assert "`/sentry link team [organization_slug]`:" in text
-        assert "`/sentry unlink team [organization_slug]`:" in text
+        assert "`/sentry link team <organization_slug>`:" in text
+        assert "`/sentry unlink team <organization_slug>`:" in text
+        assert "`/sentry set org <organization_slug>`:" in text
+        assert "`/sentry unset org`:" in text
 
     @responses.activate
     def test_support_command(self) -> None:

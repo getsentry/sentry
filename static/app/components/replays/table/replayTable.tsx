@@ -16,8 +16,8 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 type SortProps =
   | {

@@ -1,5 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -20,8 +26,8 @@ import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {useInfiniteQuery, useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getFilteredCodingAgentName,
   type PreferredAgentProvider,
@@ -30,10 +36,14 @@ import {
   preferredAgentFilterParser,
   filterCodingAgentQueryOptions,
 } from 'sentry/utils/seer/preferredAgentFilter';
+import {
+  getProjectStoppingPointMutationOptions,
+  getProjectStoppingPointValueFromSettings,
+  PROJECT_STOPPING_POINT_SORT_ORDER,
+} from 'sentry/utils/seer/stoppingPoint';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useFetchAgentOptions} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {ProjectTableHeader} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableHeader';
 import {SeerProjectTableRow} from 'getsentry/views/seerAutomation/components/projectTable/seerProjectTableRow';
@@ -43,7 +53,7 @@ export function SeerProjectTable() {
   const organization = useOrganization();
   const {projects, fetching, fetchError} = useProjects();
 
-  const agentOptions = useFetchAgentOptions({organization});
+  const agentOptions = useQuery(getCodingAgentSelectQueryOptions({organization}));
   const codingAgentCompactSelectOptions = useQuery(
     filterCodingAgentQueryOptions({
       organization,
@@ -67,6 +77,10 @@ export function SeerProjectTable() {
     ...organizationIntegrationsCodingAgents(organization),
     select: data => data.json.integrations ?? [],
   });
+
+  const {mutate: mutateStoppingPoint} = useMutation(
+    getProjectStoppingPointMutationOptions({organization, queryClient})
+  );
 
   const {mutate: updateBulkAutofixAutomationSettings} =
     useUpdateBulkAutofixAutomationSettings({
@@ -151,6 +165,7 @@ export function SeerProjectTable() {
 
       const aSettings = autofixSettingsByProjectId.get(a.id);
       const bSettings = autofixSettingsByProjectId.get(b.id);
+
       if (sort.field === 'agent') {
         const aAgent = aSettings?.automationHandoff?.target ?? 'seer';
         const bAgent = bSettings?.automationHandoff?.target ?? 'seer';
@@ -159,11 +174,26 @@ export function SeerProjectTable() {
           : bAgent.localeCompare(aAgent);
       }
 
+      if (sort.field === 'steps') {
+        const aStoppingPointOrder =
+          PROJECT_STOPPING_POINT_SORT_ORDER[
+            getProjectStoppingPointValueFromSettings(aSettings)
+          ];
+        const bStoppingPointOrder =
+          PROJECT_STOPPING_POINT_SORT_ORDER[
+            getProjectStoppingPointValueFromSettings(bSettings)
+          ];
+        return sort.kind === 'asc'
+          ? aStoppingPointOrder - bStoppingPointOrder
+          : bStoppingPointOrder - aStoppingPointOrder;
+      }
+
       if (sort.field === 'repo_count') {
         return sort.kind === 'asc'
           ? (aSettings?.reposCount ?? 0) - (bSettings?.reposCount ?? 0)
           : (bSettings?.reposCount ?? 0) - (aSettings?.reposCount ?? 0);
       }
+
       return 0;
     });
   }, [projects, sort, autofixSettingsByProjectId]);
@@ -228,8 +258,9 @@ export function SeerProjectTable() {
         </Flex>
         <SimpleTableWithColumns>
           <ProjectTableHeader
-            projects={filteredProjects}
+            agentOptions={agentOptions}
             onSortClick={setSort}
+            projects={filteredProjects}
             sort={sort}
             updateBulkAutofixAutomationSettings={updateBulkAutofixAutomationSettings}
           />
@@ -266,6 +297,7 @@ export function SeerProjectTable() {
                 autofixSettings={autofixSettingsByProjectId.get(project.id)}
                 integrations={integrations ?? []}
                 isPendingIntegrations={isPendingIntegrations}
+                mutateStoppingPoint={mutateStoppingPoint}
                 project={project}
                 agentOptions={agentOptions}
               />
@@ -278,6 +310,6 @@ export function SeerProjectTable() {
 }
 
 const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: max-content 3fr minmax(300px, 1fr) repeat(2, max-content);
+  grid-template-columns: max-content 3fr max-content minmax(240px, 1fr) minmax(200px, 1fr);
   overflow: visible;
 `;
