@@ -194,7 +194,7 @@ function FilterActions({
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
             }));
           },
-          enabled: ctx.state === 'selected',
+          enabled: hasPredefined || ctx.state === 'selected',
           staleTime: hasPredefined ? Infinity : 30_000,
         }),
     };
