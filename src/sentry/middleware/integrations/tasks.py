@@ -12,10 +12,14 @@ from rest_framework import status
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.event import resolve_seer_organization_for_slack_user
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
 from sentry.seer.entrypoints.slack.messaging import send_halt_message
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.silo.base import SiloMode
 from sentry.silo.client import CellSiloClient
 from sentry.tasks.base import instrumented_task
@@ -232,6 +236,21 @@ def route_slack_seer_event(
     logging_ctx["halt_reason"] = halt_reason
 
     if halt_reason:
+        if halt_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
+            SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
+                entrypoint_key=str(SeerEntrypointKey.SLACK),
+                integration_id=integration_id,
+                user_ext_id=slack_user_id,
+                cache_payload=SlackPendingMentionPayload(
+                    payload=payload,
+                    integration_id=integration_id,
+                    slack_user_id=slack_user_id,
+                    channel_id=channel_id,
+                    thread_ts=thread_ts,
+                    message_ts=message_ts,
+                    event_type=event_type,
+                ),
+            )
         send_halt_message(
             integration=integration,
             slack_user_id=slack_user_id,
