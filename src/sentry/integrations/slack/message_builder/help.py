@@ -13,7 +13,7 @@ HELP_COMMANDS_HEADER = "*Help:*"
 CONTACT_HEADER = "*Contact:*"
 GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/integrations/notification-incidents/slack/|documentation>."
 
-COMMANDS = {
+SLASH_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
     "link team <organization_slug>": "Use in a channel to get your Sentry team's alert notifications sent here.",
@@ -42,7 +42,7 @@ def list_commands(commands: Mapping[str, str]) -> str:
     )
 
 
-COMMANDS_MESSAGE = list_commands(COMMANDS)
+COMMANDS_MESSAGE = list_commands(SLASH_COMMANDS)
 HELP_COMMANDS_MESSAGE = list_commands(HELP_COMMANDS)
 
 
