@@ -2194,7 +2194,7 @@ class UnfurlTest(TestCase):
         widget = self.create_dashboard_widget(
             dashboard=dashboard,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.ISSUE,
+            widget_type=DashboardWidgetTypes.RELEASE_HEALTH,
             order=0,
         )
         self.create_dashboard_widget_query(
@@ -2462,6 +2462,22 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert len(all_params) == 1
         assert all_params[0]["dataset"] == "preprodSize"
         assert all_params[0]["yAxis"] == ["max(install_size)"]
+
+    def test_issue_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ISSUE,
+            queries=[{"aggregates": ["count(new_issues)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        # issues-timeseries uses `category` instead of `dataset`
+        assert all_params[0]["category"] == "issue"
+        assert "dataset" not in all_params[0]
+        assert all_params[0]["yAxis"] == ["count(new_issues)"]
+        assert all_params[0]["referrer"] == "dashboards.slack.unfurl"
+        assert all_params[0]["statsPeriod"] == "7d"
 
     def test_multiple_queries_returns_one_dict_each_in_order(self) -> None:
         widget = self._make_widget(
