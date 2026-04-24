@@ -212,10 +212,13 @@ export function FrameworkSuggestionModal({
       return;
     }
 
-    // In the SCM onboarding flow, the caller fires `scm_platform_selected`
-    // from its `onConfigure` handler, so we skip the generic event here to
-    // avoid double-firing into the non-SCM funnel.
-    if (!isScmOnboarding) {
+    if (isScmOnboarding) {
+      trackAnalytics('onboarding.scm_platform_selected', {
+        organization,
+        platform: selectedFramework.key,
+        source: 'manual',
+      });
+    } else {
       trackAnalytics(
         newOrg
           ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
@@ -239,10 +242,13 @@ export function FrameworkSuggestionModal({
   ]);
 
   const handleSkip = useCallback(() => {
-    // In the SCM onboarding flow, the caller fires `scm_platform_selected`
-    // from its `onSkip` handler, so we skip the generic event here to avoid
-    // double-firing into the non-SCM funnel.
-    if (!isScmOnboarding) {
+    if (isScmOnboarding) {
+      trackAnalytics('onboarding.scm_platform_selected', {
+        organization,
+        platform: selectedPlatform.key,
+        source: 'manual',
+      });
+    } else {
       trackAnalytics(
         newOrg
           ? 'onboarding.select_framework_modal_skip_button_clicked'
