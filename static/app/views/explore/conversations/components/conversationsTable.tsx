@@ -30,9 +30,8 @@ import {
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
-import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
+import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
-import {hasGenAiConversationsFeature} from 'sentry/views/insights/pages/agents/utils/features';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 function getConversationDetailUrl(orgSlug: string, conversation: Conversation): string {
@@ -266,9 +265,9 @@ const BodyCell = memo(function BodyCell({
     }
     case 'steps':
       return (
-        <TextAlignRight>
+        <Text as="div" align="right">
           <Count value={dataRow.llmCalls + dataRow.toolCalls} />
-        </TextAlignRight>
+        </Text>
       );
     case 'toolsUsed':
       if (dataRow.toolNames.length === 0) {
@@ -277,15 +276,15 @@ const BodyCell = memo(function BodyCell({
       return <ToolTags toolNames={dataRow.toolNames} />;
     case 'tokensAndCost':
       return (
-        <TextAlignRight>
+        <Text as="div" align="right">
           <Count value={dataRow.totalTokens} /> / <LLMCosts cost={dataRow.totalCost} />
-        </TextAlignRight>
+        </Text>
       );
     case 'timestamp':
       return (
-        <TextAlignRight>
+        <Text as="div" align="right">
           <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
-        </TextAlignRight>
+        </Text>
       );
     default:
       return null;

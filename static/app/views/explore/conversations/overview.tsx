@@ -3,13 +3,12 @@ import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {NoAccess} from 'sentry/components/noAccess';
-import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {
   useSpanSearchQueryBuilderProps,
   type UseSpanSearchQueryBuilderProps,
@@ -21,6 +20,10 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SchemaHintsList} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+} from 'sentry/views/explore/components/styles';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
@@ -28,45 +31,18 @@ import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
-import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
-import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
-import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
-import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 
 const DISABLE_AGGREGATES: never[] = [];
 
-interface ConversationsOverviewPageProps {
-  datePageFilterProps: DatePageFilterProps;
-}
-
-function ConversationsOverviewPage({
-  datePageFilterProps,
-}: ConversationsOverviewPageProps) {
+function ConversationsOverviewPage() {
   const organization = useOrganization();
-
-  return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Feature
-        features="gen-ai-conversations"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <ConversationsContent datePageFilterProps={datePageFilterProps} />
-      </Feature>
-    </Feature>
-  );
-}
-
-function ConversationsContent({datePageFilterProps}: ConversationsOverviewPageProps) {
-  const organization = useOrganization();
+  const datePageFilterProps = useDatePageFilterProps({
+    maxPickableDays: MAX_PICKABLE_DAYS,
+    maxUpgradableDays: MAX_PICKABLE_DAYS,
+  });
   useDefaultToAllProjects();
   const {
     showOnboarding,
@@ -119,79 +95,57 @@ function ConversationsContent({datePageFilterProps}: ConversationsOverviewPagePr
 
   return (
     <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
-      <Layout.Body>
+      <ExploreBodySearch>
         <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <Stack gap="md">
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <InsightsProjectSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <InsightsEnvironmentSelector
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                    <DatePageFilter
-                      {...datePageFilterProps}
-                      resetParamsOnChange={[TableUrlParams.CURSOR]}
-                    />
-                  </PageFilterBar>
-                  <AgentSelector
-                    storageKeyPrefix="conversations:agent-filter"
-                    referrer="api.insights.conversations.get-agent-names"
+          <Stack gap="md">
+            <Flex gap="md" align="center" wrap="wrap">
+              <Flex gap="md" align="center">
+                <PageFilterBar condensed>
+                  <ProjectPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
+                  <EnvironmentPageFilter resetParamsOnChange={[TableUrlParams.CURSOR]} />
+                  <DatePageFilter
+                    {...datePageFilterProps}
+                    resetParamsOnChange={[TableUrlParams.CURSOR]}
                   />
-                  {!showOnboarding && !isOnboardingLoading && (
-                    <Flex flex={2}>
-                      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
-                    </Flex>
-                  )}
-                </ToolRibbon>
-                {!showOnboarding && !isOnboardingLoading && (
-                  <SchemaHintsList
-                    supportedAggregates={DISABLE_AGGREGATES}
-                    booleanTags={booleanTags as TagCollection}
-                    numberTags={numberTags as TagCollection}
-                    stringTags={stringTags as TagCollection}
-                    isLoading={
-                      numberTagsLoading || stringTagsLoading || booleanTagsLoading
-                    }
-                    exploreQuery={searchQuery ?? ''}
-                    source={SchemaHintsSources.CONVERSATIONS}
-                  />
-                )}
-              </Stack>
-            </ModuleLayout.Full>
-
-            <ModuleLayout.Full>
-              {isOnboardingLoading ? (
-                <LoadingIndicator />
-              ) : showOnboarding ? (
-                <ConversationOnboarding onDismiss={refetchOnboarding} />
-              ) : (
-                <ConversationsTable />
+                </PageFilterBar>
+                <AgentSelector
+                  storageKeyPrefix="conversations:agent-filter"
+                  referrer="api.insights.conversations.get-agent-names"
+                />
+              </Flex>
+              {!showOnboarding && !isOnboardingLoading && (
+                <Flex flex={1} minWidth="300px">
+                  <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                </Flex>
               )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
+            </Flex>
+            {!showOnboarding && !isOnboardingLoading && (
+              <SchemaHintsList
+                supportedAggregates={DISABLE_AGGREGATES}
+                booleanTags={booleanTags as TagCollection}
+                numberTags={numberTags as TagCollection}
+                stringTags={stringTags as TagCollection}
+                isLoading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+                exploreQuery={searchQuery ?? ''}
+                source={SchemaHintsSources.CONVERSATIONS}
+              />
+            )}
+          </Stack>
         </Layout.Main>
-      </Layout.Body>
+      </ExploreBodySearch>
+      <ExploreBodyContent>
+        <Stack flex={1} padding="xl" gap="md">
+          {isOnboardingLoading ? (
+            <LoadingIndicator />
+          ) : showOnboarding ? (
+            <ConversationOnboarding onDismiss={refetchOnboarding} />
+          ) : (
+            <ConversationsTable />
+          )}
+        </Stack>
+      </ExploreBodyContent>
     </SearchQueryBuilderProvider>
   );
 }
 
-function PageWithProviders() {
-  // EAP only retains/samples data for the last 30 days,
-  // so conversation data and aggregations are not accurate beyond that window.
-  const datePageFilterProps = useDatePageFilterProps({
-    maxPickableDays: MAX_PICKABLE_DAYS,
-    maxUpgradableDays: MAX_PICKABLE_DAYS,
-  });
-
-  return (
-    <DomainOverviewPageProviders maxPickableDays={datePageFilterProps.maxPickableDays}>
-      <ConversationsOverviewPage datePageFilterProps={datePageFilterProps} />
-    </DomainOverviewPageProviders>
-  );
-}
-
-export default PageWithProviders;
+export default ConversationsOverviewPage;

@@ -2,14 +2,19 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationsLayout from './layout';
 
 describe('ConversationsLayout', () => {
-  it('renders detail breadcrumbs in the top bar when page frame is enabled', () => {
+  beforeEach(() => {
+    PageFiltersStore.init();
+  });
+
+  it('renders detail breadcrumbs in the top bar when page frame is enabled', async () => {
     const organization = OrganizationFixture({
-      features: ['page-frame'],
+      features: ['page-frame', 'performance-view', 'gen-ai-conversations'],
     });
 
     render(
@@ -36,7 +41,7 @@ describe('ConversationsLayout', () => {
     );
 
     const topBar = screen.getByTestId('top-bar-container');
-    expect(within(topBar).getByTestId('breadcrumb-list')).toBeInTheDocument();
+    expect(await within(topBar).findByTestId('breadcrumb-list')).toBeInTheDocument();
     expect(within(topBar).getByText('6c5b72fc')).toBeInTheDocument();
     expect(within(topBar).getByRole('link', {name: 'Conversations'})).toHaveAttribute(
       'href',

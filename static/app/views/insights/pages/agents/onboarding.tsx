@@ -53,6 +53,13 @@ import {
   CopyLLMPromptButton,
   LLM_ONBOARDING_COPY_MARKDOWN,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+import {
+  AGENT_INTEGRATION_ICONS,
+  AGENT_INTEGRATION_LABELS,
+  DENO_AGENT_INTEGRATIONS,
+  NODE_AGENT_INTEGRATIONS,
+  PYTHON_AGENT_INTEGRATIONS,
+} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 import {
@@ -63,14 +70,6 @@ import {
   SubTitle,
   useOnboardingProject,
 } from 'sentry/views/insights/pages/onboardingUtils';
-
-import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  DENO_AGENT_INTEGRATIONS,
-  NODE_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from './utils/agentIntegrations';
 
 function useAiSpanWaiter(project: Project) {
   const {selection} = usePageFilters();

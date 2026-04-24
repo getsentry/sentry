@@ -20,7 +20,7 @@ import {MessagesPanel} from 'sentry/views/explore/conversations/components/messa
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
-import {getTimeBoundsFromNodes} from 'sentry/views/insights/pages/agents/utils/timeBounds';
+import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
