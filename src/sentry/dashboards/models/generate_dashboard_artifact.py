@@ -15,6 +15,7 @@ DISPLAY_TYPE_BLOCKLIST: set[str] = {
     "rage_and_dead_clicks",
     "wheel",
     "agents_traces_table",
+    "stacked_area",
 }
 
 # Most of these are deprecated, not selectable in the UI, or don't make sense for generated dashboards.
@@ -156,7 +157,7 @@ class GeneratedWidgetLayout(BaseModel):
 
 
 class GeneratedWidget(BaseModel):
-    """A single dashboard widget. Default sizes by display type: big_number 2w x 1h (3 per row), line/area/bar/stacked_area/top_n 3w x 2h (2 per row), table 6w x 2h (full row)."""
+    """A single dashboard widget. Default sizes by display type: big_number 2w x 1h (3 per row), line/area/bar/top_n 3w x 2h (2 per row), table 6w x 2h (full row)."""
 
     title: str = Field(..., max_length=255)  # Matches serializer
     description: str = Field(
