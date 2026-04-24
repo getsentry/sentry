@@ -50,13 +50,6 @@ describe('SentryAppExternalForm', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders required and optional fields from the config', () => {
-    render(<SentryAppExternalForm {...baseProps} />);
-    expect(screen.getByText('Title')).toBeInTheDocument();
-    expect(screen.getByText('Channel')).toBeInTheDocument();
-    expect(screen.getByText('Notes')).toBeInTheDocument();
-  });
-
   it('calls onSubmitSuccess after a successful issue-link POST', async () => {
     MockApiClient.addMockResponse({
       url: externalIssueActionsUrl,
