@@ -1,4 +1,4 @@
-import {diffWidgets} from './dashboardRevisionsDiff';
+import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import {DisplayType} from './types';
 import type {DashboardDetails, Widget} from './types';
 
@@ -141,5 +141,87 @@ describe('diffWidgets', () => {
       status: 'modified',
       fields: [{field: 'query 2 query', before: '(none)', after: 'present'}],
     });
+  });
+});
+
+describe('diffFilters', () => {
+  function makeDash(overrides: Partial<DashboardDetails> = {}): DashboardDetails {
+    return {
+      id: '1',
+      title: 'My Dashboard',
+      dateCreated: '',
+      widgets: [],
+      filters: {},
+      projects: [],
+      ...overrides,
+    } as unknown as DashboardDetails;
+  }
+
+  // Resolver that uses a slug map for known IDs, falls back to the numeric string.
+  function makeResolver(slugMap: Record<number, string> = {}) {
+    return (ids: number[] | undefined) => formatProjectIds(ids, id => slugMap[id]);
+  }
+
+  const resolve = makeResolver();
+
+  it('returns no changes when base and snapshot are identical', () => {
+    const dash = makeDash();
+    expect(diffFilters(dash, dash, resolve)).toEqual([]);
+  });
+
+  it('returns a title change', () => {
+    const result = diffFilters(
+      makeDash({title: 'Old'}),
+      makeDash({title: 'New'}),
+      resolve
+    );
+    expect(result).toEqual([{label: 'Title', before: 'Old', after: 'New'}]);
+  });
+
+  it('returns a time range change for a period', () => {
+    const result = diffFilters(makeDash(), makeDash({period: '14d'}), resolve);
+    expect(result).toMatchObject([{label: 'Time range', after: 'Last 14 days'}]);
+  });
+
+  it('returns environment and release changes', () => {
+    const result = diffFilters(
+      makeDash(),
+      makeDash({
+        environment: ['production', 'staging'],
+        filters: {release: ['v1.0.0']},
+      }),
+      resolve
+    );
+    expect(result).toContainEqual(
+      expect.objectContaining({label: 'Environment', after: 'production, staging'})
+    );
+    expect(result).toContainEqual(
+      expect.objectContaining({label: 'Releases', after: 'v1.0.0'})
+    );
+  });
+
+  it('resolves project IDs to slugs via the provided resolver', () => {
+    const result = diffFilters(
+      makeDash(),
+      makeDash({projects: [10, 11]}),
+      makeResolver({10: 'backend', 11: 'frontend'})
+    );
+    expect(result).toEqual([
+      {label: 'Projects', before: 'My Projects', after: 'backend, frontend'},
+    ]);
+  });
+
+  it('resolves the all-projects sentinel (-1) to "All Projects"', () => {
+    const result = diffFilters(makeDash(), makeDash({projects: [-1]}), resolve);
+    expect(result).toMatchObject([{label: 'Projects', after: 'All Projects'}]);
+  });
+
+  it('resolves an empty projects list to "My Projects"', () => {
+    const result = diffFilters(
+      makeDash({projects: [10]}),
+      makeDash({projects: []}),
+      resolve
+    );
+    expect(result).toMatchObject([{label: 'Projects', after: 'My Projects'}]);
   });
 });

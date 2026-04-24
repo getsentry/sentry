@@ -1,9 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {RevisionListItem} from './revisionListItem';
 
@@ -148,93 +145,5 @@ describe('RevisionListItem', () => {
 
     expect(await screen.findByText('New Widget')).toBeInTheDocument();
     expect(screen.getByText('Added')).toBeInTheDocument();
-  });
-
-  it('shows a dashboard filter diff when the title changes', async () => {
-    MockApiClient.addMockResponse({
-      url: SNAPSHOT_URL,
-      body: makeSnapshot({title: 'New Name'}),
-    });
-    MockApiClient.addMockResponse({
-      url: BASE_SNAPSHOT_URL,
-      body: makeSnapshot({title: 'Old Name'}),
-    });
-
-    renderItem();
-
-    expect(await screen.findByText('Old Name')).toBeInTheDocument();
-    expect(screen.getByText('New Name')).toBeInTheDocument();
-  });
-
-  it('shows filter diff rows for time range, environment, and release', async () => {
-    MockApiClient.addMockResponse({
-      url: SNAPSHOT_URL,
-      body: makeSnapshot({
-        period: '14d',
-        environment: ['production', 'staging'],
-        filters: {release: ['v1.0.0']},
-      }),
-    });
-    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
-
-    renderItem();
-
-    expect(await screen.findByText('Last 14 days')).toBeInTheDocument();
-    expect(screen.getByText('production, staging')).toBeInTheDocument();
-    expect(screen.getByText('v1.0.0')).toBeInTheDocument();
-  });
-
-  it('shows project slugs from the projects store', async () => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '10', slug: 'backend'}),
-      ProjectFixture({id: '11', slug: 'frontend'}),
-    ]);
-    MockApiClient.addMockResponse({
-      url: SNAPSHOT_URL,
-      body: makeSnapshot({projects: [10, 11]}),
-    });
-    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
-
-    renderItem();
-
-    expect(await screen.findByText('backend, frontend')).toBeInTheDocument();
-  });
-
-  it('shows "All Projects" when the projects sentinel is -1', async () => {
-    MockApiClient.addMockResponse({
-      url: SNAPSHOT_URL,
-      body: makeSnapshot({projects: [-1]}),
-    });
-    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
-
-    renderItem();
-
-    expect(await screen.findByText('All Projects')).toBeInTheDocument();
-  });
-
-  it('shows "My Projects" when the base has an empty projects array', async () => {
-    MockApiClient.addMockResponse({
-      url: SNAPSHOT_URL,
-      body: makeSnapshot({projects: [10]}),
-    });
-    MockApiClient.addMockResponse({
-      url: BASE_SNAPSHOT_URL,
-      body: makeSnapshot({projects: []}),
-    });
-
-    renderItem();
-
-    expect(await screen.findByText('My Projects')).toBeInTheDocument();
-  });
-
-  it('shows no filter diff when snapshot and base have identical filters', async () => {
-    MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
-    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
-
-    renderItem();
-
-    await screen.findByText('No widget changes in this revision.');
-    expect(screen.queryByText('Last 14 days')).not.toBeInTheDocument();
-    expect(screen.queryByText('production')).not.toBeInTheDocument();
   });
 });

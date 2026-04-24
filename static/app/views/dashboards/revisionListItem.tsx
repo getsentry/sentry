@@ -7,8 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {IconMarkdown} from 'sentry/icons/iconMarkdown';
 import {IconNumber} from 'sentry/icons/iconNumber';
@@ -16,15 +14,14 @@ import {IconSettings} from 'sentry/icons/iconSettings';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import {getFormattedDate} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
 import type {FieldChange, WidgetChange} from './dashboardRevisionsDiff';
-import {diffWidgets} from './dashboardRevisionsDiff';
+import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import type {DashboardDetails, Widget} from './types';
-import {DashboardFilterKeys, DisplayType} from './types';
+import {DisplayType} from './types';
 
 interface RevisionListItemProps {
   baseRevisionId: string | null;
@@ -170,85 +167,10 @@ function FilterDiffSection({
 }) {
   const {projects: allProjects} = useProjects();
 
-  function formatTime(d: DashboardDetails): string | null {
-    if (d.period) return getRelativeSummary(d.period);
-    if (d.start && d.end) {
-      const fmt = (s: string) => getFormattedDate(s, 'MMM D, YYYY', {local: !d.utc});
-      return `${fmt(d.start)} – ${fmt(d.end)}`;
-    }
-    return null;
-  }
+  const resolveProjectIds = (ids: number[] | undefined) =>
+    formatProjectIds(ids, id => allProjects.find(p => parseInt(p.id, 10) === id)?.slug);
 
-  function formatProjects(ids: number[] | undefined): string {
-    if (!ids?.length) return t('My Projects');
-    if (ids.includes(ALL_ACCESS_PROJECTS)) return t('All Projects');
-    return ids
-      .map(id => allProjects.find(p => parseInt(p.id, 10) === id)?.slug ?? String(id))
-      .join(', ');
-  }
-
-  function formatList(items: string[] | undefined): string {
-    const filtered = items?.filter(Boolean) ?? [];
-    return filtered.length ? filtered.join(', ') : t('(none)');
-  }
-
-  const changes: Array<{after: string; before: string; label: string}> = [];
-
-  if (base.title !== snapshot.title) {
-    changes.push({label: t('Title'), before: base.title, after: snapshot.title});
-  }
-
-  const baseTime = formatTime(base);
-  const snapshotTime = formatTime(snapshot);
-  if (baseTime !== snapshotTime) {
-    changes.push({
-      label: t('Time range'),
-      before: baseTime ?? t('(default)'),
-      after: snapshotTime ?? t('(default)'),
-    });
-  }
-
-  const baseProjects = formatProjects(base.projects);
-  const snapshotProjects = formatProjects(snapshot.projects);
-  if (baseProjects !== snapshotProjects) {
-    changes.push({
-      label: t('Projects'),
-      before: baseProjects,
-      after: snapshotProjects,
-    });
-  }
-
-  const baseEnv = formatList(base.environment);
-  const snapshotEnv = formatList(snapshot.environment);
-  if (baseEnv !== snapshotEnv) {
-    changes.push({label: t('Environment'), before: baseEnv, after: snapshotEnv});
-  }
-
-  const baseReleases = formatList(base.filters?.[DashboardFilterKeys.RELEASE]);
-  const snapshotReleases = formatList(snapshot.filters?.[DashboardFilterKeys.RELEASE]);
-  if (baseReleases !== snapshotReleases) {
-    changes.push({
-      label: t('Releases'),
-      before: baseReleases,
-      after: snapshotReleases,
-    });
-  }
-
-  const baseGlobal =
-    (base.filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [])
-      .map(f => f.value)
-      .join(', ') || t('(none)');
-  const snapshotGlobal =
-    (snapshot.filters?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [])
-      .map(f => f.value)
-      .join(', ') || t('(none)');
-  if (baseGlobal !== snapshotGlobal) {
-    changes.push({
-      label: t('Global filters'),
-      before: baseGlobal,
-      after: snapshotGlobal,
-    });
-  }
+  const changes = diffFilters(base, snapshot, resolveProjectIds);
 
   if (!changes.length) {
     return null;
