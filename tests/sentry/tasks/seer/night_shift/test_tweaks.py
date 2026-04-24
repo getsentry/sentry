@@ -53,6 +53,21 @@ class GetNightShiftTweaksTest(TestCase):
         assert tweaks.enabled is False
         assert tweaks.candidate_issues == 7
 
+    def test_non_dict_value_reports_and_returns_defaults(self) -> None:
+        self.project.update_option(
+            "sentry:seer_nightshift_tweaks",
+            [{"enabled": True}],
+        )
+
+        with patch(
+            "sentry.tasks.seer.night_shift.tweaks.sentry_sdk.capture_exception"
+        ) as mock_capture:
+            tweaks = get_night_shift_tweaks(self.project)
+
+        mock_capture.assert_called_once()
+        assert tweaks.enabled is False
+        assert tweaks.candidate_issues == options.get("seer.night_shift.issues_per_org")
+
     def test_invalid_payload_reports_and_returns_defaults(self) -> None:
         self.project.update_option(
             "sentry:seer_nightshift_tweaks",

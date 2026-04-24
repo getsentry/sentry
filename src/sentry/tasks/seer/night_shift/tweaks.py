@@ -18,6 +18,11 @@ def get_night_shift_tweaks(project: Project) -> NightShiftTweaks:
     raw = project.get_option("sentry:seer_nightshift_tweaks")
     if not raw:
         return NightShiftTweaks()
+    if not isinstance(raw, dict):
+        sentry_sdk.capture_exception(
+            TypeError(f"sentry:seer_nightshift_tweaks must be a dict, got {type(raw).__name__}")
+        )
+        return NightShiftTweaks()
     try:
         return NightShiftTweaks(**raw)
     except pydantic.ValidationError:
