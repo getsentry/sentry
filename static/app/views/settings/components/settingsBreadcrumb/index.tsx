@@ -2,6 +2,7 @@ import {Link as RouterLink} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -48,12 +49,8 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         if (!route.name) {
           return null;
         }
-        // Only routes with their own path participate in the pathTitle
-        // override; an index child with no path would otherwise collide with
-        // its parent's key and show the parent's title.
-        const pathTitle = route.path
-          ? pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})]
-          : undefined;
+        const pathTitle =
+          pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})];
         const isLast = i === lastRouteIndex;
         const Menu = MENUS[route.name];
         const hasMenu = !!Menu;
@@ -72,9 +69,9 @@ export function SettingsBreadcrumb({className, routes, params}: Props) {
         // non-interactive label; legacy mode keeps the original self-link.
         if (isLast && hasPageFrame) {
           return (
-            <Flex gap="sm" align="center" key={`${route.name}:${route.path}`}>
-              <CurrentCrumb aria-current="page">{pathTitle || route.name}</CurrentCrumb>
-            </Flex>
+            <Text key={`${route.name}:${route.path}`} as="span" aria-current="page">
+              {pathTitle || route.name}
+            </Text>
           );
         }
         return (
@@ -105,10 +102,4 @@ export const CrumbLink = styled(RouterLink)`
   &:hover {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const CurrentCrumb = styled('span')`
-  display: block;
-  line-height: ${p => p.theme.font.lineHeight.default};
-  color: ${p => p.theme.tokens.content.primary};
 `;

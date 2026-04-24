@@ -44,15 +44,17 @@ function UnstyledSettingsPageHeader({
   // This is needed as Actions could be a button or a dropdown.
   const isNarrow = !subtitle;
 
-  // In page frame mode the breadcrumb in the TopBar serves as the page title,
-  // so don't render a Layout.Title heading here — it forwards into the same
-  // TopBar title slot as the breadcrumb and would appear next to it.
-  // String titles can still override the last breadcrumb label via
-  // BreadcrumbTitle; non-string titles are ignored in this mode.
+  // In page frame mode the breadcrumb in the TopBar serves as the page title.
+  // Sync the last breadcrumb label with the actual page title and skip
+  // rendering the title heading so it doesn't appear twice.
   if (hasPageFrame) {
     return (
       <Fragment>
-        {typeof title === 'string' && <BreadcrumbTitle routes={routes} title={title} />}
+        {typeof title === 'string' ? (
+          <BreadcrumbTitle routes={routes} title={title} />
+        ) : (
+          title && <Layout.Title>{title}</Layout.Title>
+        )}
         {action && <TopBar.Slot name="actions">{action}</TopBar.Slot>}
         {subtitle && (
           <Flex marginBottom="xl" width="100%">
