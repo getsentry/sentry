@@ -133,7 +133,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
         with (
             mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug,
             mock.patch(
-                "sentry.workflow_engine.types.get_detector_settings",
+                "sentry.workflow_engine.registry.get_detector_settings",
                 return_value=DetectorSettings(validator=MetricIssueDetectorValidator),
             ),
         ):
@@ -315,7 +315,7 @@ class DetectorValidatorTest(BaseValidatorTest):
         with (
             mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get,
             mock.patch(
-                "sentry.workflow_engine.types.get_detector_settings",
+                "sentry.workflow_engine.registry.get_detector_settings",
                 return_value=None,
             ),
         ):

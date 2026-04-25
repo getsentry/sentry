@@ -4,11 +4,11 @@ from sentry.issues.grouptype import registry as grouptype_registry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorType,
     WorkflowEvaluation,
     WorkflowEvaluationData,
-    detector_settings_registry,
 )
 
 

@@ -23,7 +23,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.types import get_detector_settings
+from sentry.workflow_engine.registry import get_detector_settings
 
 logger = logging.getLogger(__name__)
 

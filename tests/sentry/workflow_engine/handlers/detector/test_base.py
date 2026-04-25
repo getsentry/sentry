@@ -195,7 +195,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             return self._settings_by_slug.get(group_type.slug)
 
         self._gds_patcher = mock.patch(
-            "sentry.workflow_engine.types.get_detector_settings",
+            "sentry.workflow_engine.registry.get_detector_settings",
             side_effect=_mock_get_detector_settings,
         )
         self._gds_patcher.start()

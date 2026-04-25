@@ -16,7 +16,6 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.deletions.base import ModelRelation
     from sentry.eventstream.base import GroupState
-    from sentry.issues.grouptype import GroupType
     from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.issues.status_change_message import StatusChangeMessage
     from sentry.models.activity import Activity
@@ -450,25 +449,3 @@ class DetectorSettingsRegistry:
 
     def get(self, detector_type: DetectorType) -> DetectorSettings | None:
         return self._registry.get(detector_type)
-
-
-detector_settings_registry = DetectorSettingsRegistry()
-
-
-def get_detector_settings(group_type: type[GroupType]) -> DetectorSettings | None:
-    """
-    Look up DetectorSettings for a GroupType via its detector_type and the
-    DetectorSettingsRegistry. Use this instead of depending directly on
-    DetectorSettings from GroupType code.
-
-    """
-    if group_type.detector_type is None:
-        return None
-    settings = detector_settings_registry.get(group_type.detector_type)
-    if settings is None:
-        raise ValueError(
-            f"DetectorType {group_type.detector_type!r} on {group_type.__name__} "
-            f"has no registered DetectorSettings. This usually means the module "
-            f"that registers settings for this DetectorType was not imported."
-        )
-    return settings

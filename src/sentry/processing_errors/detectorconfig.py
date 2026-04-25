@@ -26,13 +26,13 @@ from sentry.workflow_engine.handlers.detector.stateful import (
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
     DetectorType,
-    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)

@@ -28,12 +28,12 @@ from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
     process_data_condition_group,
 )
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorPriorityLevel,
     DetectorSettings,
     DetectorType,
-    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)

@@ -105,7 +105,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
             user_id=resolution_activity.user_id,
         )
 
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         if get_detector_settings(get_group_type_by_type_id(self.group.type)) is not None:
             GroupOpenPeriodActivity.objects.create(
@@ -210,7 +210,7 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
         )
 
         # If we care about this group's activity, create activity entry
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         if get_detector_settings(get_group_type_by_type_id(group.type)) is not None:
             GroupOpenPeriodActivity.objects.create(

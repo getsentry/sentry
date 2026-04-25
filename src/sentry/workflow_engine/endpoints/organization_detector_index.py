@@ -128,7 +128,7 @@ def get_detector_validator(
         error_message = get_unknown_detector_type_error(detector_type_slug, project.organization)
         raise ValidationError({"type": [error_message]})
 
-    from sentry.workflow_engine.types import get_detector_settings
+    from sentry.workflow_engine.registry import get_detector_settings
 
     ds = get_detector_settings(type)
     if ds is None or ds.validator is None:

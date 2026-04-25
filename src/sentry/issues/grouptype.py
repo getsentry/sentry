@@ -19,7 +19,8 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.workflow_engine.types import DetectorType, get_detector_settings
+from sentry.workflow_engine.registry import get_detector_settings
+from sentry.workflow_engine.types import DetectorType
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

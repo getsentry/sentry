@@ -40,7 +40,7 @@ class DetectorConfig:
     feature_flag: str | None = None
 
     def __post_init__(self) -> None:
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         settings = get_detector_settings(self.config_type)
         assert settings is not None, f"{self.config_type.slug} has no detector_settings"
@@ -56,7 +56,7 @@ class DetectorConfig:
 
     @property
     def handler_cls(self) -> type[ProcessingErrorDetectorHandler]:
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         settings = get_detector_settings(self.config_type)
         assert settings is not None
