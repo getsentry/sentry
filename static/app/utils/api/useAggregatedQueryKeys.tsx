@@ -107,11 +107,12 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
   const readCache = useCallback(
     () =>
       queryClient
-        .getQueriesData({predicate: ({queryKey}) => isApiQueryKeyForUrl(queryKey)})
-        .filter(defined)
+        .getQueriesData<ApiResponse<Data>>({
+          predicate: ({queryKey}) => isApiQueryKeyForUrl(queryKey),
+        })
+        .flatMap(([, val]) => (defined(val) ? [val] : []))
         .reduce<Data | undefined>(
-          (prevValue, [, val]) =>
-            responseReducer(prevValue, val as ApiResponse<Data>, prevQueryKeys.current),
+          (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
           undefined
         ),
     [isApiQueryKeyForUrl, queryClient, responseReducer]
