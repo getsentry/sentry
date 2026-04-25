@@ -303,7 +303,7 @@ class TestUptimeHandler(UptimeTestCase):
 
         with (
             self.options({"uptime.create-issues": False}),
-            mock.patch("sentry.uptime.grouptype.logger") as logger,
+            mock.patch("sentry.uptime.detectorconfig.logger") as logger,
         ):
             check_result = self.create_uptime_result()
             evaluation = self.handle_result(detector, uptime_subscription, check_result)

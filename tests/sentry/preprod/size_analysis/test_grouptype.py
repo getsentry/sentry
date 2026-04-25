@@ -519,7 +519,7 @@ class PreprodSizeAnalysisDetectorQueryFilterTest(TestCase):
         )
         handler = PreprodSizeAnalysisDetectorHandler(detector)
 
-        with mock.patch("sentry.preprod.size_analysis.grouptype.logger") as mock_logger:
+        with mock.patch("sentry.preprod.size_analysis.detectorconfig.logger") as mock_logger:
             result = handler.evaluate(self._make_data_packet())
 
         assert result == {}
