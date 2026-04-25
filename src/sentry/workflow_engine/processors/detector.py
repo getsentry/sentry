@@ -24,9 +24,9 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
+    DetectorType,
     WorkflowEventData,
 )
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +162,7 @@ def _get_detector_for_group(group: Group) -> Detector:
         return Detector.objects.get(project_id=group.project_id, type=group.issue_type.slug)
     except (Detector.DoesNotExist, Detector.MultipleObjectsReturned):
         # return issue stream detector
-        return Detector.objects.get(project_id=group.project_id, type=IssueStreamGroupType.slug)
+        return Detector.objects.get(project_id=group.project_id, type=DetectorType.ISSUE_STREAM)
 
 
 def get_preferred_detector(event_data: WorkflowEventData) -> Detector:

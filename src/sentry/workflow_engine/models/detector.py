@@ -21,7 +21,7 @@ from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models import DataCondition
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, DetectorType
 
 from .json_config import JSONConfigBase
 
@@ -101,7 +101,9 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # maps to registry (sentry.issues.grouptype.registry) entries for GroupType.slug in sentry.issues.grouptype.GroupType
+    # A DetectorType value (which equals the corresponding GroupType.slug).
+    # TODO: Add choices=DetectorType once callers consistently use DetectorType
+    # instead of raw GroupType.slug strings.
     type = models.CharField(max_length=200)
 
     # The user that created the detector
@@ -128,15 +130,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @classmethod
     def get_error_detector_for_project(cls, project_id: int) -> Detector:
-        from sentry.grouping.grouptype import ErrorGroupType
-
-        return cls.get_default_detector_for_project(project_id, ErrorGroupType.slug)
+        return cls.get_default_detector_for_project(project_id, DetectorType.ERROR)
 
     @classmethod
     def get_issue_stream_detector_for_project(cls, project_id: int) -> Detector:
-        from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
-
-        return cls.get_default_detector_for_project(project_id, IssueStreamGroupType.slug)
+        return cls.get_default_detector_for_project(project_id, DetectorType.ISSUE_STREAM)
 
     @property
     def group_type(self) -> builtins.type[GroupType]:

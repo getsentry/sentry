@@ -17,7 +17,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from sentry.workflow_engine.types import DetectorType
 
 DEFAULT_WORKFLOW_LABEL = "Send a notification for high priority issues"
 
@@ -27,7 +27,7 @@ def connect_workflows_to_issue_stream(
     workflows: list[Workflow],
 ) -> Sequence[DetectorWorkflow]:
     # Because we don't know if this signal is handled already or not...
-    issue_stream_detector = _ensure_detector(project, IssueStreamGroupType.slug)
+    issue_stream_detector = _ensure_detector(project, DetectorType.ISSUE_STREAM)
 
     connections = [
         DetectorWorkflow(
