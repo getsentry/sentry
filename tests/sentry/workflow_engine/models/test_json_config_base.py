@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -70,7 +71,7 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
         super().tearDown()
         self._gds_patcher.stop()
 
-    def _register_settings(self, slug: str, **kwargs: object) -> None:
+    def _register_settings(self, slug: str, **kwargs: Any) -> None:
         self._settings_by_slug[slug] = DetectorSettings(**kwargs)
 
     def _mock_get_detector_settings(self, group_type: type[GroupType]) -> DetectorSettings | None:

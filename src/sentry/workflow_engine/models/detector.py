@@ -102,9 +102,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     )
 
     # A DetectorType value (which equals the corresponding GroupType.slug).
-    # TODO: Add choices=DetectorType once callers consistently use DetectorType
-    # instead of raw GroupType.slug strings.
-    type = models.CharField(max_length=200)
+    type = models.CharField(max_length=200, choices=[(dt.value, dt.name) for dt in DetectorType])
 
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
