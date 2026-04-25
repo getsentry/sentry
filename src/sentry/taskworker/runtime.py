@@ -10,6 +10,8 @@ from sentry.taskworker.adapters import (
     make_producer,
 )
 
+from sentry.taskworker.adapters import TaskErrorCaptureHook
+
 app = TaskbrokerApp(
     name="sentry",
     producer_factory=make_producer,
@@ -17,6 +19,7 @@ app = TaskbrokerApp(
     router_class=SentryRouter(),
     at_most_once_store=DjangoCacheAtMostOnceStore(cache),
     context_hooks=[ViewerContextHook()],
+    error_hook=TaskErrorCaptureHook(),
 )
 app.set_config(
     {
