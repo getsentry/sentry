@@ -237,22 +237,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
             return
 
         removals_enabled = _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org)
-        bump_org_integration_last_sync(
-            organization_integration_id,
-            repos_changed=bool(new_ids or restored_ids or (removed_ids and removals_enabled)),
-        )
 
-        # Build repo configs for new repos
-        new_repo_configs = [
-            {
-                **repo,
-                "identifier": str(repo["identifier"]),
-                "integration_id": integration.id,
-                "installation": integration.id,
-            }
-            for repo in provider_repos
-            if repo["external_id"] in new_ids
-        ]
         # Filter out any repo with recent activity (commits, PRs, code review
         # events) before disable.
         removed_id_list = list(removed_ids)
@@ -276,7 +261,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                         "organization_id": rpc_org.id,
                         "candidate_count": len(removed_id_list),
                         "skipped_count": len(active_skipped),
-                        "skipped_ids": active_skipped,
+                        "skipped_ids": list(active_skipped),
                         "cutoff_days": DISABLE_ACTIVITY_CUTOFF_DAYS,
                     },
                 )
@@ -288,6 +273,20 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 )
 
         safe_to_disable = [eid for eid in removed_id_list if eid not in active_skipped]
+        bump_org_integration_last_sync(
+            organization_integration_id,
+            repos_changed=bool(new_ids or restored_ids or (safe_to_disable and removals_enabled)),
+        )
+        new_repo_configs = [
+            {
+                **repo,
+                "identifier": str(repo["identifier"]),
+                "integration_id": integration.id,
+                "installation": integration.id,
+            }
+            for repo in provider_repos
+            if repo["external_id"] in new_ids
+        ]
         restored_id_list = list(restored_ids)
 
         for config_batch in chunked(new_repo_configs, SYNC_BATCH_SIZE):
