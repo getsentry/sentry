@@ -17,7 +17,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
-from sentry.workflow_engine.types import get_detector_settings
+from sentry.workflow_engine.registry import get_detector_settings
 
 
 @cell_silo_endpoint

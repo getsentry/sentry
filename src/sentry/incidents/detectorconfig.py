@@ -27,13 +27,13 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
     DetectorType,
-    detector_settings_registry,
 )
 
 logger = logging.getLogger(__name__)

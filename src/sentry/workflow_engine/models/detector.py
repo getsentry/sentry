@@ -160,7 +160,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def settings(self) -> DetectorSettings:
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         settings = get_detector_settings(self.group_type)
 
@@ -222,7 +222,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if not group_type:
             raise ValueError(f"No group type found with type {self.type}")
 
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         detector_settings = get_detector_settings(group_type)
         if not detector_settings:

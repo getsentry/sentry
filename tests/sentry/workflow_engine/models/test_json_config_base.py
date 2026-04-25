@@ -10,7 +10,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.workflow_engine.types import DetectorSettings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
-_GET_DETECTOR_SETTINGS = "sentry.workflow_engine.types.get_detector_settings"
+_GET_DETECTOR_SETTINGS = "sentry.workflow_engine.registry.get_detector_settings"
 
 
 class JSONConfigBaseTest(BaseGroupTypeTest):

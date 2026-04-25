@@ -122,7 +122,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             else:
                 error_message = f"Unknown detector type '{value}'"
             raise serializers.ValidationError(error_message)
-        from sentry.workflow_engine.types import get_detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
 
         ds = get_detector_settings(type)
         if ds is None or ds.validator is None:
