@@ -52,7 +52,19 @@ def mark_organization_as_pending_deletion_with_outbox_message(
         Organization(id=org_id).outbox_for_update().save()
 
         org = Organization.objects.get(id=org_id)
+
+        transaction.on_commit(
+            lambda oid=org_id: _schedule_notify_seer_code_review_org_offboarded(oid)
+        )
         return org
+
+
+def _schedule_notify_seer_code_review_org_offboarded(organization_id: int) -> None:
+    from sentry.tasks.seer.code_review_offboarding import (
+        notify_code_review_organization_offboarded,
+    )
+
+    notify_code_review_organization_offboarded.delay(organization_id=organization_id)
 
 
 def unmark_organization_as_pending_deletion_with_outbox_message(

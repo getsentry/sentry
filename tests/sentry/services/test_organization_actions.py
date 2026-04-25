@@ -1,4 +1,5 @@
 import re
+from unittest import mock
 
 import pytest
 
@@ -116,10 +117,15 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
             slug="sluggy", name="barfoo", status=OrganizationStatus.ACTIVE
         )
 
-    def test_mark_for_deletion_and_outbox_generation(self) -> None:
+    @mock.patch(
+        "sentry.tasks.seer.code_review_offboarding.notify_code_review_organization_offboarded.delay"
+    )
+    def test_mark_for_deletion_and_outbox_generation(
+        self, mock_offboard_delay: mock.MagicMock
+    ) -> None:
         org_before_update = Organization.objects.get(id=self.org.id)
 
-        with outbox_context(flush=False):
+        with outbox_context(flush=False), self.capture_on_commit_callbacks(execute=True):
             updated_org = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=self.org.id
             )
@@ -131,8 +137,14 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         assert updated_org.slug == self.org.slug == org_before_update.slug
 
         assert_outbox_update_message_exists(self.org, 1)
+        mock_offboard_delay.assert_called_once_with(organization_id=self.org.id)
 
-    def test_mark_for_deletion_on_already_deleted_org(self) -> None:
+    @mock.patch(
+        "sentry.tasks.seer.code_review_offboarding.notify_code_review_organization_offboarded.delay"
+    )
+    def test_mark_for_deletion_on_already_deleted_org(
+        self, mock_offboard_delay: mock.MagicMock
+    ) -> None:
         self.org.status = OrganizationStatus.PENDING_DELETION
         self.org.save()
 
@@ -151,14 +163,20 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         assert self.org.slug == org_before_update.slug
 
         assert_outbox_update_message_exists(self.org, 0)
+        mock_offboard_delay.assert_not_called()
 
-    def test_mark_for_deletion_on_relocation_pending(self) -> None:
+    @mock.patch(
+        "sentry.tasks.seer.code_review_offboarding.notify_code_review_organization_offboarded.delay"
+    )
+    def test_mark_for_deletion_on_relocation_pending(
+        self, mock_offboard_delay: mock.MagicMock
+    ) -> None:
         self.org.status = OrganizationStatus.RELOCATION_PENDING_APPROVAL
         self.org.save()
 
         org_before_update = Organization.objects.get(id=self.org.id)
 
-        with outbox_context(flush=False):
+        with outbox_context(flush=False), self.capture_on_commit_callbacks(execute=True):
             updated_org = mark_organization_as_pending_deletion_with_outbox_message(
                 org_id=self.org.id
             )
@@ -170,6 +188,7 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         assert self.org.slug == org_before_update.slug
 
         assert_outbox_update_message_exists(self.org, 1)
+        mock_offboard_delay.assert_called_once_with(organization_id=self.org.id)
 
 
 class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
