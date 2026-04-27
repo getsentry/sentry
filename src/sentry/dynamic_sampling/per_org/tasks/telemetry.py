@@ -73,6 +73,10 @@ def instrumented(func: F) -> F:
                 emit_status(status_metric, TelemetryStatus.FAILED)
                 raise
 
+        if isinstance(result, TelemetryStatus):
+            emit_status(status_metric, result)
+            return result
+
         emit_status(status_metric, TelemetryStatus.COMPLETED)
         return result
 

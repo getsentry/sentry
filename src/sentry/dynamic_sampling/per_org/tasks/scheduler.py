@@ -84,24 +84,24 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> None:
 
 
 @instrumented
-def run_calculations_per_org(org_id: OrganizationId) -> None:
+def run_calculations_per_org(org_id: OrganizationId) -> TelemetryStatus | None:
     if is_killswitch_engaged():
-        return
+        return TelemetryStatus.KILLSWITCHED
 
     if not is_org_in_rollout(org_id):
-        return
+        return TelemetryStatus.NOT_IN_ROLLOUT
 
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
-        return
+        return TelemetryStatus.ORG_NOT_FOUND
 
     if not has_dynamic_sampling(organization):
-        return
+        return TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
 
     outcomes = fetch_outcomes_volume(org_id, organization)
     if not has_recent_volume(outcomes):
-        return
+        return TelemetryStatus.NO_VOLUME
 
     eap = run_eap_batch(org_id, organization)
 

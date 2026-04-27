@@ -83,3 +83,20 @@ def test_passes_result_through_and_emits_completed_on_success() -> None:
     timer.assert_called_once_with("dynamic_sampling.add.duration", sample_rate=1.0)
     emit.assert_called_once_with("dynamic_sampling.add.status", TelemetryStatus.COMPLETED)
     sdk.capture_exception.assert_not_called()
+
+
+def test_emits_returned_terminal_status_without_completed_status() -> None:
+    @instrumented
+    def skipped() -> TelemetryStatus:
+        return TelemetryStatus.NOT_IN_ROLLOUT
+
+    with (
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer") as timer,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.sentry_sdk") as sdk,
+    ):
+        assert skipped() == TelemetryStatus.NOT_IN_ROLLOUT
+
+    timer.assert_called_once_with("dynamic_sampling.skipped.duration", sample_rate=1.0)
+    emit.assert_called_once_with("dynamic_sampling.skipped.status", TelemetryStatus.NOT_IN_ROLLOUT)
+    sdk.capture_exception.assert_not_called()
