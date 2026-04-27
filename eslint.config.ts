@@ -817,7 +817,6 @@ export default typescript.config([
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',
       'unicorn/consistent-existence-index-check': 'off',
-      'unicorn/escape-case': 'off',
       'unicorn/import-style': 'off',
       'unicorn/no-array-for-each': 'off',
       'unicorn/no-array-method-this-argument': 'off',
