@@ -3,7 +3,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {
   buildConversationTurns,
   extractMessagesFromNodes,
-  extractTextFromMessage,
   getNodeTimestamp,
   mergeEmptyTurns,
   parseAssistantContent,
@@ -78,74 +77,6 @@ describe('conversationMessages utilities', () => {
     it('returns 0 when no timestamp is present', () => {
       const node = {id: 'node-1', value: {}} as any;
       expect(getNodeTimestamp(node)).toBe(0);
-    });
-  });
-
-  describe('extractTextFromMessage', () => {
-    it('extracts text from string content', () => {
-      const msg = {role: 'user', content: 'Hello world'};
-      expect(extractTextFromMessage(msg)).toBe('Hello world');
-    });
-
-    it('extracts text from array content format', () => {
-      const msg = {role: 'user', content: [{text: 'Array message'}]};
-      expect(extractTextFromMessage(msg)).toBe('Array message');
-    });
-
-    it('joins multiple array content elements with newlines', () => {
-      const msg = {
-        role: 'user',
-        content: [{text: 'First part'}, {text: 'Second part'}],
-      };
-      expect(extractTextFromMessage(msg)).toBe('First part\nSecond part');
-    });
-
-    it('extracts text from parts format with content field', () => {
-      const msg = {
-        role: 'user',
-        parts: [{type: 'text', content: 'Parts message'}],
-      };
-      expect(extractTextFromMessage(msg)).toBe('Parts message');
-    });
-
-    it('extracts text from parts format with text field', () => {
-      const msg = {
-        role: 'user',
-        parts: [{type: 'text', text: 'Parts text field'}],
-      };
-      expect(extractTextFromMessage(msg)).toBe('Parts text field');
-    });
-
-    it('joins multiple text parts with newlines', () => {
-      const msg = {
-        role: 'user',
-        parts: [
-          {type: 'text', content: 'Line 1'},
-          {type: 'text', content: 'Line 2'},
-        ],
-      };
-      expect(extractTextFromMessage(msg)).toBe('Line 1\nLine 2');
-    });
-
-    it('filters non-text parts', () => {
-      const msg = {
-        role: 'user',
-        parts: [
-          {type: 'image', content: 'image-data'},
-          {type: 'text', content: 'Text only'},
-        ],
-      };
-      expect(extractTextFromMessage(msg)).toBe('Text only');
-    });
-
-    it('returns null when no content', () => {
-      const msg = {role: 'user'};
-      expect(extractTextFromMessage(msg)).toBeNull();
-    });
-
-    it('returns null when empty array content', () => {
-      const msg = {role: 'user', content: [] as Array<{text: string}>};
-      expect(extractTextFromMessage(msg)).toBeNull();
     });
   });
 
@@ -226,14 +157,14 @@ describe('conversationMessages utilities', () => {
       expect(parseUserContent(node as any)).toBeNull();
     });
 
-    it('returns null on parse error instead of raw string', () => {
+    it('treats a plain string as the user message', () => {
       const node = createMockNode({
         id: 'node-1',
         attributes: {
           [SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json',
         },
       });
-      expect(parseUserContent(node as any)).toBeNull();
+      expect(parseUserContent(node as any)).toBe('not valid json');
     });
 
     it('returns null when request messages JSON is truncated', () => {
@@ -261,6 +192,32 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseUserContent(node as any)).toBe('[Filtered]');
+    });
+
+    it('parses parts-format user messages', () => {
+      const messages = JSON.stringify([
+        {role: 'user', parts: [{type: 'text', content: 'Parts question'}]},
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
+        },
+      });
+      expect(parseUserContent(node as any)).toBe('Parts question');
+    });
+
+    it('unwraps OpenRouter-style {messages: [...]} wrapper', () => {
+      const messages = JSON.stringify({
+        messages: [{role: 'user', content: 'Wrapped question'}],
+      });
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: messages,
+        },
+      });
+      expect(parseUserContent(node as any)).toBe('Wrapped question');
     });
   });
 
@@ -346,6 +303,41 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseAssistantContent(node as any)).toBe('[Filtered]');
+    });
+
+    it('treats a plain string output.messages as the assistant response', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response',
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('just a plain response');
+    });
+
+    it('parses parts-format assistant messages', () => {
+      const messages = JSON.stringify([
+        {role: 'assistant', parts: [{type: 'text', text: 'Parts response'}]},
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('Parts response');
+    });
+
+    it('falls back to response.text when output.messages has no assistant role', () => {
+      const messages = JSON.stringify([{role: 'user', content: 'no assistant here'}]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'fallback text',
+        },
+      });
+      expect(parseAssistantContent(node as any)).toBe('fallback text');
     });
   });
 
