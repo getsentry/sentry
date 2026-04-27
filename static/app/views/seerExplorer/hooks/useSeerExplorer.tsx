@@ -343,7 +343,10 @@ export const useSeerExplorer = () => {
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
-      if (supportsStructuredContext(getPageReferrer(), organization)) {
+      if (
+        overrideCtxEngEnable &&
+        supportsStructuredContext(getPageReferrer(), organization)
+      ) {
         try {
           screenshot = JSON.stringify(getLLMContext());
         } catch (e) {
