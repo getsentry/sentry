@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,7 +12,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Region} from 'sentry/types/system';
 import {getFormat} from 'sentry/utils/dates';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {PageHeader} from 'admin/components/pageHeader';
 

@@ -206,6 +206,15 @@ standard_cases = [
     ("git sha", "commit a93c7d2", "commit <git_sha>"),
     ("git sha - all letters", "commit cabcafe", "commit cabcafe"),
     ("git sha - all numbers", "commit 4150908", "commit <int>"),
+    ("random id", "k9Mtd2gDcgG", "<random_id>"),
+    ("random id - too short ", "k9M", "k9M"),
+    ("random id - insufficient letter/number switches", "k92MtdgDcgG", "k92MtdgDcgG"),
+    ("random id - no capitals", "k9mtd2gdcgg", "k9mtd2gdcgg"),
+    ("random id - no capitals until later", "k9mtd2gdcgg DOGS", "k9mtd2gdcgg DOGS"),
+    ("random id - no lowercase", "K9MTD2GDCGG", "K9MTD2GDCGG"),
+    ("random id - no lowercase until later", "K9MTD2GDCGG dogs", "K9MTD2GDCGG dogs"),
+    ("random id - no numbers", "kMtdgDcgG", "kMtdgDcgG"),
+    ("random id - no numbers until later", "kMtdgDcgG 1121", "kMtdgDcgG <int>"),
     ("float", "0.23", "<float>"),
     ("int", "23", "<int>"),
     ("int - negative", "-23", "<int>"),
@@ -284,6 +293,54 @@ def test_experimental_parameterization(name: str, input: str, expected: str) -> 
 incorrect_cases = [
     # ("name", "input", "desired", "actual")
     (
+        "date - slashes, day-month-year",
+        "31/Dec/2012",
+        "<date>",
+        "<int>/Dec/<int>",
+    ),
+    (
+        "date - colon btwn date and time",
+        "21/Nov/2012:12:31:12",
+        "<date>",
+        "<int>/Nov/<int>:<date>",
+    ),
+    (
+        "float - postive, too many segments",
+        "1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
+        "float - negative, too many segments",
+        "-1.2.3",
+        "<int>.<int>.<int>",
+        "<float>.<int>",
+    ),
+    (
+        "hex without prefix - leading underscore",
+        "img_3f26.jpg",
+        "img_<hex>.jpg",
+        "img_3f26.jpg",
+    ),
+    (
+        "hex without prefix - trailing underscore",
+        "3f26_thumbnail.jpg",
+        "<hex>_thumbnail.jpg",
+        "3f26_thumbnail.jpg",
+    ),
+    (
+        "int - leading underscore",
+        "img_1121.jpg",
+        "img_<int>.jpg",
+        "img_1121.jpg",
+    ),
+    (
+        "int - trailing underscore",
+        "1231_thumbnail.jpg",
+        "<int>_thumbnail.jpg",
+        "1231_thumbnail.jpg",
+    ),
+    (
         "int - number in word",
         "Encoding: utf-8",
         "Encoding: utf-8",
@@ -294,6 +351,24 @@ incorrect_cases = [
         "4,150,908",
         "<int>",
         "<int>,<int>,<int>",
+    ),
+    (
+        "ip - v4, leading zeros",
+        "11.21.12.001",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, segment > 255",
+        "12.31.12.908",
+        "<int>.<int>.<int>.<int>",
+        "<float>.<float>",
+    ),
+    (
+        "ip - v4, too many segments",
+        "11.21.12.31.12",
+        "<int>.<int>.<int>.<int>.<int>",
+        "<ip>.<int>",
     ),
     (
         "ip - short double colon object property including only hex",
@@ -314,12 +389,6 @@ incorrect_cases = [
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
         "{'dogs are great': <bool>, 'dog_id': '<id>'}",
         "{'dogs are great': true, 'dog_id': 'greatdog1231'}",
-    ),
-    (
-        "random sequence as id",
-        "invoice k9Mtd2gDcgG",
-        "invoice <random_str>",
-        "invoice k9Mtd2gDcgG",
     ),
     (
         "url - non-http protocol with username/password/port",

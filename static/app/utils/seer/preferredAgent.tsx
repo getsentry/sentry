@@ -1,10 +1,7 @@
-import type {QueryClient} from '@tanstack/react-query';
+import {queryOptions, type QueryClient, mutationOptions} from '@tanstack/react-query';
 
 import {bulkAutofixAutomationSettingsInfiniteOptions} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
-import {
-  makeProjectSeerPreferencesQueryKey,
-  type SeerPreferencesResponse,
-} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
+import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {PROVIDER_TO_HANDOFF_TARGET} from 'sentry/components/events/autofix/types';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
@@ -13,27 +10,20 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {
-  fetchDataQuery,
-  fetchMutation,
-  getApiQueryData,
-  mutationOptions,
-  setApiQueryData,
-  useQuery,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
-type PreferredAgent = 'seer' | CodingAgentIntegration;
+export type PreferredAgent = 'seer' | CodingAgentIntegration;
 
 /**
  * Returns the list of coding agent integrations formatted as select options,
  * with Seer Agent as the first/default option.
  */
-export function useCodingAgentSelectOptions({
+export function getCodingAgentSelectQueryOptions({
   organization,
 }: {
   organization: Organization;
 }) {
-  return useQuery({
+  return queryOptions({
     ...organizationIntegrationsCodingAgents(organization),
     select: (data): Array<{label: string; value: PreferredAgent}> => [
       {value: 'seer', label: t('Seer Agent')},
@@ -83,19 +73,13 @@ export function getProjectAgentMutationOptions({
   project: Project;
   queryClient: QueryClient;
 }) {
-  const seerPrefsQueryKey = makeProjectSeerPreferencesQueryKey(
-    organization.slug,
-    project.slug
-  );
+  const prefsOptions = projectSeerPreferencesApiOptions(organization.slug, project.slug);
+  const seerPrefsQueryKey = prefsOptions.queryKey;
 
   return mutationOptions({
     mutationFn: async ({agent}: {agent: PreferredAgent}) => {
-      const [prefsData] = await queryClient.fetchQuery({
-        queryKey: seerPrefsQueryKey,
-        queryFn: fetchDataQuery<SeerPreferencesResponse>,
-        staleTime: 0,
-      });
-      const preference = prefsData?.preference;
+      const prefsData = await queryClient.fetchQuery({...prefsOptions, staleTime: 0});
+      const preference = prefsData.json.preference;
 
       const handoff: ProjectSeerPreferences['automation_handoff'] =
         agent === 'seer'
@@ -126,14 +110,11 @@ export function getProjectAgentMutationOptions({
         }),
       ]);
     },
-    onMutate: ({agent}: {agent: PreferredAgent}) => {
+    onMutate: ({agent}) => {
       const previousProject = ProjectsStore.getById(project.id);
-      const previousPreference = getApiQueryData<SeerPreferencesResponse>(
-        queryClient,
-        seerPrefsQueryKey
-      );
+      const previousPreference = queryClient.getQueryData(seerPrefsQueryKey);
       ProjectsStore.onUpdateSuccess({...project, autofixAutomationTuning: 'medium'});
-      if (previousPreference?.preference) {
+      if (previousPreference?.json?.preference) {
         const handoff: ProjectSeerPreferences['automation_handoff'] =
           agent === 'seer'
             ? undefined
@@ -142,41 +123,31 @@ export function getProjectAgentMutationOptions({
                 target: PROVIDER_TO_HANDOFF_TARGET[agent.provider]!,
                 integration_id: Number(agent.id),
                 auto_create_pr:
-                  previousPreference.preference.automated_run_stopping_point ===
+                  previousPreference.json.preference.automated_run_stopping_point ===
                     'open_pr' ||
                   Boolean(
-                    previousPreference.preference.automation_handoff?.auto_create_pr
+                    previousPreference.json.preference.automation_handoff?.auto_create_pr
                   ),
               };
-        setApiQueryData<SeerPreferencesResponse>(queryClient, seerPrefsQueryKey, {
+        queryClient.setQueryData(seerPrefsQueryKey, {
           ...previousPreference,
-          preference: {
-            ...previousPreference.preference,
-            automation_handoff: handoff,
+          json: {
+            ...previousPreference.json,
+            preference: {
+              ...previousPreference.json.preference,
+              automation_handoff: handoff,
+            },
           },
         });
       }
       return {previousProject, previousPreference};
     },
-    onError: (
-      _error: unknown,
-      _variables: unknown,
-      context:
-        | {
-            previousPreference: SeerPreferencesResponse | undefined;
-            previousProject: Project | undefined;
-          }
-        | undefined
-    ) => {
+    onError: (_error, _variables, context) => {
       if (context?.previousProject) {
         ProjectsStore.onUpdateSuccess(context.previousProject);
       }
       if (context?.previousPreference) {
-        setApiQueryData<SeerPreferencesResponse>(
-          queryClient,
-          seerPrefsQueryKey,
-          context.previousPreference
-        );
+        queryClient.setQueryData(seerPrefsQueryKey, context.previousPreference);
       }
     },
     onSettled: () => {

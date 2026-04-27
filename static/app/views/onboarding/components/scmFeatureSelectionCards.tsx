@@ -1,7 +1,7 @@
 import type {ComponentType} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -78,36 +78,19 @@ export function ScmFeatureSelectionCards({
   disabledProducts,
   onToggleFeature,
 }: ScmFeatureSelectionCardsProps) {
-  const selectedCount = availableFeatures.filter(
-    f => selectedFeatures.includes(f) || FEATURE_META[f].alwaysEnabled
-  ).length;
-  const totalCount = availableFeatures.length;
-
   return (
     <Flex direction="column" gap="2xl" width="100%" justify="center">
-      <Grid
-        columns={{xs: '1fr', md: '1fr auto 1fr'}}
-        align="center"
-        justify="center"
-        areas={{xs: '"heading" "counter"', md: '"spacer heading counter"'}}
-      >
-        <Flex area="heading" justify={{xs: 'center', md: 'start'}}>
-          <Heading as="h3" size="xl">
-            {t('What do you want to set up?')}
-          </Heading>
-        </Flex>
-        <Flex area="counter" justify={{xs: 'center', md: 'end'}}>
-          <Text variant="muted">{t('%s of %s selected', selectedCount, totalCount)}</Text>
-        </Flex>
-      </Grid>
-      <Grid
-        gap="xl"
-        columns={
-          availableFeatures.length === 1 ? '1fr' : {xs: '1fr', md: 'repeat(2, 1fr)'}
-        }
-        maxWidth={availableFeatures.length === 1 ? {xs: '100%', md: '50%'} : undefined}
-        margin={availableFeatures.length === 1 ? '0 auto' : undefined}
-      >
+      <Stack gap="sm">
+        <Text bold size="lg">
+          {t('We’re more than just errors')}
+        </Text>
+        <Text size="lg" density="comfortable" variant="secondary">
+          {t(
+            'Sentry can trace slow requests, replay user sessions, profile your code, and more.'
+          )}
+        </Text>
+      </Stack>
+      <Stack gap="xl">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const disabledProduct = disabledProducts[feature];
@@ -124,10 +107,11 @@ export function ScmFeatureSelectionCards({
               disabled={!!meta.alwaysEnabled || !!disabledProduct}
               disabledReason={disabledReason}
               onClick={() => onToggleFeature(feature)}
+              alwaysEnabled={meta.alwaysEnabled}
             />
           );
         })}
-      </Grid>
+      </Stack>
     </Flex>
   );
 }

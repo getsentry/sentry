@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
@@ -31,7 +32,10 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiPaginationTruncated,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
@@ -55,6 +59,25 @@ SCM_SYNC_PROVIDERS = [
 ]
 
 SYNC_BATCH_SIZE = 100
+
+
+def bump_org_integration_last_sync(
+    organization_integration_id: int, *, repos_changed: bool = False
+) -> None:
+    """
+    Record the time we most recently synced repositories from the provider for
+    a given OrganizationIntegration by stamping `config["last_sync"]`. When
+    `repos_changed` is True, also stamp `config["last_repos_change"]` to record
+    the last time the repo set actually changed.
+    """
+    oi = OrganizationIntegration.objects.filter(id=organization_integration_id).first()
+    if oi is None:
+        return
+    now = timezone.now().isoformat()
+    oi.config["last_sync"] = now
+    if repos_changed:
+        oi.config["last_repos_change"] = now
+    oi.save(update_fields=["config"])
 
 
 def _has_feature(flag: str, org: object) -> bool:
@@ -100,8 +123,30 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         installation = integration.get_installation(organization_id=rpc_org.id)
         assert isinstance(installation, RepositoryIntegration)
 
+        fetch_truncated = False
         try:
-            provider_repos = installation.get_repositories()
+            provider_repos = installation.get_repositories(raise_on_page_limit=True)
+        except ApiPaginationTruncated as e:
+            # Provider fetch hit a pagination cap with more data still
+            # available. We keep the partial result for create/restore — those
+            # are additive and safe — but skip the disable path so repos that
+            # fell off the tail of the cap aren't wrongly removed.
+            provider_repos = e.partial_data
+            fetch_truncated = True
+            logger.warning(
+                "sync_repos_for_org.pagination_cap_hit",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": rpc_org.id,
+                    "provider": provider_key,
+                    "count": len(provider_repos),
+                },
+            )
+            metrics.incr(
+                "scm.repo_sync.pagination_cap_hit",
+                tags={"provider": provider_key},
+                sample_rate=1.0,
+            )
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 logger.info(
@@ -129,7 +174,9 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
 
         new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
-        removed_ids = sentry_active_ids - provider_external_ids
+        # Skip removals entirely if we didn't manage to fetch all repos for this integration.
+        # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
+        removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
         metric_tags = {
@@ -184,6 +231,12 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         if dry_run:
             return
 
+        removals_enabled = _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org)
+        bump_org_integration_last_sync(
+            organization_integration_id,
+            repos_changed=bool(new_ids or restored_ids or (removed_ids and removals_enabled)),
+        )
+
         # Build repo configs for new repos
         new_repo_configs = [
             {
@@ -206,7 +259,7 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
                 }
             )
 
-        if _has_feature("organizations:scm-repo-auto-sync-removal", rpc_org):
+        if removals_enabled:
             for removed_batch in chunked(removed_id_list, SYNC_BATCH_SIZE):
                 disable_repos_batch.apply_async(
                     kwargs={

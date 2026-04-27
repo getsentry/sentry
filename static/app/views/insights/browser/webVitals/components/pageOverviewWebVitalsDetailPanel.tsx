@@ -2,10 +2,10 @@ import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,

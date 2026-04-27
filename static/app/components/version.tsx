@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 type Props = {
   /**

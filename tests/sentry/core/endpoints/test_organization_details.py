@@ -28,6 +28,7 @@ from sentry.constants import (
 from sentry.core.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
@@ -871,6 +872,103 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to Default Mode" in log.data["samplingMode"]
+
+    def test_scm_option_fans_out_to_organization_integration_config(self) -> None:
+        github = self.create_integration(
+            organization=self.organization, provider="github", external_id="gh-1"
+        )
+        gitlab = self.create_integration(
+            organization=self.organization, provider="gitlab", external_id="gl-1"
+        )
+
+        # Freshly created integrations have no SCM-toggle config yet.
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            github_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=github
+            )
+            gitlab_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=gitlab
+            )
+        assert github_oi.config.get("pr_comments") is None
+        assert github_oi.config.get("nudge_invite") is None
+        assert gitlab_oi.config.get("pr_comments") is None
+
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                githubPRBot=True,
+                githubNudgeInvite=True,
+                gitlabPRBot=True,
+            )
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            github_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=github
+            )
+            gitlab_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=gitlab
+            )
+
+        assert github_oi.config.get("pr_comments") is True
+        assert github_oi.config.get("nudge_invite") is True
+        assert gitlab_oi.config.get("pr_comments") is True
+        # GitLab has no nudge_invite key; toggle must not leak across providers.
+        assert "nudge_invite" not in gitlab_oi.config
+
+    def test_scm_option_fanout_only_touches_active_integrations(self) -> None:
+        active = self.create_integration(
+            organization=self.organization, provider="github", external_id="gh-active"
+        )
+        disabled = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="gh-disabled",
+            oi_params={"status": ObjectStatus.DISABLED},
+        )
+
+        # Both integrations start with no pr_comments config.
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            active_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=active
+            )
+            disabled_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=disabled
+            )
+        assert active_oi.config.get("pr_comments") is None
+        assert disabled_oi.config.get("pr_comments") is None
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, githubPRBot=True)
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            active_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=active
+            )
+            disabled_oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=disabled
+            )
+
+        assert active_oi.config.get("pr_comments") is True
+        assert disabled_oi.config.get("pr_comments") is None
+
+    def test_scm_option_fanout_preserves_other_config_keys(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="gh-keeps",
+            oi_params={"config": {"some_other_setting": "kept"}},
+        )
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, githubPRBot=True)
+
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            oi = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration=integration
+            )
+
+        assert oi.config.get("some_other_setting") == "kept"
+        assert oi.config.get("pr_comments") is True
 
     @responses.activate
     @patch(

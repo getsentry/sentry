@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -18,6 +19,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {generateOrgSlugUrl, urlEncode} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {
@@ -93,24 +95,22 @@ export default function IntegrationOrganizationLink() {
     {staleTime: Infinity}
   );
 
-  const isOrganizationQueryEnabled = !!selectedOrgSlug;
-  const organizationQuery = useApiQuery<Organization>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/', {
-        path: {organizationIdOrSlug: selectedOrgSlug!},
-      }),
-      {query: {include_feature_flags: 1}},
-    ],
-    {staleTime: Infinity, enabled: isOrganizationQueryEnabled}
+  const hasSelectedOrg = !!selectedOrgSlug;
+  const organizationQuery = useQuery(
+    apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+      path: hasSelectedOrg ? {organizationIdOrSlug: selectedOrgSlug} : skipToken,
+      query: {include_feature_flags: 1},
+      staleTime: Infinity,
+    })
   );
   const organization = organizationQuery.data ?? null;
   useEffect(() => {
-    if (isOrganizationQueryEnabled && organizationQuery.error) {
+    if (hasSelectedOrg && organizationQuery.error) {
       addErrorMessage(t('Failed to retrieve organization details'));
     }
-  }, [isOrganizationQueryEnabled, organizationQuery.error]);
+  }, [hasSelectedOrg, organizationQuery.error]);
 
-  const isProviderQueryEnabled = !!selectedOrgSlug;
+  const isProviderQueryEnabled = hasSelectedOrg;
   const providerQuery = useApiQuery<{
     providers: IntegrationProvider[];
   }>(
@@ -146,7 +146,7 @@ export default function IntegrationOrganizationLink() {
 
   // These two queries are recomputed when an organization is selected
   const isPendingSelection =
-    (isOrganizationQueryEnabled && organizationQuery.isPending) ||
+    (hasSelectedOrg && organizationQuery.isPending) ||
     (isProviderQueryEnabled && providerQuery.isPending);
 
   const selectOrganization = useCallback(

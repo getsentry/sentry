@@ -6,6 +6,7 @@ from unittest import mock
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, models, router, transaction
 from django.http import HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.test import Client, RequestFactory
 
 from sentry import audit_log
@@ -827,6 +828,94 @@ class ProviderMismatchTest(TestCase):
         for call in mock_messages.add_message.call_args_list:
             if call[0][1] == mock_messages.WARNING:
                 assert "SSO" not in str(call)
+
+
+@control_silo_test
+class SetupPipelineIdentityLinkingTest(TestCase, HybridCloudTestMixin):
+    """Tests that the SSO setup pipeline always links the identity to the authenticated admin."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = "dummy"
+        self.admin_user = self.create_user(email="admin@example.com")
+        self.create_member(organization=self.organization, user=self.admin_user, role="owner")
+
+        self.auth_key = "test_auth_key"
+        self.request = _set_up_request()
+        self.request.user = self.admin_user
+        self.request.session["auth_key"] = self.auth_key
+
+    def _run_setup_pipeline_with_identity_email(self, identity_email: str) -> HttpResponseBase:
+        """Run the setup pipeline with a given email in the IdP assertion."""
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": FLOW_SETUP_PROVIDER,
+            "provider_model_id": None,
+            "provider_key": self.provider,
+            "referrer": None,
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        helper = AuthHelper.get_for_request(self.request)
+        assert helper is not None
+        helper.initialize()
+
+        helper.bind_state("email", identity_email)
+        helper.bind_state("email_verified", True)
+
+        helper.state.step_index = len(helper.pipeline_views)
+        result = helper.current_step()
+        return result
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_setup_links_to_admin_when_assertion_email_differs(
+        self, mock_messages: mock.MagicMock
+    ) -> None:
+        """When the IdP assertion email belongs to a different org member,
+        the identity is still linked to the admin performing setup."""
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(organization=self.organization, user=other_user)
+
+        result = self._run_setup_pipeline_with_identity_email("other@example.com")
+
+        assert result.status_code == 302
+
+        auth_provider = AuthProvider.objects.get(
+            organization_id=self.organization.id, provider=self.provider
+        )
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        assert auth_identity.user_id == self.admin_user.id
+        assert not AuthIdentity.objects.filter(user_id=other_user.id).exists()
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_setup_links_to_admin_when_emails_match(self, mock_messages: mock.MagicMock) -> None:
+        """Setup succeeds normally when the IdP assertion email matches the admin."""
+        result = self._run_setup_pipeline_with_identity_email("admin@example.com")
+
+        assert result.status_code == 302
+
+        auth_provider = AuthProvider.objects.get(
+            organization_id=self.organization.id, provider=self.provider
+        )
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        assert auth_identity.user_id == self.admin_user.id
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_setup_links_to_admin_when_email_matches_no_user(
+        self, mock_messages: mock.MagicMock
+    ) -> None:
+        """When the IdP returns an email that doesn't match any Sentry user,
+        the identity is still linked to the admin."""
+        result = self._run_setup_pipeline_with_identity_email("unknown@nowhere.com")
+
+        assert result.status_code == 302
+
+        auth_provider = AuthProvider.objects.get(
+            organization_id=self.organization.id, provider=self.provider
+        )
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+        assert auth_identity.user_id == self.admin_user.id
 
 
 @control_silo_test

@@ -490,6 +490,7 @@ const AddWidgetWrapper = styled('div')`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
+// eslint-disable-next-line @sentry/no-calling-components-as-functions
 const GridLayout = styled(WidthProvider(Responsive))`
   margin: -${p => p.theme.space.xl};
 

@@ -47,8 +47,9 @@ describe('Issues Similar View', () => {
 
   beforeEach(() => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar/?limit=50`,
+      url: `/organizations/org-slug/issues/${group.id}/similar/`,
       body: mockData.similar,
+      match: [MockApiClient.matchQuery({limit: 50})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
@@ -163,8 +164,9 @@ describe('Issues Similar View', () => {
 
   it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar/?limit=50`,
+      url: `/organizations/org-slug/issues/${group.id}/similar/`,
       body: [],
+      match: [MockApiClient.matchQuery({limit: 50})],
     });
 
     render(<GroupSimilarIssues />, {
@@ -216,8 +218,9 @@ describe('Issues Similar Embeddings View', () => {
 
   beforeEach(() => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01`,
+      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/`,
       body: mockData.similarEmbeddings,
+      match: [MockApiClient.matchQuery({k: 10, threshold: 0.01})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
@@ -330,8 +333,9 @@ describe('Issues Similar Embeddings View', () => {
 
   it('shows empty message', async () => {
     mock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/?k=10&threshold=0.01`,
+      url: `/organizations/org-slug/issues/${group.id}/similar-issues-embeddings/`,
       body: [],
+      match: [MockApiClient.matchQuery({k: 10, threshold: 0.01})],
     });
 
     render(<GroupSimilarIssues />, {

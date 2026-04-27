@@ -40,6 +40,7 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
+from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
 
 logger = logging.getLogger(__name__)
@@ -374,7 +375,7 @@ def notify_target_async(
 
 
 def serialize_notification_data(data: NotificationData) -> dict[str, Any]:
-    return {"source": data.source, "data": data.dict()}
+    return {"source": data.source, "data": json.loads(data.json())}
 
 
 def deserialize_notification_data(raw: dict[str, Any]) -> NotificationData:

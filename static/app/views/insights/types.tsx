@@ -121,6 +121,8 @@ export enum SpanFields {
   GEN_AI_OUTPUT_MESSAGES = 'gen_ai.output.messages',
   GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions',
   GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
+  GEN_AI_CONTEXT_WINDOW_SIZE = 'gen_ai.context.window_size',
+  GEN_AI_CONTEXT_UTILIZATION = 'gen_ai.context.utilization',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -265,7 +267,7 @@ export type SpanNumberFields =
 // is _not_ up-to-date! If you discover more nullable string fields, update this
 // list. In theory, maybe _all_ of these fields are actually nullable in
 // reality, which means we'll need to update a lot of code.
-export type NonNullableStringFields =
+type NonNullableStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD

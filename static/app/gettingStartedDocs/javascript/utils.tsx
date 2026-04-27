@@ -340,20 +340,30 @@ export const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPageLoad: params => {
     return () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_setup_loader_docs_rendered'
+          : 'onboarding.setup_loader_docs_rendered',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onPlatformOptionsChange: params => {
     return () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_js_loader_npm_docs_shown'
+          : 'onboarding.js_loader_npm_docs_shown',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onProductSelectionChange: params => {
@@ -450,11 +460,16 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPageLoad: params => {
     return () => {
-      trackAnalytics('onboarding.js_loader_npm_docs_shown', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_js_loader_npm_docs_shown'
+          : 'onboarding.js_loader_npm_docs_shown',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
   onProductSelectionChange: params => {
@@ -481,11 +496,16 @@ export const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   },
   onPlatformOptionsChange: params => {
     return () => {
-      trackAnalytics('onboarding.setup_loader_docs_rendered', {
-        organization: params.organization,
-        platform: params.platformKey,
-        project_id: params.project.id,
-      });
+      trackAnalytics(
+        params.hasScmOnboarding
+          ? 'onboarding.scm_setup_loader_docs_rendered'
+          : 'onboarding.setup_loader_docs_rendered',
+        {
+          organization: params.organization,
+          platform: params.platformKey,
+          project_id: params.project.id,
+        }
+      );
     };
   },
 };

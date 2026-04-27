@@ -79,7 +79,10 @@ class AlertRuleListDeltaTest(APITestCase):
 
 
 @with_feature(
-    ["organizations:incidents", "organizations:workflow-engine-projectalertruleindex-get"]
+    [
+        "organizations:incidents",
+        "organizations:workflow-engine-metric-alert-endpoints-get",
+    ]
 )
 class AlertRuleListEndpointWorkflowEngineMethodFlagTest(APITestCase):
     """Verify that the per-method flag alone (without the broad rule-serializers flag)
