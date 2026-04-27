@@ -2,7 +2,6 @@
 
 import {spawn} from 'node:child_process';
 import * as net from 'node:net';
-import * as readline from 'node:readline';
 
 const DEFAULT_PORT = parseInt(process.env.SENTRY_WEBPACK_PROXY_PORT ?? '7999', 10);
 const MAX_PORT_SEARCH = 10;
@@ -23,17 +22,6 @@ async function findNextPort(from: number): Promise<number | null> {
     }
   }
   return null;
-}
-
-function ask(question: string): Promise<boolean> {
-  const rl = readline.createInterface({input: process.stdin, output: process.stdout});
-  return new Promise(resolve => {
-    rl.question(question, answer => {
-      rl.close();
-      const normalized = answer.trim().toLowerCase();
-      resolve(normalized === '' || normalized === 'y' || normalized === 'yes');
-    });
-  });
 }
 
 function startServer(port: number): void {
@@ -61,14 +49,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const confirmed = await ask(
-    `Port ${requestedPort} is already in use. Start on port ${availablePort} instead? [Y/n] `
+  process.stderr.write(
+    `Port ${requestedPort} is already in use. Starting on port ${availablePort} instead.\n`
   );
-
-  if (!confirmed) {
-    process.exit(0);
-  }
-
   startServer(availablePort);
 }
 
