@@ -879,11 +879,11 @@ def test_deprecated_attribute_internal_alias_preserves_existing_search_type() ->
         ],
     )
 
-    deprecated_internal_attr = attribute_definitions["frames.total"]
+    deprecated_internal_attr = attribute_definitions["mobile.total_frames"]
     replacement_attr = attribute_definitions["app.vitals.frames.total.count"]
 
-    assert attribute_definitions["mobile.total_frames"] == mobile_total_frames_attr
-    assert deprecated_internal_attr.public_alias == "frames.total"
+    assert "frames.total" not in attribute_definitions
+    assert deprecated_internal_attr.public_alias == "mobile.total_frames"
     assert deprecated_internal_attr.internal_name == "frames.total"
     assert deprecated_internal_attr.search_type == "number"
     assert deprecated_internal_attr.deprecation_status == "backfill"
@@ -891,6 +891,39 @@ def test_deprecated_attribute_internal_alias_preserves_existing_search_type() ->
     assert replacement_attr.public_alias == "app.vitals.frames.total.count"
     assert replacement_attr.internal_name == "app.vitals.frames.total.count"
     assert replacement_attr.search_type == "number"
+
+
+def test_deprecated_attribute_internal_name_match_does_not_expose_internal_alias() -> None:
+    attribute_definitions = {
+        "measurements.fcp": SPAN_ATTRIBUTE_DEFINITIONS["measurements.fcp"],
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "fcp",
+                "type": "double",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "browser.web_vital.fcp.value",
+                },
+            }
+        ],
+    )
+
+    deprecated_attr = attribute_definitions["measurements.fcp"]
+    replacement_attr = attribute_definitions["browser.web_vital.fcp.value"]
+
+    assert "fcp" not in attribute_definitions
+    assert deprecated_attr.public_alias == "measurements.fcp"
+    assert deprecated_attr.internal_name == "fcp"
+    assert deprecated_attr.search_type == "millisecond"
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "browser.web_vital.fcp.value"
+    assert replacement_attr.public_alias == "browser.web_vital.fcp.value"
+    assert replacement_attr.internal_name == "browser.web_vital.fcp.value"
+    assert replacement_attr.search_type == "millisecond"
 
 
 def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
@@ -917,10 +950,11 @@ def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
         ],
     )
 
-    deprecated_internal_attr = attribute_definitions["frames.total"]
+    deprecated_internal_attr = attribute_definitions["mobile.total_frames"]
     replacement_attr = attribute_definitions["app.vitals.frames.total.count"]
 
-    assert deprecated_internal_attr.public_alias == "frames.total"
+    assert "frames.total" not in attribute_definitions
+    assert deprecated_internal_attr.public_alias == "mobile.total_frames"
     assert deprecated_internal_attr.internal_name == "frames.total"
     assert deprecated_internal_attr.search_type == "number"
     assert deprecated_internal_attr.deprecation_status == "backfill"
@@ -930,3 +964,57 @@ def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
     assert replacement_attr.search_type == "integer"
     assert replacement_attr.deprecation_status is None
     assert replacement_attr.replacement is None
+
+
+def test_deprecated_attribute_normalizes_supported_convention_attribute_types() -> None:
+    attribute_definitions = {}
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "old_string",
+                "type": "string",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_string",
+                },
+            },
+            {
+                "key": "old_boolean",
+                "type": "boolean",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_boolean",
+                },
+            },
+            {
+                "key": "old_integer",
+                "type": "integer",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_integer",
+                },
+            },
+            {
+                "key": "old_double",
+                "type": "double",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "new_double",
+                },
+            },
+        ],
+    )
+
+    assert attribute_definitions["old_string"].search_type == "string"
+    assert attribute_definitions["new_string"].search_type == "string"
+
+    assert attribute_definitions["old_boolean"].search_type == "boolean"
+    assert attribute_definitions["new_boolean"].search_type == "boolean"
+
+    assert attribute_definitions["old_integer"].search_type == "integer"
+    assert attribute_definitions["new_integer"].search_type == "integer"
+
+    assert attribute_definitions["old_double"].search_type == "number"
+    assert attribute_definitions["new_double"].search_type == "number"
