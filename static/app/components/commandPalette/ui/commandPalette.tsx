@@ -976,7 +976,7 @@ function makeMenuItemFromAction(
 function CommandPaletteHints() {
   return (
     <Container borderTop="primary" padding="sm md">
-      <Flex align="center" justify="space-between">
+      <Flex align="center" justify="between">
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">
             <Flex align="center" gap="2xs">
