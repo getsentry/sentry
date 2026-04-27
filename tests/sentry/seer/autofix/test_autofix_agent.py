@@ -824,7 +824,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
         mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
-        self._make_repo_and_projectrepo(external_id="1", branch_name="main")
+        self._make_repo_and_projectrepo(external_id="1")
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
             request=AutofixRequest(
