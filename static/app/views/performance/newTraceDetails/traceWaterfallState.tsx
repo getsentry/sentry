@@ -1,22 +1,15 @@
-import {useMemo, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-
-import type {TraceTree} from './traceModels/traceTree';
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
 
-function TraceLoading({
-  trace,
-}: {
-  trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
-}) {
+function TraceLoading({trace}: {trace: TraceQueryResult}) {
   return (
     // Dont flash the animation on load because it's annoying
     <LoadingContainer animate={false}>
@@ -31,48 +24,45 @@ function TraceLoading({
   );
 }
 
-function TraceError({trace}: {trace: UseApiQueryResult<TraceTree.Trace, RequestError>}) {
-  const message = useMemo(() => {
-    const status = trace.error?.status;
+interface TraceErrorProps {
+  trace: TraceQueryResult;
+}
 
-    if (status === 404) {
-      return tct(
-        "Couldn't find this trace. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]",
-        {
-          feedbackLink: <FeedbackLink />,
-        }
-      );
-    }
-
-    if (status === 404) {
-      return tct(
-        'The request was invalid. Think could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
-        {
-          feedbackLink: <FeedbackLink />,
-        }
-      );
-    }
-
-    if (status === 504) {
-      return tct(
-        "Query timed out. This might be a really large trace - we're working on handling these too. Seeing this often? [feedbackLink]",
-        {
-          feedbackLink: <FeedbackLink />,
-        }
-      );
-    }
-
-    return tct('Seeing this often? [feedbackLink]', {
-      feedbackLink: <FeedbackLink />,
-    });
-  }, [trace.error?.status]);
-
+function TraceError({trace}: TraceErrorProps) {
   return (
     <LoadingContainer animate error>
       <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
-      <div>{message}</div>
+      <div>{getTraceErrorMessage(trace.error?.status)}</div>
     </LoadingContainer>
   );
+}
+
+const helpComponents = {feedbackLink: <FeedbackLink />};
+
+function getTraceErrorMessage(status: number | undefined) {
+  switch (status) {
+    case 404:
+      return tct(
+        "Couldn't find this trace. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]",
+        helpComponents
+      );
+
+    case 429:
+    case 504:
+      return tct(
+        "Query timed out. This might be a really large trace - we're working on handling these too. Seeing this often? [feedbackLink]",
+        helpComponents
+      );
+
+    case 500:
+      return tct(
+        'The request was invalid. Think could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
+        helpComponents
+      );
+
+    default:
+      return tct('Seeing this often? [feedbackLink]', helpComponents);
+  }
 }
 
 function TraceEmpty() {
@@ -86,10 +76,8 @@ function TraceEmpty() {
     timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS)
       ? t("We're still processing this trace. Please try refreshing after a minute")
       : tct(
-          'We were unable to find any spans for this trace. Seeing this often? [feedbackLink: Send us feedback]',
-          {
-            feedbackLink: <FeedbackLink />,
-          }
+          "We were unable to find any spans for this trace. It may still be processing, or if it's old, it could be outside of the retention window. Seeing this often? [feedbackLink]",
+          helpComponents
         );
 
   return (
