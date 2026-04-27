@@ -18,7 +18,7 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/pagination/pagination');
 
-The `Pagination` component renders Previous / Next controls driven by the [RFC 5988 `Link` header](https://www.rfc-editor.org/rfc/rfc5988) returned by Sentry's paginated APIs. Pass the header string through the `pageLinks` prop and the component parses cursors and `results` flags to disable the appropriate side.
+The `Pagination` component renders Previous / Next controls driven by the [RFC 5988 `Link` header](https://www.rfc-editor.org/rfc/rfc5988) returned by Sentry's [paginated APIs](https://develop.sentry.dev/backend/api/design/#pagination). Pass the header string through the `pageLinks` prop and the component parses cursors and `results` flags to disable the appropriate side.
 
 ## Basic usage
 
@@ -38,7 +38,7 @@ export const samplePageLinks =
 <Pagination pageLinks={response.getResponseHeader('Link')} />
 ```
 
-Reach for `apiOptions` with `selectJsonWithHeaders` to get the `Link` header from a TanStack Query response — see the frontend docs for [accessing response headers](https://github.com/getsentry/sentry/blob/master/static/AGENTS.md).
+Reach for `apiOptions` with `selectJsonWithHeaders` to get the `Link` header from a TanStack Query response — see the frontend docs for [accessing response headers](https://github.com/getsentry/sentry/blob/master/static/AGENTS.md#accessing-response-headers-pagination-hit-counts).
 
 ## Sizes
 
