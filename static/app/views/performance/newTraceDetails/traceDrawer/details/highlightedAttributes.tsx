@@ -450,9 +450,11 @@ const TokensTooltipTitle = styled('div')`
 `;
 
 const TokensSpan = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  flex-wrap: wrap;
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+
+  > * + * {
+    margin-left: ${p => p.theme.space.xs};
+  }
 `;
