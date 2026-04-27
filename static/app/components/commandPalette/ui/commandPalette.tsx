@@ -122,10 +122,13 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
   }
 
   const currentNodes = useMemo(() => {
+    // Referencing state.query forces a rebuild on every keystroke so nodes
+    // with query-dependent labels (e.g. "Ask Seer: {query}") reflect the
+    // latest dataRef.current value rather than the first-mounted snapshot.
+    void state.query;
     const currentRootKey = state.action?.value.key ?? null;
-    const nodes = presortBySlotRef(store.tree(currentRootKey));
-    return nodes;
-  }, [store, state.action]);
+    return presortBySlotRef(store.tree(currentRootKey));
+  }, [store, state.action, state.query]);
 
   const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
     if (!state.query) {

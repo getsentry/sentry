@@ -33,8 +33,10 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
+  initialQuery,
 }: {
   getPageReferrer: () => string;
+  initialQuery?: string;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -77,6 +79,15 @@ export function ExplorerDrawerContent({
     overrideCodeModeEnable,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
+
+  // Auto-submit the initial query when the drawer opens from the command palette
+  useEffect(() => {
+    if (initialQuery?.trim()) {
+      sendMessage(initialQuery.trim());
+    }
+    // Intentionally run only on mount — initialQuery and sendMessage are stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const readOnly =
     sessionData?.owner_user_id !== undefined &&

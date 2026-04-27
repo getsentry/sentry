@@ -192,7 +192,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction
           display={{label: t('Ask Seer: %s', paletteQuery), icon: <IconSeer />}}
           keywords={[t('seer'), t('ai'), t('assistant'), t('chat')]}
-          onAction={() => openSeerExplorer()}
+          onAction={() => openSeerExplorer({initialQuery: paletteQuery})}
         />
       )}
       <CMDKAction display={{label: t('Go to...')}}>

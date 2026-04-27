@@ -11,6 +11,10 @@ import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/
 
 export type OpenSeerExplorerDrawerOptions = {
   /**
+   * Optional query to prefill in the input when the drawer opens.
+   */
+  initialQuery?: string;
+  /**
    * Optional run ID to open. If provided, opens an existing session.
    * Cannot be used together with `startNewRun`.
    */
@@ -60,7 +64,7 @@ export const useSeerExplorerDrawer = () => {
         return;
       }
 
-      const {runId: openRunId, startNewRun} = options ?? {};
+      const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
 
       // Update runId store before opening drawer
       if (openRunId !== undefined) {
@@ -69,14 +73,22 @@ export const useSeerExplorerDrawer = () => {
         setRunId(null);
       }
 
-      openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
-        ariaLabel: t('Seer Explorer Drawer'),
-        drawerKey: 'seer-explorer-drawer',
-        drawerWidth: '30%',
-        resizable: true,
-        mode: 'passive',
-        onOpen,
-      });
+      openDrawer(
+        () => (
+          <ExplorerDrawerContent
+            getPageReferrer={getPageReferrer}
+            initialQuery={initialQuery}
+          />
+        ),
+        {
+          ariaLabel: t('Seer Explorer Drawer'),
+          drawerKey: 'seer-explorer-drawer',
+          drawerWidth: '30%',
+          resizable: true,
+          mode: 'passive',
+          onOpen,
+        }
+      );
     },
     [openDrawer, onOpen, setRunId, getPageReferrer]
   );
