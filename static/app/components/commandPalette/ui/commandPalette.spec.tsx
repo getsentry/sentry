@@ -235,6 +235,34 @@ describe('CommandPalette', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('onAction that opens a modal leaves the new modal open', async () => {
+    // ModalStore is single-slot: openModal() replaces whatever renderer is set.
+    // The palette must close itself before invoking onAction so that a subsequent
+    // openModal() call inside the callback is not immediately wiped by closeModal().
+    const openModalSpy = jest.spyOn(modalActions, 'openModal');
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+
+    render(
+      <GlobalActionsComponent>
+        <CMDKAction
+          display={{label: 'Open a modal'}}
+          onAction={() => modalActions.openModal(() => <div>modal content</div>)}
+        />
+      </GlobalActionsComponent>
+    );
+
+    await userEvent.click(await screen.findByRole('option', {name: 'Open a modal'}));
+
+    // The palette closed itself once
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+    // The action's openModal was called after closeModal, so it is not clobbered
+    expect(openModalSpy).toHaveBeenCalledTimes(1);
+    // closeModal was called before openModal — verify ordering
+    const closeOrder = closeSpy.mock.invocationCallOrder[0]!;
+    const openOrder = openModalSpy.mock.invocationCallOrder[0]!;
+    expect(closeOrder).toBeLessThan(openOrder);
+  });
+
   describe('search', () => {
     it('typing a query filters results to matching items only', async () => {
       render(

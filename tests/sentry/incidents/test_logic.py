@@ -1027,9 +1027,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
-        # Ignore "unreachable" because Mypy sees the `user_id` field declaration on
-        # the AlertRule model class and assumes that it's always non-null.
-        update_alert_rule(  # type: ignore[unreachable]
+        update_alert_rule(
             alert_rule=alert_rule,
             owner=Actor.from_identifier(f"user:{self.user.id}"),
         )

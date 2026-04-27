@@ -4,7 +4,8 @@ import html
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, TypedDict, cast
+from dataclasses import dataclass
+from typing import Any, Literal, TypedDict, cast
 from urllib.parse import urlparse
 
 from django.db.models import Prefetch
@@ -67,12 +68,34 @@ _TIMESERIES_DISPLAY_TYPES = {
     DashboardWidgetDisplayTypes.TOP_N: "area",
 }
 
-# Widget types that map to EAP trace-item datasets on the events-timeseries
-# endpoint. Other widget types (discover, issue, metrics, etc.) are skipped.
-_WIDGET_TYPE_TO_DATASET = {
-    DashboardWidgetTypes.SPANS: SupportedTraceItemType.SPANS,
-    DashboardWidgetTypes.LOGS: SupportedTraceItemType.LOGS,
-    DashboardWidgetTypes.TRACEMETRICS: SupportedTraceItemType.TRACEMETRICS,
+
+_UnfurlEndpoint = Literal["events-timeseries", "issues-timeseries"]
+
+
+@dataclass(frozen=True)
+class _WidgetUnfurlConfig:
+    dataset: str
+    endpoint: _UnfurlEndpoint = "events-timeseries"
+    dataset_param: str = "dataset"
+
+
+_WIDGET_TYPE_TO_CONFIG: dict[int, _WidgetUnfurlConfig] = {
+    DashboardWidgetTypes.SPANS: _WidgetUnfurlConfig(
+        dataset=SupportedTraceItemType.SPANS.value,
+    ),
+    DashboardWidgetTypes.LOGS: _WidgetUnfurlConfig(
+        dataset=SupportedTraceItemType.LOGS.value,
+    ),
+    DashboardWidgetTypes.TRACEMETRICS: _WidgetUnfurlConfig(
+        dataset=SupportedTraceItemType.TRACEMETRICS.value,
+    ),
+    DashboardWidgetTypes.ERROR_EVENTS: _WidgetUnfurlConfig(dataset="errors"),
+    DashboardWidgetTypes.PREPROD_APP_SIZE: _WidgetUnfurlConfig(dataset="preprodSize"),
+    DashboardWidgetTypes.ISSUE: _WidgetUnfurlConfig(
+        endpoint="issues-timeseries",
+        dataset="issue",
+        dataset_param="category",
+    ),
 }
 
 
@@ -123,8 +146,8 @@ def _unfurl_dashboards(
         if widget is None:
             continue
 
-        is_supported_dataset = widget.widget_type in _WIDGET_TYPE_TO_DATASET
-        if not is_supported_dataset:
+        config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
+        if config is None:
             continue
 
         display_type = _TIMESERIES_DISPLAY_TYPES.get(widget.display_type)
@@ -142,11 +165,11 @@ def _unfurl_dashboards(
                 resp = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
                     user=user,
-                    path=f"/organizations/{org_slug}/events-timeseries/",
+                    path=f"/organizations/{org_slug}/{config.endpoint}/",
                     params=params,
                 )
             except Exception:
-                _logger.warning("Failed to load events-timeseries for dashboards unfurl")
+                _logger.warning("Failed to load %s for dashboards unfurl", config.endpoint)
                 request_failed = True
                 break
 
@@ -218,15 +241,15 @@ def _get_widget(
 def build_widget_timeseries_params(
     widget: DashboardWidget, url_params: QueryDict
 ) -> list[dict[str, str | list[str]]]:
-    """Build one events-timeseries param dict per widget query."""
-    dataset = _WIDGET_TYPE_TO_DATASET.get(widget.widget_type)
-    if dataset is None:
+    """Build one timeseries param dict per widget query."""
+    config = _WIDGET_TYPE_TO_CONFIG.get(widget.widget_type)
+    if config is None:
         raise ValueError(f"Unsupported widget type: {widget.widget_type}")
 
     dashboard_filters = widget.dashboard.get_filters()
 
     return [
-        _params_for_widget_query(wq, url_params, dataset, dashboard_filters)
+        _params_for_widget_query(wq, url_params, config, dashboard_filters)
         for wq in widget.dashboardwidgetquery_set.all()
     ]
 
@@ -234,7 +257,7 @@ def build_widget_timeseries_params(
 def _params_for_widget_query(
     widget_query: DashboardWidgetQuery,
     url_params: QueryDict,
-    dataset: SupportedTraceItemType,
+    config: _WidgetUnfurlConfig,
     dashboard_filters: Mapping[str, Any],
 ) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {}
@@ -260,7 +283,7 @@ def _params_for_widget_query(
 
     _apply_page_filters(params, url_params, dashboard_filters)
 
-    params["dataset"] = dataset.value
+    params[config.dataset_param] = config.dataset
     params["referrer"] = Referrer.DASHBOARDS_SLACK_UNFURL.value
 
     return params

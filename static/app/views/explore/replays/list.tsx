@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
@@ -25,6 +25,11 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {
+  ExploreBodyContent,
+  ExploreBodySearch,
+  ExploreContentSection,
+} from 'sentry/views/explore/components/styles';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   useQueryParamsId,
@@ -159,31 +164,30 @@ export default function ReplaysListContainer() {
             <Stack flex={1}>
               <ReplaysHeader />
               <PageFiltersContainer>
-                <Layout.Body>
+                <ExploreBodySearch>
                   <Layout.Main width="full">
-                    <Grid gap="xl" columns="100%">
-                      <ReplayListPageHeaderHook />
-                      {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
-                        <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
-                          <ReplayIndexContainer
-                            onToggleWidgets={toggleWidgets}
-                            showDeadRageClickCards={showDeadRageClickCards}
-                            widgetIsOpen={widgetIsOpen}
-                          />
-                        </ReplayAccess>
-                      ) : (
-                        <Fragment>
-                          <ReplayListControls
-                            onToggleWidgets={toggleWidgets}
-                            showDeadRageClickCards={showDeadRageClickCards}
-                            widgetIsOpen={widgetIsOpen}
-                          />
-                          <ReplayOnboardingPanel />
-                        </Fragment>
-                      )}
-                    </Grid>
+                    <ReplayListControls
+                      onToggleWidgets={toggleWidgets}
+                      showDeadRageClickCards={showDeadRageClickCards}
+                      widgetIsOpen={widgetIsOpen}
+                    />
                   </Layout.Main>
-                </Layout.Body>
+                </ExploreBodySearch>
+                <ExploreBodyContent>
+                  <ExploreContentSection gap="xl">
+                    <ReplayListPageHeaderHook />
+                    {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+                      <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
+                        <ReplayIndexContainer
+                          showDeadRageClickCards={showDeadRageClickCards}
+                          widgetIsOpen={widgetIsOpen}
+                        />
+                      </ReplayAccess>
+                    ) : (
+                      <ReplayOnboardingPanel />
+                    )}
+                  </ExploreContentSection>
+                </ExploreBodyContent>
               </PageFiltersContainer>
             </Stack>
           </ReplayQueryParamsProvider>
