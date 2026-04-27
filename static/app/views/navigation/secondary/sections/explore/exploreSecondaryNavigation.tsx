@@ -100,7 +100,7 @@ export function ExploreSecondaryNavigation() {
                     analyticsItemName="explore_metrics"
                     trailingItems={<FeatureBadge type="beta" />}
                   >
-                    {t('Application Metrics')}
+                    {t('Metrics')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
               </Feature>
