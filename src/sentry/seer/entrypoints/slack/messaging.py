@@ -293,7 +293,7 @@ def send_halt_message(
 
     match halt_reason:
         case SeerSlackHaltReason.IDENTITY_NOT_LINKED:
-            message = "I'd love to help, but I don't know you like that — link your Slack account to Sentry and I'll pick up your mention once you're connected."
+            message = "I'd love to help, but I don't know you like that — link your Slack account to Sentry first."
             # TODO(leander): We'll need to revisit the UX around linking. We can't pass threads here so while
             # the linking start message is correctly located and ephemeral, the success message afterwards is not.
             # By omitting the response_url here, it will arrive as a DM, but it doesn't accept threads so this is the best we can do for now.
