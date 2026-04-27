@@ -60,12 +60,15 @@ export function useBackActions({
           origin: 'onboarding',
         });
 
-        trackAnalytics('onboarding.data_removed', {
-          organization,
-          date_created: recentCreatedProject.dateCreated,
-          platform: recentCreatedProject.slug,
-          project_id: recentCreatedProject.id,
-        });
+        trackAnalytics(
+          hasScmOnboarding ? 'onboarding.scm_data_removed' : 'onboarding.data_removed',
+          {
+            organization,
+            date_created: recentCreatedProject.dateCreated,
+            platform: recentCreatedProject.slug,
+            project_id: recentCreatedProject.id,
+          }
+        );
       } catch (error) {
         handleXhrErrorResponse(
           'Unable to delete project in onboarding',
@@ -74,7 +77,7 @@ export function useBackActions({
         // we don't give the user any feedback regarding this error as this shall be silent
       }
     },
-    [api, organization, onboardingContext, recentCreatedProject]
+    [api, organization, onboardingContext, recentCreatedProject, hasScmOnboarding]
   );
 
   const backStepActions = useCallback(
@@ -89,12 +92,17 @@ export function useBackActions({
         return;
       }
 
-      trackAnalytics('onboarding.back_button_clicked', {
-        organization,
-        from: currentStep.id,
-        to: prevStep.id,
-        browserBackButton,
-      });
+      trackAnalytics(
+        hasScmOnboarding
+          ? 'onboarding.scm_back_button_clicked'
+          : 'onboarding.back_button_clicked',
+        {
+          organization,
+          from: currentStep.id,
+          to: prevStep.id,
+          browserBackButton,
+        }
+      );
 
       // from selected platform to welcome
       if (currentStep.id === 'select-platform') {
@@ -113,11 +121,16 @@ export function useBackActions({
         !isRecentCreatedProjectActive &&
         recentCreatedProject
       ) {
-        trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
-          organization,
-          platform: recentCreatedProject.slug,
-          project_id: recentCreatedProject.id,
-        });
+        trackAnalytics(
+          hasScmOnboarding
+            ? 'onboarding.scm_data_removal_modal_confirm_button_clicked'
+            : 'onboarding.data_removal_modal_confirm_button_clicked',
+          {
+            organization,
+            platform: recentCreatedProject.slug,
+            project_id: recentCreatedProject.id,
+          }
+        );
         // Await deletion so the projects store is updated before navigating
         // back. Without this, re-selecting the same platform can see stale
         // store data and skip project creation.

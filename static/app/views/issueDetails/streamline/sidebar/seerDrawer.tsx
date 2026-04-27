@@ -1,13 +1,14 @@
 import {useCallback} from 'react';
-import {css} from '@emotion/react';
+
+import {useDrawer} from '@sentry/scraps/drawer';
 
 import {SeerDrawer as LegacySeerDrawer} from 'sentry/components/events/autofix/v1/drawer';
 import {SeerDrawer as ExplorerSeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,16 +53,21 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const issueBaseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
-      drawerCss: css`
-        height: fit-content;
-        max-height: 100%;
-      `,
       resizable: true,
-      closeOnOutsideClick: false,
-      shouldLockScroll: false,
+      mode: 'passive',
+      shouldCloseOnLocationChange: nextLocation => {
+        const nextPath = nextLocation.pathname.endsWith('/')
+          ? nextLocation.pathname
+          : `${nextLocation.pathname}/`;
+        return !nextPath.startsWith(issueBaseUrl);
+      },
       onClose: () => {
         navigate(
           {

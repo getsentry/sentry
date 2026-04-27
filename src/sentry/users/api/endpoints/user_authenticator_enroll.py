@@ -20,7 +20,6 @@ from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisal
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
-from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
@@ -321,16 +320,8 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         )
         invite_helper = ApiInviteHelper.from_session(request=request, logger=logger)
 
-        if invite_helper:
-            if invite_helper.member_already_exists:
-                invite_helper.handle_member_already_exists()
-                organization_service.delete_organization_member(
-                    organization_member_id=invite_helper.invite_context.invite_organization_member_id,
-                    organization_id=invite_helper.invite_context.organization.id,
-                )
-                remove_invite_details_from_session(request)
-            elif invite_helper.valid_request:
-                invite_helper.accept_invite(user)
-                remove_invite_details_from_session(request)
+        if invite_helper and (invite_helper.member_already_exists or invite_helper.valid_request):
+            invite_helper.accept_invite(user)
+            remove_invite_details_from_session(request)
 
         return response

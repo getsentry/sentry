@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -13,7 +14,7 @@ import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

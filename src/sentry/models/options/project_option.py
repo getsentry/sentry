@@ -67,6 +67,7 @@ OPTION_KEYS = frozenset(
         "sentry:uptime_autodetection",
         "sentry:autofix_automation_tuning",
         "sentry:seer_scanner_automation",
+        "sentry:seer_nightshift_tweaks",
         "sentry:debug_files_role",
         "sentry:preprod_size_status_checks_enabled",
         "sentry:preprod_size_status_checks_rules",

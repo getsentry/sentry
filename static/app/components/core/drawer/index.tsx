@@ -1,0 +1,275 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import {AnimatePresence} from 'framer-motion';
+import type {Location} from 'history';
+
+import {Backdrop} from '@sentry/scraps/backdrop';
+import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useScrollLock} from '@sentry/scraps/useScrollLock';
+
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+
+import {DrawerComponents} from './components';
+
+export interface DrawerOptions {
+  /**
+   * Accessbility label for the drawer
+   */
+  ariaLabel: string;
+  /**
+   * Key to identify the drawer and enable persistence of the drawer width
+   */
+  drawerKey?: string;
+  /**
+   * Custom width for the drawer
+   */
+  drawerWidth?: string;
+  /**
+   * Controls scroll locking, click-outside close, and location-change close behavior.
+   * - 'blocking' (default): scroll locked, click outside closes, location change closes
+   * - 'passive': scroll not locked, click outside does NOT close, location change does NOT close
+   */
+  mode?: 'blocking' | 'passive';
+  /**
+   * Callback for when the drawer closes
+   */
+  onClose?: () => void;
+  /**
+   * Callback for when the drawer opens
+   */
+  onOpen?: () => void;
+  /**
+   * If true (default), allows the drawer to be resized - requires `drawerKey`
+   * to be defined
+   */
+  resizable?: boolean;
+  /**
+   * Function to determine whether the drawer should close when interacting with
+   * other elements. Only applies in 'blocking' mode.
+   */
+  shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  /**
+   * Callback to determine whether the drawer should close when the location changes.
+   * Defaults to closing in 'blocking' mode, staying open in 'passive' mode.
+   */
+  shouldCloseOnLocationChange?: (nextLocation: Location) => boolean;
+}
+
+interface DrawerRenderProps {
+  /**
+   * Close the drawer
+   */
+  closeDrawer: () => void;
+}
+
+type DrawerRenderer = (renderProps: DrawerRenderProps) => React.ReactNode;
+
+export interface DrawerConfig {
+  options: DrawerOptions;
+  renderer: DrawerRenderer | null;
+}
+
+interface StoredDrawerConfig extends DrawerConfig {
+  callerId: string;
+}
+
+interface DrawerContextType {
+  activeDrawerId: string | null;
+  closeDrawer: () => void;
+  openDrawer: (
+    renderer: DrawerConfig['renderer'],
+    options: DrawerConfig['options'],
+    callerId: string
+  ) => void;
+  panelRef: React.RefObject<HTMLDivElement | null>;
+}
+
+const DrawerContext = createContext<DrawerContextType>({
+  openDrawer: () => {},
+  activeDrawerId: null,
+  closeDrawer: () => {},
+  panelRef: {current: null},
+});
+
+export function GlobalDrawer({children}: any) {
+  const location = useLocation();
+  const [currentDrawerConfig, overwriteDrawerConfig] = useState<
+    StoredDrawerConfig | undefined
+  >();
+  // Used to avoid adding `currentDrawerConfig` as a dependency to the below
+  // `useLayoutEffect`. It's only used as a callback when `location` changes.
+  const currentDrawerConfigRef = useRef(currentDrawerConfig);
+
+  // If no config is set, the global drawer is closed.
+  const isDrawerOpen = !!currentDrawerConfig;
+  const activeDrawerId = currentDrawerConfig?.callerId ?? null;
+  const scrollLock = useScrollLock(document.body);
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options, callerId) => {
+      if (options.mode !== 'passive') {
+        scrollLock.acquire();
+      }
+      overwriteDrawerConfig({renderer, options, callerId});
+      options.onOpen?.();
+    },
+    [scrollLock]
+  );
+  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(() => {
+    scrollLock.release();
+    overwriteDrawerConfig(undefined);
+  }, [scrollLock]);
+
+  const handleClose = useCallback(() => {
+    currentDrawerConfig?.options?.onClose?.();
+    closeDrawer();
+  }, [currentDrawerConfig, closeDrawer]);
+
+  useEffect(() => {
+    currentDrawerConfigRef.current = currentDrawerConfig;
+  }, [currentDrawerConfig]);
+
+  // Close the drawer when the browser history changes.
+  useLayoutEffect(
+    () => {
+      if (
+        // No need to close drawer if it is not open
+        currentDrawerConfigRef.current !== undefined &&
+        // Otherwise, when the location changes, check callback or default based on mode
+        (currentDrawerConfigRef.current.options?.shouldCloseOnLocationChange?.(
+          location
+        ) ??
+          currentDrawerConfigRef.current.options?.mode !== 'passive')
+      ) {
+        // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
+        closeDrawer();
+      }
+    },
+    // Ignoring changes to currentDrawerConfig and currentDrawerConfig?.options
+    // to prevent closing the drawer when it opens.
+    [closeDrawer, location]
+  );
+
+  // Close the drawer when clicking outside the panel (blocking mode only).
+  const panelRef = useRef<HTMLDivElement>(null);
+  const handleClickOutside = useCallback(() => {
+    if (currentDrawerConfig?.options?.mode !== 'passive') {
+      handleClose();
+    }
+  }, [currentDrawerConfig, handleClose]);
+  const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
+  useOnClickOutside(panelRef, e => {
+    if (
+      defined(shouldCloseOnInteractOutside) &&
+      defined(e?.target) &&
+      !shouldCloseOnInteractOutside(e.target as Element)
+    ) {
+      return;
+    }
+    handleClickOutside();
+  });
+
+  // Close the drawer when escape is pressed.
+  useHotkeys([
+    {
+      match: 'Escape',
+      callback: () => {
+        handleClose();
+      },
+    },
+  ]);
+
+  const renderedChild = currentDrawerConfig?.renderer
+    ? currentDrawerConfig.renderer({
+        closeDrawer: handleClose,
+      })
+    : null;
+
+  return (
+    <DrawerContext value={{closeDrawer, activeDrawerId, openDrawer, panelRef}}>
+      <ErrorBoundary
+        mini
+        allowDismiss
+        message={t('There was a problem rendering the drawer.')}
+      >
+        <AnimatePresence>
+          {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
+            <Backdrop key="backdrop" />
+          ) : null}
+          {isDrawerOpen && (
+            <DrawerComponents.DrawerPanel
+              key="panel"
+              ariaLabel={currentDrawerConfig.options.ariaLabel}
+              onClose={handleClose}
+              ref={panelRef}
+              mode={currentDrawerConfig.options.mode ?? 'blocking'}
+              drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerKey={currentDrawerConfig?.options?.drawerKey}
+              resizable={currentDrawerConfig?.options?.resizable}
+            >
+              {renderedChild}
+            </DrawerComponents.DrawerPanel>
+          )}
+        </AnimatePresence>
+      </ErrorBoundary>
+      {children}
+    </DrawerContext>
+  );
+}
+
+/**
+ * Returns helper functions to control the slide out drawer above the page content. For example:
+ * ```
+ * const {openDrawer, closeDrawer} = useDrawer()
+ * ```
+ *
+ * The `openDrawer` function accepts a renderer, and options. By default (`mode: 'blocking'`),
+ * the drawer locks scroll, closes on outside clicks, closes on location changes, and closes
+ * on 'Escape'. Use `mode: 'passive'` to opt out of scroll locking, outside-click close, and
+ * location-change close — useful for drawers that coexist with page interaction.
+ *
+ * The `closeDrawer` function accepts no parameters and closes the drawer, unmounting its contents.
+ * For example:
+ * ```
+ * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
+ * ```
+ *
+ * `isDrawerOpen` is scoped to this call-site: it is `true` only when the drawer
+ * currently open was opened via the `openDrawer` returned by *this* `useDrawer`
+ * call (including calls made through a shared wrapper hook). Use
+ * `isAnyDrawerOpen` if you need to know whether *any* drawer is open.
+ */
+export function useDrawer() {
+  const context = useContext(DrawerContext);
+  const callerId = useId();
+  const openDrawerRef = useRef(context.openDrawer);
+  useEffect(() => {
+    openDrawerRef.current = context.openDrawer;
+  });
+  const openDrawer = useCallback(
+    (renderer: DrawerConfig['renderer'], options: DrawerConfig['options']) => {
+      openDrawerRef.current(renderer, options, callerId);
+    },
+    [callerId]
+  );
+  return {
+    openDrawer,
+    closeDrawer: context.closeDrawer,
+    panelRef: context.panelRef,
+    isDrawerOpen: context.activeDrawerId === callerId,
+    isAnyDrawerOpen: context.activeDrawerId !== null,
+  };
+}
+
+export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';

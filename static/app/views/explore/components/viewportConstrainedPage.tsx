@@ -1,11 +1,10 @@
-import {ClassNames} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
-interface ViewportConstrainedPageProps extends Layout.MainProps {
+interface ViewportConstrainedPageProps extends FlexProps<'div'> {
   constrained?: boolean;
   hideFooter?: boolean;
 }
@@ -27,51 +26,30 @@ export function ViewportConstrainedPage({
   ...rest
 }: ViewportConstrainedPageProps) {
   if (!constrained) {
-    return (
-      <Flex direction="column" minHeight="0">
-        {({className}) => (
-          <Layout.Main
-            width="full"
-            {...rest}
-            className={[rest.className, className].filter(Boolean).join(' ')}
-          />
-        )}
-      </Flex>
-    );
+    return <Stack flex="1" {...rest} />;
   }
 
   return (
-    <ClassNames>
-      {({css, cx}) => (
-        <Flex direction="column" minHeight="0" overflow="hidden">
-          {({className}) => (
-            <Layout.Main
-              width="full"
-              {...rest}
-              className={cx(
-                rest.className,
-                className,
-                css`
-                  contain: size;
-
-                  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-                    ~ footer {
-                      display: none;
-                    }
-                  }
-
-                  ${hideFooter &&
-                  css`
-                    ~ footer {
-                      display: none;
-                    }
-                  `}
-                `
-              )}
-            />
-          )}
-        </Flex>
-      )}
-    </ClassNames>
+    <ConstrainedPage
+      flex="1"
+      minHeight="0"
+      overflow="hidden"
+      data-hide-footer={hideFooter ? '' : undefined}
+      {...rest}
+    />
   );
 }
+
+const ConstrainedPage = styled(Stack)`
+  contain: size;
+
+  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
+    ~ footer {
+      display: none;
+    }
+  }
+
+  &[data-hide-footer] ~ footer {
+    display: none;
+  }
+`;

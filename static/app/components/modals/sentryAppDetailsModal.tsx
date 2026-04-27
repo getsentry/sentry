@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -16,13 +17,13 @@ import {t, tct} from 'sentry/locale';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {toPermissions} from 'sentry/utils/consolidatedScopes';
+import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
@@ -101,12 +102,14 @@ export function SentryAppDetailsModal(props: Props) {
   };
 
   const permissions = toPermissions(sentryApp.scopes);
+  const specialPermissions = getSpecialPermissions(sentryApp.scopes);
+  const hasStandardPermissions =
+    permissions.read.length > 0 ||
+    permissions.write.length > 0 ||
+    permissions.admin.length > 0;
 
   const renderPermissions = () => {
-    if (
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
-    ) {
+    if (!hasStandardPermissions && specialPermissions.length === 0) {
       return null;
     }
 
@@ -147,6 +150,17 @@ export function SentryAppDetailsModal(props: Props) {
             </Text>
           </Flex>
         )}
+        {specialPermissions.map(permission => (
+          <Flex key={permission.scope}>
+            <Indicator />
+            <Text>
+              {tct('[label]: [summary]', {
+                label: <strong>{permission.label}</strong>,
+                summary: permission.summary,
+              })}
+            </Text>
+          </Flex>
+        ))}
       </Fragment>
     );
   };

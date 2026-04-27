@@ -19,7 +19,11 @@ from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import _get_trace_tree_for_event, trigger_autofix
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_explorer
+from sentry.seer.autofix.autofix_agent import (
+    AutofixStep,
+    NoSeerQuotaException,
+    trigger_autofix_explorer,
+)
 from sentry.seer.autofix.constants import (
     AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD,
     AutofixAutomationTuningSettings,
@@ -29,12 +33,10 @@ from sentry.seer.autofix.constants import (
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
-    GetProjectPreferenceRequest,
     get_autofix_state,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
-    make_get_project_preference_request,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -93,31 +95,6 @@ def _get_stopping_point_from_fixability(fixability_score: float) -> AutofixStopp
         return AutofixStoppingPoint.CODE_CHANGES
     else:
         return AutofixStoppingPoint.OPEN_PR
-
-
-def _fetch_user_preference(project_id: int) -> str | None:
-    """
-    Fetch the user's automated_run_stopping_point preference from Seer.
-    Returns None if preference is not set or if the API call fails.
-    """
-    try:
-        response = make_get_project_preference_request(
-            GetProjectPreferenceRequest(project_id=project_id),
-            timeout=5,
-        )
-
-        if response.status >= 400:
-            raise Exception(f"Seer request failed with status {response.status}")
-
-        result = response.json()
-        preference = result.get("preference")
-        if preference:
-            return preference.get("automated_run_stopping_point")
-        return None
-    except Exception as e:
-        sentry_sdk.set_context("project", {"project_id": project_id})
-        sentry_sdk.capture_exception(e)
-        return None
 
 
 def _apply_user_preference_upper_bound(
@@ -220,13 +197,16 @@ def _trigger_autofix_task(
         # Route to explorer-based autofix if both feature flags are enabled
         run_id: int | None = None
         if features.has("organizations:autofix-on-explorer", group.organization):
-            run_id = trigger_autofix_explorer(
-                group=group,
-                step=AutofixStep.ROOT_CAUSE,
-                referrer=referrer,
-                run_id=None,
-                stopping_point=stopping_point,
-            )
+            try:
+                run_id = trigger_autofix_explorer(
+                    group=group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=referrer,
+                    run_id=None,
+                    stopping_point=stopping_point,
+                )
+            except NoSeerQuotaException:
+                pass
         else:
             response = trigger_autofix(
                 group=group,
@@ -507,10 +487,7 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint:
     fixability_score = get_and_update_group_fixability_score(group)
     fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 
-    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
-        user_preference = read_preference_from_sentry_db(group.project).automated_run_stopping_point
-    else:
-        user_preference = _fetch_user_preference(group.project.id)
+    user_preference = read_preference_from_sentry_db(group.project).automated_run_stopping_point
 
     return _apply_user_preference_upper_bound(fixability_stopping_point, user_preference)
 

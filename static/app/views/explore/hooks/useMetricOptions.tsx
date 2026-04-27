@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -6,7 +7,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';

@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -12,7 +13,7 @@ import {IconStar} from 'sentry/icons';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getMessage} from 'sentry/utils/events';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';

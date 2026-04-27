@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import trimEnd from 'lodash/trimEnd';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -23,7 +24,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

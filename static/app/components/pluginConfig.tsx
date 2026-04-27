@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -25,7 +26,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isScmPlugin} from 'sentry/utils/integrationUtil';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**

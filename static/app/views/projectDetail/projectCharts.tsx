@@ -34,16 +34,16 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {withApi} from 'sentry/utils/withApi';
+import {
+  getSessionTermDescription,
+  SessionTerm,
+} from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {
   getANRRateText,
   isPlatformANRCompatible,
   isPlatformForegroundANRCompatible,
 } from 'sentry/views/projectDetail/utils';
-import {
-  getSessionTermDescription,
-  SessionTerm,
-} from 'sentry/views/releases/utils/sessionTerm';
 
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';

@@ -15,16 +15,18 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
-import {GenericFooter} from './genericFooter';
+import {GridFooter} from './genericFooter';
 
 interface FirstEventFooterProps {
   isLast: boolean;
   onClickSetupLater: () => void;
   organization: Organization;
   project: Project;
+  leading?: React.ReactNode;
 }
 
 export function FirstEventFooter({
@@ -32,8 +34,13 @@ export function FirstEventFooter({
   project,
   onClickSetupLater,
   isLast,
+  leading,
 }: FirstEventFooterProps) {
   const {activateSidebar} = useOnboardingSidebar();
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
 
   const {data: issues} = useApiQuery<Group[]>(
     [
@@ -56,21 +63,25 @@ export function FirstEventFooter({
 
   return (
     <GridFooter>
-      <SkipOnboardingLink
-        onClick={() => {
-          trackAnalytics('growth.onboarding_clicked_skip', {
-            organization,
-            source,
-          });
-          activateSidebar({
-            userClicked: false,
-            source: 'targeted_onboarding_first_event_footer_skip',
-          });
-        }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
-      >
-        {t('Skip Onboarding')}
-      </SkipOnboardingLink>
+      {hasScmOnboarding ? (
+        <LeadingSlot>{leading}</LeadingSlot>
+      ) : (
+        <SkipOnboardingLink
+          onClick={() => {
+            trackAnalytics('growth.onboarding_clicked_skip', {
+              organization,
+              source,
+            });
+            activateSidebar({
+              userClicked: false,
+              source: 'targeted_onboarding_first_event_footer_skip',
+            });
+          }}
+          to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
+        >
+          {t('Skip Onboarding')}
+        </SkipOnboardingLink>
+      )}
       <StatusWrapper
         initial="initial"
         animate="animate"
@@ -105,12 +116,19 @@ export function FirstEventFooter({
         {/* if hasn't sent first event, allow creation of sample error */}
         {project.firstEvent ? (
           <LinkButton
-            onClick={() =>
-              trackAnalytics('growth.onboarding_take_to_error', {
-                organization,
-                platform: project.platform,
-              })
-            }
+            onClick={() => {
+              if (hasScmOnboarding) {
+                trackAnalytics('onboarding.scm_take_to_error_clicked', {
+                  organization,
+                  platform: project.platform,
+                });
+              } else {
+                trackAnalytics('growth.onboarding_take_to_error', {
+                  organization,
+                  platform: project.platform,
+                });
+              }
+            }}
             to={`/organizations/${organization.slug}/issues/${
               firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
             }?referrer=onboarding-first-event-footer`}
@@ -123,6 +141,7 @@ export function FirstEventFooter({
             project={project}
             source="targeted-onboarding"
             priority="primary"
+            hasScmOnboarding={hasScmOnboarding}
           >
             {t('View Sample Error')}
           </CreateSampleEventButton>
@@ -170,20 +189,16 @@ const StatusWrapper = styled(motion.div)`
   }
 `;
 
+const LeadingSlot = styled('div')`
+  display: flex;
+  align-items: center;
+  margin: auto ${p => p.theme.space['3xl']};
+`;
+
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${p => p.theme.space['3xl']};
   white-space: nowrap;
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: none;
-  }
-`;
-
-const GridFooter = styled(GenericFooter)`
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    flex-direction: row;
-    justify-content: end;
   }
 `;

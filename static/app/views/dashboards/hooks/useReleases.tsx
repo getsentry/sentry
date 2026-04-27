@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import type {UseQueryResult} from '@tanstack/react-query';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueries} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
 
 import type {ApiResult} from 'sentry/api';
@@ -11,7 +11,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {fetchDataQuery, useQueries, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

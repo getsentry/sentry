@@ -18,6 +18,8 @@ import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
+import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
@@ -26,13 +28,10 @@ import {
 } from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmAlertFrequency} from './components/scmAlertFrequency';
-import {ScmStepFooter} from './components/scmStepFooter';
 import {ScmStepHeader} from './components/scmStepHeader';
 import type {StepProps} from './types';
 
-const PROJECT_DETAILS_WIDTH = '285px';
-
-export function ScmProjectDetails({onComplete}: StepProps) {
+export function ScmProjectDetails({onComplete, genBackButton}: StepProps) {
   const organization = useOrganization();
   const {
     selectedPlatform,
@@ -188,11 +187,11 @@ export function ScmProjectDetails({onComplete}: StepProps) {
       <ScmStepHeader
         heading={t('Project details')}
         subtitle={t(
-          'Set the project name, assign a team, and configure\nhow you want to receive issue alerts'
+          'Set the project name, assign a team, and configure how you want to receive issue alerts'
         )}
       />
 
-      <Stack gap="3xl" width="100%" maxWidth={PROJECT_DETAILS_WIDTH}>
+      <Stack gap="3xl" width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
         <Stack gap="md">
           <Flex gap="md" align="center" justify="center">
             <IconProject size="md" variant="secondary" />
@@ -250,17 +249,20 @@ export function ScmProjectDetails({onComplete}: StepProps) {
         </Stack>
       </Stack>
 
-      <ScmStepFooter>
-        <Button
-          priority="primary"
-          onClick={handleCreateProject}
-          disabled={!canSubmit}
-          busy={createProjectAndRules.isPending}
-          icon={<IconProject />}
-        >
-          {t('Create project')}
-        </Button>
-      </ScmStepFooter>
+      <GenericFooter gap="3xl" padding="0 3xl">
+        <Flex align="center">{genBackButton?.()}</Flex>
+        <Flex align="center" gap="md">
+          <Button
+            priority="primary"
+            onClick={handleCreateProject}
+            disabled={!canSubmit}
+            busy={createProjectAndRules.isPending}
+            icon={<IconProject />}
+          >
+            {t('Create project')}
+          </Button>
+        </Flex>
+      </GenericFooter>
     </Flex>
   );
 }
