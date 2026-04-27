@@ -5,8 +5,19 @@ import type {Organization, Team} from './organization';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
+export type SeerNightshiftTriageStrategy = 'simple' | 'agentic';
+export type SeerNightshiftIntelligenceLevel = 'low' | 'medium' | 'high';
+export type SeerNightshiftReasoningEffort = 'low' | 'medium' | 'high';
+
 export type SeerNightshiftTweaks = {
+  candidateIssues?: number;
+  dryRun?: boolean;
   enabled?: boolean;
+  extraTriageInstructions?: string;
+  intelligenceLevel?: SeerNightshiftIntelligenceLevel;
+  issueFetchLimit?: number;
+  reasoningEffort?: SeerNightshiftReasoningEffort;
+  triageStrategy?: SeerNightshiftTriageStrategy;
 };
 
 // Minimal project representation for use with avatars.
