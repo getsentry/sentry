@@ -435,6 +435,7 @@ export function GlobalCommandPaletteActions() {
                   'switch-organization',
                   organization.slug,
                   organizations.map(org => org.slug).join(','),
+                  location.pathname,
                 ],
                 queryFn: () => {
                   const navigateToOrg = (org: (typeof organizations)[number]) => {
