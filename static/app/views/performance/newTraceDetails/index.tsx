@@ -40,7 +40,7 @@ import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
 } from './traceState/tracePreferences';
-import {TraceStateProvider, useTraceState} from './traceState/traceStateProvider';
+import {TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
@@ -150,15 +150,9 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
-  const traceState = useTraceState();
-  const drawerNode =
-    typeof traceState.tabs.current_tab?.node === 'string'
-      ? null
-      : (traceState.tabs.current_tab?.node ?? null);
-
   useLLMContext({
     contextHint:
-      'Sentry trace detail page. focusedSpan is the span currently open in the drawer — it may or may not be relevant to the user question. ' +
+      'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
       'Tools: get_trace_waterfall(trace_id, span_id?) for full waterfall or specific span; ' +
       'get_event_details(event_id?, issue_id?) for error event details; ' +
       'get_issue_details(issue_id) for issue aggregate stats; ' +
@@ -170,9 +164,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     activeTab: currentTab,
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
-    projects: Array.from(tree.projects.values())
-      .map(p => p.slug)
-      .slice(0, 10),
+    services: Array.from(tree.projects.values()).map(p => p.slug),
     errors: meta.data?.errors,
     performanceIssues: meta.data?.performance_issues,
     spanCount: meta.data?.span_count,
@@ -183,17 +175,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       unit: i.measurement.unit,
       poor: i.poor,
     })),
-    focusedSpan: drawerNode
-      ? {
-          spanId: drawerNode.id,
-          op: drawerNode.op,
-          description: drawerNode.description?.slice(0, 120),
-          durationMs: drawerNode.space?.[1],
-          projectSlug: drawerNode.projectSlug,
-          errors: drawerNode.errors.size,
-          profileId: drawerNode.profileId,
-        }
-      : undefined,
   });
 
   return (
