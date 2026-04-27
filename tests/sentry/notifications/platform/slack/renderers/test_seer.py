@@ -33,6 +33,7 @@ class SeerSlackRendererTest(TestCase):
         steps: list[str] | None = None,
         changes: list[SeerAutofixCodeChange] | None = None,
         pull_requests: list[SeerAutofixPullRequest] | None = None,
+        handoff_target: str | None = None,
     ) -> SeerAutofixUpdate:
         return SeerAutofixUpdate(
             run_id=MOCK_RUN_ID,
@@ -45,6 +46,7 @@ class SeerSlackRendererTest(TestCase):
             steps=steps or [],
             changes=changes or [],
             pull_requests=pull_requests or [],
+            handoff_target=handoff_target,
         )
 
     def test_render_footer_blocks_with_has_complete_stage(self) -> None:
@@ -167,6 +169,26 @@ class SeerSlackRendererTest(TestCase):
             if isinstance(e, LinkButtonElement) and e.text is not None and "PR" in e.text.text
         ]
         assert len(pr_buttons) == 2
+
+    def test_render_autofix_update_root_cause_with_handoff_target(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            summary="Test summary",
+            handoff_target="cursor_background_agent",
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data)
+
+        actions_block = next((b for b in renderable["blocks"] if isinstance(b, ActionsBlock)), None)
+        assert actions_block is not None
+        # Link button + handoff button (next-stage trigger is suppressed).
+        assert len(actions_block.elements) == 2
+        assert isinstance(actions_block.elements[0], LinkButtonElement)
+        handoff_button = actions_block.elements[1]
+        assert isinstance(handoff_button, ButtonElement)
+        assert handoff_button.text is not None
+        assert handoff_button.text.text == "Hand off to Cursor"
+        assert handoff_button.action_id is not None
+        assert handoff_button.action_id.startswith("seer_autofix_handoff::")
 
     @patch(
         "sentry.notifications.platform.templates.seer.organization_service.get_option",

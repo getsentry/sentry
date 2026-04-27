@@ -300,6 +300,83 @@ class SeerAutofixOperator[CachePayloadT]:
                 }
             )
 
+    def trigger_handoff(
+        self,
+        *,
+        group: Group,
+        run_id: int,
+    ) -> None:
+        """
+        Launch the coding-agent handoff configured on the project for an existing
+        autofix run. Reads the project's automation_handoff preference, takes a
+        per-(group, run) lock to prevent duplicate launches, and invokes the
+        underlying handoff function. Failures are captured on the lifecycle metric.
+
+        If the autofix on-completion pipeline already auto-launched a coding
+        agent for this run (the automation path), this method halts without
+        launching another. The button effectively becomes a "view active run"
+        affordance — surfacing the agent's URL is a follow-up.
+        """
+        from sentry.locks import locks
+        from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
+        from sentry.seer.autofix.utils import (
+            CodingAgentStatus,
+            get_autofix_state,
+            read_preference_from_sentry_db,
+        )
+        from sentry.utils.locking import UnableToAcquireLock
+
+        event_lifecycle = SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_HANDOFF,
+            entrypoint_key=self.entrypoint.key,
+        )
+
+        with event_lifecycle.capture() as lifecycle:
+            lifecycle.add_extras({"group_id": str(group.id), "run_id": str(run_id)})
+
+            handoff_config = read_preference_from_sentry_db(group.project).automation_handoff
+            if handoff_config is None:
+                # Handoff was unset between message render and click.
+                lifecycle.record_halt(halt_reason="no_handoff_configured")
+                return
+
+            lifecycle.add_extras(
+                {
+                    "target": handoff_config.target,
+                    "integration_id": str(handoff_config.integration_id),
+                }
+            )
+
+            try:
+                autofix_state = get_autofix_state(
+                    run_id=run_id, organization_id=group.organization.id
+                )
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e)
+                return
+            agents = autofix_state.coding_agents.values() if autofix_state else []
+            if agents and any(agent.status != CodingAgentStatus.FAILED for agent in agents):
+                lifecycle.add_extra("active_agents", str(len(agents)))
+                lifecycle.record_halt(halt_reason="agent_already_active")
+                return
+
+            lock_key = f"autofix:trigger_handoff:{self.entrypoint.key}:{group.id}:{run_id}"
+            lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
+            try:
+                with lock.acquire():
+                    trigger_coding_agent_handoff(
+                        group=group,
+                        run_id=run_id,
+                        referrer=AutofixReferrer.SLACK,
+                        integration_id=handoff_config.integration_id,
+                    )
+            except UnableToAcquireLock as e:
+                lifecycle.record_halt(halt_reason=e)
+                return
+            except Exception as e:
+                lifecycle.record_failure(failure_reason=e)
+                return
+
     def trigger_autofix_legacy(
         self,
         *,

@@ -9,6 +9,7 @@ from sentry.integrations.utils.metrics import EventLifecycleMetric
 
 class SeerOperatorInteractionType(StrEnum):
     OPERATOR_TRIGGER_AUTOFIX = "trigger_autofix"
+    OPERATOR_TRIGGER_HANDOFF = "trigger_handoff"
     OPERATOR_TRIGGER_AGENT = "trigger_agent"
     OPERATOR_PROCESS_AUTOFIX_UPDATE = "process_autofix_update"
     OPERATOR_CACHE_POPULATE_PRE_AUTOFIX = "cache_populate_pre_autofix"

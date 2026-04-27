@@ -8,6 +8,7 @@ from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
@@ -16,7 +17,7 @@ from sentry.notifications.platform.templates.seer import (
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
@@ -63,6 +64,9 @@ class SlackAutofixCachePayload(TypedDict):
     integration_id: int
     group_link: str
     threads: list[SlackThreadDetails]
+    # Captured at cache creation. When set, the Slack ROOT_CAUSE update swaps the
+    # next-stage trigger button for a "Hand off to ..." button.
+    handoff_target: CodingAgentProviderType | None
 
 
 class SlackAgentCachePayload(TypedDict):
@@ -72,6 +76,25 @@ class SlackAgentCachePayload(TypedDict):
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
+
+
+def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
+    """Read the project's coding-agent handoff target from preferences, or None."""
+    from sentry.seer.autofix.utils import read_preference_from_sentry_db
+
+    try:
+        handoff = read_preference_from_sentry_db(project).automation_handoff
+    except Exception:
+        logger.exception(
+            "seer.entrypoint.slack.read_handoff_target_failed",
+            extra={"project_id": project.id},
+        )
+        return None
+    if handoff is None:
+        return None
+    # handoff.target is a Literal string; widen to the enum that the renderer
+    # consumes. The literal values are a subset of CodingAgentProviderType.
+    return CodingAgentProviderType(handoff.target)
 
 
 def _get_missing_scope_settings_url(
@@ -245,6 +268,7 @@ class SlackAutofixEntrypoint(
             project_id=self.group.project_id,
             group_id=self.group.id,
             group_link=self.get_group_link(self.group),
+            handoff_target=_get_handoff_target(self.group.project),
         )
 
     @staticmethod
@@ -290,6 +314,7 @@ class SlackAutofixEntrypoint(
                         "current_point": AutofixStoppingPoint.ROOT_CAUSE,
                         "summary": summary,
                         "steps": steps,
+                        "handoff_target": cache_payload.get("handoff_target"),
                     }
                 )
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
@@ -545,6 +570,7 @@ def prepare_slack_thread_for_autofix_updates(
                     project_id=group.project_id,
                     group_id=group.id,
                     group_link=SlackAutofixEntrypoint.get_group_link(group),
+                    handoff_target=_get_handoff_target(group.project),
                 ),
             )
     except UnableToAcquireLock:
