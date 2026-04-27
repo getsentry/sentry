@@ -336,7 +336,7 @@ export function ExplorerDrawerContent({
           )
         }
         overrideCodeModeEnable={overrideCodeModeEnable}
-        onOverrideCodeModeEnableToggle={() => setOverrideCodeModeEnable(v => !v)}
+        onOverrideCodeModeEnableChange={setOverrideCodeModeEnable}
         showCodeModeToggle={
           !!organization?.features.includes('seer-explorer-code-mode-tools')
         }

@@ -5,6 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -23,10 +24,10 @@ interface ExplorerDrawerHeaderProps {
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
-  onOverrideCodeModeEnableToggle: () => void;
+  onOverrideCodeModeEnableChange: (value: 'off' | 'on' | 'only') => void;
   onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
-  overrideCodeModeEnable: boolean;
+  overrideCodeModeEnable: 'off' | 'on' | 'only';
   overrideCtxEngEnable: boolean;
   showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
@@ -45,7 +46,7 @@ export function ExplorerDrawerHeader({
   onOverrideCtxEngEnableToggle,
   showCodeModeToggle,
   overrideCodeModeEnable,
-  onOverrideCodeModeEnableToggle,
+  onOverrideCodeModeEnableChange,
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
@@ -136,25 +137,21 @@ export function ExplorerDrawerHeader({
           </Tooltip>
         )}
         {showCodeModeToggle && (
-          <Tooltip
-            title={
-              overrideCodeModeEnable
-                ? t('Code mode enabled (click to disable)')
-                : t('Code mode disabled (click to enable)')
-            }
-          >
-            <Flex align="center" gap="xs" padding="xs sm" height="100%">
-              <Switch
-                size="sm"
-                checked={overrideCodeModeEnable}
-                onChange={onOverrideCodeModeEnableToggle}
-                aria-label={t('Toggle code mode')}
-              />
-              <Text size="sm" variant="muted">
-                {t('CM')}
-              </Text>
-            </Flex>
-          </Tooltip>
+          <Flex align="center" gap="xs" padding="xs sm" height="100%">
+            <Text size="sm" variant="muted">
+              {t('CM')}
+            </Text>
+            <SegmentedControl
+              size="xs"
+              value={overrideCodeModeEnable}
+              onChange={onOverrideCodeModeEnableChange}
+              aria-label={t('Code mode')}
+            >
+              <SegmentedControl.Item key="off">{t('Off')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="on">{t('On')}</SegmentedControl.Item>
+              <SegmentedControl.Item key="only">{t('Only')}</SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
         )}
         {showThinkingToggle && (
           <Tooltip
