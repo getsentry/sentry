@@ -491,7 +491,7 @@ export function MetricSelector({
                     {collectionItems.length === 0 ? (
                       <Flex align="center" justify="center" padding="xl">
                         <Text variant="muted" size="sm">
-                          {t('No metrics found')}
+                          {t('No application metrics found')}
                         </Text>
                       </Flex>
                     ) : (
@@ -626,7 +626,7 @@ function MetricDetailPanel({
   if (!metric) {
     return (
       <Flex align="center" justify="center" flex="1">
-        <Text variant="muted">{t('Select a metric to see details')}</Text>
+        <Text variant="muted">{t('Select an application metric to see details')}</Text>
       </Flex>
     );
   }

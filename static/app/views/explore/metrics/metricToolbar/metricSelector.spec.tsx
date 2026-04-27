@@ -204,7 +204,9 @@ describe('MetricSelector', () => {
 
         await userEvent.click(screen.getByRole('button', {name: 'None'}));
 
-        expect(await screen.findByText('No metrics found')).toBeInTheDocument();
+        expect(
+          await screen.findByText('No application metrics found')
+        ).toBeInTheDocument();
       });
     });
 

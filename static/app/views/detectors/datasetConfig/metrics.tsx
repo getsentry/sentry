@@ -14,7 +14,7 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
   SearchBar: MetricsDetectorSearchBar,
   formatAggregateForTitle: aggregate => {
     if (aggregate === 'count()') {
-      return t('Number of metrics');
+      return t('Number of application metrics');
     }
     return aggregate;
   },

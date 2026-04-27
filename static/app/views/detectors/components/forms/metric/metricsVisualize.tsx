@@ -78,7 +78,7 @@ export function MetricsVisualize() {
   );
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
-      label: traceMetric.name || t('Select a metric'),
+      label: traceMetric.name || t('Select an application metric'),
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricName: traceMetric.name,
