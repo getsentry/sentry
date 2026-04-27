@@ -128,7 +128,11 @@ function DashboardRevisionsModal({
             {isRestoreError && (
               <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
             )}
-            <Flex direction="column" maxHeight="560px" overflowY="auto">
+            <Flex
+              direction="column"
+              style={{maxHeight: 'min(560px, calc(100vh - 350px))'}}
+              overflowY="auto"
+            >
               <RevisionListItem
                 isCurrentVersion
                 isSelected={isNewestVersionSelected}
