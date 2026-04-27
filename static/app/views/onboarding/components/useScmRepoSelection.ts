@@ -26,7 +26,7 @@ function buildOptimisticRepo(
 ): Repository {
   return {
     id: '',
-    externalId: repo.identifier,
+    externalId: repo.externalId,
     name: repo.name,
     externalSlug: repo.identifier,
     url: '',
