@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -359,25 +359,23 @@ function HighlightedTokenAttributes({
       }
     >
       <TokensSpan>
-        <span>
+        <Container display="inline-block">
           <Count value={breakdown.netNewInput} /> {t('in')}
-        </span>
+        </Container>
         {hasCached && (
-          <Fragment>
-            <span>+</span>
-            <span>
-              <Count value={breakdown.cached} /> {t('cached')}
-            </span>
-          </Fragment>
+          <Container display="inline-block">
+            {' + '}
+            <Count value={breakdown.cached} /> {t('cached')}
+          </Container>
         )}
-        <span>+</span>
-        <span>
+        <Container display="inline-block">
+          {' + '}
           <Count value={breakdown.output} /> {t('out')}
-        </span>
-        <span>=</span>
-        <span>
+        </Container>
+        <Container display="inline-block">
+          {' = '}
           <Count value={breakdown.total} /> {t('total')}
-        </span>
+        </Container>
       </TokensSpan>
     </Tooltip>
   );
@@ -453,8 +451,4 @@ const TokensSpan = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
-
-  > * + * {
-    margin-left: ${p => p.theme.space.xs};
-  }
 `;
