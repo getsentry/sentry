@@ -2,6 +2,7 @@ from collections import namedtuple
 from unittest.mock import Mock, patch
 
 import pytest
+from django.conf import settings
 from requests import Response
 from requests.exceptions import Timeout
 
@@ -12,7 +13,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
-from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils import redis
+from sentry.utils.circuit_breaker2 import CircuitBreaker, CircuitBreakerState
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
 
 
@@ -177,3 +179,182 @@ class WebhookCircuitBreakerTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         mock_record_success.assert_called_once()
+
+
+@cell_silo_test
+class WebhookCircuitBreakerNotifyTest(TestCase):
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.user = self.create_user(email="creator@example.com")
+        self.sentry_app = self.create_sentry_app(
+            name="TestApp",
+            organization=self.organization,
+            user=self.user,
+            webhook_url="https://example.com/webhook",
+            published=True,
+        )
+        self.install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        # Clear dedup keys between tests so each test starts fresh.
+        client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
+        client.delete(f"sentry-app.webhook.circuit-breaker.notified.{self.sentry_app.slug}")
+
+    def _make_event(self):
+        return AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"test": "data"},
+        )
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_timeout_with_trip_calls_notify_async(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        """When the breaker trips during a timeout, an email is dispatched."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.get_state.return_value = CircuitBreakerState.BROKEN
+        mock_breaker_instance.broken_state_duration = 300
+        mock_breaker_instance.recovery_duration = 600
+        MockService.has_access.return_value = True
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        MockService.return_value.notify_async.assert_called_once()
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_timeout_without_trip_does_not_notify(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        """A timeout that doesn't trip the breaker should not email."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.get_state.return_value = CircuitBreakerState.OK
+        mock_breaker_instance.broken_state_duration = 300
+        mock_breaker_instance.recovery_duration = 600
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        MockService.return_value.notify_async.assert_not_called()
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(
+        {**CIRCUIT_BREAKER_OPTIONS, "sentry-apps.webhook.circuit-breaker.dry-run": True}
+    )
+    @patch("sentry.utils.sentry_apps.webhooks.logger")
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_dry_run_logs_would_email_once_across_concurrent_trips(
+        self, MockBreaker, mock_safe_urlopen, MockService, mock_logger
+    ):
+        """In dry-run mode, exactly one would_email log fires per BROKEN cycle, even if
+        many concurrent timeouts each observe a BROKEN state."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.get_state.return_value = CircuitBreakerState.BROKEN
+        mock_breaker_instance.broken_state_duration = 300
+        mock_breaker_instance.recovery_duration = 600
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        for _ in range(5):
+            with pytest.raises(WebhookTimeoutError):
+                send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        would_email_calls = [
+            c
+            for c in mock_logger.info.call_args_list
+            if c.args and c.args[0] == "sentry_app.webhook.circuit_breaker.would_email"
+        ]
+        assert len(would_email_calls) == 1
+        MockService.return_value.notify_async.assert_not_called()
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_concurrent_trips_emit_single_email(self, MockBreaker, mock_safe_urlopen, MockService):
+        """In live mode, exactly one notify_async call fires per BROKEN cycle even when
+        N concurrent workers each observe a BROKEN state."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.get_state.return_value = CircuitBreakerState.BROKEN
+        mock_breaker_instance.broken_state_duration = 300
+        mock_breaker_instance.recovery_duration = 600
+        MockService.has_access.return_value = True
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        for _ in range(5):
+            with pytest.raises(WebhookTimeoutError):
+                send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        assert MockService.return_value.notify_async.call_count == 1
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_creator_label_without_at_sign_skips_email(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        """If creator_label is a username (no @), we shouldn't email."""
+        # The helper only reads creator_label off the in-memory instance, so a local
+        # mutation is sufficient — no DB write required.
+        self.sentry_app.creator_label = "no-email-username"
+
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.get_state.return_value = CircuitBreakerState.BROKEN
+        mock_breaker_instance.broken_state_duration = 300
+        mock_breaker_instance.recovery_duration = 600
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        MockService.return_value.notify_async.assert_not_called()
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_new_trip_after_dedup_expires_emails_again(
+        self, MockBreaker, mock_safe_urlopen, MockService
+    ):
+        """After the dedup key expires, a fresh BROKEN trip should email again."""
+        mock_breaker_instance = MockBreaker.return_value
+        mock_breaker_instance.should_allow_request.return_value = True
+        mock_breaker_instance.get_state.return_value = CircuitBreakerState.BROKEN
+        mock_breaker_instance.broken_state_duration = 300
+        mock_breaker_instance.recovery_duration = 600
+        MockService.has_access.return_value = True
+        mock_safe_urlopen.side_effect = WebhookTimeoutError()
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        # Simulate dedup TTL expiry by deleting the key.
+        client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
+        client.delete(f"sentry-app.webhook.circuit-breaker.notified.{self.sentry_app.slug}")
+
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        assert MockService.return_value.notify_async.call_count == 2

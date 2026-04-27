@@ -406,6 +406,11 @@ class CircuitBreaker:
             )
             self.recovery_duration = default_recovery_duration
 
+    def get_state(self) -> CircuitBreakerState:
+        """Return current breaker state (OK, BROKEN, or RECOVERY)."""
+        state, _ = self._get_state_and_remaining_time()
+        return state
+
     def record_success(self) -> None:
         """Record a successful request. Only meaningful when a strategy tracks total requests."""
         now = int(time.time())
