@@ -452,9 +452,13 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || (needs.split-tiers.outputs.has-tiers == 'true' && '/tmp/backend-tests.txt' || '') }}
+          # tier 2 (snuba-heavy) gets --dist=load to balance individual-test latency
+          # across workers — variance is much higher than the no-tiers case where
+          # --dist=loadfile averages out via larger file count per shard.
+          XDIST_DIST: ${{ needs.split-tiers.outputs.has-tiers == 'true' && 'load' || 'loadfile' }}
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=${XDIST_DIST}"
             timeout 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
