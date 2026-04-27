@@ -722,7 +722,9 @@ describe('MetricsTabContent', () => {
       expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
 
       // Only 2 entries (cap is 3) -> both buttons are enabled
-      for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
+      for (const button of screen.getAllByRole('button', {
+        name: 'Add Metric',
+      })) {
         expect(button).toBeEnabled();
       }
       for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -731,7 +733,9 @@ describe('MetricsTabContent', () => {
 
       // Add an entry, 3 entries (at cap) -> both buttons are disabled
       await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
-      for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
+      for (const button of screen.getAllByRole('button', {
+        name: 'Add Metric',
+      })) {
         expect(button).toBeDisabled();
       }
       for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {

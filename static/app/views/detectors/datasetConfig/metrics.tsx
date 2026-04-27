@@ -21,15 +21,19 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/translateAggregateTag';
 
 export const DetectorMetricsConfig = createEapDetectorConfig({
-  name: t('Metrics'),
+  name: t('Application Metrics'),
   defaultEventTypes: [EventTypes.TRACE_ITEM_METRIC],
   defaultField: TraceMetricsConfig.defaultField,
   getAggregateOptions: TraceMetricsConfig.getTableFieldOptions,
   discoverDataset: DiscoverDatasets.TRACEMETRICS,
   SearchBar: MetricsDetectorSearchBar,
+  supportsEquations: true,
   formatAggregateForTitle: aggregate => {
     if (aggregate === 'count()') {
-      return t('Number of metrics');
+      return t('Number of application metrics');
+    }
+    if (isEquation(aggregate)) {
+      return stripEquationPrefix(aggregate);
     }
     if (isEquation(aggregate)) {
       return stripEquationPrefix(aggregate);
@@ -55,7 +59,6 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
     aggregate = translateAggregateTagBack(aggregate);
     return getApiAggregateString(aggregate);
   },
-  supportsEquations: true,
 });
 
 export function getApiAggregateString(

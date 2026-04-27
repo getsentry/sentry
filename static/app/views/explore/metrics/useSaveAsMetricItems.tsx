@@ -186,8 +186,8 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
             ? [
                 {
                   key: 'add-to-dashboard-all',
-                  label: t('All Metrics'),
-                  textValue: t('All Metrics'),
+                  label: t('All Application Metrics'),
+                  textValue: t('All Application Metrics'),
                   onAction: () => {
                     addToDashboard(
                       metricQueries.filter(
