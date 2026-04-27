@@ -9,7 +9,6 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     TelemetryStatus,
     duration_metric_for,
     emit_status,
-    emit_status_metric,
     instrumented,
     status_metric_for,
 )
@@ -80,7 +79,7 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
     assert isinstance(captured_exc, _BoomError)
 
 
-def test_passes_result_through_on_success_without_emitting_failed() -> None:
+def test_passes_result_through_and_emits_completed_on_success() -> None:
     @instrumented
     def add(x: int, y: int) -> int:
         return x + y
@@ -93,59 +92,5 @@ def test_passes_result_through_on_success_without_emitting_failed() -> None:
         assert add(2, 3) == 5
 
     timed_cm.assert_called_once_with("dynamic_sampling.add.duration")
-    emit.assert_not_called()
+    emit.assert_called_once_with("dynamic_sampling.add.status", TelemetryStatus.COMPLETED)
     sdk.capture_exception.assert_not_called()
-
-
-def test_emit_status_metric_routes_to_enclosing_function() -> None:
-    @instrumented
-    def orch() -> None:
-        emit_status_metric(TelemetryStatus.KILLSWITCHED)
-
-    with patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit:
-        orch()
-
-    emit.assert_called_once_with(
-        "dynamic_sampling.orch.status", TelemetryStatus.KILLSWITCHED, extra_tags=None
-    )
-
-
-def test_emit_status_metric_outside_decorated_function_raises() -> None:
-    with pytest.raises(RuntimeError):
-        emit_status_metric(TelemetryStatus.COMPLETED)
-
-
-def test_emit_status_metric_resolves_to_nearest_enclosing_function() -> None:
-    calls: list[tuple[str, TelemetryStatus]] = []
-
-    def _record(metric: str, status: TelemetryStatus, *, extra_tags=None) -> None:
-        calls.append((metric, status))
-
-    @instrumented
-    def inner() -> None:
-        emit_status_metric(TelemetryStatus.NO_VOLUME)
-
-    @instrumented
-    def outer() -> None:
-        emit_status_metric(TelemetryStatus.NOT_IN_ROLLOUT)
-        inner()
-        emit_status_metric(TelemetryStatus.COMPLETED)
-
-    with patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status", side_effect=_record):
-        outer()
-
-    assert calls == [
-        ("dynamic_sampling.outer.status", TelemetryStatus.NOT_IN_ROLLOUT),
-        ("dynamic_sampling.inner.status", TelemetryStatus.NO_VOLUME),
-        ("dynamic_sampling.outer.status", TelemetryStatus.COMPLETED),
-    ]
-
-
-def test_preserves_wrapped_function_metadata() -> None:
-    @instrumented
-    def documented(x: int) -> int:
-        """some docstring"""
-        return x
-
-    assert documented.__name__ == "documented"
-    assert documented.__doc__ == "some docstring"
