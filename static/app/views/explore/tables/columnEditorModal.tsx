@@ -17,8 +17,10 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -85,7 +87,8 @@ export function ColumnEditorModal({
                   canDelete={editableColumns.length > 1}
                   required={requiredTags?.includes(column.column)}
                   column={column}
-                  options={tags}
+                  baseOptions={tags}
+                  hiddenKeys={hiddenKeys}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
                 />
@@ -134,11 +137,12 @@ export function ColumnEditorModal({
 }
 
 interface ColumnEditorRowProps {
+  baseOptions: Array<SelectOption<string>>;
   canDelete: boolean;
   column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
-  options: Array<SelectOption<string>>;
+  hiddenKeys?: string[];
   required?: boolean;
 }
 
@@ -146,13 +150,49 @@ function ColumnEditorRow({
   canDelete,
   column,
   required,
-  options,
+  baseOptions,
+  hiddenKeys,
   onColumnChange,
   onColumnDelete,
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
   });
+
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'string');
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'number');
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'boolean');
+
+  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+
+  const searchedOptions = useMemo(() => {
+    if (!hasSearch) {
+      return null;
+    }
+    return buildColumnOptions({
+      columns: column.column ? [column.column] : [],
+      stringTags: searchedStringTags,
+      numberTags: searchedNumberTags,
+      booleanTags: searchedBooleanTags,
+      hiddenKeys,
+    });
+  }, [
+    hasSearch,
+    column.column,
+    searchedStringTags,
+    searchedNumberTags,
+    searchedBooleanTags,
+    hiddenKeys,
+  ]);
+
+  const options = searchedOptions ?? baseOptions;
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
     if (defined(option) && typeof option.value === 'string') {
@@ -164,7 +204,9 @@ function ColumnEditorRow({
   // selection. This overrides it to render in a trailing item showing the type.
   const label = useMemo(() => {
     if (defined(column.column)) {
-      const tag = options.find(option => option.value === column.column);
+      const tag =
+        options.find(option => option.value === column.column) ??
+        baseOptions.find(option => option.value === column.column);
       if (defined(tag)) {
         return (
           <TriggerLabel>
@@ -181,8 +223,8 @@ function ColumnEditorRow({
         );
       }
     }
-    return <TriggerLabel>{column.column || t('—')}</TriggerLabel>;
-  }, [column.column, options]);
+    return <TriggerLabel>{column.column || t('\u2014')}</TriggerLabel>;
+  }, [column.column, options, baseOptions]);
 
   return (
     <RowContainer
@@ -201,7 +243,9 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         disabled={required}
-        search
+        search={{onChange: setSearch}}
+        loading={isSearchLoading}
+        emptyMessage={isSearchLoading ? t('Loading\u2026') : t('No matching attributes')}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
