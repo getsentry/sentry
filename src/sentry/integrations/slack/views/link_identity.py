@@ -74,4 +74,15 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
         if cached is None:
             return
 
-        route_slack_seer_event.apply_async(kwargs=dict(cached))
+        route_slack_seer_event.apply_async(
+            kwargs={
+                "payload": cached["payload"],
+                "integration_id": cached["integration_id"],
+                "slack_user_id": cached["slack_user_id"],
+                "channel_id": cached["channel_id"],
+                "thread_ts": cached["thread_ts"],
+                "message_ts": cached["message_ts"],
+                "event_type": cached["event_type"],
+                "message_text": cached["message_text"],
+            }
+        )
