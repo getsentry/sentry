@@ -1,11 +1,26 @@
-import {Fragment} from 'react';
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {IconCode, IconProject, IconStack} from 'sentry/icons';
+import {
+  IconChat,
+  IconCode,
+  IconFile,
+  IconFilter,
+  IconGlobe,
+  IconGroup,
+  IconLock,
+  IconPlay,
+  IconProject,
+  IconReleases,
+  IconSeer,
+  IconSettings,
+  IconSiren,
+  IconStack,
+  IconTag,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -16,6 +31,7 @@ import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/t
 type ProjectSettingsCommandPaletteEntry = {
   display: {
     label: string;
+    icon?: ReactNode;
   };
   keywords: string[];
   to: string;
@@ -25,6 +41,7 @@ type ProjectSettingsCommandPaletteGroup = {
   items: Array<{
     display: {
       label: string;
+      icon?: ReactNode;
     };
     keywords: string[];
     to: string;
@@ -37,6 +54,23 @@ type ProjectSettingsCommandPaletteSection = {
   items: Array<ProjectSettingsCommandPaletteEntry | ProjectSettingsCommandPaletteGroup>;
   label: string;
   icon?: ReactNode;
+};
+
+export const PROJECT_SETTINGS_ICONS: Record<string, ReactNode> = {
+  '': <IconSettings />,
+  'alerts/': <IconSiren />,
+  'debug-symbols/': <IconFile />,
+  'environments/': <IconGlobe />,
+  'filters/': <IconFilter />,
+  'keys/': <IconLock />,
+  'loader-script/': <IconCode />,
+  'release-tracking/': <IconReleases />,
+  'replays/': <IconPlay />,
+  'security-and-privacy/': <IconLock />,
+  'seer/': <IconSeer />,
+  'tags/': <IconTag />,
+  'teams/': <IconGroup />,
+  'user-feedback/': <IconChat />,
 };
 
 function shouldShowItem(
@@ -100,16 +134,20 @@ export function getProjectSettingsCommandPaletteSections({
         label,
         items: section.items
           .filter(item => shouldShowItem(item, context, section))
-          .map(item => ({
-            display: {
-              label: item.title,
-            },
-            keywords: [section.name, 'project settings', 'settings'],
-            to: replaceRouterParams(item.path, {
-              orgId: organization.slug,
-              projectId: project.slug,
-            }),
-          })),
+          .map(item => {
+            const suffix = item.path.replace('/settings/:orgId/projects/:projectId/', '');
+            return {
+              display: {
+                label: item.title,
+                icon: PROJECT_SETTINGS_ICONS[suffix],
+              },
+              keywords: [section.name, 'project settings', 'settings'],
+              to: replaceRouterParams(item.path, {
+                orgId: organization.slug,
+                projectId: project.slug,
+              }),
+            };
+          }),
       };
     })
     .filter(section => section.items.length > 0);
@@ -125,7 +163,7 @@ export function getProjectSettingsCommandPaletteSections({
   return [
     {
       icon: <ProjectAvatar project={project} size={16} />,
-      label: t('Project Settings'),
+      label: project.slug,
       items: groupedSections.map(section =>
         section.id === 'settings-legacy-integrations' && section.items.length > 0
           ? section.items[0]!

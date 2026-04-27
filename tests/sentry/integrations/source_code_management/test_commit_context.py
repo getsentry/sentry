@@ -11,6 +11,7 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError
@@ -58,6 +59,49 @@ class TestCommitContextIntegrationSLO(TestCase):
 
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch(
+        "sentry.integrations.source_code_management.commit_context.CommitContextIntegrationInteractionEvent"
+    )
+    def test_get_blame_for_files_event_includes_organization_id(
+        self, mock_interaction_event: MagicMock
+    ) -> None:
+        self.integration.organization_id = self.organization.id
+        self.integration.client.get_blame_for_files.return_value = []
+
+        lifecycle = MagicMock()
+        mock_interaction_event.return_value.capture.return_value.__enter__.return_value = lifecycle
+        mock_interaction_event.return_value.capture.return_value.__exit__.return_value = False
+
+        self.integration.get_blame_for_files([self.source_line], {})
+
+        mock_interaction_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
+            provider_key=self.integration.integration_name,
+            integration_id=self.integration.integration_id,
+            organization_id=self.organization.id,
+        )
+
+    @patch(
+        "sentry.integrations.source_code_management.commit_context.CommitContextIntegrationInteractionEvent"
+    )
+    def test_get_blame_for_files_event_omits_organization_id_when_unavailable(
+        self, mock_interaction_event: MagicMock
+    ) -> None:
+        self.integration.client.get_blame_for_files.return_value = []
+
+        lifecycle = MagicMock()
+        mock_interaction_event.return_value.capture.return_value.__enter__.return_value = lifecycle
+        mock_interaction_event.return_value.capture.return_value.__exit__.return_value = False
+
+        self.integration.get_blame_for_files([self.source_line], {})
+
+        mock_interaction_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
+            provider_key=self.integration.integration_name,
+            integration_id=self.integration.integration_id,
+            organization_id=None,
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_blame_for_files_missing_identity(self, mock_record: MagicMock) -> None:

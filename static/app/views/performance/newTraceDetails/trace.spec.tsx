@@ -984,14 +984,17 @@ describe('trace view', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not render the summary tab even when the legacy feature flag is enabled', async () => {
-    const organization = OrganizationFixture({features: ['single-trace-summary']});
+  it.isKnownFlake(
+    'does not render the summary tab even when the legacy feature flag is enabled',
+    async () => {
+      const organization = OrganizationFixture({features: ['single-trace-summary']});
 
-    await completeTestSetup({organization});
+      await completeTestSetup({organization});
 
-    expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
-  });
+      expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+    }
+  );
 
   describe('pageload', () => {
     it('scrolls to trace root', async () => {

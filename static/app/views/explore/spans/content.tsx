@@ -175,24 +175,23 @@ function SpansTabHeader() {
     />
   );
 
+  const hasBreadcrumb = Boolean(title && defined(id));
+
   if (hasPageFrameFeature) {
     return (
       <Fragment>
         {documentTitle}
-        {title && defined(id) ? (
-          <TopBar.Slot name="title">
+        <TopBar.Slot name="title">
+          {hasBreadcrumb ? (
             <ExploreBreadcrumb
               traceItemDataset={TraceItemDataset.SPANS}
               savedQueryName={savedQuery?.name}
             />
-            {titleContent}
-          </TopBar.Slot>
-        ) : (
-          <TopBar.Slot name="title">
-            {title ? title : t('Traces')}
-            {titleContent}
-          </TopBar.Slot>
-        )}
+          ) : (
+            title || t('Traces')
+          )}
+          {titleContent}
+        </TopBar.Slot>
         <TopBar.Slot name="actions">
           <StarSavedQueryButton />
           {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
@@ -214,14 +213,14 @@ function SpansTabHeader() {
       {documentTitle}
       <Layout.HeaderContent unified>
         <Fragment>
-          {title && defined(id) ? (
+          {hasBreadcrumb ? (
             <ExploreBreadcrumb
               traceItemDataset={TraceItemDataset.SPANS}
               savedQueryName={savedQuery?.name}
             />
           ) : null}
           <Layout.Title>
-            {title ? title : t('Traces')}
+            {title || t('Traces')}
             {titleContent}
           </Layout.Title>
         </Fragment>

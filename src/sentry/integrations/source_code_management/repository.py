@@ -65,6 +65,7 @@ class BaseRepositoryIntegration(ABC):
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation
@@ -89,6 +90,11 @@ class BaseRepositoryIntegration(ABC):
         only repositories the installation has access to are
         returned, filtering locally instead of using the provider's
         search API.
+
+        When ``raise_on_page_limit`` is True and the provider's fetch hits a
+        pagination cap with more data still available, ``ApiPaginationTruncated``
+        is raised with the partial result attached. Providers without a
+        pagination cap may accept and ignore this argument.
         """
         raise NotImplementedError
 

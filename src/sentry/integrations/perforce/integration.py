@@ -315,6 +315,7 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get list of depots/streams from Perforce server.
