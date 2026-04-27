@@ -140,6 +140,13 @@ class CommitContextIntegration(ABC):
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
 
+    def get_organization_id(self) -> int | None:
+        """
+        Return the organization ID when available on the installation instance.
+        Some unit-test mocks don't inherit IntegrationInstallation and won't have it.
+        """
+        return getattr(self, "organization_id", None)
+
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
     ) -> list[FileBlameInfo]:
@@ -152,6 +159,7 @@ class CommitContextIntegration(ABC):
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
             provider_key=self.integration_name,
             integration_id=self.integration_id,
+            organization_id=self.get_organization_id(),
         ).capture() as lifecycle:
             try:
                 client = self.get_client()

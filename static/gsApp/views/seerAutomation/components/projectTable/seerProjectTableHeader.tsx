@@ -222,8 +222,8 @@ export function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <FullGridAlert variant="info" system>
+          <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
               {queryString
@@ -238,23 +238,15 @@ export function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap">
-            <span>
-              {queryString
-                ? tct('Selected all [count] projects matching: [queryString].', {
-                    count: countSelected,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > projects.length
-                  ? t('Selected all %s+ projects.', projects.length)
-                  : tn(
-                      'Selected %s project.',
-                      'Selected all %s projects.',
-                      countSelected
-                    )}
-            </span>
-          </Flex>
+        <FullGridAlert variant="info" system>
+          {queryString
+            ? tct('Selected all [count] projects matching: [queryString].', {
+                count: countSelected,
+                queryString: <var>{queryString}</var>,
+              })
+            : countSelected > projects.length
+              ? t('Selected all %s+ projects.', projects.length)
+              : tn('Selected %s project.', 'Selected all %s projects.', countSelected)}
         </FullGridAlert>
       ) : null}
     </Fragment>

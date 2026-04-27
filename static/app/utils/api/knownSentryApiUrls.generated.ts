@@ -723,6 +723,7 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/$ruleId/stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/configuration/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/rules/preview/'
+  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/night-shift/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-coverage/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/'

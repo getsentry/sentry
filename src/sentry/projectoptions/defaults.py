@@ -1,10 +1,10 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import (
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
 )
 from sentry.projectoptions import register
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
@@ -182,7 +182,7 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should autofix run automatically on new issues
-register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
+register(key="sentry:autofix_automation_tuning", default=AUTOFIX_AUTOMATION_TUNING_DEFAULT)
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)

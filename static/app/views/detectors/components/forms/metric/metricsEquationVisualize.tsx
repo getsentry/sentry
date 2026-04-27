@@ -35,6 +35,7 @@ import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricS
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {
   LocalMultiMetricsQueryParamsProvider,
+  MAX_METRICS_ALLOWED,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -230,7 +231,7 @@ function MetricsEquationVisualizeContent({
       <Flex gap="md" align="center">
         <ToolbarVisualizeAddChart
           add={addAggregate}
-          disabled={false}
+          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
           label={t('Add Metric')}
           display="button"
         />
@@ -238,7 +239,7 @@ function MetricsEquationVisualizeContent({
           <ToolbarVisualizeAddChart
             display="button"
             add={addEquation}
-            disabled={false}
+            disabled={equationQuery || metricQueries.length >= MAX_METRICS_ALLOWED}
             label={t('Add Equation')}
           />
         )}
@@ -272,8 +273,11 @@ function FunctionColumnHeaders() {
     <Grid width="100%" align="center" gap="md" columns={FUNCTION_GRID_COLUMNS}>
       <div style={{gridColumn: 'span 2'}} />
       <div>
-        <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
-          <SectionLabel>{t('Metric')}</SectionLabel>
+        <Tooltip
+          title={t('The application metric to aggregate in this row.')}
+          showUnderline
+        >
+          <SectionLabel>{t('Application Metric')}</SectionLabel>
         </Tooltip>
       </div>
       <div>
@@ -283,7 +287,7 @@ function FunctionColumnHeaders() {
       </div>
       <div>
         <Tooltip
-          title={t('Restrict this metric to events matching a filter.')}
+          title={t('Restrict this application metric to events matching a filter.')}
           showUnderline
         >
           <SectionLabel>{t('Filter')}</SectionLabel>
@@ -300,7 +304,9 @@ function EquationColumnHeader() {
       <div style={{gridColumn: 'span 2'}} />
       <div>
         <Tooltip
-          title={t('Combine the metrics above with an arithmetic expression.')}
+          title={t(
+            'Combine the application metrics above with an arithmetic expression.'
+          )}
           showUnderline
         >
           <SectionLabel>{t('Equation')}</SectionLabel>

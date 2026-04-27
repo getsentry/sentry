@@ -327,6 +327,16 @@ describe('Performance > TransactionSummary', () => {
         },
       ],
     });
+    // Replay count from useSpans (TransactionHeader)
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-facets/',
       body: [
