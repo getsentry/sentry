@@ -5,7 +5,10 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
+from sentry.models.organization import Organization
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.types.cell import CellMappingNotFound
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 logger = logging.getLogger(__name__)
@@ -28,14 +31,21 @@ _PROVIDER_KEYS = {
 def backfill_scm_integration_config(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    # `sentry_organizationintegration` is control-silo; `sentry_organizationoptions`
+    # is region-silo. This migration is routed to control via the `tables` hint
+    # below, so we read OI rows locally but fetch the legacy option values over
+    # the cell RPC instead of a cross-silo SQL query (which is impossible).
+    from sentry.organizations.services.organization import organization_service
+
     OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
-    OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
     # Iterate the whole OI table — the approx wrapper needs an unfiltered
     # queryset, and we don't have an index on (status, id) or
     # (integration_id, id) for a filtered range scan. Filtering in Python
     # is cheaper than either alternative.
     queryset = OrganizationIntegration.objects.all().select_related("integration")
+
+    option_cache: dict[tuple[int, str], object] = {}
 
     for oi in RangeQuerySetWrapperWithProgressBarApprox(queryset):
         if oi.status != ObjectStatus.ACTIVE:
@@ -45,23 +55,31 @@ def backfill_scm_integration_config(
         if not key_pairs:
             continue
 
-        option_keys = [opt_key for opt_key, _ in key_pairs]
-        opts = {
-            opt.key: opt.value
-            for opt in OrganizationOption.objects.filter(
-                organization_id=oi.organization_id,
-                key__in=option_keys,
-            )
-        }
-        if not opts:
-            continue
-
         config = dict(oi.config or {})
         changed = False
         for opt_key, cfg_key in key_pairs:
-            if opt_key in opts and cfg_key not in config:
-                config[cfg_key] = bool(opts[opt_key])
-                changed = True
+            if cfg_key in config:
+                continue
+            cache_key = (oi.organization_id, opt_key)
+            if cache_key not in option_cache:
+                try:
+                    option_cache[cache_key] = organization_service.get_option(
+                        organization_id=oi.organization_id, key=opt_key
+                    )
+                except (Organization.DoesNotExist, CellMappingNotFound, RpcRemoteException):
+                    # OI references an org that's already been deleted on the
+                    # region silo. The HybridCloudForeignKey cascade is async
+                    # across silos so this window is expected. In monolith /
+                    # tests the region raises Organization.DoesNotExist; in
+                    # split-silo the cell resolver raises CellMappingNotFound
+                    # (mapping gone) or RpcRemoteException (mapping intact,
+                    # region-side DoesNotExist wrapped by the RPC framework).
+                    option_cache[cache_key] = None
+            value = option_cache[cache_key]
+            if value is None:
+                continue
+            config[cfg_key] = bool(value)
+            changed = True
 
         if changed:
             oi.config = config

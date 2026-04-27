@@ -14,7 +14,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayListItem} from 'sentry/components/replays/list/__stories__/replayListItem';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 interface Props {
   onSelect: (replayId: string) => void;
   queryResult: UseInfiniteQueryResult<

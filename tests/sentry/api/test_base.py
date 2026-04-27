@@ -7,11 +7,12 @@ from unittest.mock import MagicMock
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
+from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry.api.base import Endpoint, EndpointSiloLimit
+from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
@@ -649,3 +650,26 @@ class RequestAccessTest(APITestCase):
         response = AccessUsingEndpoint.as_view()(self.request)
         assert response.status_code == 200
         assert response.data == {"ok": True}
+
+
+class StatsMixinParseArgsTest(APITestCase):
+    def _make_request(self, params: dict[str, str]) -> MagicMock:
+        request = MagicMock()
+        request.GET = QueryDict(mutable=True)
+        request.GET.update(params)
+        return request
+
+    def test_invalid_timestamp_params(self) -> None:
+        mixin = StatsMixin()
+        with raises(ParseError, match="until must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"until": "not_a_number"}))
+        with raises(ParseError, match="since must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"since": "not_a_number"}))
+
+    def test_overflow_timestamp_params(self) -> None:
+        mixin = StatsMixin()
+        huge = "9" * 30
+        with raises(ParseError, match="until must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"until": huge}))
+        with raises(ParseError, match="since must be a numeric timestamp"):
+            mixin._parse_args(self._make_request({"since": huge}))

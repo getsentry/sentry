@@ -523,9 +523,7 @@ function buildComponentTree(
     const folderNode = new StoryTreeNode(config.label, subcategory, files[0]);
 
     // Collect subgroup component names for filtering
-    const subgroupComponents = new Set(
-      config.subgroups?.flatMap(sg => sg.components) ?? []
-    );
+    const subgroupComponents = new Set(config.subgroups?.flatMap(sg => sg.components));
 
     // Add top-level files (those not in any subgroup), sorted alphabetically
     for (const file of files.sort()) {

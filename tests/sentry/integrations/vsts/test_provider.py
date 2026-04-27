@@ -99,7 +99,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
             },
         )
 
-        result = view.exchange_token(request, pipeline, "oauth-code")
+        result: dict[str, Any] = view.exchange_token(request, pipeline, "oauth-code")
         mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
 
@@ -149,7 +149,7 @@ class TestVSTSNewOAuth2CallbackView(TestCase):
             },
         )
 
-        result = view.exchange_token(request, pipeline, "oauth-code")
+        result: dict[str, Any] = view.exchange_token(request, pipeline, "oauth-code")
         mock_request = responses.calls[0].request
         req_params = parse_qs(mock_request.body)
 
