@@ -527,6 +527,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
             <LogsItemContainer>
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
+                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                   expanded={tableExpando.expanded}
                   booleanAttributes={booleanAttributes}
                   stringAttributes={stringAttributes}

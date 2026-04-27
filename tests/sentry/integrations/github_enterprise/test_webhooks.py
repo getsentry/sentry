@@ -3,6 +3,8 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
+from django.http import HttpRequest
+from django.test import RequestFactory
 
 from fixtures.github_enterprise import (
     ISSUES_ASSIGNED_EVENT_EXAMPLE,
@@ -16,6 +18,7 @@ from fixtures.github_enterprise import (
 )
 from sentry.integrations.github_enterprise.webhook import (
     GitHubEnterpriseInstallationRepositoriesEventWebhook,
+    get_host,
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
@@ -23,7 +26,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import override_options
 
 
@@ -951,3 +954,30 @@ class IssuesEventWebhookTest(APITestCase):
             mock_sync.assert_called_once()
 
         assert_success_metric(mock_record)
+
+
+class GetHostTest(TestCase):
+    def _make_request(self, headers: dict[str, str]) -> HttpRequest:
+        factory = RequestFactory()
+        request = factory.post("/", content_type="application/json")
+        for key, value in headers.items():
+            request.META[f"HTTP_{key.upper().replace('-', '_')}"] = value
+        return request
+
+    def test_returns_enterprise_host_header(self) -> None:
+        request = self._make_request({"x-github-enterprise-host": "github.example.org"})
+        assert get_host(request) == "github.example.org"
+
+    def test_returns_ghe_cloud_host_from_tenant_header(self) -> None:
+        request = self._make_request({"x-github-tenant": "acme-corp"})
+        assert get_host(request) == "acme-corp.ghe.com"
+
+    def test_enterprise_host_takes_precedence_over_tenant(self) -> None:
+        request = self._make_request(
+            {"x-github-enterprise-host": "github.example.org", "x-github-tenant": "acme-corp"}
+        )
+        assert get_host(request) == "github.example.org"
+
+    def test_returns_none_when_no_host_headers(self) -> None:
+        request = self._make_request({})
+        assert get_host(request) is None

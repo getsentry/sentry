@@ -46,11 +46,8 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {
-    preference,
-    isPending: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (

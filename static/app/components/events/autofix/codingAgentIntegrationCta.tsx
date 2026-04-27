@@ -39,8 +39,8 @@ export function makeCodingAgentIntegrationCta(config: AgentConfig) {
     const organization = useOrganization();
     const user = useUser();
 
-    const {preference, isFetching: isLoadingPreferences} =
-      useProjectSeerPreferences(project);
+    const {data, isFetching: isLoadingPreferences} = useProjectSeerPreferences(project);
+    const preference = data?.preference;
     const {mutate: updateProjectSeerPreferences, isPending: isUpdatingPreferences} =
       useUpdateProjectSeerPreferences(project);
     const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(

@@ -481,7 +481,7 @@ export type Subscription = {
   vatStatus?: VatStatus | null;
 };
 
-export type DiscountInfo = {
+type DiscountInfo = {
   amount: number;
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;

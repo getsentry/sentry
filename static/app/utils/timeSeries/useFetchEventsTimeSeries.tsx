@@ -1,12 +1,13 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -67,10 +68,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    * Query to apply to the data set. Can be either a `MutableSearch` object (preferred) or a plain string.
    */
   query?: MutableSearch | string;
-  /**
-   * Options to pass to `useApiQuery`
-   */
-  queryOptions?: Partial<UseApiQueryOptions<EventsTimeSeriesResponse>>;
+  queryOptions?: {enabled?: boolean; staleTime?: number};
   /**
    * Sampling mode. Only specify this if you're sure you require a specific sampling mode. In most cases, the backend will automatically decide this.
    */
@@ -146,12 +144,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   const metricQueryParams = metricQuery?.map(formatSearchStringForQueryParam);
   const spanQueryParams = spanQuery?.map(formatSearchStringForQueryParam);
 
-  return useApiQuery<EventsTimeSeriesResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  return useQuery({
+    ...apiOptions.as<EventsTimeSeriesResponse>()(
+      '/organizations/$organizationIdOrSlug/events-timeseries/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           partial: 1,
           excludeOther: excludeOther ? 1 : 0,
@@ -177,17 +174,15 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: shouldRetryHandler,
-      retryDelay: getRetryDelay,
-      refetchOnWindowFocus: false,
-      enabled: enabled && (hasCustomPageFilters ? true : arePageFiltersReady),
-      ...options.queryOptions,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: shouldRetryHandler,
+    retryDelay: getRetryDelay,
+    refetchOnWindowFocus: false,
+    enabled: enabled && (hasCustomPageFilters ? true : arePageFiltersReady),
+    ...options.queryOptions,
+  });
 }
 
 export type EventsTimeSeriesResponse = {

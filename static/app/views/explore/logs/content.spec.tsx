@@ -244,7 +244,6 @@ describe('LogsPage', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'ourlogs',
             disableAggregateExtrapolation: '0',
             environment: [],
