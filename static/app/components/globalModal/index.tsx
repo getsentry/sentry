@@ -223,7 +223,13 @@ export function GlobalModal({onClose}: Props) {
   return createPortal(
     <Fragment>
       <AnimatePresence>
-        {backdrop && visible && <Backdrop key="backdrop" zIndex="modal" />}
+        {backdrop && visible && (
+          <Backdrop
+            key="backdrop"
+            zIndex="modal"
+            {...(typeof backdrop === 'object' ? backdrop : {})}
+          />
+        )}
       </AnimatePresence>
       <Container
         data-test-id="modal-backdrop"
