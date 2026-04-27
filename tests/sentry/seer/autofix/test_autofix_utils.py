@@ -13,6 +13,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
+    clear_automation_handoff_preference,
     deduplicate_repositories,
     extract_api_error_message,
     get_autofix_prompt,
@@ -1085,6 +1086,91 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p1_repo.branch_name == "new-branch"
         p2_repo = SeerProjectRepository.objects.get(project=project2)
         assert p2_repo.branch_name == "project-2-branch"
+
+
+class TestClearAutomationHandoffPreference(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization()
+        self.project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext123",
+            name="test-org/test-repo",
+        )
+
+    def _assert_handoff_options_cleared(self) -> None:
+        assert self.project.get_option("sentry:seer_automation_handoff_point") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_target") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
+
+    def test_clears_all_four_handoff_options(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
+        )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+
+        clear_automation_handoff_preference(self.project)
+
+        self._assert_handoff_options_cleared()
+
+    def test_leaves_unrelated_preference_fields_untouched(self) -> None:
+        """The race-condition fix: clearing handoff must not touch repos, stopping_point,
+        or tuning, which are written via the same SeerProjectPreference object."""
+        write_preference_to_sentry_db(
+            self.project,
+            SeerProjectPreference(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                repositories=[
+                    SeerRepoDefinition(
+                        repository_id=self.repo.id,
+                        provider="github",
+                        owner="test-org",
+                        name="test-repo",
+                        external_id="ext123",
+                        branch_name="develop",
+                        instructions="Use conventional commits",
+                    ),
+                ],
+                automated_run_stopping_point="open_pr",
+                automation_handoff=SeerAutomationHandoffConfiguration(
+                    handoff_point="root_cause",
+                    target="cursor_background_agent",
+                    integration_id=42,
+                    auto_create_pr=True,
+                ),
+            ),
+        )
+        self.project.update_option("sentry:autofix_automation_tuning", "high")
+
+        clear_automation_handoff_preference(self.project)
+
+        self._assert_handoff_options_cleared()
+        assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
+        assert self.project.get_option("sentry:autofix_automation_tuning") == "high"
+
+        seer_repo = SeerProjectRepository.objects.get(project=self.project)
+        assert seer_repo.repository_id == self.repo.id
+        assert seer_repo.branch_name == "develop"
+        assert seer_repo.instructions == "Use conventional commits"
+
+    def test_preserves_no_handoff(self) -> None:
+        clear_automation_handoff_preference(self.project)
+
+        self._assert_handoff_options_cleared()
+
+    def test_clears_partial_handoff(self) -> None:
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+
+        clear_automation_handoff_preference(self.project)
+
+        self._assert_handoff_options_cleared()
 
 
 class TestReadPreferenceFromSentryDb(TestCase):
