@@ -14,6 +14,7 @@ import type {
   CMDKQueryOptions,
   CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
+import Hook from 'sentry/components/hook';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -235,7 +236,7 @@ export function GlobalCommandPaletteActions() {
           {hasMetricsSupportedPlatform &&
             organization.features.includes('tracemetrics-enabled') && (
               <CMDKAction
-                display={{label: t('Metrics')}}
+                display={{label: t('Application Metrics')}}
                 to={`${prefix}/explore/metrics/`}
               />
             )}
@@ -412,6 +413,7 @@ export function GlobalCommandPaletteActions() {
                 to={item.path}
               />
             ))}
+          <Hook name="cmdk:global-settings-actions" />
         </CMDKAction>
 
         <CMDKAction
@@ -647,6 +649,7 @@ export function GlobalCommandPaletteActions() {
       >
         <CMDKAction
           display={{label: t('Open Documentation'), icon: <IconDocs />}}
+          keywords={['docs', 'documentation']}
           to="https://docs.sentry.io"
         />
         <CMDKAction

@@ -1,13 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {NoAccess} from 'sentry/components/noAccess';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ExploreBodyContent} from 'sentry/views/explore/components/styles';
 import {ConversationSummary} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {ConversationViewContent} from 'sentry/views/explore/conversations/components/conversationView';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
@@ -25,26 +22,6 @@ function useConversationDetailQueryState() {
 }
 
 function ConversationDetailPage() {
-  const organization = useOrganization();
-
-  return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Feature
-        features="gen-ai-conversations"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <ConversationDetailContent />
-      </Feature>
-    </Feature>
-  );
-}
-
-function ConversationDetailContent() {
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
@@ -67,11 +44,8 @@ function ConversationDetailContent() {
   );
 
   return (
-    <Layout.Body padding="md 2xl" style={{display: 'flex', flexDirection: 'column'}}>
-      <Layout.Main
-        width="full"
-        style={{display: 'flex', flexDirection: 'column', flex: 1}}
-      >
+    <ExploreBodyContent>
+      <Stack flex={1} padding="md 2xl" gap="md">
         <Flex direction="column" gap="md" padding="0 0 xl 0">
           <ConversationSummary
             nodes={nodes}
@@ -88,8 +62,8 @@ function ConversationDetailContent() {
             focusedTool={queryState.focusedTool}
           />
         </ConversationViewContainer>
-      </Layout.Main>
-    </Layout.Body>
+      </Stack>
+    </ExploreBodyContent>
   );
 }
 

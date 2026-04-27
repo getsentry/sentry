@@ -64,11 +64,6 @@ export function ExploreSecondaryNavigation() {
     });
   }, [organization, hasMetricsSupportedPlatform, userPlatforms.length]);
 
-  const hasDiscoverQueryFeature = useMemo(
-    () => organization.features.includes('discover-query'),
-    [organization]
-  );
-
   return (
     <Fragment>
       <SecondaryNavigation.Header>{t('Explore')}</SecondaryNavigation.Header>
@@ -128,11 +123,7 @@ export function ExploreSecondaryNavigation() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={
-                    hasDiscoverQueryFeature
-                      ? `${baseUrl}/discover/homepage/`
-                      : `${baseUrl}/discover/results/`
-                  }
+                  to={`${baseUrl}/discover/homepage/`}
                   activeTo={`${baseUrl}/discover/`}
                   analyticsItemName="explore_discover"
                 >

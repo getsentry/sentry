@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
 from sentry.constants import ObjectStatus
+from sentry.identity.services.identity import RpcIdentity
 from sentry.identity.services.identity.service import identity_service
+from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -17,10 +18,11 @@ from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.workspace import get_thread_history
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import OrganizationStatus
+from sentry.models.organizationmember import InviteStatus
 from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.organizations.services.organization.service import organization_service
 from sentry.seer.entrypoints.slack.entrypoint import SlackAgentEntrypoint
-from sentry.seer.entrypoints.slack.mention import build_thread_context
+from sentry.seer.entrypoints.slack.mention import _SLACK_URL_RE, build_thread_context
 from sentry.silo.base import SiloMode, all_silo_function
 from sentry.users.services.user.service import user_service
 
@@ -28,10 +30,6 @@ COMMANDS = ["link", "unlink", "link team", "unlink team"]
 SLACK_PROVIDERS = [IntegrationProviderSlug.SLACK, IntegrationProviderSlug.SLACK_STAGING]
 
 logger = logging.getLogger(__name__)
-
-# Slack wraps URLs in the form `<url>` or `<url|display text>`; this regex
-# extracts the URL portion while stopping at any of those delimiters.
-_URL_REGEX = re.compile(r"https?://[^\s<>|]+")
 
 
 def has_discover_links(links: list[str]) -> bool:
@@ -90,6 +88,10 @@ def _resolve_available_organizations(
             logger.info("_resolve_available_organizations.missing_membership", extra=logging_ctx)
             continue
 
+        if ctx.member.invite_status != InviteStatus.APPROVED.value:
+            logger.info("_resolve_available_organizations.unapproved_membership", extra=logging_ctx)
+            continue
+
         logger.info("_resolve_available_organizations.success", extra=logging_ctx)
         available_organizations.append(ctx)
     return available_organizations
@@ -103,12 +105,30 @@ def _resolve_organization_from_text(
     matching its org slug against the available organizations. Returns the first match.
     """
     organizations_by_slug = {ctx.organization.slug: ctx for ctx in available_organizations}
-    for url in _URL_REGEX.findall(search_text):
+    for url in _SLACK_URL_RE.findall(search_text):
         _, args = match_link(url)
         if not args or "org_slug" not in args:
             continue
         ctx = organizations_by_slug.get(args["org_slug"])
         if ctx is not None:
+            return ctx
+    return None
+
+
+def _resolve_organization_from_preference(
+    *,
+    identity: RpcIdentity,
+    available_organizations: list[RpcUserOrganizationContext],
+) -> RpcUserOrganizationContext | None:
+    """
+    Resolves an organization from the user's stored preference on their Identity. Returns None if
+    no preference is set, or if the preferred org is not currently available to the user.
+    """
+    preferred_id = identity.data.get(PREFERRED_ORGANIZATION_ID_KEY)
+    if not preferred_id:
+        return None
+    for ctx in available_organizations:
+        if ctx.organization.id == preferred_id:
             return ctx
     return None
 
@@ -180,7 +200,7 @@ def resolve_seer_organization(
         else None
     )
     user = user_service.get_user(identity.user_id) if identity else None
-    if not user:
+    if not identity or not user:
         logger.info("resolve_seer_organization.identity_not_linked", extra=logging_ctx)
         return SeerResolutionResult(
             organization_id=None, halt_reason=SeerSlackHaltReason.IDENTITY_NOT_LINKED
@@ -240,7 +260,16 @@ def resolve_seer_organization(
             organization_id=ctx_from_thread.organization.id, halt_reason=None
         )
 
-    # 3. Check the user's preferred organization (TODO)
+    # 3. Check the user's preferred organization
+    ctx_from_preference = _resolve_organization_from_preference(
+        identity=identity, available_organizations=available_organizations
+    )
+    if ctx_from_preference is not None:
+        logger.info("resolve_seer_organization.resolved_from_preference", extra=logging_ctx)
+        return SeerResolutionResult(
+            organization_id=ctx_from_preference.organization.id, halt_reason=None
+        )
+
     # 4. Fallback to the first result
     first_organization = available_organizations[0]
     logger.info("resolve_seer_organization.fallback_organization", extra=logging_ctx)

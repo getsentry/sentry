@@ -14,8 +14,8 @@ import {t} from 'sentry/locale';
 import * as events from 'sentry/utils/events';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 interface Props {
   replay: ReplayListRecord | ReplayListRecordWithTx;

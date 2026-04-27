@@ -194,7 +194,7 @@ export function WizardField({
     ...(hasTraceMetricsAlerts(organization)
       ? [
           {
-            label: t('METRICS'),
+            label: t('APPLICATION METRICS'),
             options: [
               {
                 label: AlertWizardAlertNames.trace_item_metrics,
