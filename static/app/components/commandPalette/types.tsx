@@ -13,6 +13,8 @@ interface Action {
   };
   /** Optional keywords to improve searchability */
   keywords?: string[];
+  /** Max results shown before a "See all" expansion item appears */
+  limit?: number;
 }
 
 export type CMDKQueryOptions = Omit<

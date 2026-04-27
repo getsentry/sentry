@@ -1,6 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
@@ -15,7 +17,7 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
-import {IconBookmark, IconFilter, IconIssues, IconSort} from 'sentry/icons';
+import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -82,6 +84,7 @@ function FilterActions({
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
   const api = useApi();
   const organization = useOrganization();
+  const user = useUser();
   const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
 
@@ -183,6 +186,7 @@ function FilterActions({
       display: {label: `${tag.name.charAt(0).toUpperCase()}${tag.name.slice(1)}`},
       keywords: [tag.key],
       prompt: t('Select a value...'),
+      limit: 4,
       resource: (_q: string, ctx: CMDKResourceContext): CMDKQueryOptions =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps
         cmdkQueryOptions({
@@ -190,7 +194,13 @@ function FilterActions({
           queryFn: async () => {
             const values = hasPredefined ? predefined : await loadTagValues(tag.key);
             return values.map(value => ({
-              display: {label: value},
+              display: {
+                label: value,
+                icon:
+                  tag.key === FieldKey.ASSIGNED && value === 'me' ? (
+                    <UserAvatar user={user} size={16} hasTooltip={false} />
+                  ) : undefined,
+              },
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
             }));
           },
@@ -220,6 +230,19 @@ function FilterActions({
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
+      <CMDKAction
+        display={{
+          label: t('Assigned to me'),
+          icon: <UserAvatar user={user} size={16} hasTooltip={false} />,
+        }}
+        keywords={['mine', 'my issues', 'assign', 'assigned', 'me']}
+        onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'me'))}
+      />
+      <CMDKAction
+        display={{label: t('Assigned to my teams'), icon: <IconGroup />}}
+        keywords={['my teams', 'assign', 'assigned', 'teams']}
+        onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'my_teams'))}
+      />
       <CMDKAction
         display={{label: t('Issues')}}
         prompt={t('Select a filter...')}
