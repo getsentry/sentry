@@ -656,7 +656,7 @@ const BlockContent = styled(MarkedText)`
   padding-bottom: 0;
 
   code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
+    ${p => inlineCodeStyles(p.theme, {variant: 'neutral'})};
   }
 
   p,
