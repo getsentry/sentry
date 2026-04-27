@@ -1,7 +1,7 @@
 import {
   extractAssistantOutput,
   normalizeToMessages,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiMessageNormalizer';
+} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 
 describe('normalizeToMessages', () => {
   describe('parts-format array', () => {
