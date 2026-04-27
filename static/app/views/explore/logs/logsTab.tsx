@@ -40,6 +40,7 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
@@ -71,6 +72,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import type {TableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
@@ -97,7 +99,6 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-import type {TableExpando} from './tables/useTableExpando';
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
   tableExpando: TableExpando;
@@ -430,110 +431,115 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
         datePageFilterProps={datePageFilterProps}
         searchBarWidthOffset={columnEditorButtonRef.current?.clientWidth}
       />
-      <ViewportConstrainedBody>
-        <LogsControlSection expanded={sidebarOpen}>
-          {sidebarOpen ? <LogsToolbar /> : null}
-        </LogsControlSection>
-        <ExploreContentSection gap="md">
-          {!tableExpando.expanded && (
-            <OverChartButtonGroup>
-              <LogsSidebarCollapseButton
-                sidebarOpen={sidebarOpen}
-                aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                size="xs"
-                icon={
-                  <IconChevron
-                    isDouble
-                    direction={sidebarOpen ? 'left' : 'right'}
-                    size="xs"
-                  />
-                }
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                {sidebarOpen ? null : t('Advanced')}
-              </LogsSidebarCollapseButton>
-              <LogsExportButton
-                isLoading={tableData.isPending}
-                tableData={tableData.data}
-                error={tableData.error}
-              />
-            </OverChartButtonGroup>
-          )}
-          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
-          <LogsDownSamplingAlert
-            timeseriesResult={timeseriesResult}
-            tableResult={infiniteLogsQueryResult}
-          />
-          {!tableExpando.expanded && (
-            <LogsGraphContainer>
-              <LogsGraph
-                rawLogCounts={rawLogCounts}
-                timeseriesResult={timeseriesResult}
-              />
-            </LogsGraphContainer>
-          )}
-          <LogsTableActionsContainer>
-            <Tabs value={tableTab} onChange={setTableTab} size="sm">
-              <TabList variant="floating">
-                <TabList.Item key="logs">{t('Logs')}</TabList.Item>
-                <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
-              </TabList>
-            </Tabs>
-            {tableTab === 'logs' && (
-              <TableActionsContainer>
-                <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
-                <Tooltip
-                  title={manualRefreshDisabledReason}
-                  disabled={!manualRefreshDisabledReason}
-                  skipWrapper
-                >
-                  <Button
-                    size="sm"
-                    icon={<IconRefresh />}
-                    disabled={!canManuallyRefresh}
-                    onClick={refreshTable}
-                    aria-label={t('Refresh')}
-                  />
-                </Tooltip>
-                <TableActionButton
-                  mobile={
-                    <Button
-                      onClick={openColumnEditor}
-                      icon={<IconEdit />}
-                      size="sm"
-                      aria-label={t('Edit Table')}
+      <ViewportConstrainedPage
+        constrained={tableExpando.enabled}
+        hideFooter={tableExpando.expanded === true}
+      >
+        <ViewportConstrainedBody>
+          <LogsControlSection expanded={sidebarOpen}>
+            {sidebarOpen ? <LogsToolbar /> : null}
+          </LogsControlSection>
+          <ExploreContentSection gap="md">
+            {!tableExpando.expanded && (
+              <OverChartButtonGroup>
+                <LogsSidebarCollapseButton
+                  sidebarOpen={sidebarOpen}
+                  aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
+                  size="xs"
+                  icon={
+                    <IconChevron
+                      isDouble
+                      direction={sidebarOpen ? 'left' : 'right'}
+                      size="xs"
                     />
                   }
-                  desktop={
-                    <Button
-                      onClick={openColumnEditor}
-                      icon={<IconEdit />}
-                      size="sm"
-                      aria-label={t('Edit Table')}
-                    >
-                      {t('Edit Table')}
-                    </Button>
-                  }
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                >
+                  {sidebarOpen ? null : t('Advanced')}
+                </LogsSidebarCollapseButton>
+                <LogsExportButton
+                  isLoading={tableData.isPending}
+                  tableData={tableData.data}
+                  error={tableData.error}
                 />
-                {tableExpando.enabled && tableExpando.button}
-              </TableActionsContainer>
+              </OverChartButtonGroup>
             )}
-          </LogsTableActionsContainer>
-          <LogsItemContainer>
-            {tableTab === 'logs' ? (
-              <LogsInfiniteTable
-                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                expanded={tableExpando.expanded}
-                booleanAttributes={booleanAttributes}
-                stringAttributes={stringAttributes}
-                numberAttributes={numberAttributes}
-              />
-            ) : (
-              <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            <LogsDownSamplingAlert
+              timeseriesResult={timeseriesResult}
+              tableResult={infiniteLogsQueryResult}
+            />
+            {!tableExpando.expanded && (
+              <LogsGraphContainer>
+                <LogsGraph
+                  rawLogCounts={rawLogCounts}
+                  timeseriesResult={timeseriesResult}
+                />
+              </LogsGraphContainer>
             )}
-          </LogsItemContainer>
-        </ExploreContentSection>
-      </ViewportConstrainedBody>
+            <LogsTableActionsContainer>
+              <Tabs value={tableTab} onChange={setTableTab} size="sm">
+                <TabList variant="floating">
+                  <TabList.Item key="logs">{t('Logs')}</TabList.Item>
+                  <TabList.Item key="aggregates">{t('Aggregates')}</TabList.Item>
+                </TabList>
+              </Tabs>
+              {tableTab === 'logs' && (
+                <TableActionsContainer>
+                  <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
+                  <Tooltip
+                    title={manualRefreshDisabledReason}
+                    disabled={!manualRefreshDisabledReason}
+                    skipWrapper
+                  >
+                    <Button
+                      size="sm"
+                      icon={<IconRefresh />}
+                      disabled={!canManuallyRefresh}
+                      onClick={refreshTable}
+                      aria-label={t('Refresh')}
+                    />
+                  </Tooltip>
+                  <TableActionButton
+                    mobile={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      />
+                    }
+                    desktop={
+                      <Button
+                        onClick={openColumnEditor}
+                        icon={<IconEdit />}
+                        size="sm"
+                        aria-label={t('Edit Table')}
+                      >
+                        {t('Edit Table')}
+                      </Button>
+                    }
+                  />
+                  {tableExpando.enabled && tableExpando.button}
+                </TableActionsContainer>
+              )}
+            </LogsTableActionsContainer>
+            <LogsItemContainer>
+              {tableTab === 'logs' ? (
+                <LogsInfiniteTable
+                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                  expanded={tableExpando.expanded}
+                  booleanAttributes={booleanAttributes}
+                  stringAttributes={stringAttributes}
+                  numberAttributes={numberAttributes}
+                />
+              ) : (
+                <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+              )}
+            </LogsItemContainer>
+          </ExploreContentSection>
+        </ViewportConstrainedBody>
+      </ViewportConstrainedPage>
     </Fragment>
   );
 }
