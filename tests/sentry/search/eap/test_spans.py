@@ -28,8 +28,14 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.eap.spans.attributes import (
+    SPAN_ATTRIBUTE_DEFINITIONS,
+    SPANS_REPLACEMENT_MAP,
+    _update_attribute_definitions_with_deprecations,
+)
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.spans.sentry_conventions import SENTRY_CONVENTIONS_DIRECTORY
 from sentry.search.eap.types import SearchResolverConfig
@@ -835,3 +841,92 @@ def test_loads_deprecated_attrs_json() -> None:
     attribute = deprecated_attrs[0]
     assert attribute["key"]
     assert attribute["deprecation"]
+
+
+def test_backfilled_deprecated_attributes_resolve_to_replacement() -> None:
+    deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS["http.response_content_length"]
+    replacement_attr = SPAN_ATTRIBUTE_DEFINITIONS["http.response.body.size"]
+
+    assert deprecated_attr.internal_name == "http.response_content_length"
+    assert deprecated_attr.search_type == "byte"
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "http.response.body.size"
+    assert replacement_attr.internal_name == "http.response.body.size"
+    assert replacement_attr.search_type == "byte"
+    assert SPANS_REPLACEMENT_MAP["http.response_content_length"] == "http.response.body.size"
+
+
+def test_deprecated_attribute_internal_alias_preserves_existing_search_type() -> None:
+    attribute_definitions = {
+        "mobile.total_frames": SPAN_ATTRIBUTE_DEFINITIONS["mobile.total_frames"],
+    }
+    mobile_total_frames_attr = attribute_definitions["mobile.total_frames"]
+
+    assert mobile_total_frames_attr.public_alias == "mobile.total_frames"
+    assert mobile_total_frames_attr.internal_name == "frames.total"
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "frames.total",
+                "type": "integer",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "app.vitals.frames.total.count",
+                },
+            }
+        ],
+    )
+
+    deprecated_internal_attr = attribute_definitions["frames.total"]
+    replacement_attr = attribute_definitions["app.vitals.frames.total.count"]
+
+    assert attribute_definitions["mobile.total_frames"] == mobile_total_frames_attr
+    assert deprecated_internal_attr.public_alias == "frames.total"
+    assert deprecated_internal_attr.internal_name == "frames.total"
+    assert deprecated_internal_attr.search_type == "number"
+    assert deprecated_internal_attr.deprecation_status == "backfill"
+    assert deprecated_internal_attr.replacement == "app.vitals.frames.total.count"
+    assert replacement_attr.public_alias == "app.vitals.frames.total.count"
+    assert replacement_attr.internal_name == "app.vitals.frames.total.count"
+    assert replacement_attr.search_type == "number"
+
+
+def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
+    attribute_definitions = {
+        "mobile.total_frames": SPAN_ATTRIBUTE_DEFINITIONS["mobile.total_frames"],
+        "app.vitals.frames.total.count": ResolvedAttribute(
+            public_alias="app.vitals.frames.total.count",
+            internal_name="app.vitals.frames.total.count",
+            search_type="integer",
+        ),
+    }
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        [
+            {
+                "key": "frames.total",
+                "type": "number",
+                "deprecation": {
+                    "_status": "backfill",
+                    "replacement": "app.vitals.frames.total.count",
+                },
+            }
+        ],
+    )
+
+    deprecated_internal_attr = attribute_definitions["frames.total"]
+    replacement_attr = attribute_definitions["app.vitals.frames.total.count"]
+
+    assert deprecated_internal_attr.public_alias == "frames.total"
+    assert deprecated_internal_attr.internal_name == "frames.total"
+    assert deprecated_internal_attr.search_type == "number"
+    assert deprecated_internal_attr.deprecation_status == "backfill"
+    assert deprecated_internal_attr.replacement == "app.vitals.frames.total.count"
+    assert replacement_attr.public_alias == "app.vitals.frames.total.count"
+    assert replacement_attr.internal_name == "app.vitals.frames.total.count"
+    assert replacement_attr.search_type == "integer"
+    assert replacement_attr.deprecation_status is None
+    assert replacement_attr.replacement is None
