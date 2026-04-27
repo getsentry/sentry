@@ -123,7 +123,7 @@ function SeerWorkflows() {
                               size="xs"
                               icon={<IconOpen />}
                               to={{
-                                pathname: `/organizations/${organization.slug}/issues/`,
+                                pathname: `/organizations/${organization.slug}/seer/workflows/`,
                                 query: {explorerRunId},
                               }}
                             >
@@ -218,7 +218,7 @@ function RunDetail({
                   size="xs"
                   icon={<IconOpen />}
                   to={{
-                    pathname: `/organizations/${organizationSlug}/issues/`,
+                    pathname: `/organizations/${organizationSlug}/seer/workflows/`,
                     query: {explorerRunId: issue.seerRunId},
                   }}
                 >

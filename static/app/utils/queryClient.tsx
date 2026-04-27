@@ -148,6 +148,7 @@ export function getApiQueryData<TResponseData>(
   if (version !== 'v1') {
     return undefined;
   }
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   return queryClient.getQueryData<ApiResult<TResponseData>>(queryKey)?.[0];
 }
 
@@ -165,6 +166,7 @@ export function setApiQueryData<TResponseData>(
   if (version !== 'v1') {
     return undefined;
   }
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const updateResult = queryClient.setQueryData<ApiResult<TResponseData>>(
     queryKey,
     previous => {

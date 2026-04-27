@@ -454,6 +454,7 @@ export default typescript.config([
       '@sentry/no-digits-in-tn': 'error',
       '@sentry/no-dynamic-translations': 'error',
       '@sentry/no-flag-comments': 'error',
+      '@sentry/no-query-data-type-parameters': 'error',
       '@sentry/no-static-translations': 'error',
       '@sentry/no-styled-shortcut': 'error',
       '@sentry/no-unnecessary-use-callback': 'error',

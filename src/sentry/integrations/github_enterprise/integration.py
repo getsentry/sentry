@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from typing import Any
 from urllib.parse import urlparse
 
@@ -48,7 +48,11 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.pipeline.views.nested import NestedPipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiPaginationTruncated,
+    IntegrationError,
+)
 from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -57,10 +61,16 @@ from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 
+def _api_base_url(url: str) -> str:
+    if url.endswith(".ghe.com"):
+        return f"https://api.{url}"
+    return f"https://{url}/api/v3"
+
+
 def get_user_info(url, access_token):
     with http.build_session() as session:
         resp = session.get(
-            f"https://{url}/api/v3/user",
+            f"{_api_base_url(url)}/user",
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
             verify=False,
         )
@@ -227,9 +237,9 @@ class GitHubEnterpriseIntegration(
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
-        if not query:
-            all_repos = self.get_client().get_repos(page_number_limit=page_number_limit)
+        def _process(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": i["name"],
@@ -237,9 +247,21 @@ class GitHubEnterpriseIntegration(
                     "external_id": self.get_repo_external_id(i),
                     "default_branch": i.get("default_branch"),
                 }
-                for i in all_repos
+                for i in raw_repos
                 if not i.get("archived")
             ]
+
+        if not query:
+            try:
+                all_repos = self.get_client().get_repos(
+                    page_number_limit=page_number_limit,
+                    raise_on_page_limit=raise_on_page_limit,
+                )
+            except ApiPaginationTruncated as e:
+                # Transform partial data into RepositoryInfo before re-raising
+                # so callers see the same shape regardless of truncation.
+                raise ApiPaginationTruncated(_process(e.partial_data)) from e
+            return _process(all_repos)
 
         full_query = build_repository_query(self.model.metadata, self.model.name, query)
         response = self.get_client().search_repositories(full_query)
@@ -696,9 +718,10 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 )
             )
         )
+        base = _api_base_url(installation_data["url"])
         with http.build_session() as session:
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
+                f"{base}/app/installations/{installation_id}",
                 headers=headers,
                 verify=installation_data["verify_ssl"],
             )
@@ -706,7 +729,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             installation_resp = resp.json()
 
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/user/installations",
+                f"{base}/user/installations",
                 headers={
                     "Accept": GITHUB_API_ACCEPT_HEADER,
                     "Authorization": f"token {access_token}",
