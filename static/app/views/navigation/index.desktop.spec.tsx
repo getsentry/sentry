@@ -378,7 +378,7 @@ describe('desktop navigation', () => {
           [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           [`${ORG}/monitors/my-monitors/`, 'Monitors', 'My Monitors'],
           [`${ORG}/monitors/errors/`, 'Monitors', 'Errors'],
-          [`${ORG}/monitors/metrics/`, 'Monitors', 'Application Metrics'],
+          [`${ORG}/monitors/metrics/`, 'Monitors', 'Metrics'],
           [`${ORG}/monitors/crons/`, 'Monitors', 'Crons'],
           [`${ORG}/monitors/alerts/`, 'Monitors', 'Alerts'],
           // Settings
