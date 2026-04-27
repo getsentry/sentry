@@ -17,9 +17,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -51,103 +49,17 @@ export function ColumnEditorModal({
   isDocsButtonHidden = false,
   handleReset,
 }: ColumnEditorModalProps) {
-  const tags: Array<SelectOption<string>> = useMemo(() => {
-    let allTags = [
-      ...columns
-        .filter(
-          column =>
-            !(column in stringTags) && !(column in numberTags) && !(column in booleanTags)
-        )
-        .map(column => {
-          const kind = classifyTagKey(column);
-          const label = prettifyTagKey(column);
-          return {
-            label,
-            value: column,
-            textValue: column,
-            trailingItems: <TypeBadge kind={kind} />,
-            key: `${column}-${classifyTagKey(column)}`,
-            showDetailsInOverlay: true,
-            details: (
-              <AttributeDetails
-                column={column}
-                kind={kind}
-                label={label}
-                traceItemType={TraceItemDataset.SPANS}
-              />
-            ),
-          };
-        }),
-      ...Object.values(stringTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
-          key: `${tag.key}-${FieldKind.TAG}`,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={FieldKind.TAG}
-              label={tag.name}
-              traceItemType={TraceItemDataset.SPANS}
-            />
-          ),
-        };
+  const tags = useMemo(
+    () =>
+      buildColumnOptions({
+        columns,
+        stringTags,
+        numberTags,
+        booleanTags,
+        hiddenKeys,
       }),
-      ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
-          key: `${tag.key}-${FieldKind.MEASUREMENT}`,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={FieldKind.TAG}
-              label={tag.name}
-              traceItemType={TraceItemDataset.SPANS}
-            />
-          ),
-        };
-      }),
-      ...Object.values(booleanTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-          trailingItems: <TypeBadge kind={FieldKind.BOOLEAN} />,
-          key: `${tag.key}-${FieldKind.BOOLEAN}`,
-          showDetailsInOverlay: true,
-          details: (
-            <AttributeDetails
-              column={tag.key}
-              kind={FieldKind.BOOLEAN}
-              label={tag.name}
-              traceItemType={TraceItemDataset.SPANS}
-            />
-          ),
-        };
-      }),
-    ];
-    allTags = allTags
-      .filter(tag => !(hiddenKeys ?? []).includes(tag.label))
-      .toSorted((a, b) => {
-        if (a.label < b.label) {
-          return -1;
-        }
-
-        if (a.label > b.label) {
-          return 1;
-        }
-
-        return 0;
-      });
-    return allTags;
-  }, [booleanTags, columns, hiddenKeys, numberTags, stringTags]);
+    [booleanTags, columns, hiddenKeys, numberTags, stringTags]
+  );
 
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
@@ -269,7 +181,7 @@ function ColumnEditorRow({
         );
       }
     }
-    return <TriggerLabel>{column.column || t('\u2014')}</TriggerLabel>;
+    return <TriggerLabel>{column.column || t('—')}</TriggerLabel>;
   }, [column.column, options]);
 
   return (
@@ -312,6 +224,45 @@ function ColumnEditorRow({
       />
     </RowContainer>
   );
+}
+
+interface BuildColumnOptionsParams {
+  booleanTags: TagCollection;
+  columns: readonly string[];
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  hiddenKeys?: string[];
+}
+
+function buildColumnOptions({
+  columns,
+  stringTags,
+  numberTags,
+  booleanTags,
+  hiddenKeys,
+}: BuildColumnOptionsParams) {
+  return buildAttributeOptions({
+    numberTags,
+    stringTags,
+    booleanTags,
+    traceItemType: TraceItemDataset.SPANS,
+    extraColumns: columns,
+  })
+    .filter(option => {
+      const label = typeof option.label === 'string' ? option.label : option.textValue;
+      return !(hiddenKeys ?? []).includes(label ?? '');
+    })
+    .toSorted((a, b) => {
+      const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
+      const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
+      if (aLabel < bLabel) {
+        return -1;
+      }
+      if (aLabel > bLabel) {
+        return 1;
+      }
+      return 0;
+    });
 }
 
 const RowContainer = styled('div')`
