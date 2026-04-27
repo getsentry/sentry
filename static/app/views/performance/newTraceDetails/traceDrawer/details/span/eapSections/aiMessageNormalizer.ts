@@ -8,12 +8,12 @@ export interface AIMessage {
   role: string;
 }
 
-export interface NormalizedResult {
+interface NormalizedResult {
   fixedInvalidJson: boolean;
   messages: AIMessage[] | null;
 }
 
-export interface AIOutputResult {
+interface AIOutputResult {
   fixedInvalidJson: boolean;
   responseObject: string | null;
   responseText: string | null;
