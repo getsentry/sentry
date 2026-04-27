@@ -229,6 +229,6 @@ describe('javascript-gatsby onboarding docs', () => {
       ],
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 });

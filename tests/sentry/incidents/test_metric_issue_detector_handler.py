@@ -216,6 +216,20 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             == f"Critical: Crash free session rate in the last minute above {self.critical_detector_trigger.comparison}"
         )
 
+    def test_title_equation_aggregate(self) -> None:
+        self.snuba_query.aggregate = (
+            'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
+        )
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert (
+            title
+            == f'Critical: count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2 in the last minute above {self.critical_detector_trigger.comparison}'
+        )
+
     def test_dynamic_alert_title(self) -> None:
         self.detector.config.update({"detection_type": "dynamic"})
         self.snuba_query.aggregate = "count_unique(user)"
@@ -244,6 +258,19 @@ class TestConstructTitle(TestEvaluateMetricDetector):
             priority=self.critical_detector_trigger.condition_result,
         )
         assert title == "Detected an anomaly in the query for default_aggregate"
+
+    def test_dynamic_alert_title_equation(self) -> None:
+        self.detector.config.update({"detection_type": "dynamic"})
+        self.snuba_query.aggregate = (
+            'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2'
+        )
+        self.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
+        title = self.handler.construct_title(
+            snuba_query=self.snuba_query,
+            detector_trigger=self.critical_detector_trigger,
+            priority=self.critical_detector_trigger.condition_result,
+        )
+        assert title == "Detected an anomaly in the query for eap_metrics"
 
 
 class TestGetAnomalyDetectionIssueTitle(TestCase):
@@ -349,6 +376,13 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
         assert (
             get_alert_type_from_aggregate_dataset(
                 "count(metric.name,metric_name_two,distribution,-)",
+                Dataset.EventsAnalyticsPlatform,
+            )
+            == "eap_metrics"
+        )
+        assert (
+            get_alert_type_from_aggregate_dataset(
+                'equation|count_if(`agent_name:"Agent Run"`,value,metric_name,distribution,none) * 2',
                 Dataset.EventsAnalyticsPlatform,
             )
             == "eap_metrics"

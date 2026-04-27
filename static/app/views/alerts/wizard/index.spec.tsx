@@ -206,7 +206,7 @@ describe('AlertWizard', () => {
       initialRouterConfig,
     });
 
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 
   it('shows custom metrics alerts according to feature flag', () => {
@@ -228,7 +228,7 @@ describe('AlertWizard', () => {
     });
 
     // "Metrics" category heading and "Custom Metrics" option are both visible
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
     expect(screen.getByText('Custom Metrics')).toBeInTheDocument();
   });
 });
