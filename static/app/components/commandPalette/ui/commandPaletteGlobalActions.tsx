@@ -180,7 +180,7 @@ export function GlobalCommandPaletteActions() {
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
-        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
+        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
@@ -222,7 +222,7 @@ export function GlobalCommandPaletteActions() {
           )}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}}>
+        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
           <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
@@ -275,7 +275,7 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
@@ -308,6 +308,7 @@ export function GlobalCommandPaletteActions() {
                 label: t('Insights'),
                 icon: <IconGraph type="area" />,
               }}
+              limit={4}
             >
               {!hasInsightsRollout && (
                 <CMDKAction
@@ -361,7 +362,7 @@ export function GlobalCommandPaletteActions() {
           )}
 
         {hasWorkflowEngineUI && (
-          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}}>
+          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
             <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
             <CMDKAction
               display={{label: t('My Monitors')}}
@@ -395,7 +396,7 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         )}
 
-        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
+        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {getUserOrgNavigationConfiguration()
             .flatMap(section => section.items)
             .sort((a, b) => a.title.localeCompare(b.title))
@@ -414,7 +415,10 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
+        <CMDKAction
+          display={{label: t('Project Settings'), icon: <IconSettings />}}
+          limit={4}
+        >
           {visibleProjectSettingsNavItems.map(navItem => {
             const suffix = navItem.path.replace(
               '/settings/:orgId/projects/:projectId/',
@@ -426,6 +430,7 @@ export function GlobalCommandPaletteActions() {
                 display={{label: navItem.title, icon: PROJECT_SETTINGS_ICONS[suffix]}}
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
+                limit={4}
                 resource={(
                   _query: string,
                   {state}: CMDKResourceContext
