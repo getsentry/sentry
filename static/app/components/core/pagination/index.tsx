@@ -1,1 +1,1 @@
-export {Pagination, getPaginationCaption} from './pagination';
+export {Pagination, getPaginationCaption, type CursorHandler} from './pagination';

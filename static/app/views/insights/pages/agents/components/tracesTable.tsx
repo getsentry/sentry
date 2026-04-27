@@ -7,12 +7,12 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {Pagination} from 'sentry/components/pagination';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   COL_WIDTH_UNDEFINED,

@@ -4,9 +4,9 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SearchBar} from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';

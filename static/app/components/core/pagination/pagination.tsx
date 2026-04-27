@@ -21,7 +21,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
  * @param delta  The delta in page number change triggered by the
  *               click. A negative delta would be a "previous" page.
  */
-type CursorHandler = (
+export type CursorHandler = (
   cursor: string | undefined,
   path: string,
   query: Query,

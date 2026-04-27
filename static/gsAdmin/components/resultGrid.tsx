@@ -8,11 +8,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Client} from 'sentry/api';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Pagination} from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconList, IconSearch} from 'sentry/icons';
