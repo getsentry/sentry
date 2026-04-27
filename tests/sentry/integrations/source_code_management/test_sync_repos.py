@@ -10,6 +10,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase, TestCase
@@ -117,6 +118,48 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
                 organization_id=self.organization.id,
                 event=audit_log.get_event_id("REPO_ADDED"),
             ).exists()
+
+    @patch(
+        "sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request",
+        return_value=MagicMock(status=200),
+    )
+    @responses.activate
+    def test_skips_disable_for_repo_with_recent_activity(self, _: MagicMock, __: MagicMock) -> None:
+        # A repo that's missing from the provider's listing AND has a recent
+        # commit row should NOT be disabled — the activity says it's still
+        # live, so the provider listing is more likely wrong than the repo
+        # being deleted. Used as a final safety guard before disable.
+        with assume_test_silo_mode(SiloMode.CELL):
+            still_active_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-but-active-repo",
+                external_id="99",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            Commit.objects.create(
+                organization_id=self.organization.id,
+                repository_id=still_active_repo.id,
+                key="abc123",
+            )
+
+        # Provider isn't returning the active repo
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.feature(
+            [
+                "organizations:github-repo-auto-sync",
+                "organizations:github-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            still_active_repo.refresh_from_db()
+            assert still_active_repo.status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_re_enables_restored_repos(self, _: MagicMock) -> None:
