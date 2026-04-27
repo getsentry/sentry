@@ -7,7 +7,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import {useIsFetching} from '@tanstack/react-query';
-import {AnimatePresence, motion} from 'framer-motion';
+import {animate, AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -80,9 +80,31 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const store = CMDKCollection.useStore();
-
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+
+  const getDocEl = useCallback(
+    () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    [state.input]
+  );
+
+  const animatePress = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 0.99}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
+
+  const animatePop = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 1.01}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -230,6 +252,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
+        animatePress();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
@@ -247,6 +270,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
       }
 
       if ('prompt' in action && action.prompt) {
+        animatePress();
         dispatch({
           type: 'push action',
           key: action.key,
@@ -272,7 +296,16 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
 
       closeModal?.();
     },
-    [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
+    [
+      actions,
+      analytics,
+      animatePress,
+      closeModal,
+      dispatch,
+      navigate,
+      prefixMap,
+      state.query,
+    ]
   );
 
   // Dispatch the deferred reset once the close animation finishes. framer-motion
@@ -346,6 +379,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
                             priority="transparent"
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
+                              animatePop();
                               dispatch({type: 'pop action'});
                               state.input.current?.focus();
                             }}
@@ -386,6 +420,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Backspace' && state.query.length === 0) {
                         if (state.action) {
+                          animatePop();
                           dispatch({type: 'pop action'});
                           e.preventDefault();
                           return;
@@ -993,6 +1028,7 @@ export const modalCss = (theme: Theme) => {
       background-color: ${theme.tokens.background.primary};
       border-top-left-radius: calc(${theme.radius.lg} + 1px);
       border-top-right-radius: calc(${theme.radius.lg} + 1px);
+      will-change: transform;
     }
   `;
 };
