@@ -12,11 +12,13 @@ interface TitleEntry {
 
 interface DocumentTitleManager {
   register: (id: string, text: string, order: number, noSuffix: boolean) => void;
+  setPrefix: (id: string, prefix: string) => void;
   unregister: (id: string) => void;
 }
 
 const DocumentTitleContext = createContext<DocumentTitleManager>({
   register: () => {},
+  setPrefix: () => {},
   unregister: () => {},
 });
 
@@ -24,6 +26,7 @@ export const useDocumentTitleManager = () => useContext(DocumentTitleContext);
 
 export function DocumentTitleManager({children}: React.PropsWithChildren) {
   const [entries, setEntries] = useState<TitleEntry[]>([]);
+  const [prefixes, setPrefixes] = useState<Record<string, string>>({});
 
   const [manager] = useState<DocumentTitleManager>(() => ({
     register: (id, text, order, noSuffix) => {
@@ -35,8 +38,30 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
         return [...prev, {id, text, noSuffix, order}];
       });
     },
+    setPrefix: (id, prefix) => {
+      setPrefixes(prev => {
+        if (!prefix) {
+          if (!(id in prev)) {
+            return prev;
+          }
+          const {[id]: _, ...rest} = prev;
+          return rest;
+        }
+        if (prev[id] === prefix) {
+          return prev;
+        }
+        return {...prev, [id]: prefix};
+      });
+    },
     unregister: id => {
       setEntries(prev => prev.filter(e => e.id !== id));
+      setPrefixes(prev => {
+        if (!(id in prev)) {
+          return prev;
+        }
+        const {[id]: _, ...rest} = prev;
+        return rest;
+      });
     },
   }));
 
@@ -51,8 +76,10 @@ export function DocumentTitleManager({children}: React.PropsWithChildren) {
     if (!entry?.noSuffix) {
       parts.push(DEFAULT_PAGE_TITLE);
     }
-    return [...new Set([...parts])].join(SEPARATOR);
-  }, [entries]);
+    const base = [...new Set([...parts])].join(SEPARATOR);
+    const prefix = Object.values(prefixes).filter(Boolean).join('');
+    return `${prefix}${base}`;
+  }, [entries, prefixes]);
 
   // write to the DOM title
   useEffect(() => {
