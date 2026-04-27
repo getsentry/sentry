@@ -52,8 +52,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -181,6 +184,8 @@ export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
   const organization = useOrganization();
+  const routes = useRoutes();
+  const hasPageFrame = useHasPageFrameFeature();
   const [form] = useState<SentryAppFormModel>(() => new SentryAppFormModel());
 
   const isEditingApp = !!appSlug;
@@ -403,7 +408,14 @@ export default function SentryApplicationDetails() {
 
   return (
     <div>
-      <SettingsPageHeader title={headerTitle()} />
+      {hasPageFrame ? (
+        <BreadcrumbTitle
+          routes={routes}
+          title={isEditingApp ? (app?.name ?? '') : t('New')}
+        />
+      ) : (
+        <SettingsPageHeader title={headerTitle()} />
+      )}
       {isEditingApp && isPending ? (
         <LoadingIndicator />
       ) : isEditingApp && isError ? (

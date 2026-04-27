@@ -1233,6 +1233,10 @@ export const modalCss = css`
   max-width: 1200px;
 `;
 
+export const backdropCss = css`
+  z-index: 9998;
+`;
+
 const Container = styled('div')<{height?: number | null}>`
   display: flex;
   flex-direction: column;

@@ -277,7 +277,7 @@
     "jest-environment-jsdom": "30.3.0",
     "jest-fail-on-console": "3.3.4",
     "jest-junit": "16.0.0",
-    "knip": "6.4.1",
+    "knip": "6.7.0",
     "odiff-bin": "4.3.8",
     "oxfmt": "^0.41.0",
     "playwright": "^1.58.2",

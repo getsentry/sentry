@@ -14,6 +14,7 @@ import type {
   CMDKQueryOptions,
   CommandPaletteAction,
 } from 'sentry/components/commandPalette/types';
+import Hook from 'sentry/components/hook';
 import {
   DSN_PATTERN,
   getDsnNavTargets,
@@ -412,6 +413,7 @@ export function GlobalCommandPaletteActions() {
                 to={item.path}
               />
             ))}
+          <Hook name="cmdk:global-settings-actions" />
         </CMDKAction>
 
         <CMDKAction
