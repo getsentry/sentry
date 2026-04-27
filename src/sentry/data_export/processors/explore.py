@@ -1,6 +1,7 @@
 import logging
 from typing import Any, cast
 
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
@@ -200,6 +201,7 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             end_timestamp=self.snuba_params.rpc_end_date,
             referrer=Referrer.DATA_EXPORT_TASKS_EXPLORE,
             trace_item_type=self.trace_item_type,
+            downsampled_storage_config=DownsampledStorageConfig.MODE_HIGHEST_ACCURACY_FLEXTIME,
         )
 
     def _sync_page_token_from_snuba_response(self, http_resp: ExportTraceItemsResponse) -> None:
