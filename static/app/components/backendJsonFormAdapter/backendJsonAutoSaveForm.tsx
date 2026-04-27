@@ -5,9 +5,8 @@ import {z} from 'zod';
 import {AutoSaveForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
-import {unreachable} from 'sentry/utils/unreachable';
-
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
+import {BackendJsonFieldFromConfig} from './fieldFromConfig';
 import {
   ProjectMapperAddRow,
   ProjectMapperNextButton,
@@ -15,7 +14,7 @@ import {
 } from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {FieldValue, JsonFormAdapterFieldConfig} from './types';
-import {getDefaultForField, getZodType, transformChoices} from './utils';
+import {getDefaultForField, getZodType} from './utils';
 
 interface BackendJsonFormAdapterProps<
   TField extends JsonFormAdapterFieldConfig,
@@ -172,85 +171,21 @@ export function BackendJsonAutoSaveForm<
       mutationOptions={mutationOptions}
     >
       {fieldApi => {
-        switch (field.type) {
-          case 'boolean':
-            return (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <fieldApi.Switch
-                  checked={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  disabled={field.disabled}
-                />
-              </fieldApi.Layout.Row>
-            );
-          case 'textarea':
-            return (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <fieldApi.TextArea
-                  value={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  placeholder={field.placeholder}
-                  disabled={field.disabled}
-                />
-              </fieldApi.Layout.Row>
-            );
-          case 'number':
-            return (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <fieldApi.Number
-                  value={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  placeholder={field.placeholder}
-                  disabled={field.disabled}
-                />
-              </fieldApi.Layout.Row>
-            );
-          case 'select':
-          case 'choice':
-            return (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <fieldApi.Select
-                  value={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  options={transformChoices(field.choices)}
-                  disabled={field.disabled}
-                />
-              </fieldApi.Layout.Row>
-            );
-          case 'secret':
-            return (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <fieldApi.Password
-                  value={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  placeholder={field.placeholder}
-                  disabled={field.disabled}
-                />
-              </fieldApi.Layout.Row>
-            );
-          case 'string':
-          case 'text':
-          case 'url':
-          case 'email':
-            return (
-              <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-                <fieldApi.Input
-                  value={fieldApi.state.value}
-                  onChange={fieldApi.handleChange}
-                  placeholder={field.placeholder}
-                  disabled={field.disabled}
-                  type={
-                    field.type === 'string' || field.type === 'text' ? 'text' : field.type
-                  }
-                />
-              </fieldApi.Layout.Row>
-            );
-          case 'blank':
-            return null;
-          default:
-            unreachable(field);
-            return null;
+        if (field.type === 'blank') {
+          return null;
         }
+        // Composite cases above already returned. The remaining types are all
+        // simple "label + control" — delegate the control to the shared renderer.
+        return (
+          <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+            <BackendJsonFieldFromConfig
+              field={field}
+              fieldApi={fieldApi}
+              value={fieldApi.state.value}
+              onChange={fieldApi.handleChange}
+            />
+          </fieldApi.Layout.Row>
+        );
       }}
     </AutoSaveForm>
   );

@@ -15,6 +15,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
+import {BackendJsonFieldFromConfig} from './fieldFromConfig';
 import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {JsonFormAdapterFieldConfig} from './types';
@@ -228,35 +229,7 @@ export function BackendJsonSubmitForm({
 
                   switch (field.type) {
                     case 'boolean':
-                      return (
-                        <fieldApi.Layout.Stack
-                          label={field.label}
-                          hintText={field.help}
-                          required={field.required}
-                        >
-                          <fieldApi.Switch
-                            checked={fieldApi.state.value as boolean}
-                            onChange={handleChange}
-                            disabled={field.disabled}
-                          />
-                        </fieldApi.Layout.Stack>
-                      );
                     case 'textarea':
-                      return (
-                        <fieldApi.Layout.Stack
-                          label={field.label}
-                          hintText={field.help}
-                          required={field.required}
-                        >
-                          <fieldApi.TextArea
-                            autosize
-                            value={(fieldApi.state.value as string) ?? ''}
-                            onChange={handleChange}
-                            placeholder={field.placeholder}
-                            disabled={field.disabled}
-                          />
-                        </fieldApi.Layout.Stack>
-                      );
                     case 'number':
                       return (
                         <fieldApi.Layout.Stack
@@ -264,11 +237,12 @@ export function BackendJsonSubmitForm({
                           hintText={field.help}
                           required={field.required}
                         >
-                          <fieldApi.Number
-                            value={fieldApi.state.value as number}
+                          <BackendJsonFieldFromConfig
+                            field={field}
+                            fieldApi={fieldApi}
+                            value={fieldApi.state.value}
                             onChange={handleChange}
-                            placeholder={field.placeholder}
-                            disabled={field.disabled}
+                            autosizeTextarea
                           />
                         </fieldApi.Layout.Stack>
                       );
@@ -407,20 +381,6 @@ export function BackendJsonSubmitForm({
                       );
                     }
                     case 'secret':
-                      return (
-                        <fieldApi.Layout.Stack
-                          label={field.label}
-                          hintText={field.help}
-                          required={field.required}
-                        >
-                          <fieldApi.Password
-                            value={(fieldApi.state.value as string) ?? ''}
-                            onChange={handleChange}
-                            placeholder={field.placeholder}
-                            disabled={field.disabled}
-                          />
-                        </fieldApi.Layout.Stack>
-                      );
                     case 'string':
                     case 'text':
                     case 'url':
@@ -431,16 +391,11 @@ export function BackendJsonSubmitForm({
                           hintText={field.help}
                           required={field.required}
                         >
-                          <fieldApi.Input
-                            value={(fieldApi.state.value as string) ?? ''}
+                          <BackendJsonFieldFromConfig
+                            field={field}
+                            fieldApi={fieldApi}
+                            value={fieldApi.state.value}
                             onChange={handleChange}
-                            placeholder={field.placeholder}
-                            disabled={field.disabled}
-                            type={
-                              field.type === 'string' || field.type === 'text'
-                                ? 'text'
-                                : field.type
-                            }
                           />
                         </fieldApi.Layout.Stack>
                       );
