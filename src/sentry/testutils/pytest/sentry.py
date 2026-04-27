@@ -143,6 +143,13 @@ def pytest_configure(config: pytest.Config) -> None:
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
+    # Route postgres through Unix domain socket when available (CI optimization).
+    # Must be set before configure_split_db() so the HOST override propagates
+    # to the control and secondary database copies.
+    if _pg_socket := os.environ.get("SENTRY_DB_SOCKET"):
+        settings.DATABASES["default"]["HOST"] = _pg_socket
+        settings.DATABASES["default"]["PORT"] = ""
+
     configure_split_db()
 
     if os.environ.get("PYTEST_XDIST_WORKER"):
