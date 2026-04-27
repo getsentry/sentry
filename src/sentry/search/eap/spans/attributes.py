@@ -511,12 +511,14 @@ except Exception:
     logger.exception("Failed to load deprecated attributes from 'deprecated_attributes.json'")
 
 
-try:
+def _update_attribute_definitions_with_deprecations(
+    attribute_definitions: dict[str, ResolvedAttribute], deprecated_attributes: list[dict[str, Any]]
+) -> None:
     span_attribute_definitions_by_internal_name = {
-        definition.internal_name: definition for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        definition.internal_name: definition for definition in attribute_definitions.values()
     }
 
-    for attribute in DEPRECATED_ATTRIBUTES:
+    for attribute in deprecated_attributes:
         deprecation = attribute.get("deprecation", {})
         attr_type = attribute.get("type", "string")
         key = attribute["key"]
@@ -527,12 +529,12 @@ try:
         ):
             status = deprecation["_status"]
             replacement = deprecation["replacement"]
-            deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS.get(
+            deprecated_attr = attribute_definitions.get(
                 key
             ) or span_attribute_definitions_by_internal_name.get(key)
 
             if deprecated_attr is not None:
-                SPAN_ATTRIBUTE_DEFINITIONS[key] = replace(
+                attribute_definitions[key] = replace(
                     deprecated_attr,
                     public_alias=key,
                     internal_name=key,
@@ -540,12 +542,12 @@ try:
                     deprecation_status=status,
                 )
                 # TODO: Introduce units to attribute schema.
-                if replacement not in SPAN_ATTRIBUTE_DEFINITIONS:
-                    SPAN_ATTRIBUTE_DEFINITIONS[replacement] = replace(
+                if replacement not in attribute_definitions:
+                    attribute_definitions[replacement] = replace(
                         deprecated_attr, public_alias=replacement, internal_name=replacement
                     )
             else:
-                SPAN_ATTRIBUTE_DEFINITIONS[key] = ResolvedAttribute(
+                attribute_definitions[key] = ResolvedAttribute(
                     public_alias=key,
                     internal_name=key,
                     search_type=attr_type,
@@ -553,17 +555,23 @@ try:
                     deprecation_status=status,
                 )
 
-                if replacement not in SPAN_ATTRIBUTE_DEFINITIONS:
-                    SPAN_ATTRIBUTE_DEFINITIONS[replacement] = ResolvedAttribute(
+                if replacement not in attribute_definitions:
+                    attribute_definitions[replacement] = ResolvedAttribute(
                         public_alias=replacement,
                         internal_name=replacement,
                         search_type=attr_type,
                     )
 
-            span_attribute_definitions_by_internal_name[key] = SPAN_ATTRIBUTE_DEFINITIONS[key]
-            span_attribute_definitions_by_internal_name[replacement] = SPAN_ATTRIBUTE_DEFINITIONS[
+            span_attribute_definitions_by_internal_name[key] = attribute_definitions[key]
+            span_attribute_definitions_by_internal_name[replacement] = attribute_definitions[
                 replacement
             ]
+
+
+try:
+    _update_attribute_definitions_with_deprecations(
+        SPAN_ATTRIBUTE_DEFINITIONS, DEPRECATED_ATTRIBUTES
+    )
 
 except Exception as e:
     logger.exception("Failed to update attribute definitions: %s", e)
