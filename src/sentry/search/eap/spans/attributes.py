@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import replace
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
@@ -518,7 +518,7 @@ def _normalize_convention_attribute_type(attr_type: str) -> constants.SearchType
     if attr_type == "double":
         return "number"
     if attr_type in constants.TYPE_MAP:
-        return cast(constants.SearchType, attr_type)
+        return attr_type
     # Array-valued convention types are not represented in EAP search types yet.
     return None
 

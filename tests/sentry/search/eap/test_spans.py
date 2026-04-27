@@ -967,7 +967,7 @@ def test_deprecated_attribute_does_not_overwrite_existing_replacement() -> None:
 
 
 def test_deprecated_attribute_normalizes_supported_convention_attribute_types() -> None:
-    attribute_definitions = {}
+    attribute_definitions: dict[str, ResolvedAttribute] = {}
 
     _update_attribute_definitions_with_deprecations(
         attribute_definitions,
