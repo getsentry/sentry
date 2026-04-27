@@ -2,8 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
+import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ActionGroup,
@@ -11,6 +15,7 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
   actionNodesMap,
@@ -62,6 +67,7 @@ export function ActionNodeList({
   onDeleteRow,
   updateAction,
 }: ActionNodeListProps) {
+  const organization = useOrganization();
   const {data: availableActions = [], isLoading: isLoadingActions} =
     useAvailableActionsQuery();
   const {errors, removeError} = useAutomationBuilderErrorContext();
@@ -175,6 +181,26 @@ export function ActionNodeList({
         }}
         placeholder={placeholder}
         value={null}
+        components={{
+          Menu: ({children, ...props}) => (
+            <selectComponents.Menu {...props}>
+              <Fragment>
+                {children}
+                <Container padding="md" borderTop="muted">
+                  <LinkButton
+                    size="xs"
+                    priority="default"
+                    icon={<IconAdd />}
+                    href={`/settings/${organization.slug}/integrations/`}
+                    external
+                  >
+                    {t('Add another integration')}
+                  </LinkButton>
+                </Container>
+              </Fragment>
+            </selectComponents.Menu>
+          ),
+        }}
       />
       {errors[conditionGroupId] && (
         <Alert variant="danger">{errors[conditionGroupId]}</Alert>
