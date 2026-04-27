@@ -512,6 +512,10 @@ except Exception:
 
 
 try:
+    span_attribute_definitions_by_internal_name = {
+        definition.internal_name: definition for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+    }
+
     for attribute in DEPRECATED_ATTRIBUTES:
         deprecation = attribute.get("deprecation", {})
         attr_type = attribute.get("type", "string")
@@ -523,15 +527,23 @@ try:
         ):
             status = deprecation["_status"]
             replacement = deprecation["replacement"]
-            if key in SPAN_ATTRIBUTE_DEFINITIONS:
-                deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[key]
+            deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS.get(
+                key
+            ) or span_attribute_definitions_by_internal_name.get(key)
+
+            if deprecated_attr is not None:
                 SPAN_ATTRIBUTE_DEFINITIONS[key] = replace(
-                    deprecated_attr, replacement=replacement, deprecation_status=status
+                    deprecated_attr,
+                    public_alias=key,
+                    internal_name=key,
+                    replacement=replacement,
+                    deprecation_status=status,
                 )
                 # TODO: Introduce units to attribute schema.
-                SPAN_ATTRIBUTE_DEFINITIONS[replacement] = replace(
-                    deprecated_attr, public_alias=replacement, internal_name=replacement
-                )
+                if replacement not in SPAN_ATTRIBUTE_DEFINITIONS:
+                    SPAN_ATTRIBUTE_DEFINITIONS[replacement] = replace(
+                        deprecated_attr, public_alias=replacement, internal_name=replacement
+                    )
             else:
                 SPAN_ATTRIBUTE_DEFINITIONS[key] = ResolvedAttribute(
                     public_alias=key,
@@ -541,11 +553,17 @@ try:
                     deprecation_status=status,
                 )
 
-                SPAN_ATTRIBUTE_DEFINITIONS[replacement] = ResolvedAttribute(
-                    public_alias=replacement,
-                    internal_name=replacement,
-                    search_type=attr_type,
-                )
+                if replacement not in SPAN_ATTRIBUTE_DEFINITIONS:
+                    SPAN_ATTRIBUTE_DEFINITIONS[replacement] = ResolvedAttribute(
+                        public_alias=replacement,
+                        internal_name=replacement,
+                        search_type=attr_type,
+                    )
+
+            span_attribute_definitions_by_internal_name[key] = SPAN_ATTRIBUTE_DEFINITIONS[key]
+            span_attribute_definitions_by_internal_name[replacement] = SPAN_ATTRIBUTE_DEFINITIONS[
+                replacement
+            ]
 
 except Exception as e:
     logger.exception("Failed to update attribute definitions: %s", e)
