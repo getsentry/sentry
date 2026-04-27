@@ -20,7 +20,7 @@ import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
-import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -34,6 +34,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   hiddenKeys?: string[];
   isDocsButtonHidden?: boolean;
   requiredTags?: string[];
+  traceItemType?: TraceItemDataset;
 }
 
 export function ColumnEditorModal({
@@ -50,6 +51,7 @@ export function ColumnEditorModal({
   hiddenKeys,
   isDocsButtonHidden = false,
   handleReset,
+  traceItemType = TraceItemDataset.SPANS,
 }: ColumnEditorModalProps) {
   const tags = useMemo(
     () =>
@@ -59,8 +61,9 @@ export function ColumnEditorModal({
         numberTags,
         booleanTags,
         hiddenKeys,
+        traceItemType,
       }),
-    [booleanTags, columns, hiddenKeys, numberTags, stringTags]
+    [booleanTags, columns, hiddenKeys, numberTags, stringTags, traceItemType]
   );
 
   // We keep a temporary state for the columns so that we can apply the changes
@@ -89,6 +92,7 @@ export function ColumnEditorModal({
                   column={column}
                   baseOptions={tags}
                   hiddenKeys={hiddenKeys}
+                  traceItemType={traceItemType}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
                 />
@@ -142,6 +146,7 @@ interface ColumnEditorRowProps {
   column: Column<string>;
   onColumnChange: (column: string) => void;
   onColumnDelete: () => void;
+  traceItemType: TraceItemDataset;
   hiddenKeys?: string[];
   required?: boolean;
 }
@@ -152,6 +157,7 @@ function ColumnEditorRow({
   required,
   baseOptions,
   hiddenKeys,
+  traceItemType,
   onColumnChange,
   onColumnDelete,
 }: ColumnEditorRowProps) {
@@ -164,11 +170,23 @@ function ColumnEditorRow({
   const hasSearch = debouncedSearch.length > 0;
 
   const {attributes: searchedStringTags, isLoading: stringLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'string');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {search: debouncedSearch, enabled: hasSearch},
+      'string'
+    );
   const {attributes: searchedNumberTags, isLoading: numberLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'number');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {search: debouncedSearch, enabled: hasSearch},
+      'number'
+    );
   const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'boolean');
+    useTraceItemDatasetAttributes(
+      traceItemType,
+      {search: debouncedSearch, enabled: hasSearch},
+      'boolean'
+    );
 
   const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
 
@@ -182,6 +200,7 @@ function ColumnEditorRow({
       numberTags: searchedNumberTags,
       booleanTags: searchedBooleanTags,
       hiddenKeys,
+      traceItemType,
     });
   }, [
     hasSearch,
@@ -190,6 +209,7 @@ function ColumnEditorRow({
     searchedNumberTags,
     searchedBooleanTags,
     hiddenKeys,
+    traceItemType,
   ]);
 
   const options = searchedOptions ?? baseOptions;
@@ -275,6 +295,7 @@ interface BuildColumnOptionsParams {
   columns: readonly string[];
   numberTags: TagCollection;
   stringTags: TagCollection;
+  traceItemType: TraceItemDataset;
   hiddenKeys?: string[];
 }
 
@@ -284,12 +305,13 @@ function buildColumnOptions({
   numberTags,
   booleanTags,
   hiddenKeys,
+  traceItemType,
 }: BuildColumnOptionsParams) {
   return buildAttributeOptions({
     numberTags,
     stringTags,
     booleanTags,
-    traceItemType: TraceItemDataset.SPANS,
+    traceItemType,
     extraColumns: columns,
   })
     .filter(option => {
