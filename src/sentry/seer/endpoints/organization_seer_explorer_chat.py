@@ -56,12 +56,26 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
-    override_code_mode_enable = serializers.BooleanField(
+    override_code_mode_enable = serializers.CharField(
         required=False,
         default=None,
         allow_null=True,
-        help_text="Override code mode tools flag from the frontend toggle.",
+        allow_blank=False,
+        help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
     )
+
+    def validate_override_code_mode_enable(self, value: str | bool | None) -> str | None:
+        if value is None:
+            return None
+        if value is True or value == "true":
+            return "on"
+        if value is False or value == "false":
+            return "off"
+        if isinstance(value, str) and value in ("off", "on", "only"):
+            return value
+        raise serializers.ValidationError(
+            f"Invalid value '{value}'. Must be 'off', 'on', 'only', or a boolean."
+        )
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
@@ -188,11 +202,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
-            enable_code_mode_tools = features.has(
+            has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
-            if override_code_mode_enable is not None and enable_code_mode_tools:
+            if not has_code_mode_feature:
+                enable_code_mode_tools = "off"
+            elif override_code_mode_enable is not None:
                 enable_code_mode_tools = override_code_mode_enable
+            else:
+                enable_code_mode_tools = "on"
             client = SeerExplorerClient(
                 organization,
                 request.user,
