@@ -92,7 +92,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
                 disabled={isAddMetricDisabled}
-                label={t('Add Metric')}
+                label={t('Add Application Metric')}
                 display="button"
               />
               {hasEquations && (
@@ -191,7 +191,7 @@ function MetricsTabBodySection({
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
                 disabled={isAddMetricDisabled}
-                label={t('Add Metric')}
+                label={t('Add Application Metric')}
                 display="button"
               />
               {hasEquations && (

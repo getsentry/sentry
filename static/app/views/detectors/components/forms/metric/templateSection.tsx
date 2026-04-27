@@ -122,7 +122,7 @@ export function TemplateSection({step}: {step?: number}) {
 
   return (
     <Container>
-      <FormSection step={step} title={t('Choose Your Metric')}>
+      <FormSection step={step} title={t('Choose Your Application Metric')}>
         <CompactSelect
           options={templateOptions}
           value={currentTemplateValue}

@@ -232,7 +232,7 @@ function MetricsEquationVisualizeContent({
         <ToolbarVisualizeAddChart
           add={addAggregate}
           disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-          label={t('Add Metric')}
+          label={t('Add Application Metric')}
           display="button"
         />
         {!equationQuery && (
@@ -274,7 +274,7 @@ function FunctionColumnHeaders() {
       <div style={{gridColumn: 'span 2'}} />
       <div>
         <Tooltip title={t('The metric to aggregate in this row.')} showUnderline>
-          <SectionLabel>{t('Metric')}</SectionLabel>
+          <SectionLabel>{t('Application Metric')}</SectionLabel>
         </Tooltip>
       </div>
       <div>

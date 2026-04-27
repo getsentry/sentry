@@ -214,7 +214,9 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
+      const searchInput = await screen.findByPlaceholderText(
+        'Search application metrics\u2026'
+      );
 
       await waitFor(() => {
         expect(searchInput).toHaveFocus();
@@ -229,7 +231,7 @@ describe('MetricSelector', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
 
       expect(
-        await screen.findByPlaceholderText('Search metrics\u2026')
+        await screen.findByPlaceholderText('Search application metrics\u2026')
       ).toBeInTheDocument();
     });
 
@@ -239,7 +241,9 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
+      const searchInput = await screen.findByPlaceholderText(
+        'Search application metrics\u2026'
+      );
       await userEvent.type(searchInput, 'foo');
 
       expect(searchInput).toHaveValue('foo');
@@ -253,7 +257,9 @@ describe('MetricSelector', () => {
       const trigger = screen.getByRole('button', {name: 'bar'});
       await userEvent.click(trigger);
 
-      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
+      const searchInput = await screen.findByPlaceholderText(
+        'Search application metrics\u2026'
+      );
       await userEvent.type(searchInput, 'foo');
 
       expect(searchInput).toHaveValue('foo');
@@ -264,7 +270,9 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(trigger);
-      expect(await screen.findByPlaceholderText('Search metrics\u2026')).toHaveValue('');
+      expect(
+        await screen.findByPlaceholderText('Search application metrics\u2026')
+      ).toHaveValue('');
     });
 
     it('ArrowDown followed by Enter selects an option', async () => {
@@ -286,7 +294,9 @@ describe('MetricSelector', () => {
         organization,
       });
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      const searchInput = await screen.findByPlaceholderText('Search metrics\u2026');
+      const searchInput = await screen.findByPlaceholderText(
+        'Search application metrics\u2026'
+      );
       await userEvent.keyboard('{ArrowDown}');
 
       // DOM focus stays on search input; virtual focus moves to first option
@@ -347,7 +357,7 @@ describe('MetricSelector', () => {
         ]
       );
 
-      const searchInput = screen.getByPlaceholderText('Search metrics\u2026');
+      const searchInput = screen.getByPlaceholderText('Search application metrics\u2026');
       await userEvent.type(searchInput, 'b');
 
       // After list shrinks, keyboard selection should still pick a valid option.

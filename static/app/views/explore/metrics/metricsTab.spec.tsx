@@ -181,7 +181,7 @@ describe('MetricsTabContent', () => {
     });
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
 
-    let addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    let addButtons = screen.getAllByRole('button', {name: 'Add Application Metric'});
     expect(addButtons[0]).toBeEnabled();
 
     await userEvent.click(addButtons[0]!);
@@ -197,7 +197,7 @@ describe('MetricsTabContent', () => {
     await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
     expect(within(toolbars[1]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
 
-    addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    addButtons = screen.getAllByRole('button', {name: 'Add Application Metric'});
     expect(addButtons[0]).toBeEnabled();
 
     await userEvent.click(addButtons[0]!);
@@ -271,7 +271,7 @@ describe('MetricsTabContent', () => {
     expect(trackAnalyticsMock).toHaveBeenCalledTimes(2);
     trackAnalyticsMock.mockClear();
 
-    const addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
+    const addButtons = screen.getAllByRole('button', {name: 'Add Application Metric'});
     await userEvent.click(addButtons[0]!);
 
     await waitFor(() => {
@@ -607,7 +607,7 @@ describe('MetricsTabContent', () => {
         organization,
       }
     );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
+    expect(await screen.findAllByText('Add Application Metric')).toHaveLength(1);
     expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
   });
 
@@ -623,7 +623,7 @@ describe('MetricsTabContent', () => {
         organization: orgWithFeature,
       }
     );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
+    expect(await screen.findAllByText('Add Application Metric')).toHaveLength(1);
     expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
@@ -718,11 +718,13 @@ describe('MetricsTabContent', () => {
           },
         }
       );
-      expect(await screen.findAllByText('Add Metric')).not.toHaveLength(0);
+      expect(await screen.findAllByText('Add Application Metric')).not.toHaveLength(0);
       expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
 
       // Only 2 entries (cap is 3) -> both buttons are enabled
-      for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
+      for (const button of screen.getAllByRole('button', {
+        name: 'Add Application Metric',
+      })) {
         expect(button).toBeEnabled();
       }
       for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -730,8 +732,12 @@ describe('MetricsTabContent', () => {
       }
 
       // Add an entry, 3 entries (at cap) -> both buttons are disabled
-      await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
-      for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
+      await userEvent.click(
+        screen.getAllByRole('button', {name: 'Add Application Metric'})[0]!
+      );
+      for (const button of screen.getAllByRole('button', {
+        name: 'Add Application Metric',
+      })) {
         expect(button).toBeDisabled();
       }
       for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -801,17 +807,17 @@ describe('MetricsTabContent', () => {
 
     // Metric A should be disabled because it is referenced by the equation
     expect(
-      within(toolbars[0]!).getByRole('button', {name: 'Delete Metric'})
+      within(toolbars[0]!).getByRole('button', {name: 'Delete Application Metric'})
     ).toBeDisabled();
 
     // Metric B should be enabled because it is not referenced by the equation
     expect(
-      within(toolbars[1]!).getByRole('button', {name: 'Delete Metric'})
+      within(toolbars[1]!).getByRole('button', {name: 'Delete Application Metric'})
     ).toBeEnabled();
 
     // Equation deletion should always be enabled
     expect(
-      within(toolbars[2]!).getByRole('button', {name: 'Delete Metric'})
+      within(toolbars[2]!).getByRole('button', {name: 'Delete Application Metric'})
     ).toBeEnabled();
   });
 });

@@ -451,7 +451,7 @@ export function MetricSelector({
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
                         {...comboBoxInputProps}
-                        placeholder={t('Search metrics\u2026')}
+                        placeholder={t('Search application metrics\u2026')}
                         size="xs"
                         ref={searchRef}
                       />

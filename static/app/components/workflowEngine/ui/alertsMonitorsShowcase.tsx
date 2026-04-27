@@ -81,7 +81,7 @@ function AlertsMonitorsShowcase(props: ModalRenderProps) {
               <li>
                 <Text>
                   <Text bold as="span">
-                    {t('Metric')}
+                    {t('Application Metric')}
                   </Text>
                   {' — '}
                   {t('span attributes, logs, custom metrics, and more')}
