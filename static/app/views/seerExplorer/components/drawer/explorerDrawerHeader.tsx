@@ -25,10 +25,13 @@ interface ExplorerDrawerHeaderProps {
   onNewChatClick: () => void;
   onOverrideCodeModeEnableToggle: () => void;
   onOverrideCtxEngEnableToggle: () => void;
+  onShowThinkingToggle: () => void;
   overrideCodeModeEnable: boolean;
   overrideCtxEngEnable: boolean;
   showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
+  showThinking: boolean;
+  showThinkingToggle: boolean;
 }
 
 export function ExplorerDrawerHeader({
@@ -43,6 +46,9 @@ export function ExplorerDrawerHeader({
   showCodeModeToggle,
   overrideCodeModeEnable,
   onOverrideCodeModeEnableToggle,
+  showThinking,
+  showThinkingToggle,
+  onShowThinkingToggle,
 }: ExplorerDrawerHeaderProps) {
   // Session history query
   const {
@@ -146,6 +152,27 @@ export function ExplorerDrawerHeader({
               />
               <Text size="sm" variant="muted">
                 {t('CM')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
+        {showThinkingToggle && (
+          <Tooltip
+            title={
+              showThinking
+                ? t('Hide thinking blocks (click to hide)')
+                : t('Show thinking blocks (click to show)')
+            }
+          >
+            <Flex align="center" gap="xs" padding="xs sm" height="100%">
+              <Switch
+                size="sm"
+                checked={showThinking}
+                onChange={onShowThinkingToggle}
+                aria-label={t('Toggle thinking blocks')}
+              />
+              <Text size="sm" variant="muted">
+                {t('Show thinking')}
               </Text>
             </Flex>
           </Tooltip>

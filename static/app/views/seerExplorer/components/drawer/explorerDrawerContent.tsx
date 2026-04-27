@@ -43,6 +43,7 @@ export function ExplorerDrawerContent({
 
   const [inputValue, setInputValue] = useState('');
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
+  const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -352,6 +353,11 @@ export function ExplorerDrawerContent({
         showCodeModeToggle={
           !!organization?.features.includes('seer-explorer-code-mode-tools')
         }
+        showThinking={showThinking}
+        onShowThinkingToggle={() => setShowThinking(v => !v)}
+        showThinkingToggle={
+          !!organization?.features.includes('seer-explorer-thinking-blocks')
+        }
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
@@ -379,6 +385,7 @@ export function ExplorerDrawerContent({
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 readOnly={readOnly}
+                showThinking={showThinking}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
