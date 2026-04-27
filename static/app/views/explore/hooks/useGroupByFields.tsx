@@ -34,15 +34,14 @@ export function useGroupByFields({
   return useMemo(() => {
     const seen = new Set<string>();
     const options = buildAttributeOptions({
-      numberTags,
-      stringTags,
-      booleanTags,
+      numberTags: filterDisallowed(numberTags),
+      stringTags: filterDisallowed(stringTags),
+      booleanTags: filterDisallowed(booleanTags),
       traceItemType,
       extraColumns: groupBys,
       extraColumnKind: FieldKind.TAG,
     })
       .filter(option => {
-        if (DISALLOWED_GROUP_BY_FIELDS.has(option.value)) return false;
         if (seen.has(option.value)) return false;
         seen.add(option.value);
         return true;
@@ -87,6 +86,12 @@ const TRACE_ITEM_FIELD_DEFINITION_TYPE: Partial<
 // Some fields don't make sense to allow users to group by as they create
 // very high cardinality groupings and is not useful.
 const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);
+
+function filterDisallowed(tags: TagCollection): TagCollection {
+  return Object.fromEntries(
+    Object.entries(tags).filter(([key]) => !DISALLOWED_GROUP_BY_FIELDS.has(key))
+  );
+}
 
 const Disabled = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
