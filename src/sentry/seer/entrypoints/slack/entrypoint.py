@@ -92,9 +92,16 @@ def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
         return None
     if handoff is None:
         return None
-    # handoff.target is a Literal string; widen to the enum that the renderer
-    # consumes. The literal values are a subset of CodingAgentProviderType.
-    return CodingAgentProviderType(handoff.target)
+
+    try:
+        target = CodingAgentProviderType(handoff.target)
+    except ValueError:
+        logger.exception(
+            "seer.entrypoint.slack.invalid_handoff_target",
+            extra={"handoff_target": handoff.target},
+        )
+        return None
+    return target
 
 
 def _get_missing_scope_settings_url(

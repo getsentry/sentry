@@ -329,7 +329,19 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_halt(halt_reason="no_handoff_configured")
                 return
 
-            target = CodingAgentProviderType(handoff_config.target)
+            try:
+                target = CodingAgentProviderType(handoff_config.target)
+            except ValueError:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error handing off to the agent"
+                    )
+                lifecycle.record_failure(failure_reason="invalid_handoff_target")
+                return
+
             lifecycle.add_extras(
                 {"target": target.value, "integration_id": str(handoff_config.integration_id)}
             )
@@ -349,27 +361,26 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
 
-            agents = list(autofix_state.coding_agents.values()) if autofix_state else []
-            non_failed = [a for a in agents if a.status != CodingAgentStatus.FAILED]
-            if non_failed:
-                has_complete_stage = any(
-                    a.status == CodingAgentStatus.COMPLETED for a in non_failed
-                )
-                lifecycle.add_extra("active_agents", str(len(non_failed)))
-                with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ALREADY_EXISTS,
-                    entrypoint_key=self.entrypoint.key,
-                ).capture():
-                    self.entrypoint.on_trigger_handoff_already_exists(
-                        run_id=run_id, target=target, has_complete_stage=has_complete_stage
-                    )
-                lifecycle.record_halt(halt_reason="agent_already_active")
-                return
-
             lock_key = f"autofix:trigger_handoff:{self.entrypoint.key}:{group.id}:{run_id}"
             lock = locks.get(lock_key, duration=30, name="autofix_trigger_handoff")
             try:
                 with lock.acquire():
+                    agents = list(autofix_state.coding_agents.values()) if autofix_state else []
+                    non_failed = [a for a in agents if a.status != CodingAgentStatus.FAILED]
+                    if non_failed:
+                        has_complete_stage = any(
+                            a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                        )
+                        lifecycle.add_extra("active_agents", str(len(non_failed)))
+                        with SeerOperatorEventLifecycleMetric(
+                            interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ALREADY_EXISTS,
+                            entrypoint_key=self.entrypoint.key,
+                        ).capture():
+                            self.entrypoint.on_trigger_handoff_already_exists(
+                                run_id=run_id, target=target, has_complete_stage=has_complete_stage
+                            )
+                        lifecycle.record_halt(halt_reason="agent_already_active")
+                        return
                     trigger_coding_agent_handoff(
                         group=group,
                         run_id=run_id,
