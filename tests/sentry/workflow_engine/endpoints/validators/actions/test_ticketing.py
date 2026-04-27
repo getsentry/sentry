@@ -35,7 +35,9 @@ class BaseTicketingActionValidatorTest(TestCase):
 class TestGitHubActionValidator(BaseTicketingActionValidatorTest):
     def setUp(self) -> None:
         super().setUp()
-        self.valid_data["data"] = {"additional_fields": {"repo": "owner/test-repo"}}
+        self.valid_data["data"] = {
+            "additional_fields": {"repo": "owner/test-repo", "integration": "12345"}
+        }
 
 
 class TestJiraActionValidator(BaseTicketingActionValidatorTest):
