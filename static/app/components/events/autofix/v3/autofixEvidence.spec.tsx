@@ -316,6 +316,172 @@ describe('AutofixEvidence', () => {
       ).toBeNull();
     });
   });
+
+  describe('EvidenceGitSearch', () => {
+    const FULL_SHA = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+    const COMMIT_URL = 'https://github.com/org/repo/commit/a1b2c3d';
+    const COMMITS_URL =
+      'https://github.com/org/repo/commits?since=2024-01-01&until=2024-01-31';
+    const REPO_NAME = 'org/repo';
+    const START_DATE = '2024-01-01';
+    const END_DATE = '2024-01-31';
+
+    it('renders commit label with short hash for single commit', () => {
+      const props = resolveProps(
+        makeToolCall('git_search'),
+        makeToolLink('git_search', {
+          commit_url: COMMIT_URL,
+          sha: FULL_SHA,
+        })
+      );
+      render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
+      expect(screen.getByText('Commit: a1b2c3d')).toBeInTheDocument();
+      expect(screen.getByText('Commit: a1b2c3d').closest('a')).toHaveAttribute(
+        'href',
+        COMMIT_URL
+      );
+    });
+
+    it('renders full sha when sha is not a 40-char hex hash', () => {
+      const shortSha = 'abc1234';
+      const props = resolveProps(
+        makeToolCall('git_search'),
+        makeToolLink('git_search', {
+          commit_url: COMMIT_URL,
+          sha: shortSha,
+        })
+      );
+      render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
+      expect(screen.getByText('Commit: abc1234')).toBeInTheDocument();
+    });
+
+    it('renders commits label with repo name when file_path is absent', () => {
+      const props = resolveProps(
+        makeToolCall('git_search'),
+        makeToolLink('git_search', {
+          commits_url: COMMITS_URL,
+          repo_name: REPO_NAME,
+          start_date: START_DATE,
+          end_date: END_DATE,
+        })
+      );
+      render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
+      expect(screen.getByText(`Commits: ${REPO_NAME}`)).toBeInTheDocument();
+      expect(screen.getByText(`Commits: ${REPO_NAME}`).closest('a')).toHaveAttribute(
+        'href',
+        COMMITS_URL
+      );
+    });
+
+    it('renders commits label with short file_path without truncation', () => {
+      const props = resolveProps(
+        makeToolCall('git_search'),
+        makeToolLink('git_search', {
+          commits_url: COMMITS_URL,
+          repo_name: REPO_NAME,
+          start_date: START_DATE,
+          end_date: END_DATE,
+          file_path: 'src/foo/bar.py',
+        })
+      );
+      render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
+      expect(screen.getByText('Commits: bar.py')).toBeInTheDocument();
+    });
+
+    it('renders commits label with truncated file_path when file_path is long', () => {
+      const props = resolveProps(
+        makeToolCall('git_search'),
+        makeToolLink('git_search', {
+          commits_url: COMMITS_URL,
+          repo_name: REPO_NAME,
+          start_date: START_DATE,
+          end_date: END_DATE,
+          file_path: 'src/components/thisisalongfilename.tsx',
+        })
+      );
+      render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
+      expect(screen.getByText('Commits: thisisal\u2026name.tsx')).toBeInTheDocument();
+    });
+
+    it('prefers single commit path when both param sets are present', () => {
+      const props = resolveProps(
+        makeToolCall('git_search'),
+        makeToolLink('git_search', {
+          commit_url: COMMIT_URL,
+          sha: FULL_SHA,
+          commits_url: COMMITS_URL,
+          repo_name: REPO_NAME,
+          start_date: START_DATE,
+          end_date: END_DATE,
+        })
+      );
+      render(<AutofixEvidence evidenceButtonProps={props!} />, {organization});
+      expect(screen.getByText('Commit: a1b2c3d')).toBeInTheDocument();
+    });
+
+    it('returns null when toolLink is missing', () => {
+      expect(resolveProps(makeToolCall('git_search'))).toBeNull();
+    });
+
+    it('returns null when toolLink params are empty', () => {
+      expect(
+        resolveProps(makeToolCall('git_search'), makeToolLink('git_search', {}))
+      ).toBeNull();
+    });
+
+    it('returns null when commit_url is present but sha is missing', () => {
+      expect(
+        resolveProps(
+          makeToolCall('git_search'),
+          makeToolLink('git_search', {commit_url: COMMIT_URL})
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when sha is present but commit_url is missing', () => {
+      expect(
+        resolveProps(
+          makeToolCall('git_search'),
+          makeToolLink('git_search', {sha: FULL_SHA})
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when commits_url path is missing end_date', () => {
+      expect(
+        resolveProps(
+          makeToolCall('git_search'),
+          makeToolLink('git_search', {
+            commits_url: COMMITS_URL,
+            repo_name: REPO_NAME,
+            start_date: START_DATE,
+          })
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when commits_url path is missing repo_name', () => {
+      expect(
+        resolveProps(
+          makeToolCall('git_search'),
+          makeToolLink('git_search', {
+            commits_url: COMMITS_URL,
+            start_date: START_DATE,
+            end_date: END_DATE,
+          })
+        )
+      ).toBeNull();
+    });
+
+    it('returns null when commit_url is not a string', () => {
+      expect(
+        resolveProps(
+          makeToolCall('git_search'),
+          makeToolLink('git_search', {commit_url: 123, sha: FULL_SHA})
+        )
+      ).toBeNull();
+    });
+  });
 });
 
 describe('useAutofixSectionEvidence', () => {

@@ -8,19 +8,16 @@ import type {
   SolutionArtifact,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
+import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import type {
   ExplorerCodingAgentState,
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
-
-import {
-  CodeChangesCard,
-  CodingAgentCard,
-  PullRequestsCard,
-  RootCauseCard,
-  SolutionCard,
-} from './autofixCards';
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: () => <div data-testid="file-diff-viewer" />,
@@ -605,10 +602,10 @@ describe('ArtifactCard', () => {
     };
   }
 
-  describe('CodingAgentCard', () => {
+  describe('CodingAgentsCard', () => {
     it('renders agent name based on Cursor provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -625,7 +622,7 @@ describe('ArtifactCard', () => {
 
     it('renders agent name based on Claude provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -642,7 +639,7 @@ describe('ArtifactCard', () => {
 
     it('renders agent name based on GitHub Copilot provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -659,7 +656,7 @@ describe('ArtifactCard', () => {
 
     it('renders default agent name for unknown provider', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [makeCodingAgent({provider: 'unknown_provider' as any})],
@@ -672,7 +669,7 @@ describe('ArtifactCard', () => {
 
     it('renders agent status tags', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [makeCodingAgent({status: 'running'})],
@@ -685,7 +682,7 @@ describe('ArtifactCard', () => {
 
     it('renders "Open in" link when agent_url is present', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -703,7 +700,7 @@ describe('ArtifactCard', () => {
 
     it('renders result PR links when results have pr_url', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -728,7 +725,7 @@ describe('ArtifactCard', () => {
 
     it('handles multiple coding agents', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -755,7 +752,7 @@ describe('ArtifactCard', () => {
 
     it('copies markdown when copy button is clicked', async () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
@@ -776,7 +773,7 @@ describe('ArtifactCard', () => {
 
     it('does not show copy button when no artifacts', () => {
       render(
-        <CodingAgentCard
+        <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [])}
         />

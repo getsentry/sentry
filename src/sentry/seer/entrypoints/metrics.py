@@ -26,6 +26,8 @@ class SeerOperatorInteractionType(StrEnum):
     OPERATOR_PROCESS_AGENT_COMPLETION = "process_agent_completion"
     OPERATOR_CACHE_SET_AGENT = "cache_set_agent"
     OPERATOR_CACHE_GET_AGENT = "cache_get_agent"
+    OPERATOR_CACHE_SET_PENDING_MENTION = "cache_set_pending_mention"
+    OPERATOR_CACHE_POP_PENDING_MENTION = "cache_pop_pending_mention"
 
 
 @dataclass
