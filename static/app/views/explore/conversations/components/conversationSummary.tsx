@@ -262,7 +262,11 @@ export function ConversationSummary({
                     {t('+%s more', traces.length - VISIBLE_TRACE_COUNT)}
                   </Text>
                 }
-                triggerProps={{size: 'zero', borderless: true, showChevron: false}}
+                triggerProps={{
+                  size: 'zero',
+                  priority: 'transparent',
+                  showChevron: false,
+                }}
                 items={traces.slice(VISIBLE_TRACE_COUNT).map(trace => ({
                   key: trace.traceId,
                   label: (
