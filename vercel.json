@@ -29,5 +29,6 @@
       ]
     }
   ],
-  "github": {"silent": true}
+  "github": {"silent": true},
+  "ignoreCommand": "! git diff HEAD^ HEAD --name-only | grep -qE '^(static/|build-utils/|package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore|config/)'"
 }
