@@ -5,6 +5,7 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
+  AI_DETECTED_ISSUE_TYPES,
   getIssueTypeFromOccurrenceType,
   isOccurrenceBased,
   isTransactionBased,
@@ -32,7 +33,9 @@ function SpanEvidenceInterimSection({
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
   const sanitizedIssueTitle = issueTitle && sanitizeQuerySelector(issueTitle);
-  const hasSetting = isTransactionBased(typeId) && isOccurrenceBased(typeId);
+  const hasSetting =
+    (isTransactionBased(typeId) && isOccurrenceBased(typeId)) ||
+    (issueType !== null && AI_DETECTED_ISSUE_TYPES.has(issueType));
 
   return (
     <InterimSection
