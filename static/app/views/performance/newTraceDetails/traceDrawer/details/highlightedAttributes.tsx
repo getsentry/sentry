@@ -453,5 +453,6 @@ const TokensSpan = styled('span')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
+  flex-wrap: wrap;
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
 `;
