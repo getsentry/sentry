@@ -37,10 +37,10 @@ describe('diffWidgets', () => {
     expect(result).toEqual([{status: 'removed', widget}]);
   });
 
-  it('returns unchanged when widgets are identical', () => {
+  it('returns empty array when widgets are identical', () => {
     const widget = makeWidget();
     const result = diffWidgets(makeDashboard([widget]), makeDashboard([widget]));
-    expect(result).toEqual([{status: 'unchanged', widget}]);
+    expect(result).toEqual([]);
   });
 
   it('detects a title change', () => {
@@ -106,11 +106,12 @@ describe('diffWidgets', () => {
     });
   });
 
-  it('matches widgets by title when id differs', () => {
+  it('matches widgets by title when id differs and does not report them as added', () => {
     const base = makeWidget({id: '1', title: 'Shared Title'});
     const snap = makeWidget({id: '2', title: 'Shared Title'});
     const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
-    expect(result[0]!.status).toBe('unchanged');
+    expect(result.find(r => r.status === 'added')).toBeUndefined();
+    expect(result.find(r => r.status === 'removed')).toBeUndefined();
   });
 
   it('does not match by title when multiple base widgets share the same title', () => {

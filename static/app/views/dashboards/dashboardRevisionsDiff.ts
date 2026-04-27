@@ -90,8 +90,7 @@ export function diffFilters(
 export type WidgetChange =
   | {status: 'added'; widget: Widget}
   | {status: 'removed'; widget: Widget}
-  | {fields: FieldChange[]; layoutChanged: boolean; status: 'modified'; widget: Widget}
-  | {status: 'unchanged'; widget: Widget};
+  | {fields: FieldChange[]; layoutChanged: boolean; status: 'modified'; widget: Widget};
 
 function diffQueryFields(
   base: WidgetQuery,
@@ -226,8 +225,6 @@ export function diffWidgets(
 
     if (fields.length > 0 || layoutChanged) {
       changes.push({status: 'modified', widget: snapshotWidget, fields, layoutChanged});
-    } else {
-      changes.push({status: 'unchanged', widget: snapshotWidget});
     }
   }
 

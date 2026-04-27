@@ -190,11 +190,22 @@ function FilterDiffSection({
             {label}
           </Text>
           <Flex align="center" gap="xs" wrap="wrap">
-            <DiffBefore>{before}</DiffBefore>
+            <Text
+              as="span"
+              size="sm"
+              variant="danger"
+              strikethrough
+              monospace
+              wordBreak="break-all"
+            >
+              {before}
+            </Text>
             <Text size="sm" variant="muted">
               {'→'}
             </Text>
-            <DiffAfter>{after}</DiffAfter>
+            <Text as="span" size="sm" variant="success" monospace wordBreak="break-all">
+              {after}
+            </Text>
           </Flex>
         </Grid>
       ))}
@@ -203,16 +214,14 @@ function FilterDiffSection({
 }
 
 function WidgetDiffSection({widgetChanges}: {widgetChanges: WidgetChange[]}) {
-  const meaningful = widgetChanges.filter(c => c.status !== 'unchanged');
-
   return (
     <Flex direction="column" gap="xs">
-      {meaningful.length === 0 && (
+      {widgetChanges.length === 0 && (
         <Text size="sm" variant="muted">
           {t('No widget changes in this revision.')}
         </Text>
       )}
-      {meaningful.map((change, i) => {
+      {widgetChanges.map((change, i) => {
         if (change.status === 'added') {
           return <WidgetDiffCard key={i} status="added" widget={change.widget} />;
         }
@@ -285,11 +294,22 @@ function WidgetDiffCard({
             {field}
           </Text>
           <Flex align="center" gap="xs" wrap="wrap">
-            <DiffBefore>{before}</DiffBefore>
+            <Text
+              as="span"
+              size="sm"
+              variant="danger"
+              strikethrough
+              monospace
+              wordBreak="break-all"
+            >
+              {before}
+            </Text>
             <Text size="sm" variant="muted">
               {'→'}
             </Text>
-            <DiffAfter>{after}</DiffAfter>
+            <Text as="span" size="sm" variant="success" monospace wordBreak="break-all">
+              {after}
+            </Text>
           </Flex>
         </Grid>
       ))}
@@ -343,19 +363,4 @@ const RadioInput = styled('input')`
   margin-top: 2px;
   cursor: pointer;
   accent-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-`;
-
-const DiffBefore = styled('span')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.danger};
-  text-decoration: line-through;
-  font-family: ${p => p.theme.font.family.mono};
-  word-break: break-all;
-`;
-
-const DiffAfter = styled('span')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.success};
-  font-family: ${p => p.theme.font.family.mono};
-  word-break: break-all;
 `;
