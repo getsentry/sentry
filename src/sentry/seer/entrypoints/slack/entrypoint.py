@@ -220,7 +220,12 @@ class SlackAutofixEntrypoint(
         )
 
     def _update_existing_message(
-        self, *, run_id: int, has_complete_stage: bool, include_user: bool
+        self,
+        *,
+        run_id: int,
+        has_complete_stage: bool,
+        include_user: bool,
+        handoff_target: CodingAgentProviderType | None = None,
     ) -> None:
         """
         Updates the clicked message as 'in-progress' with a given run_id.
@@ -232,6 +237,7 @@ class SlackAutofixEntrypoint(
             group_id=self.group.id,
             current_point=self.autofix_stopping_point,
             group_link=self.get_group_link(self.group),
+            handoff_target=handoff_target,
         )
         update_existing_message(
             request=self.slack_request,
@@ -258,6 +264,37 @@ class SlackAutofixEntrypoint(
         # We don't include the user since we don't know that they started the original run.
         self._update_existing_message(
             run_id=run_id, has_complete_stage=has_complete_stage, include_user=False
+        )
+
+    def on_trigger_handoff_error(self, *, error: str) -> None:
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerAutofixError(error_message=error),
+            ephemeral_user_id=self.slack_request.user_id,
+        )
+
+    def on_trigger_handoff_success(self, *, run_id: int, target: CodingAgentProviderType) -> None:
+        self._update_existing_message(
+            run_id=run_id,
+            has_complete_stage=False,
+            include_user=True,
+            handoff_target=target,
+        )
+
+    def on_trigger_handoff_already_exists(
+        self,
+        *,
+        run_id: int,
+        target: CodingAgentProviderType,
+        has_complete_stage: bool,
+    ) -> None:
+        # We don't include the user since we don't know that they started the agent handoff.
+        self._update_existing_message(
+            run_id=run_id,
+            has_complete_stage=has_complete_stage,
+            include_user=False,
+            handoff_target=target,
         )
 
     def create_autofix_cache_payload(self) -> SlackAutofixCachePayload:

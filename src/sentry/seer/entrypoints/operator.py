@@ -306,20 +306,10 @@ class SeerAutofixOperator[CachePayloadT]:
         group: Group,
         run_id: int,
     ) -> None:
-        """
-        Launch the coding-agent handoff configured on the project for an existing
-        autofix run. Reads the project's automation_handoff preference, takes a
-        per-(group, run) lock to prevent duplicate launches, and invokes the
-        underlying handoff function. Failures are captured on the lifecycle metric.
-
-        If the autofix on-completion pipeline already auto-launched a coding
-        agent for this run (the automation path), this method halts without
-        launching another. The button effectively becomes a "view active run"
-        affordance — surfacing the agent's URL is a follow-up.
-        """
         from sentry.locks import locks
         from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
         from sentry.seer.autofix.utils import (
+            CodingAgentProviderType,
             CodingAgentStatus,
             get_autofix_state,
             read_preference_from_sentry_db,
@@ -340,11 +330,9 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_halt(halt_reason="no_handoff_configured")
                 return
 
+            target = CodingAgentProviderType(handoff_config.target)
             lifecycle.add_extras(
-                {
-                    "target": handoff_config.target,
-                    "integration_id": str(handoff_config.integration_id),
-                }
+                {"target": target.value, "integration_id": str(handoff_config.integration_id)}
             )
 
             try:
@@ -352,11 +340,30 @@ class SeerAutofixOperator[CachePayloadT]:
                     run_id=run_id, organization_id=group.organization.id
                 )
             except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error while talking to Seer"
+                    )
                 lifecycle.record_failure(failure_reason=e)
                 return
-            agents = autofix_state.coding_agents.values() if autofix_state else []
-            if agents and any(agent.status != CodingAgentStatus.FAILED for agent in agents):
-                lifecycle.add_extra("active_agents", str(len(agents)))
+
+            agents = list(autofix_state.coding_agents.values()) if autofix_state else []
+            non_failed = [a for a in agents if a.status != CodingAgentStatus.FAILED]
+            if non_failed:
+                has_complete_stage = any(
+                    a.status == CodingAgentStatus.COMPLETED for a in non_failed
+                )
+                lifecycle.add_extra("active_agents", str(len(non_failed)))
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ALREADY_EXISTS,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_already_exists(
+                        run_id=run_id, target=target, has_complete_stage=has_complete_stage
+                    )
                 lifecycle.record_halt(halt_reason="agent_already_active")
                 return
 
@@ -374,8 +381,21 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_halt(halt_reason=e)
                 return
             except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_ERROR,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_handoff_error(
+                        error="Encountered an error while launching the coding agent"
+                    )
                 lifecycle.record_failure(failure_reason=e)
                 return
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_HANDOFF_SUCCESS,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_handoff_success(run_id=run_id, target=target)
 
     def trigger_autofix_legacy(
         self,

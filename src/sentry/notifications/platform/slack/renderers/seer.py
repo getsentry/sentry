@@ -286,8 +286,12 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         extra_text: str | None = None,
         has_complete_stage: bool = True,
     ) -> list[Block]:
-        config = AUTOFIX_CONFIG[data.current_point]
-        raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
+        if data.handoff_target is not None:
+            label = HANDOFF_TARGET_LABELS[data.handoff_target]
+            raw_text = f"{label}'s got this" if has_complete_stage else f"Handing off to {label}..."
+        else:
+            config = AUTOFIX_CONFIG[data.current_point]
+            raw_text = config["completed_text"] if has_complete_stage else config["working_text"]
         markdown_text = f"_{raw_text}_"
 
         if extra_text:

@@ -209,7 +209,10 @@ def update_existing_message(
     from sentry.integrations.slack.message_builder.types import SlackAction
 
     def remove_autofix_button_transformer(elem: dict[str, Any]) -> dict[str, Any] | None:
-        if elem.get("action_id", "").startswith(SlackAction.SEER_AUTOFIX_START.value):
+        action_id = elem.get("action_id", "")
+        if action_id.startswith(SlackAction.SEER_AUTOFIX_START.value) or action_id.startswith(
+            SlackAction.SEER_AUTOFIX_HANDOFF.value
+        ):
             return None
         return elem
 
