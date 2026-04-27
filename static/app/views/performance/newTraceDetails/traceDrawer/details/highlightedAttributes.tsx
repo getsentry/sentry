@@ -363,15 +363,18 @@ function HighlightedTokenAttributes({
           <Count value={breakdown.netNewInput} /> {t('in')}
         </Container>
         {hasCached && (
-          <Container display="inline-block">
-            {' + '}
-            <Count value={breakdown.cached} /> {t('cached')}
-          </Container>
-        )}
+          <Fragment>
+            {' '}
+            <Container display="inline-block">
+              {' + '}
+              <Count value={breakdown.cached} /> {t('cached')}
+            </Container>
+          </Fragment>
+        )}{' '}
         <Container display="inline-block">
           {' + '}
           <Count value={breakdown.output} /> {t('out')}
-        </Container>
+        </Container>{' '}
         <Container display="inline-block">
           {' = '}
           <Count value={breakdown.total} /> {t('total')}
