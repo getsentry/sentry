@@ -455,7 +455,7 @@ jobs:
           # tier 2 (snuba-heavy) gets --dist=load to balance individual-test latency
           # across workers — variance is much higher than the no-tiers case where
           # --dist=loadfile averages out via larger file count per shard.
-          XDIST_DIST: ${{ needs.split-tiers.outputs.has-tiers == 'true' && 'load' || 'loadfile' }}
+          XDIST_DIST: 'loadfile'
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=${XDIST_DIST}"
