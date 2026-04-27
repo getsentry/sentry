@@ -32,6 +32,7 @@ import {
   FieldKind,
   getFieldDefinition,
 } from 'sentry/utils/fields';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -43,6 +44,7 @@ import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
@@ -279,7 +281,20 @@ function GroupBySelector({
   stringTags,
   booleanTags,
 }: GroupBySelectorProps) {
-  const options = useGroupByFields({
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'string');
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'number');
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'boolean');
+
+  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+
+  const baseOptions = useGroupByFields({
     groupBys,
     numberTags,
     stringTags,
@@ -287,10 +302,22 @@ function GroupBySelector({
     traceItemType: TraceItemDataset.SPANS,
   });
 
+  const searchedOptions = useGroupByFields({
+    groupBys,
+    numberTags: searchedNumberTags,
+    stringTags: searchedStringTags,
+    booleanTags: searchedBooleanTags,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  const options = hasSearch ? searchedOptions : baseOptions;
+
   const label = useMemo(() => {
-    const tag = options.find(option => option.value === groupBy.groupBy);
+    const tag =
+      options.find(option => option.value === groupBy.groupBy) ??
+      baseOptions.find(option => option.value === groupBy.groupBy);
     return <TriggerLabel>{tag?.label ?? groupBy.groupBy}</TriggerLabel>;
-  }, [groupBy.groupBy, options]);
+  }, [groupBy.groupBy, options, baseOptions]);
 
   const handleChange = useCallback(
     (option: SelectOption<SelectKey>) => {
@@ -305,7 +332,9 @@ function GroupBySelector({
       options={options}
       value={groupBy.groupBy}
       onChange={handleChange}
-      search
+      search={{onChange: setSearch}}
+      loading={isSearchLoading}
+      emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
@@ -362,14 +391,6 @@ function AggregateSelector({
     });
   }, []);
 
-  const argumentOptions = useVisualizeFields({
-    numberTags,
-    stringTags,
-    booleanTags,
-    parsedFunction,
-    traceItemType: TraceItemDataset.SPANS,
-  });
-
   const handleFunctionChange = useCallback(
     (option: SelectOption<SelectKey>) => {
       const newYAxis = updateVisualizeAggregate({
@@ -413,46 +434,101 @@ function AggregateSelector({
           />
         )}
       />
-      {aggregateDefinition?.parameters?.map((param, index) => {
-        return (
-          <DoubleWidthCompactSelect
-            key={param.name}
-            data-test-id="editor-visualize-argument"
-            options={argumentOptions}
-            value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
-            onChange={option => handleArgumentChange(index, option)}
-            search
-            disabled={argumentOptions.length === 1}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                style={{
-                  width: '100%',
-                }}
-              />
-            )}
-          />
-        );
-      })}
+      {aggregateDefinition?.parameters?.map((param, index) => (
+        <AttributeArgumentSelect
+          key={param.name}
+          numberTags={numberTags}
+          stringTags={stringTags}
+          booleanTags={booleanTags}
+          parsedFunction={parsedFunction}
+          value={parsedFunction?.arguments[index] ?? param.defaultValue ?? ''}
+          onChange={option => handleArgumentChange(index, option)}
+        />
+      ))}
       {aggregateDefinition?.parameters?.length === 0 && (
-        <DoubleWidthCompactSelect
-          data-test-id="editor-visualize-argument"
-          options={argumentOptions}
+        <AttributeArgumentSelect
+          numberTags={numberTags}
+          stringTags={stringTags}
+          booleanTags={booleanTags}
+          parsedFunction={parsedFunction}
           value={parsedFunction?.arguments[0] ?? ''}
           onChange={option => handleArgumentChange(0, option)}
-          search
-          disabled
-          trigger={triggerProps => (
-            <OverlayTrigger.Button
-              {...triggerProps}
-              style={{
-                width: '100%',
-              }}
-            />
-          )}
+          forceDisabled
         />
       )}
     </Fragment>
+  );
+}
+
+interface AttributeArgumentSelectProps {
+  booleanTags: TagCollection;
+  numberTags: TagCollection;
+  onChange: (option: SelectOption<SelectKey>) => void;
+  parsedFunction: ReturnType<typeof parseFunction>;
+  stringTags: TagCollection;
+  value: string;
+  forceDisabled?: boolean;
+}
+
+function AttributeArgumentSelect({
+  numberTags,
+  stringTags,
+  booleanTags,
+  parsedFunction,
+  value,
+  onChange,
+  forceDisabled,
+}: AttributeArgumentSelectProps) {
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const hasSearch = debouncedSearch.length > 0;
+
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'string');
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'number');
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'boolean');
+
+  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+
+  const baseOptions = useVisualizeFields({
+    numberTags,
+    stringTags,
+    booleanTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  const searchedOptions = useVisualizeFields({
+    numberTags: searchedNumberTags,
+    stringTags: searchedStringTags,
+    booleanTags: searchedBooleanTags,
+    parsedFunction,
+    traceItemType: TraceItemDataset.SPANS,
+  });
+
+  const options = hasSearch ? searchedOptions : baseOptions;
+
+  return (
+    <DoubleWidthCompactSelect
+      data-test-id="editor-visualize-argument"
+      options={options}
+      value={value}
+      onChange={onChange}
+      search={{onChange: setSearch}}
+      loading={isSearchLoading}
+      emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
+      disabled={forceDisabled || baseOptions.length === 1}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          style={{
+            width: '100%',
+          }}
+        />
+      )}
+    />
   );
 }
 
