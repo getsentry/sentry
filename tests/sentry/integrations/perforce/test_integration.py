@@ -753,7 +753,7 @@ class PerforceApiPipelineTest(APITestCase):
 @control_silo_test
 class PerforceIntegrationConfigDataApiTest(APITestCase):
     """
-    Regression test for VULN-1548: the org integrations index endpoint must
+    Regression test for password exposure: the org integrations index endpoint must
     not echo the Perforce credential in configData. The endpoint is reachable
     by org:read, so any leak there exposes the password / P4 ticket to every
     member of the organization.
