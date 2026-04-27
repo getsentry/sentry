@@ -19,6 +19,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -162,6 +163,7 @@ export function OurlogsDrawer({
               embeddedOptions={embeddedOptions}
               expanded
               additionalData={additionalData}
+              analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
             />
           </Stack>
         </EventDrawerBody>

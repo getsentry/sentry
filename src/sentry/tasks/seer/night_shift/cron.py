@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import dataclasses
+import enum
 import logging
 import time
 from collections import Counter
@@ -21,10 +23,10 @@ from sentry.seer.autofix.constants import (
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunIssue
-from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
+from sentry.tasks.seer.night_shift.tweaks import NightShiftTweaks, get_night_shift_tweaks
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -39,6 +41,11 @@ FEATURE_NAMES = [
     "organizations:gen-ai-features",
     "organizations:seat-based-seer-enabled",
 ]
+
+
+class NightShiftRunSource(enum.Enum):
+    CRON = "cron"
+    MANUAL = "manual"
 
 
 @instrumented_task(
@@ -108,6 +115,7 @@ def run_night_shift_for_org(
 
     return _execute_night_shift_run(
         organization,
+        source=NightShiftRunSource.CRON,
         dry_run=dry_run,
         max_candidates=max_candidates,
         log_extra=log_extra,
@@ -155,7 +163,8 @@ def run_night_shift_for_project(
 
     return _execute_night_shift_run(
         organization,
-        project_id=project.id,
+        source=NightShiftRunSource.MANUAL,
+        project_ids=[project.id],
         dry_run=dry_run,
         max_candidates=max_candidates,
         log_extra=log_extra,
@@ -165,7 +174,8 @@ def run_night_shift_for_project(
 def _execute_night_shift_run(
     organization: Organization,
     *,
-    project_id: int | None = None,
+    source: NightShiftRunSource,
+    project_ids: list[int] | None = None,
     dry_run: bool,
     max_candidates: int | None,
     log_extra: dict[str, object],
@@ -190,7 +200,7 @@ def _execute_night_shift_run(
         return None
 
     try:
-        eligible_projects, _ = _get_eligible_projects(organization, project_id=project_id)
+        eligible = _get_eligible_projects(organization, source, project_ids=project_ids)
     except Exception:
         _fail_run(
             run,
@@ -200,18 +210,19 @@ def _execute_night_shift_run(
         )
         return None
 
-    sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible_projects))
+    sentry_sdk.metrics.distribution("night_shift.eligible_projects", len(eligible))
 
-    if not eligible_projects:
+    if not eligible:
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
         return None
 
     resolved_max_candidates = (
         max_candidates
         if max_candidates is not None
-        else options.get("seer.night_shift.issues_per_org")
+        else max(ep.tweaks.candidate_issues for ep in eligible)
     )
 
+    eligible_projects = [ep.project for ep in eligible]
     agent_run_id = None
     try:
         candidates, agent_run_id = agentic_triage_strategy(
@@ -311,39 +322,52 @@ def _fail_run(
     run.update(error_message=message)
 
 
+@dataclasses.dataclass(frozen=True)
+class EligibleProject:
+    project: Project
+    tweaks: NightShiftTweaks
+
+
 def _get_eligible_projects(
     organization: Organization,
-    project_id: int | None = None,
-) -> tuple[list[Project], dict[int, SeerProjectPreference]]:
-    """Return active projects that have automation enabled and connected repos.
+    source: NightShiftRunSource,
+    project_ids: list[int] | None = None,
+) -> list[EligibleProject]:
+    """Return active projects that have automation enabled and connected repos,
+    each paired with its parsed night shift tweaks.
 
-    When project_id is provided, only that project is considered (for manual
-    per-project triggers)."""
+    When project_ids is provided, the org's projects are restricted to that set.
+    Manual triggers bypass the tweaks.enabled gate — the user explicitly asked
+    for this run. Scheduler runs respect it."""
     project_qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
-    if project_id is not None:
-        project_qs = project_qs.filter(id=project_id)
+    if project_ids is not None:
+        project_qs = project_qs.filter(id__in=project_ids)
     project_map = {p.id: p for p in project_qs}
     if not project_map:
-        return [], {}
+        return []
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
-    candidates = [
+    with_automation = [
         project_map[pid]
         for pid, pref in preferences.items()
         if pref.repositories
         and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
     ]
-    if not candidates:
-        return [], preferences
+    if not with_automation:
+        return []
 
-    flag_result = features.batch_has(["projects:seer-night-shift"], projects=candidates)
-    projects = [
+    flag_result = features.batch_has(["projects:seer-night-shift"], projects=with_automation)
+    flagged = [
         p
-        for p in candidates
+        for p in with_automation
         if (flag_result or {}).get(f"project:{p.id}", {}).get("projects:seer-night-shift", False)
     ]
-    return projects, preferences
+
+    eligible = [EligibleProject(project=p, tweaks=get_night_shift_tweaks(p)) for p in flagged]
+    if source is NightShiftRunSource.CRON:
+        eligible = [ep for ep in eligible if ep.tweaks.enabled]
+    return eligible
 
 
 def _run_autofix_for_candidates(

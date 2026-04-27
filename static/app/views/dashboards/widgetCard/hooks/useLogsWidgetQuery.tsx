@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -8,6 +8,8 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -20,6 +22,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
@@ -66,8 +69,12 @@ export function useLogsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -103,63 +110,45 @@ export function useLogsSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<LogsSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-stats/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<LogsSeriesResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<LogsSeriesResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<LogsSeriesResponse>(context);
         },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
-
-  const createQueryFn = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<LogsSeriesResponse>> => {
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<LogsSeriesResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchDataQuery<LogsSeriesResponse>(context);
-      },
-    [queue]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFn(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -175,11 +164,11 @@ export function useLogsSeriesQuery(
     const rawData: LogsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data;
       rawData[requestIndex] = responseData;
 
       const transformedResult = LogsConfig.transformSeries!(
