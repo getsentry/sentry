@@ -30,10 +30,11 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.utils.query import RangeQuerySetWrapper
 
 
 @instrumented_task(
@@ -51,6 +52,24 @@ def schedule_per_org_calculations() -> None:
     if not is_rollout_enabled():
         emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.ROLLOUT_DISABLED)
         return
+
+    dispatched = 0
+    skipped = 0
+    orgs = RangeQuerySetWrapper[Organization](
+        Organization.objects.filter(status=OrganizationStatus.ACTIVE),
+        step=1000,
+        result_value_getter=lambda o: o.id,
+    )
+
+    for org in orgs:
+        if not is_org_in_rollout(org.id):
+            skipped += 1
+            continue
+        run_calculations_per_org_task.apply_async(args=(org.id,))
+        dispatched += 1
+
+    emit_status(SCHEDULER_BEAT_STATUS_METRIC, "dispatched", amount=dispatched)
+    emit_status(SCHEDULER_BEAT_STATUS_METRIC, "rollout_excluded", amount=skipped)
 
 
 @instrumented_task(
