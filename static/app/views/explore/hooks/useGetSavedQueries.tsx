@@ -294,7 +294,7 @@ const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
   logs: 'Logs',
   spans: 'Traces',
   segment_spans: 'Traces',
-  metrics: 'Metrics',
+  metrics: 'Application Metrics',
   replays: 'Replays',
 };
 

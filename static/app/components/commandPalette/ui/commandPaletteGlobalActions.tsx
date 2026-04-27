@@ -229,7 +229,7 @@ export function GlobalCommandPaletteActions() {
           )}
           {organization.features.includes('tracemetrics-enabled') && (
             <CMDKAction
-              display={{label: t('Metrics')}}
+              display={{label: t('Application Metrics')}}
               to={`${prefix}/explore/metrics/`}
             />
           )}

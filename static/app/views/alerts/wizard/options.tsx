@@ -176,7 +176,7 @@ export const getAlertWizardCategories = (org: Organization) => {
 
     if (hasTraceMetricsAlerts(org)) {
       result.push({
-        categoryHeading: t('Metrics'),
+        categoryHeading: t('Application Metrics'),
         options: ['trace_item_metrics' as const],
       });
     }
