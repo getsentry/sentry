@@ -56,10 +56,8 @@ export function buildAttributeOptions({
   // Order matters: callers that dedup downstream (e.g. useGroupByFields) keep
   // the first occurrence by `option.value`. Number/MEASUREMENT comes before
   // string/TAG and boolean/BOOLEAN so that a key present in multiple typed
-  // collections preserves its measurement variant — matching the prior
-  // hand-rolled ordering before this helper was extracted. extraColumns are
-  // emitted last so server-typed entries always win over a fallback derived
-  // from `extraColumnKind`.
+  // collections preserves its measurement variant, matching the hand-rolled
+  // hand-rolled ordering before this helper was extracted.
   return [
     ...Object.values(numberTags).map(tag => optionFromTag(tag, traceItemType)),
     ...Object.values(stringTags).map(tag => optionFromTag(tag, traceItemType)),
