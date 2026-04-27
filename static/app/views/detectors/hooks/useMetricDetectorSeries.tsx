@@ -94,7 +94,7 @@ export function useMetricDetectorSeries({
 
   type SeriesData = Parameters<typeof datasetConfig.transformSeriesQueryData>[0];
   const {data, isLoading, error} = useQuery({
-    ...(seriesQueryOptions as unknown as UseQueryOptions<
+    ...(seriesQueryOptions as UseQueryOptions<
       ApiResponse<SeriesData>,
       Error,
       SeriesData,
