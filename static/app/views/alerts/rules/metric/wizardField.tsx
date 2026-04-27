@@ -43,6 +43,12 @@ type Props = Omit<FormFieldProps, 'children'> & {
    */
   columnWidth?: number;
   eventTypes?: EventTypes[];
+  /**
+   * Render only the alert-type Select, hiding the aggregate editor below.
+   * Useful when the aggregate is being edited by a different control elsewhere
+   * in the form (e.g. the trace metrics equation editor).
+   */
+  hideAggregateEditor?: boolean;
   inFieldLabels?: boolean;
   isEditing?: boolean;
   onMetricLoadingChange?: (isLoading: boolean) => void;
@@ -56,6 +62,7 @@ export function WizardField({
   alertType,
   eventTypes,
   onMetricLoadingChange,
+  hideAggregateEditor,
   ...fieldProps
 }: Props) {
   const isDeprecatedTransactionAlertType =
@@ -245,7 +252,8 @@ export function WizardField({
           1 +
           numParameters -
           (hideParameterSelector ? 1 : 0) -
-          (hidePrimarySelector ? 1 : 0);
+          (hidePrimarySelector ? 1 : 0) -
+          (hideAggregateEditor ? 1 : 0);
 
         return (
           <Container alertType={alertType} hideGap={gridColumns < 1}>
@@ -264,7 +272,7 @@ export function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {alertType === 'trace_item_metrics' ? (
+            {hideAggregateEditor ? null : alertType === 'trace_item_metrics' ? (
               <EAPMetricsField
                 aggregate={aggregate}
                 projectId={project.id}

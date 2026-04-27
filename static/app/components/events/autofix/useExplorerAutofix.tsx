@@ -1,4 +1,5 @@
 import {useCallback, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -18,12 +19,7 @@ import {isArrayOf, isString} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -284,7 +280,7 @@ export function getOrderedArtifactKeys(
 
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
-  messages: Array<Block['message']>;
+  blocks: Block[];
   status: 'processing' | 'completed';
   step: string;
 }
@@ -316,16 +312,16 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   let section: AutofixSection = {
     step: 'unknown',
     artifacts: [],
-    messages: [],
+    blocks: [],
     status: 'processing',
   };
 
   // Closes the current section and pushes it to `sections` (if non-empty).
   function finalizeSection() {
-    if (section.messages.length) {
+    if (section.blocks.length) {
       // Mark the section as completed if the last message is a terminal marker.
-      const lastMessage = section.messages[section.messages.length - 1];
-      if (isLastMessageOfSection(lastMessage)) {
+      const lastBlock = section.blocks[section.blocks.length - 1];
+      if (isLastBlockOfSection(lastBlock)) {
         section.status = 'completed';
       }
 
@@ -361,13 +357,13 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
       section = {
         step: metadata.step,
         artifacts: [],
-        messages: [],
+        blocks: [],
         status: 'processing',
       };
     }
 
     // Append the block's message and any inline artifacts to the current section.
-    section.messages.push(message);
+    section.blocks.push(block);
     section.artifacts.push(...(block.artifacts ?? []));
   }
 
@@ -380,7 +376,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     sections.push({
       step: 'pull_request',
       artifacts: [pullRequests],
-      messages: [],
+      blocks: [],
       status: pullRequests.some(
         pullRequest => pullRequest.pr_creation_status === 'creating'
       )
@@ -394,7 +390,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     sections.push({
       step: 'coding_agents',
       artifacts: [codingAgents],
-      messages: [],
+      blocks: [],
       status: codingAgents.some(
         codingAgent =>
           codingAgent.status === CodingAgentStatus.PENDING ||
@@ -455,11 +451,11 @@ export function getAutofixArtifactFromSection(
   return null;
 }
 
-function isLastMessageOfSection(message?: Block['message']): boolean {
+function isLastBlockOfSection(block?: Block): boolean {
   return (
-    message?.role === 'assistant' &&
-    message?.content !== 'Thinking...' &&
-    !message?.tool_calls?.length
+    block?.message?.role === 'assistant' &&
+    block?.message?.content !== 'Thinking...' &&
+    !block?.message?.tool_calls?.length
   );
 }
 

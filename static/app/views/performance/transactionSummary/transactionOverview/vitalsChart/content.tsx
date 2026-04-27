@@ -18,7 +18,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {TransactionsListOption} from 'sentry/views/releases/detail/overview';
+import {TransactionsListOption} from 'sentry/views/explore/releases/detail/overview';
 
 type Props = {
   errored: boolean;

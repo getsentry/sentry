@@ -46,6 +46,7 @@ export function ConnectedProjectsList({automationId}: Props) {
   const {data, isPending, isError, isSuccess} = useQuery({
     ...detectorListApiOptions(organization, {
       query: `type:issue_stream workflow:${automationId}`,
+      projects: [-1],
       includeIssueStreamDetectors: true,
       limit: LIMIT,
       cursor,

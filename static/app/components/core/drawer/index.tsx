@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -80,19 +81,24 @@ export interface DrawerConfig {
   renderer: DrawerRenderer | null;
 }
 
+interface StoredDrawerConfig extends DrawerConfig {
+  callerId: string;
+}
+
 interface DrawerContextType {
+  activeDrawerId: string | null;
   closeDrawer: () => void;
-  isDrawerOpen: boolean;
   openDrawer: (
     renderer: DrawerConfig['renderer'],
-    options: DrawerConfig['options']
+    options: DrawerConfig['options'],
+    callerId: string
   ) => void;
   panelRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
-  isDrawerOpen: false,
+  activeDrawerId: null,
   closeDrawer: () => {},
   panelRef: {current: null},
 });
@@ -100,7 +106,7 @@ const DrawerContext = createContext<DrawerContextType>({
 export function GlobalDrawer({children}: any) {
   const location = useLocation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
-    DrawerConfig | undefined
+    StoredDrawerConfig | undefined
   >();
   // Used to avoid adding `currentDrawerConfig` as a dependency to the below
   // `useLayoutEffect`. It's only used as a callback when `location` changes.
@@ -108,13 +114,14 @@ export function GlobalDrawer({children}: any) {
 
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
+  const activeDrawerId = currentDrawerConfig?.callerId ?? null;
   const scrollLock = useScrollLock(document.body);
   const openDrawer = useCallback<DrawerContextType['openDrawer']>(
-    (renderer, options) => {
+    (renderer, options, callerId) => {
       if (options.mode !== 'passive') {
         scrollLock.acquire();
       }
-      overwriteDrawerConfig({renderer, options});
+      overwriteDrawerConfig({renderer, options, callerId});
       options.onOpen?.();
     },
     [scrollLock]
@@ -190,7 +197,7 @@ export function GlobalDrawer({children}: any) {
     : null;
 
   return (
-    <DrawerContext value={{closeDrawer, isDrawerOpen, openDrawer, panelRef}}>
+    <DrawerContext value={{closeDrawer, activeDrawerId, openDrawer, panelRef}}>
       <ErrorBoundary
         mini
         allowDismiss
@@ -237,9 +244,32 @@ export function GlobalDrawer({children}: any) {
  * ```
  * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
  * ```
+ *
+ * `isDrawerOpen` is scoped to this call-site: it is `true` only when the drawer
+ * currently open was opened via the `openDrawer` returned by *this* `useDrawer`
+ * call (including calls made through a shared wrapper hook). Use
+ * `isAnyDrawerOpen` if you need to know whether *any* drawer is open.
  */
 export function useDrawer() {
-  return useContext(DrawerContext);
+  const context = useContext(DrawerContext);
+  const callerId = useId();
+  const openDrawerRef = useRef(context.openDrawer);
+  useEffect(() => {
+    openDrawerRef.current = context.openDrawer;
+  });
+  const openDrawer = useCallback(
+    (renderer: DrawerConfig['renderer'], options: DrawerConfig['options']) => {
+      openDrawerRef.current(renderer, options, callerId);
+    },
+    [callerId]
+  );
+  return {
+    openDrawer,
+    closeDrawer: context.closeDrawer,
+    panelRef: context.panelRef,
+    isDrawerOpen: context.activeDrawerId === callerId,
+    isAnyDrawerOpen: context.activeDrawerId !== null,
+  };
 }
 
 export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
@@ -73,12 +74,10 @@ import {
   type FieldDefinition,
 } from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   onDelete: () => void;

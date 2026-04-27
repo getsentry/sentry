@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
@@ -183,27 +183,58 @@ export function ProjectDetail() {
           <NoProjectMessage organization={organization}>
             <Layout.Header unified>
               <Layout.HeaderContent unified>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      to: makeProjectsPathname({path: '/', organization}),
-                      label: t('Projects'),
-                    },
-                    {label: t('Project Details')},
-                  ]}
-                />
-                <Layout.Title>
-                  {project ? (
-                    <IdBadge
-                      project={project}
-                      avatarSize={28}
-                      hideOverflow="100%"
-                      disableLink
-                      hideName
+                {hasPageFrameFeature ? (
+                  <TopBar.Slot name="title">
+                    <Breadcrumbs
+                      crumbs={[
+                        {
+                          to: makeProjectsPathname({path: '/', organization}),
+                          label: t('Projects'),
+                        },
+                        {
+                          label: (
+                            <Flex align="center" gap="xs">
+                              {project ? (
+                                <IdBadge
+                                  project={project}
+                                  avatarSize={16}
+                                  hideOverflow="100%"
+                                  disableLink
+                                  hideName
+                                />
+                              ) : null}
+                              {project?.slug}
+                            </Flex>
+                          ),
+                        },
+                      ]}
                     />
-                  ) : null}
-                  {project?.slug}
-                </Layout.Title>
+                  </TopBar.Slot>
+                ) : (
+                  <Fragment>
+                    <Breadcrumbs
+                      crumbs={[
+                        {
+                          to: makeProjectsPathname({path: '/', organization}),
+                          label: t('Projects'),
+                        },
+                        {label: t('Project Details')},
+                      ]}
+                    />
+                    <Layout.Title>
+                      {project ? (
+                        <IdBadge
+                          project={project}
+                          avatarSize={28}
+                          hideOverflow="100%"
+                          disableLink
+                          hideName
+                        />
+                      ) : null}
+                      {project?.slug}
+                    </Layout.Title>
+                  </Fragment>
+                )}
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>

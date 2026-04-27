@@ -24,11 +24,11 @@ from slack_sdk.models.blocks import (
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
-    SeerExplorerError,
-    SeerExplorerResponse,
 )
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -94,10 +94,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_autofix_error(data)
         elif isinstance(data, SeerAutofixUpdate):
             return cls._render_autofix_update(data)
-        elif isinstance(data, SeerExplorerError):
-            return cls._render_explorer_error(data)
-        elif isinstance(data, SeerExplorerResponse):
-            return cls._render_explorer_response(data)
+        elif isinstance(data, SeerAgentError):
+            return cls._render_agent_error(data)
+        elif isinstance(data, SeerAgentResponse):
+            return cls._render_agent_response(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -195,7 +195,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(blocks=blocks, text="Seer has emerged with news from its voyage")
 
     @classmethod
-    def _render_explorer_error(cls, data: SeerExplorerError) -> SlackRenderable:
+    def _render_agent_error(cls, data: SeerAgentError) -> SlackRenderable:
         return SlackRenderable(
             blocks=[
                 SectionBlock(text=data.error_title),
@@ -205,7 +205,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         )
 
     @classmethod
-    def _render_explorer_response(cls, data: SeerExplorerResponse) -> SlackRenderable:
+    def _render_agent_response(cls, data: SeerAgentResponse) -> SlackRenderable:
         from sentry import features
         from sentry.models.organization import Organization
 
@@ -220,7 +220,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         if data.missing_scope_settings_url:
             blocks.extend(cls.render_missing_scope_footer(data.missing_scope_settings_url))
 
-        return SlackRenderable(blocks=blocks, text="Seer Explorer has finished")
+        return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
 
     @classmethod
     def _render_link_button(

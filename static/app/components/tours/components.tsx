@@ -138,7 +138,7 @@ export function TourContextProvider<T extends TourEnumType>({
   );
 }
 
-export interface TourRenderProps {
+interface TourRenderProps {
   /**
    * Ref to attach to the element for positioning.
    * Uses `any` to allow flexibility in spreading onto different element types.

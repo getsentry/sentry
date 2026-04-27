@@ -7,13 +7,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {FormContext} from 'sentry/components/forms/formContext';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
@@ -37,6 +35,7 @@ import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricS
 import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {
   LocalMultiMetricsQueryParamsProvider,
+  MAX_METRICS_ALLOWED,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -65,13 +64,32 @@ function computeEquationReferencedLabels(
   return extractReferenceLabels(new Expression(unresolvedText, labelSet));
 }
 
-export function MetricsEquationVisualize() {
+interface MetricsEquationVisualizeProps {
+  /**
+   * Form field that stores the aggregate expression. Defaults to the metric
+   * detector field; the legacy alert form passes `aggregate`.
+   */
+  aggregateFieldName?: typeof METRIC_DETECTOR_FORM_FIELDS.aggregateFunction | 'aggregate';
+  environments?: string[];
+  /**
+   * Called when the selected row's filter query changes. The legacy alert
+   * form uses this to run `onFilterSearch` so the threshold chart refresh
+   * on filter-bar edits.
+   */
+  onQueryChange?: (query: string) => void;
+  projectIds?: number[];
+}
+
+export function MetricsEquationVisualize({
+  aggregateFieldName = METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
+  projectIds,
+  environments,
+  onQueryChange,
+}: MetricsEquationVisualizeProps) {
   const organization = useOrganization();
   const hasEquations = canUseMetricsEquationsInAlerts(organization);
-  const aggregateFunction = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
-  const query = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.query);
+  const aggregateFunction = useFormField<string>(aggregateFieldName);
+  const query = useFormField<string>(METRIC_DETECTOR_FORM_FIELDS.query);
 
   // Parse once at mount; subsequent aggregateFunction changes are intentionally
   // discarded so unsaved row edits survive form writes. Remounting the provider
@@ -89,16 +107,29 @@ export function MetricsEquationVisualize() {
       initialQueries={initialQueries}
       hasEquations={hasEquations}
     >
-      <MetricsEquationVisualizeContent />
+      <MetricsEquationVisualizeContent
+        aggregateFieldName={aggregateFieldName}
+        projectIds={projectIds}
+        environments={environments}
+        onQueryChange={onQueryChange}
+      />
     </LocalMultiMetricsQueryParamsProvider>
   );
 }
 
-function MetricsEquationVisualizeContent() {
+function MetricsEquationVisualizeContent({
+  aggregateFieldName,
+  projectIds,
+  environments,
+  onQueryChange,
+}: {
+  aggregateFieldName: string;
+  environments?: string[];
+  onQueryChange?: (query: string) => void;
+  projectIds?: number[];
+}) {
   const formContext = useContext(FormContext);
-  const initialAggregate = useMetricDetectorFormField(
-    METRIC_DETECTOR_FORM_FIELDS.aggregateFunction
-  );
+  const initialAggregate = useFormField<string>(aggregateFieldName);
   const metricQueries = useMultiMetricsQueryParams();
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({type: 'aggregate'});
@@ -128,15 +159,13 @@ function MetricsEquationVisualizeContent() {
     const selectedYAxis = selectedQuery?.queryParams.visualizes[0]?.yAxis;
     const selectedFilter = selectedQuery?.queryParams.query;
     if (selectedYAxis !== undefined) {
-      formContext.form?.setValue(
-        METRIC_DETECTOR_FORM_FIELDS.aggregateFunction,
-        selectedYAxis
-      );
+      formContext.form?.setValue(aggregateFieldName, selectedYAxis);
     }
     if (selectedFilter !== undefined) {
       formContext.form?.setValue(METRIC_DETECTOR_FORM_FIELDS.query, selectedFilter);
+      onQueryChange?.(selectedFilter);
     }
-  }, [metricQueries, selectedLabel, formContext.form]);
+  }, [metricQueries, selectedLabel, formContext.form, aggregateFieldName, onQueryChange]);
 
   const functionQueries = useMemo(
     () => metricQueries.filter(q => isVisualizeFunction(q.queryParams.visualizes[0]!)),
@@ -164,7 +193,7 @@ function MetricsEquationVisualizeContent() {
   }, [hasEquationRow]);
 
   return (
-    <Stack gap="md">
+    <Stack gap="md" flex="1">
       {functionQueries.length > 0 && <FunctionColumnHeaders />}
       {functionQueries.map(metricQuery => {
         const isReferenced = referencedLabels.has(metricQuery.label ?? '');
@@ -176,6 +205,8 @@ function MetricsEquationVisualizeContent() {
               canDelete={functionQueries.length > 1 && !isReferenced}
               isSelected={selectedLabel === metricQuery.label}
               onRowSelection={onRowSelection}
+              projectIds={projectIds}
+              environments={environments}
             />
           </RowProvider>
         );
@@ -191,6 +222,8 @@ function MetricsEquationVisualizeContent() {
               isSelected={selectedLabel === equationQuery.label}
               onRowSelection={onRowSelection}
               onReferenceLabelsChange={setEquationReferencedLabels}
+              projectIds={projectIds}
+              environments={environments}
             />
           </RowProvider>
         </Fragment>
@@ -198,7 +231,7 @@ function MetricsEquationVisualizeContent() {
       <Flex gap="md" align="center">
         <ToolbarVisualizeAddChart
           add={addAggregate}
-          disabled={false}
+          disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
           label={t('Add Metric')}
           display="button"
         />
@@ -206,7 +239,7 @@ function MetricsEquationVisualizeContent() {
           <ToolbarVisualizeAddChart
             display="button"
             add={addEquation}
-            disabled={false}
+            disabled={equationQuery || metricQueries.length >= MAX_METRICS_ALLOWED}
             label={t('Add Equation')}
           />
         )}
@@ -294,13 +327,17 @@ function MetricToolbar({
   isSelected,
   onRowSelection,
   onReferenceLabelsChange,
+  projectIds,
+  environments,
 }: {
   canDelete: boolean;
   isSelected: boolean;
   metricQuery: MetricQuery;
   onRowSelection: (label: string) => void;
   referenceMap: Record<string, string>;
+  environments?: string[];
   onReferenceLabelsChange?: (labels: string[]) => void;
+  projectIds?: number[];
 }) {
   const visualize = useMetricVisualize();
   const setVisualize = useSetMetricVisualize();
@@ -329,16 +366,6 @@ function MetricToolbar({
     }
   };
 
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
-
-  const projectIds = useMemo(() => {
-    if (projectId) {
-      return [Number(projectId)];
-    }
-    return [];
-  }, [projectId]);
-
   return (
     <Grid
       width="100%"
@@ -366,13 +393,15 @@ function MetricToolbar({
       />
       {isVisualizeFunction(visualize) ? (
         <Fragment>
-          <MetricSelector
-            traceMetric={traceMetric}
-            onChange={setTraceMetric}
-            projectIds={projectIds}
-            environments={environment ? [environment] : undefined}
-          />
-          <AggregateDropdown traceMetric={traceMetric} />
+          <Flex minWidth={0}>
+            <MetricSelector
+              traceMetric={traceMetric}
+              onChange={setTraceMetric}
+              projectIds={projectIds}
+              environments={environments}
+            />
+          </Flex>
+          <AggregateDropdown traceMetric={traceMetric} singleSelect />
           <Filter traceMetric={traceMetric} />
           <DeleteMetricButton disabled={!canDelete} />
         </Fragment>

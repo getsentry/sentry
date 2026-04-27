@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -52,11 +53,21 @@ export const useOpenSeerDrawer = ({
       return;
     }
 
+    const issueBaseUrl = normalizeUrl(
+      `/organizations/${organization.slug}/issues/${group.id}/`
+    );
+
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
       drawerKey: 'seer-autofix-drawer',
       resizable: true,
       mode: 'passive',
+      shouldCloseOnLocationChange: nextLocation => {
+        const nextPath = nextLocation.pathname.endsWith('/')
+          ? nextLocation.pathname
+          : `${nextLocation.pathname}/`;
+        return !nextPath.startsWith(issueBaseUrl);
+      },
       onClose: () => {
         navigate(
           {

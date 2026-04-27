@@ -50,8 +50,8 @@ class AuthApiClient(ApiClient):
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: tuple[str, str] | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -61,7 +61,7 @@ class AuthApiClient(ApiClient):
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
         raw_response: Literal[True] = ...,
-        endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Response: ...
 
     @overload
@@ -70,8 +70,8 @@ class AuthApiClient(ApiClient):
         method: str,
         path: str,
         headers: Mapping[str, str] | None = None,
-        data: Mapping[str, str] | None = None,
-        params: Mapping[str, str] | None = None,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
         auth: str | None = None,
         json: bool = True,
         allow_text: bool = False,
@@ -81,7 +81,7 @@ class AuthApiClient(ApiClient):
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
         raw_response: bool = ...,
-        endpoint: str | None = None,
+        api_request_type: str | None = None,
     ) -> Any: ...
 
     def _request(self, method, path, **kwargs):
@@ -102,7 +102,8 @@ class AuthApiClient(ApiClient):
 
         # refresh token
         self.logger.info(
-            "token.refresh", extra={"auth_id": self.auth.id, "provider": self.auth.provider}
+            "token.refresh",
+            extra={"auth_id": self.auth.id, "provider": self.auth.provider},
         )
         usersocialauth_service.refresh_token(filter={"id": self.auth.id})
         kwargs = self.bind_auth(**kwargs)

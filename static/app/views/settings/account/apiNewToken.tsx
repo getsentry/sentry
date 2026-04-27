@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -25,7 +26,7 @@ import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -60,11 +61,8 @@ const DISPLAYED_PERMISSIONS = SENTRY_APP_PERMISSIONS.filter(
   o => o !== DISTRIBUTION_SENTRY_APP_PERMISSION
 );
 
-function getPermissionsPreview(permissions: Permissions): string {
-  return Object.entries(permissions)
-    .filter(([, access]) => access !== 'no-access')
-    .map(([resource, access]) => `${resource.toLowerCase()}:${access}`)
-    .join(', ');
+function getPermissionsPreview(scopes: string[]): string {
+  return scopes.join(', ');
 }
 
 export default function ApiNewToken() {
@@ -77,9 +75,15 @@ export default function ApiNewToken() {
     [navigate]
   );
 
-  const allPermissionsNoAccess = Object.values(permissions).every(
-    value => value === 'no-access'
-  );
+  const scopes = Array.from(
+    new Set(
+      permissionStateToList(permissions, false).filter(
+        (value): value is NonNullable<typeof value> => value !== undefined
+      )
+    )
+  ).sort();
+
+  const allPermissionsNoAccess = scopes.length === 0;
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
@@ -88,9 +92,7 @@ export default function ApiNewToken() {
         method: 'POST',
         data: {
           ...data,
-          scopes: permissionStateToList(permissions).filter(
-            (v): v is NonNullable<typeof v> => v !== undefined
-          ),
+          scopes,
         },
       }),
     onSuccess: token => {
@@ -115,7 +117,7 @@ export default function ApiNewToken() {
     },
   });
 
-  const permissionsPreview = getPermissionsPreview(permissions);
+  const permissionsPreview = getPermissionsPreview(scopes);
 
   return (
     <SentryDocumentTitle title={t('Create New Personal Token')}>
@@ -158,8 +160,11 @@ export default function ApiNewToken() {
             <PanelBody>
               <PermissionSelection
                 appPublished={false}
+                displaySpecialPermissions={false}
                 permissions={permissions}
-                onChange={p => setPermissions({...p})}
+                onChange={nextPermissions => {
+                  setPermissions({...nextPermissions});
+                }}
                 displayedPermissions={DISPLAYED_PERMISSIONS}
               />
             </PanelBody>

@@ -267,7 +267,7 @@ export type SpanNumberFields =
 // is _not_ up-to-date! If you discover more nullable string fields, update this
 // list. In theory, maybe _all_ of these fields are actually nullable in
 // reality, which means we'll need to update a lot of code.
-export type NonNullableStringFields =
+type NonNullableStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD
