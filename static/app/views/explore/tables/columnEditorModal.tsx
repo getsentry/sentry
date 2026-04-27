@@ -19,7 +19,10 @@ import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
-import {DASHBOARD_ONLY_SPAN_ATTRIBUTES} from 'sentry/views/explore/constants';
+import {
+  DASHBOARD_ONLY_SPAN_ATTRIBUTES,
+  EXPLORE_FIVE_MIN_STALE_TIME,
+} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
@@ -185,21 +188,33 @@ function ColumnEditorRow({
   const {attributes: searchedStringTags, isLoading: stringLoading} =
     useTraceItemDatasetAttributes(
       traceItemType,
-      {search: debouncedSearch, enabled: hasSearch},
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
       'string',
       searchHiddenKeys
     );
   const {attributes: searchedNumberTags, isLoading: numberLoading} =
     useTraceItemDatasetAttributes(
       traceItemType,
-      {search: debouncedSearch, enabled: hasSearch},
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
       'number',
       searchHiddenKeys
     );
   const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
     useTraceItemDatasetAttributes(
       traceItemType,
-      {search: debouncedSearch, enabled: hasSearch},
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
       'boolean',
       searchHiddenKeys
     );

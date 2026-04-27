@@ -36,6 +36,7 @@ import {
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {
@@ -288,11 +289,32 @@ function GroupBySelector({
   const hasSearch = debouncedSearch.length > 0;
 
   const {attributes: searchedStringTags, isLoading: stringLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'string');
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'string'
+    );
   const {attributes: searchedNumberTags, isLoading: numberLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'number');
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'number'
+    );
   const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'boolean');
+    useSpanItemAttributes(
+      {
+        search: debouncedSearch,
+        enabled: hasSearch,
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
+      'boolean'
+    );
 
   const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
 
@@ -490,17 +512,29 @@ function AttributeArgumentSelect({
 
   const {attributes: searchedStringTags, isLoading: stringLoading} =
     useSpanItemAttributes(
-      {search: debouncedSearch, enabled: hasSearch && supportedKinds.includes('string')},
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('string'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
       'string'
     );
   const {attributes: searchedNumberTags, isLoading: numberLoading} =
     useSpanItemAttributes(
-      {search: debouncedSearch, enabled: hasSearch && supportedKinds.includes('number')},
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('number'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
       'number'
     );
   const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
     useSpanItemAttributes(
-      {search: debouncedSearch, enabled: hasSearch && supportedKinds.includes('boolean')},
+      {
+        search: debouncedSearch,
+        enabled: hasSearch && supportedKinds.includes('boolean'),
+        staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+      },
       'boolean'
     );
 
