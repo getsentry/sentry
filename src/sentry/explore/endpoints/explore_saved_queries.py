@@ -102,34 +102,7 @@ PREBUILT_SAVED_QUERIES = [
     },
     {
         "prebuilt_id": 3,
-        "prebuilt_version": 2,
-        "name": "LLM Calls",
-        "dataset": "spans",
-        "query": [
-            {
-                "fields": [
-                    "id",
-                    "gen_ai.output.messages",
-                    "gen_ai.response.model",
-                    "gen_ai.cost.total_tokens",
-                    "timestamp",
-                ],
-                "query": "gen_ai.operation.type:ai_client has:gen_ai.output.messages",
-                "mode": "samples",
-                "visualize": [
-                    {
-                        "chartType": 0,
-                        "yAxes": ["count(span.duration)"],
-                    },
-                ],
-                "orderby": "-timestamp",
-                "groupby": ["gen_ai.response.model"],
-            }
-        ],
-    },
-    {
-        "prebuilt_id": 4,
-        "prebuilt_version": 3,
+        "prebuilt_version": 1,
         "name": "Slow HTTP Requests",
         "dataset": "spans",
         "query": [
@@ -155,8 +128,8 @@ PREBUILT_SAVED_QUERIES = [
         ],
     },
     {
-        "prebuilt_id": 5,
-        "prebuilt_version": 1,
+        "prebuilt_id": 4,
+        "prebuilt_version": 2,
         "name": "Worst Pageloads",
         "dataset": "spans",
         "query": [
@@ -183,6 +156,33 @@ PREBUILT_SAVED_QUERIES = [
                     },
                 ],
                 "orderby": "-measurements.lcp",
+            }
+        ],
+    },
+    {
+        "prebuilt_id": 5,
+        "prebuilt_version": 1,
+        "name": "AI Spans",
+        "dataset": "spans",
+        "query": [
+            {
+                "fields": [
+                    "id",
+                    "gen_ai.output.messages",
+                    "gen_ai.response.model",
+                    "gen_ai.cost.total_tokens",
+                    "timestamp",
+                ],
+                "query": "gen_ai.operation.type:ai_client has:gen_ai.output.messages",
+                "mode": "samples",
+                "visualize": [
+                    {
+                        "chartType": 1,
+                        "yAxes": ["count(span.duration)"],
+                    },
+                ],
+                "orderby": "-timestamp",
+                "groupby": ["gen_ai.response.model"],
             }
         ],
     },
