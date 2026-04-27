@@ -30,5 +30,5 @@
     }
   ],
   "github": {"silent": true},
-  "ignoreCommand": "! git diff HEAD^ HEAD --name-only | grep -qE '^(static/|build-utils/|package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore|config/)'"
+  "ignoreCommand": "! git diff HEAD^ HEAD --name-only | grep -qE '^(static/|build-utils/|src/sentry/locale/|src/sentry/static/images/logos/|package\\.json|pnpm-lock\\.yaml|tsconfig\\.json|rspack\\.config\\.ts|vercel\\.json|\\.vercelignore|config/)'"
 }
