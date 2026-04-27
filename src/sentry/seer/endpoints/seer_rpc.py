@@ -84,13 +84,9 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
-    get_project_seer_preferences,
     read_preference_from_sentry_db,
     resolve_repository_ids,
     write_preference_to_sentry_db,
-)
-from sentry.seer.autofix.utils import (
-    bulk_get_project_preferences as bulk_get_project_seer_preferences,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -108,6 +104,7 @@ from sentry.seer.explorer.tools import (
     execute_trace_table_query,
     get_baseline_tag_distribution,
     get_comparative_attribute_distributions,
+    get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
     get_issue_details,
@@ -122,7 +119,6 @@ from sentry.seer.explorer.tools import (
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
-from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -626,19 +622,14 @@ def trigger_coding_agent_launch(
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
                 project = Project.objects.get_from_cache(id=project_id)
+                if project.organization_id != organization_id:
+                    raise Project.DoesNotExist
+                preference = read_preference_from_sentry_db(project)
 
-                preference: SeerProjectPreference | None = None
-                if features.has(
-                    "organizations:seer-project-settings-read-from-sentry", organization
-                ):
-                    preference = read_preference_from_sentry_db(project)
-                else:
-                    preference = get_project_seer_preferences(project.id).preference
-
-                if preference and preference.automation_handoff is not None:
+                if preference.automation_handoff is not None:
                     updated_preference = preference.copy(update={"automation_handoff": None})
                     resolved_preference = resolve_repository_ids(
-                        organization.id, [SeerProjectPreference.validate(updated_preference)]
+                        organization.id, [updated_preference]
                     )[0]
                     write_preference_to_sentry_db(project, resolved_preference)
                     # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
@@ -877,39 +868,26 @@ def check_repository_integrations_status(*, repository_integrations: list[dict[s
     return {"integration_ids": integration_ids}
 
 
-def get_project_preferences(*, organization_id: int, project_id: int) -> dict | None:
+def get_project_preferences(*, organization_id: int, project_id: int) -> dict:
     """Get Seer project preferences for a single project.
 
     Raises Project.DoesNotExist if the project is not found or doesn't belong to the org.
-    Returns None if the project has no preference row in Seer DB.
     """
     project = Project.objects.get_from_cache(id=project_id)
     if project.organization_id != organization_id:
         raise Project.DoesNotExist
 
-    organization = Organization.objects.get_from_cache(id=organization_id)
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return read_preference_from_sentry_db(project).dict()
-
-    preference = get_project_seer_preferences(project_id).preference
-    return preference.dict() if preference else None
+    return read_preference_from_sentry_db(project).dict()
 
 
-def bulk_get_project_preferences(*, organization_id: int, project_ids: list[int]) -> dict:
-    """Bulk get Seer project preferences.
+def bulk_get_project_preferences(
+    *, organization_id: int, project_ids: list[int]
+) -> dict[str, dict]:
+    """Bulk get Seer project preferences, keyed by stringified project ID.
 
-    Returns a dict keyed by stringified project ID. Values are preference dicts or None
-    for projects with no configured preferences.
-    """
-    organization = Organization.objects.get_from_cache(id=organization_id)
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-        return {
-            str(project_id): preference.dict() if preference else None
-            for project_id, preference in preferences.items()
-        }
-
-    return bulk_get_project_seer_preferences(organization_id, project_ids)
+    Projects not belonging to the given organization are silently skipped."""
+    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
+    return {str(project_id): pref.dict() for project_id, pref in preferences.items()}
 
 
 seer_method_registry: dict[str, Callable] = {  # return type must be serialized
@@ -971,6 +949,7 @@ seer_method_registry: dict[str, Callable] = {  # return type must be serialized
     "get_metric_attributes_for_trace": get_metric_attributes_for_trace,
     "get_baseline_tag_distribution": get_baseline_tag_distribution,
     "get_comparative_attribute_distributions": get_comparative_attribute_distributions,
+    "get_dsn": get_dsn,
     #
     # Replays
     "get_replay_summary_logs": rpc_get_replay_summary_logs,

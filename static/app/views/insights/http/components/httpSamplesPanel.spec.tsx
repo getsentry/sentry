@@ -361,9 +361,6 @@ describe('HTTPSamplesPanel', () => {
             environment: [],
             interval: '30m',
             excludeOther: 0,
-            groupBy: undefined,
-            sort: undefined,
-            topEvents: undefined,
             partial: 1,
             project: [],
             query:
@@ -371,7 +368,6 @@ describe('HTTPSamplesPanel', () => {
             referrer: 'api.insights.http.samples-panel-duration-chart',
             statsPeriod: '10d',
             yAxis: ['avg(span.self_time)'],
-            caseInsensitive: undefined,
           }),
         })
       );

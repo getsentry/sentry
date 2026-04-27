@@ -31,14 +31,14 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  CRASH_FREE_DECIMAL_THRESHOLD,
+  displayCrashFreePercent,
+} from 'sentry/views/explore/releases/utils';
+import {
   getPerformanceBaseUrl,
   platformToDomainView,
 } from 'sentry/views/performance/utils';
 import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
-import {
-  CRASH_FREE_DECIMAL_THRESHOLD,
-  displayCrashFreePercent,
-} from 'sentry/views/releases/utils';
 
 import {Deploys} from './deploys';
 import {ProjectChart} from './projectChart';

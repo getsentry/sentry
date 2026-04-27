@@ -23,7 +23,27 @@ class ProjectSeerNightShiftTest(APITestCase):
                 status_code=202,
             )
 
-        mock_task.apply_async.assert_called_once_with(args=[self.project.id])
+        mock_task.apply_async.assert_called_once_with(
+            args=[self.project.id],
+            kwargs={"dry_run": False},
+        )
+
+    @with_feature("organizations:seer-night-shift")
+    def test_triggers_task_with_dry_run(self) -> None:
+        with patch(
+            "sentry.seer.endpoints.project_seer_night_shift.run_night_shift_for_project"
+        ) as mock_task:
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                dryRun=True,
+                status_code=202,
+            )
+
+        mock_task.apply_async.assert_called_once_with(
+            args=[self.project.id],
+            kwargs={"dry_run": True},
+        )
 
     def test_without_feature_returns_404(self) -> None:
         with patch(

@@ -95,6 +95,8 @@ export function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
                 <PanelHeader>Permissions</PanelHeader>
                 <PanelBody withPadding>
                   <PermissionSelection
+                    displaySpecialPermissions={false}
+                    hasContinuousIntegration={false}
                     permissions={{
                       Event: 'no-access',
                       Member: 'no-access',

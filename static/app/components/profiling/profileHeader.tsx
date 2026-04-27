@@ -13,9 +13,9 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 function getTransactionName(input: Profiling.ProfileInput): string {
   if (isSchema(input)) {
