@@ -364,8 +364,9 @@ class SlackIntegrationProvider(IntegrationProvider):
             "commands",
         ]
     )
-    # Extended scopes that require Slack marketplace approval
-    # Used by SlackStagingIntegrationProvider
+    # Extended scopes that require Slack marketplace approval. Required for
+    # @mention-driven Seer Explorer (app_mentions:read, channels/groups:history)
+    # and the assistant surface.
     extended_oauth_scopes = frozenset(
         [
             SlackScope.CHANNELS_HISTORY,
@@ -386,7 +387,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         Returns the OAuth scopes to request during installation.
         """
-        return self.identity_oauth_scopes
+        return self.identity_oauth_scopes | self.extended_oauth_scopes
 
     setup_dialog_config = {"width": 600, "height": 900}
     setup_url_path = "/extensions/slack/setup/"
