@@ -26,6 +26,7 @@ from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
@@ -292,31 +293,33 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_missing_token(self, mock_record_event: MagicMock) -> None:
-        response = self.client.post(self.path, data=self.team_data_from_bitbucket)
-        assert response.status_code == 400
-        assert response.data["detail"] == "Request Token Validation Failed"
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(
-            mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
-        )
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(self.path, data=self.team_data_from_bitbucket)
+            assert response.status_code == 400
+            assert response.data["detail"] == "Request Token Validation Failed"
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(
+                mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+            )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_invalid_token(self, mock_record_event: MagicMock) -> None:
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="invalid",
-        )
-        assert response.status_code == 400
-        assert response.data["detail"] == "Request Token Validation Failed"
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(
-            mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
-        )
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="invalid",
+            )
+            assert response.status_code == 400
+            assert response.data["detail"] == "Request Token Validation Failed"
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(
+                mock_record_event, AtlassianConnectFailureReason.MISSING_AUTHORIZATION_HEADER
+            )
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
@@ -327,12 +330,13 @@ class BitbucketInstalledEndpointTest(APITestCase):
     @responses.activate
     def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
         self.add_cdn_response()
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
-        )
-        assert response.status_code == 400
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+            )
+            assert response.status_code == 400
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
@@ -344,16 +348,19 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self, mock_record_event: MagicMock, mock_authenticate_asymmetric_jwt: MagicMock
     ) -> None:
         self.add_cdn_response()
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
-        )
-        assert response.status_code == 400
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN)
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+            )
+            assert response.status_code == 400
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(
+                mock_record_event, AtlassianConnectFailureReason.EXPIRED_SIGNATURE_TOKEN
+            )
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
@@ -365,16 +372,19 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self, mock_record_event: MagicMock, mock_authenticate_asymmetric_jwt: MagicMock
     ) -> None:
         self.add_cdn_response()
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
-        )
-        assert response.status_code == 400
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN)
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+            )
+            assert response.status_code == 400
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(
+                mock_record_event, AtlassianConnectFailureReason.INVALID_SIGNATURE_TOKEN
+            )
 
     @patch(
         "sentry.integrations.utils.atlassian_connect.authenticate_asymmetric_jwt",
@@ -386,64 +396,70 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self, mock_record_event: MagicMock, mock_authenticate_asymmetric_jwt: MagicMock
     ) -> None:
         self.add_cdn_response()
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
-        )
-        assert response.status_code == 400
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT)
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+            )
+            assert response.status_code == 400
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(
+                mock_record_event, AtlassianConnectFailureReason.COULD_NOT_DECODE_JWT
+            )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_without_key_id(self, mock_record_event: MagicMock) -> None:
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT " + self._jwt_token("RS256", RS256_KEY, headers={}),
-        )
-        assert response.status_code == 400
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.MISSING_KEY_ID)
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self._jwt_token("RS256", RS256_KEY, headers={}),
+            )
+            assert response.status_code == 400
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.MISSING_KEY_ID)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_with_invalid_key_id(self, mock_record_event: MagicMock) -> None:
-        responses.add(
-            responses.GET,
-            "https://connect-install-keys.atlassian.com/fake-kid",
-            body=b"Not Found",
-            status=404,
-        )
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT "
-            + self._jwt_token("RS256", RS256_KEY, headers={"kid": "fake-kid"}),
-        )
-        assert response.status_code == 400
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
-        assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_KEY_ID)
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            responses.add(
+                responses.GET,
+                "https://connect-install-keys.atlassian.com/fake-kid",
+                body=b"Not Found",
+                status=404,
+            )
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT "
+                + self._jwt_token("RS256", RS256_KEY, headers={"kid": "fake-kid"}),
+            )
+            assert response.status_code == 400
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+            assert_halt_metric(mock_record_event, AtlassianConnectFailureReason.INVALID_KEY_ID)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_with_valid_token(self, mock_record_event: MagicMock) -> None:
-        responses.add(
-            responses.GET,
-            "https://connect-install-keys.atlassian.com/bitbucket-test-kid",
-            body=RS256_PUB_KEY,
-        )
-        response = self.client.post(
-            self.path,
-            data=self.team_data_from_bitbucket,
-            HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
-        )
-        assert response.status_code == 200
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
-        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 3)
+        with override_options({"integrations.bitbucket.installation-verification.strict": True}):
+            responses.add(
+                responses.GET,
+                "https://connect-install-keys.atlassian.com/bitbucket-test-kid",
+                body=RS256_PUB_KEY,
+            )
+            response = self.client.post(
+                self.path,
+                data=self.team_data_from_bitbucket,
+                HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn(),
+            )
+            assert response.status_code == 200
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+            assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 3)

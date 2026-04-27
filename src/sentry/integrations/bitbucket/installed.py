@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -44,14 +45,15 @@ class BitbucketInstalledEndpoint(Endpoint):
         ).capture() as lifecycle:
             state = request.data
 
-            try:
-                AtlassianConnectTokenValidator(request, method="POST").get_token()
-            except AtlassianConnectValidationError as e:
-                lifecycle.record_halt(halt_reason=str(e))
-                return self.respond(
-                    {"detail": "Request Token Validation Failed"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            if options.get("integrations.bitbucket.installation-verification.strict"):
+                try:
+                    AtlassianConnectTokenValidator(request, method="POST").get_token()
+                except AtlassianConnectValidationError as e:
+                    lifecycle.record_halt(halt_reason=str(e), create_issue=True)
+                    return self.respond(
+                        {"detail": "Request Token Validation Failed"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
             data = BitbucketIntegrationProvider().build_integration(state)
             ensure_integration(IntegrationProviderSlug.BITBUCKET.value, data)
