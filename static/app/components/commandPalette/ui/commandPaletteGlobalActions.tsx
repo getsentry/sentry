@@ -3,7 +3,7 @@ import {SentryGlobalSearch} from '@sentry-internal/global-search';
 import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -23,6 +23,7 @@ import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookup
 import {
   IconAdd,
   IconAllProjects,
+  IconBuilding,
   IconCompass,
   IconDashboard,
   IconDiscord,
@@ -47,13 +48,19 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -123,8 +130,11 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
  */
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const user = useUser();
   const {projects} = useProjects();
+  const {organizations} = useLegacyStore(OrganizationsStore);
+  const sentryConfig = useLegacyStore(ConfigStore);
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -413,6 +423,71 @@ export function GlobalCommandPaletteActions() {
           display={{label: t('Projects'), icon: <IconAllProjects />}}
           to={makeProjectsPathname({path: '/', organization})}
         />
+
+        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+          <CMDKAction
+            display={{label: t('Switch Organization'), icon: <IconBuilding />}}
+            keywords={[t('organization'), t('change'), t('change organization')]}
+            prompt={t('Select an organization...')}
+            resource={(_query: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+              // organization.slug and the org slugs list are the meaningful cache keys;
+              // including the full objects would be too costly to serialize.
+              // eslint-disable-next-line @tanstack/query/exhaustive-deps
+              cmdkQueryOptions({
+                queryKey: [
+                  'switch-organization',
+                  organization.slug,
+                  organizations.map(org => org.slug).join(','),
+                  location.pathname,
+                ],
+                queryFn: () => {
+                  const navigateToOrg = (org: (typeof organizations)[number]) => {
+                    const newPath = location.pathname
+                      .replace(
+                        `/organizations/${organization.slug}/`,
+                        `/organizations/${org.slug}/`
+                      )
+                      .replace(
+                        `/settings/${organization.slug}/`,
+                        `/settings/${org.slug}/`
+                      );
+                    const url = resolveRoute(newPath, null, org);
+                    if (url.startsWith('http')) {
+                      window.location.assign(url);
+                    } else {
+                      navigate(url);
+                    }
+                  };
+
+                  return [
+                    {
+                      display: {
+                        label: organization.name,
+                        icon: (
+                          <OrganizationAvatar organization={organization} size={16} />
+                        ),
+                        trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+                      },
+                      onAction: () => navigateToOrg(organization),
+                    },
+                    ...organizations
+                      .filter(org => org.slug !== organization.slug)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(org => ({
+                        display: {
+                          label: org.name,
+                          icon: <OrganizationAvatar organization={org} size={16} />,
+                        },
+                        onAction: () => navigateToOrg(org),
+                      })),
+                  ];
+                },
+                enabled: state === 'selected',
+                staleTime: Infinity,
+              })
+            }
+          />
+        )}
 
         <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
           {visibleProjectSettingsNavItems.map(navItem => {
