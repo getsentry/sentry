@@ -526,7 +526,7 @@ export function SentryAppExternalForm({
     > = {};
 
     for (const field of getAllSchemaFields(fieldGroups)) {
-      if (field.type !== 'select' || !field.uri || (field.choices?.length ?? 0) > 0) {
+      if (field.type !== 'select' || !field.uri) {
         continue;
       }
 
