@@ -769,7 +769,7 @@ describe('Dashboards > Detail', () => {
       });
 
       await activateDashboardEditMode();
-      // TODO: Rule bug! We should report this upstream.
+      // https://github.com/typescript-eslint/typescript-eslint/issues/10722
       // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
       const widget = (await screen.findByText('First Widget')).closest(
         '.react-grid-item'

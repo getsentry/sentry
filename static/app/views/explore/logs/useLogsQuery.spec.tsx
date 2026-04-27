@@ -150,7 +150,7 @@ describe('useInfiniteLogsQuery', () => {
       key => Array.isArray(key) && key[key.length - 1] === 'infinite'
     )!;
 
-    // TODO: Rule bug! We should report this upstream.
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
@@ -235,7 +235,7 @@ describe('useInfiniteLogsQuery', () => {
       key => Array.isArray(key) && key[key.length - 1] === 'infinite'
     )!;
 
-    // TODO: Rule bug! We should report this upstream.
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(2);

@@ -785,7 +785,7 @@ function printVirtualizedList(container: HTMLElement) {
 
   const rows = Array.from(container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
   const searchResultIterator = screen.queryByTestId('trace-search-result-iterator');
-  // TODO: Rule bug! We should report this upstream.
+  // https://github.com/typescript-eslint/typescript-eslint/issues/10722
   // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
   const searchInput = screen.queryByPlaceholderText(
     'Search in trace'
@@ -832,7 +832,7 @@ function printVirtualizedList(container: HTMLElement) {
       t = t + ' ⬅ focused ';
     }
 
-    // TODO: Rule bug! We should report this upstream.
+    // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const leftColumn = r.querySelector('.TraceLeftColumnInner') as HTMLElement;
     const left = Math.round(Number.parseInt(leftColumn.style.paddingLeft, 10) / 10);
