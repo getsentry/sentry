@@ -132,13 +132,14 @@ def _notify_webhook_disabled(
         return
     organization = organization_context.organization
 
+    # owner_slug is exposed on RpcSentryApp; ORM SentryApp callers (control silo) won't
+    # have it on the instance, so fall back to an empty path component if missing.
+    owner_slug = getattr(sentry_app, "owner_slug", "") or ""
     data = SentryAppWebhookDisabled(
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
         webhook_url=sentry_app.webhook_url or "",
-        settings_url=absolute_uri(
-            f"/settings/{sentry_app.owner_slug}/developer-settings/{sentry_app.slug}/"
-        ),
+        settings_url=absolute_uri(f"/settings/{owner_slug}/developer-settings/{sentry_app.slug}/"),
     )
 
     if not NotificationService.has_access(organization, data.source):
