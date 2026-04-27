@@ -19,9 +19,9 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
-import type {FieldChange, WidgetChange} from './dashboardRevisionsDiff';
+import type {WidgetChange} from './dashboardRevisionsDiff';
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
-import type {DashboardDetails, Widget} from './types';
+import type {DashboardDetails} from './types';
 import {DisplayType} from './types';
 
 interface RevisionListItemProps {
@@ -221,42 +221,19 @@ function WidgetDiffSection({widgetChanges}: {widgetChanges: WidgetChange[]}) {
           {t('No widget changes in this revision.')}
         </Text>
       )}
-      {widgetChanges.map((change, i) => {
-        if (change.status === 'added') {
-          return <WidgetDiffCard key={i} status="added" widget={change.widget} />;
-        }
-        if (change.status === 'removed') {
-          return <WidgetDiffCard key={i} status="removed" widget={change.widget} />;
-        }
-        if (change.status === 'modified') {
-          return (
-            <WidgetDiffCard
-              key={i}
-              status="modified"
-              widget={change.widget}
-              fields={change.fields}
-              layoutChanged={change.layoutChanged}
-            />
-          );
-        }
-        return null;
-      })}
+      {widgetChanges.map((change, i) => (
+        <WidgetDiffCard key={i} change={change} />
+      ))}
     </Flex>
   );
 }
 
-function WidgetDiffCard({
-  status,
-  widget,
-  fields,
-  layoutChanged,
-}: {
-  status: 'added' | 'removed' | 'modified';
-  widget: Widget;
-  fields?: FieldChange[];
-  layoutChanged?: boolean;
-}) {
+function WidgetDiffCard({change}: {change: WidgetChange}) {
   const theme = useTheme();
+  const {status, widget} = change;
+  const fields = status === 'modified' ? change.fields : undefined;
+  const layoutChanged = status === 'modified' ? change.layoutChanged : false;
+
   let statusLabel: string;
   if (status === 'added') statusLabel = t('Added');
   else if (status === 'removed') statusLabel = t('Removed');
