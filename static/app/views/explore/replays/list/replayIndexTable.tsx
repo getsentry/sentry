@@ -19,7 +19,6 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {BulkDeleteAlert} from 'sentry/views/explore/replays/list/bulkDeleteAlert';
-import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
 import {useReplayIndexTableColumns} from 'sentry/views/explore/replays/list/useReplayIndexTableColumns';
 import {DeadRageSelectorCards} from 'sentry/views/explore/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
@@ -28,7 +27,6 @@ interface Props {
   error: Error | null | undefined;
   hasMoreResults: boolean;
   isPending: boolean;
-  onToggleWidgets: () => void;
   queryKey: ApiQueryKey;
   replays: ReplayListRecord[];
   showDeadRageClickCards: boolean;
@@ -39,7 +37,6 @@ export function ReplayIndexTable({
   error,
   hasMoreResults,
   isPending,
-  onToggleWidgets,
   queryKey,
   replays,
   showDeadRageClickCards,
@@ -72,11 +69,6 @@ export function ReplayIndexTable({
 
   return (
     <Fragment>
-      <ReplayListControls
-        onToggleWidgets={onToggleWidgets}
-        showDeadRageClickCards={showDeadRageClickCards}
-        widgetIsOpen={widgetIsOpen}
-      />
       {projects.length === 1 ? (
         <BulkDeleteAlert
           projectId={String(projects[0] ?? '')}

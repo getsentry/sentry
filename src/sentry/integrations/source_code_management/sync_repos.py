@@ -32,7 +32,10 @@ from sentry.integrations.source_code_management.repository import RepositoryInte
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import get_integration_repository_provider
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiPaginationTruncated,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
@@ -120,8 +123,30 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         installation = integration.get_installation(organization_id=rpc_org.id)
         assert isinstance(installation, RepositoryIntegration)
 
+        fetch_truncated = False
         try:
-            provider_repos = installation.get_repositories()
+            provider_repos = installation.get_repositories(raise_on_page_limit=True)
+        except ApiPaginationTruncated as e:
+            # Provider fetch hit a pagination cap with more data still
+            # available. We keep the partial result for create/restore — those
+            # are additive and safe — but skip the disable path so repos that
+            # fell off the tail of the cap aren't wrongly removed.
+            provider_repos = e.partial_data
+            fetch_truncated = True
+            logger.warning(
+                "sync_repos_for_org.pagination_cap_hit",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": rpc_org.id,
+                    "provider": provider_key,
+                    "count": len(provider_repos),
+                },
+            )
+            metrics.incr(
+                "scm.repo_sync.pagination_cap_hit",
+                tags={"provider": provider_key},
+                sample_rate=1.0,
+            )
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 logger.info(
@@ -149,7 +174,9 @@ def sync_repos_for_org(organization_integration_id: int) -> None:
         sentry_disabled_ids = {r.external_id for r in disabled_repos}
 
         new_ids = provider_external_ids - sentry_active_ids - sentry_disabled_ids
-        removed_ids = sentry_active_ids - provider_external_ids
+        # Skip removals entirely if we didn't manage to fetch all repos for this integration.
+        # We have to do this, otherwise we'd incorrectly disable repos that weren't fetched
+        removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
         metric_tags = {

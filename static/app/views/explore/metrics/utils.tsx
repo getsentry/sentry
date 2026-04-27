@@ -16,7 +16,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {createTraceMetricEventsFilter} from 'sentry/views/dashboards/widgetCard/hooks/useWidgetRawCounts';
 import type {
   RawVisualize,
   SavedQuery,
@@ -28,6 +27,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
@@ -46,6 +46,39 @@ export function makeMetricsPathname({
   path: string;
 }) {
   return normalizeUrl(`/organizations/${organizationSlug}/explore/metrics${path}`);
+}
+
+export function createTraceMetricEventsFilter(traceMetrics: TraceMetric[]): string {
+  const search = new MutableSearch('');
+  traceMetrics.forEach((traceMetric, index) => {
+    // Open the parentheses around this tracemetric filter
+    search.addOp('(');
+
+    search.addFilterValue('metric.name', traceMetric.name);
+    search.addFilterValue('metric.type', traceMetric.type);
+    const addNoneOperators = traceMetric.unit === NONE_UNIT;
+    if (addNoneOperators) {
+      search.addOp('(');
+      search.addFilterValue('!has', 'metric.unit');
+      search.addOp('OR');
+    }
+
+    search.addFilterValue('metric.unit', traceMetric.unit ?? NONE_UNIT);
+
+    if (addNoneOperators) {
+      search.addOp(')');
+    }
+
+    // Close the parentheses around this tracemetric filter
+    search.addOp(')');
+
+    // Add the OR operator between this tracemetric filter and the next one
+    if (index < traceMetrics.length - 1) {
+      search.addOp('OR');
+    }
+  });
+
+  return search.toString();
 }
 
 /**
@@ -235,6 +268,10 @@ export function updateVisualizeYAxis(
 
 export function isEmptyTraceMetric(traceMetric: TraceMetric): boolean {
   return traceMetric.name === '';
+}
+
+export function isCompleteTraceMetric(traceMetric: TraceMetric): boolean {
+  return Boolean(traceMetric.name && traceMetric.type);
 }
 
 const DURATION_UNIT_VALUES = new Set<string>(Object.values(DurationUnit));

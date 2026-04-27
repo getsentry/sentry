@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0027_region_cache_version_to_cell_cache_version
+hybridcloud: 0028_add_org_ci_scope
 
 insights: 0002_backfill_team_starred
 
@@ -31,7 +31,7 @@ replays: 0007_organizationmember_replay_access
 
 seer: 0008_add_seer_run_models
 
-sentry: 1072_backfill_scm_integration_config
+sentry: 1073_add_org_ci_scope
 
 social_auth: 0003_social_auth_json_field
 

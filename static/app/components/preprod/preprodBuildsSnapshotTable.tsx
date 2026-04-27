@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -131,67 +130,65 @@ export function PreprodBuildsSnapshotTable({
     return (
       <SimpleTable.Row key={build.id}>
         <FullRowLink to={linkUrl} onClick={() => onRowClick?.(build)}>
-          <Fragment>
-            <InteractionStateLayer />
+          <InteractionStateLayer />
+          <SimpleTable.RowCell justify="start">
+            <Flex direction="column" gap="2xs">
+              <Text bold>{appId || t('Snapshot')}</Text>
+              <Text size="sm" variant="muted">
+                {t('%s images', info?.image_count ?? 0)}
+              </Text>
+            </Flex>
+          </SimpleTable.RowCell>
+          {showProjectColumn && (
             <SimpleTable.RowCell justify="start">
-              <Flex direction="column" gap="2xs">
-                <Text bold>{appId || t('Snapshot')}</Text>
-                <Text size="sm" variant="muted">
-                  {t('%s images', info?.image_count ?? 0)}
+              <Text>{build.project_slug}</Text>
+            </SimpleTable.RowCell>
+          )}
+          <SimpleTable.RowCell>
+            <ChangeCounts
+              added={info?.images_added ?? 0}
+              removed={info?.images_removed ?? 0}
+              changed={info?.images_changed ?? 0}
+              unchanged={info?.images_unchanged ?? 0}
+              comparisonState={info?.comparison_state}
+              errorMessage={info?.comparison_error_message}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell justify="start">
+            <Flex direction="column" gap="2xs">
+              {build.vcs_info?.head_ref && (
+                <Flex align="center" gap="xs">
+                  <Text size="sm" bold>
+                    {build.vcs_info.head_ref}
+                  </Text>
+                  {build.vcs_info?.pr_number && (
+                    <Text size="sm" variant="muted">
+                      #{build.vcs_info.pr_number}
+                    </Text>
+                  )}
+                </Flex>
+              )}
+              <Flex align="center" gap="xs">
+                <IconCommit size="xs" />
+                <Text size="sm" variant="muted" monospace>
+                  {(build.vcs_info?.head_sha?.slice(0, 7) || '–').toUpperCase()}
                 </Text>
               </Flex>
-            </SimpleTable.RowCell>
-            {showProjectColumn && (
-              <SimpleTable.RowCell justify="start">
-                <Text>{build.project_slug}</Text>
-              </SimpleTable.RowCell>
+            </Flex>
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <ApprovalBadge
+              comparisonState={info?.comparison_state}
+              approvalStatus={info?.approval_status}
+            />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            {build.app_info?.date_added ? (
+              <TimeSince date={build.app_info.date_added} unitStyle="short" />
+            ) : (
+              '–'
             )}
-            <SimpleTable.RowCell>
-              <ChangeCounts
-                added={info?.images_added ?? 0}
-                removed={info?.images_removed ?? 0}
-                changed={info?.images_changed ?? 0}
-                unchanged={info?.images_unchanged ?? 0}
-                comparisonState={info?.comparison_state}
-                errorMessage={info?.comparison_error_message}
-              />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell justify="start">
-              <Flex direction="column" gap="2xs">
-                {build.vcs_info?.head_ref && (
-                  <Flex align="center" gap="xs">
-                    <Text size="sm" bold>
-                      {build.vcs_info.head_ref}
-                    </Text>
-                    {build.vcs_info?.pr_number && (
-                      <Text size="sm" variant="muted">
-                        #{build.vcs_info.pr_number}
-                      </Text>
-                    )}
-                  </Flex>
-                )}
-                <Flex align="center" gap="xs">
-                  <IconCommit size="xs" />
-                  <Text size="sm" variant="muted" monospace>
-                    {(build.vcs_info?.head_sha?.slice(0, 7) || '–').toUpperCase()}
-                  </Text>
-                </Flex>
-              </Flex>
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              <ApprovalBadge
-                comparisonState={info?.comparison_state}
-                approvalStatus={info?.approval_status}
-              />
-            </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              {build.app_info?.date_added ? (
-                <TimeSince date={build.app_info.date_added} unitStyle="short" />
-              ) : (
-                '–'
-              )}
-            </SimpleTable.RowCell>
-          </Fragment>
+          </SimpleTable.RowCell>
         </FullRowLink>
       </SimpleTable.Row>
     );

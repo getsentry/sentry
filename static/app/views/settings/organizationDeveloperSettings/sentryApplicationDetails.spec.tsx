@@ -98,6 +98,9 @@ describe('Sentry Application Details', () => {
         screen.getByRole('textbox', {name: 'Issue & Event'}),
         'Admin'
       );
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+      );
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
@@ -114,6 +117,7 @@ describe('Sentry Application Details', () => {
           'member:admin',
           'event:read',
           'event:admin',
+          'org:ci',
         ]),
         events: ['issue'],
         isInternal: false,
@@ -536,6 +540,7 @@ describe('Sentry Application Details', () => {
           scopes: [
             "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
             "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+            "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change.",
           ],
         },
       });
@@ -559,7 +564,7 @@ describe('Sentry Application Details', () => {
 
       expect(
         await screen.findByText(
-          "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change."
+          "Requested permission of org:ci exceeds requester's permission. Please contact an administrator to make the requested change."
         )
       ).toBeInTheDocument();
     });
