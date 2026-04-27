@@ -165,7 +165,7 @@ function SpansTabHeader() {
     />
   ) : null;
 
-  const titleTooltip = (
+  const titleContent = (
     <PageHeadingQuestionTooltip
       docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
       title={t(
@@ -190,7 +190,7 @@ function SpansTabHeader() {
           ) : (
             title || t('Traces')
           )}
-          {titleTooltip}
+          {titleContent}
         </TopBar.Slot>
         <TopBar.Slot name="actions">
           <StarSavedQueryButton />
@@ -210,18 +210,20 @@ function SpansTabHeader() {
 
   return (
     <Layout.Header unified>
+      {documentTitle}
       <Layout.HeaderContent unified>
-        {documentTitle}
-        {hasBreadcrumb ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.SPANS}
-            savedQueryName={savedQuery?.name}
-          />
-        ) : null}
-        <Layout.Title>
-          {title || t('Traces')}
-          {titleTooltip}
-        </Layout.Title>
+        <Fragment>
+          {hasBreadcrumb ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.SPANS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : null}
+          <Layout.Title>
+            {title || t('Traces')}
+            {titleContent}
+          </Layout.Title>
+        </Fragment>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <Grid flow="column" align="center" gap="md">

@@ -35,7 +35,8 @@ const DEFAULT_PREFERENCE: ProjectSeerPreferences = {
 function SeerProjectDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
-  const {codeMappingRepos, isPending, preference} = useProjectSeerPreferences(project);
+  const {data, isPending} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   const canWrite = hasEveryAccess(['project:write'], {organization, project});
 
@@ -87,7 +88,7 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-          <Feature features="organizations:seer-night-shift">
+          <Feature features="organizations:seer-night-shift-settings">
             <NightShift canWrite={canWrite} project={project} />
           </Feature>
         </Stack>
