@@ -13,13 +13,17 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
-async function findNextPort(from: number): Promise<number | null> {
+async function findNextPort(
+  from: number
+): Promise<{port: number | null; takenPorts: number[]}> {
+  const takenPorts: number[] = [];
   for (let i = 0; i < MAX_PORT_SEARCH; i++) {
     if (await isPortAvailable(from + i)) {
-      return from + i;
+      return {port: from + i, takenPorts};
     }
+    takenPorts.push(from + i);
   }
-  return null;
+  return {port: null, takenPorts};
 }
 
 function startServer(port: number): void {
@@ -32,7 +36,7 @@ function startServer(port: number): void {
 
 async function main(): Promise<void> {
   const requestedPort = DEFAULT_PORT;
-  const availablePort = await findNextPort(requestedPort);
+  const {port: availablePort, takenPorts} = await findNextPort(requestedPort);
 
   if (availablePort === null) {
     process.stderr.write(
@@ -43,7 +47,7 @@ async function main(): Promise<void> {
 
   if (availablePort !== requestedPort) {
     process.stderr.write(
-      `Port ${requestedPort} is already in use. Starting on port ${availablePort} instead.\n`
+      `Ports ${takenPorts.join(', ')} already in use. Starting on port ${availablePort} instead.\n`
     );
   }
 
