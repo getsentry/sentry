@@ -5,8 +5,6 @@ import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOp
 import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
@@ -28,13 +26,13 @@ function isIssueEndpointUrl(query: any) {
 
 export function useFeedbackCache() {
   const queryClient = useQueryClient();
-  const {getItemQueryKeys, listApiOptions} = useFeedbackApiOptions();
+  const {getItemApiOptions, listApiOptions} = useFeedbackApiOptions();
   const listQueryKey = listApiOptions.queryKey;
 
   const updateCachedQueryKey = useCallback(
-    (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
-      setApiQueryData<FeedbackIssue>(queryClient, queryKey, feedbackIssue =>
-        feedbackIssue ? {...feedbackIssue, ...payload} : feedbackIssue
+    (queryKey: readonly unknown[], payload: Partial<FeedbackIssue>) => {
+      queryClient.setQueryData(queryKey, (prev: ApiResponse<FeedbackIssue> | undefined) =>
+        prev ? {...prev, json: {...prev.json, ...payload}} : prev
       );
     },
     [queryClient]
@@ -45,17 +43,15 @@ export function useFeedbackCache() {
       if (ids === 'all') {
         const cache = queryClient.getQueryCache();
         const queries = cache.findAll({predicate: isIssueEndpointUrl});
-        queries
-          .map(query => query.queryKey as ApiQueryKey)
-          .forEach(queryKey => updateCachedQueryKey(queryKey, payload));
+        queries.forEach(query => updateCachedQueryKey(query.queryKey, payload));
       } else {
         ids
-          .map(id => getItemQueryKeys(id).issueQueryKey)
+          .map(id => getItemApiOptions(id).issueApiOptions?.queryKey)
           .filter(defined)
           .forEach(queryKey => updateCachedQueryKey(queryKey, payload));
       }
     },
-    [getItemQueryKeys, queryClient, updateCachedQueryKey]
+    [getItemApiOptions, queryClient, updateCachedQueryKey]
   );
 
   const updateCachedListPage = useCallback(
@@ -88,12 +84,14 @@ export function useFeedbackCache() {
         queryClient.invalidateQueries({predicate: isIssueEndpointUrl});
       } else {
         ids.forEach(id => {
-          const queryKey = getItemQueryKeys(id).issueQueryKey;
-          queryClient.invalidateQueries({queryKey});
+          const queryKey = getItemApiOptions(id).issueApiOptions?.queryKey;
+          if (queryKey) {
+            queryClient.invalidateQueries({queryKey});
+          }
         });
       }
     },
-    [getItemQueryKeys, queryClient]
+    [getItemApiOptions, queryClient]
   );
 
   const invalidateCachedListPage = useCallback(
