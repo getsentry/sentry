@@ -61,7 +61,7 @@ export class FeatureFlagOverrides {
       // TODO(ryan953): we're only dealing with booleans to start, but other types could be supported
       if (value) {
         enabled.add(override);
-      } else if (!value) {
+      } else {
         enabled.delete(override);
       }
     });

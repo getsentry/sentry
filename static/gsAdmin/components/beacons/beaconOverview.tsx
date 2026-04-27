@@ -10,7 +10,7 @@ export type BeaconData = {
   firstCheckin: string;
   id: string;
   installID: string;
-  isDocker: boolean;
+  isDocker: boolean | undefined;
   lastCheckin: string;
   totalProjects: number;
   totalUsers: number;
@@ -38,7 +38,7 @@ export function BeaconOverview({data}: Props) {
           {data.events24h === null ? 'n/a' : data.events24h.toLocaleString()}
         </DetailLabel>
         <DetailLabel title="Docker">
-          {data.isDocker ? 'Yes' : data.isDocker ? 'n/a' : 'No'}
+          {data.isDocker === true ? 'Yes' : data.isDocker === false ? 'No' : 'n/a'}
         </DetailLabel>
       </DetailList>
       <DetailList>
