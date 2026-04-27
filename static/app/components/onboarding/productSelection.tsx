@@ -79,7 +79,10 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
   if (!hasMetrics) {
     disabledProducts[ProductSolution.METRICS] = {
       reason,
-      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
+      onClick: createClickHandler(
+        'organizations:tracemetrics-enabled',
+        'Application Metrics'
+      ),
     };
   }
   return disabledProducts;
