@@ -6,7 +6,7 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
 import {DashboardFilterKeys} from './types';
 
-export type FieldChange = {after: string; before: string; field: string};
+type FieldChange = {after: string; before: string; field: string};
 
 type FilterChange = {after: string; before: string; label: string};
 
