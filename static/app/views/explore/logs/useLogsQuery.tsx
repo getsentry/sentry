@@ -764,10 +764,19 @@ interface AutoFetchWindowOptions {
   queryKey: QueryKey;
 }
 
-function getAutoFetchWindowDurationMs(resumeCount: number) {
-  return resumeCount === 0
-    ? LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS
-    : LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS * resumeCount;
+function getAutoFetchWindowDeadlineMs(
+  resumeCount: number,
+  windowStartMs: number | undefined
+) {
+  if (!windowStartMs) {
+    return undefined;
+  }
+
+  if (!resumeCount) {
+    return windowStartMs + LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS;
+  }
+
+  return windowStartMs + LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS * resumeCount;
 }
 
 /**
@@ -786,13 +795,8 @@ function useAutoFetchWindow({
   const [windowStartMs, setWindowStartMs] = useState<number | undefined>();
   const [resumeCount, setResumeCount] = useState(0);
   const timesFetched = useRef(0);
-  const deadlineMs =
-    windowStartMs && windowStartMs + getAutoFetchWindowDurationMs(resumeCount);
-
-  const queryKeyHash = useMemo(() => {
-    const [url, endpointOptions] = queryKey;
-    return JSON.stringify([url, endpointOptions?.query]);
-  }, [queryKey]);
+  const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
+  const queryKeyHash = JSON.stringify([queryKey[0], queryKey[1]?.query]);
 
   useEffect(() => {
     setWindowStartMs(undefined);
