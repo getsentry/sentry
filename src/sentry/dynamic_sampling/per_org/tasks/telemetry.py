@@ -42,13 +42,6 @@ def duration_metric_for(func_name: str) -> str:
     return f"{METRIC_PREFIX}.{func_name}.duration"
 
 
-def _merge_tags(status: TelemetryStatus, extra: Mapping[str, str] | None) -> dict[str, str]:
-    tags: dict[str, str] = {"status": status.value}
-    if extra:
-        tags.update(extra)
-    return tags
-
-
 def emit_status(
     metric: str,
     status: TelemetryStatus,
@@ -60,7 +53,7 @@ def emit_status(
         metric,
         amount=amount,
         sample_rate=metrics_sample_rate(),
-        tags=_merge_tags(status, extra_tags),
+        tags={"status": status.value, **dict(extra_tags or {})},
     )
 
 
