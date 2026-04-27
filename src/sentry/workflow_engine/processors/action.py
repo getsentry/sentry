@@ -278,10 +278,10 @@ def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> FilteredActions:
     """
-    Returns a tuple of (actions, all_workflow_ids) where actions are deduplicated by
-    configuration and filtered by firing frequency, and all_workflow_ids includes every
-    workflow that should be recorded as fired (including those whose actions were
-    deduplicated away). Also updates associated WorkflowActionGroupStatus objects.
+    Returns a FilteredActions containing the actions to fire (deduplicated by
+    configuration and filtered by firing frequency) and all workflow IDs that
+    should be recorded as fired (including those whose actions were deduplicated
+    away). Also updates associated WorkflowActionGroupStatus objects.
     """
 
     data_condition_group_actions = DataConditionGroupAction.objects.filter(

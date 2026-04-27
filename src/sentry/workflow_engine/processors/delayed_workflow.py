@@ -735,23 +735,23 @@ def fire_actions_for_groups(
                 workflow_event_data = WorkflowEventData(event=group_event, group=group)
 
                 dcgs_for_group = groups_to_fire.get(group.id, set())
-                filtered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
+                filtered = filter_recently_fired_workflow_actions(
                     dcgs_for_group, workflow_event_data
                 )
                 # TODO: trigger service hooks from here
 
                 metrics.incr(
                     "workflow_engine.delayed_workflow.triggered_actions",
-                    amount=len(filtered_actions),
+                    amount=len(filtered.actions),
                     tags={"event_type": group_event.group.type},
                 )
 
                 workflow_fire_histories = create_workflow_fire_histories(
-                    filtered_actions,
+                    filtered.actions,
                     workflow_event_data,
                     is_delayed=True,
                     start_timestamp=start_timestamp,
-                    workflow_ids=all_workflow_ids,
+                    workflow_ids=filtered.workflow_ids,
                 )
 
                 # Create mapping: workflow_id -> notification_uuid for propagation
@@ -773,15 +773,15 @@ def fire_actions_for_groups(
                         "workflow_ids": sorted(
                             {wfh.workflow_id for wfh in workflow_fire_histories}
                         ),
-                        "actions": [action.id for action in filtered_actions],
+                        "actions": [action.id for action in filtered.actions],
                         "event_data": workflow_event_data,
                         "event_id": event_id,
                     },
                 )
-                total_actions += len(filtered_actions)
+                total_actions += len(filtered.actions)
 
                 fire_actions(
-                    filtered_actions, workflow_event_data, workflow_uuid_map=workflow_uuid_map
+                    filtered.actions, workflow_event_data, workflow_uuid_map=workflow_uuid_map
                 )
 
     logger.debug(

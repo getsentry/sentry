@@ -104,13 +104,13 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )  # shared action
         self.create_workflow_data_condition_group(workflow, action_group)
 
-        triggered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
+        result = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # dedupes action if both workflows will fire it
-        assert set(triggered_actions) == {self.action}
+        assert set(result.actions) == {self.action}
         # Dedupes action so we have a single workflow_id -> environment to fire with
-        assert getattr(triggered_actions[0], "workflow_id") == self.workflow.id
+        assert getattr(result.actions[0], "workflow_id") == self.workflow.id
 
         assert WorkflowActionGroupStatus.objects.filter(action=self.action).count() == 2
 
@@ -336,15 +336,15 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         self.create_workflow_data_condition_group(workflow_2, action_group_2)
 
-        triggered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
+        result = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         # Should deduplicate to a single action since both have the same dedup_key
-        assert len(triggered_actions) == 1
+        assert len(result.actions) == 1
 
-        # all_workflow_ids should include both workflows for fire history tracking
-        assert all_workflow_ids == {self.workflow.id, workflow_2.id}
+        # workflow_ids should include both workflows for fire history tracking
+        assert result.workflow_ids == {self.workflow.id, workflow_2.id}
 
         # WAGS should be created for both workflows
         assert (
@@ -388,15 +388,15 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_2.update(date_updated=timezone.now() - timedelta(days=1))
 
-        triggered_actions, all_workflow_ids = filter_recently_fired_workflow_actions(
+        result = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
         # Should deduplicate to a single action
-        assert len(triggered_actions) == 1
+        assert len(result.actions) == 1
 
-        # all_workflow_ids should include both workflows
-        assert all_workflow_ids == {self.workflow.id, workflow_2.id}
+        # workflow_ids should include both workflows
+        assert result.workflow_ids == {self.workflow.id, workflow_2.id}
 
         # Both WAGS should be updated
         for status in [status_1, status_2]:
