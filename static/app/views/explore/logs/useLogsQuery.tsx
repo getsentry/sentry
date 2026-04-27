@@ -840,8 +840,7 @@ function useAutoFetchWindow({
   ]);
 
   const resumeAutoFetch = useCallback(() => {
-    const nextResumeCount = resumeCount + 1;
-    setResumeCount(nextResumeCount);
+    setResumeCount(resumeCount + 1);
     setWindowStartMs(Date.now());
   }, [resumeCount]);
 
