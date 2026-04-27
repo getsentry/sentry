@@ -714,7 +714,7 @@ def bulk_write_preferences_to_sentry_db(
     _write_preferences_to_sentry_db(project_preferences)
 
 
-def clear_automation_handoff_preference(project: Project) -> None:
+def clear_preference_automation_handoff(project: Project) -> None:
     """Atomically clear automation_handoff from a project's Seer preferences in Sentry DB."""
     with transaction.atomic(using=router.db_for_write(SeerProjectRepository)):
         # Lock project rows to serialize concurrent preference writes.

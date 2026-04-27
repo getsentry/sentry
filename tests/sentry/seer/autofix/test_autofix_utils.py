@@ -13,7 +13,7 @@ from sentry.seer.autofix.utils import (
     CodingAgentStatus,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
-    clear_automation_handoff_preference,
+    clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
     get_autofix_prompt,
@@ -1088,7 +1088,7 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p2_repo.branch_name == "project-2-branch"
 
 
-class TestClearAutomationHandoffPreference(TestCase):
+class TestClearPreferenceAutomationHandoff(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
@@ -1114,39 +1114,27 @@ class TestClearAutomationHandoffPreference(TestCase):
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
         self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
-        clear_automation_handoff_preference(self.project)
+        clear_preference_automation_handoff(self.project)
 
         self._assert_handoff_options_cleared()
 
     def test_preserves_unrelated_preference_fields(self) -> None:
-        write_preference_to_sentry_db(
-            self.project,
-            SeerProjectPreference(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                repositories=[
-                    SeerRepoDefinition(
-                        repository_id=self.repo.id,
-                        provider="github",
-                        owner="test-org",
-                        name="test-repo",
-                        external_id="ext123",
-                        branch_name="develop",
-                        instructions="Use conventional commits",
-                    ),
-                ],
-                automated_run_stopping_point="open_pr",
-                automation_handoff=SeerAutomationHandoffConfiguration(
-                    handoff_point="root_cause",
-                    target="cursor_background_agent",
-                    integration_id=42,
-                    auto_create_pr=True,
-                ),
-            ),
+        self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
+        self.project.update_option(
+            "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
+        self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
+        self.project.update_option("sentry:seer_automated_run_stopping_point", "open_pr")
         self.project.update_option("sentry:autofix_automation_tuning", "high")
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository_id=self.repo.id,
+            branch_name="develop",
+            instructions="Use conventional commits",
+        )
 
-        clear_automation_handoff_preference(self.project)
+        clear_preference_automation_handoff(self.project)
 
         self._assert_handoff_options_cleared()
         assert self.project.get_option("sentry:seer_automated_run_stopping_point") == "open_pr"
@@ -1158,7 +1146,7 @@ class TestClearAutomationHandoffPreference(TestCase):
         assert seer_repo.instructions == "Use conventional commits"
 
     def test_preserves_no_handoff(self) -> None:
-        clear_automation_handoff_preference(self.project)
+        clear_preference_automation_handoff(self.project)
 
         self._assert_handoff_options_cleared()
 
@@ -1166,7 +1154,7 @@ class TestClearAutomationHandoffPreference(TestCase):
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 42)
 
-        clear_automation_handoff_preference(self.project)
+        clear_preference_automation_handoff(self.project)
 
         self._assert_handoff_options_cleared()
 

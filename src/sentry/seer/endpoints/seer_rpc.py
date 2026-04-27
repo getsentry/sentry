@@ -84,7 +84,7 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
-    clear_automation_handoff_preference,
+    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
 )
 from sentry.seer.constants import SEER_SUPPORTED_SCM_PROVIDERS, SeerSCMProvider
@@ -623,7 +623,7 @@ def trigger_coding_agent_launch(
                 project = Project.objects.get_from_cache(id=project_id)
                 if project.organization_id != organization_id:
                     raise Project.DoesNotExist
-                clear_automation_handoff_preference(project)
+                clear_preference_automation_handoff(project)
                 # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
         except Exception:
             logger.exception(
