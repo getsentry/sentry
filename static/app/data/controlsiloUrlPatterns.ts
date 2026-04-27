@@ -37,7 +37,6 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/beacons/[^/]+/related-beacons/$'),
   new RegExp('^api/0/broadcasts/$'),
   new RegExp('^api/0/broadcasts/[^/]+/$'),
-  new RegExp('^api/0/copilot/$'),
   new RegExp('^api/0/customers/[^/]+/subscription/usage-logs/$'),
   new RegExp('^api/0/customers/[^/]+/policies/$'),
   new RegExp('^api/0/customers/[^/]+/migrate-google-domain/$'),

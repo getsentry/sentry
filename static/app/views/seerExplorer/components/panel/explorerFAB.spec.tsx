@@ -27,8 +27,6 @@ function renderFAB(
     openSeerExplorer: jest.fn(),
     closeSeerExplorer: jest.fn(),
     toggleSeerExplorer: jest.fn(),
-    runId: null,
-    setRunId: jest.fn(),
     sessionState: 'inactive',
     ...contextOverrides,
   };

@@ -61,4 +61,5 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
 
     return aggregate;
   },
+  supportsEquations: true,
 });

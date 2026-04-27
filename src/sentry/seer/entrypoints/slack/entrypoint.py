@@ -71,6 +71,23 @@ class SlackAgentCachePayload(TypedDict):
     thread: SlackThreadDetails
 
 
+class SlackPendingMentionPayload(TypedDict):
+    """
+    Kwargs for `route_slack_seer_event` stashed on control silo when a Slack
+    @-mention cannot proceed (identity not linked). Popped after identity
+    link so the task can be re-dispatched as if the webhook just arrived.
+    """
+
+    payload: dict[str, Any]
+    integration_id: int
+    slack_user_id: str
+    channel_id: str
+    thread_ts: str
+    message_ts: str
+    event_type: str
+    message_text: str
+
+
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
 
 
@@ -104,7 +121,12 @@ def _get_missing_scope_settings_url(
     except Organization.DoesNotExist:
         return None
 
-    cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    # TODO: remove the legacy check once MISSING_SCOPE_FOOTER_CACHE_TIMEOUT has elapsed since deploy.
+    legacy_cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    if cache.get(legacy_cache_key):
+        return None
+
+    cache_key = f"seer:agent:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
     if not cache.add(cache_key, True, timeout=MISSING_SCOPE_FOOTER_CACHE_TIMEOUT):
         return None
 

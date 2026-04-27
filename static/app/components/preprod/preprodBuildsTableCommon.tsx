@@ -14,6 +14,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
+import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export function PreprodBuildsHeaderCells({
@@ -76,7 +77,13 @@ export function PreprodBuildsRowCells({
                       variant="icon"
                     />
                   ) : (
-                    <Tooltip title={t('Not installable')} skipWrapper>
+                    <Tooltip
+                      title={getDistributionErrorTooltip(
+                        build.distribution_info?.error_code,
+                        build.distribution_info?.error_message
+                      )}
+                      skipWrapper
+                    >
                       <span>
                         <Button
                           aria-label={t('Not installable')}

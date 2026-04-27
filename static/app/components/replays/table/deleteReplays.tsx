@@ -33,7 +33,7 @@ import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   queryOptions:

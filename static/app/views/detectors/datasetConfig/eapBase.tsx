@@ -41,6 +41,7 @@ interface EapDatasetOptions {
   name: string;
   SearchBar?: DetectorDatasetConfig<EventsStats>['SearchBar'];
   fromApiAggregate?: (aggregate: string) => string;
+  supportsEquations?: boolean;
   toApiAggregate?: (aggregate: string) => string;
   transformSeriesQueryData?: (
     data: EventsStats | undefined,
@@ -63,6 +64,7 @@ export function createEapDetectorConfig(
     discoverDataset,
     formatAggregateForTitle,
     SearchBar: CustomSearchBar,
+    supportsEquations,
     transformSeriesQueryData,
     fromApiAggregate,
     toApiAggregate,
@@ -109,6 +111,7 @@ export function createEapDetectorConfig(
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
     getDiscoverDataset: () => discoverDataset,
     formatAggregateForTitle,
+    supportsEquations,
   };
 
   return config;

@@ -156,52 +156,6 @@ describe('useSeerExplorer', () => {
       });
     });
 
-    it('filters to only widget-builder nodes on widget builder routes', async () => {
-      (usePageReferrer as jest.Mock).mockReturnValue({
-        getPageReferrer: () => '/dashboard/:dashboardId/widget-builder/widget/new/',
-      });
-      (useLLMContext as jest.Mock).mockReturnValue({
-        getLLMContext: () => ({
-          version: 1,
-          nodes: [
-            {nodeType: 'dashboard', data: {title: 'My Dashboard'}, children: []},
-            {nodeType: 'widget-builder', data: {mode: 'creating'}, children: []},
-          ],
-        }),
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer', 'context-engine-structured-page-context'],
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/seer/explorer-chat/`,
-        method: 'GET',
-        body: {session: null},
-      });
-      const postMock = MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/seer/explorer-chat/`,
-        method: 'POST',
-        body: {run_id: 1},
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${org.slug}/seer/explorer-chat/1/`,
-        method: 'GET',
-        body: {session: {blocks: [], run_id: 1, status: 'completed', updated_at: ''}},
-      });
-
-      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
-        organization: org,
-      });
-      act(() => {
-        result.current.sendMessage('q');
-      });
-
-      await waitFor(() => {
-        const ctx = JSON.parse(postMock.mock.calls[0][1].data.on_page_context);
-        expect(ctx.nodes).toHaveLength(1);
-        expect(ctx.nodes[0].nodeType).toBe('widget-builder');
-      });
-    });
-
     it('falls back to ASCII screenshot on non-dashboard page', async () => {
       const org = OrganizationFixture({
         features: ['seer-explorer', 'seer-explorer-context-engine'],
