@@ -31,17 +31,18 @@ allows at most 4 concurrent queries before rejecting the 5th. The test
 - `tests/sentry/tasks/seer/test_backfill_supergroups_lightweight.py`
 - Anywhere `bulk_snuba_queries` is called with a wide query list
 
-**Proposed fixes** (in order of preference)
+**Workaround applied (this branch)**
 
-1. Bump `rejection_threshold` for the `errors` storage in the test-mode Snuba config.
-   Lives in the snuba repo (`snuba/datasets/configuration/errors/storages/errors.yaml`),
-   so requires a snuba-side change. Suggested: 4 → 16 in CI mode.
-2. Set runtime config via Snuba's admin API after `bootstrap-snuba.py` starts each
-   per-worker container: POST to
-   `/configs/CrossOrgQueryAllocationPolicy.errors.rejection_threshold` with a higher
-   value. Keeps changes inside the sentry repo.
-3. Cap the thread pool in `bulk_snuba_queries` for tests (mock the pool to 1 worker).
-   Slower but eliminates the flake without needing snuba-side changes.
+Cap `bulk_snuba_queries`'s `ContextPropagatingThreadPoolExecutor` to 4 workers
+when `XDIST_PER_WORKER_SNUBA=1` is set (i.e. in CI tier 2 jobs). This matches
+the per-storage `rejection_threshold` so we never fan out wider than the policy
+allows. Production keeps the wider pool of 10 since prod has higher thresholds.
+
+**Future, productionized fix**
+
+Bump `rejection_threshold` for the `errors` storage in the snuba repo's storage
+YAML (`snuba/datasets/configuration/errors/storages/errors.yaml`) for CI mode.
+This is a snuba-side change and would let us revert the sentry-side cap.
 
 ## 2. Snuba data ordering / count races
 
@@ -149,12 +150,19 @@ Same as #2 — force flush in `reset_snuba`, or scope assertions to test-specifi
 
 ## Summary
 
-| # | Pattern | Fix complexity | Where to fix |
+| # | Pattern | Status on this branch | PR breakdown |
 |---|---|---|---|
-| 1 | Snuba `RateLimitExceeded` | Low (config bump) | Snuba storage YAML or admin API |
-| 2 | Snuba data ordering races | Medium (force-flush) | `reset_snuba` fixture |
-| 3 | `unclosed_files` false positive | Trivial | `tests/conftest.py` (done) |
-| 4 | Cross-test state isolation | Medium | `reset_snuba` fixture |
+| 1 | Snuba `RateLimitExceeded` | Workaround applied (sentry-side pool cap) | Bundle with the tiered-split PR; ship snuba-side `rejection_threshold` bump as a follow-up that lets us revert the cap. |
+| 2 | Snuba data ordering races | Documented only — needs `reset_snuba` flush behavior change | **Separate PR.** Same root cause as #4; one targeted fix to `reset_snuba` (e.g. force-flush async insert queue, or barrier-and-retry) covers both. Pre-existing on master, just amplified by tier 2. |
+| 3 | `unclosed_files` false positive | Fixed in this branch | Bundle with the tiered-split PR. The fix is general — fixture was wrong for everyone. |
+| 4 | Cross-test state isolation | Documented only — same as #2 | **Same separate PR as #2.** Both are the same `reset_snuba` flush bug surfacing in postgres-via-snuba-derived data and in event-store data. |
 
-#3 is fixed in this branch. #1 unblocks the easiest gains. #2 and #4 share a root
-cause (`reset_snuba` flush behavior) and probably want a single targeted fix.
+**Productionization plan**
+
+- **Tiered-split PR** (this branch): includes #1 workaround (pool cap) and #3 fix
+  (fixture). These are both mechanical and don't change test behavior in master.
+- **Snuba-side PR** (follow-up): bumps `rejection_threshold` so we can revert #1.
+  Optional / nice-to-have; the cap works fine standing alone.
+- **`reset_snuba` flush PR** (separate): addresses #2 and #4 together. Should
+  ship before or alongside tiered-split if the flake rate is unacceptable, but
+  the bug exists on master too.

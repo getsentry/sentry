@@ -1252,9 +1252,15 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
         if len(snuba_requests_list) > 1:
+            # Per-worker Snuba in CI runs against a single worker container with
+            # CrossOrgQueryAllocationPolicy capped at 4 concurrent queries; a pool of
+            # 10 fans out wide enough to trip the policy and surface flakes. Cap
+            # concurrency to stay within the policy. Production retains the wider
+            # pool since its allocation thresholds are higher.
+            max_pool_workers = 4 if os.environ.get("XDIST_PER_WORKER_SNUBA") == "1" else 10
             with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=10,
+                max_workers=max_pool_workers,
             ) as query_thread_pool:
                 query_results = list(
                     query_thread_pool.map(
