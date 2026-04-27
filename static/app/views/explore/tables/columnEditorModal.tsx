@@ -221,14 +221,13 @@ function ColumnEditorRow({
 
   const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
 
-  const searchedOptions = useMemo(() => {
-    if (!hasSearch) {
-      return null;
-    }
-    // Don't carry the current selection in here — its trigger label falls back
-    // to baseOptions, and including it unconditionally would surface it on
-    // queries that don't actually match it.
-    return buildColumnOptions({
+  // Feed CompactSelect the full base list at all times so its built-in matcher
+  // can filter synchronously while typing. Once the debounced server search
+  // returns, merge in any attributes baseOptions doesn't already cover so the
+  // user can still pick keys that weren't in the initial fetch.
+  const options = useMemo(() => {
+    if (!hasSearch) return baseOptions;
+    const searched = buildColumnOptions({
       columns: [],
       stringTags: searchedStringTags,
       numberTags: searchedNumberTags,
@@ -236,16 +235,20 @@ function ColumnEditorRow({
       hiddenKeys,
       traceItemType,
     });
+    if (searched.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searched.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
   }, [
     hasSearch,
+    baseOptions,
     searchedStringTags,
     searchedNumberTags,
     searchedBooleanTags,
     hiddenKeys,
     traceItemType,
   ]);
-
-  const options = searchedOptions ?? baseOptions;
 
   function handleColumnChange(option: SelectOption<SelectKey>) {
     if (defined(option) && typeof option.value === 'string') {

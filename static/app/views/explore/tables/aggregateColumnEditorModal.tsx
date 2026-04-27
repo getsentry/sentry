@@ -335,7 +335,16 @@ function GroupBySelector({
     hideEmptyOption: true,
   });
 
-  const options = hasSearch ? searchedOptions : baseOptions;
+  // Always feed baseOptions to CompactSelect so its built-in matcher can filter
+  // synchronously while the user types. Merge in any server-only matches once
+  // the debounced search returns.
+  const options = useMemo(() => {
+    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searchedOptions.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [hasSearch, baseOptions, searchedOptions]);
 
   const label = useMemo(() => {
     const tag =
@@ -560,7 +569,16 @@ function AttributeArgumentSelect({
     traceItemType: TraceItemDataset.SPANS,
   });
 
-  const options = hasSearch ? searchedOptions : baseOptions;
+  // Always feed baseOptions to CompactSelect so its built-in matcher can filter
+  // synchronously while the user types. Merge in any server-only matches once
+  // the debounced search returns.
+  const options = useMemo(() => {
+    if (!hasSearch || searchedOptions.length === 0) return baseOptions;
+    const baseValues = new Set(baseOptions.map(o => o.value));
+    const additions = searchedOptions.filter(o => !baseValues.has(o.value));
+    if (additions.length === 0) return baseOptions;
+    return [...baseOptions, ...additions];
+  }, [hasSearch, baseOptions, searchedOptions]);
 
   return (
     <DoubleWidthCompactSelect
