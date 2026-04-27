@@ -9,20 +9,16 @@ import {Text} from '@sentry/scraps/text';
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconGraph} from 'sentry/icons/iconGraph';
-import {IconMarkdown} from 'sentry/icons/iconMarkdown';
-import {IconNumber} from 'sentry/icons/iconNumber';
-import {IconSettings} from 'sentry/icons/iconSettings';
-import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
+import {typeIcons} from './widgetBuilder/components/typeSelector';
 import type {WidgetChange} from './dashboardRevisionsDiff';
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import type {DashboardDetails} from './types';
-import {DisplayType} from './types';
 
 interface RevisionListItemProps {
   baseRevisionId: string | null;
@@ -253,7 +249,7 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
             flexShrink={0}
             style={{color: theme.tokens.content.secondary}}
           >
-            {DISPLAY_TYPE_ICONS[widget.displayType] ?? <IconGraph size="sm" />}
+            {typeIcons[widget.displayType] ?? <IconGraph />}
           </Flex>
           <Text
             bold
@@ -298,17 +294,6 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
     </Flex>
   );
 }
-
-const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
-  [DisplayType.AREA]: <IconGraph type="area" size="sm" />,
-  [DisplayType.BAR]: <IconGraph type="bar" size="sm" />,
-  [DisplayType.LINE]: <IconGraph type="line" size="sm" />,
-  [DisplayType.TABLE]: <IconTable size="sm" />,
-  [DisplayType.BIG_NUMBER]: <IconNumber size="sm" />,
-  [DisplayType.CATEGORICAL_BAR]: <IconGraph type="bar" size="sm" />,
-  [DisplayType.TEXT]: <IconMarkdown size="sm" />,
-  [DisplayType.DETAILS]: <IconSettings size="sm" />,
-};
 
 const RevisionItem = styled('div')<{$isSelected: boolean}>`
   display: flex;
