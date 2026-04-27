@@ -78,7 +78,7 @@ function ThinkingIndicator({state}: IndicatorProps) {
       marginRight="auto"
     >
       {prefersReducedMotion ? (
-        <Text variant="secondary">{t('Thinking...')}</Text>
+        <Text variant="primary">{t('Thinking...')}</Text>
       ) : (
         <IndeterminateLoader variant="monochrome" />
       )}
