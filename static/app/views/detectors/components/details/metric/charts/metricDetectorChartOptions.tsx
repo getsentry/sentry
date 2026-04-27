@@ -179,7 +179,6 @@ export function getMetricDetectorChartOption(
 
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj.snubaQuery;
-  const displayAggregate = stripEquationPrefix(snubaQuery.aggregate);
 
   const series: AreaChartSeries[] = timeseriesData.map(s => ({
     ...s,
@@ -284,7 +283,7 @@ export function getMetricDetectorChartOption(
             incidentStartDate,
             incidentStartValue,
             seriesName ? stripEquationPrefix(seriesName) : series[0]!.seriesName,
-            displayAggregate
+            snubaQuery.aggregate
           )
         );
         const areaStart = Math.max(new Date(openPeriod.start).getTime(), firstPoint);
@@ -408,7 +407,7 @@ export function getMetricDetectorChartOption(
         alertAxisFormatter(
           value,
           stripEquationPrefix(timeseriesData[0]!.seriesName),
-          displayAggregate
+          snubaQuery.aggregate
         ),
     },
     max: isCrashFreeAlert(snubaQuery.dataset)
