@@ -975,8 +975,9 @@ function makeMenuItemFromAction(
 
 function CommandPaletteHints() {
   return (
-    <Container borderTop="primary" padding="sm md">
-      <Flex align="center" justify="between">
+    <Stack padding="0 2xs">
+      <Stack.Separator border="muted" />
+      <Flex align="center" justify="between" padding="xs 0 2xs 0">
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">
             <Flex align="center" gap="2xs">
@@ -1007,7 +1008,7 @@ function CommandPaletteHints() {
           <Hotkey variant="debossed" value="command+k" />
         </Flex>
       </Flex>
-    </Container>
+    </Stack>
   );
 }
 
@@ -1076,11 +1077,12 @@ const ResultsList = styled(Flex)`
 export const modalCss = (theme: Theme) => {
   return css`
     [role='document'] {
-      padding: 0;
+      padding: ${theme.space.xs};
 
       background-color: ${theme.tokens.background.primary};
-      border-top-left-radius: calc(${theme.radius.lg} + 1px);
-      border-top-right-radius: calc(${theme.radius.lg} + 1px);
+      border-radius: ${theme.radius.xl};
+      border-bottom-right-radius: ${theme.radius.md};
+      border-bottom-left-radius: ${theme.radius.md};
       will-change: transform;
     }
   `;

@@ -137,7 +137,7 @@ function MetricsSectionContent({
     <InterimSection
       key="metrics"
       type={SectionKey.METRICS}
-      title={t('Metrics')}
+      title={t('Application Metrics')}
       data-test-id="metrics-data-section"
     >
       <Flex direction="column" gap="xl">

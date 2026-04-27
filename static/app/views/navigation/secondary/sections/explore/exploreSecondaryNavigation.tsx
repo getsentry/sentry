@@ -1,26 +1,20 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import Feature from 'sentry/components/acl/feature';
-import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 
 export function ExploreSecondaryNavigation() {
   const organization = useOrganization();
-  const {projects} = useProjects();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
 
@@ -28,41 +22,6 @@ export function ExploreSecondaryNavigation() {
     starred: true,
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
-
-  const userPlatforms = useMemo(
-    () =>
-      Array.from(
-        new Set(projects.map(project => (project.platform as PlatformKey) || 'unknown'))
-      ).sort(),
-    [projects]
-  );
-
-  const metricsSupportedPlatformNameRef = useRef<string | undefined>(undefined);
-
-  if (!metricsSupportedPlatformNameRef.current) {
-    const metricsSupportedPlatform = projects.find(project => {
-      const platform = project.platform || 'unknown';
-      return Array.from(limitedMetricsSupportPrefixes).find(prefix =>
-        platform.startsWith(prefix)
-      );
-    });
-    metricsSupportedPlatformNameRef.current = metricsSupportedPlatform?.slug;
-  }
-
-  const hasMetricsSupportedPlatform = !!metricsSupportedPlatformNameRef.current;
-
-  useEffect(() => {
-    if (userPlatforms.length === 0) {
-      return;
-    }
-    trackAnalytics('metrics.nav.rendered', {
-      organization,
-      has_feature_flag: canUseMetricsUI(organization),
-      has_metrics_supported_platform: hasMetricsSupportedPlatform,
-      metrics_supported_platform_name: metricsSupportedPlatformNameRef.current,
-      metrics_tab_visible: hasMetricsSupportedPlatform && canUseMetricsUI(organization),
-    });
-  }, [organization, hasMetricsSupportedPlatform, userPlatforms.length]);
 
   return (
     <Fragment>
@@ -92,19 +51,17 @@ export function ExploreSecondaryNavigation() {
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
-            {hasMetricsSupportedPlatform && (
-              <Feature features="tracemetrics-enabled">
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/metrics/`}
-                    analyticsItemName="explore_metrics"
-                    trailingItems={<FeatureBadge type="beta" />}
-                  >
-                    {t('Metrics')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
-            )}
+            <Feature features="tracemetrics-enabled">
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/metrics/`}
+                  analyticsItemName="explore_metrics"
+                  trailingItems={<FeatureBadge type="beta" />}
+                >
+                  {t('Metrics')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            </Feature>
             <Feature features="organizations:explore-errors">
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
