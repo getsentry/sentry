@@ -56,7 +56,7 @@ function getTraceErrorMessage(status: number | undefined) {
 
     case 500:
       return tct(
-        'The request was invalid. Think could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
+        'The request was invalid. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
         helpComponents
       );
 
