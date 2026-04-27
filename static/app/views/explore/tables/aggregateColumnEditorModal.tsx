@@ -29,8 +29,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey,
   FieldKind,
   getFieldDefinition,
+  NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -483,14 +485,29 @@ function AttributeArgumentSelect({
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasSearch = debouncedSearch.length > 0;
 
-  const {attributes: searchedStringTags, isLoading: stringLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'string');
-  const {attributes: searchedNumberTags, isLoading: numberLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'number');
-  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
-    useSpanItemAttributes({search: debouncedSearch, enabled: hasSearch}, 'boolean');
+  const supportedKinds = getSupportedAttributeKinds(parsedFunction?.name);
 
-  const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
+  const {attributes: searchedStringTags, isLoading: stringLoading} =
+    useSpanItemAttributes(
+      {search: debouncedSearch, enabled: hasSearch && supportedKinds.includes('string')},
+      'string'
+    );
+  const {attributes: searchedNumberTags, isLoading: numberLoading} =
+    useSpanItemAttributes(
+      {search: debouncedSearch, enabled: hasSearch && supportedKinds.includes('number')},
+      'number'
+    );
+  const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
+    useSpanItemAttributes(
+      {search: debouncedSearch, enabled: hasSearch && supportedKinds.includes('boolean')},
+      'boolean'
+    );
+
+  const isSearchLoading =
+    hasSearch &&
+    ((supportedKinds.includes('string') && stringLoading) ||
+      (supportedKinds.includes('number') && numberLoading) ||
+      (supportedKinds.includes('boolean') && booleanLoading));
 
   const baseOptions = useVisualizeFields({
     numberTags,
@@ -530,6 +547,18 @@ function AttributeArgumentSelect({
       )}
     />
   );
+}
+
+type AttributeKind = 'string' | 'number' | 'boolean';
+
+function getSupportedAttributeKinds(
+  functionName: string | undefined
+): readonly AttributeKind[] {
+  if (!functionName) return ['number'];
+  if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) return [];
+  if (functionName === AggregationKey.COUNT_UNIQUE)
+    return ['string', 'number', 'boolean'];
+  return ['number'];
 }
 
 function EquationSelector({
