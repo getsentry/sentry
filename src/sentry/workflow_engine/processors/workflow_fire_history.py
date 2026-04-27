@@ -17,7 +17,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
     WorkflowFireHistory,
 )
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def create_workflow_fire_histories(
     event_data: WorkflowEventData,
     is_delayed: bool = False,
     start_timestamp: datetime | None = None,
-    workflow_ids: set[int] | None = None,
+    workflow_ids: set[WorkflowId] | None = None,
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
