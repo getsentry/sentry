@@ -28,6 +28,7 @@ function renderFAB(
     closeSeerExplorer: jest.fn(),
     toggleSeerExplorer: jest.fn(),
     sessionState: 'inactive',
+    unreadCount: 0,
     ...contextOverrides,
   };
 

@@ -56,10 +56,7 @@ export function OrganizationLayout() {
       <OrganizationContainer>
         <GlobalDrawer>
           <SeerExplorerContextProvider>
-            {organization?.features.includes('seer-explorer') &&
-            !organization?.hideAiFeatures ? (
-              <SeerExplorerUnreadTitle />
-            ) : null}
+            <SeerExplorerUnreadTitle />
             {hasPageFrame ? null : <ExplorerFloatingActionButton />}
             <AppLayout organization={organization} />
           </SeerExplorerContextProvider>
