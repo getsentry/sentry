@@ -29,6 +29,8 @@ import {
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -80,7 +82,7 @@ export default function TraceView() {
         initialPreferences={preferences}
         preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
       >
-        <TraceViewImpl traceSlug={traceSlug} />
+        <ContextAwareTraceViewImpl traceSlug={traceSlug} />
       </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
@@ -145,6 +147,44 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     tree,
     logs: logsData,
     metrics: metricsData,
+  });
+
+  // Push trace metadata into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    contextHint:
+      'Sentry trace detail page. topLevelNodes lists root transactions/spans. webVitals shows Core Web Vitals if available. ' +
+      'Tools: get_trace_waterfall(trace_id, span_id?) for full waterfall or specific span; ' +
+      'get_event_details(event_id?, issue_id?) for error event details; ' +
+      'get_issue_details(issue_id) for issue aggregate stats; ' +
+      'get_log_attributes(trace_id, log_message_substring) for log entries in this trace; ' +
+      'get_metric_attributes(trace_id, metric_name) for metric samples in this trace; ' +
+      'get_profile_flamegraph(profile_id, trace_id?) for CPU/memory flamegraph; ' +
+      'telemetry_live_search(dataset, question, project_slugs) for related spans/errors/logs/metrics.',
+    traceId: traceSlug,
+    traceType: tree.type,
+    activeTab: currentTab,
+    shape: tree.type === 'trace' ? tree.shape : undefined,
+    durationMs: tree.root.children[0]?.space?.[1],
+    nodeCount: tree.list.length,
+    projects: Array.from(tree.projects.values())
+      .map(p => p.slug)
+      .slice(0, 10),
+    errors: meta.data?.errors,
+    performanceIssues: meta.data?.performance_issues,
+    spanCount: meta.data?.span_count,
+    webVitals: tree.indicators.map(i => ({
+      type: i.type,
+      label: i.label,
+      value: i.measurement.value,
+      unit: i.measurement.unit,
+      poor: i.poor,
+    })),
+    topLevelNodes: tree.root.children[0]?.children.slice(0, 10).map(n => ({
+      op: n.op,
+      description: n.description?.slice(0, 120),
+      durationMs: n.space?.[1],
+      projectSlug: n.projectSlug,
+    })),
   });
 
   return (
@@ -216,6 +256,8 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
     </SentryDocumentTitle>
   );
 }
+
+const ContextAwareTraceViewImpl = registerLLMContext('trace', TraceViewImpl);
 
 // @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
 // When that feature is enabled, the footer is no longer rendered at the bottom of the page.
