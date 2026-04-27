@@ -359,23 +359,23 @@ function HighlightedTokenAttributes({
       }
     >
       <TokensSpan>
-        <Container display="inline-block">
+        <Container as="span" display="inline-block">
           <Count value={breakdown.netNewInput} /> {t('in')}
         </Container>
         {hasCached && (
           <Fragment>
             {' '}
-            <Container display="inline-block">
+            <Container as="span" display="inline-block">
               {' + '}
               <Count value={breakdown.cached} /> {t('cached')}
             </Container>
           </Fragment>
         )}{' '}
-        <Container display="inline-block">
+        <Container as="span" display="inline-block">
           {' + '}
           <Count value={breakdown.output} /> {t('out')}
         </Container>{' '}
-        <Container display="inline-block">
+        <Container as="span" display="inline-block">
           {' = '}
           <Count value={breakdown.total} /> {t('total')}
         </Container>
