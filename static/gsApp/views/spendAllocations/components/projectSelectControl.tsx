@@ -14,7 +14,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 type Props = {
   disabled: boolean;
-  filteredIdList: string[];
+  filteredIdList: string[] | undefined;
   onChange: (option: SelectValue<string>) => void;
   value: string; // project ID
 };
@@ -23,7 +23,7 @@ export function ProjectSelectControl({
   disabled,
   onChange,
   value: valueProp,
-  filteredIdList,
+  filteredIdList = [],
 }: Props) {
   const {projects} = useProjects();
   const options = useMemo(() => {
