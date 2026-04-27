@@ -9,7 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TableActionButton} from 'sentry/views/explore/components/tableActionButton';
 
-export interface TableExpando {
+interface TableExpando {
   button: React.ReactNode;
   enabled: boolean;
   expanded: boolean | undefined;
