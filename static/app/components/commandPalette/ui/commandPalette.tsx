@@ -46,7 +46,15 @@ const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
 
-function makeLeadingItemAnimation(theme: Theme) {
+function makeLeadingItemAnimation(theme: Theme, instant = false) {
+  if (instant) {
+    return {
+      initial: {scale: 1, opacity: 1},
+      animate: {scale: 1, opacity: 1},
+      exit: {scale: 1, opacity: 1, transition: {duration: 0}},
+      transition: {duration: 0},
+    };
+  }
   return {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
@@ -326,6 +334,11 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isEmptyPromptQuery =
     state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
+  // Skip leading-icon animations when there is no query — any icon transition
+  // while the input is empty (e.g. a brief loading state after clearing) should
+  // be invisible rather than drawing attention with a flash.
+  const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
+
   return (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
@@ -339,7 +352,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                       <MotionContainer
                         position="absolute"
                         left="-2px"
-                        {...makeLeadingItemAnimation(theme)}
+                        {...leadingIconAnimation}
                       >
                         <LoadingIndicator
                           data-test-id="command-palette-loading"
@@ -358,17 +371,13 @@ export function CommandPalette(props: CommandPaletteProps) {
                               state.input.current?.focus();
                             }}
                             aria-label={t('Return to previous action')}
-                            {...makeLeadingItemAnimation(theme)}
+                            {...leadingIconAnimation}
                             {...containerProps}
                           />
                         )}
                       </Container>
                     ) : (
-                      <MotionIconSearch
-                        size="sm"
-                        aria-hidden
-                        {...makeLeadingItemAnimation(theme)}
-                      />
+                      <MotionIconSearch size="sm" aria-hidden {...leadingIconAnimation} />
                     )}
                   </AnimatePresence>
                 </StyledInputLeadingItems>
