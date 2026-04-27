@@ -223,13 +223,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RUN_ID=$(gh run list --workflow=classify-services.yml --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+          # Filter by conclusion=success via jq — gh CLI's --status flag is unreliable for this.
+          RUN_ID=$(gh run list --workflow=classify-services.yml --limit=10 --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId')
           if [ -z "$RUN_ID" ]; then
             echo "No classify-services run found, skipping tiers"
             echo "has-tiers=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification
+          if ! gh run download "$RUN_ID" --name test-service-classification --dir /tmp/classification; then
+            echo "Classification artifact unavailable (may be expired), skipping tiers"
+            echo "has-tiers=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "has-tiers=true" >> "$GITHUB_OUTPUT"
 
       - name: Split tests by tier
