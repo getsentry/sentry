@@ -36,9 +36,7 @@ import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKInteg
 import {LastKnownRouteContextProvider} from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
-import {ExplorerPanel} from 'sentry/views/seerExplorer/components/panel/explorerPanel';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
@@ -243,12 +241,9 @@ export function App() {
                   <MainContainer tabIndex={-1}>
                     <DemoToursProvider>
                       <LLMContextProvider>
-                        <SeerExplorerContextProvider>
-                          <GlobalModal />
-                          <ExplorerPanel />
-                          <Indicators className="indicators-container" />
-                          <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                        </SeerExplorerContextProvider>
+                        <GlobalModal />
+                        <Indicators className="indicators-container" />
+                        <ErrorBoundary>{renderBody()}</ErrorBoundary>
                       </LLMContextProvider>
                     </DemoToursProvider>
                   </MainContainer>

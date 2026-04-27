@@ -12,40 +12,47 @@ COVERAGE_FILENAME = ".coverage.combined"
 CACHE_DIR = Path.home() / ".cache" / "sentry" / "coverage" / "latest"
 
 
-def check_gcloud() -> None:
+def ensure_gcloud_authed() -> None:
     if shutil.which("gcloud") is None:
-        print("Error: gcloud is not installed.", file=sys.stderr)
-        print(
-            "Install the Google Cloud CLI: https://cloud.google.com/sdk/docs/install",
-            file=sys.stderr,
+        raise SystemExit(
+            """\
+Error: gcloud is not installed.
+
+Make sure you've run `direnv allow`.
+
+Install the Google Cloud CLI: https://cloud.google.com/sdk/docs/install
+  macOS (Homebrew): brew install --cask google-cloud-sdk"""
         )
-        print("  macOS (Homebrew): brew install --cask google-cloud-sdk", file=sys.stderr)
-        sys.exit(1)
 
-
-def check_auth() -> None:
+    # gcloud config config-helper exits 1 if there is no active account,
+    # and also prompts for yubikey 2FA if it needs refreshing.
     result = subprocess.run(
-        ["gcloud", "auth", "print-access-token"],
+        ["gcloud", "config", "config-helper"],
         capture_output=True,
-        text=True,
+        check=False,
+    )
+    if result.returncode == 0:
+        return
+
+    subprocess.run(
+        ["gcloud", "auth", "login", "--activate", "--update-adc"],
+        check=False,
+    )
+
+    # Check again, and if something's still wrong then exit.
+    result = subprocess.run(
+        ["gcloud", "config", "config-helper"],
+        capture_output=True,
         check=False,
     )
     if result.returncode != 0:
-        print("Error: Not authenticated with gcloud.", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("To authenticate, run:", file=sys.stderr)
-        print("  gcloud auth login", file=sys.stderr)
-        print("  gcloud config set project sentry-dev-tooling", file=sys.stderr)
-        print("", file=sys.stderr)
-        print(
-            "You'll need access to the 'sentry-dev-tooling' GCP project.",
-            file=sys.stderr,
+        raise SystemExit(
+            """\
+Error: Not authenticated with gcloud.
+
+To authenticate, run:
+  gcloud auth login"""
         )
-        print(
-            "Request access in #discuss-dev-infra if you don't have it.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
 
 
 def get_remote_generation() -> str | None:
@@ -88,8 +95,7 @@ def download_coverage(output_path: Path) -> None:
         check=False,
     )
     if result.returncode != 0:
-        print("Error: Failed to download coverage database from GCS.", file=sys.stderr)
-        sys.exit(1)
+        raise SystemExit("Error: Failed to download coverage database from GCS.")
 
     shutil.copy2(output_path, cached_file)
     if remote_gen:
@@ -108,8 +114,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    check_gcloud()
-    check_auth()
+    ensure_gcloud_authed()
     download_coverage(Path(args.output))
     return 0
 

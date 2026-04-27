@@ -1,7 +1,7 @@
-import {useEffect, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
+import {useMemo} from 'react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import throttle from 'lodash/throttle';
+import {useQuery} from '@tanstack/react-query';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -13,10 +13,11 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {
@@ -29,7 +30,6 @@ import {
   TransparentLoadingMask,
 } from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {
@@ -53,6 +53,14 @@ import {
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
+// TODO: add back filter actions or just revert this commit
+// once the metrics search bar supports filters on aggregates
+const METRICS_AGGREGATES_CELL_ACTIONS: Actions[] = [
+  Actions.COPY_TO_CLIPBOARD,
+  Actions.OPEN_EXTERNAL_LINK,
+  Actions.OPEN_INTERNAL_LINK,
+];
+
 const RESULT_LIMIT = 50;
 
 const METRIC_NAME_COLUMN: TableColumn<string> = {
@@ -73,11 +81,10 @@ interface AggregatesTabProps {
 }
 
 export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTabProps) {
+  const theme = useTheme();
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
   const topEvents = useTopEvents();
-  const tableRef = useRef<HTMLDivElement>(null);
   const visualize = useMetricVisualize();
 
   const {result, eventView, fields} = useMetricAggregatesTable({
@@ -86,6 +93,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       : isVisualizeEquation(visualize) && Boolean(visualize.expression.text),
     limit: RESULT_LIMIT,
     traceMetric,
+    staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });
 
   const columns = useMemo(
@@ -104,6 +112,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       selection,
       traceItemType: TraceItemDataset.TRACEMETRICS,
       query: traceMetricFilter,
+      staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
     }),
     enabled: Boolean(traceMetricFilter),
     select: selectTraceItemTagCollection(),
@@ -150,12 +159,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
   }, [aggregateFieldCount, displayFields.length, groupByFieldCount]);
 
   const firstColumnOffset = useMemo(() => {
-    return groupBys.length > 0 ? '15px' : '8px';
-  }, [groupBys]);
-
-  const isLastColumn = (index: number) => {
-    return !hasMetricsUIRefresh && index === displayFields.length - 1;
-  };
+    return groupBys.length > 0 ? '15px' : theme.space.lg;
+  }, [groupBys, theme.space.lg]);
 
   // Dividers: between last groupBy and first aggregate, and between all aggregates
   const shouldShowDivider = (index: number) => {
@@ -172,63 +177,13 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
     return false;
   };
 
-  useEffect(() => {
-    if (hasMetricsUIRefresh) {
-      return undefined;
-    }
-
-    const tableElement = tableRef.current;
-    if (!tableElement) {
-      return undefined;
-    }
-
-    const checkScroll = () => {
-      const {scrollWidth, clientWidth, scrollLeft} = tableElement;
-      const hasOverflow = scrollWidth > clientWidth;
-      const isScrolledFullyRight = Math.abs(scrollLeft + clientWidth - scrollWidth) < 1;
-
-      const shouldShowShadow = hasOverflow && !isScrolledFullyRight;
-      tableElement
-        .querySelectorAll<HTMLElement>('[data-sticky-column="true"]')
-        .forEach(cell => {
-          cell.style.boxShadow = shouldShowShadow
-            ? '-2px 0px 4px -1px rgba(0, 0, 0, 0.1)'
-            : 'none';
-        });
-      tableElement
-        .querySelectorAll<HTMLElement>('[data-sticky-column="false"]')
-        .forEach(cell => {
-          if (cell.style.boxShadow !== 'none') {
-            cell.style.boxShadow = 'none';
-          }
-        });
-    };
-
-    const throttledCheckScroll = throttle(checkScroll, 100, {
-      leading: true,
-      trailing: true,
-    });
-
-    checkScroll();
-    tableElement.addEventListener('scroll', throttledCheckScroll);
-
-    const resizeObserver = new ResizeObserver(throttledCheckScroll);
-    resizeObserver.observe(tableElement);
-
-    return () => {
-      tableElement.removeEventListener('scroll', throttledCheckScroll);
-      throttledCheckScroll.cancel();
-      resizeObserver.disconnect();
-    };
-  }, [displayFields.length, hasMetricsUIRefresh, result.data]);
-
   const isPending = result.isPending && !isMetricOptionsEmpty;
 
   return (
-    <StickyCompatibleSimpleTable ref={tableRef} style={tableStyle}>
+    <AggregatesSimpleTable style={tableStyle}>
       {isPending && <TransparentLoadingMask />}
 
-      <StickyCompatibleStyledHeader>
+      <AggregatesStyledHeader>
         {displayFields.map((field, i) => {
           let label = field;
           const tag =
@@ -259,26 +214,24 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
           }
 
           return (
-            <StickyCompatibleStyledHeaderCell
+            <AggregatesStyledHeaderCell
               key={i}
               divider={shouldShowDivider(i)}
-              data-sticky-column={isLastColumn(i) ? 'true' : 'false'}
               isAggregate={
                 Boolean(func) || (isVisualizeEquation(visualize) && isEquation(field))
               }
-              isSticky={isLastColumn(i)}
               sort={direction}
               handleSortClick={canSort ? updateSort : undefined}
             >
               <Tooltip showOnlyOnOverflow title={label}>
                 {label}
               </Tooltip>
-            </StickyCompatibleStyledHeaderCell>
+            </AggregatesStyledHeaderCell>
           );
         })}
-      </StickyCompatibleStyledHeader>
+      </AggregatesStyledHeader>
 
-      <StickyCompatibleTableBody>
+      <AggregatesTableBody>
         {result.isError ? (
           <SimpleTable.Empty>
             <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
@@ -296,11 +249,9 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                   <StyledTopResultsIndicator count={topEvents} index={i} />
                 )}
                 {displayFields.map((field, j) => (
-                  <StickyCompatibleStyledRowCell
+                  <AggregatesStyledRowCell
                     key={j}
-                    data-sticky-column={isLastColumn(j) ? 'true' : 'false'}
                     isAggregate={Boolean(parseFunction(field))}
-                    isSticky={isLastColumn(j)}
                     offset={j === 0 ? firstColumnOffset : undefined}
                   >
                     <FieldRenderer
@@ -308,61 +259,53 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
                       data={displayRow}
                       unit={getMetricsUnit(meta, field)}
                       meta={meta}
+                      allowActions={METRICS_AGGREGATES_CELL_ACTIONS}
                       usePortalOnDropdown
                     />
-                  </StickyCompatibleStyledRowCell>
+                  </AggregatesStyledRowCell>
                 ))}
               </SimpleTable.Row>
             );
           })
         ) : isPending ? (
           <SimpleTable.Empty>
-            <LoadingIndicator />
+            <LoadingIndicator size={40} style={{margin: '1em 1em'}} />
           </SimpleTable.Empty>
         ) : (
           <SimpleTable.Empty>
             <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
           </SimpleTable.Empty>
         )}
-      </StickyCompatibleTableBody>
-    </StickyCompatibleSimpleTable>
+      </AggregatesTableBody>
+    </AggregatesSimpleTable>
   );
 }
 
-const StickyCompatibleSimpleTable = styled(StyledSimpleTable)`
-  overflow: auto;
+const AggregatesSimpleTable = styled(StyledSimpleTable)`
+  overflow-x: auto;
+  overflow-y: hidden;
 `;
 
-const StickyCompatibleTableBody = styled(StyledSimpleTableBody)`
-  overflow: unset;
+const AggregatesTableBody = styled(StyledSimpleTableBody)`
+  overflow-x: hidden;
+  overflow-y: auto;
 `;
 
-const StickyCompatibleStyledHeader = styled(StyledSimpleTableHeader)`
+const AggregatesStyledHeader = styled(StyledSimpleTableHeader)`
   z-index: 2;
 `;
 
-const StickyCompatibleStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
+const AggregatesStyledHeaderCell = styled(StyledSimpleTableHeaderCell)<{
   isAggregate: boolean;
-  isSticky: boolean;
 }>`
   justify-content: ${p => (p.isAggregate ? 'flex-end' : 'flex-start')};
   padding: ${p => (p.noPadding ? 0 : p.theme.space.lg)};
   padding-top: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
   padding-bottom: ${p => (p.noPadding ? 0 : p.theme.space.xs)};
-  ${p =>
-    p.isSticky &&
-    css`
-      position: sticky;
-      right: 0;
-      background: ${p.theme.tokens.background.secondary};
-      height: 100%;
-      z-index: 2;
-    `};
 `;
 
-const StickyCompatibleStyledRowCell = styled(StyledSimpleTableRowCell)<{
+const AggregatesStyledRowCell = styled(StyledSimpleTableRowCell)<{
   isAggregate: boolean;
-  isSticky: boolean;
   offset?: string;
 }>`
   ${p =>
@@ -375,15 +318,4 @@ const StickyCompatibleStyledRowCell = styled(StyledSimpleTableRowCell)<{
     css`
       padding-left: ${p.offset};
     `}
-  ${p =>
-    p.isSticky &&
-    css`
-      position: sticky;
-      right: 0;
-      background: ${p.theme.tokens.background.primary};
-      height: 100%;
-      z-index: 1;
-      justify-self: end;
-      width: 100%;
-    `};
 `;

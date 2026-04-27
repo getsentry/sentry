@@ -313,9 +313,7 @@ export default function SnapshotsPage() {
     );
 
   const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
-  const diffImageBaseUrl = data
-    ? `/api/0/organizations/${organization.slug}/objectstore/v1/objects/preprod/org=${organization.id};project=${data.project_id}/${organization.id}/${data.project_id}/`
-    : '';
+  const diffImageBaseUrl = imageBaseUrl;
 
   const processingContent = (
     <Flex width="100%" justify="center" align="center">

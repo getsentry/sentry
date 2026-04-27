@@ -1,8 +1,6 @@
 import type {ReactNode} from 'react';
+import {queryOptions, type UseQueryOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
-
-import {queryOptions} from 'sentry/utils/queryClient';
-import type {UseQueryOptions} from 'sentry/utils/queryClient';
 
 interface Action {
   display: {
@@ -35,7 +33,7 @@ export function cmdkQueryOptions(
   return queryOptions({...options, meta: {cmdk: true}}) as CMDKQueryOptions;
 }
 
-export interface CommandPaletteActionLink extends Action {
+interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
 }

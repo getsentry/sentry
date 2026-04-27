@@ -3,6 +3,7 @@ import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -142,15 +143,17 @@ function StoriesLayout(props: PropsWithChildren) {
     <Fragment>
       <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
-        <OrganizationContainer>
-          <Layout>
-            <HeaderContainer>
-              <StoryHeader />
-            </HeaderContainer>
-            <StorySidebar />
-            {props.children}
-          </Layout>
-        </OrganizationContainer>
+        <GlobalDrawer>
+          <OrganizationContainer>
+            <Layout>
+              <HeaderContainer>
+                <StoryHeader />
+              </HeaderContainer>
+              <StorySidebar />
+              {props.children}
+            </Layout>
+          </OrganizationContainer>
+        </GlobalDrawer>
       </RouteAnalyticsContextProvider>
     </Fragment>
   );

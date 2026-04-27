@@ -8,6 +8,7 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {platforms} from 'sentry/data/platforms';
@@ -116,43 +117,79 @@ function LogsHeader() {
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
+  const documentTitle = hasSavedQueryTitle ? (
+    <SentryDocumentTitle
+      title={`${savedQuery.name} — ${t('Logs')}`}
+      orgSlug={organization?.slug}
+    />
+  ) : null;
+
+  const titleTooltip = (
+    <PageHeadingQuestionTooltip
+      docsUrl="https://docs.sentry.io/product/explore/logs/"
+      title={t(
+        'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+      )}
+      linkLabel={t('Read the Docs')}
+    />
+  );
+
+  const hasBreadcrumb = Boolean(title && defined(pageId));
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        {documentTitle}
+        <TopBar.Slot name="title">
+          {hasBreadcrumb ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.LOGS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : (
+            title || t('Logs')
+          )}
+          {titleTooltip}
+        </TopBar.Slot>
+        {defined(onboardingProject) && (
+          <TopBar.Slot name="actions">
+            <SetupLogsButton />
+          </TopBar.Slot>
+        )}
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={logsFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
-        {hasSavedQueryTitle ? (
-          <SentryDocumentTitle
-            title={`${savedQuery.name} — ${t('Logs')}`}
-            orgSlug={organization?.slug}
-          />
-        ) : null}
-        {title && defined(pageId) ? (
+        {documentTitle}
+        {hasBreadcrumb ? (
           <ExploreBreadcrumb
             traceItemDataset={TraceItemDataset.LOGS}
             savedQueryName={savedQuery?.name}
           />
         ) : null}
-
-        <Layout.Title>{title ? title : t('Logs')}</Layout.Title>
+        <Layout.Title>
+          {title || t('Logs')}
+          {titleTooltip}
+        </Layout.Title>
       </Layout.HeaderContent>
-      {hasPageFrameFeature ? (
-        <Fragment>
-          {defined(onboardingProject) && (
-            <TopBar.Slot name="actions">
-              <SetupLogsButton />
-            </TopBar.Slot>
-          )}
-          <TopBar.Slot name="feedback">
-            <FeedbackButton feedbackOptions={logsFeedbackOptions}>{null}</FeedbackButton>
-          </TopBar.Slot>
-        </Fragment>
-      ) : (
-        <Layout.HeaderActions>
-          <Grid flow="column" align="center" gap="md">
-            <FeedbackButton feedbackOptions={logsFeedbackOptions} />
-            {defined(onboardingProject) && <SetupLogsButton />}
-          </Grid>
-        </Layout.HeaderActions>
-      )}
+      <Layout.HeaderActions>
+        <Grid flow="column" align="center" gap="md">
+          <FeedbackButton feedbackOptions={logsFeedbackOptions} />
+          {defined(onboardingProject) && <SetupLogsButton />}
+        </Grid>
+      </Layout.HeaderActions>
     </Layout.Header>
   );
 }

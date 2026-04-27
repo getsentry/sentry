@@ -213,7 +213,7 @@ export const restrictJsxSlotChildren = ESLintUtils.RuleCreator.withoutDocs<
         })),
         allowedNames: new Set(),
         hint: buildAllowedHint(allowed),
-        componentNames: new Set(slot.componentNames ?? []),
+        componentNames: new Set(slot.componentNames),
       };
       for (const propName of slot.propNames) {
         if (slotState.has(propName)) {

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -16,14 +16,16 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimilarScoreCard} from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
-import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
 type Props = {
+  busy: boolean;
+  checked: boolean;
   groupId: Group['id'];
   hasSimilarityEmbeddingsFeature: boolean;
   issue: Group;
+  onToggle: (id: string) => void;
   project: Project;
   aggregate?: {
     exception: number;
@@ -39,46 +41,21 @@ type Props = {
 const similarityEmbeddingScoreValues = [0.9, 0.925, 0.95, 0.975, 0.99, 1];
 
 export function SimilarStackTraceItem(props: Props) {
-  const {aggregate, scoresByInterface, issue, hasSimilarityEmbeddingsFeature} = props;
-  const [checked, setChecked] = useState<boolean>(false);
-  const [busy, setBusy] = useState<boolean>(false);
-
-  const onGroupChange = useCallback(
-    ({mergeState}: ReturnType<typeof GroupingStore.getState>) => {
-      if (!mergeState) {
-        return;
-      }
-
-      const stateForId = mergeState.has(issue.id) && mergeState.get(issue.id);
-
-      if (!stateForId) {
-        return;
-      }
-
-      setChecked(prev =>
-        typeof stateForId.checked === 'undefined' ? prev : stateForId.checked
-      );
-      setBusy(prev => (typeof stateForId.busy === 'undefined' ? prev : stateForId.busy));
-    },
-    [issue.id]
-  );
-
-  useEffect(() => {
-    const unsubscribe = GroupingStore.listen(
-      (data: ReturnType<typeof GroupingStore.getState>) => onGroupChange(data),
-      undefined
-    );
-    return () => {
-      unsubscribe?.();
-    };
-  }, [onGroupChange]);
+  const {
+    aggregate,
+    scoresByInterface,
+    issue,
+    hasSimilarityEmbeddingsFeature,
+    checked,
+    busy,
+    onToggle,
+  } = props;
 
   const handleToggle = useCallback(() => {
-    // clicking anywhere in the row will toggle the checkbox
     if (!busy) {
-      GroupingStore.onToggleMerge(issue.id);
+      onToggle(issue.id);
     }
-  }, [busy, issue.id]);
+  }, [busy, issue.id, onToggle]);
 
   const handleShowDiff = (event: React.MouseEvent) => {
     const {groupId: baseIssueId, project} = props;

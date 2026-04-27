@@ -1,4 +1,4 @@
-export type ConversationDrawerOpenSource =
+type ConversationDrawerOpenSource =
   | 'direct_link'
   | 'table_conversation_id'
   | 'table_input'
