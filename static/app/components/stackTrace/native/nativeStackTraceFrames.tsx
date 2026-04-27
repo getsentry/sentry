@@ -17,16 +17,10 @@ import {t} from 'sentry/locale';
 import {NativeFrameHeader} from './frame/nativeFrameHeader';
 
 interface NativeStackTraceFramesProps {
-  /** Render absolute instruction address instead of relative offset. */
-  absoluteAddresses?: boolean;
-  /** Show the absolute file path instead of the basename. */
-  absoluteFilePaths?: boolean;
   /** Removes the outer border, useful for embedding in hovercards. */
   borderless?: boolean;
   /** Replace the default trailing actions for each frame row. */
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
-  /** Use rawFunction in place of the demangled function name. */
-  fullFunctionName?: boolean;
 }
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
@@ -41,11 +35,8 @@ function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]})
 }
 
 export function NativeStackTraceFrames({
-  absoluteAddresses,
-  absoluteFilePaths,
   borderless = false,
   frameActionsComponent: FrameActionsComponent,
-  fullFunctionName,
 }: NativeStackTraceFramesProps) {
   const {rows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
@@ -83,9 +74,6 @@ export function NativeStackTraceFrames({
         return (
           <StackTraceFrameRow key={row.frameIndex} row={row}>
             <NativeFrameHeader
-              absoluteAddresses={absoluteAddresses}
-              absoluteFilePaths={absoluteFilePaths}
-              fullFunctionName={fullFunctionName}
               actions={
                 FrameActionsComponent
                   ? ({isHovering}) => <FrameActionsComponent isHovering={isHovering} />

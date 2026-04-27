@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 
 import {
   findImageForAddress,
@@ -28,51 +28,106 @@ export function NativeStackTraceProvider({
 }: NativeStackTraceProviderProps) {
   const {event, stacktrace} = stackTraceProps;
 
-  const {imageByFrameIndex, maxLengthOfRelativeAddress, hasAnyStatusIcons} =
-    useMemo(() => {
-      const frames = stacktrace.frames ?? [];
-      const map = new Map<number, ImageWithCombinedStatus | null>();
-      let maxLen = 0;
-      let anyIcon = false;
+  const [absoluteAddresses, setAbsoluteAddresses] = useState(false);
+  const [absoluteFilePaths, setAbsoluteFilePaths] = useState(false);
+  const [verboseFunctionNames, setVerboseFunctionNames] = useState(false);
 
-      for (let i = 0; i < frames.length; i++) {
-        const frame = frames[i]!;
-        const image = findImageForAddress({
-          event,
-          addrMode: frame.addrMode,
-          address: frame.instructionAddr,
-        }) as ImageWithCombinedStatus | null;
-        map.set(i, image ?? null);
+  const {
+    imageByFrameIndex,
+    maxLengthOfRelativeAddress,
+    hasAnyStatusIcons,
+    hasAbsoluteAddresses,
+    hasAbsoluteFilePaths,
+    hasVerboseFunctionNames,
+  } = useMemo(() => {
+    const frames = stacktrace.frames ?? [];
+    const map = new Map<number, ImageWithCombinedStatus | null>();
+    let maxLen = 0;
+    let anyIcon = false;
+    let anyAddr = false;
+    let anyAbsPath = false;
+    let anyVerbose = false;
 
-        if (image?.image_addr && frame.instructionAddr) {
-          const relative = (
-            parseAddress(frame.instructionAddr) - parseAddress(image.image_addr)
-          ).toString(16);
-          if (relative.length > maxLen) {
-            maxLen = relative.length;
-          }
-        }
+    for (let i = 0; i < frames.length; i++) {
+      const frame = frames[i]!;
+      const image = findImageForAddress({
+        event,
+        addrMode: frame.addrMode,
+        address: frame.instructionAddr,
+      }) as ImageWithCombinedStatus | null;
+      map.set(i, image ?? null);
 
-        if (!anyIcon && hasStatusIcon(getSymbolicatorStatus(frame, image ?? null))) {
-          anyIcon = true;
+      if (image?.image_addr && frame.instructionAddr) {
+        const relative = (
+          parseAddress(frame.instructionAddr) - parseAddress(image.image_addr)
+        ).toString(16);
+        if (relative.length > maxLen) {
+          maxLen = relative.length;
         }
       }
 
-      return {
-        imageByFrameIndex: map,
-        maxLengthOfRelativeAddress: maxLen,
-        hasAnyStatusIcons: anyIcon,
-      };
-    }, [event, stacktrace.frames]);
+      if (!anyIcon && hasStatusIcon(getSymbolicatorStatus(frame, image ?? null))) {
+        anyIcon = true;
+      }
+      if (!anyAddr && !!frame.instructionAddr) {
+        anyAddr = true;
+      }
+      if (
+        !anyAbsPath &&
+        !!frame.filename &&
+        !!frame.absPath &&
+        frame.filename !== frame.absPath
+      ) {
+        anyAbsPath = true;
+      }
+      if (
+        !anyVerbose &&
+        !!frame.function &&
+        !!frame.rawFunction &&
+        frame.function !== frame.rawFunction
+      ) {
+        anyVerbose = true;
+      }
+    }
+
+    return {
+      imageByFrameIndex: map,
+      maxLengthOfRelativeAddress: maxLen,
+      hasAnyStatusIcons: anyIcon,
+      hasAbsoluteAddresses: anyAddr,
+      hasAbsoluteFilePaths: anyAbsPath,
+      hasVerboseFunctionNames: anyVerbose,
+    };
+  }, [event, stacktrace.frames]);
 
   const value = useMemo<NativeStackTraceContextValue>(
     () => ({
+      absoluteAddresses,
+      absoluteFilePaths,
+      hasAbsoluteAddresses,
+      hasAbsoluteFilePaths,
       hasAnyStatusIcons,
+      hasVerboseFunctionNames,
       imageByFrameIndex,
       isHoverPreviewed,
       maxLengthOfRelativeAddress,
+      setAbsoluteAddresses,
+      setAbsoluteFilePaths,
+      setVerboseFunctionNames,
+      verboseFunctionNames,
     }),
-    [hasAnyStatusIcons, imageByFrameIndex, isHoverPreviewed, maxLengthOfRelativeAddress]
+    [
+      absoluteAddresses,
+      absoluteFilePaths,
+      hasAbsoluteAddresses,
+      hasAbsoluteFilePaths,
+      hasAnyStatusIcons,
+      hasVerboseFunctionNames,
+      imageByFrameIndex,
+      isHoverPreviewed,
+      maxLengthOfRelativeAddress,
+      verboseFunctionNames,
+    ]
   );
 
   return (

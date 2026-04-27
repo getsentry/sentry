@@ -12,11 +12,6 @@ import type {Frame} from 'sentry/types/event';
 
 import {useGoToImagesLoaded} from './actions/goToImagesLoadedAction';
 
-interface NativeFrameAddressProps {
-  /** When true, render absolute instruction address instead of relative offset. */
-  absolute?: boolean;
-}
-
 function isInlineFrame(frame: Frame, prevFrame: Frame | undefined, platform: string) {
   if (!prevFrame) {
     return false;
@@ -49,10 +44,11 @@ function getAddressTooltip({
   return undefined;
 }
 
-export function NativeFrameAddress({absolute = false}: NativeFrameAddressProps) {
+export function NativeFrameAddress() {
   const {frame, frameIndex, platform} = useStackTraceFrameContext();
   const {frames} = useStackTraceContext();
-  const {imageByFrameIndex, maxLengthOfRelativeAddress} = useNativeStackTraceContext();
+  const {absoluteAddresses, imageByFrameIndex, maxLengthOfRelativeAddress} =
+    useNativeStackTraceContext();
   const {isClickable, onClick} = useGoToImagesLoaded();
 
   const image = imageByFrameIndex.get(frameIndex) ?? null;
@@ -69,7 +65,8 @@ export function NativeFrameAddress({absolute = false}: NativeFrameAddressProps) 
       )}`
     : '';
 
-  const display = !relative || absolute ? (frame.instructionAddr ?? '') : relative;
+  const display =
+    !relative || absoluteAddresses ? (frame.instructionAddr ?? '') : relative;
   const tooltip = getAddressTooltip({inlineFrame, foundByStackScanning});
 
   const cell = (

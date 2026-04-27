@@ -9,7 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ThreadSelector} from 'sentry/components/events/interfaces/threads/threadSelector';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
 import {
   ExceptionDescription,
   ExceptionHeader,
@@ -38,6 +37,7 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
+import {NativeDisplayOptions} from './nativeDisplayOptions';
 import {NativeStackTraceFrames} from './nativeStackTraceFrames';
 import {NativeStackTraceProvider} from './nativeStackTraceProvider';
 import {RawDownloadAction} from './rawDownloadAction';
@@ -271,15 +271,6 @@ export default Storybook.story('Native StackTrace', story => {
     return (
       <StoryProvider event={event} stacktrace={stacktrace}>
         <NativeStackTraceFrames />
-      </StoryProvider>
-    );
-  });
-
-  story('Absolute Addresses', () => {
-    const {event, stacktrace} = makeBasicData();
-    return (
-      <StoryProvider event={event} stacktrace={stacktrace}>
-        <NativeStackTraceFrames absoluteAddresses />
       </StoryProvider>
     );
   });
@@ -595,11 +586,7 @@ function ActiveThreadFrames({event, thread}: {event: Event; thread: NamedThread}
     );
   }
 
-  return (
-    <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
-      <NativeStackTraceFrames frameActionsComponent={NativeStoryFrameActions} />
-    </NativeStackTraceProvider>
-  );
+  return <NativeStackTraceFrames frameActionsComponent={NativeStoryFrameActions} />;
 }
 
 function NativeIssueStackTraceStory() {
@@ -636,68 +623,80 @@ function NativeIssueStackTraceStory() {
         projectSlug="project-slug"
         eventId={event.eventID}
       />
-      <DisplayOptions />
+      <NativeDisplayOptions />
       <CopyAsDropdown size="xs" items={copyItems} />
     </Flex>
   );
+
+  // The provider's stacktrace argument tracks the active thread, but the
+  // native display options (absolute addresses, etc.) live on the same
+  // provider — so they persist across thread switches.
+  const stacktrace = activeThread.stacktrace ?? {
+    framesOmitted: null,
+    hasSystemFrames: false,
+    registers: null,
+    frames: [],
+  };
 
   return (
     // Re-key on the active thread so view state (app/full/raw) resets per thread
     // and the provider sees the correct default platform.
     <StackTraceViewStateProvider key={activeThread.id} platform={activeThread.platform}>
-      <InterimSection
-        type={SectionKey.EXCEPTION}
-        title={t('Stack Trace')}
-        actions={sectionActions}
-      >
-        <Flex direction="column" gap="lg">
-          <Flex direction="column" gap="sm">
-            <ExceptionHeader type="EXC_BAD_ACCESS" module="CrashyApp" />
-            <ExceptionDescription
-              value="Attempted to dereference garbage pointer 0x0000000000000001"
-              mechanism={{handled: false, type: 'mach', synthetic: false}}
-            />
-          </Flex>
-          <Flex align="center" gap="md" wrap="wrap">
-            <ButtonBar>
-              <Button
-                size="xs"
-                icon={<IconChevron direction="left" />}
-                aria-label={t('Previous Thread')}
-                onClick={() => handleChange('previous')}
+      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
+        <InterimSection
+          type={SectionKey.EXCEPTION}
+          title={t('Stack Trace')}
+          actions={sectionActions}
+        >
+          <Flex direction="column" gap="lg">
+            <Flex direction="column" gap="sm">
+              <ExceptionHeader type="EXC_BAD_ACCESS" module="CrashyApp" />
+              <ExceptionDescription
+                value="Attempted to dereference garbage pointer 0x0000000000000001"
+                mechanism={{handled: false, type: 'mach', synthetic: false}}
               />
-              <Button
-                size="xs"
-                icon={<IconChevron direction="right" />}
-                aria-label={t('Next Thread')}
-                onClick={() => handleChange('next')}
+            </Flex>
+            <Flex align="center" gap="md" wrap="wrap">
+              <ButtonBar>
+                <Button
+                  size="xs"
+                  icon={<IconChevron direction="left" />}
+                  aria-label={t('Previous Thread')}
+                  onClick={() => handleChange('previous')}
+                />
+                <Button
+                  size="xs"
+                  icon={<IconChevron direction="right" />}
+                  aria-label={t('Next Thread')}
+                  onClick={() => handleChange('next')}
+                />
+              </ButtonBar>
+              <ThreadSelector
+                threads={threads}
+                activeThread={activeThread}
+                event={event}
+                onChange={thread => setActiveThread(thread as NamedThread)}
+                exception={undefined}
               />
-            </ButtonBar>
-            <ThreadSelector
-              threads={threads}
-              activeThread={activeThread}
-              event={event}
-              onChange={thread => setActiveThread(thread as NamedThread)}
-              exception={undefined}
-            />
-            {activeThread.crashed ? (
-              <Text variant="danger" size="sm" bold>
-                {t('crashed')}
-              </Text>
-            ) : (
-              <Text variant="muted" size="sm">
-                {activeThread.state}
-              </Text>
-            )}
-            {activeThread.platform === 'javascript' ? (
-              <Text variant="muted" size="sm">
-                {t('rendered with the generic (non-native) stack trace')}
-              </Text>
-            ) : null}
+              {activeThread.crashed ? (
+                <Text variant="danger" size="sm" bold>
+                  {t('crashed')}
+                </Text>
+              ) : (
+                <Text variant="muted" size="sm">
+                  {activeThread.state}
+                </Text>
+              )}
+              {activeThread.platform === 'javascript' ? (
+                <Text variant="muted" size="sm">
+                  {t('rendered with the generic (non-native) stack trace')}
+                </Text>
+              ) : null}
+            </Flex>
+            <ActiveThreadFrames event={event} thread={activeThread} />
           </Flex>
-          <ActiveThreadFrames event={event} thread={activeThread} />
-        </Flex>
-      </InterimSection>
+        </InterimSection>
+      </NativeStackTraceProvider>
     </StackTraceViewStateProvider>
   );
 }

@@ -16,35 +16,24 @@ import {SymbolicatorStatusIcon} from './actions/symbolicatorStatusIcon';
 import {NativeFrameAddress} from './nativeFrameAddress';
 
 interface NativeFrameHeaderProps {
-  /** Render absolute instruction address instead of relative offset. */
-  absoluteAddresses?: boolean;
-  /** Show the absolute file path instead of the basename. */
-  absoluteFilePaths?: boolean;
   /** Custom trailing actions; falls back to NativeDefaultActions. */
   actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
-  /** Use rawFunction in place of the demangled function name. */
-  fullFunctionName?: boolean;
 }
 
 function getFunctionLabel({
   frame,
-  fullFunctionName,
+  verboseFunctionNames,
 }: {
   frame: ReturnType<typeof useStackTraceFrameContext>['frame'];
-  fullFunctionName: boolean;
+  verboseFunctionNames: boolean;
 }) {
-  if (fullFunctionName && frame.rawFunction) {
+  if (verboseFunctionNames && frame.rawFunction) {
     return frame.rawFunction;
   }
   return frame.function ?? frame.rawFunction ?? null;
 }
 
-export function NativeFrameHeader({
-  absoluteAddresses = false,
-  absoluteFilePaths = false,
-  actions,
-  fullFunctionName = false,
-}: NativeFrameHeaderProps) {
+export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
   const {
     event,
     frame,
@@ -54,11 +43,12 @@ export function NativeFrameHeader({
     nextFrame,
     toggleExpansion,
   } = useStackTraceFrameContext();
-  const {hasAnyStatusIcons} = useNativeStackTraceContext();
+  const {absoluteFilePaths, hasAnyStatusIcons, verboseFunctionNames} =
+    useNativeStackTraceContext();
   const [isHovering, setIsHovering] = useState(false);
 
   const isDartAsync = isDartAsyncSuspension(frame);
-  const functionLabel = getFunctionLabel({frame, fullFunctionName});
+  const functionLabel = getFunctionLabel({frame, verboseFunctionNames});
   const packageLabel = frame.package ? trimPackage(frame.package) : null;
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
 
@@ -71,7 +61,6 @@ export function NativeFrameHeader({
     <HeaderGrid
       data-test-id="native-stack-trace-frame-title"
       isExpandable={isExpandable}
-      isInApp={frame.inApp}
       hasStatusColumn={hasAnyStatusIcons}
       aria-expanded={isExpandable ? isExpanded : undefined}
       aria-controls={isExpandable ? frameContextId : undefined}
@@ -121,7 +110,7 @@ export function NativeFrameHeader({
       </PackageCell>
 
       <AddressCell>
-        <NativeFrameAddress absolute={absoluteAddresses} />
+        <NativeFrameAddress />
       </AddressCell>
 
       <FunctionCell>
@@ -163,7 +152,6 @@ export function NativeFrameHeader({
 const HeaderGrid = styled('div')<{
   hasStatusColumn: boolean;
   isExpandable: boolean;
-  isInApp: boolean;
 }>`
   display: grid;
   grid-template-columns: ${p =>
@@ -177,9 +165,7 @@ const HeaderGrid = styled('div')<{
   cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
   background: ${p => p.theme.tokens.background.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  font-style: ${p => (p.isInApp ? 'normal' : 'italic')};
-  color: ${p =>
-    p.isInApp ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+  color: ${p => p.theme.tokens.content.primary};
   text-align: left;
 
   &:hover {

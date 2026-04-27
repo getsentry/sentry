@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
@@ -268,6 +268,79 @@ describe('NativeFrameRow', () => {
     expect(screen.getByText('Dart async')).toBeInTheDocument();
     // Dart frames are treated as symbolicated, no error icon.
     expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
+  });
+
+  it('shows a warning icon when symbolicatorStatus is MISSING_SYMBOL', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [
+        makeFrame({
+          symbolicatorStatus: SymbolicatorStatus.MISSING_SYMBOL,
+          instructionAddr: '0xdeadbeef',
+        }),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace));
+
+    expect(screen.getByTestId('symbolication-warning-icon')).toBeInTheDocument();
+    expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
+  });
+
+  it('reveals hidden system frames when the toggle is clicked', async () => {
+    // Default view is "app", which collapses runs of non-app frames into a
+    // "Show N more frames" toggle on the last visible non-app row.
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: true,
+      registers: null,
+      frames: [
+        makeFrame({function: 'app_main', inApp: true}),
+        makeFrame({function: 'hidden_one', inApp: false}),
+        makeFrame({function: 'hidden_two', inApp: false}),
+        makeFrame({function: 'hidden_three', inApp: false}),
+        // Last system frame stays visible (anchor for the toggle).
+        makeFrame({function: 'visible_tail', inApp: false}),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace));
+
+    expect(screen.getByText('app_main')).toBeInTheDocument();
+    expect(screen.getByText('visible_tail')).toBeInTheDocument();
+    expect(screen.queryByText('hidden_one')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Show 3 more frames'));
+
+    expect(screen.getByText('hidden_one')).toBeInTheDocument();
+    expect(screen.getByText('hidden_two')).toBeInTheDocument();
+    expect(screen.getByText('hidden_three')).toBeInTheDocument();
+  });
+
+  it('auto-expands the last in-app frame', () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: true,
+      registers: null,
+      frames: [
+        makeFrame({function: 'app_first', inApp: true, context: [[1, 'first source']]}),
+        makeFrame({
+          function: 'sys_middle',
+          inApp: false,
+          context: [[2, 'middle source']],
+        }),
+        makeFrame({function: 'app_last', inApp: true, context: [[3, 'last source']]}),
+      ],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace));
+
+    // Default newest-first reverses the display order, so app_last (the
+    // last in-app frame in the original array, and the auto-expanded one)
+    // shows up first.
+    const titles = screen.getAllByTestId('native-stack-trace-frame-title');
+    expect(titles[0]).toHaveAttribute('aria-expanded', 'true');
+    expect(titles[1]).toHaveAttribute('aria-expanded', 'false');
+    expect(titles[2]).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('renders an in-app tag for in-app frames', () => {
