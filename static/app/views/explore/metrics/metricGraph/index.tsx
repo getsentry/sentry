@@ -11,7 +11,6 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
-import {createTraceMetricEventsFilter} from 'sentry/views/dashboards/widgetCard/hooks/useWidgetRawCounts';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
@@ -26,7 +25,10 @@ import {
 } from 'sentry/views/explore/metrics/metricsQueryParams';
 import {METRICS_CHART_GROUP} from 'sentry/views/explore/metrics/metricsTab';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {getEquationMetricsTotalFilter} from 'sentry/views/explore/metrics/utils';
+import {
+  createTraceMetricEventsFilter,
+  getEquationMetricsTotalFilter,
+} from 'sentry/views/explore/metrics/utils';
 import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,

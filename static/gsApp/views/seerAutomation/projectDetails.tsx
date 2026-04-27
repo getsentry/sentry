@@ -87,7 +87,7 @@ function SeerProjectDetails() {
             preference={preference ?? DEFAULT_PREFERENCE}
             project={project}
           />
-          <Feature features="organizations:seer-night-shift">
+          <Feature features="organizations:seer-night-shift-settings">
             <NightShift canWrite={canWrite} project={project} />
           </Feature>
         </Stack>
