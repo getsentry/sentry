@@ -513,8 +513,8 @@ except Exception:
 
 def _normalize_convention_attribute_type(attr_type: str) -> constants.SearchType | None:
     # Convention types are generic value types like integer, double, string, boolean.
-    # Use them only for attributes that are missing local EAP definitions, since
-    # local definitions may have unit-specific types like millisecond or byte.
+    # For convention-only attributes, map those values to EAP search types. Existing
+    # local definitions keep unit-specific types like millisecond or byte.
     if attr_type == "double":
         return "number"
     if attr_type in constants.TYPE_MAP:
