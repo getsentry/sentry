@@ -89,7 +89,7 @@ const getUpdateSuccessMessage = (group: Group, data: UpdateData) => {
     }
   }
 
-  if (!data.inbox) {
+  if (data.inbox === false) {
     return t('Issue marked reviewed');
   }
 
