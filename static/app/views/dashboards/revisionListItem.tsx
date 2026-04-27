@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -246,6 +247,7 @@ function WidgetDiffCard({
   fields?: FieldChange[];
   layoutChanged?: boolean;
 }) {
+  const theme = useTheme();
   let statusLabel: string;
   if (status === 'added') statusLabel = t('Added');
   else if (status === 'removed') statusLabel = t('Removed');
@@ -260,9 +262,13 @@ function WidgetDiffCard({
     <Flex direction="column" gap="sm" border="secondary" radius="sm" padding="md">
       <Flex align="center" justify="between" gap="sm">
         <Flex align="center" gap="xs" style={{minWidth: 0}}>
-          <WidgetTileIcon>
+          <Flex
+            align="center"
+            flexShrink={0}
+            style={{color: theme.tokens.content.secondary}}
+          >
             {DISPLAY_TYPE_ICONS[widget.displayType] ?? <IconGraph size="sm" />}
-          </WidgetTileIcon>
+          </Flex>
           <Text
             bold
             size="sm"
@@ -337,13 +343,6 @@ const RadioInput = styled('input')`
   margin-top: 2px;
   cursor: pointer;
   accent-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-`;
-
-const WidgetTileIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  flex-shrink: 0;
 `;
 
 const DiffBefore = styled('span')`
