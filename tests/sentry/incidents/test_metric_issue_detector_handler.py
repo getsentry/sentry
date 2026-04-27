@@ -1,5 +1,5 @@
+from sentry.incidents.detectorconfig import MetricIssueDetectorHandler
 from sentry.incidents.grouptype import (
-    MetricIssueDetectorHandler,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )

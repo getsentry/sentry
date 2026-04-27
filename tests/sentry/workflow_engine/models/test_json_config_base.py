@@ -1,13 +1,16 @@
-from dataclasses import dataclass
+from typing import Any
+from unittest import mock
 
 import pytest
 from jsonschema import ValidationError
 
-from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.testutils.cases import APITestCase
 from sentry.workflow_engine.types import DetectorSettings
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
+
+_GET_DETECTOR_SETTINGS = "sentry.workflow_engine.registry.get_detector_settings"
 
 
 class JSONConfigBaseTest(BaseGroupTypeTest):
@@ -38,25 +41,41 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
             },
         }
 
-        @dataclass(frozen=True)
+        self._settings_by_slug: dict[str, DetectorSettings] = {}
+
         class TestGroupType(GroupType):
             type_id = 1
             slug = "test"
             description = "Test"
             category = GroupCategory.ERROR.value
             category_v2 = GroupCategory.ERROR.value
-            detector_settings = DetectorSettings(config_schema=self.example_schema)
 
-        @dataclass(frozen=True)
         class ExampleGroupType(GroupType):
             type_id = 2
             slug = "example"
             description = "Example"
             category = GroupCategory.PERFORMANCE.value
             category_v2 = GroupCategory.DB_QUERY.value
-            detector_settings = DetectorSettings(
-                config_schema={"type": "object", "additionalProperties": False},
-            )
+
+        self._register_settings("test", config_schema=self.example_schema)
+        self._register_settings(
+            "example", config_schema={"type": "object", "additionalProperties": False}
+        )
+
+        self._gds_patcher = mock.patch(
+            _GET_DETECTOR_SETTINGS, side_effect=self._mock_get_detector_settings
+        )
+        self._gds_patcher.start()
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self._gds_patcher.stop()
+
+    def _register_settings(self, slug: str, **kwargs: Any) -> None:
+        self._settings_by_slug[slug] = DetectorSettings(**kwargs)
+
+    def _mock_get_detector_settings(self, group_type: type[GroupType]) -> DetectorSettings | None:
+        return self._settings_by_slug.get(group_type.slug)
 
 
 # TODO - Move this to the detector model test
@@ -99,16 +118,31 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
         super().setUp()
         self.metric_alert = self.create_alert_rule(threshold_period=1)
 
-        @dataclass(frozen=True)
         class TestGroupType(GroupType):
             type_id = 3
             slug = "test_metric_issue"
             description = "Metric alert fired"
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(
-                config_schema=MetricIssue.detector_settings.config_schema,
-            )
+
+        self._register_settings(
+            "test_metric_issue",
+            config_schema={
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "description": "A representation of a metric detector config dict",
+                "type": "object",
+                "required": ["detection_type"],
+                "properties": {
+                    "comparison_delta": {
+                        "type": ["integer", "null"],
+                    },
+                    "detection_type": {
+                        "type": "string",
+                        "enum": [dt.value for dt in AlertRuleDetectionType],
+                    },
+                },
+            },
+        )
 
     def test_detector_correct_schema(self) -> None:
         self.create_detector(

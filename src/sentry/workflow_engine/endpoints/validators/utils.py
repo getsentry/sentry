@@ -23,6 +23,7 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.registry import get_detector_settings
 
 logger = logging.getLogger(__name__)
 
@@ -359,7 +360,7 @@ def get_unknown_detector_type_error(bad_value: str, organization: Organization) 
     available_types = [
         gt.slug
         for gt in grouptype.registry.get_visible(organization)
-        if gt.detector_settings is not None and gt.detector_settings.validator is not None
+        if (ds := get_detector_settings(gt)) is not None and ds.validator is not None
     ]
     available_types.sort()
 

@@ -79,6 +79,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
                     {},
                 )
 
+        handler_settings = DetectorSettings(handler=MockDetectorHandler)
+
         # TODO - each of these types should be broken out into their individual modules
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
@@ -87,7 +89,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Metric alert"
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -97,7 +98,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Crons"
             category = GroupCategory.CRON.value
             category_v2 = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         @dataclass(frozen=True)
@@ -107,7 +107,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             description = "Uptime"
             category = GroupCategory.UPTIME.value
             category_v2 = GroupCategory.OUTAGE.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
             released = True
 
         # Should not be included in the response
@@ -120,9 +119,22 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             category_v2 = GroupCategory.DB_QUERY.value
             released = True
 
+        settings_by_slug = {
+            MetricIssue.slug: handler_settings,
+            MonitorIncidentType.slug: handler_settings,
+            UptimeDomainCheckFailure.slug: handler_settings,
+        }
+
+        self._gds_patcher = patch(
+            "sentry.workflow_engine.endpoints.organization_detector_types.get_detector_settings",
+            side_effect=lambda gt: settings_by_slug.get(gt.slug),
+        )
+        self._gds_patcher.start()
+
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.stop()
+        self._gds_patcher.stop()
 
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)

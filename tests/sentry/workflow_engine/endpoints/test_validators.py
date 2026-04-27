@@ -129,9 +129,14 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
             description = "no handler"
             category = GroupCategory.METRIC_ALERT.value
             category_v2 = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(validator=MetricIssueDetectorValidator)
 
-        with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
+        with (
+            mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug,
+            mock.patch(
+                "sentry.workflow_engine.registry.get_detector_settings",
+                return_value=DetectorSettings(validator=MetricIssueDetectorValidator),
+            ),
+        ):
             mock_get_by_slug.return_value = TestGroupType
             validator = self.validator_class()
             result = validator.validate_type("test_type")
@@ -307,8 +312,14 @@ class DetectorValidatorTest(BaseValidatorTest):
         ], validator.errors
 
     def test_validate_type_incompatible(self) -> None:
-        with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
-            mock_get.return_value = mock.Mock(detector_settings=None)
+        with (
+            mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get,
+            mock.patch(
+                "sentry.workflow_engine.registry.get_detector_settings",
+                return_value=None,
+            ),
+        ):
+            mock_get.return_value = mock.Mock()
             validator = MockDetectorValidator(data={**self.valid_data, "type": "incompatible_type"})
             assert not validator.is_valid()
             assert validator.errors.get("type") == [

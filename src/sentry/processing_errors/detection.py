@@ -10,8 +10,8 @@ from django.utils import timezone
 
 from sentry import features, ratelimits
 from sentry.issues.grouptype import GroupType
+from sentry.processing_errors.detectorconfig import ProcessingErrorDetectorHandler
 from sentry.processing_errors.grouptype import (
-    ProcessingErrorDetectorHandler,
     ProcessingErrorPacketValue,
     SourcemapConfigurationType,
 )
@@ -40,7 +40,9 @@ class DetectorConfig:
     feature_flag: str | None = None
 
     def __post_init__(self) -> None:
-        settings = self.config_type.detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
+
+        settings = get_detector_settings(self.config_type)
         assert settings is not None, f"{self.config_type.slug} has no detector_settings"
         handler = settings.handler
         assert handler is not None, f"{self.config_type.slug} has no handler"
@@ -54,7 +56,9 @@ class DetectorConfig:
 
     @property
     def handler_cls(self) -> type[ProcessingErrorDetectorHandler]:
-        settings = self.config_type.detector_settings
+        from sentry.workflow_engine.registry import get_detector_settings
+
+        settings = get_detector_settings(self.config_type)
         assert settings is not None
         handler = settings.handler
         assert handler is not None and issubclass(handler, ProcessingErrorDetectorHandler)

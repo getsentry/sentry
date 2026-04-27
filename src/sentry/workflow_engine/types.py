@@ -404,9 +404,48 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
+class DetectorType(StrEnum):
+    """
+    Identifies which GroupTypes have an associated Detector. This enum is the
+    join point between GroupType (which carries a lightweight DetectorType tag)
+    and DetectorSettings (which references handler/validator implementation
+    types). Keeping this as the indirection layer means importing a GroupType
+    for an id or slug check never pulls in detector implementation code.
+
+    Values are the corresponding GroupType slugs.
+    """
+
+    ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
+
+
 @dataclass(frozen=True)
 class DetectorSettings:
     handler: type[DetectorHandler[Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None
+
+
+class DetectorSettingsRegistry:
+    """
+    Registry mapping DetectorType to DetectorSettings. DetectorSettings are
+    registered at import time by the modules that define the associated
+    handlers and validators.
+    """
+
+    def __init__(self) -> None:
+        self._registry: dict[DetectorType, DetectorSettings] = {}
+
+    def register(self, detector_type: DetectorType, settings: DetectorSettings) -> None:
+        if detector_type in self._registry:
+            raise ValueError(f"DetectorSettings already registered for {detector_type!r}")
+        self._registry[detector_type] = settings
+
+    def get(self, detector_type: DetectorType) -> DetectorSettings | None:
+        return self._registry.get(detector_type)

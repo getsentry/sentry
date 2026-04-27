@@ -19,7 +19,8 @@ from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.registry import get_detector_settings
+from sentry.workflow_engine.types import DetectorType
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -184,10 +185,10 @@ class GroupTypeRegistry:
         filtered_type_conditions = Q()
 
         for group_type in self.all():
-            if group_type.detector_settings and group_type.detector_settings.filter is not None:
-                filter = group_type.detector_settings.filter
+            ds = get_detector_settings(group_type)
+            if ds and ds.filter is not None:
                 types_with_filters.append(group_type.slug)
-                filtered_type_conditions |= Q(type=group_type.slug) & filter
+                filtered_type_conditions |= Q(type=group_type.slug) & ds.filter
 
         # Include all types that don't have filters (type NOT IN types_with_filters)
         # OR match the specific filter conditions for types that do have filters
@@ -260,7 +261,7 @@ class GroupType:
         3600, 60, 5
     )  # default 5 per hour, sliding window of 60 seconds
     notification_config: ClassVar[NotificationConfig] = NotificationConfig()
-    detector_settings: ClassVar[DetectorSettings | None] = None
+    detector_type: ClassVar[DetectorType | None] = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: ClassVar[bool] = True

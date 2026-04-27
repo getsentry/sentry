@@ -1,9 +1,15 @@
 from unittest import mock
 
+from sentry.issues.grouptype import registry as grouptype_registry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.workflow_engine.types import WorkflowEvaluation, WorkflowEvaluationData
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import (
+    DetectorType,
+    WorkflowEvaluation,
+    WorkflowEvaluationData,
+)
 
 
 class TestWorkflowEvaluationLogTo(TestCase):
@@ -93,3 +99,30 @@ class TestWorkflowEvaluationLogTo(TestCase):
                     assert evaluation.log_to(mock_logger)
                     mock_logger.info.assert_called_once()
                     mock_sentry_logger.info.assert_not_called()
+
+
+class TestDetectorSettingsRegistryCompleteness(TestCase):
+    def test_all_detector_types_have_registered_settings(self) -> None:
+        missing = [dt for dt in DetectorType if detector_settings_registry.get(dt) is None]
+        assert missing == [], f"DetectorTypes with no registered DetectorSettings: {missing}"
+
+
+class TestDetectorTypeSlugConvention(TestCase):
+    def test_detector_type_value_matches_group_type_slug(self) -> None:
+        """
+        Every GroupType that declares a detector_type must have
+        detector_type.value == slug. This keeps DetectorType values,
+        GroupType slugs, and Detector.type column values in sync.
+        """
+        mismatches = [
+            (gt.__name__, gt.slug, gt.detector_type.value)
+            for gt in grouptype_registry.all()
+            if gt.detector_type is not None and gt.detector_type.value != gt.slug
+        ]
+        assert mismatches == [], (
+            "GroupType.detector_type.value must equal GroupType.slug. Mismatches: "
+            + ", ".join(
+                f"{name} (slug={slug!r}, detector_type.value={dt_val!r})"
+                for name, slug, dt_val in mismatches
+            )
+        )
