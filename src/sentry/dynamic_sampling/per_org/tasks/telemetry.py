@@ -4,6 +4,7 @@ import functools
 from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
+from enum import StrEnum
 from typing import TypeVar
 
 import sentry_sdk
@@ -21,6 +22,19 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
 SCHEDULER_BUCKET_SIZE_METRIC = "dynamic_sampling.schedule_per_org_calculations_bucket.bucket_size"
 
 
+class TelemetryStatus(StrEnum):
+    COMPLETED = "completed"
+    DISPATCHED = "dispatched"
+    FAILED = "failed"
+    KILLSWITCHED = "killswitched"
+    NO_VOLUME = "no_volume"
+    NOT_IN_ROLLOUT = "not_in_rollout"
+    ORG_HAS_NO_DYNAMIC_SAMPLING = "org_has_no_dynamic_sampling"
+    ORG_NOT_FOUND = "org_not_found"
+    ROLLOUT_DISABLED = "rollout_disabled"
+    ROLLOUT_EXCLUDED = "rollout_excluded"
+
+
 def status_metric_for(func_name: str) -> str:
     return f"{METRIC_PREFIX}.{func_name}.status"
 
@@ -29,8 +43,8 @@ def duration_metric_for(func_name: str) -> str:
     return f"{METRIC_PREFIX}.{func_name}.duration"
 
 
-def _merge_tags(status: str, extra: Mapping[str, str] | None) -> dict[str, str]:
-    tags: dict[str, str] = {"status": status}
+def _merge_tags(status: TelemetryStatus, extra: Mapping[str, str] | None) -> dict[str, str]:
+    tags: dict[str, str] = {"status": status.value}
     if extra:
         tags.update(extra)
     return tags
@@ -38,7 +52,7 @@ def _merge_tags(status: str, extra: Mapping[str, str] | None) -> dict[str, str]:
 
 def emit_status(
     metric: str,
-    status: str,
+    status: TelemetryStatus,
     *,
     amount: int = 1,
     extra_tags: Mapping[str, str] | None = None,
@@ -86,7 +100,7 @@ def instrumented(func: F) -> F:
                     return func(*args, **kwargs)
                 except Exception as exc:
                     sentry_sdk.capture_exception(exc)
-                    emit_status(status_metric, "failed")
+                    emit_status(status_metric, TelemetryStatus.FAILED)
                     raise
         finally:
             _current_status_metric.reset(token)
@@ -94,7 +108,9 @@ def instrumented(func: F) -> F:
     return wrapper  # type: ignore[return-value]
 
 
-def emit_status_metric(status: str, *, extra_tags: Mapping[str, str] | None = None) -> None:
+def emit_status_metric(
+    status: TelemetryStatus, *, extra_tags: Mapping[str, str] | None = None
+) -> None:
     metric = _current_status_metric.get()
     if metric is None:
         raise RuntimeError("emit_status_metric() called outside an @instrumented function")

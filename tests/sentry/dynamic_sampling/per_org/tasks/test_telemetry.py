@@ -6,7 +6,9 @@ from unittest.mock import patch
 import pytest
 
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    TelemetryStatus,
     duration_metric_for,
+    emit_status,
     emit_status_metric,
     instrumented,
     status_metric_for,
@@ -42,6 +44,22 @@ def test_metric_names_are_derived_from_function_name() -> None:
     )
 
 
+def test_emit_status_adds_string_status_tag() -> None:
+    with patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics") as metrics:
+        emit_status(
+            "dynamic_sampling.test.status",
+            TelemetryStatus.ROLLOUT_DISABLED,
+            extra_tags={"bucket_index": "1"},
+        )
+
+    metrics.incr.assert_called_once_with(
+        "dynamic_sampling.test.status",
+        amount=1,
+        sample_rate=1.0,
+        tags={"status": "rollout_disabled", "bucket_index": "1"},
+    )
+
+
 def test_records_duration_and_reraises_with_failed_status_on_exception() -> None:
     @instrumented
     def boom() -> None:
@@ -56,7 +74,7 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
             boom()
 
     timed_cm.assert_called_once_with("dynamic_sampling.boom.duration")
-    emit.assert_called_once_with("dynamic_sampling.boom.status", "failed")
+    emit.assert_called_once_with("dynamic_sampling.boom.status", TelemetryStatus.FAILED)
     assert sdk.capture_exception.call_count == 1
     (captured_exc,), _ = sdk.capture_exception.call_args
     assert isinstance(captured_exc, _BoomError)
@@ -82,42 +100,44 @@ def test_passes_result_through_on_success_without_emitting_failed() -> None:
 def test_emit_status_metric_routes_to_enclosing_function() -> None:
     @instrumented
     def orch() -> None:
-        emit_status_metric("killswitched")
+        emit_status_metric(TelemetryStatus.KILLSWITCHED)
 
     with patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit:
         orch()
 
-    emit.assert_called_once_with("dynamic_sampling.orch.status", "killswitched", extra_tags=None)
+    emit.assert_called_once_with(
+        "dynamic_sampling.orch.status", TelemetryStatus.KILLSWITCHED, extra_tags=None
+    )
 
 
 def test_emit_status_metric_outside_decorated_function_raises() -> None:
     with pytest.raises(RuntimeError):
-        emit_status_metric("anything")
+        emit_status_metric(TelemetryStatus.COMPLETED)
 
 
 def test_emit_status_metric_resolves_to_nearest_enclosing_function() -> None:
-    calls: list[tuple[str, str]] = []
+    calls: list[tuple[str, TelemetryStatus]] = []
 
-    def _record(metric: str, status: str, *, extra_tags=None) -> None:
+    def _record(metric: str, status: TelemetryStatus, *, extra_tags=None) -> None:
         calls.append((metric, status))
 
     @instrumented
     def inner() -> None:
-        emit_status_metric("nested")
+        emit_status_metric(TelemetryStatus.NO_VOLUME)
 
     @instrumented
     def outer() -> None:
-        emit_status_metric("before")
+        emit_status_metric(TelemetryStatus.NOT_IN_ROLLOUT)
         inner()
-        emit_status_metric("after")
+        emit_status_metric(TelemetryStatus.COMPLETED)
 
     with patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status", side_effect=_record):
         outer()
 
     assert calls == [
-        ("dynamic_sampling.outer.status", "before"),
-        ("dynamic_sampling.inner.status", "nested"),
-        ("dynamic_sampling.outer.status", "after"),
+        ("dynamic_sampling.outer.status", TelemetryStatus.NOT_IN_ROLLOUT),
+        ("dynamic_sampling.inner.status", TelemetryStatus.NO_VOLUME),
+        ("dynamic_sampling.outer.status", TelemetryStatus.COMPLETED),
     ]
 
 

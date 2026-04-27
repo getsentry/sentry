@@ -5,6 +5,7 @@ from taskbroker_client.retry import Retry
 from sentry.dynamic_sampling.per_org.tasks.gate import is_killswitch_engaged, is_rollout_enabled
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BEAT_STATUS_METRIC,
+    TelemetryStatus,
     emit_status,
 )
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
@@ -23,8 +24,8 @@ from sentry.taskworker.namespaces import telemetry_experience_tasks
 @dynamic_sampling_task
 def schedule_per_org_calculations() -> None:
     if is_killswitch_engaged():
-        emit_status(SCHEDULER_BEAT_STATUS_METRIC, "killswitched")
+        emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.KILLSWITCHED)
         return
     if not is_rollout_enabled():
-        emit_status(SCHEDULER_BEAT_STATUS_METRIC, "rollout_disabled")
+        emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.ROLLOUT_DISABLED)
         return
