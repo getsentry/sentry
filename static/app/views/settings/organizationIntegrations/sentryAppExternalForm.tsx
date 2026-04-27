@@ -16,7 +16,7 @@ import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonForm
 import {t} from 'sentry/locale';
 import type {Choices, Choice, SelectValue} from 'sentry/types/core';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
@@ -690,7 +690,7 @@ export function SentryAppExternalForm({
 
   const {mutateAsync: createExternalIssue} = useMutation<
     unknown,
-    RequestError,
+    Error,
     Record<string, unknown>
   >({
     mutationFn: values =>
@@ -708,7 +708,7 @@ export function SentryAppExternalForm({
       onSubmitSuccess(response);
     },
     onError: error => {
-      if (!(error instanceof Error)) {
+      if (!(error instanceof RequestError)) {
         addErrorMessage(t('Unable to %s %s issue.', action, appName));
       }
     },
