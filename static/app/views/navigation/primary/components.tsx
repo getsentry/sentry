@@ -254,11 +254,13 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   );
 }
 
+type PrimaryNavigationIndicatorVariant = 'accent' | 'danger' | 'warning' | 'success';
+
 interface PrimaryNavigationButtonProps extends PrimaryNavigationItemBaseProps {
   label: React.ReactNode;
   buttonProps?: Omit<ButtonProps, 'aria-label' | 'size'>;
   children?: React.ReactNode;
-  indicator?: 'accent' | 'danger' | 'warning';
+  indicator?: PrimaryNavigationIndicatorVariant;
 }
 
 function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
@@ -315,7 +317,7 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
 }
 
 interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant: 'accent' | 'danger' | 'warning';
+  variant: PrimaryNavigationIndicatorVariant;
 }
 
 function PrimaryNavigationUnreadIndicator({
@@ -343,6 +345,8 @@ function PrimaryNavigationUnreadIndicator({
           {...mergeProps(p, props)}
           variant={variant}
           data-unread-indicator
+          data-variant={variant}
+          data-test-id="primary-nav-unread-indicator"
         />
       )}
     </Container>
@@ -354,7 +358,7 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   label: string;
   children?: React.ReactNode;
   icon?: React.ReactNode;
-  indicator?: 'accent' | 'danger' | 'warning';
+  indicator?: PrimaryNavigationIndicatorVariant;
   onOpen?: MouseEventHandler<HTMLButtonElement>;
   triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }

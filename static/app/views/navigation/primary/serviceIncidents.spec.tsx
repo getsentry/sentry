@@ -53,4 +53,97 @@ describe('PrimaryNavigationServiceIncidents', () => {
     expect(screen.getByText('Things look bad')).toBeInTheDocument();
     expect(screen.getByText('Monitoring')).toBeInTheDocument();
   });
+
+  it.each([
+    {status: 'investigating' as const, expectedVariant: 'danger'},
+    {status: 'identified' as const, expectedVariant: 'accent'},
+    {status: 'monitoring' as const, expectedVariant: 'warning'},
+  ])(
+    'shows $expectedVariant indicator when latest update is $status',
+    async ({status, expectedVariant}) => {
+      const incident = ServiceIncidentFixture({
+        incident_updates: [
+          {
+            id: 'older',
+            incident_id: '1',
+            status: 'investigating',
+            body: 'Older investigation update',
+            affected_components: [],
+            created_at: '2022-05-23T12:00:00.000-07:00',
+            updated_at: '2022-05-23T12:00:00.000-07:00',
+            display_at: '2022-05-23T12:00:00.000-07:00',
+          },
+          {
+            id: 'latest',
+            incident_id: '1',
+            status,
+            body: 'Latest update',
+            affected_components: [],
+            created_at: '2022-05-23T18:00:00.000-07:00',
+            updated_at: '2022-05-23T18:00:00.000-07:00',
+            display_at: '2022-05-23T18:00:00.000-07:00',
+          },
+        ],
+      });
+
+      fetchMock.mockResponse(req =>
+        req.url.endsWith('incidents/unresolved.json')
+          ? Promise.resolve(JSON.stringify({incidents: [incident]}))
+          : Promise.reject(new Error('not found'))
+      );
+
+      render(<PrimaryNavigationServiceIncidents />);
+
+      await screen.findByRole('button', {name: 'Service status'});
+      const indicator = await screen.findByTestId('primary-nav-unread-indicator');
+      expect(indicator).toHaveAttribute('data-variant', expectedVariant);
+    }
+  );
+
+  it('uses the most recent update across multiple incidents', async () => {
+    const olderIncident = ServiceIncidentFixture({
+      id: 'older',
+      name: 'Older incident',
+      incident_updates: [
+        {
+          id: 'older-update',
+          incident_id: 'older',
+          status: 'investigating',
+          body: 'Investigating older incident',
+          affected_components: [],
+          created_at: '2022-05-23T12:00:00.000-07:00',
+          updated_at: '2022-05-23T12:00:00.000-07:00',
+          display_at: '2022-05-23T12:00:00.000-07:00',
+        },
+      ],
+    });
+    const newerIncident = ServiceIncidentFixture({
+      id: 'newer',
+      name: 'Newer incident',
+      incident_updates: [
+        {
+          id: 'newer-update',
+          incident_id: 'newer',
+          status: 'monitoring',
+          body: 'Monitoring newer incident',
+          affected_components: [],
+          created_at: '2022-05-23T18:00:00.000-07:00',
+          updated_at: '2022-05-23T18:00:00.000-07:00',
+          display_at: '2022-05-23T18:00:00.000-07:00',
+        },
+      ],
+    });
+
+    fetchMock.mockResponse(req =>
+      req.url.endsWith('incidents/unresolved.json')
+        ? Promise.resolve(JSON.stringify({incidents: [olderIncident, newerIncident]}))
+        : Promise.reject(new Error('not found'))
+    );
+
+    render(<PrimaryNavigationServiceIncidents />);
+
+    await screen.findByRole('button', {name: 'Service status'});
+    const indicator = await screen.findByTestId('primary-nav-unread-indicator');
+    expect(indicator).toHaveAttribute('data-variant', 'warning');
+  });
 });
