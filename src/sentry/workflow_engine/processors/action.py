@@ -40,6 +40,11 @@ EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 DroppedStatuses = list[tuple[int, int]]  # (workflow_id, action_id)
 
 
+class FilteredActions(NamedTuple):
+    actions: BaseQuerySet[Action]
+    workflow_ids: set[WorkflowId]
+
+
 class StatusUpdateResult(NamedTuple):
     updated: int
     created: int
@@ -271,7 +276,7 @@ def fire_actions(
 
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
-) -> tuple[BaseQuerySet[Action], set[WorkflowId]]:
+) -> FilteredActions:
     """
     Returns a tuple of (actions, all_workflow_ids) where actions are deduplicated by
     configuration and filtered by firing frequency, and all_workflow_ids includes every
@@ -325,11 +330,11 @@ def filter_recently_fired_workflow_actions(
         event_data.event.project.organization,
     ):
         actions_for_dedup = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
-        dedup_key_to_entry: dict[str, tuple[int, set[int]]] = {}
+        dedup_key_to_entry: dict[str, tuple[int, set[WorkflowId]]] = {}
         for action in actions_for_dedup:
             dedup_key = action.get_dedup_key()
             if dedup_key in dedup_key_to_entry:
-                kept_action_id, kept_workflows = dedup_key_to_entry[dedup_key]
+                _, kept_workflows = dedup_key_to_entry[dedup_key]
                 kept_workflows.update(action_to_workflows_ids[action.id])
             else:
                 dedup_key_to_entry[dedup_key] = (
@@ -341,9 +346,9 @@ def filter_recently_fired_workflow_actions(
             action_id: wf_ids for action_id, wf_ids in dedup_key_to_entry.values()
         }
 
-    all_workflow_ids: set[WorkflowId] = set()
-    for wf_ids in action_to_workflows_ids.values():
-        all_workflow_ids.update(wf_ids)
+    all_workflow_ids: set[WorkflowId] = {
+        wf_id for wf_ids in action_to_workflows_ids.values() for wf_id in wf_ids
+    }
 
     actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
 
@@ -355,14 +360,14 @@ def filter_recently_fired_workflow_actions(
         for action_id, workflow_ids in action_to_workflows_ids.items()
     ]
 
-    return (
-        actions_queryset.annotate(
+    return FilteredActions(
+        actions=actions_queryset.annotate(
             workflow_id=Case(
                 *workflow_id_cases,
                 output_field=models.IntegerField(),
             ),
         ),
-        all_workflow_ids,
+        workflow_ids=all_workflow_ids,
     )
 
 
