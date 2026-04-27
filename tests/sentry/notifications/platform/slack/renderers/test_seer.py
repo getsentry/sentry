@@ -76,6 +76,29 @@ class SeerSlackRendererTest(TestCase):
         assert section_block.text is not None
         assert working_text in section_block.text.text
 
+    def test_render_footer_blocks_with_handoff_target_uses_handoff_text(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            handoff_target="cursor_background_agent",
+        )
+        config = AUTOFIX_CONFIG[AutofixStoppingPoint.ROOT_CAUSE]
+
+        working = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=False)
+        assert len(working) == 1
+        working_section = working[0]
+        assert isinstance(working_section, SectionBlock)
+        assert working_section.text is not None
+        assert "Cursor" in working_section.text.text
+        # Generic stopping-point text is suppressed when a handoff target is set.
+        assert config["working_text"] not in working_section.text.text
+
+        completed = SeerSlackRenderer.render_footer_blocks(data=data, has_complete_stage=True)
+        completed_section = completed[0]
+        assert isinstance(completed_section, SectionBlock)
+        assert completed_section.text is not None
+        assert "Cursor" in completed_section.text.text
+        assert config["completed_text"] not in completed_section.text.text
+
     def test_render_footer_blocks_with_extra_text(self) -> None:
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
         extra_text = "(ty <@U12345>)"

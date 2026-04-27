@@ -311,7 +311,6 @@ class SeerAutofixOperator[CachePayloadT]:
         from sentry.seer.autofix.utils import (
             CodingAgentProviderType,
             CodingAgentStatus,
-            get_autofix_state,
             read_preference_from_sentry_db,
         )
         from sentry.utils.locking import UnableToAcquireLock
