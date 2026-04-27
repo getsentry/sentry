@@ -150,6 +150,8 @@ describe('useInfiniteLogsQuery', () => {
       key => Array.isArray(key) && key[key.length - 1] === 'infinite'
     )!;
 
+    // TODO: Rule bug! We should report this upstream.
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
 
     expect(cachedData.pageParams).toHaveLength(2);
@@ -158,7 +160,7 @@ describe('useInfiniteLogsQuery', () => {
 
     expect(mocks.previousPageMock).toHaveBeenCalled();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey)!;
 
     expect(cachedData.pageParams).toHaveLength(3);
 
@@ -233,13 +235,15 @@ describe('useInfiniteLogsQuery', () => {
       key => Array.isArray(key) && key[key.length - 1] === 'infinite'
     )!;
 
+    // TODO: Rule bug! We should report this upstream.
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     let cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
     expect(cachedData.pages).toHaveLength(2);
     expect(cachedData.pageParams).toHaveLength(2);
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey)!;
     expect(cachedData.pages).toHaveLength(1); // Only the initial page should remain
     expect(cachedData.pageParams).toHaveLength(1);
 
@@ -251,7 +255,7 @@ describe('useInfiniteLogsQuery', () => {
 
     rerender();
 
-    cachedData = queryClient.getQueryData(infiniteQueryKey) as CachedQueryData;
+    cachedData = queryClient.getQueryData(infiniteQueryKey)!;
     expect(cachedData.pages).toHaveLength(1);
     expect(cachedData.pageParams).toHaveLength(1);
 

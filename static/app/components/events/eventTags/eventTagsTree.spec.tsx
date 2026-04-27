@@ -273,6 +273,9 @@ describe('EventTagsTree', () => {
       organization,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
+
+    // TODO: Rule bug! We should report this upstream.
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
@@ -280,6 +283,8 @@ describe('EventTagsTree', () => {
     await userEvent.click(normalTagDropdown);
     expect(screen.getByLabelText('Add to event highlights')).toBeInTheDocument();
 
+    // TODO: Rule bug! We should report this upstream.
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const highlightTagRow = screen
       .getByText('highlighted-tag', {selector: 'div'})
       .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
@@ -310,6 +315,8 @@ describe('EventTagsTree', () => {
       organization: readAccessOrganization,
     });
     expect(mockHighlightProject).toHaveBeenCalled();
+    // TODO: Rule bug! We should report this upstream.
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;
@@ -333,6 +340,8 @@ describe('EventTagsTree', () => {
         route: '/organizations/:orgId/issues/:groupId/',
       },
     });
+    // TODO: Rule bug! We should report this upstream.
+    // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
     const normalTagRow = (
       await screen.findByText('useless-tag', {selector: 'div'})
     ).closest('div[data-test-id=tag-tree-row]') as HTMLElement;

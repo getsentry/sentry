@@ -276,7 +276,7 @@ export function WizardProjectSelection({
     <FieldWrapper>
       <label>{t('Platform')}</label>
       <StyledCompactSelect
-        value={newProjectPlatform as string}
+        value={newProjectPlatform!}
         search
         options={platformOptions}
         trigger={triggerProps => (
@@ -319,7 +319,7 @@ export function WizardProjectSelection({
           <label>{t('Organization')}</label>
           <StyledCompactSelect
             autoFocus
-            value={selectedOrgId as string}
+            value={selectedOrgId!}
             search
             options={orgOptions}
             trigger={triggerProps => (
@@ -361,7 +361,7 @@ export function WizardProjectSelection({
               search={{onChange: setSearch}}
               onClose={() => setSearch('')}
               disabled={!selectedOrgId}
-              value={selectedProjectId as string}
+              value={selectedProjectId!}
               options={sortedProjectOptions}
               trigger={triggerProps => (
                 <OverlayTrigger.Button
@@ -417,7 +417,7 @@ export function WizardProjectSelection({
                 <FieldWrapper>
                   <label>{t('Team')}</label>
                   <StyledCompactSelect
-                    value={newProjectTeam as string}
+                    value={newProjectTeam!}
                     options={
                       selectableTeams?.map(team => ({
                         value: team.slug,

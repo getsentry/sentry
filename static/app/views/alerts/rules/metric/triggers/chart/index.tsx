@@ -579,7 +579,7 @@ class TriggersChart extends PureComponent<Props, State> {
               }
 
               return this.renderChart({
-                timeseriesData: timeseriesData as Series[],
+                timeseriesData: timeseriesData!,
                 isLoading: loading,
                 isReloading: reloading,
                 comparisonData: comparisonTimeseriesData,
@@ -723,7 +723,7 @@ class TriggersChart extends PureComponent<Props, State> {
             }
 
             return this.renderChart({
-              timeseriesData: timeseriesData as Series[],
+              timeseriesData: timeseriesData!,
               isLoading: loading,
               isReloading: reloading,
               comparisonData: comparisonTimeseriesData,
