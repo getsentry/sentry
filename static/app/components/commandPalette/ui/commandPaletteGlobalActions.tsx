@@ -379,7 +379,7 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/monitors/errors/`}
             />
             <CMDKAction
-              display={{label: t('Application Metrics')}}
+              display={{label: t('Metrics')}}
               to={`${prefix}/monitors/metrics/`}
             />
             <CMDKAction display={{label: t('Crons')}} to={`${prefix}/monitors/crons/`} />
