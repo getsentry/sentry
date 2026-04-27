@@ -407,12 +407,13 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         )
 
         data["config"]["comparisonDelta"] = 300
-        response = self.get_success_response(
-            self.organization.slug,
-            self.detector.id,
-            **data,
-            status_code=200,
-        )
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **data,
+                status_code=200,
+            )
         assert response.data["config"]["comparisonDelta"] == 300
 
     def test_metric_detector_not_allowed_returns_404(self) -> None:
