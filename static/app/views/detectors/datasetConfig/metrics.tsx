@@ -1,5 +1,8 @@
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import {
+  isTokenFunction,
+  isTokenOperator,
+} from 'sentry/components/arithmeticBuilder/token';
 import {t} from 'sentry/locale';
 import {
   EQUATION_PREFIX,
@@ -54,8 +57,10 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
     // Check to see if this aggregate is an equation with more than one function
     // This is the most reliable way we have to determine if this is an equation
     const expression = new Expression(aggregate);
-    const functions = expression.tokens.filter(token => isTokenFunction(token));
-    if (!isEquation(aggregate) && expression.isValid && functions.length > 1) {
+    const functionComponents = expression.tokens.filter(
+      token => isTokenFunction(token) || isTokenOperator(token)
+    );
+    if (!isEquation(aggregate) && expression.isValid && functionComponents.length > 1) {
       return `${EQUATION_PREFIX}${aggregate}`;
     }
 
