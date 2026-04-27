@@ -342,7 +342,7 @@ jobs:
           python3 -b -m pytest tests \
             --reuse-db \
             -n 4 \
-            --dist=loadfile \
+            --dist=load \
             --ignore tests/acceptance \
             --ignore tests/apidocs \
             --ignore tests/js \
@@ -454,7 +454,7 @@ jobs:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || (needs.split-tiers.outputs.has-tiers == 'true' && '/tmp/backend-tests.txt' || '') }}
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=load"
             timeout 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
