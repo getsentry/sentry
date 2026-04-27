@@ -1,6 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchFeatureFlagValues, fetchTagValues} from 'sentry/actionCreators/tags';
@@ -82,6 +84,7 @@ function FilterActions({
 }: Pick<IssueListCommandPaletteActionsProps, 'query' | 'onQueryChange'>) {
   const api = useApi();
   const organization = useOrganization();
+  const user = useUser();
   const {selection: pageFilters} = usePageFilters();
   const filterKeys = useIssueListFilterKeys();
 
@@ -190,7 +193,13 @@ function FilterActions({
           queryFn: async () => {
             const values = hasPredefined ? predefined : await loadTagValues(tag.key);
             return values.map(value => ({
-              display: {label: value},
+              display: {
+                label: value,
+                icon:
+                  tag.key === FieldKey.ASSIGNED && value === 'me' ? (
+                    <UserAvatar user={user} size={16} hasTooltip={false} />
+                  ) : undefined,
+              },
               onAction: () => onQueryChange(appendFilterToken(query, tag.key, value)),
             }));
           },
@@ -219,6 +228,14 @@ function FilterActions({
       display={{label: t('Filter by'), icon: <IconFilter />}}
       keywords={['search', 'filter', 'narrow', 'where', 'show']}
     >
+      <CMDKAction
+        display={{
+          label: t('Assigned to me'),
+          icon: <UserAvatar user={user} size={16} hasTooltip={false} />,
+        }}
+        keywords={['mine', 'my issues', 'assign', 'me']}
+        onAction={() => onQueryChange(appendFilterToken(query, 'assigned', 'me'))}
+      />
       <CMDKAction
         display={{label: t('Issues')}}
         prompt={t('Select a filter...')}
