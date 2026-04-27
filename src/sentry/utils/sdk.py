@@ -768,7 +768,7 @@ def get_trace_id():
             return span.get_trace_context().get("trace_id")
         else:
             # span streaming
-            return span._get_trace_context().get("trace_id")
+            return span.trace_id
     return None
 
 
