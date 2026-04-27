@@ -7,6 +7,7 @@ import {Hotkey} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Text} from '@sentry/scraps/text';
 
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -20,6 +21,7 @@ import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 export function AskSeerButton() {
   const organization = useOrganization({allowNull: true});
   const {isOpen, toggleSeerExplorer, sessionState: state} = useSeerExplorerContext();
+  const showMessageIndicator = useShowMessageIndicator({state, isOpen});
 
   if (!organization || !isSeerExplorerEnabled(organization)) {
     return null;
@@ -29,7 +31,13 @@ export function AskSeerButton() {
     'aria-label': state === 'thinking' ? t('Seer is thinking...') : t('Ask Seer'),
     'aria-expanded': isOpen ? true : undefined,
     priority: 'default',
-    icon: <MessageIndicator state={state} isOpen={isOpen} />,
+    icon: (
+      <IconSeer
+        animation={
+          showMessageIndicator ? 'waiting' : state === 'thinking' ? 'loading' : undefined
+        }
+      />
+    ),
   };
 
   return (
@@ -44,6 +52,7 @@ export function AskSeerButton() {
           <Hotkey value="command+/" variant="debossed" />
         </Flex>
         <ThinkingIndicator state={state} />
+        <MessageIndicator state={state} isOpen={isOpen} />
       </Flex>
     </SeerButton>
   );
@@ -69,7 +78,7 @@ function ThinkingIndicator({state}: IndicatorProps) {
       marginRight="auto"
     >
       {prefersReducedMotion ? (
-        t('Thinking...')
+        <Text variant="secondary">{t('Thinking...')}</Text>
       ) : (
         <IndeterminateLoader variant="monochrome" />
       )}
@@ -77,16 +86,28 @@ function ThinkingIndicator({state}: IndicatorProps) {
   );
 }
 
-function MessageIndicator({state, isOpen = false}: IndicatorProps) {
+function MessageIndicator(props: IndicatorProps) {
+  const shouldShow = useShowMessageIndicator(props);
+  if (!shouldShow) {
+    return null;
+  }
   return (
-    <Flex width="14px" align="center" justify="center">
-      {!isOpen && state === 'done-thinking' ? (
-        <StatusIndicator variant="accent" />
-      ) : (
-        <IconSeer />
-      )}
+    <Flex
+      position="absolute"
+      right="-6px"
+      top="-2px"
+      width="8px"
+      height="8px"
+      align="center"
+      justify="center"
+    >
+      <StatusIndicator variant="accent" />
     </Flex>
   );
+}
+
+function useShowMessageIndicator({state, isOpen}: IndicatorProps): boolean {
+  return !isOpen && state === 'done-thinking';
 }
 
 const SeerLoader = styled(Flex)`
