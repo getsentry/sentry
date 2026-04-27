@@ -1,5 +1,3 @@
-'use strict';
-
 import {spawn} from 'node:child_process';
 import * as net from 'node:net';
 
@@ -34,24 +32,21 @@ function startServer(port: number): void {
 
 async function main(): Promise<void> {
   const requestedPort = DEFAULT_PORT;
-
-  if (await isPortAvailable(requestedPort)) {
-    startServer(requestedPort);
-    return;
-  }
-
-  const availablePort = await findNextPort(requestedPort + 1);
+  const availablePort = await findNextPort(requestedPort);
 
   if (availablePort === null) {
     process.stderr.write(
-      `All ports in range ${requestedPort}–${requestedPort + MAX_PORT_SEARCH} are in use.\n`
+      `All ports in range ${requestedPort}–${requestedPort + MAX_PORT_SEARCH - 1} are in use.\n`
     );
     process.exit(1);
   }
 
-  process.stderr.write(
-    `Port ${requestedPort} is already in use. Starting on port ${availablePort} instead.\n`
-  );
+  if (availablePort !== requestedPort) {
+    process.stderr.write(
+      `Port ${requestedPort} is already in use. Starting on port ${availablePort} instead.\n`
+    );
+  }
+
   startServer(availablePort);
 }
 
