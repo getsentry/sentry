@@ -82,7 +82,7 @@ export default function TraceView() {
         initialPreferences={preferences}
         preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
       >
-        <ContextAwareTraceViewImpl traceSlug={traceSlug} />
+        <TraceViewImpl traceSlug={traceSlug} />
       </TraceStateProvider>
     </TraceViewLogsDataProvider>
   );
@@ -105,7 +105,7 @@ function useInitialLogsData(): OurLogsResponseItem[] | undefined {
   return initialDataRef.current;
 }
 
-function TraceViewImpl({traceSlug}: {traceSlug: string}) {
+function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
@@ -167,9 +167,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       'get_profile_flamegraph(profile_id, trace_id?) for CPU/memory flamegraph; ' +
       'telemetry_live_search(dataset, question, project_slugs) for related spans/errors/logs/metrics.',
     traceId: traceSlug,
-    traceType: tree.type,
     activeTab: currentTab,
-    shape: tree.type === 'trace' ? tree.shape : undefined,
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
     projects: Array.from(tree.projects.values())
@@ -268,7 +266,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   );
 }
 
-const ContextAwareTraceViewImpl = registerLLMContext('trace', TraceViewImpl);
+const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
 
 // @TODO(JonasBadalic): Remove this component once the page-frame feature is GA'd
 // When that feature is enabled, the footer is no longer rendered at the bottom of the page.
