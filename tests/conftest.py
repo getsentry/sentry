@@ -64,7 +64,11 @@ else:
 def unclosed_files() -> Generator[None]:
     fds = _open_files()
     yield
-    assert _open_files() == fds
+    # Only flag NEW files that weren't open before the test. Files closed during
+    # the test (e.g. SSL contexts from a prior test that GC just reclaimed) are
+    # not this test's leak — strict equality would yield false positives.
+    leaked = _open_files() - fds
+    assert not leaked, f"Test leaked file descriptors: {leaked}"
 
 
 @pytest.fixture(autouse=True)
