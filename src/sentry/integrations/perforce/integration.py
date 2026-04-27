@@ -120,6 +120,16 @@ class PerforceInstallationSerializer(CamelSnakeSerializer[Any]):
         return attrs
 
 
+# Allowlist of metadata keys safe to return from get_config_data().
+# The `password` key holds either a Perforce password or a P4 ticket (see
+# PerforceInstallationSerializer.auth_type). Both are live credentials usable
+# against the external Perforce server, so this list is allowlist-only —
+# anything new added to metadata stays out of the API response by default.
+_CONFIG_DATA_ALLOWLIST = frozenset(
+    {"p4port", "user", "auth_type", "ssl_fingerprint", "client", "web_url"}
+)
+
+
 class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIntegration):
     """
     Integration for P4 Core version control system.
@@ -457,11 +467,15 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         Since we store credentials in integration.metadata (not org_integration.config),
         we override the base implementation to read from metadata.
 
+        Returns only fields in _CONFIG_DATA_ALLOWLIST. The credential field is
+        excluded — it surfaces in the org integrations API response, which is
+        readable by org:read.
+
         Returns:
-            Dictionary of current configuration values that will be used to populate
-            the form fields defined in get_organization_config()
+            Dictionary of non-secret configuration values that will be used to
+            populate the form fields defined in get_organization_config().
         """
-        return self.model.metadata
+        return {k: v for k, v in self.model.metadata.items() if k in _CONFIG_DATA_ALLOWLIST}
 
     def update_organization_config(self, data: Mapping[str, Any]) -> None:
         """

@@ -61,10 +61,16 @@ from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
 
 
+def _api_base_url(url: str) -> str:
+    if url.endswith(".ghe.com"):
+        return f"https://api.{url}"
+    return f"https://{url}/api/v3"
+
+
 def get_user_info(url, access_token):
     with http.build_session() as session:
         resp = session.get(
-            f"https://{url}/api/v3/user",
+            f"{_api_base_url(url)}/user",
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
             verify=False,
         )
@@ -712,9 +718,10 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 )
             )
         )
+        base = _api_base_url(installation_data["url"])
         with http.build_session() as session:
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
+                f"{base}/app/installations/{installation_id}",
                 headers=headers,
                 verify=installation_data["verify_ssl"],
             )
@@ -722,7 +729,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             installation_resp = resp.json()
 
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/user/installations",
+                f"{base}/user/installations",
                 headers={
                     "Accept": GITHUB_API_ACCEPT_HEADER,
                     "Authorization": f"token {access_token}",
