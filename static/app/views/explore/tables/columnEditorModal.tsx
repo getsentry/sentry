@@ -19,6 +19,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
+import {DASHBOARD_ONLY_SPAN_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
@@ -169,23 +170,32 @@ function ColumnEditorRow({
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasSearch = debouncedSearch.length > 0;
 
+  // useSpanItemAttributes folds DASHBOARD_ONLY_SPAN_ATTRIBUTES into hiddenKeys;
+  // useTraceItemDatasetAttributes does not, so we replicate that behavior for spans
+  // to keep search results consistent with the parent-supplied baseOptions.
+  const searchHiddenKeys =
+    traceItemType === TraceItemDataset.SPANS ? DASHBOARD_ONLY_SPAN_ATTRIBUTES : undefined;
+
   const {attributes: searchedStringTags, isLoading: stringLoading} =
     useTraceItemDatasetAttributes(
       traceItemType,
       {search: debouncedSearch, enabled: hasSearch},
-      'string'
+      'string',
+      searchHiddenKeys
     );
   const {attributes: searchedNumberTags, isLoading: numberLoading} =
     useTraceItemDatasetAttributes(
       traceItemType,
       {search: debouncedSearch, enabled: hasSearch},
-      'number'
+      'number',
+      searchHiddenKeys
     );
   const {attributes: searchedBooleanTags, isLoading: booleanLoading} =
     useTraceItemDatasetAttributes(
       traceItemType,
       {search: debouncedSearch, enabled: hasSearch},
-      'boolean'
+      'boolean',
+      searchHiddenKeys
     );
 
   const isSearchLoading = hasSearch && (stringLoading || numberLoading || booleanLoading);
@@ -194,8 +204,11 @@ function ColumnEditorRow({
     if (!hasSearch) {
       return null;
     }
+    // Don't carry the current selection in here — its trigger label falls back
+    // to baseOptions, and including it unconditionally would surface it on
+    // queries that don't actually match it.
     return buildColumnOptions({
-      columns: column.column ? [column.column] : [],
+      columns: [],
       stringTags: searchedStringTags,
       numberTags: searchedNumberTags,
       booleanTags: searchedBooleanTags,
@@ -204,7 +217,6 @@ function ColumnEditorRow({
     });
   }, [
     hasSearch,
-    column.column,
     searchedStringTags,
     searchedNumberTags,
     searchedBooleanTags,
