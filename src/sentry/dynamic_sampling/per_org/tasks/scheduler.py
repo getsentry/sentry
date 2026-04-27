@@ -24,7 +24,6 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BEAT_STATUS_METRIC,
     TelemetryStatus,
     emit_status,
-    emit_status_metric,
     instrumented,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
@@ -68,8 +67,8 @@ def schedule_per_org_calculations() -> None:
         run_calculations_per_org_task.apply_async(args=(org.id,))
         dispatched += 1
 
-    emit_status(SCHEDULER_BEAT_STATUS_METRIC, "dispatched", amount=dispatched)
-    emit_status(SCHEDULER_BEAT_STATUS_METRIC, "rollout_excluded", amount=skipped)
+    emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.DISPATCHED, amount=dispatched)
+    emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.ROLLOUT_EXCLUDED, amount=skipped)
 
 
 @instrumented_task(
@@ -87,26 +86,21 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> None:
 @instrumented
 def run_calculations_per_org(org_id: OrganizationId) -> None:
     if is_killswitch_engaged():
-        emit_status_metric("killswitched")
         return
 
     if not is_org_in_rollout(org_id):
-        emit_status_metric("not_in_rollout")
         return
 
     try:
         organization = Organization.objects.get_from_cache(id=org_id)
     except Organization.DoesNotExist:
-        emit_status_metric("org_not_found")
         return
 
     if not has_dynamic_sampling(organization):
-        emit_status_metric("org_has_no_dynamic_sampling")
         return
 
     outcomes = fetch_outcomes_volume(org_id, organization)
     if not has_recent_volume(outcomes):
-        emit_status_metric("no_volume")
         return
 
     eap = run_eap_batch(org_id, organization)
@@ -115,5 +109,3 @@ def run_calculations_per_org(org_id: OrganizationId) -> None:
     apply_recalibration(org_id, organization, outcomes)
     boost_low_volume_projects(org_id, organization, eap)
     boost_low_volume_transactions(org_id, organization, eap)
-
-    emit_status_metric("completed")
