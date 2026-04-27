@@ -9,10 +9,21 @@ from sentry.preprod.api.models.public.shared import (
     create_app_info_dict,
     create_git_info_dict,
 )
-from sentry.preprod.build_distribution_utils import get_artifact_install_info
+from sentry.preprod.build_distribution_utils import ArtifactInstallInfo, get_artifact_install_info
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)
+
+
+class InstallInfoDict(TypedDict):
+    """Nested install link with its expiration timestamp.
+
+    ``expiresAt`` is an ISO 8601 string. After this time the link returns
+    ``410 Gone``; consumers should re-fetch the parent response.
+    """
+
+    link: str
+    expiresAt: str
 
 
 class InstallInfoResponseDict(TypedDict):
@@ -26,6 +37,7 @@ class InstallInfoResponseDict(TypedDict):
     buildConfiguration: str | None
     isInstallable: bool
     installUrl: str | None
+    installInfo: InstallInfoDict | None
     downloadCount: int
     releaseNotes: str | None
     installGroups: list[str] | None
@@ -37,6 +49,15 @@ class InstallInfoResponseDict(TypedDict):
 class LatestInstallableBuildResponseDict(TypedDict):
     latestArtifact: InstallInfoResponseDict | None
     currentArtifact: InstallInfoResponseDict | None
+
+
+def _build_install_info_dict(info: ArtifactInstallInfo) -> InstallInfoDict | None:
+    if info.install_url is None or info.install_url_expires_at is None:
+        return None
+    return {
+        "link": info.install_url,
+        "expiresAt": info.install_url_expires_at.isoformat(),
+    }
 
 
 def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDict:
@@ -56,6 +77,7 @@ def create_install_info_dict(artifact: PreprodArtifact) -> InstallInfoResponseDi
         ),
         "isInstallable": info.is_installable,
         "installUrl": info.install_url,
+        "installInfo": _build_install_info_dict(info),
         "downloadCount": info.download_count,
         "releaseNotes": info.release_notes,
         "installGroups": info.install_groups,
@@ -99,6 +121,7 @@ class BuildDistributionSummaryResponseDict(TypedDict):
     buildConfiguration: str | None
     isInstallable: bool
     installUrl: str | None
+    installInfo: InstallInfoDict | None
     isCodeSignatureValid: bool | None
     profileName: str | None
     codesigningType: str | None
@@ -166,6 +189,7 @@ def build_build_distribution_summary(
         ),
         isInstallable=install_info.is_installable,
         installUrl=install_info.install_url,
+        installInfo=_build_install_info_dict(install_info),
         isCodeSignatureValid=install_info.is_code_signature_valid,
         profileName=install_info.profile_name,
         codesigningType=install_info.codesigning_type,
