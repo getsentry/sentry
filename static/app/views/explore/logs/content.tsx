@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, Stack} from '@sentry/scraps/layout';
@@ -19,6 +20,7 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -28,6 +30,7 @@ import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
+import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
@@ -39,6 +42,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 export default function LogsContent() {
   const organization = useOrganization();
+  const tableExpando = useTableExpando();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.LOG_BYTE],
   });
@@ -64,7 +68,11 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <Stack flex={1}>
+          <LogsPageStack
+            flex={1}
+            data-footer-constrained={tableExpando.enabled ? '' : undefined}
+            data-hide-footer={tableExpando.expanded === true ? '' : undefined}
+          >
             <LogsQueryParamsProvider
               analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
               source="location"
@@ -78,16 +86,31 @@ export default function LogsContent() {
                     datePageFilterProps={datePageFilterProps}
                   />
                 ) : (
-                  <LogsTabContent datePageFilterProps={datePageFilterProps} />
+                  <LogsTabContent
+                    datePageFilterProps={datePageFilterProps}
+                    tableExpando={tableExpando}
+                  />
                 )}
               </LogsPageDataProvider>
             </LogsQueryParamsProvider>
-          </Stack>
+          </LogsPageStack>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
+
+const LogsPageStack = styled(Stack)`
+  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
+    &[data-footer-constrained] ~ footer {
+      display: none;
+    }
+  }
+
+  &[data-hide-footer] ~ footer {
+    display: none;
+  }
+`;
 
 const logsFeedbackOptions = {
   messagePlaceholder: t('How can we make logs work better for you?'),

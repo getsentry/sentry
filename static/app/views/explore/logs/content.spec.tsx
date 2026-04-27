@@ -116,6 +116,33 @@ describe('LogsPage', () => {
     expect(table).toHaveTextContent(/User login successful/);
   });
 
+  it('hides the footer when logs table is expanded', async () => {
+    const organizationWithExpando = {
+      ...organization,
+      features: [...organization.features, 'ourlogs-table-expando'],
+    };
+
+    render(
+      <div>
+        <LogsPage />
+        <footer data-test-id="global-footer" />
+      </div>,
+      {
+        organization: organizationWithExpando,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
+        },
+      }
+    );
+
+    await screen.findByTestId('logs-table');
+    await userEvent.click(screen.getByText('Expand'));
+
+    expect(screen.getByTestId('global-footer')).toBe(
+      document.querySelector('[data-hide-footer] ~ footer')
+    );
+  });
+
   it('should show onboarding when project is not onboarded', async () => {
     ProjectsStore.reset();
     const {

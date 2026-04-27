@@ -72,7 +72,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {useTableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
+import type {TableExpando} from 'sentry/views/explore/logs/tables/useTableExpando';
 import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
@@ -101,6 +101,7 @@ import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAl
 
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
+  tableExpando: TableExpando;
 };
 
 interface LogsSearchBarProps {
@@ -241,8 +242,7 @@ const LogsSearchSection = memo(function LogsSearchSection({
   );
 });
 
-export function LogsTabContent({datePageFilterProps}: LogsTabProps) {
-  const tableExpando = useTableExpando();
+export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps) {
   const pageFilters = usePageFilters();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
