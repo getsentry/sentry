@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -8,7 +9,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {Form, type FormProps} from 'sentry/components/forms/form';
 import type {Organization} from 'sentry/types/organization';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 const DEFAULT_PARALLEL_LIMIT = 20;

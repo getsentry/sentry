@@ -6,6 +6,7 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {useIsFetching} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
@@ -36,18 +37,24 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
 
-function makeLeadingItemAnimation(theme: Theme) {
+function makeLeadingItemAnimation(theme: Theme, instant = false) {
+  if (instant) {
+    return {
+      initial: {scale: 1, opacity: 1},
+      animate: {scale: 1, opacity: 1},
+      exit: {scale: 1, opacity: 1, transition: {duration: 0}},
+      transition: {duration: 0},
+    };
+  }
   return {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
@@ -264,6 +271,12 @@ export function CommandPalette(props: CommandPaletteProps) {
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
 
+      // Close the palette before running the action. ModalStore is a single-slot
+      // system: calling openModal() inside onAction would replace the palette's
+      // renderer, and a closeModal() call afterwards would immediately close the
+      // newly opened modal instead of the palette.
+      closeModal?.();
+
       if ('to' in action) {
         const normalizedTo = normalizeUrl(action.to);
         if (isExternalLocation(normalizedTo) || options?.modifierKeys?.shiftKey) {
@@ -274,11 +287,23 @@ export function CommandPalette(props: CommandPaletteProps) {
       } else if ('onAction' in action) {
         action.onAction();
       }
-
-      closeModal?.();
     },
     [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
   );
+
+  // Dispatch the deferred reset once the close animation finishes. framer-motion
+  // only unmounts this component after the exit animation completes, so the
+  // cleanup runs at exactly the right time. If the user re-opens the palette
+  // before the animation ends, the component stays mounted and nothing fires.
+  const pendingResetRef = useRef(state.pendingReset);
+  pendingResetRef.current = state.pendingReset;
+  useEffect(() => {
+    return () => {
+      if (pendingResetRef.current) {
+        dispatch({type: 'reset'});
+      }
+    };
+  }, [dispatch]);
 
   const resultsListRef = useRef<HTMLDivElement>(null);
   const modifierKeysRef = useRef({shiftKey: false});
@@ -307,7 +332,12 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isLoading =
     (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
   const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && state.query.length === 0;
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
+
+  // Skip leading-icon animations when there is no query — any icon transition
+  // while the input is empty (e.g. a brief loading state after clearing) should
+  // be invisible rather than drawing attention with a flash.
+  const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
   return (
     <Fragment>
@@ -322,7 +352,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                       <MotionContainer
                         position="absolute"
                         left="-2px"
-                        {...makeLeadingItemAnimation(theme)}
+                        {...leadingIconAnimation}
                       >
                         <LoadingIndicator
                           data-test-id="command-palette-loading"
@@ -341,17 +371,13 @@ export function CommandPalette(props: CommandPaletteProps) {
                               state.input.current?.focus();
                             }}
                             aria-label={t('Return to previous action')}
-                            {...makeLeadingItemAnimation(theme)}
+                            {...leadingIconAnimation}
                             {...containerProps}
                           />
                         )}
                       </Container>
                     ) : (
-                      <MotionIconSearch
-                        size="sm"
-                        aria-hidden
-                        {...makeLeadingItemAnimation(theme)}
-                      />
+                      <MotionIconSearch size="sm" aria-hidden {...leadingIconAnimation} />
                     )}
                   </AnimatePresence>
                 </StyledInputLeadingItems>
@@ -429,7 +455,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery ? null : (
+        isEmptyPromptQuery || isLoading ? null : (
           <CommandPaletteNoResults />
         )
       ) : (
@@ -667,10 +693,17 @@ function flattenActions(
   // groups by their best child score so the most relevant sub-section surfaces
   // first. When we are inside an expanded group we also sort leaf actions by
   // their own score so the full result list matches the limited preview ordering.
+  // Sections with a "cmdk:supplementary:" reserved key always sort last,
+  // regardless of score.
   collected.sort((a, b) => {
     const aRootKey = nodeRootKey.get(a.key)!;
     const bRootKey = nodeRootKey.get(b.key)!;
     if (aRootKey !== bRootKey) {
+      const aIsSupplementary = aRootKey.startsWith('cmdk:supplementary:');
+      const bIsSupplementary = bRootKey.startsWith('cmdk:supplementary:');
+      if (aIsSupplementary !== bIsSupplementary) {
+        return aIsSupplementary ? 1 : -1;
+      }
       return compareCommandPaletteScores(
         rootBestScore.get(aRootKey),
         rootBestScore.get(bRootKey)
@@ -848,7 +881,7 @@ function makeMenuItemFromAction(
 ): CommandPaletteActionMenuItem {
   const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
-  const trailingItems =
+  const linkIndicator =
     'to' in action ? (
       <Flex
         align="center"
@@ -859,6 +892,13 @@ function makeMenuItemFromAction(
           {isExternal ? <IconOpen /> : <IconLink />}
         </IconDefaultsProvider>
       </Flex>
+    ) : undefined;
+  const trailingItems =
+    (action.display.trailingItem ?? linkIndicator) ? (
+      <Fragment>
+        {action.display.trailingItem}
+        {linkIndicator}
+      </Fragment>
     ) : undefined;
 
   return {

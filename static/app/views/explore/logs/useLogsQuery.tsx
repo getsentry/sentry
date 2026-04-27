@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
-import type {QueryClient} from '@tanstack/react-query';
+import type {QueryClient, InfiniteData} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {type ApiResult} from 'sentry/api';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -14,10 +15,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  useInfiniteQuery,
-  useQueryClient,
   type ApiQueryKey,
-  type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -413,6 +411,7 @@ type QueryKey = [
  * query cache (same snapshot React Query will use for this key).
  */
 function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): number {
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
   const cached = client.getQueryData<InfiniteData<ApiResult<EventsLogsResult>>>(queryKey);
   const rows =
     cached?.pages?.reduce((n, page) => n + (page[0]?.data?.length ?? 0), 0) ?? 0;

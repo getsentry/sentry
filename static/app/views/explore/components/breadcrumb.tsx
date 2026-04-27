@@ -4,8 +4,8 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeLogsPathname} from 'sentry/views/explore/logs/utils';
 import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export function ExploreBreadcrumb({

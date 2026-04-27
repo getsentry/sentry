@@ -802,18 +802,6 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       return null;
     }
 
-    if (
-      !organization.features.includes(
-        'event-unique-user-frequency-condition-with-conditions'
-      )
-    ) {
-      conditions = conditions?.filter(
-        condition =>
-          condition.id !==
-          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
-      );
-    }
-
     conditions = conditions?.map(condition =>
       CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
         ? {

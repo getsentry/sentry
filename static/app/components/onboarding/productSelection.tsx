@@ -546,7 +546,6 @@ function Product({
           </Stack>
         ))
       }
-      delay={500}
       isHoverable
     >
       <ProductButton

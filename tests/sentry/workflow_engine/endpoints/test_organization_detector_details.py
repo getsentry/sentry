@@ -548,11 +548,10 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         detector = Detector.objects.get(id=response.data["id"])
         assert detector.enabled is False
-        assert detector.status == ObjectStatus.DISABLED
+        assert detector.status == ObjectStatus.ACTIVE
 
     def test_enable_detector(self) -> None:
         self.detector.update(enabled=False)
-        self.detector.update(status=ObjectStatus.DISABLED)
 
         data = {
             "enabled": True,

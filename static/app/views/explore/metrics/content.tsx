@@ -17,18 +17,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
-import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
-import {
-  MAX_METRICS_ALLOWED,
-  MultiMetricsQueryParamsProvider,
-  useAddMetricQuery,
-  useMultiMetricsQueryParams,
-} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   getIdFromLocation,
   getTitleFromLocation,
@@ -104,20 +97,8 @@ function MetricsHeader() {
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
   const hasPageFrameFeature = useHasPageFrameFeature();
-  const hasEquations = canUseMetricsEquations(organization);
-  const onboardingProject = useOnboardingProject({property: 'hasTraceMetrics'});
-
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
-
-  const addMetricQuery = useAddMetricQuery();
-  const metricQueries = useMultiMetricsQueryParams();
-  const addEquationQuery = useAddMetricQuery({type: 'equation'});
-
-  // Cannot add metric queries beyond Z
-  const isAddMetricDisabled =
-    metricQueries.length >= MAX_METRICS_ALLOWED ||
-    metricQueries.some(q => q.label === 'Z');
 
   const documentTitle = hasSavedQueryTitle ? (
     <SentryDocumentTitle
@@ -154,27 +135,6 @@ function MetricsHeader() {
           <FeatureBadge type="beta" />
           {titleTooltip}
         </TopBar.Slot>
-        {defined(onboardingProject) ? null : (
-          <TopBar.Slot name="actions">
-            <ToolbarVisualizeAddChart
-              add={addMetricQuery}
-              disabled={isAddMetricDisabled}
-              label={t('Add Metric')}
-              display="button"
-              size="sm"
-            />
-            {hasEquations && (
-              <ToolbarVisualizeAddChart
-                size="sm"
-                display="button"
-                add={addEquationQuery}
-                disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-                label={t('Add Equation')}
-              />
-            )}
-            <MetricSaveAs size="sm" />
-          </TopBar.Slot>
-        )}
         <TopBar.Slot name="feedback">
           <FeedbackButton
             feedbackOptions={metricsFeedbackOptions}

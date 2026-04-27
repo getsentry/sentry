@@ -1,5 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -20,12 +26,6 @@ import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {getCodingAgentSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
