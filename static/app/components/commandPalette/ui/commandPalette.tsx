@@ -13,6 +13,7 @@ import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -515,6 +516,7 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
           />
         </ResultsList>
       )}
+      <CommandPaletteHints />
     </Fragment>
   );
 
@@ -969,6 +971,44 @@ function makeMenuItemFromAction(
     children: [],
     hideCheck: true,
   };
+}
+
+function CommandPaletteHints() {
+  return (
+    <Container borderTop="primary" padding="sm md">
+      <Flex align="center" justify="between">
+        <Flex align="center" gap="lg">
+          <Flex align="center" gap="xs">
+            <Flex align="center" gap="2xs">
+              <Hotkey variant="debossed" value="up" />
+              <Hotkey variant="debossed" value="down" />
+            </Flex>
+            <Text size="xs" variant="muted">
+              {t('Move')}
+            </Text>
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value="enter" />
+            <Text size="xs" variant="muted">
+              {t('Select')}
+            </Text>
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value="shift+enter" />
+            <Text size="xs" variant="muted">
+              {t('New tab')}
+            </Text>
+          </Flex>
+        </Flex>
+        <Flex align="center" gap="xs">
+          <Text size="xs" variant="muted">
+            {t('Toggle Command Palette')}
+          </Text>
+          <Hotkey variant="debossed" value="command+k" />
+        </Flex>
+      </Flex>
+    </Container>
+  );
 }
 
 function CommandPaletteNoResults() {
