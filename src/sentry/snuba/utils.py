@@ -54,13 +54,13 @@ DATASET_OPTIONS = {
 }
 DEPRECATED_LABELS = {"ourlogs"}
 RPC_DATASETS = {
-    ProfileFunctions,
-    PreprodSize,
-    ProcessingErrors,
-    Spans,
-    TraceMetrics,
     Occurrences,
     OurLogs,
+    PreprodSize,
+    ProcessingErrors,
+    ProfileFunctions,
+    Spans,
+    TraceMetrics,
     UptimeResults,
 }
 DATASET_LABELS = {

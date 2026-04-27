@@ -19,7 +19,7 @@ class CacheHaltReason(StrEnum):
 
 
 AUTOFIX_CACHE_TIMEOUT_SECONDS = 60 * 60 * 12  # 12 hours
-EXPLORER_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
+AGENT_CACHE_TIMEOUT_SECONDS = 60 * 60  # 1 hour
 
 
 class SeerOperatorAutofixCache[CachePayloadT]:
@@ -197,33 +197,33 @@ class SeerOperatorAutofixCache[CachePayloadT]:
                 )
 
 
-class SeerOperatorExplorerCache[CachePayloadT]:
+class SeerOperatorAgentCache[CachePayloadT]:
     """
-    Cache for Explorer completion hook payloads, keyed only by run_id.
+    Cache for Seer Agent completion hook payloads, keyed only by run_id.
 
     Unlike the Autofix cache which needs pre/post migration (group_id -> run_id),
-    Explorer receives a run_id directly from the trigger call, so this cache is
+    Agent receives a run_id directly from the trigger call, so this cache is
     simpler: set on trigger, get on completion hook.
     """
 
     @classmethod
     def _get_cache_key(cls, *, entrypoint_key: str, run_id: int) -> str:
-        return f"seer:explorer:{entrypoint_key}:{run_id}"
+        return f"seer:agent:{entrypoint_key}:{run_id}"
 
     @classmethod
     def set(cls, *, entrypoint_key: str, run_id: int, cache_payload: CachePayloadT) -> None:
         with SeerOperatorEventLifecycleMetric(
-            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_EXPLORER,
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_SET_AGENT,
             entrypoint_key=entrypoint_key,
         ).capture() as lifecycle:
             cache_key = cls._get_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)
             lifecycle.add_extras({"run_id": run_id, "cache_key": cache_key})
-            cache.set(cache_key, cache_payload, timeout=EXPLORER_CACHE_TIMEOUT_SECONDS)
+            cache.set(cache_key, cache_payload, timeout=AGENT_CACHE_TIMEOUT_SECONDS)
 
     @classmethod
     def get(cls, *, entrypoint_key: str, run_id: int) -> CachePayloadT | None:
         with SeerOperatorEventLifecycleMetric(
-            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_EXPLORER,
+            interaction_type=SeerOperatorInteractionType.OPERATOR_CACHE_GET_AGENT,
             entrypoint_key=entrypoint_key,
         ).capture() as lifecycle:
             cache_key = cls._get_cache_key(entrypoint_key=entrypoint_key, run_id=run_id)

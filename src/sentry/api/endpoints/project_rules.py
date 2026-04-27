@@ -1,6 +1,7 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Literal, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.conf import settings
 from django.db.models.signals import pre_save
@@ -50,7 +51,6 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition_group impor
 from sentry.workflow_engine.endpoints.validators.base.workflow import (
     ActionFilterInput,
     WorkflowInput,
-    WorkflowValidator,
 )
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     translate_to_data_condition_data,
@@ -58,12 +58,14 @@ from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
 from sentry.workflow_engine.migration_helpers.rule_action import (
     translate_rule_data_actions_to_notification_actions,
 )
-from sentry.workflow_engine.models import DataConditionGroup, Workflow
+from sentry.workflow_engine.models import AlertRuleWorkflow, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def clean_rule_data(data):
@@ -916,20 +918,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        if features.has("organizations:workflow-engine-rule-serializers", project.organization):
-            request_data = format_request_data(cast(ProjectRulePostData, request.data), project)
-            validator = WorkflowValidator(
-                data=request_data,
-                context={"organization": project.organization, "request": request},
-            )
-            validator.is_valid(raise_exception=True)
-            workflow = validator.create(validator.validated_data)
-
-            return Response(
-                serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
-                status=201,
-            )
-
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization, "request": request},
             data=request.data,
@@ -1076,5 +1064,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+        if features.has(
+            "organizations:workflow-engine-rule-serializers", project.organization
+        ) or features.has(
+            "organizations:workflow-engine-issue-alert-endpoints-post", project.organization
+        ):
+            try:
+                workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+                return Response(
+                    serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                    status=201,
+                )
+            except AlertRuleWorkflow.DoesNotExist:
+                logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
+                return Response(serialize(rule, request.user))
 
         return Response(serialize(rule, request.user))

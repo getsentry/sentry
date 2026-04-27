@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
@@ -10,11 +11,9 @@ import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/util
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
-import type {UseQueryResult} from 'sentry/utils/queryClient';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
-
 type FilterSelectorTriggerProps = {
   activeFilterValues: string[];
   globalFilter: GlobalFilter;

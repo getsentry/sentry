@@ -1,12 +1,12 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 export type OpenSeerExplorerDrawerOptions = {
@@ -24,19 +24,20 @@ export type OpenSeerExplorerDrawerOptions = {
 
 export const useSeerExplorerDrawer = () => {
   const organization = useOrganization({allowNull: true});
-
-  const {openDrawer, closeDrawer} = useDrawer();
+  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
+  const [_, setRunId] = useSeerExplorerRunId();
   const {getPageReferrer} = usePageReferrer();
+
+  // Track drawer open state in a ref so callbacks don't go stale
+  const isDrawerOpenRef = useRef(false);
+  useEffect(() => {
+    isDrawerOpenRef.current = isDrawerOpen;
+  }, [isDrawerOpen]);
 
   // TODO: add effect that opens drawer and seeds run_id from URL, remove from current URL onClose
   // (useSeerExplorer hook should no longer handle this)
 
-  const [isOpen, setIsOpen] = useState(false); // for hook users
-  const isOpenRef = useRef(false); // for callback accuracy
-
   const onOpen = useCallback(() => {
-    isOpenRef.current = true;
-    setIsOpen(true);
     trackAnalytics('seer.explorer.global_panel.opened', {
       referrer: getPageReferrer(),
       organization,
@@ -44,57 +45,44 @@ export const useSeerExplorerDrawer = () => {
     });
   }, [getPageReferrer, organization]);
 
-  const onClose = useCallback(() => {
-    isOpenRef.current = false;
-    setIsOpen(false);
-  }, []);
-
   const closeSeerExplorerDrawer = useCallback(() => {
     // Prevent closing the global drawer if another drawer (e.g. autofix) is open
-    if (isOpenRef.current) {
+    if (isDrawerOpenRef.current) {
       closeDrawer();
-      onClose();
     }
-  }, [closeDrawer, onClose]);
+  }, [closeDrawer]);
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
-      const {runId, startNewRun} = options ?? {};
-
-      // Seed run_id state with sessionStorage, before rendering drawer
-      try {
-        if (runId !== undefined) {
-          sessionStorageWrapper.setItem('seer-explorer-run-id', JSON.stringify(runId));
-        } else if (startNewRun) {
-          sessionStorageWrapper.removeItem('seer-explorer-run-id');
-        }
-      } catch {
-        // Best effort
+      if (isDrawerOpenRef.current) {
+        // TODO: runId seeding doesn't work when the drawer is already open.
+        // A hack could be to navigate to the deep link with RUN_ID_QUERY_PARAM set.
+        return;
       }
 
-      openDrawer(
-        () => (
-          <ExplorerDrawerContent
-            onClose={closeSeerExplorerDrawer}
-            getPageReferrer={getPageReferrer}
-          />
-        ),
-        {
-          ariaLabel: t('Seer Explorer Drawer'),
-          drawerKey: 'seer-explorer-drawer',
-          resizable: true,
-          mode: 'passive',
-          // XXX: passive mode keeps drawer open on location change. Be sure to update isOpenRef if closing on change is needed - useDrawer doesn't call onClose
-          onOpen,
-          onClose,
-        }
-      );
+      const {runId: openRunId, startNewRun} = options ?? {};
+
+      // Update runId store before opening drawer
+      if (openRunId !== undefined) {
+        setRunId(openRunId);
+      } else if (startNewRun) {
+        setRunId(null);
+      }
+
+      openDrawer(() => <ExplorerDrawerContent getPageReferrer={getPageReferrer} />, {
+        ariaLabel: t('Seer Explorer Drawer'),
+        drawerKey: 'seer-explorer-drawer',
+        drawerWidth: '30%',
+        resizable: true,
+        mode: 'passive',
+        onOpen,
+      });
     },
-    [openDrawer, closeSeerExplorerDrawer, onOpen, onClose, getPageReferrer]
+    [openDrawer, onOpen, setRunId, getPageReferrer]
   );
 
   const toggleSeerExplorerDrawer = useCallback(() => {
-    if (isOpenRef.current) {
+    if (isDrawerOpenRef.current) {
       closeSeerExplorerDrawer();
     } else {
       openSeerExplorerDrawer();
@@ -119,6 +107,6 @@ export const useSeerExplorerDrawer = () => {
     openSeerExplorerDrawer,
     closeSeerExplorerDrawer,
     toggleSeerExplorerDrawer,
-    isOpen,
+    isOpen: isDrawerOpen,
   };
 };

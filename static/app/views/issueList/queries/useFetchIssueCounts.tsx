@@ -1,6 +1,8 @@
+import {keepPreviousData} from '@tanstack/react-query';
+
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface FetchIssueCountsParameters {
   environment: string[];

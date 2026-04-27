@@ -43,9 +43,9 @@ export function useDeleteGroupEventAttachment() {
 
       await queryClient.cancelQueries({queryKey});
 
-      const previous = queryClient.getQueryData<ApiResponse<IssueAttachment[]>>(queryKey);
+      const previous = queryClient.getQueryData(queryKey);
 
-      queryClient.setQueryData<ApiResponse<IssueAttachment[]>>(queryKey, oldData => {
+      queryClient.setQueryData(queryKey, oldData => {
         if (!oldData) {
           return oldData;
         }

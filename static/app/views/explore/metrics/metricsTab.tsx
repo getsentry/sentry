@@ -87,7 +87,7 @@ function MetricsTabFilterSection({datePageFilterProps}: MetricsTabProps) {
               searchPlaceholder={t('Custom range: 2h, 4d, 3w')}
             />
           </StyledPageFilterBar>
-          {hasPageFrameFeature ? null : (
+          {hasPageFrameFeature && (
             <Flex gap="sm" align="center">
               <ToolbarVisualizeAddChart
                 add={addMetricQuery}
@@ -202,6 +202,7 @@ function MetricsTabBodySection({
                   label={t('Add Equation')}
                 />
               )}
+              <MetricSaveAs size="md" />
             </Flex>
           )}
         </WidgetSyncContextProvider>

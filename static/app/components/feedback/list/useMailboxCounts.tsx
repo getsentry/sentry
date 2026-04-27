@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {useFeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
@@ -29,7 +29,7 @@ export function useMailboxCounts({
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
   const location = useLocation();
   const locationQuery = decodeScalar(location.query.query, '');
-  const {listHeadTime} = useFeedbackQueryKeys();
+  const {listHeadTime} = useFeedbackApiOptions();
 
   // We should fetch the counts while taking the query into account
   const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {

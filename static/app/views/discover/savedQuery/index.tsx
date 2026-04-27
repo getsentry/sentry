@@ -80,7 +80,7 @@ type SaveAsDropdownProps = {
   queryName: string;
 };
 
-function SaveAsDropdown({
+export function SaveAsDropdown({
   queryName,
   disabled,
   onChangeInput,
@@ -160,6 +160,7 @@ type Props = DefaultProps & {
   setSavedQuery: (savedQuery: SavedQuery) => void;
   updateCallback: () => void;
   yAxis: string[];
+  hasPageFrameFeature?: boolean;
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
 };
@@ -608,7 +609,15 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, eventView, savedQuery, yAxis, location, isHomepage} = this.props;
+    const {
+      organization,
+      eventView,
+      savedQuery,
+      yAxis,
+      location,
+      isHomepage,
+      hasPageFrameFeature,
+    } = this.props;
 
     const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
       location,
@@ -685,13 +694,17 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar>
-        {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
-        {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
-        <Feature organization={organization} features="incidents">
-          {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
-        </Feature>
+        {!hasPageFrameFeature &&
+          this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
+        {!hasPageFrameFeature &&
+          this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
+        {!hasPageFrameFeature && (
+          <Feature organization={organization} features="incidents">
+            {({hasFeature}) => hasFeature && this.renderButtonCreateAlert()}
+          </Feature>
+        )}
 
-        {contextMenuItems.length > 0 && contextMenu}
+        {!hasPageFrameFeature && contextMenuItems.length > 0 && contextMenu}
 
         {this.renderQueryButton(disabled => this.renderButtonViewSaved(disabled))}
       </ResponsiveButtonBar>
@@ -715,7 +728,7 @@ const SaveAsButton = styled(Button)`
   width: 100%;
 `;
 
-const IconUpdate = styled('div')`
+export const IconUpdate = styled('div')`
   display: inline-block;
   width: 10px;
   height: 10px;

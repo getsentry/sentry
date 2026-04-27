@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,7 +11,6 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import {Pagination} from 'sentry/components/pagination';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

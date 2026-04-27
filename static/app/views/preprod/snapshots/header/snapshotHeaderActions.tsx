@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -23,7 +24,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';

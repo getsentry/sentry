@@ -7,8 +7,8 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {useTraceMeta, type TraceMetaQueryResults} from './useTraceMeta';
 

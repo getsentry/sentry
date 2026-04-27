@@ -1,6 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
 
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   starredSavedQueriesApiOptions,

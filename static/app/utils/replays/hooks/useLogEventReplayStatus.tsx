@@ -5,7 +5,7 @@ import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplay
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;

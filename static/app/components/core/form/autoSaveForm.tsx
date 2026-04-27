@@ -13,6 +13,7 @@ import {
 
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 /**
  * Configuration for confirmation dialogs before applying changes.
@@ -192,11 +193,15 @@ export function AutoSaveForm<
         return Promise.resolve();
       }
 
-      const onError = () => {
+      const onError = (error: Error) => {
         if (resetOnErrorRef.current) {
           formApi.reset();
         }
-        setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
+        const hasBackendErrors =
+          error instanceof RequestError ? setFieldErrors(formApi, error) : false;
+        if (!hasBackendErrors) {
+          setFieldErrors(formApi, {[name]: {message: t('Failed to save')}} as never);
+        }
       };
 
       const onSuccess = () => {

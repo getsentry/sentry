@@ -23,7 +23,7 @@ import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {MissingReleasesButtons} from './missingFeatureButtons/missingReleasesButtons';
 import {SectionHeadingWrapper, SidebarSection} from './styles';

@@ -57,10 +57,10 @@ import {
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
@@ -640,17 +640,19 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function TimeStampRenderer(props: LogFieldRendererProps) {
+  if (props.extra.timestampRelativeTo) {
+    // Check if we should use relative timestamps (eg. in replay)
+    return <RelativeTimestampRenderer {...props} />;
+  }
+  return <TimestampRenderer {...props} />;
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
-  [OurLogKnownFieldKey.TIMESTAMP]: props => {
-    if (props.extra.timestampRelativeTo) {
-      // Check if we should use relative timestamps (eg. in replay)
-      return RelativeTimestampRenderer(props);
-    }
-    return TimestampRenderer(props);
-  },
+  [OurLogKnownFieldKey.TIMESTAMP]: TimeStampRenderer,
   [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,

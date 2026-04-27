@@ -16,6 +16,7 @@ import {
   type Router,
   type RouterNavigateOptions,
 } from '@remix-run/router';
+import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import * as qs from 'query-string';
@@ -29,7 +30,6 @@ import {GlobalModal} from 'sentry/components/globalModal';
 import type {Organization} from 'sentry/types/organization';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
-import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
