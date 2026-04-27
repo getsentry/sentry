@@ -1,13 +1,13 @@
 import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import {useIsFetching} from '@tanstack/react-query';
-import {AnimatePresence, motion} from 'framer-motion';
+import {animate, AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
@@ -20,6 +20,7 @@ import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
@@ -83,17 +84,35 @@ interface CommandPaletteScore {
   score: number;
 }
 
-interface CommandPaletteProps {
-  closeModal?: () => void;
-}
-
-export function CommandPalette(props: CommandPaletteProps) {
+export function CommandPalette({Body, closeModal}: ModalRenderProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const store = CMDKCollection.useStore();
-
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+
+  const getDocEl = useCallback(
+    () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    [state.input]
+  );
+
+  const animatePress = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 0.99}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
+
+  const animatePop = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 1.01}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -224,7 +243,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     disallowTypeAhead: true,
   });
 
-  const {closeModal} = props;
   const onActionSelection = useCallback(
     (
       key: string | number | null,
@@ -242,6 +260,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
+        animatePress();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
@@ -259,6 +278,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       if ('prompt' in action && action.prompt) {
+        animatePress();
         dispatch({
           type: 'push action',
           key: action.key,
@@ -288,7 +308,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         action.onAction();
       }
     },
-    [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
+    [
+      actions,
+      analytics,
+      animatePress,
+      closeModal,
+      dispatch,
+      navigate,
+      prefixMap,
+      state.query,
+    ]
   );
 
   // Dispatch the deferred reset once the close animation finishes. framer-motion
@@ -339,7 +368,7 @@ export function CommandPalette(props: CommandPaletteProps) {
   // be invisible rather than drawing attention with a flash.
   const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
-  return (
+  const content = (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
@@ -367,6 +396,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                             priority="transparent"
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
+                              animatePop();
                               dispatch({type: 'pop action'});
                               state.input.current?.focus();
                             }}
@@ -403,6 +433,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Backspace' && state.query.length === 0) {
                         if (state.action) {
+                          animatePop();
                           dispatch({type: 'pop action'});
                           e.preventDefault();
                           return;
@@ -486,6 +517,8 @@ export function CommandPalette(props: CommandPaletteProps) {
       )}
     </Fragment>
   );
+
+  return <Body>{content}</Body>;
 }
 
 /**
@@ -999,3 +1032,16 @@ const ResultsList = styled(Flex)`
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;
+
+export const modalCss = (theme: Theme) => {
+  return css`
+    [role='document'] {
+      padding: 0;
+
+      background-color: ${theme.tokens.background.primary};
+      border-top-left-radius: calc(${theme.radius.lg} + 1px);
+      border-top-right-radius: calc(${theme.radius.lg} + 1px);
+      will-change: transform;
+    }
+  `;
+};
