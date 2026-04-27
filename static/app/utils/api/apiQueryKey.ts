@@ -72,33 +72,6 @@ type V2InfiniteQueryKey = ReadonlyTuple<z.infer<typeof v2InfiniteSchema>>;
 
 export type InfiniteApiQueryKey = V1InfiniteQueryKey | V2InfiniteQueryKey;
 
-function isV2QueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): queryKey is V2QueryKey | V2InfiniteQueryKey {
-  return typeof queryKey[0] === 'object' && queryKey[0].version === 'v2';
-}
-function isInfiniteQueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): queryKey is V1InfiniteQueryKey | V2InfiniteQueryKey {
-  return typeof queryKey[0] === 'object' && queryKey[0].infinite;
-}
-
-export function parseQueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): ParsedQueryKey {
-  if (isInfiniteQueryKey(queryKey)) {
-    return {
-      version: isV2QueryKey(queryKey) ? 'v2' : 'v1',
-      isInfinite: true,
-      url: queryKey[1],
-      options: queryKey[2],
-    };
-  }
-  return isV2QueryKey(queryKey)
-    ? {version: 'v2', isInfinite: false, url: queryKey[1], options: queryKey[2]}
-    : {version: 'v1', isInfinite: false, url: queryKey[0], options: queryKey[1]};
-}
-
 const queryKeySchema = z.union([
   v1Schema.transform(([url, options]) => ({
     version: 'v1' as const,
@@ -127,6 +100,12 @@ const queryKeySchema = z.union([
 ]);
 
 type ParsedQueryKey = z.infer<typeof queryKeySchema>;
+
+export function parseQueryKey(
+  queryKey: ApiQueryKey | InfiniteApiQueryKey
+): ParsedQueryKey {
+  return queryKeySchema.parse(queryKey);
+}
 
 export function safeParseQueryKey(
   queryKey: readonly unknown[]
