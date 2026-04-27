@@ -20,7 +20,6 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
-import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {
   IconAdd,
   IconAllProjects,
@@ -178,11 +177,6 @@ export function GlobalCommandPaletteActions() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const hasMetricsSupportedPlatform = projects.some(project =>
-    Array.from(limitedMetricsSupportPrefixes).some(metricsPrefix =>
-      (project.platform || 'unknown').startsWith(metricsPrefix)
-    )
-  );
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -233,13 +227,12 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
           )}
-          {hasMetricsSupportedPlatform &&
-            organization.features.includes('tracemetrics-enabled') && (
-              <CMDKAction
-                display={{label: t('Application Metrics')}}
-                to={`${prefix}/explore/metrics/`}
-              />
-            )}
+          {organization.features.includes('tracemetrics-enabled') && (
+            <CMDKAction
+              display={{label: t('Application Metrics')}}
+              to={`${prefix}/explore/metrics/`}
+            />
+          )}
           {organization.features.includes('explore-errors') && (
             <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
           )}
