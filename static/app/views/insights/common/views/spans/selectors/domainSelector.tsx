@@ -42,7 +42,7 @@ export function DomainSelector({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
 
-  const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
+  const [searchQuery, setSearchQuery] = useState(''); // Debounced copy of `searchInputValue` used for the Discover query
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(

@@ -73,7 +73,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     />
   );
 
-  const [orderBy, setOrderBy] = useState<OrderBy>(OrderBy.NEWEST);
+  const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
 

@@ -6,7 +6,7 @@ export function useResettableState<T>(defaultValue: () => T) {
   const defaultValueBoxed = useRef(defaultValue);
   defaultValueBoxed.current = defaultValue;
 
-  const [state, _setState] = useState<T>(defaultValueBoxed.current());
+  const [state, _setState] = useState(defaultValueBoxed.current());
 
   const setState = useCallback((newState: T | null | undefined) => {
     if (defined(newState)) {

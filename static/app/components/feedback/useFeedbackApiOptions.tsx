@@ -42,7 +42,7 @@ export function FeedbackApiOptions({children, organization}: Props) {
     setHeadTimeMs(Date.now());
   }, []);
 
-  const itemQueryKeyRef = useRef<Map<string, ItemQueryKeys>>(new Map());
+  const itemQueryKeyRef = useRef(new Map());
   const getItemQueryKeys = useCallback(
     (feedbackId: string) => {
       if (feedbackId && !itemQueryKeyRef.current.has(feedbackId)) {

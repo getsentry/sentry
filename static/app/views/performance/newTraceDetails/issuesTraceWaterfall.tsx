@@ -12,7 +12,6 @@ import * as Sentry from '@sentry/react';
 
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -58,7 +57,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     return {affectedSpanIds: [], focusedSpanIds: []};
   }, [props.event]);
 
-  const projectsRef = useRef<Project[]>(projects);
+  const projectsRef = useRef(projects);
   projectsRef.current = projects;
 
   useEffect(() => {

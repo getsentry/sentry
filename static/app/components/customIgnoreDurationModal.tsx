@@ -17,7 +17,7 @@ type Props = ModalRenderProps & {
 };
 
 export function CustomIgnoreDurationModal(props: Props) {
-  const [dateWarning, setDateWarning] = useState<boolean>(false);
+  const [dateWarning, setDateWarning] = useState(false);
   const {Header, Body, Footer, onSelected, closeModal} = props;
 
   const snoozeDateInputRef = useRef<HTMLInputElement>(null);

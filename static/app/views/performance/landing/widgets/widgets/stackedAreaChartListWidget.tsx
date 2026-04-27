@@ -63,7 +63,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
+  const [selectedListIndex, setSelectListIndex] = useState(0);
   const {organization, InteractiveTitle, fields} = props;
   const {setPageDanger} = usePageAlert();
 

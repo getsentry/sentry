@@ -58,9 +58,7 @@ function TransactionThresholdModal({
   const [threshold, setThreshold] = useState<number | string | undefined>(
     transactionThreshold
   );
-  const [metric, setMetric] = useState<TransactionThresholdMetric | undefined>(
-    transactionThresholdMetric
-  );
+  const [metric, setMetric] = useState(transactionThresholdMetric);
   const project = useEventViewProject(projects, eventView, projectId);
 
   const handleApply = (event: React.FormEvent) => {

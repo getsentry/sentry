@@ -1,6 +1,6 @@
 import {createContext, useContext, type ReactNode} from 'react';
 
-const AnalyticsAreaContext = createContext<string>('');
+const AnalyticsAreaContext = createContext('');
 
 /**
  * Returns a string identifying the UI area from which an analytics event is emitted.

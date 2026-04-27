@@ -16,7 +16,7 @@ export function useIntegrationTabs<T extends IntegrationTab>({
   initialTab: T;
 }) {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<T>(initialTab);
+  const [activeTab, setActiveTab] = useState(initialTab);
   useEffect(() => {
     if (location.query.tab) {
       setActiveTab(location.query.tab as T);

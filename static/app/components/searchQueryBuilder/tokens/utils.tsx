@@ -37,7 +37,7 @@ export function useShiftFocusToChild(
   state: ListState<ParseResultToken>
 ) {
   const onFocus = useCallback(
-    (e: React.FocusEvent<HTMLDivElement, Element>) => {
+    (e: React.FocusEvent<HTMLDivElement>) => {
       shiftFocusToChild(e.currentTarget, item, state);
     },
     [item, state]

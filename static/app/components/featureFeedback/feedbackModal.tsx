@@ -103,7 +103,7 @@ export function FeedbackModal<T extends Data>({
   const theme = useTheme();
   const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const [state, setState] = useState<T>(
+  const [state, setState] = useState(
     props.children === undefined
       ? ({subject: undefined, additionalInfo: undefined} as unknown as T)
       : props.initialData

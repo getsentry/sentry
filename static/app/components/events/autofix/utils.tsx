@@ -252,7 +252,7 @@ export function useIsSeerSupportedProvider(): (provider: {
   );
 }
 
-export interface AutofixProgressDetails {
+interface AutofixProgressDetails {
   overallProgress: number;
 }
 

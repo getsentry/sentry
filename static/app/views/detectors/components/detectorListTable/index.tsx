@@ -98,7 +98,7 @@ export function DetectorListTable({
   queryCount,
   allResultsVisible,
 }: DetectorListTableProps) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState(new Set<string>());
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false);
 
   const detectorIds = new Set(detectors.map(d => d.id));

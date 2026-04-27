@@ -116,9 +116,7 @@ export function EventGraph({
   const navigate = useNavigate();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
-  const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
-    EventGraphSeries.EVENT
-  );
+  const [visibleSeries, setVisibleSeries] = useState(EventGraphSeries.EVENT);
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();

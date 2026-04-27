@@ -24,7 +24,7 @@ describe('SentryAppExternalIssueForm', () => {
   const sentryApp = SentryAppFixture();
   const sentryAppInstallation = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
-  let externalIssueRequest!: jest.Mock<any, any>;
+  let externalIssueRequest!: jest.Mock;
 
   beforeEach(() => {
     externalIssueRequest = MockApiClient.addMockResponse({

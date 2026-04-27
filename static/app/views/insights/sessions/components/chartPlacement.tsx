@@ -35,9 +35,10 @@ interface Props {
 export function ChartPlacementSlot({view, index}: Props) {
   const organization = useOrganization();
 
-  const [chartsByIndexAnyName, setChartsByIndex] = useSyncedLocalStorageState<
-    (typeof DEFAULT_LAYOUTS)[DomainView]
-  >(`insights-sessions-layout-${organization.slug}-${view}`, DEFAULT_LAYOUTS[view]);
+  const [chartsByIndexAnyName, setChartsByIndex] = useSyncedLocalStorageState(
+    `insights-sessions-layout-${organization.slug}-${view}`,
+    DEFAULT_LAYOUTS[view]
+  );
 
   const chartsByIndex = useMemo(() => {
     return chartsByIndexAnyName.map(name => {

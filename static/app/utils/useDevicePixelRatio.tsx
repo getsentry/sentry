@@ -6,9 +6,7 @@ import {useCallback, useLayoutEffect, useState} from 'react';
  * @returns dpr of the device
  */
 function useDevicePixelRatio(): number {
-  const [devicePixelRatio, setDevicePixelRatio] = useState<number>(
-    window.devicePixelRatio
-  );
+  const [devicePixelRatio, setDevicePixelRatio] = useState(window.devicePixelRatio);
 
   const updateDevicePixelRatio = useCallback(() => {
     setDevicePixelRatio(window.devicePixelRatio);

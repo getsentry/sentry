@@ -127,9 +127,7 @@ function AddToDashboardModal({
   );
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const widget = widgets[0];
-  const [newWidgetTitle, setNewWidgetTitle] = useState<string>(
-    getFallbackWidgetTitle(widget)
-  );
+  const [newWidgetTitle, setNewWidgetTitle] = useState(getFallbackWidgetTitle(widget));
   const [orderBy, setOrderBy] = useState<string>();
   const [tableWidths, setTableWidths] = useState<number[]>();
 

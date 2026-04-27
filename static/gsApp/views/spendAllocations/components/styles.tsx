@@ -48,7 +48,7 @@ export function Divider() {
   return <Container borderRight="primary" margin="0 md" height="20px" />;
 }
 
-export function Centered(props: FlexProps<'div'>) {
+export function Centered(props: FlexProps) {
   return <Flex justify="center" align="center" {...props} />;
 }
 

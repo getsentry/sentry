@@ -6,7 +6,7 @@ interface WindowSize {
 }
 
 export function useWindowSize(): WindowSize {
-  const [windowSize, setWindowSize] = useState<WindowSize>({
+  const [windowSize, setWindowSize] = useState({
     innerWidth: window.innerWidth,
     innerHeight: window.innerHeight,
   });

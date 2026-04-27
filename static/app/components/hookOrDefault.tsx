@@ -70,7 +70,7 @@ export function HookOrDefault<H extends HookName>({
   }
 
   function HookOrDefaultComponent(props: Props) {
-    const [hooks, setHooks] = useState<Array<Hooks[H]>>(HookStore.get(hookName));
+    const [hooks, setHooks] = useState(HookStore.get(hookName));
 
     useEffect(() => {
       const unsubscribe = HookStore.listen((name: string, newHooks: Array<Hooks[H]>) => {

@@ -75,6 +75,8 @@ class DollarsFieldNoContext extends NumberFieldNoContext {
 
 const DollarsField = withFormContext(DollarsFieldNoContext);
 
+// Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
 class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps> {
   getField() {
     return (

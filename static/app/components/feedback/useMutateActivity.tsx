@@ -12,25 +12,24 @@ type TMethod = 'PUT' | 'POST' | 'DELETE';
 type TData = GroupActivity;
 type TError = RequestError;
 type TVariables = [TPayload, TMethod];
-type TContext = unknown;
 
 type DeleteCommentCallback = (
   noteId: string,
   activity: GroupActivity[],
-  options?: MutateOptions<TData, TError, TVariables, TContext>
+  options?: MutateOptions<TData, TError, TVariables>
 ) => void;
 
 type CreateCommentCallback = (
   note: NoteType,
   activity: GroupActivity[],
-  options?: MutateOptions<TData, TError, TVariables, TContext>
+  options?: MutateOptions<TData, TError, TVariables>
 ) => void;
 
 type UpdateCommentCallback = (
   note: NoteType,
   noteId: string,
   activity: GroupActivity[],
-  options?: MutateOptions<TData, TError, TVariables, TContext>
+  options?: MutateOptions<TData, TError, TVariables>
 ) => void;
 
 interface Props {
@@ -48,7 +47,7 @@ interface Props {
 }
 
 export function useMutateActivity({organization, group, onMutate, onSettled}: Props) {
-  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
       const url =

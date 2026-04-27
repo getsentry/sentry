@@ -32,9 +32,7 @@ export function useTimePeriodSelection({
   dataset,
   interval,
 }: UseTimePeriodSelectionProps): UseTimePeriodSelectionResult {
-  const [preferredTimePeriod, setPreferredTimePeriod] = useState<TimePeriod>(
-    TimePeriod.SEVEN_DAYS
-  );
+  const [preferredTimePeriod, setPreferredTimePeriod] = useState(TimePeriod.SEVEN_DAYS);
 
   // Get available time period options based on dataset and interval
   const timePeriodOptions = useMemo(() => {

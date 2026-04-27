@@ -4,7 +4,7 @@ import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 
-interface ViewportConstrainedPageProps extends FlexProps<'div'> {
+interface ViewportConstrainedPageProps extends FlexProps {
   constrained?: boolean;
   hideFooter?: boolean;
 }

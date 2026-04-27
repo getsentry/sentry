@@ -87,7 +87,7 @@ export function useReleases(
   // The result is structurally shared by TanStack Query, so it won't change
   // reference unless the underlying data changes.
   const combineMetricsResults = useCallback(
-    (results: Array<UseQueryResult<ApiResult<TableData>, Error>>) => {
+    (results: Array<UseQueryResult<ApiResult<TableData>>>) => {
       const isFetched = results.every(result => result.isFetched);
       if (!isFetched) {
         return {metricsStats: {}, metricsFetched: false};

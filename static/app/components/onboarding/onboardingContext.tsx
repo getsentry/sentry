@@ -72,9 +72,10 @@ type ProviderProps = {
 };
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
-  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
-    OnboardingSessionState | undefined
-  >('onboarding', initialValue);
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage(
+    'onboarding',
+    initialValue
+  );
 
   const contextValue = useMemo(
     () => ({

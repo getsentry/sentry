@@ -27,7 +27,7 @@ export function useJumpButtons({
   setScrollToRow,
   visibleRange: externalVisibleRange,
 }: Props) {
-  const [internalVisibleRange, setInternalVisibleRange] = useState<VisibleRange>({
+  const [internalVisibleRange, setInternalVisibleRange] = useState({
     startIndex: 0,
     stopIndex: 0,
   });

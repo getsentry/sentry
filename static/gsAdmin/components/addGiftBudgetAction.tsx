@@ -35,7 +35,7 @@ function AddGiftBudgetModal({
 }: ModalProps) {
   const api = useApi();
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
-  const [giftAmount, setGiftAmount] = useState<number>(0);
+  const [giftAmount, setGiftAmount] = useState(0);
   const [ticketUrl, setTicketUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
 

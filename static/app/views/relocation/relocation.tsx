@@ -25,7 +25,7 @@ import {EncryptBackup} from './encryptBackup';
 import {GetStarted} from './getStarted';
 import {InProgress} from './inProgress';
 import {PublicKey} from './publicKey';
-import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
+import type {MaybeUpdateRelocationState, StepDescriptor} from './types';
 import {UploadBackup} from './uploadBackup';
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
@@ -83,7 +83,7 @@ export function RelocationOnboarding() {
   const [existingRelocation, setExistingRelocation] = useState('');
   const [publicKeys, setPublicKeys] = useState(new Map<string, string>());
   const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
-  const [relocationState, setRelocationState] = useSessionStorage<RelocationState>(
+  const [relocationState, setRelocationState] = useSessionStorage(
     'relocationOnboarding',
     {
       orgSlugs: '',

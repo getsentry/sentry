@@ -67,8 +67,8 @@ function useGuidedStepsContentValue({
   onStepChange,
 }: Pick<GuidedStepsProps, 'onStepChange' | 'initialStep'>): GuidedStepsContextState {
   const registeredStepsRef = useRef<RegisteredSteps>({});
-  const [totalSteps, setTotalSteps] = useState<number>(0);
-  const [currentStep, setCurrentStep] = useState<number>(initialStep ?? 1);
+  const [totalSteps, setTotalSteps] = useState(0);
+  const [currentStep, setCurrentStep] = useState(initialStep ?? 1);
 
   // Steps are registered on initial render to determine the step order and which step to start on.
   // This allows Steps to be wrapped in other components, but does require that they exist on first

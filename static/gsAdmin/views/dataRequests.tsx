@@ -29,8 +29,8 @@ export function DataRequests() {
   const initialOrgSlug = (location.query.orgSlug as string | undefined) || '';
   const initialEmail = (location.query.email as string | undefined) || '';
 
-  const [orgSlug, setOrgSlug] = useState<string>(initialOrgSlug);
-  const [email, setEmail] = useState<string>(initialEmail);
+  const [orgSlug, setOrgSlug] = useState(initialOrgSlug);
+  const [email, setEmail] = useState(initialEmail);
   const queryFromRouterOrgSlug = (location.query.orgSlug as string | undefined) || '';
   const queryFromRouterEmail = (location.query.email as string | undefined) || '';
   const hasQuery = Boolean(queryFromRouterOrgSlug || queryFromRouterEmail);

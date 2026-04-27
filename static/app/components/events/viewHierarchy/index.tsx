@@ -102,9 +102,7 @@ function ViewHierarchy({
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedNode, setSelectedNode] = useState<ViewHierarchyWindow | undefined>(
-    viewHierarchy.windows[0]
-  );
+  const [selectedNode, setSelectedNode] = useState(viewHierarchy.windows[0]);
   const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
     return viewHierarchy.windows;

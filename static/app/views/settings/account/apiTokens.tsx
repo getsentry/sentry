@@ -75,11 +75,7 @@ function ApiTokens() {
       addErrorMessage(t('Unable to remove token. Please try again.'));
 
       if (context?.previous) {
-        setApiQueryData<InternalAppApiToken[]>(
-          queryClient,
-          API_TOKEN_QUERY_KEY,
-          context.previous
-        );
+        setApiQueryData(queryClient, API_TOKEN_QUERY_KEY, context.previous);
       }
     },
     onSettled: () => {

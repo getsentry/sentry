@@ -9,10 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type Variables = Pick<Partial<Organization>, 'targetSampleRate' | 'samplingMode'>;
 
 export function useUpdateOrganization(
-  options?: Omit<
-    UseMutationOptions<Organization, RequestError, Variables, unknown>,
-    'mutationFn'
-  >
+  options?: Omit<UseMutationOptions<Organization, RequestError, Variables>, 'mutationFn'>
 ) {
   const api = useApi();
   const organization = useOrganization();

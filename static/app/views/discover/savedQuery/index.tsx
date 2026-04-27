@@ -74,7 +74,7 @@ const renderDisabled = (p: any) => (
 type SaveAsDropdownProps = {
   disabled: boolean;
   modifiedHandleCreateQuery: (
-    e: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
+    e: React.MouseEvent | React.FormEvent<HTMLFormElement>
   ) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
@@ -257,9 +257,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
    * 1) Creating a query from scratch and saving it
    * 2) Modifying an existing query and saving it
    */
-  handleCreateQuery = (
-    event: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
-  ) => {
+  handleCreateQuery = (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -287,7 +285,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   };
 
-  handleUpdateQuery = (event: React.MouseEvent<Element>) => {
+  handleUpdateQuery = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -305,7 +303,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     );
   };
 
-  handleDeleteQuery = (event?: React.MouseEvent<Element>) => {
+  handleDeleteQuery = (event?: React.MouseEvent) => {
     event?.preventDefault();
     event?.stopPropagation();
 

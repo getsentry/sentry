@@ -229,7 +229,7 @@ function DiffHunkContent({
   }, [lines]);
 
   const [editingGroup, setEditingGroup] = useState<number | null>(null);
-  const [editedContent, setEditedContent] = useState<string>('');
+  const [editedContent, setEditedContent] = useState('');
   const [editedLines, setEditedLines] = useState<string[]>([]);
   const overlayRef = useRef<HTMLDivElement>(null);
   const [hoveredGroup, setHoveredGroup] = useState<number | null>(null);

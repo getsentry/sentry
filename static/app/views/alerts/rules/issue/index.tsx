@@ -127,8 +127,6 @@ type RuleTaskResponse = {
   rule?: IssueAlertRule;
 };
 
-type RouteParams = {projectId?: string; ruleId?: string};
-
 type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
@@ -143,7 +141,7 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams>;
+} & RouteComponentProps;
 
 type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;

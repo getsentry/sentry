@@ -94,8 +94,8 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
   const navigate = useNavigate();
   const hasPageFrameFeature = useHasPageFrameFeature();
 
-  const [orgRole, setOrgRole] = useState<Member['orgRole']>(member.orgRole);
-  const [teamRoles, setTeamRoles] = useState<Member['teamRoles']>(member.teamRoles);
+  const [orgRole, setOrgRole] = useState(member.orgRole);
+  const [teamRoles, setTeamRoles] = useState(member.teamRoles);
   const hasTeamRoles = organization.features.includes('team-roles');
 
   const {mutate: updatedMember, isPending: isSaving} = useMutation<Member, RequestError>({
@@ -111,11 +111,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     },
     onSuccess: data => {
       addSuccessMessage(t('Saved'));
-      setApiQueryData<Member>(
-        queryClient,
-        getMemberQueryKey(organization.slug, member.id),
-        data
-      );
+      setApiQueryData(queryClient, getMemberQueryKey(organization.slug, member.id), data);
     },
     onError: error => {
       addErrorMessage(
@@ -136,7 +132,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       onSuccess: data => {
         addSuccessMessage(t('Sent invite!'));
 
-        setApiQueryData<Member>(
+        setApiQueryData(
           queryClient,
           getMemberQueryKey(organization.slug, member.id),
           data
@@ -148,7 +144,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     }
   );
 
-  const {mutate: reset2fa, isPending: isResetting2fa} = useMutation<unknown>({
+  const {mutate: reset2fa, isPending: isResetting2fa} = useMutation({
     mutationFn: () => {
       const {user} = member;
       const promises =

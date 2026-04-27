@@ -31,7 +31,7 @@ export function useTypingAnimation({
   const [displayedText, setDisplayedText] = useState(enabled ? '' : text);
   const currentIndexRef = useRef(enabled ? 0 : text.length);
   const animationFrameRef = useRef<number | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  const lastUpdateTimeRef = useRef(0);
   const onCompleteRef = useRef(onComplete);
 
   // Keep the onComplete callback reference up-to-date

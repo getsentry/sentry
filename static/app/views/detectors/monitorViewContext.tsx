@@ -30,9 +30,7 @@ export interface MonitorViewContextValue {
 
 const DEFAULT_MONITOR_VIEW_CONTEXT: MonitorViewContextValue = {};
 
-export const MonitorViewContext = createContext<MonitorViewContextValue>(
-  DEFAULT_MONITOR_VIEW_CONTEXT
-);
+export const MonitorViewContext = createContext(DEFAULT_MONITOR_VIEW_CONTEXT);
 
 export function useMonitorViewContext(): MonitorViewContextValue {
   return useContext(MonitorViewContext);

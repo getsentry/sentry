@@ -9,6 +9,6 @@ export const ReadoutRibbon = styled('div')`
   row-gap: ${p => p.theme.space.xl};
 `;
 
-export function ToolRibbon(props: FlexProps<'div'>) {
+export function ToolRibbon(props: FlexProps) {
   return <Flex wrap="wrap" gap="xl" position="relative" {...props} />;
 }

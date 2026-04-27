@@ -67,7 +67,7 @@ export function InvoiceDetails() {
   const isDeleted = customer.isDeleted;
 
   const updateCache = (updatedInvoice: Invoice) => {
-    setApiQueryData<Invoice>(queryClient, QUERY_KEY, updatedInvoice);
+    setApiQueryData(queryClient, QUERY_KEY, updatedInvoice);
   };
 
   const handleClose = async () => {

@@ -26,7 +26,7 @@ interface UseContextMenuOptions {
 }
 
 export function useContextMenu({container}: UseContextMenuOptions) {
-  const [open, setOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState(false);
   const [menuCoordinates, setMenuCoordinates] = useState<Rect | null>(null);
   const [contextMenuCoordinates, setContextMenuCoordinates] = useState<Rect | null>(null);
   const [containerCoordinates, setContainerCoordinates] = useState<Rect | null>(null);

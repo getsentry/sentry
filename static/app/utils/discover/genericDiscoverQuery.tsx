@@ -85,7 +85,7 @@ type BaseDiscoverQueryProps = {
    */
   noPagination?: boolean;
   options?: Omit<
-    UseQueryOptions<[any, string | undefined, ResponseMeta<any> | undefined], QueryError>,
+    UseQueryOptions<[any, string | undefined, ResponseMeta | undefined], QueryError>,
     'queryKey' | 'queryFn'
   > & {additionalQueryKey?: UseQueryOptions['queryKey']};
   /**

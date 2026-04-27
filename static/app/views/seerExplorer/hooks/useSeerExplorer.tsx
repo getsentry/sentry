@@ -108,18 +108,20 @@ export const useSeerExplorer = () => {
   const orgSlug = organization?.slug;
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
-  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState<boolean>(
+  const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
     true
   );
-  const [overrideCodeModeEnable, setOverrideCodeModeEnable] =
-    useLocalStorageState<boolean>('seer-explorer.override.code-mode', true);
+  const [overrideCodeModeEnable, setOverrideCodeModeEnable] = useLocalStorageState(
+    'seer-explorer.override.code-mode',
+    true
+  );
 
   const [runId, setRunId] = useSeerExplorerRunId();
 
   const {getPageReferrer} = usePageReferrer();
 
-  const [waitingForInterrupt, setWaitingForInterrupt] = useState<boolean>(false);
+  const [waitingForInterrupt, setWaitingForInterrupt] = useState(false);
   const [optimistic, setOptimistic] = useState<{
     assistantBlockId: string;
     assistantContent: string;
@@ -179,7 +181,7 @@ export const useSeerExplorer = () => {
       setOptimistic(null);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
-        setApiQueryData<SeerExplorerResponse>(
+        setApiQueryData(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           makeErrorSeerExplorerData('An error occurred')
@@ -227,7 +229,7 @@ export const useSeerExplorer = () => {
       setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
-        setApiQueryData<SeerExplorerResponse>(
+        setApiQueryData(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           makeErrorSeerExplorerData('An error occurred')

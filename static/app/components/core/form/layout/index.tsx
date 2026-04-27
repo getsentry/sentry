@@ -20,7 +20,7 @@ interface LayoutProps {
 }
 
 interface RowLayoutProps extends LayoutProps {
-  padding?: FlexProps<'div'>['padding'];
+  padding?: FlexProps['padding'];
 }
 
 function RowLayout(props: RowLayoutProps) {
@@ -57,7 +57,7 @@ function RowLayout(props: RowLayoutProps) {
 }
 
 interface StackLayoutProps extends LayoutProps {
-  padding?: StackProps<'div'>['padding'];
+  padding?: StackProps['padding'];
 }
 
 function StackLayout(props: StackLayoutProps) {

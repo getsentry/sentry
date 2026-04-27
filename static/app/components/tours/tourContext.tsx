@@ -175,7 +175,7 @@ export function useTourReducer<T extends TourEnumType>(
   const {orderedStepIds} = initialState;
 
   const [state, dispatch] = useReducer(tourReducer<T>, initialState);
-  const registry = useRef<TourRegistry<T>>({} as TourRegistry<T>);
+  const registry = useRef({} as TourRegistry<T>);
 
   const handleStepRegistration = useCallback(
     (step: TourStep<T>) => {

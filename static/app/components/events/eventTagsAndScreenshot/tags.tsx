@@ -40,7 +40,7 @@ export function EventTagsDataSection({
 }: Props) {
   const sentryTags = getSentryDefaultTags();
 
-  const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
+  const [tagFilter, setTagFilter] = useState(TagFilter.ALL);
   const handleTagFilterChange = (value: TagFilter) => {
     setTagFilter(value);
   };

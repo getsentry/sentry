@@ -117,11 +117,11 @@ type Props = {
   /**
    * The callback for when View All Events is clicked.
    */
-  handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenAllEventsClick?: (e: React.MouseEvent) => void;
   /**
    * The callback for when Open in Discover is clicked.
    */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenInDiscoverClick?: (e: React.MouseEvent) => void;
   referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**

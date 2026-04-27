@@ -50,7 +50,7 @@ export function ProjectsEditTable({
 }: Props) {
   const {projects, fetching} = useProjects();
   const [isBulkEditEnabled, setIsBulkEditEnabled] = useState(false);
-  const [orgRate, setOrgRate] = useState<string>('');
+  const [orgRate, setOrgRate] = useState('');
 
   const projectRateSnapshotRef = useRef<Record<string, string>>({});
 

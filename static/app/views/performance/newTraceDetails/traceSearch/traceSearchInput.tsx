@@ -41,7 +41,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   const [status, setStatus] = useState<TraceSearchState['status']>([0, 'success']);
 
   const timeoutRef = useRef<number | undefined>(undefined);
-  const statusRef = useRef<TraceSearchState['status']>(status);
+  const statusRef = useRef(status);
   statusRef.current = status;
 
   const traceStateRef = useRef(traceState);

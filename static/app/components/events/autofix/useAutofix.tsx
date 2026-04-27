@@ -223,9 +223,9 @@ export const useAiAutofix = (
   const orgSlug = useOrganization().slug;
   const isUserWatching = !options.isSidebar;
 
-  const [isReset, setIsReset] = useState<boolean>(false);
+  const [isReset, setIsReset] = useState(false);
   const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-  const [waitingForNextRun, setWaitingForNextRun] = useState<boolean>(false);
+  const [waitingForNextRun, setWaitingForNextRun] = useState(false);
 
   const {data: apiData, isPending} = useApiQuery<AutofixResponse>(
     makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
@@ -253,7 +253,7 @@ export const useAiAutofix = (
       setIsReset(false);
       setCurrentRunId(null);
       setWaitingForNextRun(true);
-      setApiQueryData<AutofixResponse>(
+      setApiQueryData(
         queryClient,
         makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
         makeInitialAutofixData()
@@ -278,7 +278,7 @@ export const useAiAutofix = (
         });
       } catch (e: any) {
         setWaitingForNextRun(false);
-        setApiQueryData<AutofixResponse>(
+        setApiQueryData(
           queryClient,
           makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
           makeErrorAutofixData(e?.responseJSON?.detail ?? 'An error occurred')

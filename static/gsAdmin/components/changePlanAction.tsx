@@ -43,9 +43,9 @@ function ChangePlanAction({
   onSuccess,
   closeModal,
 }: Props) {
-  const [billingInterval, setBillingInterval] = useState<string>(MONTHLY);
-  const [contractInterval, setContractInterval] = useState<string>(MONTHLY);
-  const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
+  const [billingInterval, setBillingInterval] = useState(MONTHLY);
+  const [contractInterval, setContractInterval] = useState(MONTHLY);
+  const [activeTier, setActiveTier] = useState(PlanTier.AM3);
   const [activePlan, setActivePlan] = useState<Plan | null>(null);
   const [formModel] = useState(() => new FormModel());
   const orgId = organization.slug;

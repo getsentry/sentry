@@ -225,7 +225,7 @@ const LayoutPageWithHiddenFooter = styled(Stack)`
   }
 `;
 
-function TraceInnerLayout(props: FlexProps<'div'>) {
+function TraceInnerLayout(props: FlexProps) {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex

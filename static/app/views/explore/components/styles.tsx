@@ -30,7 +30,7 @@ export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
   }
 `;
 
-export function ExploreContentSection(props: FlexProps<'div'>) {
+export function ExploreContentSection(props: FlexProps) {
   const hasPageFrame = useHasPageFrameFeature();
   return (
     <Flex

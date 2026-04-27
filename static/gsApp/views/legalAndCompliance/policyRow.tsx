@@ -260,6 +260,6 @@ const modalCss = (theme: Theme) => css`
     max-width: 1200px;
   }
 `;
-export function PolicyStatusRow(props: FlexProps<'div'>) {
+export function PolicyStatusRow(props: FlexProps) {
   return <Flex align="center" height="100%" {...props} />;
 }

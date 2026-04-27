@@ -55,7 +55,7 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
           statsPeriod: period,
         };
 
-  const [issuesType, setIssuesType] = useState<IssuesType>(IssuesType.UNRESOLVED);
+  const [issuesType, setIssuesType] = useState(IssuesType.UNRESOLVED);
 
   const monitorFilter = `monitor.slug:${monitor.slug}`;
   const envFilter = `environment:[${monitorEnvs.map(e => e.name).join(',')}]`;

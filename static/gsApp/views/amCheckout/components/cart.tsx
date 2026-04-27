@@ -777,7 +777,7 @@ export function Cart({
   formDataForPreview,
   onSuccess,
 }: CartProps) {
-  const [previewState, setPreviewState] = useState<CartPreviewState>(NULL_PREVIEW_STATE);
+  const [previewState, setPreviewState] = useState(NULL_PREVIEW_STATE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const stripe = useStripeInstance();
   const [isSubmitting, setIsSubmitting] = useState(false);

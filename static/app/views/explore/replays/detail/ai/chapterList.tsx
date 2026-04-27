@@ -30,7 +30,7 @@ interface Props {
 export function ChapterList({timeRanges}: Props) {
   const replay = useReplayReader();
   const {setCurrentTime} = useReplayContext();
-  const onClickChapterTimestamp = (event: React.MouseEvent<Element>, start: number) => {
+  const onClickChapterTimestamp = (event: React.MouseEvent, start: number) => {
     event.stopPropagation();
     setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
   };
@@ -98,7 +98,7 @@ function ChapterRow({
 }: {
   breadcrumbs: ReplayFrame[];
   end: number;
-  onClickChapterTimestamp: (event: React.MouseEvent<Element>, start: number) => void;
+  onClickChapterTimestamp: (event: React.MouseEvent, start: number) => void;
   start: number;
   title: string;
   className?: string;

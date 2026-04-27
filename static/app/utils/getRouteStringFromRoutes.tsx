@@ -10,7 +10,7 @@ type Props =
       routes?: PlainRoute[];
     }
   | {
-      matches?: Array<UIMatch<unknown, unknown>>;
+      matches?: UIMatch[];
       routes?: never;
     };
 

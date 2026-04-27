@@ -28,7 +28,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-const IsPrimaryUserContext = createContext<boolean>(false);
+const IsPrimaryUserContext = createContext(false);
 
 const ENDPOINT = getApiUrl('/auth-v2/merge-accounts/');
 const VERIFICATION_CODE_ENDPOINT = getApiUrl('/auth-v2/user-merge-verification-codes/');
@@ -84,11 +84,7 @@ function MergeAccounts() {
     onSuccess: data => {
       addSuccessMessage(t('Accounts merged!'));
       setSelectedUserIds([]);
-      setApiQueryData<UserWithOrganizations[]>(
-        queryClient,
-        makeMergeAccountsEndpointKey(),
-        data
-      );
+      setApiQueryData(queryClient, makeMergeAccountsEndpointKey(), data);
     },
     onError: (err: RequestError) => {
       if (err.responseJSON && !('raw' in err.responseJSON)) {

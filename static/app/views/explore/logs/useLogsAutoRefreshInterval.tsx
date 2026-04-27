@@ -26,10 +26,7 @@ export function useLogsAutoRefreshInterval({
   fetchPreviousPage: () =>
     | false
     | Promise<
-        InfiniteQueryObserverRefetchErrorResult<
-          InfiniteData<ApiResult<EventsLogsResult>>,
-          Error
-        >
+        InfiniteQueryObserverRefetchErrorResult<InfiniteData<ApiResult<EventsLogsResult>>>
       >;
   isError: boolean;
 }) {
@@ -38,8 +35,8 @@ export function useLogsAutoRefreshInterval({
   const organization = useOrganization();
   const organizationRef = useRef(organization);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
-  const consecutivePagesWithMoreDataRef = useRef<number>(0);
+  const startTimeRef = useRef(Date.now());
+  const consecutivePagesWithMoreDataRef = useRef(0);
   const isRefreshRunningRef = useRef(false);
 
   const shouldPauseForVisibility = useCallback((): boolean => {
@@ -54,8 +51,7 @@ export function useLogsAutoRefreshInterval({
   const shouldDisableForRateLimit = useCallback(
     (
       pageResult: InfiniteQueryObserverRefetchErrorResult<
-        InfiniteData<ApiResult<EventsLogsResult>>,
-        Error
+        InfiniteData<ApiResult<EventsLogsResult>>
       >
     ): boolean => {
       const parsed = parseLinkHeaderFromLogsPage(pageResult);

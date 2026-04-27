@@ -7,7 +7,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-const LastKnownRouteContext = createContext<string>('<unknown>');
+const LastKnownRouteContext = createContext('<unknown>');
 
 export function useLastKnownRoute() {
   return useContext(LastKnownRouteContext);

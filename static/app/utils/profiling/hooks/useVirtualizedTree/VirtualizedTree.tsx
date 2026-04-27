@@ -34,7 +34,7 @@ export class VirtualizedTree<T extends TreeLike> {
     ) {
       const shouldUseExpandedSet = expandedNodes && expandedNodes.size > 0;
 
-      const treeNode = new VirtualizedTreeNode<T>(
+      const treeNode = new VirtualizedTreeNode(
         node,
         parent,
         depth,

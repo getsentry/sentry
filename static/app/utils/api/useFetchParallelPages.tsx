@@ -31,15 +31,6 @@ interface Props {
   perPage: number;
 }
 
-interface ResponsePage<Data> {
-  data: undefined | Data;
-  error: RequestError | undefined;
-  getResponseHeader: ((header: string) => string | null) | undefined;
-  isError: boolean;
-  isFetching: boolean;
-  status: 'pending' | 'error' | 'success';
-}
-
 interface State<Data> {
   error: RequestError[] | undefined;
   getLastResponseHeader: ((header: string) => string | null) | undefined;
@@ -97,7 +88,7 @@ export function useFetchParallelPages<Data>({
 }: Props): State<Data> {
   const queryClient = useQueryClient();
 
-  const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
+  const responsePages = useRef(new Map());
 
   const cursors = useMemo(
     () =>

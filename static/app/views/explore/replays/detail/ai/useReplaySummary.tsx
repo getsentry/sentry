@@ -102,8 +102,8 @@ export function useReplaySummary(
   // Otherwise, when start request query is finished, in the same render loop, we 1) invalidate the
   // summary data query and 2) we have the stale version of the summary data. The consuming
   // component will briefly show a completed state before the summary data query updates.
-  const startSummaryRequestTime = useRef<number>(0);
-  const hasMadeStartRequest = useRef<boolean>(false);
+  const startSummaryRequestTime = useRef(0);
+  const hasMadeStartRequest = useRef(false);
 
   const [didTimeout, setDidTimeout] = useState(false);
   const {start: startTotalTimeout, cancel: cancelTotalTimeout} = useTimeout({

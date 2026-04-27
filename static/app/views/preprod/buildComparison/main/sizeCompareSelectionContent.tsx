@@ -70,9 +70,7 @@ export function SizeCompareSelectionContent({
       cursor: decodeScalar,
     },
   });
-  const [selectedBaseBuild, setSelectedBaseBuild] = useState<
-    BuildDetailsApiResponse | undefined
-  >(baseBuildDetails);
+  const [selectedBaseBuild, setSelectedBaseBuild] = useState(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];

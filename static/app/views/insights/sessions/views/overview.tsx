@@ -28,7 +28,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
-  const [filters, setFilters] = useState<string[]>(['']);
+  const [filters, setFilters] = useState(['']);
 
   // only show onboarding if the project does not have session data
   const {hasSessionData} = useProjectHasSessions();

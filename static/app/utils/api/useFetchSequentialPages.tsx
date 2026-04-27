@@ -35,15 +35,6 @@ interface Props {
   initialCursor?: undefined | string;
 }
 
-interface ResponsePage<Data> {
-  data: undefined | Data;
-  error: unknown;
-  getResponseHeader: ((header: string) => string | null) | undefined;
-  isError: boolean;
-  isFetching: boolean;
-  status: 'pending' | 'error' | 'success';
-}
-
 interface State<Data> {
   error: unknown;
   getLastResponseHeader: ((header: string) => string | null) | undefined;
@@ -98,7 +89,7 @@ export function useFetchSequentialPages<Data>({
 }: Props): State<Data> {
   const queryClient = useQueryClient();
 
-  const responsePages = useRef<Map<string, ResponsePage<Data>>>(new Map());
+  const responsePages = useRef(new Map());
   const [state, setState] = useState<State<Data>>({
     pages: [],
     error: undefined,

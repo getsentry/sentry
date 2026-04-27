@@ -85,7 +85,7 @@ function ArgumentsGrid({
   token: functionToken,
   rowRef,
 }: ArgumentsGridProps) {
-  const [args, setArguments] = useState<Argument[]>(
+  const [args, setArguments] = useState(
     functionToken.attributes.map(attr => {
       return {
         label: attr.attribute,

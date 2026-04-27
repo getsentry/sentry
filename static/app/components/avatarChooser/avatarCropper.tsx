@@ -70,7 +70,7 @@ function AvatarCropper({maxDimension, minDimension, updateDataUrlState, dataUrl}
   const [offsets, setOffsets] = useState({top: 0, left: 0});
   const [mouseDown, setMouseDown] = useState(false);
   const [mousePosition, setMousePosition] = useState({pageX: 0, pageY: 0});
-  const [resizeDimensions, setResizeDimensions] = useState<Rect>({
+  const [resizeDimensions, setResizeDimensions] = useState({
     top: 0,
     left: 0,
     size: 0,

@@ -120,7 +120,7 @@ interface UseStoriesLoaderOptions {
 
 export function useStoriesLoader(
   options: UseStoriesLoaderOptions
-): UseQueryResult<StoryDescriptor[], Error> {
+): UseQueryResult<StoryDescriptor[]> {
   const hmrVersion = useSyncExternalStore(subscribeToStoriesHmr, getStoriesHmrVersion);
   return useQuery({
     queryKey: [options.files, hmrVersion],

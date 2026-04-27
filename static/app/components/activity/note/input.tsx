@@ -103,7 +103,7 @@ function NoteInput({
   );
 
   const handleCancel = useCallback(
-    (e: React.MouseEvent<Element>) => {
+    (e: React.MouseEvent) => {
       e.preventDefault();
       onEditFinish?.();
     },

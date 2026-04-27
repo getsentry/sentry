@@ -65,9 +65,8 @@ export function EditAccessSelector({
 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [stagedOptions, setStagedOptions] = useState<string[]>([]);
-  const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
-  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] =
-    useState<boolean>(false);
+  const [isMenuOpen, setMenuOpen] = useState(false);
+  const [isCollapsedAvatarTooltipOpen, setIsCollapsedAvatarTooltipOpen] = useState(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
       selectedOptions[1] && selectedOptions[1] !== '_allUsers'

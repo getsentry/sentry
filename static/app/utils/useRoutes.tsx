@@ -3,7 +3,7 @@ import {useMatches} from 'react-router-dom';
 
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
-export function useRoutes(): Array<PlainRoute<any>> {
+export function useRoutes(): PlainRoute[] {
   const matches = useMatches();
 
   // XXX(epurkhiser): This transforms react-router 6 style matches back to old

@@ -47,7 +47,7 @@ export default function ProjectKeyDetails() {
   );
 
   function onDataChange(data: ProjectKey) {
-    setApiQueryData<ProjectKey>(
+    setApiQueryData(
       queryClient,
       [
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {

@@ -180,7 +180,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
   const regionHost = organization?.links.regionUrl;
 
   const [projectConfig, setProjectConfig] = useState<ProjectConfig>();
-  const [selectedConfigId, setSelectedConfigId] = useState<string>('');
+  const [selectedConfigId, setSelectedConfigId] = useState('');
 
   async function invalidateProjectConfig() {
     try {
@@ -281,7 +281,7 @@ export function DynamicSamplingPanel({projectId, organization}: Props) {
 }
 
 function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null}) {
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const rules = dsnConfig?.config?.sampling?.rules ?? [];
 

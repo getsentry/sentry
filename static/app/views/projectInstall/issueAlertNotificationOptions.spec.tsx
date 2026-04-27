@@ -39,7 +39,7 @@ describe('MessagingIntegrationAlertRule', () => {
       GitHubIntegrationProviderFixture({key: providerKey}),
     ];
     const providerKeys = ['slack', 'discord', 'msteams'];
-    const mockResponses: Array<jest.Mock<any>> = [];
+    const mockResponses: jest.Mock[] = [];
     providerKeys.forEach(providerKey => {
       mockResponses.push(
         MockApiClient.addMockResponse({

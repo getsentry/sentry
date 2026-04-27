@@ -268,7 +268,7 @@ export default function IntegrationDetailedView() {
           : config
       );
 
-      setApiQueryData<Integration[]>(
+      setApiQueryData(
         queryClient,
         makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
         updatedConfigurations
@@ -277,7 +277,7 @@ export default function IntegrationDetailedView() {
       const options: RequestOptions = {
         method: 'DELETE',
         error: () => {
-          setApiQueryData<Integration[]>(
+          setApiQueryData(
             queryClient,
             makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
             originalConfigurations

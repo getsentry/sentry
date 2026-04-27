@@ -102,7 +102,7 @@ function createDelayGroup(): DelayGroup {
 // tooltip delay semantics are naturally global.
 const defaultDelayGroup = createDelayGroup();
 
-const DelayGroupContext = createContext<DelayGroup>(defaultDelayGroup);
+const DelayGroupContext = createContext(defaultDelayGroup);
 
 /**
  * Scopes a delay group to a React subtree. Overlays inside the provider share

@@ -456,7 +456,7 @@ function AutofixRootCauseDisplay({
   );
 
   // Stores 'seer_solution' or an integration ID (e.g., 'agent:123')
-  const [preferredAction, setPreferredAction] = useLocalStorageState<string>(
+  const [preferredAction, setPreferredAction] = useLocalStorageState(
     'autofix:rootCauseActionPreference',
     'seer_solution'
   );

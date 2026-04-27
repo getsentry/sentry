@@ -1251,7 +1251,7 @@ export const PrimarySelectRow = styled('div')<{
   }
 `;
 
-export function FieldRow(props: FlexProps<'div'>) {
+export function FieldRow(props: FlexProps) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 

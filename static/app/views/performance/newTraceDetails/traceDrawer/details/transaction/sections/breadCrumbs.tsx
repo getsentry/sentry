@@ -32,11 +32,11 @@ export function BreadCrumbs({event}: {event: EventTransaction}) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<string[]>([]);
-  const [timeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );

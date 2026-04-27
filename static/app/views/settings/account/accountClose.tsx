@@ -57,7 +57,7 @@ function AccountClose() {
   const api = useApi();
 
   const [organizations, setOrganizations] = useState<OwnedOrg[]>([]);
-  const [orgsToRemove, setOrgsToRemove] = useState<Set<string>>(new Set());
+  const [orgsToRemove, setOrgsToRemove] = useState(new Set<string>());
   const [isLoading, setIsLoading] = useState(true);
   const leaveRedirectTimeout = useRef<number | undefined>(undefined);
 

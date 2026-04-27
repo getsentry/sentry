@@ -52,8 +52,7 @@ export function AddAutofixRepoModal({
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
   const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [showMaxLimitAlert, setShowMaxLimitAlert] = useState(false);
-  const [modalSelectedRepoIds, setModalSelectedRepoIds] =
-    useState<string[]>(selectedRepoIds);
+  const [modalSelectedRepoIds, setModalSelectedRepoIds] = useState(selectedRepoIds);
 
   const newModalSelectedRepoIds = modalSelectedRepoIds.filter(
     id => !selectedRepoIds.includes(id)

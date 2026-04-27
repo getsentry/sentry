@@ -162,11 +162,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
-      setApiQueryData<AskSeerPollingResponse<T>>(
-        queryClient,
-        queryKey,
-        makeInitialAskSeerData()
-      );
+      setApiQueryData(queryClient, queryKey, makeInitialAskSeerData());
     }
   }, [queryClient, queryKey]);
 

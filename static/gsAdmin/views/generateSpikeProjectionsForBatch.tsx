@@ -10,7 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
-import type {Region} from 'sentry/types/system';
 import {getFormat} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -19,7 +18,7 @@ import {PageHeader} from 'admin/components/pageHeader';
 export function GenerateSpikeProjectionsForBatch() {
   const [batchId, setBatchId] = useState<number | null>(null);
   const regions = ConfigStore.get('regions');
-  const [region, setRegion] = useState<Region | null>(regions[0] ?? null);
+  const [region, setRegion] = useState(regions[0] ?? null);
 
   const {mutate} = useMutation({
     mutationFn: () => {

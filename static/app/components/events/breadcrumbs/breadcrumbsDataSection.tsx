@@ -53,12 +53,12 @@ export function BreadcrumbsDataSection({
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const organization = useOrganization();
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.ABSOLUTE
   );
   // Use the local storage preferences, but allow the drawer to do updates
-  const [sort, _setSort] = useLocalStorageState<BreadcrumbSort>(
+  const [sort, _setSort] = useLocalStorageState(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );

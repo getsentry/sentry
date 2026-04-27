@@ -56,9 +56,7 @@ export function AutofixRepositoriesItem({
   // We keep state with local overrides so the user can edit things without
   // sending incomplete changes to the server. All fields are required before
   // an override can be saved.
-  const [localOverrides, setLocalOverrides] = useState<BranchOverride[]>(
-    repository.branch_overrides || []
-  );
+  const [localOverrides, setLocalOverrides] = useState(repository.branch_overrides || []);
 
   const handleUpdateOverride = (idx: number, updatedOverride: BranchOverride) => {
     const newLocalOverrides = localOverrides.toSpliced(idx, 1, updatedOverride);

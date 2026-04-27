@@ -49,7 +49,7 @@ export function useUpdateProjectSeerPreferences(project: Project) {
       return {previousPrefs};
     },
     mutationFn: (preference: ProjectSeerPreferences) => {
-      return fetchMutation<unknown>({
+      return fetchMutation({
         method: 'POST',
         url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
         data: {...preference},

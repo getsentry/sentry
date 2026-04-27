@@ -40,7 +40,7 @@ export function SimilarStackTrace({project}: Props) {
   const params = useParams<{groupId: string; orgId: string}>();
   const navigate = useNavigate();
 
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [checkedIds, setCheckedIds] = useState(new Set<string>());
 
   const hasSimilarityFeature = project.features.includes('similarity-view');
   const {data: projectData, isPending: isProjectPending} = useDetailedProject({

@@ -593,7 +593,7 @@ export function useExplorerAutofix(
         return response.run_id as number;
       } catch (e: any) {
         setWaitingForResponse(false);
-        setApiQueryData<ExplorerAutofixResponse>(
+        setApiQueryData(
           queryClient,
           makeExplorerAutofixQueryKey(orgSlug, groupId),
           makeErrorExplorerAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
@@ -649,7 +649,7 @@ export function useExplorerAutofix(
   const reset = useCallback(() => {
     setWaitingForResponse(false);
     setWaitingForCodingAgent(false);
-    setApiQueryData<ExplorerAutofixResponse>(
+    setApiQueryData(
       queryClient,
       makeExplorerAutofixQueryKey(orgSlug, groupId),
       makeInitialExplorerAutofixData()

@@ -23,7 +23,7 @@ type Props = ModalRenderProps & {
 };
 
 export function CustomIgnoreCountModal(props: Props) {
-  const [count, setCount] = useState<number>(100);
+  const [count, setCount] = useState(100);
   const [window, setWindow] = useState<number | null>(null);
   const {
     Header,

@@ -214,7 +214,7 @@ export const DetailsContent = styled(StyledPanel)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
-export function LogFirstCellContent(props: FlexProps<'div'>) {
+export function LogFirstCellContent(props: FlexProps) {
   return <Flex align="center" {...props} />;
 }
 
@@ -312,11 +312,11 @@ export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-left: ${p => p.theme.space.md};
 `;
 
-export function TableActionsContainer(props: FlexProps<'div'>) {
+export function TableActionsContainer(props: FlexProps) {
   return <Flex justify="end" align="center" gap="md" {...props} />;
 }
 
-export function LogsItemContainer(props: FlexProps<'div'>) {
+export function LogsItemContainer(props: FlexProps) {
   return (
     <Flex
       direction="column"
@@ -328,7 +328,7 @@ export function LogsItemContainer(props: FlexProps<'div'>) {
   );
 }
 
-export function LogsTableActionsContainer(props: FlexProps<'div'>) {
+export function LogsTableActionsContainer(props: FlexProps) {
   return (
     <Flex
       direction="row"
@@ -340,7 +340,7 @@ export function LogsTableActionsContainer(props: FlexProps<'div'>) {
   );
 }
 
-export function LogsGraphContainer(props: FlexProps<'div'>) {
+export function LogsGraphContainer(props: FlexProps) {
   return (
     <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
   );

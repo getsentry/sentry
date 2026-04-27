@@ -7,7 +7,7 @@ export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement |
   const [position, setPosition] = useState({left: 0, top: 0});
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
-  const lastUpdateRef = useRef<number>(0);
+  const lastUpdateRef = useRef(0);
   const THROTTLE_MS = 16;
 
   useLayoutEffect(() => {

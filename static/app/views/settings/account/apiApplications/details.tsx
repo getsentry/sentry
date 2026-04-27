@@ -119,7 +119,7 @@ function ApiApplicationsDetails() {
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
-    setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
+    setApiQueryData(queryClient, getAppQueryKey(appId), updated);
     addSuccessMessage(t('Changes applied.'));
   };
 

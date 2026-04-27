@@ -133,7 +133,7 @@ export function PromoCodeDetails() {
                 {...deps}
                 promoCode={promoCode}
                 onSubmit={(newCode: PromoCode) => {
-                  setApiQueryData<PromoCode>(queryClient, [ENDPOINT], newCode);
+                  setApiQueryData(queryClient, [ENDPOINT], newCode);
                 }}
               />
             ));

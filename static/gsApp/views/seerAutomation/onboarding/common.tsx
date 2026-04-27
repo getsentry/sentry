@@ -19,7 +19,7 @@ export const StepContent = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-export function ActionSection(props: FlexProps<'div'>) {
+export function ActionSection(props: FlexProps) {
   return <Flex marginTop="xl" gap="md" {...props} />;
 }
 

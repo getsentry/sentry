@@ -21,9 +21,7 @@ export function PullRequestDetailsSizeContent({
   buildDetails,
 }: PullRequestDetailsSizeContentProps) {
   const organization = useOrganization();
-  const [selectedBuildId, setSelectedBuildId] = useState<string | undefined>(
-    buildDetails[0]?.id
-  );
+  const [selectedBuildId, setSelectedBuildId] = useState(buildDetails[0]?.id);
 
   const appSizeQuery = useApiQuery<AppSizeApiResponse>(
     // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (should be organization prefix?)

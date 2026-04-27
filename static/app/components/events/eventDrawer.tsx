@@ -27,7 +27,7 @@ export const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   padding: 0;
 `;
 
-export function CrumbContainer(props: FlexProps<'div'>) {
+export function CrumbContainer(props: FlexProps) {
   return <Flex align="center" gap="md" {...props} />;
 }
 

@@ -7,7 +7,6 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
 
 const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
 
@@ -20,7 +19,7 @@ export function NumericDropdownFilter({
   val: number;
   formatter?: (val: number) => string;
 }) {
-  const location = useLocation<ReplayListLocationQuery>();
+  const location = useLocation();
   const navigate = useNavigate();
 
   return (

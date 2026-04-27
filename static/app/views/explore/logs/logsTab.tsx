@@ -255,7 +255,7 @@ export function LogsTabContent({datePageFilterProps, tableExpando}: LogsTabProps
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
 
-  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState<bigint>(
+  const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
   const [_, setPersistentParams] = usePersistedLogsPageParams();

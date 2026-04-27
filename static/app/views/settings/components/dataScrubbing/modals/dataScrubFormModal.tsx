@@ -28,7 +28,6 @@ import {submitRules} from 'sentry/views/settings/components/dataScrubbing/submit
 import type {
   EditableRule,
   Rule,
-  SourceSuggestion,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   AllowedDataScrubbingDatasets,
@@ -122,9 +121,9 @@ export function DataScrubFormModal({
   const initialDataset =
     traceItemFieldSelector?.getDataset() ?? AllowedDataScrubbingDatasets.DEFAULT;
 
-  const [dataset, setDataset] = useState<AllowedDataScrubbingDatasets>(initialDataset);
+  const [dataset, setDataset] = useState(initialDataset);
   const [displayEventId, setDisplayEventId] = useState(!!sourceGroupData.eventId);
-  const [sourceSuggestions, setSourceSuggestions] = useState<SourceSuggestion[]>(
+  const [sourceSuggestions, setSourceSuggestions] = useState(
     sourceGroupData.sourceSuggestions
   );
   const [eventIdError, setEventIdError] = useState<string | undefined>(undefined);

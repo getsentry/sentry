@@ -57,7 +57,7 @@ type ReleaseContextType = {
   releaseBounds: ReleaseBounds;
   releaseMeta: ReleaseMeta;
 };
-const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
+const ReleaseContext = createContext({} as ReleaseContextType);
 
 function pickLocationQuery(location: Location) {
   return pick(location.query, [
