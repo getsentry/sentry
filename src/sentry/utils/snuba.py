@@ -58,6 +58,11 @@ ROUND_DOWN = object()
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 50
 
+# Default thread pool size for fan-out in _bulk_snuba_query. Per-worker Snuba in
+# CI overrides this to 4 (see sentry.testutils.pytest.sentry) to stay under the
+# CrossOrgQueryAllocationPolicy concurrent-query limit.
+_BULK_QUERY_MAX_WORKERS = 10
+
 SAFE_FUNCTIONS = frozenset(["NOT IN"])
 SAFE_FUNCTION_RE = re.compile(r"-?[a-zA-Z_][a-zA-Z0-9_]*$")
 # Match any text surrounded by quotes, can't use `.*` here since it
@@ -1254,7 +1259,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
         if len(snuba_requests_list) > 1:
             with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
-                max_workers=10,
+                max_workers=_BULK_QUERY_MAX_WORKERS,
             ) as query_thread_pool:
                 query_results = list(
                     query_thread_pool.map(

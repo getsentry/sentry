@@ -143,6 +143,16 @@ def pytest_configure(config: pytest.Config) -> None:
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
+    # Per-worker Snuba in CI runs against a single worker container with
+    # CrossOrgQueryAllocationPolicy capped at 4 concurrent queries on the
+    # errors storage; bulk_snuba_queries' default fan-out of 10 trips that
+    # policy and surfaces flakes. Cap the pool only when running with
+    # per-worker Snuba so production behavior is unaffected.
+    if os.environ.get("XDIST_PER_WORKER_SNUBA") == "1":
+        from sentry.utils import snuba as _snuba
+
+        _snuba._BULK_QUERY_MAX_WORKERS = 4
+
     configure_split_db()
 
     if os.environ.get("PYTEST_XDIST_WORKER"):
