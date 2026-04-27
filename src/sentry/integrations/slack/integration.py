@@ -351,9 +351,9 @@ class SlackIntegrationProvider(IntegrationProvider):
     identity_oauth_scopes = frozenset(
         [
             "channels:read",
-            "channels:history",
+            SlackScope.CHANNELS_HISTORY,
             "groups:read",
-            "groups:history",
+            SlackScope.GROUPS_HISTORY,
             "users:read",
             "chat:write",
             "links:read",
@@ -364,8 +364,8 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.public",
             "chat:write.customize",
             "commands",
-            "app_mentions:read",
-            "assistant:write",
+            SlackScope.APP_MENTIONS_READ,
+            SlackScope.ASSISTANT_WRITE,
         ]
     )
     # Stage new scopes here to test them via SlackStagingIntegrationProvider
