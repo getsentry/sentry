@@ -26,7 +26,13 @@ from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunI
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.agentic_triage import agentic_triage_strategy
 from sentry.tasks.seer.night_shift.models import TriageAction, TriageResult
-from sentry.tasks.seer.night_shift.tweaks import NightShiftTweaks, get_night_shift_tweaks
+from sentry.tasks.seer.night_shift.simple_triage import simple_triage_strategy
+from sentry.tasks.seer.night_shift.tweaks import (
+    IntelligenceLevel,
+    NightShiftTweaks,
+    ReasoningEffort,
+    get_night_shift_tweaks,
+)
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
@@ -216,18 +222,34 @@ def _execute_night_shift_run(
         logger.info("night_shift.no_eligible_projects", extra=log_extra)
         return None
 
+    aggregated = _aggregate_tweaks([ep.tweaks for ep in eligible])
+    triage_strategy_name = "agentic_triage" if aggregated.use_agentic else "simple_triage"
+    if triage_strategy_name != run.triage_strategy:
+        run.update(triage_strategy=triage_strategy_name)
+
     resolved_max_candidates = (
-        max_candidates
-        if max_candidates is not None
-        else max(ep.tweaks.candidate_issues for ep in eligible)
+        max_candidates if max_candidates is not None else aggregated.candidate_issues
     )
 
     eligible_projects = [ep.project for ep in eligible]
     agent_run_id = None
     try:
-        candidates, agent_run_id = agentic_triage_strategy(
-            eligible_projects, organization, resolved_max_candidates
-        )
+        if aggregated.use_agentic:
+            candidates, agent_run_id = agentic_triage_strategy(
+                eligible_projects,
+                organization,
+                resolved_max_candidates,
+                issue_fetch_limit=aggregated.issue_fetch_limit,
+                intelligence_level=aggregated.intelligence_level,
+                reasoning_effort=aggregated.reasoning_effort,
+                extra_instructions=aggregated.extra_instructions,
+            )
+        else:
+            candidates, agent_run_id = simple_triage_strategy(
+                eligible_projects,
+                resolved_max_candidates,
+                aggregated.issue_fetch_limit,
+            )
         if agent_run_id is not None:
             run.update(extras={**run.extras, "agent_run_id": agent_run_id})
             log_extra["agent_run_id"] = agent_run_id
@@ -247,6 +269,8 @@ def _execute_night_shift_run(
         sentry_sdk.metrics.count("night_shift.triage_action", count, attributes={"action": action})
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
+    dry_run_project_ids = {ep.project.id for ep in eligible if ep.tweaks.dry_run}
+
     seer_run_id_by_group: dict[int, str | None] = {}
     if not dry_run:
         # Populate each candidate group's FK cache so trigger_autofix_explorer doesn't
@@ -260,9 +284,12 @@ def _execute_night_shift_run(
         for c in candidates:
             c.group.project = projects_by_id[c.group.project_id]
 
+        # Per-project dry_run tweak: keep these candidates in the triage record but
+        # don't dispatch autofix for them.
+        dispatchable = [c for c in candidates if c.group.project_id not in dry_run_project_ids]
         issues = _run_autofix_for_candidates(
             run=run,
-            candidates=candidates,
+            candidates=dispatchable,
             log_extra=log_extra,
         )
         seer_run_id_by_group = {i.group_id: i.seer_run_id for i in issues}
@@ -274,12 +301,14 @@ def _execute_night_shift_run(
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
             "dry_run": dry_run,
+            "triage_strategy": triage_strategy_name,
             "candidates": [
                 {
                     "group_id": c.group.id,
                     "action": c.action,
                     "seer_run_id": seer_run_id_by_group.get(c.group.id),
                     "num_occurrences": c.group.times_seen,
+                    "project_dry_run": c.group.project_id in dry_run_project_ids,
                 }
                 for c in candidates
             ],
@@ -327,6 +356,61 @@ def _fail_run(
 class EligibleProject:
     project: Project
     tweaks: NightShiftTweaks
+
+
+@dataclasses.dataclass(frozen=True)
+class AggregatedTweaks:
+    """Per-project tweaks combined for an org-wide run.
+
+    `candidate_issues` and `issue_fetch_limit` take the max because the
+    underlying queries fan out across all eligible projects in one shot — taking
+    the strictest setting would silently shrink other projects' budgets.
+
+    Intelligence/reasoning levels also take the max so a project asking for the
+    higher tier always gets it, since the Explorer client takes a single value
+    for the whole run.
+
+    `extra_instructions` are concatenated in eligible-project order; per-project
+    prefixing happens only when there are multiple projects with non-empty
+    instructions, to keep the prompt clean for single-project runs.
+
+    `use_agentic` is True if any project's strategy is "agentic" — agentic is
+    the more thorough strategy, so any opt-in dominates."""
+
+    candidate_issues: int
+    issue_fetch_limit: int
+    intelligence_level: IntelligenceLevel
+    reasoning_effort: ReasoningEffort
+    extra_instructions: str
+    use_agentic: bool
+
+
+_LEVEL_ORDER: dict[str, int] = {"low": 0, "medium": 1, "high": 2}
+
+
+def _aggregate_tweaks(tweaks: list[NightShiftTweaks]) -> AggregatedTweaks:
+    instruction_pairs = [
+        (i, t.extra_triage_instructions.strip())
+        for i, t in enumerate(tweaks)
+        if t.extra_triage_instructions.strip()
+    ]
+    if len(instruction_pairs) <= 1:
+        extra_instructions = instruction_pairs[0][1] if instruction_pairs else ""
+    else:
+        extra_instructions = "\n\n".join(
+            f"(Project {i + 1}) {text}" for i, text in instruction_pairs
+        )
+
+    return AggregatedTweaks(
+        candidate_issues=max(t.candidate_issues for t in tweaks),
+        issue_fetch_limit=max(t.issue_fetch_limit for t in tweaks),
+        intelligence_level=max(
+            (t.intelligence_level for t in tweaks), key=_LEVEL_ORDER.__getitem__
+        ),
+        reasoning_effort=max((t.reasoning_effort for t in tweaks), key=_LEVEL_ORDER.__getitem__),
+        extra_instructions=extra_instructions,
+        use_agentic=any(t.triage_strategy == "agentic" for t in tweaks),
+    )
 
 
 def _get_eligible_projects(

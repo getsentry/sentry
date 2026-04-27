@@ -17,8 +17,6 @@ from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
-
 # Weights for candidate scoring. Set to 0 to disable a signal.
 WEIGHT_FIXABILITY = 1.0
 WEIGHT_SEVERITY = 0.0
@@ -49,6 +47,7 @@ class ScoredCandidate(TriageResult):
 def fixability_score_strategy(
     projects: Sequence[Project],
     max_candidates: int,
+    issue_fetch_limit: int,
 ) -> list[ScoredCandidate]:
     """
     Fetch top recommended unresolved issues that haven't been triaged by Seer yet,
@@ -57,7 +56,7 @@ def fixability_score_strategy(
     result = search.backend.query(
         projects=projects,
         sort_by="recommended",
-        limit=NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
+        limit=issue_fetch_limit,
         search_filters=[
             SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
             SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
@@ -94,6 +93,19 @@ def fixability_score_strategy(
         sentry_sdk.metrics.distribution("night_shift.fixability_score", c.fixability)
 
     return selected
+
+
+def simple_triage_strategy(
+    projects: Sequence[Project],
+    max_candidates: int,
+    issue_fetch_limit: int,
+) -> tuple[list[TriageResult], int | None]:
+    """No-LLM triage: pick top candidates by fixability score and mark all as
+    autofix. Returns (triage_results, agent_run_id) to match the shape of
+    `agentic_triage_strategy` so the cron pipeline can dispatch on strategy.
+    """
+    scored = fixability_score_strategy(projects, max_candidates, issue_fetch_limit)
+    return [TriageResult(group=c.group, action=TriageAction.AUTOFIX) for c in scored], None
 
 
 def priority_label(priority: int | None) -> str | None:

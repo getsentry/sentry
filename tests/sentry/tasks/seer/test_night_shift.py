@@ -12,12 +12,14 @@ from sentry.seer.models.night_shift import SeerNightShiftRun, SeerNightShiftRunI
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
     NightShiftRunSource,
+    _aggregate_tweaks,
     _get_eligible_projects,
     run_night_shift_for_org,
     run_night_shift_for_project,
     schedule_night_shift,
 )
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
+from sentry.tasks.seer.night_shift.tweaks import NightShiftTweaks
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -642,10 +644,208 @@ class TestFixabilityScoreStrategy(TestCase, SnubaTestCase):
                 project, f"null-{i}", seer_fixability_score=None, times_seen=100
             )
 
-        result = fixability_score_strategy([project], max_candidates=10)
+        result = fixability_score_strategy([project], max_candidates=10, issue_fetch_limit=100)
 
         assert result[0].group.id == high.id
         assert result[0].fixability == 0.9
         assert result[0].times_seen == 5
         assert result[0].severity == 1.0
         assert result[1].group.id == low.id
+
+    def test_issue_fetch_limit_caps_search(self) -> None:
+        project = self.create_project()
+        for i in range(5):
+            self._store_event_and_update_group(
+                project, f"hit-{i}", seer_fixability_score=0.5, times_seen=10
+            )
+
+        capped = fixability_score_strategy([project], max_candidates=10, issue_fetch_limit=2)
+        uncapped = fixability_score_strategy([project], max_candidates=10, issue_fetch_limit=10)
+
+        assert len(capped) == 2
+        assert len(uncapped) == 5
+
+
+class TestAggregateTweaks(TestCase):
+    def test_uses_max_for_numeric_and_level_fields(self) -> None:
+        aggregated = _aggregate_tweaks(
+            [
+                NightShiftTweaks(
+                    candidate_issues=5,
+                    issue_fetch_limit=50,
+                    intelligence_level="low",
+                    reasoning_effort="medium",
+                ),
+                NightShiftTweaks(
+                    candidate_issues=20,
+                    issue_fetch_limit=200,
+                    intelligence_level="high",
+                    reasoning_effort="low",
+                ),
+            ]
+        )
+
+        assert aggregated.candidate_issues == 20
+        assert aggregated.issue_fetch_limit == 200
+        assert aggregated.intelligence_level == "high"
+        assert aggregated.reasoning_effort == "medium"
+
+    def test_use_agentic_dominates(self) -> None:
+        all_simple = _aggregate_tweaks(
+            [
+                NightShiftTweaks(triage_strategy="simple"),
+                NightShiftTweaks(triage_strategy="simple"),
+            ]
+        )
+        mixed = _aggregate_tweaks(
+            [
+                NightShiftTweaks(triage_strategy="simple"),
+                NightShiftTweaks(triage_strategy="agentic"),
+            ]
+        )
+
+        assert all_simple.use_agentic is False
+        assert mixed.use_agentic is True
+
+    def test_extra_instructions_unprefixed_for_single_project(self) -> None:
+        aggregated = _aggregate_tweaks(
+            [
+                NightShiftTweaks(extra_triage_instructions=""),
+                NightShiftTweaks(extra_triage_instructions="  focus on auth  "),
+            ]
+        )
+
+        assert aggregated.extra_instructions == "focus on auth"
+
+    def test_extra_instructions_prefixed_for_multiple_projects(self) -> None:
+        aggregated = _aggregate_tweaks(
+            [
+                NightShiftTweaks(extra_triage_instructions="focus on auth"),
+                NightShiftTweaks(extra_triage_instructions=""),
+                NightShiftTweaks(extra_triage_instructions="prefer ts errors"),
+            ]
+        )
+
+        assert "(Project 1) focus on auth" in aggregated.extra_instructions
+        assert "(Project 3) prefer ts errors" in aggregated.extra_instructions
+
+
+@django_db_all
+class TestNightShiftTweaksWiring(TestCase, SnubaTestCase):
+    """End-to-end tests for the per-project tweaks that affect run behavior beyond
+    `enabled` and `candidate_issues` (which are covered above)."""
+
+    reset_snuba_data = False
+
+    def _make_eligible(self, project, **tweak_overrides):
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
+        SeerProjectRepository.objects.create(project=project, repository=repo)
+        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
+
+    def _store_event_and_update_group(self, project, fingerprint, **group_attrs):
+        event = self.store_event(
+            data={
+                "fingerprint": [fingerprint],
+                "timestamp": before_now(hours=1).isoformat(),
+                "environment": "production",
+            },
+            project_id=project.id,
+        )
+        Group.objects.filter(id=event.group_id).update(**group_attrs)
+        return Group.objects.get(id=event.group_id)
+
+    def test_per_project_dry_run_skips_autofix_only_for_that_project(self) -> None:
+        org = self.create_organization()
+        live = self.create_project(organization=org, slug="live")
+        ghost = self.create_project(organization=org, slug="ghost")
+        self._make_eligible(live)
+        self._make_eligible(ghost, dryRun=True)
+
+        live_group = self._store_event_and_update_group(
+            live, "live-bug", seer_fixability_score=0.9, times_seen=5
+        )
+        ghost_group = self._store_event_and_update_group(
+            ghost, "ghost-bug", seer_fixability_score=0.9, times_seen=5
+        )
+
+        verdicts = [(live_group.id, "autofix"), (ghost_group.id, "autofix")]
+        fake_client = FakeExplorerClient(verdicts)
+        with (
+            self.feature(NIGHT_SHIFT_FEATURES),
+            patch(
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+                return_value=fake_client,
+            ),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.trigger_autofix_explorer",
+                return_value=42,
+            ) as mock_trigger,
+        ):
+            run_night_shift_for_org(org.id)
+
+        triggered_group_ids = {call.kwargs["group"].id for call in mock_trigger.call_args_list}
+        assert triggered_group_ids == {live_group.id}
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        issue_group_ids = set(
+            SeerNightShiftRunIssue.objects.filter(run=run).values_list("group_id", flat=True)
+        )
+        assert issue_group_ids == {live_group.id}
+
+    def test_simple_strategy_skips_explorer(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(project, triageStrategy="simple")
+
+        group = self._store_event_and_update_group(
+            project, "simple", seer_fixability_score=0.9, times_seen=5
+        )
+
+        with (
+            self.feature(NIGHT_SHIFT_FEATURES),
+            patch(
+                "sentry.tasks.seer.night_shift.agentic_triage.SeerExplorerClient",
+            ) as mock_explorer,
+            patch(
+                "sentry.tasks.seer.night_shift.cron.trigger_autofix_explorer",
+                return_value=42,
+            ) as mock_trigger,
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_explorer.assert_not_called()
+        triggered_group_ids = {call.kwargs["group"].id for call in mock_trigger.call_args_list}
+        assert triggered_group_ids == {group.id}
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.triage_strategy == "simple_triage"
+
+    def test_per_project_tweaks_flow_to_agentic_strategy(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        self._make_eligible(
+            project,
+            intelligenceLevel="low",
+            reasoningEffort="medium",
+            extraTriageInstructions="favor frontend bugs",
+            issueFetchLimit=42,
+        )
+
+        with (
+            self.feature(NIGHT_SHIFT_FEATURES),
+            patch(
+                "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+                return_value=([], None),
+            ) as mock_strategy,
+        ):
+            run_night_shift_for_org(org.id)
+
+        mock_strategy.assert_called_once()
+        kwargs = mock_strategy.call_args.kwargs
+        assert kwargs["intelligence_level"] == "low"
+        assert kwargs["reasoning_effort"] == "medium"
+        assert kwargs["extra_instructions"] == "favor frontend bugs"
+        assert kwargs["issue_fetch_limit"] == 42
