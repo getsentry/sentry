@@ -8,7 +8,7 @@ import pytest
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.repository import Repository
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.pr_comments.snapshot_tasks import create_preprod_snapshot_pr_comment_task
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
@@ -230,6 +230,32 @@ class CreatePreprodSnapshotPrCommentTaskTest(TestCase):
         mock_client.create_comment.assert_not_called()
         mock_client.update_comment.assert_not_called()
         mock_format.assert_not_called()
+
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
+    @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
+    def test_posts_when_only_if_diff_enabled_and_comparison_failed(
+        self, mock_get_client, mock_format
+    ):
+        mock_client = Mock()
+        mock_client.create_comment.return_value = {"id": 67890}
+        mock_get_client.return_value = mock_client
+        mock_format.return_value = "body"
+        self.project.update_option("sentry:preprod_snapshot_pr_comments_only_if_diff", True)
+
+        artifact, metrics = self._create_artifact_with_metrics()
+        base_artifact, base_metrics = self._create_artifact_with_metrics(
+            with_commit_comparison=False, app_id="com.example.base"
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=metrics,
+            base_snapshot_metrics=base_metrics,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+
+        with self.feature(self._feature):
+            create_preprod_snapshot_pr_comment_task(artifact.id)
+
+        mock_client.create_comment.assert_called_once()
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.build_changes_map")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")

@@ -166,12 +166,20 @@ def create_preprod_snapshot_pr_comment_task(
             fail_on_removed=fail_on_removed,
         )
 
-        if artifact.project.get_option(ONLY_IF_DIFF_OPTION_KEY) and not any(changes_map.values()):
-            logger.info(
-                "preprod.snapshot_pr_comments.create.skipped_no_diff",
-                extra={"artifact_id": artifact.id},
+        if artifact.project.get_option(ONLY_IF_DIFF_OPTION_KEY):
+            has_changes = any(changes_map.values())
+            # Failed comparisons are absent from changes_map (which only tracks
+            # SUCCESS state), so check comparisons_map directly to avoid
+            # suppressing failure reports.
+            has_failures = any(
+                c.state == PreprodSnapshotComparison.State.FAILED for c in comparisons_map.values()
             )
-            return
+            if not has_changes and not has_failures:
+                logger.info(
+                    "preprod.snapshot_pr_comments.create.skipped_no_diff",
+                    extra={"artifact_id": artifact.id},
+                )
+                return
 
         comment_body = format_snapshot_pr_comment(
             all_artifacts,
