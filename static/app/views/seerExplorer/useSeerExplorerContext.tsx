@@ -123,15 +123,11 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   }, [blocks, lastViewedAt, runId]);
 
   useEffect(() => {
-    if (!isOpen || runId === null) {
+    if (!isOpen || runId === null || latestBlockTimestamp <= lastViewedAt) {
       return;
     }
-    const next = Math.max(latestBlockTimestamp, Date.now());
-    if (next <= lastViewedAt) {
-      return;
-    }
-    setLastViewedAt(next);
-    persistLastViewedAt(runId, next);
+    setLastViewedAt(latestBlockTimestamp);
+    persistLastViewedAt(runId, latestBlockTimestamp);
   }, [isOpen, runId, latestBlockTimestamp, lastViewedAt]);
 
   // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
