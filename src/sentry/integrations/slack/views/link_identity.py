@@ -63,7 +63,8 @@ class SlackLinkIdentityView(SlackIdentityLinkageView, LinkIdentityView):
         self, external_id: str, params: Mapping[str, Any], integration: Integration | None
     ) -> None:
         super().notify_on_success(external_id, params, integration)
-        assert integration is not None  # super() raises if None
+        if integration is None:
+            return
 
         cached = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
             entrypoint_key=str(SeerEntrypointKey.SLACK),
