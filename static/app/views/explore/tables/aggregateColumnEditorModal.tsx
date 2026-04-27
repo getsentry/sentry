@@ -589,7 +589,12 @@ function AttributeArgumentSelect({
       search={{onChange: setSearch}}
       loading={isSearchLoading}
       emptyMessage={isSearchLoading ? t('Loading…') : t('No matching attributes')}
-      disabled={forceDisabled || baseOptions.length === 1}
+      // Stay enabled whenever the function supports server-side search so the
+      // user can type to pull additional attributes, even when baseOptions has
+      // a single entry (e.g. only one number tag fetched in the initial load).
+      disabled={
+        forceDisabled || (supportedKinds.length === 0 && baseOptions.length === 1)
+      }
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
