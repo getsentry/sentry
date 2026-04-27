@@ -26,7 +26,7 @@ export function useReplayCountForTransaction({
       // Note that this has to be `replayId` and not `replay.id` - only
       // `replayId` holds sampled replays, while `replay.id` currently also
       // holds the ID of Replays that were active but not sampled.
-      // See DAIN-1582.
+      // See REPLAY-893.
       fields: ['replayId', 'timestamp'],
       sorts: [{field: 'timestamp', kind: 'desc'}],
       // Over-fetch so we can still distinguish "limit+" from an exact count
