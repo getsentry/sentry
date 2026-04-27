@@ -9,7 +9,11 @@ import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useT
 
 const TEN_MINUTES_IN_MS = 10 * 60 * 1000;
 
-function TraceLoading({trace}: {trace: TraceQueryResult}) {
+interface TraceWaterfallStateProps {
+  trace: TraceQueryResult;
+}
+
+function TraceLoading({trace}: TraceWaterfallStateProps) {
   return (
     // Dont flash the animation on load because it's annoying
     <LoadingContainer animate={false}>
@@ -24,11 +28,7 @@ function TraceLoading({trace}: {trace: TraceQueryResult}) {
   );
 }
 
-interface TraceErrorProps {
-  trace: TraceQueryResult;
-}
-
-function TraceError({trace}: TraceErrorProps) {
+function TraceError({trace}: TraceWaterfallStateProps) {
   return (
     <LoadingContainer animate error>
       <ErrorTitle>{t('Woof, we failed to load your trace')}</ErrorTitle>
