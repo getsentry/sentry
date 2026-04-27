@@ -22,7 +22,6 @@ import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
-import {TraceSummarySection} from 'sentry/views/performance/newTraceDetails/traceSummary';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
 import {PartialTraceDataWarning} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/partialTraceDataWarning';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
@@ -207,9 +206,6 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
               <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
                 <TraceViewMetricsSection />
               </TraceViewMetricsProviderWrapper>
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.SUMMARY ? (
-              <TraceSummarySection traceSlug={traceSlug} />
             ) : null}
             {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
               <TraceAiTab traceSlug={traceSlug} />

@@ -34,12 +34,7 @@ export function ScmFeatureCard({
   alwaysEnabled,
 }: ScmFeatureCardProps) {
   return (
-    <Tooltip
-      title={disabledReason}
-      disabled={!disabledReason}
-      delay={500}
-      style={{height: '100%'}}
-    >
+    <Tooltip title={disabledReason} disabled={!disabledReason} style={{height: '100%'}}>
       <ScmCardButton
         onClick={onClick}
         role="checkbox"

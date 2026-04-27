@@ -1,5 +1,6 @@
 import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {queryOptions, skipToken, useQuery} from '@tanstack/react-query';
 
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import {Client, type ApiResult} from 'sentry/api';
@@ -14,7 +15,6 @@ import {
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {queryOptions, skipToken, useQuery} from 'sentry/utils/queryClient';
 
 // 30 second stale time
 // Stale time decides if the query should be refetched

@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 from sentry.models.group import Group
+from sentry.models.organization import OrganizationStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.explorer.client_models import Artifact, MemoryBlock, Message, SeerRunState
@@ -12,6 +13,7 @@ from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.seer.night_shift.cron import (
     _get_eligible_projects,
     run_night_shift_for_org,
+    run_night_shift_for_project,
     schedule_night_shift,
 )
 from sentry.tasks.seer.night_shift.simple_triage import fixability_score_strategy
@@ -19,10 +21,7 @@ from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 
-NIGHT_SHIFT_FEATURES = [
-    "organizations:seer-project-settings-read-from-sentry",
-    "projects:seer-night-shift",
-]
+NIGHT_SHIFT_FEATURES = ["projects:seer-night-shift"]
 
 
 class FakeExplorerClient:
@@ -145,6 +144,27 @@ class TestGetEligibleProjects(TestCase):
             assert projects == [eligible]
             assert eligible.id in preferences
 
+    def test_filters_by_project_id(self) -> None:
+        org = self.create_organization()
+
+        target = self.create_project(organization=org)
+        target.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        target_repo = self.create_repo(project=target, provider="github", name="owner/target")
+        SeerProjectRepository.objects.create(project=target, repository=target_repo)
+
+        other = self.create_project(organization=org)
+        other.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
+        )
+        other_repo = self.create_repo(project=other, provider="github", name="owner/other")
+        SeerProjectRepository.objects.create(project=other, repository=other_repo)
+
+        with self.feature(NIGHT_SHIFT_FEATURES):
+            projects, _ = _get_eligible_projects(org, project_id=target.id)
+            assert projects == [target]
+
     def test_filters_by_project_flag_disabled(self) -> None:
         org = self.create_organization()
 
@@ -155,12 +175,7 @@ class TestGetEligibleProjects(TestCase):
         repo = self.create_repo(project=project, provider="github", name="owner/repo")
         SeerProjectRepository.objects.create(project=project, repository=repo)
 
-        with self.feature(
-            {
-                "organizations:seer-project-settings-read-from-sentry": True,
-                "projects:seer-night-shift": False,
-            }
-        ):
+        with self.feature({"projects:seer-night-shift": False}):
             projects, _ = _get_eligible_projects(org)
             assert projects == []
 
@@ -450,6 +465,41 @@ class TestRunNightShiftForOrg(TestCase, SnubaTestCase):
             SeerNightShiftRunIssue.objects.filter(run=run).values_list("group_id", "seer_run_id")
         )
         assert issue_run_ids == {ok_group.id: "7"}
+
+
+@django_db_all
+class TestRunNightShiftForProject(TestCase):
+    def test_nonexistent_project(self) -> None:
+        with patch("sentry.tasks.seer.night_shift.cron._execute_night_shift_run") as mock_execute:
+            run_night_shift_for_project(999999999)
+            mock_execute.assert_not_called()
+
+    def test_inactive_org_skipped(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+
+        with patch("sentry.tasks.seer.night_shift.cron._execute_night_shift_run") as mock_execute:
+            run_night_shift_for_project(project.id)
+            mock_execute.assert_not_called()
+
+    def test_delegates_to_shared_pipeline_with_project_id(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron._execute_night_shift_run",
+            return_value=42,
+        ) as mock_execute:
+            result = run_night_shift_for_project(project.id, dry_run=True, max_candidates=3)
+
+        assert result == 42
+        mock_execute.assert_called_once()
+        kwargs = mock_execute.call_args.kwargs
+        assert kwargs["project_id"] == project.id
+        assert kwargs["dry_run"] is True
+        assert kwargs["max_candidates"] == 3
+        assert mock_execute.call_args.args[0].id == org.id
 
 
 @django_db_all

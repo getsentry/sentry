@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -17,9 +18,8 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconChevron, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -89,27 +89,16 @@ function UsageHistory({subscription}: Props) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {
-    data: usageList,
-    isPending,
-    isError,
-    refetch,
-    getResponseHeader,
-  } = useApiQuery<BillingHistory[]>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/history/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {cursor: location.query.cursor},
-      },
-    ],
-    {
+  const {data, isPending, isError, refetch} = useQuery({
+    ...apiOptions.as<BillingHistory[]>()('/customers/$organizationIdOrSlug/history/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {cursor: location.query.cursor},
       staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
-  const usageListPageLinks = getResponseHeader?.('Link');
+  const usageListPageLinks = data?.headers.Link;
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   return (
@@ -123,7 +112,7 @@ function UsageHistory({subscription}: Props) {
       ) : hasBillingPerms ? (
         <Fragment>
           <Container background="primary" border="primary" radius="md">
-            {usageList.map(row => (
+            {data.json.map(row => (
               <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
             ))}
           </Container>

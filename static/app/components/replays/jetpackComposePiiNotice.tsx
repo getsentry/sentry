@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {MIN_JETPACK_COMPOSE_VIEW_HIERARCHY_PII_FIX} from 'sentry/utils/replays/sdkVersions';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 export function JetpackComposePiiNotice() {
   const LOCAL_STORAGE_KEY = 'jetpack-compose-pii-warning-dismissed';

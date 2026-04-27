@@ -202,4 +202,5 @@ const MarqueeStrip = styled(Flex)`
 const MarqueeText = styled(Text)`
   display: inline-block;
   animation: ${scrollLeft} 24s linear infinite;
+  color: ${p => p.theme.tokens.content.onVibrant.light};
 `;

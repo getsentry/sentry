@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -26,6 +25,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {SentryApplicationRow} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
@@ -39,9 +39,9 @@ const TAB_LABELS: Record<Tab, string> = {
 };
 
 function OrganizationDeveloperSettings() {
-  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+  const hasPageFrame = useHasPageFrameFeature();
   const api = useApi({persistInFlight: true});
 
   const value =
@@ -151,6 +151,20 @@ function OrganizationDeveloperSettings() {
     }
   };
 
+  const headerActions = (
+    <Flex gap="md">
+      <ExampleIntegrationButton analyticsView={analyticsView} />
+      <CreateIntegrationButton analyticsView={analyticsView} />
+    </Flex>
+  );
+
+  const inlineActions = (
+    <Flex gap="md">
+      <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
+      <CreateIntegrationButton analyticsView={analyticsView} size="md" />
+    </Flex>
+  );
+
   return (
     <div>
       <SentryDocumentTitle title={t('Custom Integrations')} orgSlug={organization.slug} />
@@ -177,24 +191,19 @@ function OrganizationDeveloperSettings() {
             })}
           </Fragment>
         }
-        action={
-          <Flex>
-            <ExampleIntegrationButton
-              analyticsView={analyticsView}
-              style={{marginRight: theme.space.md}}
-            />
-            <CreateIntegrationButton analyticsView={analyticsView} />
-          </Flex>
-        }
+        action={hasPageFrame ? undefined : headerActions}
       />
       <TabsContainer>
-        <Tabs value={tab} onChange={setTab}>
-          <TabList>
-            {Object.entries(TAB_LABELS).map(([key, label]) => (
-              <TabList.Item key={key}>{label}</TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
+        <Flex align="center" justify="between" gap="md">
+          <Tabs value={tab} onChange={setTab}>
+            <TabList>
+              {Object.entries(TAB_LABELS).map(([key, label]) => (
+                <TabList.Item key={key}>{label}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+          {hasPageFrame && inlineActions}
+        </Flex>
       </TabsContainer>
       {renderTabContent()}
     </div>

@@ -1,3 +1,4 @@
+import {keepPreviousData} from '@tanstack/react-query';
 import type {Query} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -11,7 +12,6 @@ import type {Tag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
-  keepPreviousData,
   useApiQuery,
   type ApiQueryKey,
   type UseApiQueryOptions,
