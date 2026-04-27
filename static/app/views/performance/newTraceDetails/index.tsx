@@ -40,7 +40,7 @@ import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
   getInitialTracePreferences,
 } from './traceState/tracePreferences';
-import {TraceStateProvider} from './traceState/traceStateProvider';
+import {TraceStateProvider, useTraceState} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
 import {useInitialTraceMetricData} from './useInitialTraceMetricData';
@@ -150,9 +150,15 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
   });
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
+  const traceState = useTraceState();
+  const drawerNode =
+    typeof traceState.tabs.current_tab?.node === 'string'
+      ? null
+      : (traceState.tabs.current_tab?.node ?? null);
+
   useLLMContext({
     contextHint:
-      'Sentry trace detail page. topLevelNodes lists root transactions/spans. webVitals shows Core Web Vitals if available. ' +
+      'Sentry trace detail page. focusedSpan is the span currently open in the drawer — it may or may not be relevant to the user question. ' +
       'Tools: get_trace_waterfall(trace_id, span_id?) for full waterfall or specific span; ' +
       'get_event_details(event_id?, issue_id?) for error event details; ' +
       'get_issue_details(issue_id) for issue aggregate stats; ' +
@@ -179,12 +185,17 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
       unit: i.measurement.unit,
       poor: i.poor,
     })),
-    topLevelNodes: tree.root.children[0]?.children.slice(0, 10).map(n => ({
-      op: n.op,
-      description: n.description?.slice(0, 120),
-      durationMs: n.space?.[1],
-      projectSlug: n.projectSlug,
-    })),
+    focusedSpan: drawerNode
+      ? {
+          spanId: drawerNode.id,
+          op: drawerNode.op,
+          description: drawerNode.description?.slice(0, 120),
+          durationMs: drawerNode.space?.[1],
+          projectSlug: drawerNode.projectSlug,
+          errors: drawerNode.errors.size,
+          profileId: drawerNode.profileId,
+        }
+      : undefined,
   });
 
   return (
