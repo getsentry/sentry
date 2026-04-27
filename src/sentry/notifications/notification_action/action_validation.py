@@ -123,13 +123,20 @@ class AzureDevOpsActionValidatorHandler(TicketingActionValidatorHandler):
     provider = Action.Type.AZURE_DEVOPS
 
 
+class SharedGitHubValidatorHandler(TicketingActionValidatorHandler):
+    def clean_data(self) -> dict[str, Any]:
+        if not self.validated_data.get("data", {}).get("additional_fields", {}).get("repo"):
+            raise ValidationError("'repo' is required")
+        return super().clean_data()
+
+
 @action_validator_registry.register(Action.Type.GITHUB)
-class GithubActionValidatorHandler(TicketingActionValidatorHandler):
+class GithubActionValidatorHandler(SharedGitHubValidatorHandler):
     provider = Action.Type.GITHUB
 
 
 @action_validator_registry.register(Action.Type.GITHUB_ENTERPRISE)
-class GithubEnterpriseActionValidatorHandler(TicketingActionValidatorHandler):
+class GithubEnterpriseActionValidatorHandler(SharedGitHubValidatorHandler):
     provider = Action.Type.GITHUB_ENTERPRISE
 
 
