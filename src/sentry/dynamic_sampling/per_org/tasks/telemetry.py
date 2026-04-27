@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable, Generator, Mapping
-from contextlib import contextmanager
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import TypeVar
 
@@ -10,6 +9,8 @@ import sentry_sdk
 
 from sentry.dynamic_sampling.per_org.tasks.gate import metrics_sample_rate
 from sentry.utils import metrics
+
+F = TypeVar("F", bound=Callable[..., object])
 
 METRIC_PREFIX = "dynamic_sampling"
 
@@ -66,22 +67,13 @@ def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = No
     )
 
 
-@contextmanager
-def timed(metric: str) -> Generator[None]:
-    with metrics.timer(metric, sample_rate=metrics_sample_rate()):
-        yield
-
-
-F = TypeVar("F", bound=Callable[..., object])
-
-
 def instrumented(func: F) -> F:
     status_metric = status_metric_for(func.__name__)
     duration_metric = duration_metric_for(func.__name__)
 
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:
-        with timed(duration_metric):
+        with metrics.timer(duration_metric, sample_rate=metrics_sample_rate()):
             try:
                 result = func(*args, **kwargs)
             except Exception as exc:

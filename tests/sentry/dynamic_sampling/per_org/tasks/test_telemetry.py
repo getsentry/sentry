@@ -18,9 +18,9 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
 def _stub_metrics_sample_rate() -> Iterator[None]:
     """Keep these unit tests DB-free.
 
-    The decorator's real ``timed`` path calls ``metrics_sample_rate()``, which
+    The decorator's timer path calls ``metrics_sample_rate()``, which
     reads an option out of the DB. Stubbing it here means tests that don't
-    explicitly patch ``timed`` still never hit the DB.
+    explicitly patch ``metrics.timer`` still never hit the DB.
     """
 
     with patch(
@@ -65,14 +65,14 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
         raise _BoomError("nope")
 
     with (
-        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.timed") as timed_cm,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer") as timer,
         patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit,
         patch("sentry.dynamic_sampling.per_org.tasks.telemetry.sentry_sdk") as sdk,
     ):
         with pytest.raises(_BoomError):
             boom()
 
-    timed_cm.assert_called_once_with("dynamic_sampling.boom.duration")
+    timer.assert_called_once_with("dynamic_sampling.boom.duration", sample_rate=1.0)
     emit.assert_called_once_with("dynamic_sampling.boom.status", TelemetryStatus.FAILED)
     assert sdk.capture_exception.call_count == 1
     (captured_exc,), _ = sdk.capture_exception.call_args
@@ -85,12 +85,12 @@ def test_passes_result_through_and_emits_completed_on_success() -> None:
         return x + y
 
     with (
-        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.timed") as timed_cm,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer") as timer,
         patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit,
         patch("sentry.dynamic_sampling.per_org.tasks.telemetry.sentry_sdk") as sdk,
     ):
         assert add(2, 3) == 5
 
-    timed_cm.assert_called_once_with("dynamic_sampling.add.duration")
+    timer.assert_called_once_with("dynamic_sampling.add.duration", sample_rate=1.0)
     emit.assert_called_once_with("dynamic_sampling.add.status", TelemetryStatus.COMPLETED)
     sdk.capture_exception.assert_not_called()
