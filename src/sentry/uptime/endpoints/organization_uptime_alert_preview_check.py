@@ -31,10 +31,10 @@ logger = logging.getLogger(__name__)
 class OrganizationUptimeAlertPreviewCheckEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
     allow_any_team_alert_write_fallback = True
-    # TODO(api-write-scope-compat): Remove legacy org:* support once uptime
+    # TODO(api-write-scope-compat): Remove legacy org:write support once uptime
     # preview clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "POST": ("org:read", "org:write", "org:admin"),
+        "POST": ("org:write", "alerts:write"),
     }
     # This POST previews monitor creation and validation, so it intentionally
     # uses the same permission surface as creating the alert itself.

@@ -36,10 +36,10 @@ class OrganizationEventsAnomaliesEndpoint(OrganizationEventsEndpointBase):
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
     allow_any_team_alert_write_fallback = True
-    # TODO(api-write-scope-compat): Remove legacy org:* support once alert
+    # TODO(api-write-scope-compat): Remove legacy org:write support once alert
     # authoring preview clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "POST": ("org:read", "org:write", "org:admin"),
+        "POST": ("org:write", "alerts:write"),
     }
     # This POST previews anomaly-detection config used while authoring metric
     # alerts/detectors, so it intentionally follows alert-write permissions.

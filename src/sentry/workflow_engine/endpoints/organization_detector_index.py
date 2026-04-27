@@ -157,8 +157,8 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
     # TODO(api-write-scope-compat): Remove legacy org:* support once public
     # detector clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "PUT": ("org:read", "org:write", "org:admin"),
-        "DELETE": ("org:read", "org:write", "org:admin"),
+        "PUT": ("org:write", "org:admin", "alerts:write"),
+        "DELETE": ("org:write", "org:admin", "alerts:write"),
     }
 
     permission_classes = (OrganizationDetectorPermission,)

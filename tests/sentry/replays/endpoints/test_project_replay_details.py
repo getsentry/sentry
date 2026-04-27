@@ -206,29 +206,27 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
         assert response.status_code == 403
 
-    def test_delete_allows_project_read_scope_for_api_tokens(self) -> None:
+    def test_delete_denies_project_read_scope_for_api_tokens(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
 
         with self.feature(REPLAYS_FEATURES):
-            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
-                response = self.client.delete(
-                    self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
-                )
+            response = self.client.delete(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+            )
 
-        assert response.status_code == 204
+        assert response.status_code == 403
 
-    def test_delete_allows_project_write_scope_for_api_tokens(self) -> None:
+    def test_delete_denies_project_write_scope_for_api_tokens(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
 
         with self.feature(REPLAYS_FEATURES):
-            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
-                response = self.client.delete(
-                    self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
-                )
+            response = self.client.delete(
+                self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+            )
 
-        assert response.status_code == 204
+        assert response.status_code == 403
 
     def test_delete_denies_event_write_scope_for_api_tokens(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -242,18 +240,19 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
 
         assert response.status_code == 403
 
-    def test_delete_denies_event_admin_scope_for_api_tokens(self) -> None:
+    def test_delete_allows_event_admin_scope_for_api_tokens(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:admin"])
 
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.delete(
-                self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
-            )
+            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
+                response = self.client.delete(
+                    self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
+                )
 
-        assert response.status_code == 403
+        assert response.status_code == 204
 
-    def test_delete_members_do_not_require_event_admin(self) -> None:
+    def test_delete_denies_members_without_event_admin(self) -> None:
         self.organization.update_option("sentry:events_member_admin", False)
 
         member_user = self.create_user(is_superuser=False)
@@ -263,10 +262,9 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.login_as(user=member_user)
 
         with self.feature(REPLAYS_FEATURES):
-            with patch("sentry.replays.endpoints.project_replay_details.delete_replay.delay"):
-                response = self.client.delete(self.url)
+            response = self.client.delete(self.url)
 
-        assert response.status_code == 204
+        assert response.status_code == 403
 
     def test_delete_replay_from_clickhouse_data(self) -> None:
         """Test deleting files uploaded through the direct storage interface."""

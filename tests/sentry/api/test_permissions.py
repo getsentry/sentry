@@ -6,6 +6,11 @@ from django.urls.resolvers import get_resolver
 from rest_framework.views import APIView
 
 from sentry.api.base import Endpoint
+from sentry.api.bases.organization import (
+    ALERT_MUTATION_SCOPES,
+    LEGACY_ALERT_MUTATION_PROJECT_SCOPES,
+    OrganizationAlertingMutationPermission,
+)
 from sentry.api.permissions import (
     DemoSafePermission,
     DisallowImpersonatedTokenCreation,
@@ -255,6 +260,29 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
 
 @no_silo_test
 class PublishedMutationScopeTest(SimpleTestCase):
+    def test_alert_mutation_scope_constants_are_alert_specific(self) -> None:
+        assert ALERT_MUTATION_SCOPES == {"alerts:write"}
+        assert set(LEGACY_ALERT_MUTATION_PROJECT_SCOPES) & SENTRY_READONLY_SCOPES == set()
+        assert "alerts:write" in OrganizationAlertingMutationPermission.scope_map["GET"]
+
+    def test_legacy_alert_mutation_scope_maps_do_not_accept_readonly_scopes(self) -> None:
+        invalid_scopes = []
+
+        for view_cls in sorted(
+            set(_iter_endpoint_view_classes(get_resolver().url_patterns)), key=_get_class_path
+        ):
+            legacy_scope_map = getattr(view_cls, "legacy_alert_mutation_scope_map", {}) or {}
+
+            for method, scopes in legacy_scope_map.items():
+                readonly_scopes = set(scopes) & SENTRY_READONLY_SCOPES
+                if readonly_scopes:
+                    invalid_scopes.append(
+                        f"{_get_class_path(view_cls)} {method} legacy alert mutation "
+                        f"compat accepts readonly scopes {sorted(readonly_scopes)}."
+                    )
+
+        assert not invalid_scopes, "\n".join(invalid_scopes)
+
     def test_readonly_mutation_scope_exceptions_are_notes(self) -> None:
         for view_cls in sorted(
             set(_iter_endpoint_view_classes(get_resolver().url_patterns)), key=_get_class_path

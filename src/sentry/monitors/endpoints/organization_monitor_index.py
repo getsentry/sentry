@@ -94,8 +94,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     # TODO(api-write-scope-compat): Remove legacy org:write support once public
     # cron monitor clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "POST": ("org:write", "org:admin"),
-        "PUT": ("org:write", "org:admin"),
+        "POST": ("org:write", "alerts:write"),
+        "PUT": ("org:write", "alerts:write"),
     }
     permission_classes = (OrganizationAlertRulePermission,)
 

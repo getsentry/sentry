@@ -51,10 +51,10 @@ class OrganizationUptimeAssertionSuggestionsEndpoint(OrganizationEndpoint):
 
     owner = ApiOwner.CRONS
     allow_any_team_alert_write_fallback = True
-    # TODO(api-write-scope-compat): Remove legacy org:* support once uptime
+    # TODO(api-write-scope-compat): Remove legacy org:write support once uptime
     # assertion-suggestion clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "POST": ("org:read", "org:write", "org:admin"),
+        "POST": ("org:write", "alerts:write"),
     }
     # This POST is part of the uptime monitor authoring flow, so it should
     # track the same alert-write permission as the monitor it helps create.

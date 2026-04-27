@@ -23,13 +23,7 @@ class ReplayDetailsPermission(ProjectPermission):
         "GET": ["project:read", "project:write", "project:admin"],
         "POST": ["project:write", "project:admin"],
         "PUT": ["project:write", "project:admin"],
-        "DELETE": ["project:read", "project:write", "project:admin"],
-    }
-    readonly_mutation_scope_exceptions = {
-        "DELETE": (
-            "Replay deletion is a public API and has historically allowed project:read for "
-            "compatible replay-managing clients, so tightening it would be user-impacting."
-        ),
+        "DELETE": ["event:admin"],
     }
 
 

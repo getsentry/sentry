@@ -252,7 +252,7 @@ def _has_any_team_scope(request: Request, scope: str) -> bool:
 
 # Project-scoped alert authoring should rely on the alert-specific write scope.
 ALERT_MUTATION_SCOPES = frozenset({"alerts:write"})
-LEGACY_ALERT_MUTATION_PROJECT_SCOPES = ("project:read", "org:write", "alerts:write")
+LEGACY_ALERT_MUTATION_PROJECT_SCOPES = ("org:write", "alerts:write")
 
 
 def _has_project_alert_write_access(request: Request, projects: Sequence[Project]) -> bool:
@@ -291,7 +291,7 @@ def get_legacy_alert_mutation_scopes(view: APIView, method: str | None) -> tuple
 
 class OrganizationAlertingMutationPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
+        "GET": ["org:read", "org:write", "org:admin", "alerts:read", "alerts:write"],
         "POST": ["alerts:write"],
         "PUT": ["alerts:write"],
         "DELETE": ["alerts:write"],

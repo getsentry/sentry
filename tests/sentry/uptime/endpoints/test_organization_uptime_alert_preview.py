@@ -135,10 +135,8 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
 
         assert response.status_code == 200, response.content
 
-    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
-    # uptime preview clients have migrated to alerts:write.
     @responses.activate
-    def test_org_read_scope_can_run_preview_check(self) -> None:
+    def test_org_read_scope_cannot_run_preview_check(self) -> None:
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
 
         responses.add(
@@ -173,9 +171,9 @@ class OrganizationUptimeAlertPreview(UptimeAlertBaseEndpointTest):
             HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 403
 
-    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # TODO(api-write-scope-compat): Remove this legacy org:write coverage once
     # uptime preview clients have migrated to alerts:write.
     @responses.activate
     def test_org_write_scope_can_run_preview_check(self) -> None:

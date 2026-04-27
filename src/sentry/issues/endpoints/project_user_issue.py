@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.apidocs.parameters import GlobalParams
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
@@ -177,18 +177,12 @@ class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
     value = serializers.IntegerField(required=True)
 
 
-class ProjectUserIssuePermission(ProjectPermission):
+class ProjectUserIssuePermission(ProjectEventPermission):
     scope_map = {
         "GET": [],
-        "POST": ["event:read", "event:write", "event:admin"],
+        "POST": ["event:write", "event:admin"],
         "PUT": [],
         "DELETE": [],
-    }
-    readonly_mutation_scope_exceptions = {
-        "POST": (
-            "User-defined issue creation derives a new issue from event data the caller can "
-            "already inspect, so it intentionally follows event read access."
-        ),
     }
 
 

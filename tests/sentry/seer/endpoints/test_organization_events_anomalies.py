@@ -241,12 +241,10 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
-    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
-    # alert authoring preview clients have migrated to alerts:write.
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"
     )
-    def test_org_read_scope_can_post(self, mock_seer_request: MagicMock) -> None:
+    def test_org_read_scope_cannot_post(self, mock_seer_request: MagicMock) -> None:
         mock_seer_request.return_value = HTTPResponse(
             orjson.dumps(
                 DetectAnomaliesResponse(
@@ -275,11 +273,11 @@ class OrganizationEventsAnomaliesEndpointTest(APITestCase):
                 HTTP_AUTHORIZATION=f"Bearer {token.token}",
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 403
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
-    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
+    # TODO(api-write-scope-compat): Remove this legacy org:write coverage once
     # alert authoring preview clients have migrated to alerts:write.
     @patch(
         "sentry.seer.anomaly_detection.get_historical_anomalies.seer_anomaly_detection_connection_pool.urlopen"

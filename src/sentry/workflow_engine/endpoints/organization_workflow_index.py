@@ -98,8 +98,8 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
     # TODO(api-write-scope-compat): Remove legacy org:* support once public
     # workflow clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "PUT": ("org:write", "org:admin"),
-        "DELETE": ("org:write", "org:admin"),
+        "PUT": ("org:write", "org:admin", "alerts:write"),
+        "DELETE": ("org:write", "org:admin", "alerts:write"),
     }
     permission_classes = (OrganizationWorkflowPermission,)
 
@@ -147,9 +147,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     # TODO(api-write-scope-compat): Remove legacy org:* support once public
     # workflow clients have migrated to alerts:write.
     legacy_alert_mutation_scope_map = {
-        "POST": ("org:write", "org:admin"),
-        "PUT": ("org:write", "org:admin"),
-        "DELETE": ("org:write", "org:admin"),
+        "POST": ("org:write", "org:admin", "alerts:write"),
+        "PUT": ("org:write", "org:admin", "alerts:write"),
+        "DELETE": ("org:write", "org:admin", "alerts:write"),
     }
     permission_classes = (OrganizationWorkflowPermission,)
 

@@ -221,7 +221,7 @@ class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
         help_text="The time period to aggregate over.",
     )
     projects = serializers.ListField(
-        child=ProjectField(scope="project:read"),
+        child=ProjectField(scope="alerts:write"),
         help_text="The names of the projects to filter by.",
     )
     query = serializers.CharField(

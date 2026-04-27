@@ -117,27 +117,23 @@ class ProjectUserIssueEndpointTest(APITestCase):
         assert response.status_code == 404
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
-    def test_create_web_vitals_issue_allows_event_read_scope(self) -> None:
+    def test_create_web_vitals_issue_denies_event_read_scope(self) -> None:
         token = self._create_token("event:read")
 
-        with patch(
-            "sentry.issues.endpoints.project_user_issue.produce_occurrence_to_kafka"
-        ) as mock_produce:
-            response = self.client.post(
-                self.url,
-                data={
-                    "transaction": "/test-transaction",
-                    "issueType": WebVitalsGroup.slug,
-                    "score": 75,
-                    "value": 1000,
-                    "vital": "lcp",
-                },
-                format="json",
-                HTTP_AUTHORIZATION=f"Bearer {token.token}",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "transaction": "/test-transaction",
+                "issueType": WebVitalsGroup.slug,
+                "score": 75,
+                "value": 1000,
+                "vital": "lcp",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
 
-        assert response.status_code == 200
-        assert response.data == {"event_id": mock_produce.call_args[1]["occurrence"].event_id}
+        assert response.status_code == 403
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     def test_create_web_vitals_issue_allows_event_write_scope(self) -> None:

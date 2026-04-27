@@ -824,7 +824,7 @@ class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     )
     # projects is not required in the serializer, however, the UI requires a project is chosen
     projects = serializers.ListField(
-        child=ProjectField(scope="project:read"),
+        child=ProjectField(scope="alerts:write"),
         help_text="Metric alerts are currently limited to one project. The array should contain a single slug, representing the project to filter by.",
     )
     query = serializers.CharField(

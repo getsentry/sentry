@@ -34,8 +34,6 @@ class OrganizationUptimeAssertionSuggestionsTest(UptimeAlertBaseEndpointTest):
             "region": "default",
         }
 
-    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
-    # uptime assertion-suggestion clients have migrated to alerts:write.
     @mock.patch(
         "sentry.uptime.endpoints.organization_uptime_assertion_suggestions.generate_assertion_suggestions"
     )
@@ -74,8 +72,6 @@ class OrganizationUptimeAssertionSuggestionsTest(UptimeAlertBaseEndpointTest):
 
         assert response.status_code == 200
 
-    # TODO(api-write-scope-compat): Remove this legacy org:* coverage once
-    # uptime assertion-suggestion clients have migrated to alerts:write.
     @mock.patch(
         "sentry.uptime.endpoints.organization_uptime_assertion_suggestions.generate_assertion_suggestions"
     )
@@ -86,7 +82,7 @@ class OrganizationUptimeAssertionSuggestionsTest(UptimeAlertBaseEndpointTest):
         "sentry.uptime.endpoints.organization_uptime_assertion_suggestions.UptimeCheckPreviewValidator"
     )
     @mock.patch("sentry.uptime.endpoints.organization_uptime_assertion_suggestions.has_seer_access")
-    def test_org_read_scope_can_generate_suggestions(
+    def test_org_read_scope_cannot_generate_suggestions(
         self,
         mock_has_seer_access: mock.MagicMock,
         mock_validator_cls: mock.MagicMock,
@@ -112,7 +108,7 @@ class OrganizationUptimeAssertionSuggestionsTest(UptimeAlertBaseEndpointTest):
             HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 403
 
     @mock.patch(
         "sentry.uptime.endpoints.organization_uptime_assertion_suggestions.generate_assertion_suggestions"
