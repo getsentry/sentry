@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {

@@ -4,6 +4,7 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,8 +21,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {Add} from './modals/add';
@@ -39,6 +40,7 @@ export function RelayWrapper() {
   const organization = useOrganization();
   const api = useApi();
   const [relays, setRelays] = useState<Relay[]>(organization.trustedRelays);
+  const hasPageFrame = useHasPageFrameFeature();
 
   const disabled = !organization.access.includes('org:write');
 
@@ -57,26 +59,44 @@ export function RelayWrapper() {
     ));
   };
 
+  const registerKeyAction = (
+    <Button
+      tooltipProps={{
+        title: disabled ? t('You do not have permission to register keys') : undefined,
+      }}
+      priority="primary"
+      size={hasPageFrame ? 'md' : 'sm'}
+      icon={<IconAdd />}
+      onClick={handleOpenAddDialog}
+      disabled={disabled}
+    >
+      {t('Register Key')}
+    </Button>
+  );
+
   return (
     <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
         title={t('Relay')}
-        action={
-          <Button
-            tooltipProps={{
-              title: disabled
-                ? t('You do not have permission to register keys')
-                : undefined,
-            }}
-            priority="primary"
-            size="sm"
-            icon={<IconAdd />}
-            onClick={handleOpenAddDialog}
-            disabled={disabled}
-          >
-            {t('Register Key')}
-          </Button>
+        subtitle={
+          hasPageFrame ? (
+            <Flex justify="between" align="center" gap="md">
+              <span>
+                {tct(
+                  'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+                  {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+                )}
+              </span>
+              {registerKeyAction}
+            </Flex>
+          ) : (
+            tct(
+              'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
+              {link: <ExternalLink href={RELAY_DOCS_LINK} />}
+            )
+          )
         }
+        action={hasPageFrame ? undefined : registerKeyAction}
       />
       <OrganizationPermissionAlert />
       {organization.features.includes('ingest-through-trusted-relays-only') && (
@@ -125,12 +145,6 @@ export function RelayWrapper() {
           </AutoSaveForm>
         </FieldGroup>
       )}
-      <TextBlock>
-        {tct(
-          'Sentry Relay offers enterprise-grade data security by providing a standalone service that acts as a middle layer between your application and sentry.io. Go to [link:Relay Documentation] for setup and details.',
-          {link: <ExternalLink href={RELAY_DOCS_LINK} />}
-        )}
-      </TextBlock>
       {relays.length === 0 ? (
         <EmptyState />
       ) : (
@@ -139,6 +153,7 @@ export function RelayWrapper() {
           disabled={disabled}
           relays={relays}
           api={api}
+          registerKeyAction={undefined}
           onRelaysChange={setRelays}
         />
       )}
@@ -152,12 +167,14 @@ function RelayUsageList({
   disabled,
   api,
   onRelaysChange,
+  registerKeyAction,
 }: {
   api: ReturnType<typeof useApi>;
   disabled: boolean;
   onRelaysChange: (relays: Relay[]) => void;
   orgSlug: Organization['slug'];
   relays: Relay[];
+  registerKeyAction?: React.ReactNode;
 }) {
   const {isPending, isError, refetch, data} = useApiQuery<RelayActivity[]>(
     [
@@ -224,6 +241,7 @@ function RelayUsageList({
       relays={relays}
       relayActivities={data}
       disabled={disabled}
+      registerKeyAction={registerKeyAction}
       onEdit={publicKey => () => handleOpenEditDialog(publicKey)}
       onRefresh={() => refetch()}
       onDelete={publicKey => () => handleDeleteRelay(publicKey)}

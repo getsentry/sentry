@@ -9,6 +9,7 @@ from uuid import uuid4
 import orjson
 import sentry_sdk
 from django.conf import settings
+from django.db.models import F
 from pydantic import BaseModel, Field
 from urllib3 import BaseHTTPResponse
 
@@ -46,7 +47,7 @@ TRANSACTION_BATCH_SIZE = 50
 TRACE_PROCESSING_TTL_SECONDS = 7200
 MAX_LLM_FIELD_LENGTH = 2000
 
-DETECTION_CYCLE_DURATION = timedelta(hours=2, minutes=30)
+DETECTION_CYCLE_DURATION = timedelta(hours=1)
 
 
 seer_issue_detection_connection_pool = connection_from_url(
@@ -206,11 +207,9 @@ def create_issue_occurrence_from_detection(
     detection_time = datetime.now(UTC)
     trace_id = detected_issue.trace_id
     transaction_name = normalize_description(detected_issue.transaction_name)
-    group_for_fingerprint = detected_issue.group_for_fingerprint
+    transaction_slug = transaction_name.strip().lower().replace(" ", "-")
 
-    fingerprint = [
-        f"1-{group_type.type_id}-{group_for_fingerprint.strip().lower().replace(' ', '-')}"
-    ]
+    fingerprint = [f"1-{group_type.type_id}-{transaction_slug}"]
 
     evidence_data = {
         "trace_id": trace_id,
@@ -284,7 +283,7 @@ def _is_org_eligible(org_id: int) -> bool:
 @instrumented_task(
     name="sentry.tasks.llm_issue_detection.run_llm_issue_detection",
     namespace=issues_tasks,
-    processing_deadline_duration=120,  # 2 minutes
+    processing_deadline_duration=300,  # 5 minutes
 )
 def run_llm_issue_detection() -> None:
     """
@@ -299,7 +298,10 @@ def run_llm_issue_detection() -> None:
     scheduler = CursoredScheduler(
         name="llm_issue_detection",
         schedule_key="llm-issue-detection",
-        queryset=Organization.objects.filter(status=OrganizationStatus.ACTIVE),
+        queryset=Organization.objects.filter(
+            status=OrganizationStatus.ACTIVE,
+            flags=F("flags").bitor(Organization.flags.early_adopter),
+        ),
         task=detect_llm_issues_for_org,
         cycle_duration=DETECTION_CYCLE_DURATION,
         validate_item=_is_org_eligible,
@@ -320,6 +322,7 @@ def detect_llm_issues_for_org(org_id: int) -> None:
     Budget enforcement happens on the Seer side.
     """
     from sentry.tasks.llm_issue_detection.trace_data import (  # circular imports
+        get_next_project_id,
         get_project_top_transaction_traces_for_llm_detection,
     )
 
@@ -337,9 +340,14 @@ def detect_llm_issues_for_org(org_id: int) -> None:
     if not project_ids:
         return
 
-    project_id = random.choice(project_ids)
+    project_id = get_next_project_id(organization, project_ids)
+    if not project_id:
+        return
 
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        return
     perf_settings = project.get_option("sentry:performance_issue_settings", default={})
     if not perf_settings.get("ai_issue_detection_enabled", True):
         return

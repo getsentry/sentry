@@ -27,11 +27,11 @@ import {
 } from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
+import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
 import {SectionDivider} from 'sentry/views/issueDetails/streamline/foldSection';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import type {NoInstrumentationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/noInstrumentationNode';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface SpanProfileProps {
   event: Readonly<EventTransaction> | null;

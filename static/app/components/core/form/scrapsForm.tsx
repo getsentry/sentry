@@ -135,6 +135,8 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  * When given a `RequestError`, only keys matching existing form fields are used.
  * String values are used directly; array values use the first element.
  *
+ * @returns `true` if field errors were set, `false` if no valid errors were found (when given a `RequestError` without matching fields).
+ *
  * @example
  * ```tsx
  * // With manual field errors:
@@ -153,11 +155,11 @@ type InferFormData<T> = T extends {state: {values: infer D}} ? D : never;
  */
 export function setFieldErrors<
   TForm extends {setErrorMap: (...args: any[]) => unknown; state: {values: unknown}},
->(formApi: TForm, errors: FieldErrors<InferFormData<TForm>> | RequestError): void {
+>(formApi: TForm, errors: FieldErrors<InferFormData<TForm>> | RequestError): boolean {
   if (errors instanceof RequestError) {
     const responseJSON = errors.responseJSON;
     if (!responseJSON) {
-      return;
+      return false;
     }
     const formValues = formApi.state.values;
     const fieldErrors: Record<string, {message: string}> = {};
@@ -179,12 +181,14 @@ export function setFieldErrors<
       formApi.setErrorMap({
         onSubmit: {fields: fieldErrors},
       });
+      return true;
     }
-    return;
+    return false;
   }
   formApi.setErrorMap({
     onSubmit: {
       fields: errors,
     },
   });
+  return true;
 }

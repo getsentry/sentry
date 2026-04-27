@@ -13,11 +13,12 @@ export function parseMetricAggregate(aggregate: string): {
     };
   }
 
-  // Format is: aggregate(value,metric_name,metric_type,unit)
+  // Format is: aggregate(value,metric_name,metric_type,unit) or aggregate_if(`query`,value,metric_name,metric_type,unit)
   const args = parsed.arguments ?? [];
-  const metricName = args[1] ?? '';
-  const metricType = args[2] ?? '';
-  const metricUnit = args[3] === '-' ? undefined : args[3];
+  const offset = parsed.name.endsWith('_if') ? 1 : 0;
+  const metricName = args[1 + offset] ?? '';
+  const metricType = args[2 + offset] ?? '';
+  const metricUnit = args[3 + offset] === '-' ? undefined : args[3 + offset];
 
   return {
     aggregation: parsed.name,

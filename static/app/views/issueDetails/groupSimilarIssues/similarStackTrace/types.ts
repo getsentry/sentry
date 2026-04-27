@@ -1,6 +1,6 @@
 import type {Group} from 'sentry/types/group';
 
-export type ScoreMap = Record<string, number | null | string>;
+type ScoreMap = Record<string, number | null | string>;
 
 type ScoresByInterface = NonNullable<SimilarItem['scoresByInterface']>;
 type Aggregate = NonNullable<SimilarItem['aggregate']>;

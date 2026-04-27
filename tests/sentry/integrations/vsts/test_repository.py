@@ -124,6 +124,15 @@ class VisualStudioRepositoryProviderTest(TestCase):
         result = self.provider.repository_external_slug(repo)
         assert result == repo.external_id
 
+    def test_repository_external_slug_without_external_id(self) -> None:
+        repo = Repository(
+            name="MyFirstProject",
+            url="https://mbittker.visualstudio.com/_git/MyFirstProject/",
+            external_id=None,
+        )
+        result = self.provider.repository_external_slug(repo)
+        assert result is None
+
 
 @control_silo_test
 class AzureDevOpsRepositoryProviderTest(IntegrationRepositoryTestCase):

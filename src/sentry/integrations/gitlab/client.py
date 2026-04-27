@@ -467,7 +467,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         See https://docs.gitlab.com/ee/api/issues.html#list-project-issues
         """
-        path = GitLabApiClientPath.project_issues.format(project=project_id)
+        path = GitLabApiClientPath.project_issues.format(project=quote(str(project_id), safe=""))
 
         return self.get(path, params={"scope": "all", "search": query, "iids": iids})
 

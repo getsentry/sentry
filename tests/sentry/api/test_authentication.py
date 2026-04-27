@@ -43,6 +43,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_s
 from sentry.types.token import AuthTokenType
 from sentry.utils import jwt
 from sentry.utils.security.orgauthtoken_token import hash_token
+from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
 
 
 def _drf_request(data: dict[str, str] | None = None, path: str = "/example") -> Request:
@@ -990,34 +991,23 @@ class TestAuthenticateHeader:
 class TestViewerContextAuthentication(TestCase):
     SHARED_SECRET = "test-seer-api-shared-secret"
 
-    def _sign_context(self, context_json: str) -> str:
-        import hashlib
-        import hmac as hmac_mod
-
-        return hmac_mod.new(
-            self.SHARED_SECRET.encode("utf-8"),
-            context_json.encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
-
     def _make_request(
         self,
         viewer_context: str | None = None,
-        viewer_signature: str | None = None,
     ) -> Request:
         req = RequestFactory().get("/api/0/organizations/")
         if viewer_context is not None:
             req.META["HTTP_X_VIEWER_CONTEXT"] = viewer_context
-        if viewer_signature is not None:
-            req.META["HTTP_X_VIEWER_CONTEXT_SIGNATURE"] = viewer_signature
         return drf_request_from_request(req)
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_valid_viewer_context_authenticates(self) -> None:
-        context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
-        signature = self._sign_context(context)
+        context = encode_viewer_context(
+            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            key=self.SHARED_SECRET,
+        )
 
-        request = self._make_request(viewer_context=context, viewer_signature=signature)
+        request = self._make_request(viewer_context=context)
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is not None
@@ -1026,16 +1016,7 @@ class TestViewerContextAuthentication(TestCase):
         assert auth is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_invalid_signature_returns_none(self) -> None:
-        context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
-
-        request = self._make_request(viewer_context=context, viewer_signature="bad-signature")
-        result = ViewerContextAuthentication().authenticate(request)
-
-        assert result is None
-
-    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_missing_signature_returns_none(self) -> None:
+    def test_non_jwt_header_returns_none(self) -> None:
         context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
 
         request = self._make_request(viewer_context=context)
@@ -1051,52 +1032,42 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_unknown_user_id_returns_none(self) -> None:
-        context = orjson.dumps({"user_id": 999999999, "actor_type": "user"}).decode()
-        signature = self._sign_context(context)
+        context = encode_viewer_context(
+            ViewerContext(user_id=999999999, actor_type=ActorType.USER),
+            key=self.SHARED_SECRET,
+        )
 
-        request = self._make_request(viewer_context=context, viewer_signature=signature)
+        request = self._make_request(viewer_context=context)
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_missing_user_id_returns_none(self) -> None:
-        context = orjson.dumps({"actor_type": "system"}).decode()
-        signature = self._sign_context(context)
+        context = encode_viewer_context(
+            ViewerContext(actor_type=ActorType.SYSTEM),
+            key=self.SHARED_SECRET,
+        )
 
-        request = self._make_request(viewer_context=context, viewer_signature=signature)
+        request = self._make_request(viewer_context=context)
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is None
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_empty_secret_returns_none(self) -> None:
-        context = orjson.dumps({"user_id": self.user.id, "actor_type": "user"}).decode()
+        context = encode_viewer_context(
+            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            key=self.SHARED_SECRET,
+        )
 
-        request = self._make_request(viewer_context=context, viewer_signature="anything")
+        request = self._make_request(viewer_context=context)
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_jwt_viewer_context_authenticates(self) -> None:
-        from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
-
-        vc = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
-        token = encode_viewer_context(vc)
-
-        request = self._make_request(viewer_context=token)
-        result = ViewerContextAuthentication().authenticate(request)
-
-        assert result is not None
-        user, auth = result
-        assert user.id == self.user.id
-        assert auth is None
-
-    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_jwt_wrong_key_returns_none(self) -> None:
-        from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
-
         vc = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
         token = encode_viewer_context(vc, key="wrong-key")
 
