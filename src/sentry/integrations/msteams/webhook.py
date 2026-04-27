@@ -575,6 +575,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             if integration is None:
                 group = None
+            elif not integration_service.get_organization_integration(
+                organization_id=group.project.organization_id,
+                integration_id=integration.id,
+            ):
+                group = None
 
         if integration is None or group is None:
             logger.info(
