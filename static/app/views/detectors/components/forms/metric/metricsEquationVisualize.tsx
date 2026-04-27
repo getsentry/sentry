@@ -232,7 +232,7 @@ function MetricsEquationVisualizeContent({
         <ToolbarVisualizeAddChart
           add={addAggregate}
           disabled={metricQueries.length >= MAX_METRICS_ALLOWED}
-          label={t('Add Application Metric')}
+          label={t('Add Metric')}
           display="button"
         />
         {!equationQuery && (

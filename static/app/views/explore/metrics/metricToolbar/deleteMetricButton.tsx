@@ -17,7 +17,7 @@ export function DeleteMetricButton({disabled}: {disabled?: boolean}) {
       tooltipProps={{
         title: disabled ? t('This application metric is used in an equation') : undefined,
       }}
-      aria-label={t('Delete Application Metric')}
+      aria-label={t('Delete Metric')}
     />
   );
 }
