@@ -170,11 +170,17 @@ function ColumnEditorRow({
   const debouncedSearch = useDebouncedValue(search, 250);
   const hasSearch = debouncedSearch.length > 0;
 
-  // useSpanItemAttributes folds DASHBOARD_ONLY_SPAN_ATTRIBUTES into hiddenKeys;
-  // useTraceItemDatasetAttributes does not, so we replicate that behavior for spans
-  // to keep search results consistent with the parent-supplied baseOptions.
-  const searchHiddenKeys =
-    traceItemType === TraceItemDataset.SPANS ? DASHBOARD_ONLY_SPAN_ATTRIBUTES : undefined;
+  // The parent's tag collections come pre-filtered: useSpanItemAttributes folds in
+  // DASHBOARD_ONLY_SPAN_ATTRIBUTES, and log callers pass HiddenColumnEditorLogFields
+  // via hiddenKeys. The bare useTraceItemDatasetAttributes does neither, so merge
+  // both here to keep the searched results consistent with baseOptions.
+  const searchHiddenKeys = useMemo(() => {
+    const merged = [...(hiddenKeys ?? [])];
+    if (traceItemType === TraceItemDataset.SPANS) {
+      merged.push(...DASHBOARD_ONLY_SPAN_ATTRIBUTES);
+    }
+    return merged;
+  }, [hiddenKeys, traceItemType]);
 
   const {attributes: searchedStringTags, isLoading: stringLoading} =
     useTraceItemDatasetAttributes(
@@ -326,10 +332,7 @@ function buildColumnOptions({
     traceItemType,
     extraColumns: columns,
   })
-    .filter(option => {
-      const label = typeof option.label === 'string' ? option.label : option.textValue;
-      return !(hiddenKeys ?? []).includes(label ?? '');
-    })
+    .filter(option => !(hiddenKeys ?? []).includes(option.value))
     .toSorted((a, b) => {
       const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
       const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');

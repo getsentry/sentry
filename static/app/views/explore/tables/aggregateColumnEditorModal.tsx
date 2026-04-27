@@ -305,7 +305,7 @@ function GroupBySelector({
   });
 
   const searchedOptions = useGroupByFields({
-    groupBys,
+    groupBys: [],
     numberTags: searchedNumberTags,
     stringTags: searchedStringTags,
     booleanTags: searchedBooleanTags,
