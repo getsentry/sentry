@@ -1,9 +1,16 @@
+import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {stripEquationPrefix, type QueryFieldValue} from 'sentry/utils/discover/fields';
+import {
+  EQUATION_PREFIX,
+  isEquation,
+  stripEquationPrefix,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
@@ -97,10 +104,24 @@ export function createEapDetectorConfig(
       return [transformEventsStatsComparisonSeries(data)];
     },
     fromApiAggregate: aggregate => {
-      return stripEquationPrefix(translateAggregateTag(aggregate));
+      if (isEquation(aggregate)) {
+        return stripEquationPrefix(aggregate);
+      }
+
+      return translateAggregateTag(aggregate);
     },
     toApiAggregate: aggregate => {
-      return translateAggregateTagBack(aggregate);
+      aggregate = translateAggregateTagBack(aggregate);
+
+      // Check to see if this aggregate is an equation with more than one function
+      // This is the most reliable way we have to determine if this is an equation
+      const expression = new Expression(aggregate);
+      const functions = expression.tokens.filter(token => isTokenFunction(token));
+      if (!isEquation(aggregate) && expression.isValid && functions.length > 1) {
+        return `${EQUATION_PREFIX}${aggregate}`;
+      }
+
+      return aggregate;
     },
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
     getDiscoverDataset: () => discoverDataset,
