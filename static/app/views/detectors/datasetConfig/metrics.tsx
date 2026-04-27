@@ -35,9 +35,6 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
     if (isEquation(aggregate)) {
       return stripEquationPrefix(aggregate);
     }
-    if (isEquation(aggregate)) {
-      return stripEquationPrefix(aggregate);
-    }
     return aggregate;
   },
   transformSeriesQueryData: (data, aggregate) => {
