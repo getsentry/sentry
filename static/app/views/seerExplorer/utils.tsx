@@ -1060,9 +1060,9 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
  */
 export function isSeerExplorerEnabled(organization: Organization): boolean {
   return (
-    organization.openMembership
-    && !organization.hideAiFeatures
-    && organization.features.includes('gen-ai-features')
-    && organization.features.includes('seer-explorer')
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
   );
 }
