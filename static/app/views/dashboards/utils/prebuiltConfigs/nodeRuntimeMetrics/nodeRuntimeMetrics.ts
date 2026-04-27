@@ -97,7 +97,7 @@ const KPI_WIDGETS = spaceWidgetsEquallyOnRow(
   {h: 1, minH: 1}
 );
 
-const RUNTIME_WIDGETS = spaceWidgetsEquallyOnRow(
+const MEMORY_WIDGETS = spaceWidgetsEquallyOnRow(
   [
     {
       id: 'node-runtime-memory-usage',
@@ -127,57 +127,62 @@ const RUNTIME_WIDGETS = spaceWidgetsEquallyOnRow(
         },
       ],
     },
-    {
-      id: 'node-runtime-event-loop-delay',
-      title: t('Event Loop Delay'),
-      description: t(
-        'Maximum observed p50 (median) and p99 (tail) event loop delay across instances. High p50 suggests consistent blocking; high p99 reveals intermittent stalls. Values are shown as worst-case per time bucket to avoid masking spikes.'
-      ),
-      displayType: DisplayType.LINE,
-      widgetType: WidgetType.TRACEMETRICS,
-      interval: INTERVAL,
-      queries: [
-        {
-          name: '',
-          // max() is used because p50/p99 are precomputed percentiles from the SDK's
-          // event loop delay histogram. Averaging precomputed percentiles is statistically
-          // incorrect; max() surfaces the worst-observed value per bucket.
-          fields: [
-            traceMetricField(
-              'max',
-              'node.runtime.event_loop.delay.p50',
-              'gauge',
-              'second'
-            ),
-            traceMetricField(
-              'max',
-              'node.runtime.event_loop.delay.p99',
-              'gauge',
-              'second'
-            ),
-          ],
-          aggregates: [
-            traceMetricField(
-              'max',
-              'node.runtime.event_loop.delay.p50',
-              'gauge',
-              'second'
-            ),
-            traceMetricField(
-              'max',
-              'node.runtime.event_loop.delay.p99',
-              'gauge',
-              'second'
-            ),
-          ],
-          columns: [],
-          conditions: '',
-          orderby: '',
-        },
-      ],
-    },
   ],
   1
+);
+
+// Event loop delay tables list the worst observed p99/p50 samples across instances.
+// Each row = one emitted sample identified by (server.address, timestamp). max() is
+// a no-op over a single-row group, used only to satisfy the query DSL. This avoids
+// cross-instance aggregation of pre-computed percentiles, which is statistically
+// unsound.
+const worstEventLoopDelayTable = (
+  percentile: 'p50' | 'p99',
+  title: string,
+  description: string
+): Widget => {
+  const metricName = `node.runtime.event_loop.delay.${percentile}`;
+  const field = traceMetricField('max', metricName, 'gauge', 'second');
+  return {
+    id: `node-runtime-event-loop-delay-${percentile}-samples`,
+    title,
+    description,
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.TRACEMETRICS,
+    interval: INTERVAL,
+    limit: 10,
+    queries: [
+      {
+        name: '',
+        fields: ['server.address', 'timestamp', field],
+        aggregates: [field],
+        columns: ['server.address', 'timestamp'],
+        conditions: '',
+        orderby: `-${field}`,
+        fieldAliases: [t('Server'), t('Timestamp'), t('%s Delay', percentile)],
+      },
+    ],
+  };
+};
+
+const EVENT_LOOP_DELAY_TABLES = spaceWidgetsEquallyOnRow(
+  [
+    worstEventLoopDelayTable(
+      'p99',
+      t('Top 10 Worst p99 Samples'),
+      t(
+        "Ten highest observed p99 event loop delay samples. Each row is one instance's 30s-interval percentile from Node's `perf_hooks` histogram — a true per-instance measurement, not a cross-instance aggregate."
+      )
+    ),
+    worstEventLoopDelayTable(
+      'p50',
+      t('Top 10 Worst p50 Samples'),
+      t(
+        "Ten highest observed p50 (median) event loop delay samples. High p50 suggests consistent blocking. Each row is one instance's 30s-interval percentile — a true per-instance measurement, not a cross-instance aggregate."
+      )
+    ),
+  ],
+  3
 );
 
 const CORRELATION_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -233,10 +238,15 @@ const CORRELATION_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
     },
   ],
-  3
+  5
 );
 
-const WIDGETS: Widget[] = [...KPI_WIDGETS, ...RUNTIME_WIDGETS, ...CORRELATION_WIDGETS];
+const WIDGETS: Widget[] = [
+  ...KPI_WIDGETS,
+  ...MEMORY_WIDGETS,
+  ...EVENT_LOOP_DELAY_TABLES,
+  ...CORRELATION_WIDGETS,
+];
 
 export const NODE_RUNTIME_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
