@@ -90,12 +90,12 @@ export function useScmIntegrationTreeData(): ScmIntegrationTreeData {
     [reposPages]
   );
 
-  // Match on externalId — the same field the backend uses to compute
+  // Match on externalId, the same field the backend uses to compute
   // IntegrationRepository.isInstalled. repo.name and repo.identifier diverge
   // across providers (GitLab's identifier is a numeric project ID), but
   // externalId is stable on both sides.
   const connectedExternalIds = useMemo(
-    () => new Set(connectedRepos.map(r => r.externalId).filter(Boolean)),
+    () => new Set(connectedRepos.map(r => r.externalId)),
     [connectedRepos]
   );
 
