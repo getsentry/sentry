@@ -48,10 +48,12 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
@@ -132,6 +134,7 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const {projects} = useProjects();
   const {organizations} = useLegacyStore(OrganizationsStore);
+  const sentryConfig = useLegacyStore(ConfigStore);
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -421,7 +424,7 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        {organizations.length > 1 && (
+        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
           <CMDKAction
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}
