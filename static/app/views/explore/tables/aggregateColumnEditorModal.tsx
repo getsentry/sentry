@@ -310,6 +310,7 @@ function GroupBySelector({
     stringTags: searchedStringTags,
     booleanTags: searchedBooleanTags,
     traceItemType: TraceItemDataset.SPANS,
+    hideEmptyOption: true,
   });
 
   const options = hasSearch ? searchedOptions : baseOptions;
@@ -555,6 +556,8 @@ function getSupportedAttributeKinds(
   functionName: string | undefined
 ): readonly AttributeKind[] {
   if (!functionName) return ['number'];
+  // COUNT renders a fixed SPAN_DURATION option and ignores tag collections.
+  if (functionName === AggregationKey.COUNT) return [];
   if (NO_ARGUMENT_SPAN_AGGREGATES.includes(functionName as AggregationKey)) return [];
   if (functionName === AggregationKey.COUNT_UNIQUE)
     return ['string', 'number', 'boolean'];
