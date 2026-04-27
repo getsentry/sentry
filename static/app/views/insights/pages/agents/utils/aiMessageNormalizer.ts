@@ -323,7 +323,6 @@ function collectOutputExtras(
 }
 
 const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
-const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
 function looksLikeJson(raw: string): boolean {
   const trimmed = raw.trim();
@@ -335,14 +334,23 @@ function looksLikeJson(raw: string): boolean {
 }
 
 function extractTextFromContentParts(parts: any[]): string {
-  return parts
-    .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
-    .map((part: any) => {
-      if (FILE_CONTENT_PARTS.includes(part.type)) {
-        return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
-      }
+  const texts: string[] = [];
+  for (const part of parts) {
+    if (!part || typeof part !== 'object') {
+      continue;
+    }
+    if (part.type && FILE_CONTENT_PARTS.includes(part.type)) {
+      texts.push(`\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`);
+      continue;
+    }
+    // Accept untyped items with `text` or `content` (older Anthropic-style
+    // [{text: '...'}] arrays) as well as explicit `type: 'text'` parts.
+    if (!part.type || part.type === 'text') {
       const text = part.text ?? part.content;
-      return typeof text === 'string' ? text.trim() : text;
-    })
-    .join('\n');
+      if (typeof text === 'string' && text) {
+        texts.push(text.trim());
+      }
+    }
+  }
+  return texts.join('\n');
 }

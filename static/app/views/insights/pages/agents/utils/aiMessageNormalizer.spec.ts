@@ -104,6 +104,14 @@ describe('normalizeToMessages', () => {
       ]);
     });
 
+    it('extracts text from untyped {text} array items (legacy Anthropic shape)', () => {
+      const input = JSON.stringify([{role: 'user', content: [{text: 'a'}, {text: 'b'}]}]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages?.[0]?.content).toBe('a\nb');
+    });
+
     it('extracts text from structured content arrays', () => {
       const input = JSON.stringify([
         {
