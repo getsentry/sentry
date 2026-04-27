@@ -6,7 +6,9 @@ from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
 from sentry import features
+from sentry.api.serializers.rest_framework.dashboard import is_equation
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.discover.arithmetic import strip_equation
 from sentry.incidents.handlers.condition import *  # noqa
 from sentry.incidents.metric_issue_detector import MetricIssueDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
@@ -282,6 +284,8 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
         if is_mri_field(agg_display_key):
             aggregate = format_mri_field(agg_display_key)
+        elif is_equation(agg_display_key):
+            aggregate = strip_equation(agg_display_key)
         elif CRASH_RATE_ALERT_AGGREGATE_ALIAS in agg_display_key:
             agg_display_key = agg_display_key.split(f"AS {CRASH_RATE_ALERT_AGGREGATE_ALIAS}")[
                 0
