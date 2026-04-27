@@ -198,7 +198,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
           const connectedRepo = queryClient
             .getQueryData(reposQueryOptions.queryKey)
             ?.pages.flatMap(p => p.json)
-            .find(r => r.name === repo.identifier);
+            .find(r => r.externalId === repo.externalId);
           if (connectedRepo) {
             await removeRepo(connectedRepo);
           }
