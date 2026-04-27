@@ -580,6 +580,17 @@ function AttributeArgumentSelect({
     return [...baseOptions, ...additions];
   }, [hasSearch, baseOptions, searchedOptions]);
 
+  // CompactSelect's default trigger derives its label from the active option
+  // list, which can go blank when a search query doesn't match the current
+  // value. Match the sibling selectors and fall back to baseOptions, then to
+  // the raw value, so the trigger always reflects the current selection.
+  const label = useMemo(() => {
+    const tag =
+      options.find(option => option.value === value) ??
+      baseOptions.find(option => option.value === value);
+    return <TriggerLabel>{tag?.label ?? value}</TriggerLabel>;
+  }, [value, options, baseOptions]);
+
   return (
     <DoubleWidthCompactSelect
       data-test-id="editor-visualize-argument"
@@ -601,7 +612,9 @@ function AttributeArgumentSelect({
           style={{
             width: '100%',
           }}
-        />
+        >
+          {label}
+        </OverlayTrigger.Button>
       )}
     />
   );
