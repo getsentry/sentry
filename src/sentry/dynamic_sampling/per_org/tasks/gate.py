@@ -1,10 +1,3 @@
-"""Shared runtime gates for the per-org dynamic sampling pipeline.
-
-Both the scheduler (which dispatches work) and the orchestrator (which runs it)
-consult the same killswitch, rollout-rate, and metrics-sample-rate options so
-that flipping them in production takes effect everywhere without a deploy.
-"""
-
 from __future__ import annotations
 
 from sentry import options

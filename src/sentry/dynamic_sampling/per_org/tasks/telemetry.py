@@ -1,13 +1,3 @@
-"""Central metrics emitters for the per-org dynamic sampling pipeline.
-
-Every metric emitted by the scheduler, the bucket fan-out, or the per-org
-orchestrator goes through these helpers so that:
-
-* the sample rate is read from a single option (``metrics_sample_rate``),
-* the ``status`` tag convention is applied uniformly, and
-* there is one place to change if the emission shape needs to evolve.
-"""
-
 from __future__ import annotations
 
 import functools
@@ -53,7 +43,6 @@ def emit_status(
     amount: int = 1,
     extra_tags: Mapping[str, str] | None = None,
 ) -> None:
-    """Emit a counter with a ``status`` tag, sampled by the pipeline option."""
     metrics.incr(
         metric,
         amount=amount,
@@ -63,7 +52,6 @@ def emit_status(
 
 
 def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = None) -> None:
-    """Emit a gauge sampled by the pipeline option."""
     metrics.gauge(
         metric,
         value,
@@ -74,7 +62,6 @@ def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = No
 
 @contextmanager
 def timed(metric: str) -> Generator[None]:
-    """Time a block with the pipeline's sample rate applied."""
     with metrics.timer(metric, sample_rate=metrics_sample_rate()):
         yield
 
@@ -87,21 +74,6 @@ _current_status_metric: ContextVar[str | None] = ContextVar(
 
 
 def instrumented(func: F) -> F:
-    """Automatically time a pipeline function and guard it with status telemetry.
-
-    Derives metric names from the wrapped function:
-
-    * ``dynamic_sampling.<func>.duration`` wraps every call in a timer.
-    * ``dynamic_sampling.<func>.status`` receives ``status=failed`` with the
-      exception captured to Sentry if the body raises. Successful terminal
-      statuses (``completed``, ``killswitched``, early exits, ...) are
-      emitted from inside the body via :func:`emit_status_metric`, which
-      reads the same metric name, so callers never hardcode it.
-
-    The exception is re-raised after the status metric fires so upstream
-    retry / task-broker semantics are preserved.
-    """
-
     status_metric = status_metric_for(func.__name__)
     duration_metric = duration_metric_for(func.__name__)
 
@@ -123,14 +95,6 @@ def instrumented(func: F) -> F:
 
 
 def emit_status_metric(status: str, *, extra_tags: Mapping[str, str] | None = None) -> None:
-    """Emit on the status metric of the enclosing decorated function.
-
-    Must be called synchronously inside a function decorated with
-    :func:`instrumented` (or a callee of one). Raises ``RuntimeError``
-    otherwise, so misuse fails loudly during tests rather than silently
-    dropping a metric.
-    """
-
     metric = _current_status_metric.get()
     if metric is None:
         raise RuntimeError("emit_status_metric() called outside an @instrumented function")

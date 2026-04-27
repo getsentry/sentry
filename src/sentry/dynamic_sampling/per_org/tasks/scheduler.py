@@ -1,5 +1,3 @@
-"""Cron entry point for the per-org dynamic sampling pipeline."""
-
 from __future__ import annotations
 
 from taskbroker_client.retry import Retry
