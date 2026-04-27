@@ -34,6 +34,7 @@ class ErrorsQueryBuilderMixin:
     def __init__(self, *args, **kwargs):
         self.match = None
         self.entities = set()
+        self.select_as_tag_columns = {"status"}
         super().__init__(*args, **kwargs)
 
     def parse_query(self, query: str | None) -> ParsedTerms:

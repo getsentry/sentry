@@ -660,7 +660,12 @@ class BaseQueryBuilder:
                 continue
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
-            resolved_column = self.resolve_column(column, alias=True)
+            if hasattr(self, "select_as_tag_columns") and column in self.select_as_tag_columns:
+                resolved_column = AliasedExpression(
+                    self.resolve_column(f"tags[{column}]"), alias=column
+                )
+            else:
+                resolved_column = self.resolve_column(column, alias=True)
 
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)

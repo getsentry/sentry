@@ -7163,6 +7163,50 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_status_in_field(self) -> None:
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group1"],
+                "tags": {"status": "good"},
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group2"],
+                "tags": {"status": "bad"},
+            },
+            project_id=self.project.id,
+        ).group
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+                "fingerprint": ["group3"],
+                "tags": {"status": "good"},
+            },
+            project_id=self.project.id,
+        ).group
+
+        query = {
+            "field": ["status", "count()"],
+            "statsPeriod": "2h",
+            "query": "",
+            "dataset": "errors",
+            "orderby": "-count()",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert response.data["data"][0]["count()"] == 2
+        assert response.data["data"][0]["status"] == "good"
+        assert response.data["data"][1]["count()"] == 1
+        assert response.data["data"][1]["status"] == "bad"
+
     def test_short_group_id(self) -> None:
         group_1 = self.store_event(
             data={
