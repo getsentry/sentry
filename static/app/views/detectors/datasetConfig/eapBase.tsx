@@ -3,7 +3,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {stripEquationPrefix, type QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
@@ -97,7 +97,7 @@ export function createEapDetectorConfig(
       return [transformEventsStatsComparisonSeries(data)];
     },
     fromApiAggregate: aggregate => {
-      return translateAggregateTag(aggregate);
+      return stripEquationPrefix(translateAggregateTag(aggregate));
     },
     toApiAggregate: aggregate => {
       return translateAggregateTagBack(aggregate);
