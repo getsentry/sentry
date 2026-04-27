@@ -35,14 +35,6 @@ class TelemetryStatus(StrEnum):
     ROLLOUT_EXCLUDED = "rollout_excluded"
 
 
-def status_metric_for(func_name: str) -> str:
-    return f"{METRIC_PREFIX}.{func_name}.status"
-
-
-def duration_metric_for(func_name: str) -> str:
-    return f"{METRIC_PREFIX}.{func_name}.duration"
-
-
 def emit_status(
     metric: str,
     status: TelemetryStatus,
@@ -68,8 +60,8 @@ def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = No
 
 
 def instrumented(func: F) -> F:
-    status_metric = status_metric_for(func.__name__)
-    duration_metric = duration_metric_for(func.__name__)
+    status_metric = f"{METRIC_PREFIX}.{func.__name__}.status"
+    duration_metric = f"{METRIC_PREFIX}.{func.__name__}.duration"
 
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:

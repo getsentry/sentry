@@ -7,10 +7,8 @@ import pytest
 
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     TelemetryStatus,
-    duration_metric_for,
     emit_status,
     instrumented,
-    status_metric_for,
 )
 
 
@@ -32,15 +30,6 @@ def _stub_metrics_sample_rate() -> Iterator[None]:
 
 class _BoomError(RuntimeError):
     pass
-
-
-def test_metric_names_are_derived_from_function_name() -> None:
-    assert status_metric_for("run_calculations_per_org") == (
-        "dynamic_sampling.run_calculations_per_org.status"
-    )
-    assert duration_metric_for("run_calculations_per_org") == (
-        "dynamic_sampling.run_calculations_per_org.duration"
-    )
 
 
 def test_emit_status_adds_string_status_tag() -> None:
