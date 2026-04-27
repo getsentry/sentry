@@ -541,17 +541,20 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         assert field_types["client"] == "string"
         assert field_types["web_url"] == "string"
 
-        # Test get_config_data returns current values
+        # Test get_config_data returns current values, with the credential
+        # field omitted (allowlist mode — see _CONFIG_DATA_ALLOWLIST). The
+        # raw password remains in integration.metadata for the client to use.
         config_data = installation.get_config_data()
         assert config_data["p4port"] == "ssl:perforce.example.com:1666"
         assert config_data["user"] == "sentry-bot"
-        assert config_data["password"] == "initial_password"
+        assert "password" not in config_data
         assert config_data["client"] == "sentry-workspace"
         assert (
             config_data["ssl_fingerprint"]
             == "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD"
         )
         assert config_data["web_url"] == "https://swarm.example.com"
+        assert integration.metadata["password"] == "initial_password"
 
         # Step 4: Test partial update (only change password)
         installation.update_organization_config({"password": "updated_password_123"})
@@ -559,7 +562,8 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         # Refresh and verify password changed but other fields preserved
         integration.refresh_from_db()
         updated_config = installation.get_config_data()
-        assert updated_config["password"] == "updated_password_123"
+        assert "password" not in updated_config
+        assert integration.metadata["password"] == "updated_password_123"
         assert updated_config["p4port"] == "ssl:perforce.example.com:1666"  # Preserved
         assert updated_config["user"] == "sentry-bot"  # Preserved
         assert updated_config["client"] == "sentry-workspace"  # Preserved
@@ -585,7 +589,8 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         assert final_config["client"] == "new-workspace"
         assert final_config["web_url"] == "https://new-swarm.example.com"
         # Verify other fields still preserved
-        assert final_config["password"] == "updated_password_123"  # From previous update
+        assert "password" not in final_config
+        assert integration.metadata["password"] == "updated_password_123"  # From previous update
         assert final_config["p4port"] == "ssl:perforce.example.com:1666"  # Original value
         assert (
             final_config["ssl_fingerprint"]
@@ -607,7 +612,8 @@ class PerforceIntegrationEndToEndTest(IntegrationTestCase):
         # Required fields still preserved
         assert cleared_config["p4port"] == "ssl:perforce.example.com:1666"
         assert cleared_config["user"] == "new-user"
-        assert cleared_config["password"] == "updated_password_123"
+        assert "password" not in cleared_config
+        assert integration.metadata["password"] == "updated_password_123"
 
 
 @control_silo_test
@@ -742,3 +748,66 @@ class PerforceApiPipelineTest(APITestCase):
         )
         assert resp.status_code == 400
         assert "sslFingerprint" in resp.data
+
+
+@control_silo_test
+class PerforceIntegrationConfigDataApiTest(APITestCase):
+    """
+    Regression test for password exposure: the org integrations index endpoint must
+    not echo the Perforce credential in configData. The endpoint is reachable
+    by org:read, so any leak there exposes the password / P4 ticket to every
+    member of the organization.
+    """
+
+    endpoint = "sentry-api-0-organization-integrations"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="perforce",
+            name="Perforce (ssl:perforce.example.com:1666)",
+            external_id="perforce-org-1-abcdef12",
+            metadata={
+                "p4port": "ssl:perforce.example.com:1666",
+                "user": "sentry-bot",
+                "auth_type": "password",
+                "password": "super-secret-password",
+                "client": "sentry-workspace",
+                "ssl_fingerprint": "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:AA:BB:CC:DD",
+                "web_url": "https://swarm.example.com",
+            },
+        )
+
+    def test_config_data_excludes_credential(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"providerKey": "perforce"}
+        )
+        assert len(response.data) == 1
+        config_data = response.data[0]["configData"]
+        # The credential field stores both passwords and P4 tickets — must
+        # never appear in the API response regardless of auth_type.
+        assert "password" not in config_data
+        # Sanity check: non-secret fields still reach the form.
+        assert config_data["p4port"] == "ssl:perforce.example.com:1666"
+        assert config_data["user"] == "sentry-bot"
+        assert config_data["auth_type"] == "password"
+
+    def test_config_data_excludes_ticket(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(
+                metadata={
+                    **self.integration.metadata,
+                    "auth_type": "ticket",
+                    "password": "p4-ticket-value",
+                }
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"providerKey": "perforce"}
+        )
+        config_data = response.data[0]["configData"]
+        assert "password" not in config_data
+        assert "p4-ticket-value" not in str(config_data)
+        assert config_data["auth_type"] == "ticket"

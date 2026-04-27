@@ -71,6 +71,23 @@ class SlackAgentCachePayload(TypedDict):
     thread: SlackThreadDetails
 
 
+class SlackPendingMentionPayload(TypedDict):
+    """
+    Kwargs for `route_slack_seer_event` stashed on control silo when a Slack
+    @-mention cannot proceed (identity not linked). Popped after identity
+    link so the task can be re-dispatched as if the webhook just arrived.
+    """
+
+    payload: dict[str, Any]
+    integration_id: int
+    slack_user_id: str
+    channel_id: str
+    thread_ts: str
+    message_ts: str
+    event_type: str
+    message_text: str
+
+
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
 
 

@@ -25,7 +25,7 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {toPermissions} from 'sentry/utils/consolidatedScopes';
+import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getSentryAppInstallStatus,
   trackIntegrationAnalytics,
@@ -129,6 +129,14 @@ export default function SentryAppDetailedView() {
     () => toPermissions(sentryApp?.scopes || []),
     [sentryApp?.scopes]
   );
+  const specialPermissions = useMemo(
+    () => getSpecialPermissions(sentryApp?.scopes || []),
+    [sentryApp?.scopes]
+  );
+  const hasStandardPermissions =
+    permissions.read.length > 0 ||
+    permissions.write.length > 0 ||
+    permissions.admin.length > 0;
   const installationStatus = useMemo(() => getSentryAppInstallStatus(install), [install]);
   const isPending = isSentryAppPending || isFeatureDataPending || isAppInstallsPending;
   const isError = isSentryAppError || isFeatureDataError || isAppInstallsError;
@@ -280,8 +288,7 @@ export default function SentryAppDetailedView() {
   }, [integrationSlug, integrationType, organization, sentryApp?.status]);
 
   const renderPermissions = useCallback(() => {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    if (!Object.keys(permissions).some(scope => permissions[scope].length > 0)) {
+    if (!hasStandardPermissions && specialPermissions.length === 0) {
       return null;
     }
     return (
@@ -321,9 +328,20 @@ export default function SentryAppDetailedView() {
             </Text>
           </Flex>
         )}
+        {specialPermissions.map(permission => (
+          <Flex key={permission.scope}>
+            <Indicator />
+            <Text>
+              {tct('[label]: [summary]', {
+                label: <strong>{permission.label}</strong>,
+                summary: permission.summary,
+              })}
+            </Text>
+          </Flex>
+        ))}
       </PermissionWrapper>
     );
-  }, [permissions]);
+  }, [hasStandardPermissions, permissions, specialPermissions]);
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
