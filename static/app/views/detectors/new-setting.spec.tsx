@@ -19,6 +19,8 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import * as indicators from 'sentry/actionCreators/indicator';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import DetectorNewSettings from 'sentry/views/detectors/new-settings';
 
 describe('DetectorEdit', () => {
@@ -812,6 +814,12 @@ describe('DetectorEdit', () => {
       await userEvent.click(screen.getByText('Errors'));
 
       expect(screen.getByRole('menuitemradio', {name: /Metrics/})).toBeInTheDocument();
+    });
+
+    it('auto-generates names using application metrics wording', () => {
+      expect(
+        getDatasetConfig(DetectorDataset.METRICS).formatAggregateForTitle?.('count()')
+      ).toBe('Number of application metrics');
     });
 
     it('can submit a new metric detector with metrics dataset from URL params', async () => {

@@ -6,7 +6,7 @@ import {MetricsDetectorSearchBar} from 'sentry/views/detectors/datasetConfig/com
 import {createEapDetectorConfig} from 'sentry/views/detectors/datasetConfig/eapBase';
 
 export const DetectorMetricsConfig = createEapDetectorConfig({
-  name: t('Metrics'),
+  name: t('Application Metrics'),
   defaultEventTypes: [EventTypes.TRACE_ITEM_METRIC],
   defaultField: TraceMetricsConfig.defaultField,
   getAggregateOptions: TraceMetricsConfig.getTableFieldOptions,
@@ -14,7 +14,7 @@ export const DetectorMetricsConfig = createEapDetectorConfig({
   SearchBar: MetricsDetectorSearchBar,
   formatAggregateForTitle: aggregate => {
     if (aggregate === 'count()') {
-      return t('Number of metrics');
+      return t('Number of application metrics');
     }
     return aggregate;
   },
