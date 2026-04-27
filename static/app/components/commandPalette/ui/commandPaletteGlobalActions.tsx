@@ -86,6 +86,7 @@ import type {NavigationGroupProps} from 'sentry/views/settings/types';
 import {CMDKAction} from './cmdk';
 import type {CMDKResourceContext} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
+import {useCommandPaletteState} from './commandPaletteStateContext';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -144,6 +145,7 @@ export function GlobalCommandPaletteActions() {
   });
 
   const {openSeerExplorer} = useSeerExplorerContext();
+  const {query: paletteQuery} = useCommandPaletteState();
 
   const queryProjectIds = new Set(decodeList(location.query.project));
   const currentProjects = params.projectId
@@ -186,9 +188,9 @@ export function GlobalCommandPaletteActions() {
   );
   return (
     <CommandPaletteSlot name="global">
-      {isSeerExplorerEnabled(organization) && (
+      {isSeerExplorerEnabled(organization) && paletteQuery.length > 0 && (
         <CMDKAction
-          display={{label: t('Ask Seer'), icon: <IconSeer />}}
+          display={{label: t('Ask Seer: %s', paletteQuery), icon: <IconSeer />}}
           keywords={[t('seer'), t('ai'), t('assistant'), t('chat')]}
           onAction={() => openSeerExplorer()}
         />
