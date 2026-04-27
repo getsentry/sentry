@@ -4,7 +4,11 @@ from unittest.mock import Mock, patch
 import orjson
 import pytest
 
-from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, DataCategory
+from sentry.constants import (
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    DataCategory,
+    ObjectStatus,
+)
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings, AutofixStatus
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
@@ -472,6 +476,39 @@ class TestHasProjectConnectedRepos(TestCase):
 
     def test_returns_false_when_no_repos(self):
         assert has_project_connected_repos(self.organization, self.project) is False
+
+    def test_returns_false_when_only_disabled_repos(self):
+        repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="owner/repo",
+        )
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is False
+
+    def test_returns_true_when_at_least_one_active_repo(self):
+        disabled_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="123",
+            name="owner/disabled",
+        )
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save()
+        active_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="456",
+            name="owner/active",
+        )
+        SeerProjectRepository.objects.create(project=self.project, repository=disabled_repo)
+        SeerProjectRepository.objects.create(project=self.project, repository=active_repo)
+
+        assert has_project_connected_repos(self.organization, self.project) is True
 
 
 class TestSetProjectSeerPreference(TestCase):
@@ -1044,6 +1081,47 @@ class TestWritePreferencesToSentryDb(TestCase):
         assert p2_repos[0].instructions == "Be careful"
         assert project2.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
 
+    def test_preserves_disabled_repo_pref_on_write(self) -> None:
+        """A pref pointing at a disabled repo must survive a write that omits it."""
+        disabled_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_disabled",
+            name="test-org/disabled-repo",
+        )
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save()
+        SeerProjectRepository.objects.create(
+            project=self.project,
+            repository=disabled_repo,
+            branch_name="legacy",
+            instructions="kept across writes",
+        )
+
+        # New payload only includes the active repo (mirrors what reads now return).
+        new_preference = SeerProjectPreference(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            repositories=[
+                SeerRepoDefinition(
+                    repository_id=self.repo.id,
+                    provider="github",
+                    owner="test-org",
+                    name="test-repo",
+                    external_id="ext123",
+                    branch_name="main",
+                ),
+            ],
+        )
+        write_preference_to_sentry_db(self.project, new_preference)
+
+        repos = SeerProjectRepository.objects.filter(project=self.project).order_by("repository_id")
+        assert len(repos) == 2
+        by_repo_id = {r.repository_id: r for r in repos}
+        assert by_repo_id[disabled_repo.id].branch_name == "legacy"
+        assert by_repo_id[disabled_repo.id].instructions == "kept across writes"
+        assert by_repo_id[self.repo.id].branch_name == "main"
+
     def test_bulk_write_replaces_per_project(self) -> None:
         project2 = self.create_project(organization=self.organization)
         repo2 = self.create_repo(
@@ -1358,6 +1436,33 @@ class TestReadPreferenceFromSentryDb(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].name == "test-repo"
 
+    def test_excludes_non_active_repos(self):
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo, branch_name="main"
+        )
+        # repo2 is DISABLED — pref row stays in DB but should be filtered on read.
+        self.repo2.status = ObjectStatus.DISABLED
+        self.repo2.save()
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=self.repo2, branch_name="develop"
+        )
+        # A third repo in PENDING_DELETION should also be filtered.
+        pending_repo = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="ext_pending",
+            name="test-org/pending-repo",
+        )
+        pending_repo.status = ObjectStatus.PENDING_DELETION
+        pending_repo.save()
+        SeerProjectRepository.objects.create(
+            project=self.project, repository=pending_repo, branch_name="trunk"
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert result is not None
+        assert [r.name for r in result.repositories] == ["test-repo"]
+
 
 class TestBulkReadPreferencesFromSentryDb(TestCase):
     def setUp(self):
@@ -1467,6 +1572,35 @@ class TestBulkReadPreferencesFromSentryDb(TestCase):
 
         result = bulk_read_preferences_from_sentry_db(other_org.id, [self.project1.id])
         assert result == {}
+
+    def test_excludes_non_active_repos(self):
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo, branch_name="main"
+        )
+        self.repo2.status = ObjectStatus.DISABLED
+        self.repo2.save()
+        SeerProjectRepository.objects.create(
+            project=self.project1, repository=self.repo2, branch_name="develop"
+        )
+
+        # A pref on project2 whose repo is disabled — project2 should report no repos.
+        project2_repo = self.create_repo(
+            project=self.project2,
+            provider="integrations:github",
+            external_id="ext_p2",
+            name="test-org/p2-repo",
+        )
+        project2_repo.status = ObjectStatus.DISABLED
+        project2_repo.save()
+        SeerProjectRepository.objects.create(
+            project=self.project2, repository=project2_repo, branch_name="main"
+        )
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id, [self.project1.id, self.project2.id]
+        )
+        assert [r.branch_name for r in result[self.project1.id].repositories] == ["main"]
+        assert result[self.project2.id].repositories == []
 
 
 class TestGetOrgDefaultSeerAutomationHandoff(TestCase):

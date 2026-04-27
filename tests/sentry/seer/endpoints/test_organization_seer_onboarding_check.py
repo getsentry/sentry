@@ -178,6 +178,14 @@ class TestIsAutofixEnabled(TestCase):
 
         assert not is_autofix_enabled(self.organization)
 
+    def test_disabled_repository(self) -> None:
+        repo = self.create_repo(project=self.project)
+        repo.status = ObjectStatus.DISABLED
+        repo.save()
+        SeerProjectRepository.objects.create(project=self.project, repository=repo)
+
+        assert not is_autofix_enabled(self.organization)
+
     def test_multiple_projects(self) -> None:
         project1 = self.create_project(organization=self.organization)
         self.create_project(organization=self.organization)
