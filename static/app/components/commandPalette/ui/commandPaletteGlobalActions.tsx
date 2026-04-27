@@ -77,6 +77,7 @@ import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -185,6 +186,13 @@ export function GlobalCommandPaletteActions() {
   );
   return (
     <CommandPaletteSlot name="global">
+      {isSeerExplorerEnabled(organization) && (
+        <CMDKAction
+          display={{label: t('Ask Seer'), icon: <IconSeer />}}
+          keywords={[t('seer'), t('ai'), t('assistant'), t('chat')]}
+          onAction={() => openSeerExplorer()}
+        />
+      )}
       <CMDKAction display={{label: t('Go to...')}}>
         <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
