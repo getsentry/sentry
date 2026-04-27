@@ -783,13 +783,11 @@ function useAutoFetchWindow({
   nextPageCursor,
   fetchNextPage,
 }: AutoFetchWindowOptions) {
-  const [windowStartMs, setWindowStartMs] = useState<number | null>(null);
+  const [windowStartMs, setWindowStartMs] = useState<number | undefined>();
   const [resumeCount, setResumeCount] = useState(0);
   const timesFetched = useRef(0);
   const deadlineMs =
-    windowStartMs === null
-      ? null
-      : windowStartMs + getAutoFetchWindowDurationMs(resumeCount);
+    windowStartMs && windowStartMs + getAutoFetchWindowDurationMs(resumeCount);
 
   const queryKeyHash = useMemo(() => {
     const [url, endpointOptions] = queryKey;
@@ -797,7 +795,7 @@ function useAutoFetchWindow({
   }, [queryKey]);
 
   useEffect(() => {
-    setWindowStartMs(null);
+    setWindowStartMs(undefined);
     setResumeCount(0);
     timesFetched.current = 0;
   }, [queryKeyHash]);
@@ -807,12 +805,12 @@ function useAutoFetchWindow({
       return;
     }
 
-    if (windowStartMs === null) {
+    if (!windowStartMs) {
       setWindowStartMs(Date.now());
       return;
     }
 
-    if (deadlineMs !== null && Date.now() >= deadlineMs) {
+    if (deadlineMs && Date.now() >= deadlineMs) {
       Sentry.metrics.distribution(
         'explore.logs.flex_time_pages_before_data',
         timesFetched.current,
@@ -845,7 +843,7 @@ function useAutoFetchWindow({
   }, [resumeCount]);
 
   const shouldAutoFetchNextPage =
-    canAutoFetchNextPage && (deadlineMs === null || Date.now() < deadlineMs);
+    canAutoFetchNextPage && (!deadlineMs || Date.now() < deadlineMs);
 
   return {shouldAutoFetchNextPage, resumeAutoFetch};
 }
