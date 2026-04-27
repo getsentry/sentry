@@ -283,6 +283,55 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             with self.tasks():
                 sync_repos_for_org(self.oi.id)
 
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.count() == 0
+
+    @patch(
+        "sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request",
+        return_value=MagicMock(status=200),
+    )
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_truncated_fetch_skips_disable(
+        self, mock_get_repos: MagicMock, _: MagicMock, __: MagicMock
+    ) -> None:
+        from sentry.shared_integrations.exceptions import ApiPaginationTruncated
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-repo",
+                external_id="99",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # Raw GitHub API response shape — the integration must transform this
+        # into RepositoryInfo before it reaches sync_repos.
+        mock_get_repos.side_effect = ApiPaginationTruncated(
+            partial_data=[
+                {"id": 1, "full_name": "getsentry/sentry", "name": "sentry"},
+            ]
+        )
+
+        with self.feature(
+            [
+                "organizations:github-repo-auto-sync",
+                "organizations:github-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
+            with self.tasks():
+                sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE  # not disabled
+            # Creation still runs on the transformed partial list
+            assert Repository.objects.filter(
+                organization_id=self.organization.id, external_id="1"
+            ).exists()
+
 
 @control_silo_test
 class SyncReposForOrgGHETestCase(TestCase):
@@ -331,6 +380,75 @@ class SyncReposForOrgGHETestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:github_enterprise"
+
+    @patch("sentry.tasks.seer.cleanup.make_bulk_remove_repositories_request")
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_truncated_fetch_skips_disable_for_ghe(
+        self, mock_get_repos: MagicMock, _: MagicMock
+    ) -> None:
+        # Same partial-data transformation as the GitHub path: when GHE's
+        # client raises ApiPaginationTruncated with raw API dicts, the
+        # integration must transform them to RepositoryInfo before re-raising
+        # so sync_repos doesn't KeyError on `external_id`.
+        from sentry.integrations.github_enterprise.integration import (
+            GitHubEnterpriseIntegrationProvider,
+        )
+        from sentry.shared_integrations.exceptions import ApiPaginationTruncated
+
+        GitHubEnterpriseIntegrationProvider().setup()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="35.232.149.196:12345",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/testorg",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="testorg/old-repo",
+                external_id="99",
+                provider="integrations:github_enterprise",
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # Raw GHE API dicts in partial_data — must be transformed by the
+        # integration before sync_repos sees them.
+        mock_get_repos.side_effect = ApiPaginationTruncated(
+            partial_data=[{"id": 1, "full_name": "testorg/repo1", "name": "repo1"}]
+        )
+
+        with self.feature(
+            [
+                "organizations:github_enterprise-repo-auto-sync",
+                "organizations:github_enterprise-repo-auto-sync-apply",
+                "organizations:scm-repo-auto-sync-removal",
+            ]
+        ):
+            with self.tasks():
+                sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE  # not disabled
+            # Creation still runs on the transformed partial list — fails
+            # if partial_data wasn't run through the transform.
+            assert Repository.objects.filter(
+                organization_id=self.organization.id, external_id="1"
+            ).exists()
 
 
 @control_silo_test

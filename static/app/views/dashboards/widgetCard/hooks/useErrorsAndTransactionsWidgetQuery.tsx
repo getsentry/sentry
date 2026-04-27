@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
@@ -9,6 +9,8 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -22,6 +24,7 @@ import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   doOnDemandMetricsRequest,
@@ -96,8 +99,12 @@ export function useErrorsAndTransactionsSeriesQuery(
     onDemandControlContext
   );
 
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -143,115 +150,100 @@ export function useErrorsAndTransactionsSeriesQuery(
         (queryParams as any).partial = queryParams.partial ? '1' : '0';
       }
 
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
-        },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [
-    filteredWidget,
-    organization,
-    pageFilters,
-    isMEPEnabled,
-    useOnDemandMetrics,
-    widgetInterval,
-  ]);
-
-  const createQueryFn = useCallback(
-    (queryIndex: number) =>
-      async (context: any): Promise<ApiResult<ErrorsAndTransactionsSeriesResponse>> => {
-        if (useOnDemandMetrics) {
-          const requestData = getSeriesRequestData(
-            filteredWidget,
-            queryIndex,
-            organization,
-            pageFilters,
-            DiscoverDatasets.METRICS_ENHANCED,
-            getReferrer(filteredWidget.displayType),
-            widgetInterval
-          );
-
-          requestData.queryExtras = {
-            ...requestData.queryExtras,
-            ...(getQueryExtraForSplittingDiscover(
+      return queryOptions({
+        ...apiOptions.as<ErrorsAndTransactionsSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-stats/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<ErrorsAndTransactionsSeriesResponse>> => {
+          if (useOnDemandMetrics) {
+            const onDemandRequestData = getSeriesRequestData(
               filteredWidget,
+              queryIndex,
               organization,
-              true
-            ) as Record<string, any>),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
-          };
+              pageFilters,
+              DiscoverDatasets.METRICS_ENHANCED,
+              getReferrer(filteredWidget.displayType),
+              widgetInterval
+            );
+
+            onDemandRequestData.queryExtras = {
+              ...onDemandRequestData.queryExtras,
+              ...(getQueryExtraForSplittingDiscover(
+                filteredWidget,
+                organization,
+                true
+              ) as Record<string, unknown>),
+              dataset: DiscoverDatasets.METRICS_ENHANCED,
+            };
+
+            const toApiResponse = (
+              result: ApiResult<ErrorsAndTransactionsSeriesResponse>
+            ): ApiResponse<ErrorsAndTransactionsSeriesResponse> => ({
+              json: result[0],
+              headers: {},
+            });
+
+            if (queue) {
+              return new Promise((resolve, reject) => {
+                const fetchFnRef = {
+                  current: () =>
+                    doOnDemandMetricsRequest(
+                      context.meta?.api,
+                      onDemandRequestData,
+                      filteredWidget.widgetType
+                    )
+                      .then(toApiResponse)
+                      .then(resolve, reject),
+                };
+                queue.addItem({fetchDataRef: fetchFnRef});
+              });
+            }
+
+            return doOnDemandMetricsRequest(
+              context.meta?.api,
+              onDemandRequestData,
+              filteredWidget.widgetType
+            ).then(toApiResponse);
+          }
 
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  doOnDemandMetricsRequest(
-                    context.meta?.api,
-                    requestData,
-                    filteredWidget.widgetType
-                  ).then(resolve, reject),
+                  apiFetch<ErrorsAndTransactionsSeriesResponse>(context).then(
+                    resolve,
+                    reject
+                  ),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
 
-          return doOnDemandMetricsRequest(
-            context.meta?.api,
-            requestData,
-            filteredWidget.widgetType
-          );
-        }
-
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<ErrorsAndTransactionsSeriesResponse>(context).then(
-                  resolve,
-                  reject
-                ),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchDataQuery<ErrorsAndTransactionsSeriesResponse>(context);
-      },
-    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue, widgetInterval]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map((queryKey, queryIndex) => ({
-      queryKey,
-      queryFn: createQueryFn(queryIndex),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+          return apiFetch<ErrorsAndTransactionsSeriesResponse>(context);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const error = queryResults.find(q => q?.error)?.error as any;
 
     const errorMessage = (() => {
@@ -285,11 +277,11 @@ export function useErrorsAndTransactionsSeriesQuery(
     const rawData: ErrorsAndTransactionsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      let responseData = q.data[0];
+      let responseData = q.data;
 
       if (
         hasDatasetSelector(organization) &&

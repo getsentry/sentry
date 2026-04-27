@@ -33,7 +33,7 @@ export function cmdkQueryOptions(
   return queryOptions({...options, meta: {cmdk: true}}) as CMDKQueryOptions;
 }
 
-export interface CommandPaletteActionLink extends Action {
+interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
 }

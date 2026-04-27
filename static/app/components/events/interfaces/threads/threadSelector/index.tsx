@@ -13,7 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {filterThreadInfo, type ThreadInfo} from './filterThreadInfo';
+import {getThreadInfo, type ThreadInfo} from './getThreadInfo';
 import {Option} from './option';
 import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
 import {getMappedThreadState} from './threadStates';
@@ -36,17 +36,6 @@ const enum SortAttribute {
   STATE = 'state',
 }
 
-function getThreadLabel(
-  details: ReturnType<typeof filterThreadInfo>,
-  name: string | null | undefined
-) {
-  if (name?.length) {
-    return name;
-  }
-
-  return details?.label || `<${t('unknown')}>`;
-}
-
 export function ThreadSelector({
   threads,
   event,
@@ -64,7 +53,7 @@ export function ThreadSelector({
 
   const items = useMemo((): Array<SelectOptionOrSection<number>> => {
     const threadInfoMap = threads.reduce<Record<number, ThreadInfo>>((acc, thread) => {
-      acc[thread.id] = filterThreadInfo(event, thread, exception);
+      acc[thread.id] = getThreadInfo(event, thread, exception);
       return acc;
     }, {});
 
@@ -152,10 +141,10 @@ export function ThreadSelector({
           <ThreadName>
             {t('Thread #%s: ', activeThread.id)}
             <ActiveThreadName>
-              {getThreadLabel(
-                filterThreadInfo(event, activeThread, exception),
-                activeThread.name
-              )}
+              {activeThread.name
+                ? activeThread.name
+                : getThreadInfo(event, activeThread, exception).label ||
+                  `<${t('unknown')}>`}
             </ActiveThreadName>
           </ThreadName>
         </OverlayTrigger.Button>

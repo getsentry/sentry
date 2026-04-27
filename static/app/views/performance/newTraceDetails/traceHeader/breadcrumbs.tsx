@@ -523,7 +523,7 @@ export function getTraceViewBreadcrumbs({
     case TraceViewSources.TRACE_METRICS:
       return [
         {
-          label: t('Metrics'),
+          label: t('Application Metrics'),
           to: getBreadCrumbTarget(
             normalizeUrl(`/organizations/${organization.slug}/explore/metrics/`),
             location.query
