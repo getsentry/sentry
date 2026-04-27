@@ -206,6 +206,8 @@ class OrganizationPinnedSearchPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    # TODO(api-scope-personalization): Move personal saved/pinned search writes off
+    # readonly org scopes once we add a narrow member/personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "PUT": "Pinned search changes only update the requesting member's personal pinned state.",
         "DELETE": "Pinned search removal only updates the requesting member's personal pinned state.",
@@ -219,6 +221,8 @@ class OrganizationSearchPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    # TODO(api-scope-personalization): Move personal saved-search writes off readonly
+    # org scopes once we add a narrow member/personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "POST": "Members may manage personal saved searches without org:write.",
         "PUT": "Members may edit personal saved searches without org:write.",

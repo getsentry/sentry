@@ -14,6 +14,8 @@ class GroupSearchViewPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    # TODO(api-scope-personalization): Move custom issue-view writes off
+    # readonly org scopes once we add a narrow member/personal view write scope.
     readonly_mutation_scope_exceptions = {
         "PUT": "Group search view edits remain available to creators and org managers without requiring org:write in the scope map.",
         "DELETE": "Group search view deletes remain available to creators and org managers without requiring org:write in the scope map.",

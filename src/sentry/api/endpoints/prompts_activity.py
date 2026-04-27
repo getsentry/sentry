@@ -40,6 +40,8 @@ class PromptsActivityPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
     }
+    # TODO(api-scope-personalization): Move prompt preference writes off readonly
+    # org scopes once we add a narrow member/personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "PUT": "Prompt activity updates only change the requesting member's prompt state.",
     }

@@ -25,6 +25,8 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "POST": ["member:read", "member:write"],
     }
+    # TODO(api-scope-personalization): Move issue-view starring off readonly
+    # member scopes once we add a narrow personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "POST": "Starring a group search view only changes the requesting member's preferences.",
     }

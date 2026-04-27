@@ -16,6 +16,8 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "POST": ["member:read"],
     }
+    # TODO(api-scope-personalization): Move last-visited writes off readonly
+    # member scopes once we add a narrow personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "POST": "View visit timestamps only update the requesting member's last-visited state.",
     }

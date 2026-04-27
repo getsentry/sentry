@@ -15,6 +15,8 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["member:read", "member:write"],
     }
+    # TODO(api-scope-personalization): Move issue-view starring order off
+    # readonly member scopes once we add a narrow personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "PUT": "Group search view starred ordering only changes the requesting member's preferences.",
     }

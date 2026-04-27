@@ -23,6 +23,8 @@ class MemberPermission(OrganizationPermission):
         "POST": ["member:read", "member:write"],
         "DELETE": ["member:read", "member:write"],
     }
+    # TODO(api-scope-personalization): Move insights segment starring off
+    # readonly member scopes once we add a narrow personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "POST": "Starring an insights segment only changes the requesting member's preferences.",
         "DELETE": "Unstarring an insights segment only changes the requesting member's preferences.",

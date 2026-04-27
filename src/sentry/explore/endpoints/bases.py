@@ -11,6 +11,8 @@ class ExploreSavedQueryPermission(OrganizationPermission):
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
+    # TODO(api-scope-personalization): Move saved-query writes off readonly org
+    # scopes once we add a narrow member/personal query write scope.
     readonly_mutation_scope_exceptions = {
         "POST": "Explore saved query mutations remain available for personal or otherwise permitted queries.",
         "PUT": "Explore saved query mutations remain available for personal or otherwise permitted queries.",

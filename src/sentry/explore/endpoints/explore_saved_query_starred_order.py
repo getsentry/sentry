@@ -17,6 +17,8 @@ class MemberPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["member:read", "member:write"],
     }
+    # TODO(api-scope-personalization): Move saved-query starring order off
+    # readonly member scopes once we add a narrow personal preference write scope.
     readonly_mutation_scope_exceptions = {
         "PUT": "Explore starred query ordering only changes the requesting member's preferences.",
     }

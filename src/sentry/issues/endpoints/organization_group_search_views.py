@@ -28,6 +28,8 @@ class MemberPermission(OrganizationPermission):
         "GET": ["member:read", "member:write"],
         "POST": ["member:read", "member:write"],
     }
+    # TODO(api-scope-personalization): Move custom issue-view creation off
+    # readonly member scopes once we add a narrow member/personal view write scope.
     readonly_mutation_scope_exceptions = {
         "POST": "Creating a custom group search view is allowed for organization members.",
     }
