@@ -241,9 +241,7 @@ class SeerOperatorPendingMentionCache[CachePayloadT]:
     Cache for entrypoint task kwargs stashed when an @-mention cannot proceed
     (e.g., identity not linked), so we can re-dispatch after the blocker clears.
 
-    Keyed on (entrypoint_key, integration_id, user_ext_id). Unlike the Agent
-    cache, this is populated BEFORE any Seer run is triggered, so there is
-    no run_id to key on.
+    Keyed on (entrypoint_key, integration_id, user_ext_id).
     """
 
     @classmethod
