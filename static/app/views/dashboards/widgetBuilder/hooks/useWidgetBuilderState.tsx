@@ -90,7 +90,7 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
-export type WidgetBuilderStateLocalParams = {
+type WidgetBuilderStateLocalParams = {
   textContent?: string;
 };
 

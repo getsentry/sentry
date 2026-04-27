@@ -17,6 +17,7 @@ __all__ = (
     "ApiError",
     "ApiConflictError",
     "ApiHostError",
+    "ApiPaginationTruncated",
     "ApiTimeoutError",
     "ApiUnauthorized",
     "ApiRateLimitedError",
@@ -173,6 +174,21 @@ class UnsupportedResponseType(ApiError):
     @property
     def content_type(self) -> str:
         return self.text
+
+
+class ApiPaginationTruncated(Exception):
+    """
+    Raised by paginated fetch helpers when they hit a cap (e.g. a
+    `page_number_limit`) while more pages were still available on the provider.
+
+    Callers that opt in use this to distinguish "we got everything" from "we got a prefix, there's more."
+    The partial results fetched before the cap are attached as ``partial_data`` so
+    callers can still use what was retrieved.
+    """
+
+    def __init__(self, partial_data: list[Any], message: str = "pagination truncated") -> None:
+        self.partial_data = partial_data
+        super().__init__(message)
 
 
 class IntegrationError(Exception):

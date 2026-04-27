@@ -1,6 +1,10 @@
 from typing import Any
 
-from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normalize_description
+from sentry.seer.explorer.utils import (
+    _convert_profile_to_execution_tree,
+    convert_profile_to_execution_tree,
+    normalize_description,
+)
 
 
 class TestNormalizeDescription:
@@ -619,3 +623,45 @@ class TestConvertProfileToExecutionTree:
         assert root.children[0].function == "worker_function_2"
         assert len(root.children[0].children) == 1
         assert root.children[0].children[0].function == "worker_function_1"
+
+    def test_convert_profile_truncates_deep_trees(self) -> None:
+        """Test that extremely deep call stacks are truncated at max_depth."""
+        depth = 300
+        frames = [
+            {
+                "function": f"func_{i}",
+                "module": "app",
+                "filename": "app.py",
+                "lineno": i,
+                "in_app": True,
+            }
+            for i in range(depth)
+        ]
+        # Single stack with all frames: deepest frame first (index 0 = leaf)
+        profile_data: dict[str, Any] = {
+            "profile": {
+                "frames": frames,
+                "stacks": [list(range(depth))],
+                "samples": [
+                    {
+                        "elapsed_since_start_ns": 1000000,
+                        "thread_id": "1",
+                        "stack_id": 0,
+                    }
+                ],
+                "thread_metadata": {"1": {"name": "MainThread"}},
+            }
+        }
+
+        max_depth = 50
+        tree, _ = _convert_profile_to_execution_tree(profile_data, max_depth=max_depth)
+        assert len(tree) == 1
+
+        # Walk the tree to measure actual depth
+        actual_depth = 1
+        node = tree[0]
+        while node.get("children"):
+            actual_depth += 1
+            node = node["children"][0]
+
+        assert actual_depth == max_depth

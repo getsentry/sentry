@@ -20,6 +20,7 @@ import type {
   MetricCondition,
   MetricDetector,
 } from 'sentry/types/workflowEngine/detectors';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -160,7 +161,9 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
           </Flex>
           <Text>
             {getConditionDescription({
-              aggregate: detector.dataSources[0].queryObj.snubaQuery.aggregate,
+              aggregate: stripEquationPrefix(
+                detector.dataSources[0].queryObj.snubaQuery.aggregate
+              ),
               condition,
               config: detector.config,
             })}
@@ -201,7 +204,9 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
           <Value>
             <Flex>
               <FilterWrapper>
-                {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+                {datasetConfig.fromApiAggregate(
+                  stripEquationPrefix(dataSource.queryObj.snubaQuery.aggregate)
+                )}
               </FilterWrapper>
             </Flex>
           </Value>

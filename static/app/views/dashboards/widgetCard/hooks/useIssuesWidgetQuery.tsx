@@ -268,14 +268,8 @@ export function useIssuesTableQuery(
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
-                current: async () => {
-                  try {
-                    const result = await apiFetch<IssuesTableResponse>(context);
-                    resolve(result);
-                  } catch (error) {
-                    reject(error instanceof Error ? error : new Error(String(error)));
-                  }
-                },
+                current: () =>
+                  apiFetch<IssuesTableResponse>(context).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });

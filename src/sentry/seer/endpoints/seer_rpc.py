@@ -84,7 +84,6 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.utils import (
     AutofixTriggerSource,
     bulk_read_preferences_from_sentry_db,
-    get_project_seer_preferences,
     read_preference_from_sentry_db,
     resolve_repository_ids,
     write_preference_to_sentry_db,
@@ -120,7 +119,6 @@ from sentry.seer.explorer.tools import (
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
-from sentry.seer.models.seer_api_models import SeerProjectPreference
 from sentry.seer.utils import filter_repo_by_provider
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
@@ -624,19 +622,14 @@ def trigger_coding_agent_launch(
             organization = Organization.objects.get_from_cache(id=organization_id)
             if features.has("organizations:seer-project-settings-dual-write", organization):
                 project = Project.objects.get_from_cache(id=project_id)
+                if project.organization_id != organization_id:
+                    raise Project.DoesNotExist
+                preference = read_preference_from_sentry_db(project)
 
-                preference: SeerProjectPreference | None = None
-                if features.has(
-                    "organizations:seer-project-settings-read-from-sentry", organization
-                ):
-                    preference = read_preference_from_sentry_db(project)
-                else:
-                    preference = get_project_seer_preferences(project.id).preference
-
-                if preference and preference.automation_handoff is not None:
+                if preference.automation_handoff is not None:
                     updated_preference = preference.copy(update={"automation_handoff": None})
                     resolved_preference = resolve_repository_ids(
-                        organization.id, [SeerProjectPreference.validate(updated_preference)]
+                        organization.id, [updated_preference]
                     )[0]
                     write_preference_to_sentry_db(project, resolved_preference)
                     # Returning the error code will prompt Seer to clear the preference handoff in its own DB too.
