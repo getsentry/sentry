@@ -302,7 +302,10 @@ def fetch_commits_for_ref_with_lifecycle(
             except Exception as e:
                 span = sentry_sdk.get_current_span()
                 if span:
-                    span.set_status("unknown_error")
+                    if hasattr(span, "set_status"):
+                        span.set_status("unknown_error")
+                    else:
+                        span.status = "error"
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):
                     handle_invalid_identity(identity=e.identity)

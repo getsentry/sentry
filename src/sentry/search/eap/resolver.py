@@ -128,7 +128,11 @@ class SearchResolver:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
         if span:
-            span.set_tag("SearchResolver.params", self.params)
+            if hasattr(span, "set_attribute"):
+                # span streaming
+                span.set_attribute("SearchResolver.params", str(self.params))
+            else:
+                span.set_tag("SearchResolver.params", self.params)
 
         projects = self.params.projects
 
@@ -168,9 +172,17 @@ class SearchResolver:
         where, having, contexts = self.__resolve_query(querystring)
         span = sentry_sdk.get_current_span()
         if span:
-            span.set_tag("SearchResolver.query_string", querystring)
-            span.set_tag("SearchResolver.resolved_query", where)
-            span.set_tag("SearchResolver.environment_query", environment_query)
+            if hasattr(span, "set_attribute"):
+                # span streaming
+                if querystring is not None:
+                    span.set_attribute("SearchResolver.query_string", querystring)
+                if where is not None:
+                    span.set_attribute("SearchResolver.resolved_query", str(where))
+                span.set_attribute("SearchResolver.environment_query", str(environment_query))
+            else:
+                span.set_tag("SearchResolver.query_string", querystring)
+                span.set_tag("SearchResolver.resolved_query", where)
+                span.set_tag("SearchResolver.environment_query", environment_query)
 
         where = and_trace_item_filters(
             where,
@@ -934,7 +946,12 @@ class SearchResolver:
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
-            span.set_tag("SearchResolver.selected_columns", stripped_columns)
+            if hasattr(span, "set_attribute"):
+                # span streaming
+                span.set_attribute("SearchResolver.selected_columns", stripped_columns)
+            else:
+                span.set_tag("SearchResolver.selected_columns", stripped_columns)
+
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None

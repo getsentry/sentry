@@ -764,14 +764,21 @@ def bind_ambiguous_org_context(
 def get_trace_id():
     span = sentry_sdk.get_current_span()
     if span is not None:
-        return span.get_trace_context().get("trace_id")
+        if hasattr(span, "get_trace_context"):
+            return span.get_trace_context().get("trace_id")
+        else:
+            # span streaming
+            return span._get_trace_context().get("trace_id")
     return None
 
 
 def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        if hasattr(span, "set_attribute"):
+            span.set_attribute(data_name, value)
+        else:
+            span.set_data(data_name, value)
 
 
 def merge_context_into_scope(

@@ -31,8 +31,14 @@ def events_meta_from_rpc_request_meta(meta: ResponseMeta) -> EventsMeta:
 
     span = sentry_sdk.get_current_span()
     if span:
-        span.set_data("data_scanned", "full" if full_scan else "partial")
-        span.set_data("bytes_scanned", bytes_scanned)
+        if hasattr(span, "set_attribute"):
+            # span streaming
+            span.set_attribute("data_scanned", "full" if full_scan else "partial")
+            if bytes_scanned is not None:
+                span.set_attribute("bytes_scanned", bytes_scanned)
+        else:
+            span.set_data("data_scanned", "full" if full_scan else "partial")
+            span.set_data("bytes_scanned", bytes_scanned)
 
     return EventsMeta(
         fields={},
