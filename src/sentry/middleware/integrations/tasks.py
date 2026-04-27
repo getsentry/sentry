@@ -240,6 +240,8 @@ def route_slack_seer_event(
     logging_ctx["halt_reason"] = halt_reason
 
     if halt_reason:
+        # We set the cache here and pop it in the identity linking completion function to re-trigger this task
+        # to resume after halting, the cache will need to be popped, and the task will need to be re-triggered somewhere
         if halt_reason == SeerSlackHaltReason.IDENTITY_NOT_LINKED:
             SeerOperatorPendingMentionCache[SlackPendingMentionPayload].set(
                 entrypoint_key=str(SeerEntrypointKey.SLACK),
