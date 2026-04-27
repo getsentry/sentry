@@ -242,7 +242,7 @@ export function MetricsVisualize() {
                 options={isFetching ? previousOptions : (metricOptions ?? [])}
                 value={traceMetricSelectValue}
                 loading={isFetching}
-                menuTitle={t('Metrics')}
+                menuTitle={t('Application Metrics')}
                 onChange={(option: SelectOption<SelectKey>) => {
                   if ('metricType' in option) {
                     handleMetricChange(option as MetricSelectOption);

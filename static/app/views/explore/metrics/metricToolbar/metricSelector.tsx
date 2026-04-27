@@ -429,7 +429,7 @@ export function MetricSelector({
                 >
                   <Flex align="center" justify="between" padding="sm lg">
                     <Text size="sm" bold wrap="nowrap">
-                      {t('Metrics')}
+                      {t('Application Metrics')}
                     </Text>
                     {isFetching ? (
                       <LoadingIndicator size={12} style={{margin: 0}} />

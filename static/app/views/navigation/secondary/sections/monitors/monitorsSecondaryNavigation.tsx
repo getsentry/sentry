@@ -53,7 +53,7 @@ export function MonitorsSecondaryNavigation() {
                 to={`${baseUrl}/metrics/`}
                 analyticsItemName="monitors_metrics"
               >
-                {t('Metrics')}
+                {t('Application Metrics')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             <SecondaryNavigation.ListItem>

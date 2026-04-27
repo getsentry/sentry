@@ -284,7 +284,7 @@ describe('MetricsSection', () => {
     expect(aside).toBeInTheDocument();
 
     // Check that the drawer contains the expected elements
-    expect(within(aside).getByText('Metrics')).toBeInTheDocument();
+    expect(within(aside).getByText('Application Metrics')).toBeInTheDocument();
     expect(
       within(aside).getByPlaceholderText('Search metrics for this trace')
     ).toBeInTheDocument();

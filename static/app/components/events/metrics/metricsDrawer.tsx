@@ -48,7 +48,7 @@ export function MetricsDrawer({event, project, group}: MetricsIssueDrawerProps) 
               ),
             },
             {label: getShortEventId(event.id)},
-            {label: t('Metrics')},
+            {label: t('Application Metrics')},
           ]}
         />
       </EventDrawerHeader>

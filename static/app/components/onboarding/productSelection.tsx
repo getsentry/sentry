@@ -687,7 +687,7 @@ export function ProductSelection({
       )}
       {products.includes(ProductSolution.METRICS) && (
         <Product
-          label={t('Metrics')}
+          label={t('Application Metrics')}
           description={t(
             'Custom metrics for tracking application performance and usage, automatically trace-connected.'
           )}

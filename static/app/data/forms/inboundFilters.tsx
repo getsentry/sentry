@@ -130,7 +130,7 @@ export const customFilterFields: FieldWithFeature[] = [
     rows: 1,
 
     placeholder: 'e.g. my_metric.*',
-    label: t('Metrics'),
+    label: t('Application Metrics'),
     help: (
       <Fragment>
         {t('Filter metrics by name. ')}
