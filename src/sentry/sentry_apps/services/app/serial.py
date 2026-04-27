@@ -1,6 +1,7 @@
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
@@ -29,6 +30,11 @@ def serialize_sentry_app(
 ) -> RpcSentryApp:
     if avatars is None:
         avatars = []
+    owner_slug = ""
+    try:
+        owner_slug = OrganizationMapping.objects.get(organization_id=app.owner_id).slug
+    except OrganizationMapping.DoesNotExist:
+        pass
     return RpcSentryApp(
         id=app.id,
         scope_list=app.scope_list,
@@ -36,6 +42,7 @@ def serialize_sentry_app(
         application=serialize_api_application(app.application),
         proxy_user_id=app.proxy_user_id,
         owner_id=app.owner_id,
+        owner_slug=owner_slug,
         name=app.name,
         slug=app.slug,
         uuid=app.uuid,
@@ -49,6 +56,7 @@ def serialize_sentry_app(
         status=SentryAppStatus.as_str(app.status),
         metadata=app.metadata,
         avatars=[serialize_sentry_app_avatar(avatar) for avatar in avatars],
+        creator_label=app.creator_label,
     )
 
 
