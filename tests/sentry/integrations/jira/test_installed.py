@@ -57,13 +57,13 @@ class JiraInstalledTest(APITestCase):
     def jwt_token_cdn(self):
         return self._jwt_token("RS256", RS256_KEY, headers={"kid": self.kid})
 
-    def body(self) -> Mapping[str, Any]:
+    def body(self, client_key: str | None = None) -> Mapping[str, Any]:
         return {
             "jira": {
                 "metadata": {},
                 "external_id": self.external_id,
             },
-            "clientKey": "limepie",
+            "clientKey": client_key if client_key is not None else self.external_id,
             "oauthClientId": "EFG",
             "publicKey": "yourCar",
             "sharedSecret": self.shared_secret,
@@ -203,6 +203,28 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jwt_iss_does_not_match_client_key(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) but the body
+        # claims a different tenant via clientKey. Without the iss/clientKey
+        # binding check the install would rebind clientKey's existing
+        # integration row to this attacker's shared secret.
+        self.get_error_response(
+            **self.body(client_key="someone-elses-tenant"),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="someone-elses-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_without_key_id(self, mock_record_event: MagicMock) -> None:

@@ -90,6 +90,13 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                     {"detail": "Could not decode JWT token"}, status=status.HTTP_400_BAD_REQUEST
                 )
 
+            if decoded_claims.get("iss") != state.get("clientKey"):
+                lifecycle.record_halt(halt_reason="JWT iss does not match clientKey")
+                return self.respond(
+                    {"detail": "Token issuer does not match clientKey"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             data = JiraIntegrationProvider().build_integration(state)
             integration = ensure_integration(self.provider, data)
 
