@@ -1118,9 +1118,7 @@ class TestClearAutomationHandoffPreference(TestCase):
 
         self._assert_handoff_options_cleared()
 
-    def test_leaves_unrelated_preference_fields_untouched(self) -> None:
-        """The race-condition fix: clearing handoff must not touch repos, stopping_point,
-        or tuning, which are written via the same SeerProjectPreference object."""
+    def test_preserves_unrelated_preference_fields(self) -> None:
         write_preference_to_sentry_db(
             self.project,
             SeerProjectPreference(
