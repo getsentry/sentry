@@ -15,6 +15,7 @@ from rest_framework import status
 from sentry import features, options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import GenericNotificationTarget
@@ -132,14 +133,20 @@ def _notify_webhook_disabled(
         return
     organization = organization_context.organization
 
-    # owner_slug is exposed on RpcSentryApp; ORM SentryApp callers (control silo) won't
-    # have it on the instance, so fall back to an empty path component if missing.
-    owner_slug = getattr(sentry_app, "owner_slug", "") or ""
+    # The settings link lives on the OWNER org's developer-settings page (which may be
+    # a different cell from the consumer org). organization_mapping_service is anchored
+    # on control silo and is callable from any silo.
+    owner_mapping = organization_mapping_service.get(organization_id=sentry_app.owner_id)
+    if owner_mapping is None:
+        return
+
     data = SentryAppWebhookDisabled(
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
         webhook_url=sentry_app.webhook_url or "",
-        settings_url=absolute_uri(f"/settings/{owner_slug}/developer-settings/{sentry_app.slug}/"),
+        settings_url=absolute_uri(
+            f"/settings/{owner_mapping.slug}/developer-settings/{sentry_app.slug}/"
+        ),
     )
 
     if not NotificationService.has_access(organization, data.source):
