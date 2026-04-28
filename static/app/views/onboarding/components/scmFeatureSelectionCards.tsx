@@ -88,7 +88,7 @@ export function ScmFeatureSelectionCards({
           {t('Choose one or more')}
         </Text>
       </Flex>
-      <Stack gap="xl">
+      <Stack gap="md">
         {availableFeatures.map(feature => {
           const meta = FEATURE_META[feature];
           const disabledProduct = disabledProducts[feature];
