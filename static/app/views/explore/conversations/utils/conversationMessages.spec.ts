@@ -842,6 +842,48 @@ describe('conversationMessages utilities', () => {
       expect(messages[2]?.content).toBe('Second');
       expect(messages[3]?.content).toBe('Second response');
     });
+
+    it('keeps user→assistant pairing across back-to-back turns under one second apart', () => {
+      // Turns complete within ~1s of each other; user is anchored at span
+      // start, assistant at span end, so pairing must hold even when turns
+      // are tightly packed.
+      const turns = [
+        {
+          generation: {
+            id: 'gen-1',
+            value: {start_timestamp: 0, end_timestamp: 1.1},
+          } as any,
+          userContent: 'Q1',
+          assistantContent: 'A1',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+        {
+          generation: {
+            id: 'gen-2',
+            value: {start_timestamp: 1.2, end_timestamp: 1.97},
+          } as any,
+          userContent: 'Q2',
+          assistantContent: 'A2',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+        {
+          generation: {
+            id: 'gen-3',
+            value: {start_timestamp: 2.0, end_timestamp: 2.64},
+          } as any,
+          userContent: 'Q3',
+          assistantContent: 'A3',
+          toolCalls: [],
+          userEmail: undefined,
+        },
+      ];
+
+      const messages = turnsToMessages(turns);
+
+      expect(messages.map(m => m.content)).toEqual(['Q1', 'A1', 'Q2', 'A2', 'Q3', 'A3']);
+    });
   });
 
   describe('extractMessagesFromNodes (integration)', () => {
