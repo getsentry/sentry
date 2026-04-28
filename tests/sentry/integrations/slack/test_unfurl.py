@@ -2578,14 +2578,14 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         assert params["start"] == "2026-01-01T00:00:00"
         assert params["end"] == "2026-01-02T00:00:00"
 
-    def test_defaults_to_all_projects_when_no_url_or_dashboard_project(self) -> None:
+    def test_omits_project_when_no_url_or_dashboard_project(self) -> None:
         widget = self._make_widget()
 
         params = build_widget_timeseries_params(widget, QueryDict())[0]
 
-        # ALL_ACCESS_PROJECT_ID (-1) so an unconfigured dashboard still renders
-        # data rather than an empty chart.
-        assert params["project"] == "-1"
+        # Omitting the param matches the dashboard FE: the API defaults to
+        # "My Projects" rather than "All Projects" (project=-1).
+        assert "project" not in params
 
     def test_dashboard_projects_used_when_url_missing(self) -> None:
         project_a = self.create_project(organization=self.organization)
