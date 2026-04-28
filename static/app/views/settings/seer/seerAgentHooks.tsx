@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {
   bulkAutofixAutomationSettingsInfiniteOptions,
@@ -14,7 +15,6 @@ import {type CodingAgentIntegration} from 'sentry/components/events/autofix/useA
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useSelectedAgentFromBulkSettings({

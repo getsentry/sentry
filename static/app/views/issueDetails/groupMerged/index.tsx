@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import type {Location, Query} from 'history';
 import * as qs from 'query-string';
 
@@ -12,7 +13,6 @@ import {GroupingStore} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
@@ -41,8 +41,8 @@ export function GroupMergedView(props: Props) {
       if (items) {
         setMergedItems(items);
         setMergedLinks(links);
-        setIsLoading(typeof l === 'undefined' ? false : l);
-        setError(typeof e === 'undefined' ? false : e);
+        setIsLoading(l === undefined ? false : l);
+        setError(e === undefined ? false : e);
       }
     },
     []

@@ -23,8 +23,8 @@ import type {ReleaseProject} from 'sentry/types/release';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReleaseProjectColumn} from 'sentry/views/releases/list/releaseCard';
-import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
+import {ReleaseProjectColumn} from 'sentry/views/explore/releases/list/releaseCard';
+import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
 
 type ReleaseHealthItem = {
   adoption: number;

@@ -497,6 +497,27 @@ describe('SpansTabContent', () => {
 
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Application Metrics'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('displays the metrics option when tracemetrics is enabled', async () => {
+      render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          features: [...organization.features, 'tracemetrics-enabled'],
+        },
+        additionalWrapper: Wrapper,
+      });
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add a cross event query'})
+      );
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Application Metrics'})
+      ).toBeInTheDocument();
     });
 
     it('adds a cross event query', async () => {

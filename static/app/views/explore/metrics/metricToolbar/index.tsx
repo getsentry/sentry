@@ -6,6 +6,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
@@ -87,7 +88,7 @@ export function MetricToolbar({
   );
 
   const dndGrid = dragListeners ? 'auto ' : '';
-  const removeMetric = canRemoveMetric ? '24px' : '0';
+  const removeMetric = canRemoveMetric ? '24px' : '';
   const columns = isVisualizeFunction(visualize)
     ? isNarrow
       ? `${dndGrid}auto 1fr 1fr ${removeMetric}`
@@ -99,8 +100,8 @@ export function MetricToolbar({
       direction="column"
       gap="md"
       width="100%"
-      paddingLeft="lg"
-      paddingRight="lg"
+      paddingLeft="xl"
+      paddingRight="xl"
       paddingTop="md"
       data-test-id="metric-toolbar"
     >
@@ -154,7 +155,13 @@ export function MetricToolbar({
             )}
           </Flex>
         ) : null}
-        {canRemoveMetric && <DeleteMetricButton disabled={isReferencedByEquation} />}
+        {canRemoveMetric && (
+          <DeleteMetricButton
+            disabledReason={
+              isReferencedByEquation ? t('This metric is used in an equation') : undefined
+            }
+          />
+        )}
       </Grid>
       {isNarrow && (
         <Filter

@@ -372,7 +372,7 @@ export function computeChartTooltip(
     trigger: 'item',
     backgroundColor: theme.tokens.background.primary,
     borderWidth: 0,
-    extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}`,
+    extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}; z-index: ${theme.zIndex.tooltip} !important;`,
     transitionDuration: 0,
     padding: 0,
     className: 'tooltip-container',

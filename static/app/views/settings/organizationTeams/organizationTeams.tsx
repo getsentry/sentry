@@ -4,6 +4,7 @@ import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -14,6 +15,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import OrganizationAccessRequests from './organizationAccessRequests';
@@ -36,6 +38,7 @@ export function OrganizationTeams({
   onRemoveAccessRequest,
 }: Props) {
   const [teamQuery, setTeamQuery] = useState('');
+  const hasPageFrame = useHasPageFrameFeature();
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
   const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
 
@@ -79,18 +82,28 @@ export function OrganizationTeams({
   return (
     <div data-test-id="team-list">
       <SentryDocumentTitle title={title} orgSlug={organization.slug} />
-      <SettingsPageHeader title={title} action={action} />
+      <SettingsPageHeader title={title} action={hasPageFrame ? undefined : action} />
 
       <OrganizationAccessRequests
         orgSlug={organization.slug}
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />
-      <StyledSearchBar
-        placeholder={t('Search teams')}
-        onChange={handleSearch}
-        query={teamQuery}
-      />
+      <SearchWrapper>
+        <Flex align="center" gap="md">
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search teams')}
+                onChange={handleSearch}
+                query={teamQuery}
+              />
+            )}
+          </Container>
+          {hasPageFrame && action}
+        </Flex>
+      </SearchWrapper>
       <YourTeamsTable
         teams={userTeams}
         isLoading={!initiallyLoaded}
@@ -115,7 +128,7 @@ export function OrganizationTeams({
   );
 }
 
-const StyledSearchBar = styled(SearchBar)`
+const SearchWrapper = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 

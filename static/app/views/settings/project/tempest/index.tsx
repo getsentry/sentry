@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -112,26 +112,26 @@ export default function TempestSettings() {
       <SettingsPageHeader
         title={getPageTitle()}
         action={
-          <Grid flow="column" align="center" gap="lg">
-            {hasPageFrameFeature ? (
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            ) : (
+          hasPageFrameFeature ? (
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          ) : (
+            <Grid flow="column" align="center" gap="lg">
               <FeedbackButton />
-            )}
-            <RequestSdkAccessButton
-              gamingPlatform="playstation"
-              organization={organization}
-              projectId={project.id}
-              origin="project-settings"
-            />
-          </Grid>
+              <RequestSdkAccessButton
+                gamingPlatform="playstation"
+                organization={organization}
+                projectId={project.id}
+                origin="project-settings"
+              />
+            </Grid>
+          )
         }
       />
 
@@ -159,7 +159,7 @@ export default function TempestSettings() {
         </div>
       )}
 
-      <div style={{marginBottom: '1rem'}}>
+      <Flex align="center" justify="between" style={{marginBottom: '1rem'}}>
         <Tabs value={tab} onChange={handleTabChange}>
           <TabList>
             {Object.entries(TAB_LABELS).map(([key, label]) => (
@@ -167,7 +167,15 @@ export default function TempestSettings() {
             ))}
           </TabList>
         </Tabs>
-      </div>
+        {hasPageFrameFeature && (
+          <RequestSdkAccessButton
+            gamingPlatform="playstation"
+            organization={organization}
+            projectId={project.id}
+            origin="project-settings"
+          />
+        )}
+      </Flex>
 
       {renderTabContent()}
     </Fragment>

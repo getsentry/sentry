@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
 import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
@@ -8,13 +10,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 type Options = {
   /**
@@ -275,11 +277,14 @@ export function useReplayData({
     const eventsUrl = `/organizations/${orgSlug}/events/`;
     queryClient.invalidateQueries({
       predicate: query => {
-        const [url, options] = query.queryKey as [
-          string,
-          {query?: {referrer?: string}} | undefined,
-        ];
-        return url === eventsUrl && options?.query?.referrer === 'replay_details';
+        const queryKey = safeParseQueryKey(query.queryKey);
+        if (!queryKey) {
+          return false;
+        }
+        return (
+          queryKey.url === eventsUrl &&
+          queryKey.options?.query?.referrer === 'replay_details'
+        );
       },
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);

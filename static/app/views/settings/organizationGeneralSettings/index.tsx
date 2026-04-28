@@ -105,17 +105,17 @@ export default function OrganizationGeneralSettings() {
     });
   };
 
-  const organizationRegionInfo = OrganizationRegionAction({
-    organization,
-  });
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader
           title={t('Organization Settings')}
-          action={hasPageFrameFeature ? undefined : organizationRegionInfo}
+          action={
+            hasPageFrameFeature ? undefined : (
+              <OrganizationRegionAction organization={organization} />
+            )
+          }
         />
         <OrganizationPermissionAlert />
 

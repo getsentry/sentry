@@ -13,8 +13,6 @@ from django.db import router, transaction
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -22,7 +20,7 @@ from sentry.models.organizationcontributors import (
 )
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 
 logger = logging.getLogger(__name__)
@@ -36,38 +34,26 @@ def _is_code_review_enabled_for_repo(repository_id: int) -> bool:
     ).exists()
 
 
-def _is_autofix_enabled_for_repo(organization_id: int, repository_id: int) -> bool:
+def _is_autofix_enabled_for_repo(organization: Organization, repository_id: int) -> bool:
     """
-    Check if autofix automation is enabled (not "off") for any project
-    associated with this repository via code mappings.
+    Check if autofix is enabled for any active project associated with
+    this repository, ie, if any project has this repository configured
+    in Seer preferences.
     """
-    repo_configs = RepositoryProjectPathConfig.objects.filter(
+    return SeerProjectRepository.objects.filter(
         repository_id=repository_id,
-        organization_id=organization_id,
-    ).values_list("project_id", flat=True)
-
-    if not repo_configs:
-        return False
-
-    return (
-        ProjectOption.objects.filter(
-            project_id__in=repo_configs,
-            project__status=ObjectStatus.ACTIVE,
-            key="sentry:autofix_automation_tuning",
-        )
-        .exclude(value=AutofixAutomationTuningSettings.OFF.value)
-        .exclude(value__isnull=True)
-        .exists()
-    )
+        project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
+    ).exists()
 
 
-def _has_code_review_or_autofix_enabled(organization_id: int, repository_id: int) -> bool:
+def _has_code_review_or_autofix_enabled(organization: Organization, repository_id: int) -> bool:
     """
     Check if either code review is enabled for the repo OR autofix automation
     is enabled for any linked project.
     """
     return _is_code_review_enabled_for_repo(repository_id) or _is_autofix_enabled_for_repo(
-        organization_id, repository_id
+        organization, repository_id
     )
 
 
@@ -83,8 +69,8 @@ def should_increment_contributor_seat(
     """
     if (
         repo.integration_id is None
-        or not _has_code_review_or_autofix_enabled(organization.id, repo.id)
         or contributor.is_bot
+        or not _has_code_review_or_autofix_enabled(organization, repo.id)
         or not features.has("organizations:seat-based-seer-enabled", organization)
     ):
         return False

@@ -1,8 +1,8 @@
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,14 +38,10 @@ export default function ProjectToolbarSettings() {
       <SentryDocumentTitle title={t('Toolbar Settings')} projectSlug={project.slug}>
         <SettingsPageHeader
           title={t('Dev Toolbar')}
-          subtitle={t(
-            'Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar.'
+          subtitle={tct(
+            'Bring critical Sentry insights and tools directly into your web app for easier troubleshooting with the Dev Toolbar. [link:Read the Docs]',
+            {link: <ExternalLink href="https://docs.sentry.io/product/sentry-toolbar/" />}
           )}
-          action={
-            <LinkButton href="https://docs.sentry.io/product/sentry-toolbar/" external>
-              {t('Read the Docs')}
-            </LinkButton>
-          }
         />
         <ProjectPermissionAlert project={project} />
         {domain && (

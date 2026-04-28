@@ -9,8 +9,6 @@ import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
 export const TabListWrapper = styled('div')`
   width: 100%;
-  padding-left: ${p => p.theme.space.md};
-  padding-top: ${p => p.theme.space.md};
 `;
 
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
@@ -124,13 +122,6 @@ export const MetricsDetailsWrapper = styled(DetailsWrapper)`
 
 export const NumericSimpleTableRowCell = styled(StyledSimpleTableRowCell)`
   justify-content: flex-end;
-`;
-
-export const BodyContainer = styled('div')`
-  padding: ${p => p.theme.space.md};
-  padding-top: 0;
-  height: 320px;
-  container-type: inline-size;
 `;
 
 export const StyledTabPanels = styled(TabPanels)`

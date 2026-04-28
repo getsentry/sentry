@@ -151,7 +151,7 @@ export class SentrySampledProfile extends Profile {
     }
   }
 
-  build(): Profile {
+  build(): this {
     this.duration = Math.max(
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)

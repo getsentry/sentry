@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,6 +14,7 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_params
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
 from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
@@ -39,11 +41,11 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ("http://invalid_link", (None, None)),
         (
             "https://sentry.io/organizations/org1/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://org1.sentry.io/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
@@ -1888,6 +1890,22 @@ class UnfurlTest(TestCase):
         assert args is not None
         assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
+    def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A0%7D"
+            "&visualize=%7B%22chartType%22%3A0%2C%22yAxes%22%3A%5B%22count_unique(user.id)%22%5D%7D"
+            "&project=1&query=user.id%1234&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+        assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
+        assert args["chart_type"] == 0
+
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: count with chartType=2 (area, first) and avg (second).
         # The unfurl must render only the first chart and not merge avg's
@@ -2184,7 +2202,7 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_non_spans_widget_is_skipped(
+    def test_unfurl_dashboards_unsupported_widget_type_is_skipped(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
         mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
@@ -2192,7 +2210,7 @@ class UnfurlTest(TestCase):
         widget = self.create_dashboard_widget(
             dashboard=dashboard,
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
-            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            widget_type=DashboardWidgetTypes.RELEASE_HEALTH,
             order=0,
         )
         self.create_dashboard_widget_query(
@@ -2264,62 +2282,6 @@ class UnfurlTest(TestCase):
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
-
-    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_with_groupby_default_sort(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        dashboard, _ = self._create_spans_widget(
-            aggregates=["avg(span.duration)"],
-            columns=["span.op"],
-        )
-
-        url = (
-            f"https://sentry.io/organizations/{self.organization.slug}"
-            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
-        )
-        link_type, args = match_link(url)
-        assert link_type is not None and args is not None
-        links = [UnfurlableUrl(url=url, args=args)]
-
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
-
-        assert len(unfurls) == 1
-        api_params = mock_client_get.call_args[1]["params"]
-        assert api_params["groupBy"] == ["span.op"]
-        assert api_params["topEvents"] == "5"
-        # Default descending by the first yAxis
-        assert api_params["sort"] == "-avg(span.duration)"
-
-    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_widget_explicit_orderby(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        dashboard, _ = self._create_spans_widget(
-            aggregates=["avg(span.duration)"],
-            columns=["span.op"],
-            orderby="span.op",
-        )
-
-        url = (
-            f"https://sentry.io/organizations/{self.organization.slug}"
-            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
-        )
-        link_type, args = match_link(url)
-        assert link_type is not None and args is not None
-        links = [UnfurlableUrl(url=url, args=args)]
-
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
-
-        assert len(unfurls) == 1
-        api_params = mock_client_get.call_args[1]["params"]
-        assert api_params["sort"] == "span.op"
 
     @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
@@ -2401,61 +2363,6 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["type"] == "bar"
 
-    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_passes_widget_conditions(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        dashboard, _ = self._create_spans_widget(
-            aggregates=["avg(span.duration)"],
-            conditions="span.op:http",
-        )
-
-        url = (
-            f"https://sentry.io/organizations/{self.organization.slug}"
-            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
-        )
-        link_type, args = match_link(url)
-        assert link_type is not None and args is not None
-        links = [UnfurlableUrl(url=url, args=args)]
-
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            link_handlers[link_type].fn(self.integration, links, self.user)
-
-        api_params = mock_client_get.call_args[1]["params"]
-        assert api_params["query"] == "span.op:http"
-
-    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
-    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_dashboards_multi_valued_params_are_preserved(
-        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
-    ) -> None:
-        # Regression test: the internal API client iterates params.items(),
-        # which drops all but the last value for QueryDict multi-valued keys.
-        # Params must be a plain dict with list values so multiple aggregates
-        # and groupBy columns reach the timeseries endpoint intact.
-        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
-        dashboard, _ = self._create_spans_widget(
-            aggregates=["avg(span.duration)", "p75(span.duration)"],
-            columns=["span.op", "span.category"],
-        )
-
-        url = (
-            f"https://sentry.io/organizations/{self.organization.slug}"
-            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
-        )
-        link_type, args = match_link(url)
-        assert link_type is not None and args is not None
-        links = [UnfurlableUrl(url=url, args=args)]
-
-        with self.feature(["organizations:dashboards-widget-unfurl"]):
-            link_handlers[link_type].fn(self.integration, links, self.user)
-
-        api_params = mock_client_get.call_args[1]["params"]
-        assert api_params["yAxis"] == ["avg(span.duration)", "p75(span.duration)"]
-        assert api_params["groupBy"] == ["span.op", "span.category"]
-
     def test_match_link_dashboards(self) -> None:
         # Primary domain
         link_type, args = match_link(
@@ -2484,3 +2391,303 @@ class UnfurlTest(TestCase):
             "https://sentry.io/organizations/org1/dashboard/1013/widget-builder/widget/1/edit/"
         )
         assert link_type is None
+
+
+class BuildWidgetTimeseriesParamsTest(TestCase):
+    def _make_widget(
+        self,
+        widget_type: int = DashboardWidgetTypes.SPANS,
+        queries: list[dict[str, Any]] | None = None,
+    ):
+        dashboard = self.create_dashboard(organization=self.organization)
+        widget = self.create_dashboard_widget(
+            dashboard=dashboard,
+            widget_type=widget_type,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            order=0,
+        )
+        for i, query in enumerate(queries or [{}]):
+            aggregates = query.get("aggregates", ["count(span.duration)"])
+            self.create_dashboard_widget_query(
+                widget=widget,
+                order=i,
+                fields=aggregates,
+                aggregates=aggregates,
+                columns=query.get("columns", []),
+                conditions=query.get("conditions", ""),
+                orderby=query.get("orderby", ""),
+            )
+        return widget
+
+    def test_spans_widget(self) -> None:
+        widget = self._make_widget(queries=[{"aggregates": ["avg(span.duration)"]}])
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "spans"
+        assert all_params[0]["yAxis"] == ["avg(span.duration)"]
+        assert all_params[0]["referrer"] == "dashboards.slack.unfurl"
+        assert all_params[0]["statsPeriod"] == "7d"
+
+    def test_logs_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.LOGS,
+            queries=[{"aggregates": ["count(message)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "logs"
+        assert all_params[0]["yAxis"] == ["count(message)"]
+
+    def test_tracemetrics_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.TRACEMETRICS,
+            queries=[{"aggregates": ["sum(value)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "tracemetrics"
+        assert all_params[0]["yAxis"] == ["sum(value)"]
+
+    def test_errors_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            queries=[{"aggregates": ["count()"], "conditions": "level:error"}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "errors"
+        assert all_params[0]["yAxis"] == ["count()"]
+        assert all_params[0]["query"] == "level:error"
+
+    def test_preprod_app_size_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.PREPROD_APP_SIZE,
+            queries=[{"aggregates": ["max(install_size)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "preprodSize"
+        assert all_params[0]["yAxis"] == ["max(install_size)"]
+
+    def test_issue_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ISSUE,
+            queries=[{"aggregates": ["count(new_issues)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        # issues-timeseries uses `category` instead of `dataset`
+        assert all_params[0]["category"] == "issue"
+        assert "dataset" not in all_params[0]
+        assert all_params[0]["yAxis"] == ["count(new_issues)"]
+        assert all_params[0]["referrer"] == "dashboards.slack.unfurl"
+        assert all_params[0]["statsPeriod"] == "7d"
+
+    def test_multiple_queries_returns_one_dict_each_in_order(self) -> None:
+        widget = self._make_widget(
+            queries=[
+                {"aggregates": ["avg(span.duration)"]},
+                {"aggregates": ["p75(span.duration)"]},
+            ],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert [p["yAxis"] for p in all_params] == [
+            ["avg(span.duration)"],
+            ["p75(span.duration)"],
+        ]
+
+    def test_groupby_sets_top_events_and_default_sort(self) -> None:
+        widget = self._make_widget(
+            queries=[{"aggregates": ["avg(span.duration)"], "columns": ["span.op"]}],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["groupBy"] == ["span.op"]
+        assert params["topEvents"] == "5"
+        # Default descending by the first yAxis when grouping without an explicit sort
+        assert params["sort"] == "-avg(span.duration)"
+
+    def test_explicit_orderby_wins_over_default(self) -> None:
+        widget = self._make_widget(
+            queries=[
+                {
+                    "aggregates": ["avg(span.duration)"],
+                    "columns": ["span.op"],
+                    "orderby": "span.op",
+                }
+            ],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["sort"] == "span.op"
+
+    def test_conditions_become_query(self) -> None:
+        widget = self._make_widget(
+            queries=[{"aggregates": ["avg(span.duration)"], "conditions": "span.op:http"}],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["query"] == "span.op:http"
+
+    def test_multi_valued_aggregates_and_columns_preserved_as_lists(self) -> None:
+        # client.get uses isinstance(value, list) to call setlist — the helper
+        # must return lists (not a QueryDict, not scalar strings) for
+        # multi-valued params.
+        widget = self._make_widget(
+            queries=[
+                {
+                    "aggregates": ["avg(span.duration)", "p75(span.duration)"],
+                    "columns": ["span.op", "span.category"],
+                }
+            ],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["yAxis"] == ["avg(span.duration)", "p75(span.duration)"]
+        assert params["groupBy"] == ["span.op", "span.category"]
+
+    def test_url_params_forwarded(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(
+            widget, QueryDict("statsPeriod=24h&project=1&project=2&environment=prod")
+        )[0]
+
+        assert params["statsPeriod"] == "24h"
+        assert params["project"] == ["1", "2"]
+        assert params["environment"] == "prod"
+
+    def test_default_stats_period_when_absent(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        # Matches DEFAULT_STATS_PERIOD in static/app/views/dashboards/data.tsx
+        assert params["statsPeriod"] == "24h"
+
+    def test_url_start_end_supersedes_default_stats_period(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(
+            widget, QueryDict("start=2026-01-01T00:00:00&end=2026-01-02T00:00:00")
+        )[0]
+
+        assert "statsPeriod" not in params
+        assert params["start"] == "2026-01-01T00:00:00"
+        assert params["end"] == "2026-01-02T00:00:00"
+
+    def test_omits_project_when_no_url_or_dashboard_project(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        # Omitting the param matches the dashboard FE: the API defaults to
+        # "My Projects" rather than "All Projects" (project=-1).
+        assert "project" not in params
+
+    def test_dashboard_projects_used_when_url_missing(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        project_b = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a, project_b])
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert sorted(params["project"]) == sorted([str(project_a.id), str(project_b.id)])
+
+    def test_dashboard_all_projects_flag_maps_to_sentinel(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"all_projects": True}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["project"] == "-1"
+
+    def test_url_project_overrides_dashboard_projects(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a])
+
+        params = build_widget_timeseries_params(widget, QueryDict("project=99"))[0]
+
+        assert params["project"] == "99"
+
+    def test_dashboard_environment_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod", "staging"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["environment"] == ["prod", "staging"]
+
+    def test_url_environment_overrides_dashboard_environment(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("environment=dev"))[0]
+
+        assert params["environment"] == "dev"
+
+    def test_dashboard_period_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"period": "7d"}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["statsPeriod"] == "7d"
+
+    def test_dashboard_start_end_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {
+            "start": "2026-01-01T00:00:00",
+            "end": "2026-01-02T00:00:00",
+            "utc": True,
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert "statsPeriod" not in params
+        assert params["start"] == "2026-01-01T00:00:00"
+        assert params["end"] == "2026-01-02T00:00:00"
+        # utc is intentionally dropped - not consumed by events-timeseries and
+        # irrelevant for a cross-timezone Slack audience.
+        assert "utc" not in params
+
+    def test_url_period_supersedes_dashboard_start_end(self) -> None:
+        # When the URL carries any date info, the dashboard's date range is
+        # ignored entirely so we don't mix URL statsPeriod with a saved range.
+        widget = self._make_widget()
+        widget.dashboard.filters = {
+            "start": "2026-01-01T00:00:00",
+            "end": "2026-01-02T00:00:00",
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["statsPeriod"] == "7d"
+        assert "start" not in params
+        assert "end" not in params

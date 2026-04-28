@@ -501,7 +501,7 @@ export function generateFieldOptions({
     const ellipsis = aggregations[func]!.parameters.length ? '\u2026' : '';
     const parameters = aggregations[func]!.parameters.map(param => {
       const overrides = aggregations[func]!.getFieldOverrides;
-      if (typeof overrides === 'undefined') {
+      if (overrides === undefined) {
         return param;
       }
       return {

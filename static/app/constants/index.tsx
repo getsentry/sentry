@@ -43,6 +43,7 @@ export const API_ACCESS_SCOPES = [
   'member:read',
   'member:write',
   'org:admin',
+  'org:ci',
   'org:integrations',
   'org:read',
   'org:write',
@@ -68,6 +69,7 @@ export const ALLOWED_SCOPES = [
   'member:write',
   'org:admin',
   'org:billing',
+  'org:ci',
   'org:integrations',
   'org:read',
   'org:superuser', // not an assignable API access scope
@@ -137,6 +139,14 @@ export type PermissionObj = {
   label?: string;
 };
 
+export type SpecialPermissionObj = {
+  fieldName: string;
+  help: string;
+  label: string;
+  scope: Scope;
+  summary: string;
+};
+
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
 
 export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
@@ -147,6 +157,18 @@ export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
     read: {label: 'Read', scopes: ['project:distribution']},
   },
 };
+
+export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
+  fieldName: 'ContinuousIntegration--permission',
+  label: 'Continuous Integration (CI)',
+  help: 'Allows CI and deployment tools to upload source maps, create releases, and manage code mappings for this organization.',
+  summary: 'Source map upload, release creation, and code mappings.',
+  scope: 'org:ci',
+};
+
+export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+];
 
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
@@ -633,10 +655,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
     plural: DataCategory.TRACE_METRICS,
-    singular: 'metric',
-    displayName: 'metric',
-    titleName: t('Metrics'),
-    productName: t('Metrics'),
+    singular: 'applicationMetric',
+    displayName: 'application metric',
+    titleName: t('Application Metric Counts'), // Only currently visible internally, this name should change if we expose this to users.
+    productName: t('Application Metrics'),
     uid: 33,
     isBilledCategory: false,
     statsInfo: {
@@ -648,7 +670,7 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC_BYTE]: {
     name: DataCategoryExact.TRACE_METRIC_BYTE,
     plural: DataCategory.TRACE_METRIC_BYTE,
-    singular: 'traceMetricByte',
+    singular: 'applicationMetricByte',
     displayName: 'application metric byte',
     titleName: t('Application Metrics'),
     productName: t('Application Metrics'),

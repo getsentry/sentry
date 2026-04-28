@@ -101,7 +101,9 @@ describe('AggregatesTab', () => {
     expect(screen.getByRole('columnheader', {name: /sum/i})).toBeInTheDocument();
 
     // Metric name column should be prepended when no group bys are selected
-    expect(screen.getByRole('columnheader', {name: 'Metric'}).tagName).toBe('DIV');
+    expect(screen.getByRole('columnheader', {name: 'Application Metric'}).tagName).toBe(
+      'DIV'
+    );
     expect(screen.getByRole('columnheader', {name: /avg/i}).tagName).toBe('BUTTON');
   });
 
@@ -159,7 +161,9 @@ describe('AggregatesTab', () => {
     expect(screen.getByRole('columnheader', {name: /p95/i})).toBeInTheDocument();
 
     // Metric name column should NOT appear when group bys are selected
-    expect(screen.queryByRole('columnheader', {name: 'Metric'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('columnheader', {name: 'Application Metric'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows empty state when no data is returned', async () => {
