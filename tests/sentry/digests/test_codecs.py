@@ -11,6 +11,7 @@ import pytest
 
 from sentry.digests.codecs import _ZSTD_MAGIC, CompressedJsonCodec, CompressedPickleCodec
 from sentry.digests.types import IdentifierKey, Notification
+from sentry.models.event import GroupEvent
 from sentry.models.group import Group
 from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers.options import override_options
@@ -56,7 +57,7 @@ class TestCompressedJsonCodec:
     @pytest.fixture(autouse=True)
     def _mock_eventstore(self) -> Iterator[None]:
         """Stub eventstore so decode can fetch events without Snuba."""
-        self._events: dict[tuple[int, str], Event] = {}
+        self._events: dict[tuple[int, str], Event | GroupEvent] = {}
 
         def fake_get_event_by_id(project_id: int, event_id: str, **kwargs: object) -> Event | None:
             return self._events.get((project_id, event_id))
@@ -131,7 +132,7 @@ class TestCompressedPickleCodec:
 
     @pytest.fixture(autouse=True)
     def _mock_eventstore(self) -> Iterator[None]:
-        self._events: dict[tuple[int, str], Event] = {}
+        self._events: dict[tuple[int, str], Event | GroupEvent] = {}
 
         def fake_get_event_by_id(project_id: int, event_id: str, **kwargs: object) -> Event | None:
             return self._events.get((project_id, event_id))
