@@ -34,7 +34,7 @@ function snapshotKeyFor(card: GroupCard): string {
 }
 
 export function buildSnapshotLink(snapshotKey: string): string {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams(window.location.search);
   params.set('selectedSnapshot', snapshotKey);
   return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
 }
@@ -97,7 +97,10 @@ function buildGroups(items: SidebarItem[]): GroupRow[] {
           id: `c:${item.key}:${pair.head_image.key}`,
           pair,
           cardType: item.type,
-          estimatedHeight: estimateCardHeight(pair.head_image, true),
+          estimatedHeight: Math.max(
+            estimateCardHeight(pair.head_image, true),
+            estimateCardHeight(pair.base_image, true)
+          ),
         });
       }
     } else {
@@ -182,11 +185,14 @@ export function SnapshotListView({
     }
   }, [groups, initialSnapshotKey, flatIndex, virtualizer]);
 
-  // Arrow-key navigation across all cards (flat, across groups); ref so the listener registers once
-  const keyNavRef = useRef({flatIndex, selectedSnapshotKey, onSelectSnapshot});
-  keyNavRef.current = {flatIndex, selectedSnapshotKey, onSelectSnapshot};
+  const keyNavRef = useRef({
+    flatIndex,
+    selectedSnapshotKey,
+    onSelectSnapshot,
+    virtualizer,
+  });
+  keyNavRef.current = {flatIndex, selectedSnapshotKey, onSelectSnapshot, virtualizer};
   useEffect(() => {
-    // Scroll individual card, not its group — group-level scrolling snaps past the target in multi-card groups
     function scrollCardIntoView(key: string, block: ScrollLogicalPosition) {
       const cardEl = scrollRef.current?.querySelector<HTMLElement>(
         `[data-snapshot-key="${CSS.escape(key)}"]`
@@ -202,12 +208,13 @@ export function SnapshotListView({
       if (scrollCardIntoView(key, block)) {
         return;
       }
-      // Card not rendered (outside overscan) — scroll to its group to mount it, then align next frame
       const groupIdx = keyNavRef.current.flatIndex.groupIdxByKey.get(key);
       if (groupIdx === undefined) {
         return;
       }
-      virtualizer.scrollToIndex(groupIdx, {align: block === 'start' ? 'start' : 'auto'});
+      keyNavRef.current.virtualizer.scrollToIndex(groupIdx, {
+        align: block === 'start' ? 'start' : 'auto',
+      });
       requestAnimationFrame(() => scrollCardIntoView(key, block));
     }
 
@@ -261,7 +268,7 @@ export function SnapshotListView({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [virtualizer]);
+  }, []);
 
   if (items.length === 0) {
     return (
