@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
@@ -138,7 +139,10 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
         defaultIsMinified={!!projectSlug && persistedOptions.includes('minified')}
       >
         {projectSlug && (
-          <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />
+          <PersistDisplayOptions
+            hasMinifiedStacktrace={hasMinifiedStacktrace}
+            setPersistedOptions={setPersistedOptions}
+          />
         )}
         <IssueStackTraceContent
           event={event}
@@ -153,21 +157,28 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
 }
 
 function PersistDisplayOptions({
+  hasMinifiedStacktrace,
   setPersistedOptions,
 }: {
-  setPersistedOptions: (options: PersistedDisplayOption[]) => void;
+  hasMinifiedStacktrace: boolean;
+  setPersistedOptions: Dispatch<SetStateAction<PersistedDisplayOption[]>>;
 }) {
   const {view, isMinified} = useStackTraceViewState();
   useEffect(() => {
-    const next: PersistedDisplayOption[] = [];
-    if (view === 'raw') {
-      next.push('raw-stack-trace');
-    }
-    if (isMinified) {
-      next.push('minified');
-    }
-    setPersistedOptions(next);
-  }, [view, isMinified, setPersistedOptions]);
+    setPersistedOptions(previousOptions => {
+      const next: PersistedDisplayOption[] = [];
+      if (view === 'raw') {
+        next.push('raw-stack-trace');
+      }
+      if (
+        isMinified ||
+        (!hasMinifiedStacktrace && previousOptions.includes('minified'))
+      ) {
+        next.push('minified');
+      }
+      return next;
+    });
+  }, [view, isMinified, hasMinifiedStacktrace, setPersistedOptions]);
   return null;
 }
 

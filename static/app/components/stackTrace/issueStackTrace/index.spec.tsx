@@ -175,6 +175,34 @@ describe('IssueStackTrace', () => {
     expect(await screen.findByText(/File "minified\/\d+\.js"/)).toBeInTheDocument();
   });
 
+  it('preserves minified preference when current event has no raw stacktrace', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const storageKey = 'issue-details-stracktrace-display-org-slug-project-slug';
+    localStorage.setItem(storageKey, JSON.stringify(['minified']));
+
+    render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: null,
+          },
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual(['minified']);
+    });
+  });
+
   it('shares display options across chained issue exceptions', async () => {
     const {event, stacktrace} = makeStackTraceData();
     render(
