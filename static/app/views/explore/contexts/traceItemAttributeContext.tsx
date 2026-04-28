@@ -85,7 +85,7 @@ function useTraceItemAttributeConfig({
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
-  const {data, isLoading: attributesLoading} = useQuery({
+  const {data, isFetching: attributesLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
       selection,
