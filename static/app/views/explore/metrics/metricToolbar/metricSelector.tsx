@@ -429,7 +429,7 @@ export function MetricSelector({
                 >
                   <Flex align="center" justify="between" padding="sm lg">
                     <Text size="sm" bold wrap="nowrap">
-                      {t('Metrics')}
+                      {t('Application Metrics')}
                     </Text>
                     {isFetching ? (
                       <LoadingIndicator size={12} style={{margin: 0}} />
@@ -451,7 +451,7 @@ export function MetricSelector({
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
                         {...comboBoxInputProps}
-                        placeholder={t('Search metrics\u2026')}
+                        placeholder={t('Search application metrics\u2026')}
                         size="xs"
                         ref={searchRef}
                       />
@@ -491,7 +491,7 @@ export function MetricSelector({
                     {collectionItems.length === 0 ? (
                       <Flex align="center" justify="center" padding="xl">
                         <Text variant="muted" size="sm">
-                          {t('No metrics found')}
+                          {t('No application metrics found')}
                         </Text>
                       </Flex>
                     ) : (
@@ -626,7 +626,7 @@ function MetricDetailPanel({
   if (!metric) {
     return (
       <Flex align="center" justify="center" flex="1">
-        <Text variant="muted">{t('Select a metric to see details')}</Text>
+        <Text variant="muted">{t('Select an application metric to see details')}</Text>
       </Flex>
     );
   }

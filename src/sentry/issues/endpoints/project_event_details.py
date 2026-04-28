@@ -75,9 +75,7 @@ def wrap_event_response(
             if environments:
                 filter_conditions.append(["environment", "IN", environments])
 
-            if legacy_conditions and options.get(
-                "eventstore.adjacent_event_ids_apply_query_conditions"
-            ):
+            if legacy_conditions:
                 filter_conditions.extend(legacy_conditions)
 
             _filter = eventstore.Filter(

@@ -1,4 +1,8 @@
 import {
+  extractAssistantOutput,
+  normalizeToMessages,
+} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
+import {
   AGENT_NAME_FIELDS,
   getStringAttr,
   hasError,
@@ -29,12 +33,6 @@ export interface ConversationMessage {
   modelName?: string;
   toolCalls?: ToolCall[];
   userEmail?: string;
-}
-
-interface RequestMessage {
-  role: string;
-  content?: string | Array<{text: string}>;
-  parts?: Array<{type: string; content?: string; text?: string}>;
 }
 
 interface ConversationTurn {
@@ -228,34 +226,39 @@ function findToolSpansBetween(
   });
 }
 
+/**
+ * Returns the last user message from `gen_ai.input.messages` or
+ * `gen_ai.request.messages`. Tolerates every shape the unified normalizer
+ * accepts (parts, content, {messages} wrapper, {system, prompt}, plain string).
+ */
 export function parseUserContent(node: AITraceSpanNode): string | null {
-  const inputMessages = getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES);
+  const raw =
+    getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
+    getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
 
-  const requestMessages =
-    inputMessages || getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
-
-  if (!requestMessages) {
+  if (!raw) {
     return null;
   }
-
-  if (requestMessages === FILTERED) {
+  if (raw === FILTERED) {
     return FILTERED;
   }
 
-  try {
-    const messagesArray: RequestMessage[] = JSON.parse(requestMessages);
-    const userMessage = messagesArray.findLast(
-      msg => msg.role === 'user' && (msg.content || msg.parts)
-    );
-    if (!userMessage) {
-      return null;
-    }
-    return extractTextFromMessage(userMessage);
-  } catch {
+  const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
+  if (!messages) {
     return null;
   }
+  const userMessage = messages.findLast(m => m.role === 'user');
+  if (!userMessage || typeof userMessage.content !== 'string') {
+    return null;
+  }
+  return userMessage.content;
 }
 
+/**
+ * Returns the assistant text response, checking `gen_ai.output.messages`
+ * (every supported shape, including plain strings) and falling back to
+ * `gen_ai.response.text` then `gen_ai.response.object`.
+ */
 export function parseAssistantContent(node: AITraceSpanNode): string | null {
   const outputMessages = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
 
@@ -263,27 +266,11 @@ export function parseAssistantContent(node: AITraceSpanNode): string | null {
     if (outputMessages === FILTERED) {
       return FILTERED;
     }
-
-    try {
-      const parsed = JSON.parse(outputMessages);
-      // Handle non-array format: extract "content" from the object directly
-      if (Array.isArray(parsed)) {
-        const assistantMessage = (parsed as RequestMessage[]).findLast(
-          msg => msg.role === 'assistant' && (msg.content || msg.parts)
-        );
-        if (assistantMessage) {
-          const content = extractTextFromMessage(assistantMessage);
-          if (content) {
-            return content;
-          }
-        }
-      } else {
-        if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
-          return parsed.content;
-        }
-      }
-    } catch {
-      // Invalid JSON, fall through to legacy attributes
+    const extracted = extractAssistantOutput(outputMessages, {
+      defaultRole: 'assistant',
+    });
+    if (extracted.responseText) {
+      return extracted.responseText;
     }
   }
 
@@ -321,27 +308,4 @@ function getNodeEndTimestamp(node: AITraceSpanNode): number {
 
 function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
-}
-
-export function extractTextFromMessage(msg: RequestMessage): string | null {
-  if (Array.isArray(msg.parts)) {
-    const textParts = msg.parts
-      .filter(p => p.type === 'text')
-      .map(p => p.content || p.text)
-      .filter(Boolean);
-    if (textParts.length > 0) {
-      return textParts.join('\n');
-    }
-  }
-
-  if (typeof msg.content === 'string') {
-    return msg.content;
-  }
-
-  if (Array.isArray(msg.content)) {
-    const texts = msg.content.map(p => p?.text).filter(Boolean);
-    return texts.length > 0 ? texts.join('\n') : null;
-  }
-
-  return null;
 }

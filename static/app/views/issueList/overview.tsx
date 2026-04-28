@@ -883,6 +883,7 @@ function IssueListOverview({
         query={query}
         sort={sort}
         onSortChange={onSortChange}
+        onQueryChange={onSearch}
       />
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
