@@ -108,6 +108,7 @@ export function CommandPalette({
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
   const seerExplorerEnabled = !!openSeerExplorer;
+  const openForm = useFeedbackForm();
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
@@ -138,6 +139,13 @@ export function CommandPalette({
     preload(errorIllustration, {as: 'image'});
   }
 
+  const debouncedQuery = useDebouncedValue(state.query, 300);
+  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
+  const isLoading =
+    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
+  const isEmptyPromptQuery =
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
+
   const currentNodes = useMemo(() => {
     const currentRootKey = state.action?.value.key ?? null;
     const nodes = presortBySlotRef(store.tree(currentRootKey));
@@ -145,14 +153,74 @@ export function CommandPalette({
   }, [store, state.action]);
 
   const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
-    if (!state.query) {
-      return flattenActions(currentNodes, null);
-    }
+    const [scored, scoredPrefixMap] = state.query
+      ? (() => {
+          const scores = new Map<string, CommandPaletteScore>();
+          scoreTree(currentNodes, scores, state.query.toLowerCase());
+          return flattenActions(currentNodes, scores, state.action !== null);
+        })()
+      : flattenActions(currentNodes, null);
 
-    const scores = new Map<string, CommandPaletteScore>();
-    scoreTree(currentNodes, scores, state.query.toLowerCase());
-    return flattenActions(currentNodes, scores, state.action !== null);
-  }, [currentNodes, state.action, state.query]);
+    // When a query produces no matches and Seer Explorer is available, inject
+    // synthetic items directly into the collection so they participate in the
+    // palette's existing keyboard navigation rather than rendering as separate
+    // DOM elements outside the list. The guard prevents the fallback from
+    // appearing while an async query is still in flight or the debounce has
+    // not yet settled.
+    const showSeerFallback =
+      scored.length === 0 &&
+      !!state.query &&
+      seerExplorerEnabled &&
+      !isLoading &&
+      !isEmptyPromptQuery;
+
+    if (!showSeerFallback) return [scored, scoredPrefixMap];
+
+    const truncated =
+      state.query.length > 24 ? state.query.slice(0, 24) + '...' : state.query;
+
+    const fallback: CMDKFlatItem[] = [
+      {
+        key: 'cmdk:no-results:header',
+        parent: null,
+        children: [],
+        listItemType: 'section',
+        display: {label: t('No results for "%s"', truncated)},
+      },
+      {
+        key: 'cmdk:no-results:ask-seer',
+        parent: null,
+        children: [],
+        listItemType: 'action',
+        display: {label: t('Ask Seer: %s', state.query), icon: <IconSeer />},
+        onAction: () =>
+          openSeerExplorer?.({initialQuery: state.query.trim() || undefined}),
+      },
+      ...(openForm
+        ? [
+            {
+              key: 'cmdk:no-results:feedback',
+              parent: null,
+              children: [] as CMDKFlatItem[],
+              listItemType: 'action' as const,
+              display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
+              onAction: () => openForm({tags: {['feedback.source']: 'command_palette'}}),
+            },
+          ]
+        : []),
+    ];
+
+    return [fallback, new Map()];
+  }, [
+    currentNodes,
+    state.action,
+    state.query,
+    seerExplorerEnabled,
+    isLoading,
+    isEmptyPromptQuery,
+    openSeerExplorer,
+    openForm,
+  ]);
 
   const analytics = useCommandPaletteAnalytics(actions.length);
 
@@ -328,12 +396,12 @@ export function CommandPalette({
     },
     [
       actions,
+      prefixMap,
       analytics,
       animatePress,
       closeModal,
       dispatch,
       navigate,
-      prefixMap,
       state.query,
     ]
   );
@@ -372,14 +440,6 @@ export function CommandPalette({
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, []);
-
-  const debouncedQuery = useDebouncedValue(state.query, 300);
-  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
-
-  const isLoading =
-    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
-  const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
   // Skip leading-icon animations when there is no query — any icon transition
   // while the input is empty (e.g. a brief loading state after clearing) should
@@ -524,11 +584,7 @@ export function CommandPalette({
 
       {treeState.collection.size === 0 ? (
         isEmptyPromptQuery || isLoading ? null : (
-          <CommandPaletteNoResults
-            query={state.query}
-            openSeerExplorer={openSeerExplorer}
-            closeModal={closeModal}
-          />
+          <CommandPaletteNoResults />
         )
       ) : (
         <ResultsList
@@ -1052,74 +1108,7 @@ function CommandPaletteHints() {
   );
 }
 
-function CommandPaletteNoResults({
-  query,
-  openSeerExplorer,
-  closeModal,
-}: {
-  query: string;
-  closeModal?: () => void;
-  openSeerExplorer?: (options?: {initialQuery?: string}) => void;
-}) {
-  const openForm = useFeedbackForm();
-
-  if (openSeerExplorer) {
-    return (
-      <Flex direction="column" paddingTop="xs">
-        <Flex padding="sm md">
-          <Text size="sm" bold variant="primary">
-            {t(
-              'No results for "%s"',
-              query.length > 24 ? query.slice(0, 24) + '...' : query
-            )}
-          </Text>
-        </Flex>
-        <NoResultsAction
-          onClick={() => {
-            closeModal?.();
-            openSeerExplorer({initialQuery: query.trim() || undefined});
-          }}
-        >
-          <Flex
-            height="100%"
-            align="start"
-            justify="center"
-            width="14px"
-            paddingTop="2xs"
-          >
-            <IconDefaultsProvider size="sm">
-              <IconSeer />
-            </IconDefaultsProvider>
-          </Flex>
-          <Text size="sm" ellipsis>
-            {query ? t('Ask Seer: %s', query) : t('Ask Seer')}
-          </Text>
-        </NoResultsAction>
-        {openForm && (
-          <NoResultsAction
-            onClick={() => {
-              closeModal?.();
-              openForm({tags: {['feedback.source']: 'command_palette'}});
-            }}
-          >
-            <Flex
-              height="100%"
-              align="start"
-              justify="center"
-              width="14px"
-              paddingTop="2xs"
-            >
-              <IconDefaultsProvider size="sm">
-                <IconMegaphone />
-              </IconDefaultsProvider>
-            </Flex>
-            <Text size="sm">{t('Tell us what to improve')}</Text>
-          </NoResultsAction>
-        )}
-      </Flex>
-    );
-  }
-
+function CommandPaletteNoResults() {
   return (
     <Flex
       direction="column"
@@ -1145,26 +1134,6 @@ function CommandPaletteNoResults({
     </Flex>
   );
 }
-
-const NoResultsAction = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  border-radius: ${p => p.theme.radius.md};
-  color: ${p => p.theme.tokens.content.primary};
-
-  &:hover,
-  &:focus-visible {
-    background: ${p => p.theme.tokens.background.secondary};
-    outline: none;
-  }
-`;
 
 const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
