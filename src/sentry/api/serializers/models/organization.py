@@ -694,9 +694,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             provider = provider_by_integration_id.get(oi.integration_id)
             if provider == "github":
                 github_pr_bot = github_pr_bot or bool(config.get("pr_comments", False))
-                github_nudge_invite = github_nudge_invite or bool(
-                    config.get("nudge_invite", False)
-                )
+                github_nudge_invite = github_nudge_invite or bool(config.get("nudge_invite", False))
             elif provider == "gitlab":
                 gitlab_pr_bot = gitlab_pr_bot or bool(config.get("pr_comments", False))
 
