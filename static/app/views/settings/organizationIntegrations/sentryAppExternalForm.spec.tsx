@@ -6,6 +6,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   SentryAppExternalForm,
+  type FieldFromSchema,
   type SchemaFormConfig,
 } from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
@@ -195,5 +196,70 @@ describe('SentryAppExternalForm', () => {
     await waitFor(() => {
       expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue('');
     });
+  });
+
+  it('does not reset dependent fields when semantic default props are unchanged', async () => {
+    const config: SchemaFormConfig = {
+      uri: '/integration/test/',
+      required_fields: [
+        {type: 'text', label: 'Title', name: 'title', default: 'issue.title'},
+        {type: 'text', label: 'Notes', name: 'notes'},
+      ],
+      optional_fields: [
+        {
+          type: 'select',
+          label: 'Size',
+          name: 'size',
+          depends_on: ['title'],
+          uri: '/options/size/',
+          choices: [],
+        },
+      ],
+    };
+
+    const getFieldDefault = (field: FieldFromSchema) =>
+      field.default === 'issue.title' ? 'Default title' : '';
+
+    const external = MockApiClient.addMockResponse({
+      url: externalRequestsUrl,
+      body: {
+        choices: [
+          ['sm', 'Small'],
+          ['lg', 'Large'],
+        ],
+        defaultValue: 'sm',
+      },
+    });
+
+    const {rerender} = render(
+      <SentryAppExternalForm
+        {...baseProps}
+        config={config}
+        extraRequestBody={{projectId: '123'}}
+        getFieldDefault={getFieldDefault}
+      />
+    );
+
+    await waitFor(() => expect(external).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('Small')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Notes'}), 'persist me');
+    expect(screen.getByRole('textbox', {name: 'Notes'})).toHaveValue('persist me');
+
+    rerender(
+      <SentryAppExternalForm
+        {...baseProps}
+        config={config}
+        extraRequestBody={{projectId: '123'}}
+        getFieldDefault={field =>
+          field.default === 'issue.title' ? 'Default title' : ''
+        }
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox', {name: 'Notes'})).toHaveValue('persist me');
+    });
+    expect(external).toHaveBeenCalledTimes(1);
   });
 });
