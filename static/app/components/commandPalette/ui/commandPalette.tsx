@@ -226,6 +226,7 @@ export function CommandPalette({
   ]);
 
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
+  const mouseLeftResultsRef = useRef(false);
 
   const sectionKeys = useMemo(() => {
     return new Set(
@@ -316,6 +317,10 @@ export function CommandPalette({
       return;
     }
 
+    if (mouseLeftResultsRef.current) {
+      return;
+    }
+
     if (firstFocusableKey) {
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
     }
@@ -353,6 +358,7 @@ export function CommandPalette({
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch({type: 'set query', query: e.target.value});
+      mouseLeftResultsRef.current = false;
       treeState.selectionManager.setFocusedKey(null);
       if (resultsListRef.current) {
         resultsListRef.current.scrollTop = 0;
@@ -648,6 +654,12 @@ export function CommandPalette({
             aria-label={t('Search results')}
             selectionMode="none"
             shouldUseVirtualFocus
+            onMouseEnter={() => {
+              mouseLeftResultsRef.current = false;
+            }}
+            onMouseLeave={() => {
+              mouseLeftResultsRef.current = true;
+            }}
             onAction={key => {
               onActionSelection(key, {
                 modifierKeys: modifierKeysRef.current,
