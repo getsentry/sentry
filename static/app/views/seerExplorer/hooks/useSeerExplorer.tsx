@@ -53,7 +53,9 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
 ]);
 /** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
+const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>([
+  '/explore/traces/trace/:traceSlug/',
+]);
 
 function supportsStructuredContext(
   referrer: string,
@@ -343,7 +345,10 @@ export const useSeerExplorer = () => {
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
-      if (supportsStructuredContext(getPageReferrer(), organization)) {
+      if (
+        overrideCtxEngEnable &&
+        supportsStructuredContext(getPageReferrer(), organization)
+      ) {
         try {
           screenshot = JSON.stringify(getLLMContext());
         } catch (e) {

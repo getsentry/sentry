@@ -5,9 +5,11 @@ from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.seer.entrypoints.cache import (
     AGENT_CACHE_TIMEOUT_SECONDS,
     AUTOFIX_CACHE_TIMEOUT_SECONDS,
+    PENDING_MENTION_CACHE_TIMEOUT_SECONDS,
     CacheHaltReason,
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
+    SeerOperatorPendingMentionCache,
 )
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.testutils.cases import TestCase
@@ -268,4 +270,70 @@ class SeerOperatorAgentCacheTest(TestCase):
         result = SeerOperatorAgentCache.get(entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID)
 
         assert result is None
+        mock_record_halt.assert_called_once_with(halt_reason=CacheHaltReason.CACHE_MISS)
+
+
+MOCK_INTEGRATION_ID = 42
+MOCK_USER_EXT_ID = "U1234567890"
+
+
+class SeerOperatorPendingMentionCacheTest(TestCase):
+    def setUp(self) -> None:
+        self.entrypoint_key = str(SeerEntrypointKey.SLACK)
+        self.cache_key = SeerOperatorPendingMentionCache._get_cache_key(
+            entrypoint_key=self.entrypoint_key,
+            integration_id=MOCK_INTEGRATION_ID,
+            user_ext_id=MOCK_USER_EXT_ID,
+        )
+
+    def test_get_cache_key(self) -> None:
+        assert self.cache_key == (
+            f"seer:pending_mention:{self.entrypoint_key}:{MOCK_INTEGRATION_ID}:{MOCK_USER_EXT_ID}"
+        )
+
+    @patch("sentry.seer.entrypoints.cache.cache.set")
+    def test_set(self, mock_cache_set):
+        payload = MockCachePayload(thread_id="pending_payload")
+        SeerOperatorPendingMentionCache.set(
+            entrypoint_key=self.entrypoint_key,
+            integration_id=MOCK_INTEGRATION_ID,
+            user_ext_id=MOCK_USER_EXT_ID,
+            cache_payload=payload,
+        )
+        mock_cache_set.assert_called_once_with(
+            self.cache_key,
+            payload,
+            timeout=PENDING_MENTION_CACHE_TIMEOUT_SECONDS,
+        )
+
+    @patch("sentry.seer.entrypoints.cache.cache.delete")
+    @patch("sentry.seer.entrypoints.cache.cache.get")
+    def test_pop_hit(self, mock_cache_get, mock_cache_delete):
+        payload = MockCachePayload(thread_id="pending_payload")
+        mock_cache_get.return_value = payload
+
+        result = SeerOperatorPendingMentionCache[MockCachePayload].pop(
+            entrypoint_key=self.entrypoint_key,
+            integration_id=MOCK_INTEGRATION_ID,
+            user_ext_id=MOCK_USER_EXT_ID,
+        )
+
+        assert result == payload
+        mock_cache_get.assert_called_once_with(self.cache_key)
+        mock_cache_delete.assert_called_once_with(self.cache_key)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @patch("sentry.seer.entrypoints.cache.cache.delete")
+    @patch("sentry.seer.entrypoints.cache.cache.get")
+    def test_pop_miss(self, mock_cache_get, mock_cache_delete, mock_record_halt):
+        mock_cache_get.return_value = None
+
+        result = SeerOperatorPendingMentionCache[MockCachePayload].pop(
+            entrypoint_key=self.entrypoint_key,
+            integration_id=MOCK_INTEGRATION_ID,
+            user_ext_id=MOCK_USER_EXT_ID,
+        )
+
+        assert result is None
+        mock_cache_delete.assert_not_called()
         mock_record_halt.assert_called_once_with(halt_reason=CacheHaltReason.CACHE_MISS)

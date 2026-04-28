@@ -348,10 +348,15 @@ class SlackIntegrationProvider(IntegrationProvider):
     integration_cls = SlackIntegration
 
     # some info here: https://api.slack.com/authentication/quickstart
+    # If you're adding a new scope to perform an action,
+    # you must check whether the user's app installation has the appropriate scope.
+    # This is because they may have an outdated installation of the Slack App without the new scope.
     identity_oauth_scopes = frozenset(
         [
             "channels:read",
+            SlackScope.CHANNELS_HISTORY,
             "groups:read",
+            SlackScope.GROUPS_HISTORY,
             "users:read",
             "chat:write",
             "links:read",
@@ -362,18 +367,14 @@ class SlackIntegrationProvider(IntegrationProvider):
             "chat:write.public",
             "chat:write.customize",
             "commands",
-        ]
-    )
-    # Extended scopes that require Slack marketplace approval
-    # Used by SlackStagingIntegrationProvider
-    extended_oauth_scopes = frozenset(
-        [
-            SlackScope.CHANNELS_HISTORY,
-            SlackScope.GROUPS_HISTORY,
             SlackScope.APP_MENTIONS_READ,
             SlackScope.ASSISTANT_WRITE,
         ]
     )
+    # Stage new scopes here to test them via SlackStagingIntegrationProvider
+    # (which unions these into its install scopes) before promoting to
+    # identity_oauth_scopes. Empty in steady state.
+    staging_oauth_scopes: frozenset[str] = frozenset()
     user_scopes = frozenset(
         [
             "links:read",

@@ -48,12 +48,14 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
+import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {IssueListFilters} from './filters';
+import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   DEFAULT_QUERY,
@@ -136,7 +138,7 @@ function IssueListOverview({
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' || urlParams.viewId
+    realtimeActiveCookie === undefined || urlParams.viewId
       ? false
       : realtimeActiveCookie === 'true'
   );
@@ -168,6 +170,8 @@ function IssueListOverview({
 
   const {data: supergroupLookup, isLoading: supergroupsLoading} =
     useSuperGroups(groupIds);
+
+  useSupergroupDrawer({lookup: supergroupLookup, memberList});
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -432,11 +436,10 @@ function IssueListOverview({
         }
 
         const hits = resp.getResponseHeader('X-Hits');
-        const newQueryCount =
-          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
         const maxHits = resp.getResponseHeader('X-Max-Hits');
         const newQueryMaxCount =
-          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+          maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const newPageLinks = resp.getResponseHeader('Link');
 
         setError(null);
@@ -878,6 +881,12 @@ function IssueListOverview({
 
   return (
     <Stack flex={1}>
+      <IssueListCommandPaletteActions
+        query={query}
+        sort={sort}
+        onSortChange={onSortChange}
+        onQueryChange={onSearch}
+      />
       <IssueViewsHeader
         selectedProjectIds={selection.projects}
         title={title}

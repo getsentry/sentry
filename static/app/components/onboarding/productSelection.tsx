@@ -79,7 +79,10 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
   if (!hasMetrics) {
     disabledProducts[ProductSolution.METRICS] = {
       reason,
-      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
+      onClick: createClickHandler(
+        'organizations:tracemetrics-enabled',
+        'Application Metrics'
+      ),
     };
   }
   return disabledProducts;
@@ -687,7 +690,7 @@ export function ProductSelection({
       )}
       {products.includes(ProductSolution.METRICS) && (
         <Product
-          label={t('Metrics')}
+          label={t('Application Metrics')}
           description={t(
             'Custom metrics for tracking application performance and usage, automatically trace-connected.'
           )}

@@ -303,12 +303,14 @@ const assignableUsers = members.filter(m => m.id !== currentUser.id);
 
 ### 7. `trailingItem` — marking the active item
 
-Use `trailingItem` to indicate which item in a list is the currently active one:
+Use `trailingItem` with a `"Current"` badge only for **entity selections** where the user is switching between distinct objects — projects, organizations, users, environments, and similar. The badge answers the question "which one am I on right now?" when the items are otherwise indistinguishable.
+
+**Do not** use `"Current"` for settings or modes (sort order, theme, display density, etc.). Those have a single correct value at any time, and the group's own label or icon already reflects it (see the group-icon-as-state-indicator pattern above). A `"Current"` badge on a settings option duplicates information without adding clarity.
 
 ```tsx
 import {Tag} from '@sentry/scraps/badge';
 
-// Static current item with a "Current" badge, async others via resource
+// ✅ Entity selection — badge makes sense: user sees which project they're on
 <CMDKAction
   display={{label: t('Switch Project')}}
   prompt={t('Select a project...')}
@@ -323,6 +325,26 @@ import {Tag} from '@sentry/scraps/badge';
     }}
     to={`/organizations/${org.slug}/projects/${currentProject.slug}/`}
   />
+</CMDKAction>
+
+// ❌ Settings/mode — do not use a badge; the group label already shows the active value
+<CMDKAction
+  display={{
+    label: t('Sort by: %s', getSortLabel(sort)), // label reflects current state
+    icon: <IconSort />,
+  }}
+>
+  {sortKeys.map(key => (
+    <CMDKAction
+      key={key}
+      display={{
+        label: getSortLabel(key),
+        // trailingItem: key === sort ? <Tag variant="muted">{t('Current')}</Tag> : undefined
+        // ❌ Don't do this — the group label already communicates the active sort
+      }}
+      onAction={() => onSortChange(key)}
+    />
+  ))}
 </CMDKAction>
 ```
 

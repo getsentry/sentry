@@ -6,14 +6,12 @@ from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
 
 import orjson
-import pydantic
 import sentry_sdk
 from django.conf import settings
 from django.db import router, transaction
 from pydantic import BaseModel
 from rest_framework import serializers
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
-from urllib3.util.retry import Retry
 
 from sentry import features, options, projectoptions, ratelimits
 from sentry.constants import (
@@ -39,11 +37,9 @@ from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
     SeerApiError,
-    SeerApiResponseValidationError,
     SeerAutomationHandoffConfiguration,
     SeerPermissionError,
     SeerProjectPreference,
-    SeerRawPreferenceResponse,
     SeerRepoDefinition,
 )
 from sentry.seer.models.project_repository import (
@@ -201,17 +197,8 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-class GetProjectPreferenceRequest(TypedDict):
-    project_id: int
-
-
 class SetProjectPreferenceRequest(TypedDict):
     preference: dict[str, Any]
-
-
-class BulkGetProjectPreferencesRequest(TypedDict):
-    organization_id: int
-    project_ids: list[int]
 
 
 class BulkSetProjectPreferencesRequest(TypedDict):
@@ -242,23 +229,6 @@ class StoreCodingAgentStatesRequest(TypedDict):
     coding_agent_states: list[dict[str, Any]]
 
 
-def make_get_project_preference_request(
-    body: GetProjectPreferenceRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    retries: Retry | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/project-preference",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        retries=retries,
-        viewer_context=viewer_context,
-    )
-
-
 def make_set_project_preference_request(
     body: SetProjectPreferenceRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -268,21 +238,6 @@ def make_set_project_preference_request(
     return make_signed_seer_api_request(
         connection_pool or autofix_connection_pool,
         "/v1/project-preference/set",
-        body=orjson.dumps(body),
-        timeout=timeout,
-        viewer_context=viewer_context,
-    )
-
-
-def make_bulk_get_project_preferences_request(
-    body: BulkGetProjectPreferencesRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or autofix_connection_pool,
-        "/v1/project-preference/bulk",
         body=orjson.dumps(body),
         timeout=timeout,
         viewer_context=viewer_context,
@@ -471,32 +426,6 @@ def get_org_default_seer_automation_handoff(
         stopping_point = "code_changes"
 
     return stopping_point, automation_handoff
-
-
-def get_project_seer_preferences(project_id: int) -> SeerRawPreferenceResponse:
-    """
-    Fetch Seer project preferences from the Seer API.
-
-    Args:
-        project_id: The project ID to fetch preferences for
-
-    Returns:
-        SeerRawPreferenceResponse object if successful
-    """
-    response = make_get_project_preference_request(
-        GetProjectPreferenceRequest(project_id=project_id),
-        timeout=5,
-        retries=Retry(total=2, backoff_factor=0.5),
-    )
-
-    if response.status == 200:
-        try:
-            result = orjson.loads(response.data)
-            return SeerRawPreferenceResponse.validate(result)
-        except (pydantic.ValidationError, orjson.JSONDecodeError, UnicodeDecodeError) as e:
-            raise SeerApiResponseValidationError(str(e)) from e
-
-    raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
 def deduplicate_repositories(
@@ -714,6 +643,18 @@ def bulk_write_preferences_to_sentry_db(
     _write_preferences_to_sentry_db(project_preferences)
 
 
+def clear_preference_automation_handoff(project: Project) -> None:
+    """Atomically clear automation_handoff from a project's Seer preferences in Sentry DB."""
+    with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        # Lock project rows to serialize concurrent preference writes.
+        list(Project.objects.select_for_update().filter(id=project.id))
+
+        project.delete_option("sentry:seer_automation_handoff_point")
+        project.delete_option("sentry:seer_automation_handoff_target")
+        project.delete_option("sentry:seer_automation_handoff_integration_id")
+        project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+
+
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
 ) -> SeerRepoDefinition | None:
@@ -767,9 +708,7 @@ def _build_automation_handoff(
 
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
-    """Read a single project's Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Read a single project's Seer preferences from Sentry DB."""
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
@@ -794,9 +733,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
 ) -> dict[int, SeerProjectPreference]:
-    """Bulk read Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
         return {}
 
@@ -842,43 +779,6 @@ def bulk_read_preferences_from_sentry_db(
     return result
 
 
-def bulk_read_preferences(
-    organization: Organization, project_ids: list[int]
-) -> dict[int, SeerProjectPreference | None]:
-    """Read Seer project preferences in bulk, using the correct source based on feature flag.
-
-    Always returns ``dict[int, SeerProjectPreference | None]`` regardless of the
-    underlying read path (Sentry DB or Seer API)."""
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)  # type: ignore[return-value]
-
-    raw = bulk_get_project_preferences(organization.id, project_ids)
-    tuning_by_id = ProjectOption.objects.get_value_bulk_id(
-        project_ids, "sentry:autofix_automation_tuning"
-    )
-    result: dict[int, SeerProjectPreference | None] = {}
-    for pid, data in raw.items():
-        int_pid = int(pid)
-        if data is None:
-            result[int_pid] = None
-            continue
-        try:
-            pref = SeerProjectPreference.validate(data)
-        except pydantic.ValidationError:
-            logger.exception(
-                "seer.bulk_read_preferences.validation_error",
-                extra={"project_id": pid, "organization_id": organization.id},
-            )
-            result[int_pid] = None
-            continue
-        tuning = tuning_by_id.get(int_pid)
-        if tuning is None:
-            tuning = projectoptions.get_well_known_default("sentry:autofix_automation_tuning")
-        pref.autofix_automation_tuning = tuning
-        result[int_pid] = pref
-    return result
-
-
 def set_project_seer_preference(preference: SeerProjectPreference) -> None:
     """Set Seer project preference for a single project via Seer API."""
     response = make_set_project_preference_request(
@@ -890,54 +790,13 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def has_project_connected_repos(
-    organization: Organization, project: Project, *, skip_cache: bool = False
-) -> bool:
-    """
-    Check if a project has connected repositories for Seer automation.
-    Results are cached for 15 minutes to minimize API calls.
-    """
-    cache_key = f"seer-project-has-repos:{organization.id}:{project.id}"
-    if not skip_cache:
-        cached_value = cache.get(cache_key)
-        if cached_value is not None:
-            return cached_value
-
-    has_repos = False
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        has_repos = bool(read_preference_from_sentry_db(project).repositories)
-    else:
-        try:
-            preference = get_project_seer_preferences(project.id).preference
-            has_repos = bool(preference and preference.repositories)
-        except (SeerApiError, SeerApiResponseValidationError):
-            pass
-
-    logger.info(
-        "Checking if project has repositories connected",
-        extra={"org_id": organization.id, "project_id": project.id, "has_repos": has_repos},
-    )
-
-    cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
-    return has_repos
-
-
-def bulk_get_project_preferences(
-    organization_id: int, project_ids: list[int]
-) -> dict[str, dict | None]:
-    """Bulk fetch Seer project preferences. Returns dict mapping project ID (string) to preference dict."""
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_bulk_get_project_preferences_request(
-        BulkGetProjectPreferencesRequest(organization_id=organization_id, project_ids=project_ids),
-        timeout=10,
-        viewer_context=viewer_context,
-    )
-
-    if response.status >= 400:
-        raise SeerApiError(response.data.decode("utf-8"), response.status)
-
-    result = orjson.loads(response.data)
-    return result.get("preferences", {})
+def has_project_connected_repos(organization: Organization, project: Project) -> bool:
+    """Check if a project has connected repositories for Seer automation."""
+    return SeerProjectRepository.objects.filter(
+        project=project,
+        project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
+    ).exists()
 
 
 def bulk_set_project_preferences(organization_id: int, preferences: list[dict]) -> None:

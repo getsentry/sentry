@@ -151,10 +151,26 @@ class CrossEventSerializer(serializers.Serializer):
         help_text="The search query for this cross-event entry.",
     )
     type = serializers.ChoiceField(
-        choices=["spans", "logs"],
+        choices=["spans", "logs", "metrics"],
         required=True,
         help_text="The event type this cross-event query targets.",
     )
+    metric = MetricSerializer(
+        required=False,
+        allow_null=True,
+        help_text="The metric configuration (only used when type is metrics).",
+    )
+
+    def validate(self, data):
+        if data.get("type") == "metrics" and not data.get("metric"):
+            raise serializers.ValidationError(
+                "Metric field is required for metrics cross-event entries"
+            )
+        if data.get("type") != "metrics" and data.get("metric"):
+            raise serializers.ValidationError(
+                "Metric field is only allowed for metrics cross-event entries"
+            )
+        return data
 
 
 class ExploreSavedQuerySerializer(serializers.Serializer):

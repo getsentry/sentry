@@ -1,101 +1,141 @@
-import importlib
-
-from django.apps import apps as global_apps
+from django.db import router
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
+from sentry.silo.safety import unguarded_write
+from sentry.testutils.cases import TestMigrations
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
-migration = importlib.import_module("sentry.migrations.1072_backfill_scm_integration_config")
 
+class BackfillScmIntegrationConfigTest(TestMigrations):
+    migrate_from = "1071_add_broadcast_sync_locked"
+    migrate_to = "1072_backfill_scm_integration_config"
 
-class BackfillScmIntegrationConfigTest(TestCase):
-    def test_backfill(self) -> None:
-        github = self.create_integration(
-            organization=self.organization, provider="github", external_id="gh-1"
-        )
-        gitlab = self.create_integration(
-            organization=self.organization, provider="gitlab", external_id="gl-1"
-        )
-        with assume_test_silo_mode(SiloMode.CELL):
-            OrganizationOption.objects.set_value(
-                organization=self.organization, key="sentry:github_pr_bot", value=True
-            )
-            OrganizationOption.objects.set_value(
-                organization=self.organization, key="sentry:github_nudge_invite", value=False
-            )
-            OrganizationOption.objects.set_value(
-                organization=self.organization, key="sentry:gitlab_pr_bot", value=True
-            )
+    def setup_before_migration(self, apps):
+        Integration = apps.get_model("sentry", "Integration")
+        OrganizationIntegration = apps.get_model("sentry", "OrganizationIntegration")
+        OrganizationOption = apps.get_model("sentry", "OrganizationOption")
 
-        other_org = self.create_organization()
-        preset_github = self.create_integration(
-            organization=other_org,
-            provider="github",
-            external_id="gh-preset",
-            oi_params={"config": {"pr_comments": False, "other_key": "kept"}},
-        )
-        with assume_test_silo_mode(SiloMode.CELL):
-            OrganizationOption.objects.set_value(
-                organization=other_org, key="sentry:github_pr_bot", value=True
+        with (
+            assume_test_silo_mode(SiloMode.MONOLITH),
+            unguarded_write(using=router.db_for_write(OrganizationIntegration)),
+        ):
+            true_org = self.create_organization()
+            gh = Integration.objects.create(provider="github", external_id="gh-true", name="gh-t")
+            gl = Integration.objects.create(provider="gitlab", external_id="gl-true", name="gl-t")
+            self.true_gh_oi = OrganizationIntegration.objects.create(
+                organization_id=true_org.id,
+                integration_id=gh.id,
+                status=ObjectStatus.ACTIVE,
+                config={},
             )
-            OrganizationOption.objects.set_value(
-                organization=other_org, key="sentry:github_nudge_invite", value=True
+            self.true_gl_oi = OrganizationIntegration.objects.create(
+                organization_id=true_org.id,
+                integration_id=gl.id,
+                status=ObjectStatus.ACTIVE,
+                config={},
             )
-
-        no_option_org = self.create_organization()
-        untouched_github = self.create_integration(
-            organization=no_option_org, provider="github", external_id="gh-nooptions"
-        )
-
-        disabled_org = self.create_organization()
-        disabled_github = self.create_integration(
-            organization=disabled_org,
-            provider="github",
-            external_id="gh-disabled",
-            oi_params={"status": ObjectStatus.DISABLED},
-        )
-        with assume_test_silo_mode(SiloMode.CELL):
-            OrganizationOption.objects.set_value(
-                organization=disabled_org, key="sentry:github_pr_bot", value=True
+            OrganizationOption.objects.create(
+                organization_id=true_org.id, key="sentry:github_pr_bot", value=True
+            )
+            OrganizationOption.objects.create(
+                organization_id=true_org.id, key="sentry:github_nudge_invite", value=True
+            )
+            OrganizationOption.objects.create(
+                organization_id=true_org.id, key="sentry:gitlab_pr_bot", value=True
             )
 
-        non_scm_org = self.create_organization()
-        slack = self.create_integration(
-            organization=non_scm_org, provider="slack", external_id="slack-1"
-        )
+            # Org with explicit false value — should NOT be backfilled (new
+            # read path treats missing key as false).
+            false_org = self.create_organization()
+            false_gh = Integration.objects.create(
+                provider="github", external_id="gh-false", name="gh-f"
+            )
+            self.false_gh_oi = OrganizationIntegration.objects.create(
+                organization_id=false_org.id,
+                integration_id=false_gh.id,
+                status=ObjectStatus.ACTIVE,
+                config={},
+            )
+            OrganizationOption.objects.create(
+                organization_id=false_org.id, key="sentry:github_pr_bot", value=False
+            )
 
-        with assume_test_silo_mode(SiloMode.MONOLITH):
-            migration.backfill_scm_integration_config(global_apps, None)
+            # Mixed org — github_pr_bot=true, github_nudge_invite=false. Only
+            # the true key should populate; the false one stays absent.
+            mixed_org = self.create_organization()
+            mixed_gh = Integration.objects.create(
+                provider="github", external_id="gh-mixed", name="gh-m"
+            )
+            self.mixed_gh_oi = OrganizationIntegration.objects.create(
+                organization_id=mixed_org.id,
+                integration_id=mixed_gh.id,
+                status=ObjectStatus.ACTIVE,
+                config={},
+            )
+            OrganizationOption.objects.create(
+                organization_id=mixed_org.id, key="sentry:github_pr_bot", value=True
+            )
+            OrganizationOption.objects.create(
+                organization_id=mixed_org.id, key="sentry:github_nudge_invite", value=False
+            )
+
+            # OI with a preset config — existing keys are not overwritten;
+            # unrelated keys are preserved.
+            preset_org = self.create_organization()
+            preset_gh = Integration.objects.create(
+                provider="github", external_id="gh-preset", name="gh-p"
+            )
+            self.preset_oi = OrganizationIntegration.objects.create(
+                organization_id=preset_org.id,
+                integration_id=preset_gh.id,
+                status=ObjectStatus.ACTIVE,
+                config={"pr_comments": False, "other_key": "kept"},
+            )
+            OrganizationOption.objects.create(
+                organization_id=preset_org.id, key="sentry:github_pr_bot", value=True
+            )
+            OrganizationOption.objects.create(
+                organization_id=preset_org.id, key="sentry:github_nudge_invite", value=True
+            )
+
+            # Disabled OI — skipped.
+            disabled_org = self.create_organization()
+            disabled_gh = Integration.objects.create(
+                provider="github", external_id="gh-disabled", name="gh-d"
+            )
+            self.disabled_oi = OrganizationIntegration.objects.create(
+                organization_id=disabled_org.id,
+                integration_id=disabled_gh.id,
+                status=ObjectStatus.DISABLED,
+                config={},
+            )
+            OrganizationOption.objects.create(
+                organization_id=disabled_org.id, key="sentry:github_pr_bot", value=True
+            )
+
+    def test(self) -> None:
+        # The migration only emits cell outboxes; the receiver in
+        # sentry.receivers.outbox.cell does the actual fan-out, so drain
+        # before asserting.
+        with outbox_runner():
+            pass
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            github_oi = OrganizationIntegration.objects.get(
-                integration_id=github.id, organization_id=self.organization.id
-            )
-            gitlab_oi = OrganizationIntegration.objects.get(
-                integration_id=gitlab.id, organization_id=self.organization.id
-            )
-            preset_oi = OrganizationIntegration.objects.get(
-                integration_id=preset_github.id, organization_id=other_org.id
-            )
-            untouched_oi = OrganizationIntegration.objects.get(
-                integration_id=untouched_github.id, organization_id=no_option_org.id
-            )
-            disabled_oi = OrganizationIntegration.objects.get(
-                integration_id=disabled_github.id, organization_id=disabled_org.id
-            )
-            slack_oi = OrganizationIntegration.objects.get(
-                integration_id=slack.id, organization_id=non_scm_org.id
-            )
+            true_gh = OrganizationIntegration.objects.get(id=self.true_gh_oi.id).config
+            true_gl = OrganizationIntegration.objects.get(id=self.true_gl_oi.id).config
+            false_gh = OrganizationIntegration.objects.get(id=self.false_gh_oi.id).config
+            mixed_gh = OrganizationIntegration.objects.get(id=self.mixed_gh_oi.id).config
+            preset = OrganizationIntegration.objects.get(id=self.preset_oi.id).config
+            disabled = OrganizationIntegration.objects.get(id=self.disabled_oi.id).config
 
-        assert github_oi.config == {"pr_comments": True, "nudge_invite": False}
-        assert gitlab_oi.config == {"pr_comments": True}
-        assert preset_oi.config["pr_comments"] is False
-        assert preset_oi.config["nudge_invite"] is True
-        assert preset_oi.config["other_key"] == "kept"
-        assert untouched_oi.config == {}
-        assert disabled_oi.config == {}
-        assert slack_oi.config == {}
+        assert true_gh == {"pr_comments": True, "nudge_invite": True}
+        assert true_gl == {"pr_comments": True}
+        assert false_gh == {}
+        assert mixed_gh == {"pr_comments": True}
+        assert preset["pr_comments"] is False
+        assert preset["nudge_invite"] is True
+        assert preset["other_key"] == "kept"
+        assert disabled == {}

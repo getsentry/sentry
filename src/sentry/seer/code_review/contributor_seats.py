@@ -9,11 +9,7 @@ from __future__ import annotations
 
 import logging
 
-import sentry_sdk
 from django.db import router, transaction
-from orjson import JSONDecodeError
-from pydantic import ValidationError
-from urllib3.exceptions import HTTPError
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
@@ -22,12 +18,9 @@ from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributors,
 )
-from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
-from sentry.seer.autofix.utils import bulk_get_project_preferences, resolve_repository_ids
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.seer_api_models import SeerApiError, SeerProjectPreference
 from sentry.tasks.organization_contributors import assign_seat_to_organization_contributor
 
 logger = logging.getLogger(__name__)
@@ -47,44 +40,11 @@ def _is_autofix_enabled_for_repo(organization: Organization, repository_id: int)
     this repository, ie, if any project has this repository configured
     in Seer preferences.
     """
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return SeerProjectRepository.objects.filter(
-            repository_id=repository_id,
-            project__organization_id=organization.id,
-            project__status=ObjectStatus.ACTIVE,
-        ).exists()
-
-    project_ids = list(
-        Project.objects.filter(
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-        ).values_list("id", flat=True)
-    )
-
-    if not project_ids:
-        return False
-
-    try:
-        raw_preferences = bulk_get_project_preferences(organization.id, project_ids)
-        validated_preferences = [
-            SeerProjectPreference.validate(pref) for pref in raw_preferences.values() if pref
-        ]
-        resolved_preferences = resolve_repository_ids(organization.id, validated_preferences)
-    except (SeerApiError, HTTPError):
-        logger.warning(
-            "seer.contributor_seats.autofix_check_error",
-            extra={"organization_id": organization.id, "repository_id": repository_id},
-        )
-        return False
-    except (JSONDecodeError, ValidationError, Exception):
-        sentry_sdk.capture_exception()
-        return False
-
-    return any(
-        repo.repository_id == repository_id
-        for pref in resolved_preferences
-        for repo in pref.repositories
-    )
+    return SeerProjectRepository.objects.filter(
+        repository_id=repository_id,
+        project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
+    ).exists()
 
 
 def _has_code_review_or_autofix_enabled(organization: Organization, repository_id: int) -> bool:

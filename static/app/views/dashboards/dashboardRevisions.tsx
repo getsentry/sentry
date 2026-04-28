@@ -1,25 +1,32 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons/iconClock';
 import {t} from 'sentry/locale';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisions} from './hooks/useDashboardRevisions';
+import {RevisionListItem} from './revisionListItem';
 import type {DashboardDetails} from './types';
+
+// --- Components ---
+
+const NEWEST_VERSION_ID = '__current__';
+const MAX_DISPLAYED_REVISIONS = 10;
 
 interface DashboardRevisionsButtonProps {
   dashboard: DashboardDetails;
@@ -35,7 +42,21 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
   }
 
   const handleClick = () => {
-    openModal(props => <DashboardRevisionsModal {...props} dashboardId={dashboard.id} />);
+    openModal(
+      props => (
+        <DashboardRevisionsModal
+          {...props}
+          dashboard={dashboard}
+          dashboardCreatedBy={dashboard.createdBy}
+        />
+      ),
+      {
+        modalCss: css`
+          max-width: 720px;
+          width: 90vw;
+        `,
+      }
+    );
   };
 
   return (
@@ -53,66 +74,117 @@ export function DashboardRevisionsButton({dashboard}: DashboardRevisionsButtonPr
 function DashboardRevisionsModal({
   Header,
   Body,
-  dashboardId,
+  Footer,
+  closeModal,
+  dashboard,
+  dashboardCreatedBy,
 }: ModalRenderProps & {
-  dashboardId: string;
+  dashboard: DashboardDetails;
+  dashboardCreatedBy: User | undefined;
 }) {
+  const dashboardId = dashboard.id;
+  const [selectedRevisionId, setSelectedRevisionId] = useState<string>(NEWEST_VERSION_ID);
   const {data: revisions, isPending, isError} = useDashboardRevisions({dashboardId});
+  const displayedRevisions = revisions?.slice(0, MAX_DISPLAYED_REVISIONS) ?? [];
+  const isNewestVersionSelected = selectedRevisionId === NEWEST_VERSION_ID;
+  const selectedRevision = isNewestVersionSelected
+    ? null
+    : (displayedRevisions.find(r => r.id === selectedRevisionId) ?? null);
+
+  const api = useApi();
+  const organization = useOrganization();
+  const {
+    mutate: restore,
+    isPending: isRestoring,
+    isError: isRestoreError,
+  } = useMutation({
+    mutationFn: () => {
+      if (!selectedRevision) {
+        return Promise.reject(new Error('No revision selected'));
+      }
+      return api.requestPromise(
+        `/organizations/${organization.slug}/dashboards/${dashboardId}/revisions/${selectedRevision.id}/restore/`,
+        {method: 'POST'}
+      );
+    },
+    onSuccess: () => {
+      closeModal();
+      testableWindowLocation.assign(window.location.pathname);
+    },
+  });
 
   return (
     <Fragment>
-      <Header closeButton>{t('Dashboard Revisions')}</Header>
+      <Header closeButton>
+        <Heading as="h4">{t('Edit History')}</Heading>
+      </Header>
       <Body>
         {isPending ? (
           <LoadingIndicator />
         ) : isError ? (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
-        ) : revisions?.length ? (
-          <RevisionList revisions={revisions} />
+        ) : displayedRevisions.length ? (
+          <Flex direction="column" gap="md">
+            {isRestoreError && (
+              <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
+            )}
+            <Flex
+              direction="column"
+              style={{maxHeight: 'min(560px, calc(100vh - 350px))'}}
+              overflowY="auto"
+            >
+              <RevisionListItem
+                isCurrentVersion
+                isSelected={isNewestVersionSelected}
+                onSelect={() => setSelectedRevisionId(NEWEST_VERSION_ID)}
+                revisionSource={revisions?.[0]?.source ?? 'edit'}
+                createdBy={dashboardCreatedBy ?? null}
+                dateCreated={null}
+                dashboardId={dashboardId}
+                baseRevisionId={displayedRevisions[0]?.id ?? null}
+                snapshotOverride={dashboard}
+              />
+              {displayedRevisions.map((revision, index) => (
+                <RevisionListItem
+                  key={revision.id}
+                  isSelected={revision.id === selectedRevisionId}
+                  onSelect={() => setSelectedRevisionId(revision.id)}
+                  // Each revision is saved before the operation that produces it,
+                  // so the label for this entry comes from the following revision's source.
+                  revisionSource={revisions?.[index + 1]?.source ?? 'edit'}
+                  createdBy={revision.createdBy}
+                  dateCreated={revision.dateCreated}
+                  dashboardId={dashboardId}
+                  revisionId={revision.id}
+                  baseRevisionId={revisions?.[index + 1]?.id ?? null}
+                />
+              ))}
+            </Flex>
+          </Flex>
         ) : (
           <Flex align="center" justify="center" padding="xl">
             <Text variant="muted">{t('No revisions found.')}</Text>
           </Flex>
         )}
       </Body>
+      {displayedRevisions.length ? (
+        <Footer>
+          <Flex gap="sm">
+            <Button size="sm" onClick={closeModal}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              priority="primary"
+              size="sm"
+              onClick={() => restore()}
+              busy={isRestoring}
+              disabled={isNewestVersionSelected}
+            >
+              {t('Revert to Selection')}
+            </Button>
+          </Flex>
+        </Footer>
+      ) : null}
     </Fragment>
   );
 }
-
-function RevisionList({revisions}: {revisions: DashboardRevision[]}) {
-  return (
-    <RevisionsTable>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
-      {revisions.map(revision => (
-        <SimpleTable.Row key={revision.id}>
-          <SimpleTable.RowCell>
-            <Flex align="center" gap="sm">
-              <Text size="sm">{revision.title}</Text>
-              {revision.source === 'pre-restore' && (
-                <Tag variant="muted">{t('pre-restore')}</Tag>
-              )}
-            </Flex>
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
-            <Text size="sm" variant="muted">
-              {revision.createdBy
-                ? revision.createdBy.name || revision.createdBy.email
-                : t('Unknown')}
-            </Text>
-          </SimpleTable.RowCell>
-          <SimpleTable.RowCell>
-            <TimeSince date={revision.dateCreated} />
-          </SimpleTable.RowCell>
-        </SimpleTable.Row>
-      ))}
-    </RevisionsTable>
-  );
-}
-
-const RevisionsTable = styled(SimpleTable)`
-  grid-template-columns: minmax(200px, 2fr) minmax(150px, 1fr) minmax(120px, auto);
-`;

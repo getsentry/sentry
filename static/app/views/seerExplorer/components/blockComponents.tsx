@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -56,6 +57,7 @@ interface BlockProps {
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
+  showThinking?: boolean;
 }
 
 function hasValidContent(content: string): boolean {
@@ -151,6 +153,7 @@ export function BlockComponent({
   onNavigate,
   onRegisterEnterHandler,
   ref,
+  showThinking = false,
 }: BlockProps) {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
@@ -160,9 +163,18 @@ export function BlockComponent({
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
+  const hasThinkingContentToShow =
+    showThinking && hasValidContent(block.message.thinking_content ?? '');
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
+  );
+  const processedThinkingContent = useMemo(
+    () =>
+      hasThinkingContentToShow
+        ? postProcessLLMMarkdown(block.message.thinking_content ?? '')
+        : '',
+    [block.message.thinking_content, hasThinkingContentToShow]
   );
 
   // State to track selected tool link (for navigation)
@@ -392,7 +404,21 @@ export function BlockComponent({
           </Flex>
         ) : (
           <Flex align="start" width="100%">
-            <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
+            <BlockContentWrapper
+              hasOnlyTools={!hasContent && !hasThinkingContentToShow && hasTools}
+            >
+              {hasThinkingContentToShow && (
+                <Disclosure>
+                  <Disclosure.Title>
+                    <Text size="xs" variant="muted" monospace>
+                      {t('Thinking')}
+                    </Text>
+                  </Disclosure.Title>
+                  <Disclosure.Content>
+                    <MarkedText text={processedThinkingContent} />
+                  </Disclosure.Content>
+                </Disclosure>
+              )}
               {hasContent && (
                 <BlockContent
                   text={processedContent}
@@ -427,13 +453,11 @@ export function BlockComponent({
                     const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
                     const hasLink = correspondingLinkIndex !== undefined;
                     const toolLinkParams = toolLinkByCallId.get(toolCall.id);
-                    const isFailed = Boolean(
-                      toolLinkParams?.is_error || toolLinkParams?.empty_results
-                    );
+                    const isFailed = Boolean(toolLinkParams?.is_error);
+                    const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isHighlighted =
                       isHovered &&
-                      hasValidLinks &&
-                      correspondingLinkIndex !== undefined &&
+                      hasLink &&
                       correspondingLinkIndex === selectedLinkIndex;
                     const isTodoWriteCall = toolCall.function === 'todo_write';
                     const showTodoList =
@@ -441,6 +465,26 @@ export function BlockComponent({
                       isLatestTodoBlock &&
                       block.todos &&
                       block.todos.length > 0;
+
+                    const toolCallText = (
+                      <Tooltip
+                        title={
+                          isFailed
+                            ? t('Tool call failed')
+                            : t('Tool call returned empty results')
+                        }
+                        disabled={!isFailed && !isEmptyResults}
+                      >
+                        <ToolCallText
+                          size="xs"
+                          variant="muted"
+                          monospace
+                          isHighlighted={isHighlighted}
+                        >
+                          {toolString}
+                        </ToolCallText>
+                      </Tooltip>
+                    );
 
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
@@ -458,46 +502,22 @@ export function BlockComponent({
                               }
                               isHighlighted={isHighlighted}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={isHighlighted}
-                              >
-                                {toolString}
-                              </ToolCallText>
+                              {toolCallText}
                               <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
-                                {isFailed ? (
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                ) : (
-                                  <ToolCallLinkIcon
-                                    size="xs"
-                                    isHighlighted={isHighlighted}
-                                  />
-                                )}
+                                <ToolCallLinkIcon
+                                  size="xs"
+                                  isHighlighted={isHighlighted}
+                                />
                               </ToolCallLinkIconWrapper>
                             </ToolCallLink>
                           ) : (
                             <ToolCallPlainRow
                               onMouseEnter={() => setSelectedLinkIndex(-1)}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={false}
-                              >
-                                {toolString}
-                              </ToolCallText>
-                              {isFailed && (
-                                <ToolCallBrokenLinkIconWrapper>
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                </ToolCallBrokenLinkIconWrapper>
-                              )}
+                              {toolCallText}
+                              <ToolCallBrokenLinkIconWrapper>
+                                <ToolCallBrokenLinkIcon size="xs" />
+                              </ToolCallBrokenLinkIconWrapper>
                             </ToolCallPlainRow>
                           )}
                         </ToolCallTextContainer>
@@ -630,7 +650,7 @@ const BlockContent = styled(MarkedText)`
   padding-bottom: 0;
 
   code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
+    ${p => inlineCodeStyles(p.theme, {variant: 'neutral'})};
   }
 
   p,

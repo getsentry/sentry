@@ -33,8 +33,10 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
+  initialQuery,
 }: {
   getPageReferrer: () => string;
+  initialQuery?: string;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -43,6 +45,7 @@ export function ExplorerDrawerContent({
 
   const [inputValue, setInputValue] = useState('');
   const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
+  const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -86,6 +89,20 @@ export function ExplorerDrawerContent({
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  // Auto-submit the initial query forwarded from the command palette, but only
+  // if the session is still empty (don't clobber an active run). Tracking the
+  // last submitted query string (not just a boolean) lets a new query trigger
+  // a fresh submission when the drawer is reopened with a different query.
+  const lastAutoSubmittedQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    const query = initialQuery?.trim();
+    if (!query || !isEmptyState || lastAutoSubmittedQueryRef.current === query) {
+      return;
+    }
+    lastAutoSubmittedQueryRef.current = query;
+    sendMessage(query);
+  }, [initialQuery, isEmptyState, sendMessage]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
@@ -352,6 +369,11 @@ export function ExplorerDrawerContent({
         showCodeModeToggle={
           !!organization?.features.includes('seer-explorer-code-mode-tools')
         }
+        showThinking={showThinking}
+        onShowThinkingToggle={() => setShowThinking(v => !v)}
+        showThinkingToggle={
+          !!organization?.features.includes('seer-explorer-thinking-blocks')
+        }
       />
       {menu}
       <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
@@ -379,6 +401,7 @@ export function ExplorerDrawerContent({
                 isAwaitingQuestion={isQuestionPending}
                 isLatestTodoBlock={index === latestTodoBlockIndex}
                 readOnly={readOnly}
+                showThinking={showThinking}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
                 onRegisterEnterHandler={handler => {
                   blockEnterHandlers.current.set(index, handler);
