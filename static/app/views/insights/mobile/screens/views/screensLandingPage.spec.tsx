@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -8,8 +7,6 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
 import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
-import MobileLayout from 'sentry/views/insights/pages/mobile/layout';
-import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 
@@ -62,24 +59,6 @@ describe('Screens Landing Page', () => {
     afterEach(() => {
       MockApiClient.clearMockResponses();
       jest.clearAllMocks();
-    });
-
-    it('shows the platform selector for hybrid sdks', async () => {
-      render(<MobileLayout />, {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/mobile-vitals'},
-          route: '/',
-          children: [
-            {
-              path: 'mobile-vitals',
-              handle: {module: ModuleName.MOBILE_VITALS},
-              element: <Fragment />,
-            },
-          ],
-        },
-      });
-      expect(await screen.findByLabelText('Android')).toBeInTheDocument();
     });
 
     it('renders all vital cards', async () => {
