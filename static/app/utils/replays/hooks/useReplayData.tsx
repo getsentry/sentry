@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useFetchParallelPages} from 'sentry/utils/api/useFetchParallelPages';
 import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
@@ -276,11 +277,14 @@ export function useReplayData({
     const eventsUrl = `/organizations/${orgSlug}/events/`;
     queryClient.invalidateQueries({
       predicate: query => {
-        const [url, options] = query.queryKey as [
-          string,
-          {query?: {referrer?: string}} | undefined,
-        ];
-        return url === eventsUrl && options?.query?.referrer === 'replay_details';
+        const queryKey = safeParseQueryKey(query.queryKey);
+        if (!queryKey) {
+          return false;
+        }
+        return (
+          queryKey.url === eventsUrl &&
+          queryKey.options?.query?.referrer === 'replay_details'
+        );
       },
     });
   }, [orgSlug, replayId, projectSlug, queryClient]);

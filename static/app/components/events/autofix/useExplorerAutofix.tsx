@@ -1,5 +1,5 @@
 import {useCallback, useRef, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {
   addErrorMessage,
@@ -18,8 +18,8 @@ import {
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -147,12 +147,16 @@ interface ExplorerAutofixResponse {
 const POLL_INTERVAL = 500;
 const IDLE_POLL_INTERVAL = 2500; // Slower polling when not actively processing
 
-const makeExplorerAutofixQueryKey = (orgSlug: string, groupId: string): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-    path: {organizationIdOrSlug: orgSlug, issueId: groupId},
-  }),
-  {query: {mode: 'explorer'}},
-];
+function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
+  return apiOptions.as<ExplorerAutofixResponse>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
+    {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+      query: {mode: 'explorer'},
+      staleTime: 0,
+    }
+  );
+}
 
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
@@ -533,23 +537,17 @@ export function useExplorerAutofix(
     ]);
   }, []);
 
-  const {data: apiData, isPending} = useApiQuery<ExplorerAutofixResponse>(
-    makeExplorerAutofixQueryKey(orgSlug, groupId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled,
-      refetchInterval: query => {
-        if (!enabled) {
-          return false;
-        }
-        return getPollInterval(
-          query.state.data?.[0]?.autofix || null,
-          waitingForResponse
-        );
-      },
-    }
-  );
+  const {data: apiData, isPending} = useQuery({
+    ...explorerAutofixApiOptions(orgSlug, groupId),
+    retry: false,
+    enabled,
+    refetchInterval: query => {
+      if (!enabled) {
+        return false;
+      }
+      return getPollInterval(query.state.data?.json?.autofix || null, waitingForResponse);
+    },
+  });
 
   const runState = apiData?.autofix ?? null;
 
@@ -584,16 +582,20 @@ export function useExplorerAutofix(
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
 
         return response.run_id as number;
       } catch (e: any) {
         setWaitingForResponse(false);
-        setApiQueryData<ExplorerAutofixResponse>(
-          queryClient,
-          makeExplorerAutofixQueryKey(orgSlug, groupId),
-          makeErrorExplorerAutofixData(e?.responseJSON?.detail ?? 'An error occurred')
+        queryClient.setQueryData(
+          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+          prev => ({
+            headers: prev?.headers ?? {},
+            json: makeErrorExplorerAutofixData(
+              e?.responseJSON?.detail ?? 'An error occurred'
+            ),
+          })
         );
         throw e;
       }
@@ -630,7 +632,7 @@ export function useExplorerAutofix(
 
         // Invalidate to trigger polling for status updates
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
         addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
@@ -646,10 +648,9 @@ export function useExplorerAutofix(
   const reset = useCallback(() => {
     setWaitingForResponse(false);
     setWaitingForCodingAgent(false);
-    setApiQueryData<ExplorerAutofixResponse>(
-      queryClient,
-      makeExplorerAutofixQueryKey(orgSlug, groupId),
-      makeInitialExplorerAutofixData()
+    queryClient.setQueryData(
+      explorerAutofixApiOptions(orgSlug, groupId).queryKey,
+      prev => ({headers: prev?.headers ?? {}, json: makeInitialExplorerAutofixData()})
     );
   }, [queryClient, orgSlug, groupId]);
 
@@ -749,7 +750,7 @@ export function useExplorerAutofix(
 
         // Invalidate to fetch fresh data
         queryClient.invalidateQueries({
-          queryKey: makeExplorerAutofixQueryKey(orgSlug, groupId),
+          queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
         if (needsGitHubAuth(e)) {
