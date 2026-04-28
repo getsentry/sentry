@@ -148,9 +148,7 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{ArrowUp}{Enter}');
 
     expect(closeSpy).not.toHaveBeenCalled();
-    expect(
-      await screen.findByRole('option', {name: 'Child Action'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
   });
 
   it('ArrowDown from the last selectable item wraps to the first item', async () => {

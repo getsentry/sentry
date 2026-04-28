@@ -204,12 +204,7 @@ export function ListBox<T extends ObjectLike>({
     if (focusedIndex !== -1) {
       virtualizer.scrollToIndex(focusedIndex);
     }
-  }, [
-    virtualized,
-    listItems,
-    listState.selectionManager.focusedKey,
-    virtualizer,
-  ]);
+  }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
 
   const refs = useMemo(() => {
     const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
