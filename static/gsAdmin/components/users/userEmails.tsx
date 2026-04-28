@@ -28,12 +28,7 @@ export function UserEmails({Panel, user}: Props) {
                 <strong>{data.email}</strong>
                 {data.email === primary && <small> — primary </small>}
               </td>
-              <td>
-                {
-                  // @ts-expect-error TS(2339): Property 'is_verified' does not exist on type '{ e... Remove this comment to see the full error message
-                  data.is_verified ? 'Verified' : 'Unverified'
-                }
-              </td>
+              <td>{data.is_verified ? 'Verified' : 'Unverified'}</td>
             </tr>
           ))}
         </tbody>

@@ -20,6 +20,7 @@ import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplaySummaryContextProvider} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
+import type {ReplayListQueryReferrer} from 'sentry/views/explore/replays/types';
 
 interface Props {
   children: ReactNode;
@@ -73,7 +74,7 @@ export function ReplayDetailsProviders({children, replay, projectSlug}: Props) {
   const replayListOptions = replayListApiOptions({
     options: {query},
     organization,
-    queryReferrer: query.referrer || 'replayList',
+    queryReferrer: (query.referrer as ReplayListQueryReferrer) || 'replayList',
   });
   const {data, isLoading} = useQuery({
     ...replayListOptions,
