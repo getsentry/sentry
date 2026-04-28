@@ -138,7 +138,7 @@ describe('CommandPalette', () => {
 
   it('ArrowUp from the first item wraps to the last selectable item', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
-    const {router} = render(
+    render(
       <GlobalActionsComponent>
         <AllActions />
       </GlobalActionsComponent>

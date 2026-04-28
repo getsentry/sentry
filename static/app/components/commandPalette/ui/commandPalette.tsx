@@ -350,6 +350,74 @@ export function CommandPalette({
     ...collectionProps,
     onKeyDown: undefined,
   };
+  const inputCollectionProps = mergeProps(mergedCollectionProps, {
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      dispatch({type: 'set query', query: e.target.value});
+      treeState.selectionManager.setFocusedKey(null);
+      if (resultsListRef.current) {
+        resultsListRef.current.scrollTop = 0;
+      }
+    },
+    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (
+        treeState.selectionManager.focusedKey === null &&
+        (e.key === 'ArrowDown' || e.key === 'ArrowUp')
+      ) {
+        const anchorItem = e.key === 'ArrowDown' ? firstFocusableKey : lastFocusableKey;
+        if (anchorItem) {
+          treeState.selectionManager.setFocused(true);
+          treeState.selectionManager.setFocusedKey(anchorItem.key);
+          e.preventDefault();
+          return;
+        }
+      }
+
+      collectionKeyDown?.(e);
+
+      if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
+        e.preventDefault();
+        dispatch({type: 'trigger action'});
+        closeModal?.();
+        openSeerExplorer({
+          initialQuery: state.query.trim() || undefined,
+        });
+        return;
+      }
+
+      if (e.key === 'Backspace' && state.query.length === 0) {
+        if (state.action) {
+          animatePop();
+          dispatch({type: 'pop action'});
+          e.preventDefault();
+          return;
+        }
+      }
+
+      if (e.key === 'Escape') {
+        // If the user has typed something into the input and pressed escape,
+        // then clear the input. This falls back nicely through actions and allows
+        // users clear, walk back and eventually close the input.
+        if (state.query.length > 0) {
+          dispatch({type: 'set query', query: ''});
+          e.preventDefault();
+          return;
+        }
+        if (state.action) {
+          animatePop();
+          dispatch({type: 'pop action'});
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      }
+
+      if (e.key === 'Enter') {
+        onActionSelection(treeState.selectionManager.focusedKey, {
+          modifierKeys: {shiftKey: e.shiftKey},
+        });
+      }
+    },
+  }) as React.ComponentProps<typeof StyledInputGroupInput>;
 
   const onActionSelection = useCallback(
     (
@@ -522,76 +590,7 @@ export function CommandPalette({
                       ? t('Search inside %s...', state.action.value.label)
                       : t('Search for commands...'))
                   }
-                  {...mergeProps(mergedCollectionProps, {
-                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                      dispatch({type: 'set query', query: e.target.value});
-                      treeState.selectionManager.setFocusedKey(null);
-                      if (resultsListRef.current) {
-                        resultsListRef.current.scrollTop = 0;
-                      }
-                    },
-                    onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (
-                        treeState.selectionManager.focusedKey === null &&
-                        (e.key === 'ArrowDown' || e.key === 'ArrowUp')
-                      ) {
-                        const anchorItem =
-                          e.key === 'ArrowDown' ? firstFocusableKey : lastFocusableKey;
-                        if (anchorItem) {
-                          treeState.selectionManager.setFocused(true);
-                          treeState.selectionManager.setFocusedKey(anchorItem.key);
-                          e.preventDefault();
-                          return;
-                        }
-                      }
-
-                      collectionKeyDown?.(e);
-
-                      if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
-                        e.preventDefault();
-                        dispatch({type: 'trigger action'});
-                        closeModal?.();
-                        openSeerExplorer({
-                          initialQuery: state.query.trim() || undefined,
-                        });
-                        return;
-                      }
-
-                      if (e.key === 'Backspace' && state.query.length === 0) {
-                        if (state.action) {
-                          animatePop();
-                          dispatch({type: 'pop action'});
-                          e.preventDefault();
-                          return;
-                        }
-                      }
-
-                      if (e.key === 'Escape') {
-                        // If the user has typed something into the input and pressed escape,
-                        // then clear the input. This falls back nicely through actions and allows
-                        // users clear, walk back and eventually close the input.
-                        if (state.query.length > 0) {
-                          dispatch({type: 'set query', query: ''});
-                          e.preventDefault();
-                          return;
-                        }
-                        if (state.action) {
-                          animatePop();
-                          dispatch({type: 'pop action'});
-                          e.preventDefault();
-                          e.stopPropagation();
-                          return;
-                        }
-                      }
-
-                      if (e.key === 'Enter') {
-                        onActionSelection(treeState.selectionManager.focusedKey, {
-                          modifierKeys: {shiftKey: e.shiftKey},
-                        });
-                        return;
-                      }
-                    },
-                  })}
+                  {...inputCollectionProps}
                 />
                 <InputGroup.TrailingItems>
                   {seerExplorerEnabled ? (
