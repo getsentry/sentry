@@ -137,7 +137,7 @@ function IssueListOverview({
   const urlParams = useParams<{viewId?: string}>();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
-    typeof realtimeActiveCookie === 'undefined' || urlParams.viewId
+    realtimeActiveCookie === undefined || urlParams.viewId
       ? false
       : realtimeActiveCookie === 'true'
   );
@@ -433,11 +433,10 @@ function IssueListOverview({
         }
 
         const hits = resp.getResponseHeader('X-Hits');
-        const newQueryCount =
-          typeof hits !== 'undefined' && hits ? parseInt(hits, 10) || 0 : 0;
+        const newQueryCount = hits !== undefined && hits ? parseInt(hits, 10) || 0 : 0;
         const maxHits = resp.getResponseHeader('X-Max-Hits');
         const newQueryMaxCount =
-          typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
+          maxHits !== undefined && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const newPageLinks = resp.getResponseHeader('Link');
 
         setError(null);

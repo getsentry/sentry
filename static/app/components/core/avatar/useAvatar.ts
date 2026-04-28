@@ -88,7 +88,7 @@ function useImageSrc(definition?: ImageDefinition): {
   const {data: avatarHash} = useQuery({
     queryKey: ['gravatar', trimmedGravatarId],
     queryFn: () => {
-      if (!trimmedGravatarId || typeof window.crypto?.subtle?.digest === 'undefined') {
+      if (!trimmedGravatarId || window.crypto?.subtle?.digest === undefined) {
         return null;
       }
       return hashGravatarId(trimmedGravatarId).catch(err => {
