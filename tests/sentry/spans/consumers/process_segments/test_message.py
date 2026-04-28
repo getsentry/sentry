@@ -10,6 +10,7 @@ from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimenta
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import _verify_compatibility, process_segment
+from sentry.spans.consumers.process_segments.shim import build_shim_event_data
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
@@ -114,6 +115,17 @@ class TestSpansTask(TestCase):
             assert span["span_id"] == spans[i]["span_id"]
             assert span["op"]
             assert span["hash"]
+
+    def test_build_shim_event_data_supports_legacy_profile_id(self) -> None:
+        segment_span = build_mock_span(project_id=self.project.id, is_segment=True)
+        segment_span["hash"] = "hashed-segment"
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["contexts"]["profile"] == {
+            "profile_id": "dbae2b82559649a1a34a2878134a007b",
+            "type": "profile",
+        }
 
     def test_create_models(self) -> None:
         spans = self.generate_basic_spans()
