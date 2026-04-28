@@ -515,6 +515,7 @@ export function CommandPalette({
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
                         e.preventDefault();
+                        dispatch({type: 'trigger action'});
                         closeModal?.();
                         openSeerExplorer({
                           initialQuery: state.query.trim() || undefined,
