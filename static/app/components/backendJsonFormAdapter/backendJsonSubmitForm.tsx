@@ -1,5 +1,5 @@
 import {useMemo, useRef, useState, type ReactNode, useEffect} from 'react';
-import {queryOptions, type QueryKey, type UseQueryOptions} from '@tanstack/react-query';
+import {queryOptions, type UseQueryOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import type {ButtonProps} from '@sentry/scraps/button';
@@ -27,10 +27,10 @@ import {getDefaultForField, transformChoices} from './utils';
 const API_CLIENT = new Client({baseUrl: '', headers: {}});
 
 type AsyncSelectQueryOptions = UseQueryOptions<
-  ReadonlyArray<SelectValue<string>>,
+  Array<SelectValue<string>>,
   Error,
   ReadonlyArray<SelectValue<string>>,
-  QueryKey
+  Array<string | Record<string, unknown> | undefined>
 >;
 
 type AsyncSelectQueryOptionsFactory = (debouncedInput: string) => AsyncSelectQueryOptions;
