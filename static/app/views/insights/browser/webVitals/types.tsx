@@ -114,11 +114,6 @@ export const DEFAULT_SORT: Sort = {
   field: 'count()',
 };
 
-export const DEFAULT_INDEXED_SORT: Sort = {
-  kind: 'desc',
-  field: 'profile.id',
-};
-
 export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
   SpanFields.INP,
   SpanFields.INP_SCORE,
