@@ -12,6 +12,8 @@ from sentry.db.models.query import in_iexact
 from sentry.search.utils import tokenize_query
 from sentry.users.api.serializers.user import UserSerializer
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
 
 
 @control_silo_endpoint
@@ -22,7 +24,7 @@ class UserIndexEndpoint(Endpoint):
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request) -> Response:
-        queryset = User.objects.distinct()
+        queryset = User.objects.all()
 
         query = request.GET.get("query")
         if query:
@@ -30,11 +32,14 @@ class UserIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     joined = " ".join(value)
+                    email_subquery = UserEmail.objects.filter(email__icontains=joined).values(
+                        "user_id"
+                    )
                     queryset = queryset.filter(
                         Q(name__icontains=joined)
                         | Q(username__icontains=joined)
                         | Q(email__icontains=joined)
-                        | Q(emails__email__icontains=joined)
+                        | Q(id__in=email_subquery)
                     )
                 elif key == "id":
                     valid_ids = []
@@ -60,9 +65,10 @@ class UserIndexEndpoint(Endpoint):
                         else:
                             queryset = queryset.none()
                 elif key == "permission":
-                    queryset = queryset.filter(
-                        userpermission__permission__in=[v.lower() for v in value]
-                    )
+                    perm_subquery = UserPermission.objects.filter(
+                        permission__in=[v.lower() for v in value]
+                    ).values("user_id")
+                    queryset = queryset.filter(id__in=perm_subquery)
                 else:
                     queryset = queryset.none()
 
