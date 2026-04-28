@@ -59,16 +59,16 @@ export const useSeerExplorerDrawer = () => {
 
   const openSeerExplorerDrawer = useCallback(
     (options?: OpenSeerExplorerDrawerOptions) => {
-      if (isDrawerOpenRef.current) {
-        // TODO: runId seeding doesn't work when the drawer is already open.
-        // A hack could be to navigate to the deep link with RUN_ID_QUERY_PARAM set.
-        return;
-      }
-
       const {runId: openRunId, startNewRun, initialQuery} = options ?? {};
 
-      // Update runId store before opening drawer
-      if (openRunId !== undefined) {
+      if (initialQuery) {
+        // Always start a fresh session when a query is forwarded so it
+        // auto-submits into an empty conversation, even if the drawer is
+        // already open with an existing run.
+        setRunId(null);
+      } else if (isDrawerOpenRef.current) {
+        return;
+      } else if (openRunId !== undefined) {
         setRunId(openRunId);
       } else if (startNewRun) {
         setRunId(null);

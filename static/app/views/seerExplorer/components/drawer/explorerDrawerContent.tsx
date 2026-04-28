@@ -91,14 +91,17 @@ export function ExplorerDrawerContent({
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
 
   // Auto-submit the initial query forwarded from the command palette, but only
-  // once and only if the session is still empty (don't clobber an active run).
-  const hasAutoSubmittedRef = useRef(false);
+  // if the session is still empty (don't clobber an active run). Tracking the
+  // last submitted query string (not just a boolean) lets a new query trigger
+  // a fresh submission when the drawer is reopened with a different query.
+  const lastAutoSubmittedQueryRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!initialQuery?.trim() || hasAutoSubmittedRef.current || !isEmptyState) {
+    const query = initialQuery?.trim();
+    if (!query || !isEmptyState || lastAutoSubmittedQueryRef.current === query) {
       return;
     }
-    hasAutoSubmittedRef.current = true;
-    sendMessage(initialQuery.trim());
+    lastAutoSubmittedQueryRef.current = query;
+    sendMessage(query);
   }, [initialQuery, isEmptyState, sendMessage]);
 
   const latestTodoBlockIndex = useMemo(() => {
