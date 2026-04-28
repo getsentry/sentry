@@ -9,6 +9,7 @@ from sentry import analytics, features
 from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     AutofixStep,
@@ -484,6 +485,19 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
         return read_preference_from_sentry_db(group.project).automation_handoff
 
     @classmethod
+    def _clear_handoff_preference(
+        cls, project: Project, run_id: int, organization: Organization
+    ) -> None:
+        """Clear automation_handoff from project preferences after integration is not found."""
+        try:
+            clear_preference_automation_handoff(project)
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.clear_handoff_preference_failed",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+
+    @classmethod
     def _trigger_coding_agent_handoff(
         cls,
         organization: Organization,
@@ -528,7 +542,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
                     "integration_id": handoff_config.integration_id,
                 },
             )
-            clear_preference_automation_handoff(group.project)
+            cls._clear_handoff_preference(group.project, run_id, organization)
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.coding_agent_handoff_failed",
