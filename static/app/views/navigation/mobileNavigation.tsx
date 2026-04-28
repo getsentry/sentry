@@ -32,7 +32,6 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function MobileNavigation() {
   const location = useLocation();
@@ -288,8 +287,6 @@ interface NavigationOverlayPortalProps {
 function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
   const theme = useTheme();
   const ref = useRef<HTMLDivElement | null>(null);
-  const hasPageFrame = useHasPageFrameFeature();
-
   useOnClickOutside(ref, e => {
     // Without this check the menu will reopen when the click event triggers
     if (props.closeButtonRef.current?.contains(e.target as Node)) {
@@ -303,7 +300,7 @@ function NavigationOverlayPortal(props: NavigationOverlayPortalProps) {
       ref={ref}
       as="nav"
       aria-label={props.label}
-      justify={hasPageFrame ? 'between' : undefined}
+      justify="between"
       direction="column"
       background="tertiary"
       position="fixed"

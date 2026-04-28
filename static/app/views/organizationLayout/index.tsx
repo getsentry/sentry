@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
 import styled from '@emotion/styled';
 
@@ -17,6 +18,8 @@ import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/si
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {HookStore} from 'sentry/stores/hookStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
@@ -27,11 +30,10 @@ import SystemAlerts from 'sentry/views/app/systemAlerts';
 import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {useRegisterDomainViewUsage} from 'sentry/views/insights/common/utils/domainRedirect';
 import {Navigation} from 'sentry/views/navigation';
+import {NavigationSidebarShell} from 'sentry/views/navigation/navigationShell';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import {ExplorerFloatingActionButton} from 'sentry/views/seerExplorer/components/panel/explorerFAB';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
@@ -41,25 +43,18 @@ const OrganizationHeader = HookOrDefault({
 });
 
 export function OrganizationLayout() {
-  // XXX(epurkhiser): The OrganizationContainer is responsible for ensuring the
-  // oganization is loaded before rendering children. Organization may not be
-  // loaded yet when this first renders.
   const organization = useOrganization({allowNull: true});
-  const hasPageFrame = useHasPageFrameFeature();
 
   useInitSentryToolbar(organization);
 
   return (
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
-      <OrganizationContainer>
-        <GlobalDrawer>
-          <SeerExplorerContextProvider>
-            {hasPageFrame ? null : <ExplorerFloatingActionButton />}
-            <AppLayout organization={organization} />
-          </SeerExplorerContextProvider>
-        </GlobalDrawer>
-      </OrganizationContainer>
+      <GlobalDrawer>
+        <SeerExplorerContextProvider>
+          <AppLayout organization={organization} />
+        </SeerExplorerContextProvider>
+      </GlobalDrawer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>
   );
@@ -81,19 +76,62 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
-  const hasPageFrame = useHasPageFrameFeature();
+  const {loading} = useLegacyStore(OrganizationStore);
+
+  return (
+    <PrimaryNavigationContextProvider>
+      {loading ? <AppShell /> : <AppContent organization={organization} />}
+    </PrimaryNavigationContextProvider>
+  );
+}
+
+function AppShell() {
+  return (
+    <Stack flex="1" minWidth="0" minHeight="100dvh">
+      <SystemAlerts className="messages-container" />
+      <Flex
+        flex="1"
+        minWidth="0"
+        minHeight="0"
+        direction={{sm: 'column', md: 'row'}}
+        position="relative"
+      >
+        <NavigationSidebarShell />
+        {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
+        <ContentStack
+          id="main"
+          tabIndex={-1}
+          flex="1"
+          minWidth="0"
+          background="secondary"
+        >
+          <AppBodyContent>
+            <OrganizationDetailsBody>
+              <TopBar.Slot.Provider>
+                <TopBar />
+              </TopBar.Slot.Provider>
+            </OrganizationDetailsBody>
+          </AppBodyContent>
+        </ContentStack>
+      </Flex>
+    </Stack>
+  );
+}
+
+function AppContent({organization}: LayoutProps) {
   const showSuperuserWarning =
+    !!organization &&
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&
     !HookStore.get('component:superuser-warning-excluded')[0]?.(organization);
 
   return (
-    <PrimaryNavigationContextProvider>
+    <Fragment>
       <Stack flex="1" minWidth="0" minHeight="100dvh">
-        {hasPageFrame && showSuperuserWarning && (
+        {showSuperuserWarning && (
           <Hook name="component:superuser-warning" organization={organization} />
         )}
-        {hasPageFrame && <SystemAlerts className="messages-container" />}
+        <SystemAlerts className="messages-container" />
         <Flex
           flex="1"
           minWidth="0"
@@ -108,7 +146,7 @@ function AppLayout({organization}: LayoutProps) {
             tabIndex={-1}
             flex="1"
             minWidth="0"
-            background={hasPageFrame ? 'secondary' : undefined}
+            background="secondary"
           >
             <DemoHeader />
             <AppBodyContent>
@@ -116,18 +154,20 @@ function AppLayout({organization}: LayoutProps) {
               <OrganizationDetailsBody>
                 <TopBar.Slot.Provider>
                   <TopBar />
-                  <Layout.Page>
-                    <Outlet />
-                    <Footer />
-                  </Layout.Page>
+                  <OrganizationContainer>
+                    <Layout.Page>
+                      <Outlet />
+                      <Footer />
+                    </Layout.Page>
+                  </OrganizationContainer>
                 </TopBar.Slot.Provider>
               </OrganizationDetailsBody>
             </AppBodyContent>
           </ContentStack>
         </Flex>
       </Stack>
-      {organization ? <AppDrawers /> : null}
-    </PrimaryNavigationContextProvider>
+      <AppDrawers />
+    </Fragment>
   );
 }
 

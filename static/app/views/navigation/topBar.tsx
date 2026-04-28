@@ -8,7 +8,6 @@ import {slot, withSlots} from '@sentry/scraps/slot';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
@@ -30,7 +29,6 @@ const Slot = slot(['title', 'actions', 'feedback'] as const, {
 
 function TopBarContent() {
   const theme = useTheme();
-  const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
 
   useEffect(() => {
@@ -50,10 +48,6 @@ function TopBarContent() {
     }
     return {tags: {['feedback.source']: 'top_navigation'}};
   }, [organization, isSeerExplorerOpen, seerExplorerRunId]);
-
-  if (!hasPageFrame) {
-    return null;
-  }
 
   return (
     <Flex

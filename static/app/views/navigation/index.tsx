@@ -12,10 +12,7 @@ import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {t} from 'sentry/locale';
 import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  MobileNavigation,
-  MobilePageFrameNavigation,
-} from 'sentry/views/navigation/mobileNavigation';
+import {MobilePageFrameNavigation} from 'sentry/views/navigation/mobileNavigation';
 import {Navigation as DesktopNavigation} from 'sentry/views/navigation/navigation';
 import {
   NavigationTourProvider,
@@ -28,7 +25,6 @@ import {
   MobileSecondaryNavigationContextProvider,
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
@@ -61,8 +57,6 @@ function UserAndOrganizationNavigation() {
   const {visible} = useGlobalModal();
   const {view, setView} = useSecondaryNavigation();
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   useHotkeys(
     visible
       ? []
@@ -83,7 +77,7 @@ function UserAndOrganizationNavigation() {
       )}
       {layout === 'mobile' ? (
         <MobileSecondaryNavigationContextProvider>
-          {hasPageFrame ? <MobilePageFrameNavigation /> : <MobileNavigation />}
+          <MobilePageFrameNavigation />
         </MobileSecondaryNavigationContextProvider>
       ) : (
         <DesktopNavigation />
