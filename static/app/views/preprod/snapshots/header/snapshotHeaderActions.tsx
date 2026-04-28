@@ -201,7 +201,10 @@ export function SnapshotHeaderActions({
           const menuItems: MenuItemProps[] = [];
 
           if (data.base_artifact_id) {
-            const baseBuildPath = getSnapshotPath({snapshotId: data.base_artifact_id});
+            const baseBuildPath = getSnapshotPath({
+              organizationSlug,
+              snapshotId: data.base_artifact_id,
+            });
             menuItems.push({
               key: 'go-to-base-build',
               label: (
