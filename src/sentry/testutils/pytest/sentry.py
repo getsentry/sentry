@@ -143,6 +143,28 @@ def pytest_configure(config: pytest.Config) -> None:
 
     integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
+    # Per-worker Snuba in CI runs against a single worker container with
+    # CrossOrgQueryAllocationPolicy capped at 4 concurrent queries on the errors
+    # storage. bulk_snuba_queries' default fan-out of 10 trips that policy and
+    # surfaces flakes (see e.g. tests calling bulk_snuba_queries with wide
+    # parallel batches). Cap the executor to 4 workers — but only the instance
+    # used by sentry.utils.snuba, leaving any other use of the executor
+    # unaffected. Production code is unmodified.
+    if os.environ.get("XDIST_PER_WORKER_SNUBA") == "1":
+        from sentry.utils import snuba as _snuba
+
+        _Original = _snuba.ContextPropagatingThreadPoolExecutor
+
+        from typing import Any
+
+        class _CappedExecutor(_Original):  # type: ignore[misc, valid-type]
+            def __init__(self, *args: Any, **kwargs: Any) -> None:
+                requested = kwargs.get("max_workers") or 10
+                kwargs["max_workers"] = min(requested, 4)
+                super().__init__(*args, **kwargs)
+
+        _snuba.ContextPropagatingThreadPoolExecutor = _CappedExecutor
+
     configure_split_db()
 
     if os.environ.get("PYTEST_XDIST_WORKER"):
