@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import * as Storybook from 'sentry/stories';
 
-import {RevisionListItem} from './revisionListItem';
+import {RevisionDiffBody, RevisionListItem} from './revisionListItem';
 import type {DashboardDetails} from './types';
 import {DisplayType} from './types';
 
@@ -40,6 +40,34 @@ export default Storybook.story('RevisionListItem', story => {
           appears and the Revert button in the modal footer becomes enabled.
         </p>
       </Fragment>
+    );
+  });
+
+  story('Loading', () => {
+    return (
+      <ItemContainer>
+        <RevisionDiffBody
+          isLoading
+          isError={false}
+          snapshot={undefined}
+          baseRevisionId={null}
+          baseSnapshot={undefined}
+        />
+      </ItemContainer>
+    );
+  });
+
+  story('Error', () => {
+    return (
+      <ItemContainer>
+        <RevisionDiffBody
+          isLoading={false}
+          isError
+          snapshot={undefined}
+          baseRevisionId={null}
+          baseSnapshot={undefined}
+        />
+      </ItemContainer>
     );
   });
 

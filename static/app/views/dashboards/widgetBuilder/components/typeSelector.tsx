@@ -19,7 +19,7 @@ import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
-export const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
+export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
   [DisplayType.BAR]: <IconGraph key="bar" type="bar" />,
   [DisplayType.LINE]: <IconGraph key="line" type="line" />,
@@ -166,7 +166,7 @@ export function WidgetBuilderTypeSelector({
         <CompactSelect
           value={state.displayType}
           options={displayTypeOrder.map(({type, label, details}) => ({
-            leadingItems: typeIcons[type],
+            leadingItems: DISPLAY_TYPE_ICONS[type],
             label,
             value: type,
             details,
