@@ -2323,7 +2323,7 @@ requires-dist = [
     { name = "requests-oauthlib", specifier = ">=1.2.0" },
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
-    { name = "sentry-arroyo", specifier = ">=2.39.0" },
+    { name = "sentry-arroyo", specifier = ">=2.39.1" },
     { name = "sentry-conventions", specifier = ">=0.5.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=2.1.27" },
@@ -2415,13 +2415,13 @@ dev = [
 
 [[package]]
 name = "sentry-arroyo"
-version = "2.39.0"
+version = "2.39.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.39.0-py3-none-any.whl", hash = "sha256:fb5fce90a6eb2aede72cfa6511133d8bbe9b3b83a83ee50105d604ef5c05164d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_arroyo-2.39.1-py3-none-any.whl", hash = "sha256:aa6c83c52345872f856da555edb54487be8e1a29d9000b7fc9964aface21f2d4" },
 ]
 
 [[package]]
