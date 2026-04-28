@@ -875,7 +875,7 @@ function updateFreeTextAndReplaceText(
     replaceRawSearchKeys ?? []
   );
 
-  const query = replacedState?.newQuery ? replacedState.newQuery : newState.query;
+  const query = replacedState?.newQuery || newState.query;
 
   let focusOverride = null;
   // Only update the focus override if the user has committed the query or exited the
@@ -885,9 +885,7 @@ function updateFreeTextAndReplaceText(
     action.type === 'UPDATE_FREE_TEXT_ON_COMMIT' ||
     action.type === 'UPDATE_FREE_TEXT_ON_EXIT'
   ) {
-    focusOverride = replacedState?.focusOverride
-      ? replacedState.focusOverride
-      : newState.focusOverride;
+    focusOverride = replacedState?.focusOverride || newState.focusOverride;
   }
 
   // Only update the committed query if we aren't in the middle of creating a filter
@@ -984,11 +982,10 @@ export function useQueryBuilderState({
             replaceRawSearchKeys
           );
 
-          const query = replacedState?.newQuery ? replacedState.newQuery : action.query;
+          const query = replacedState?.newQuery || action.query;
           const committedQuery = shouldCommitQuery ? query : state.committedQuery;
-          const focusOverride = replacedState?.focusOverride
-            ? replacedState.focusOverride
-            : (action.focusOverride ?? null);
+          const focusOverride =
+            replacedState?.focusOverride || (action.focusOverride ?? null);
 
           return {
             ...state,

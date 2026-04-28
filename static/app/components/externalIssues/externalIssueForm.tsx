@@ -179,7 +179,7 @@ export function ExternalIssueForm({
               integrationId: integration.id,
               action,
             }),
-            existingData => (data ? data : existingData)
+            existingData => data || existingData
           );
           setIsDynamicallyRefetching(false);
         },

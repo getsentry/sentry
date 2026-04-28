@@ -111,11 +111,10 @@ export function WidgetCardChartContainer({
       return undefined;
     }
 
-    return errorMessage
-      ? errorMessage
-      : results === undefined || results?.length === 0
-        ? t('No data found')
-        : undefined;
+    return (
+      errorMessage ||
+      (results === undefined || results?.length === 0 ? t('No data found') : undefined)
+    );
   }
 
   return (
@@ -184,13 +183,11 @@ export function WidgetCardChartContainer({
               noPadding={noPadding}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
-              onLegendSelectChanged={
-                onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
-              }
+              onLegendSelectChanged={onLegendSelectChanged || keepLegendState}
               legendOptions={
-                legendOptions
-                  ? legendOptions
-                  : {selected: widgetLegendState.getWidgetSelectionState(widget)}
+                legendOptions || {
+                  selected: widgetLegendState.getWidgetSelectionState(widget),
+                }
               }
               widgetLegendState={widgetLegendState}
               showConfidenceWarning={showConfidenceWarning}

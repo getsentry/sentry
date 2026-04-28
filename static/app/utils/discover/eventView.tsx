@@ -687,7 +687,7 @@ export class EventView {
 
       // we can't use the ?? operator here as we want to
       // convert the empty string to undefined
-      statsPeriod: period ? period : undefined,
+      statsPeriod: period || undefined,
     };
   }
 
@@ -749,9 +749,7 @@ export class EventView {
   }
 
   getWidths(): number[] {
-    const result = this.fields.map(field =>
-      field.width ? field.width : COL_WIDTH_UNDEFINED
-    );
+    const result = this.fields.map(field => field.width || COL_WIDTH_UNDEFINED);
 
     while (result.length > 0) {
       const width = result[result.length - 1];

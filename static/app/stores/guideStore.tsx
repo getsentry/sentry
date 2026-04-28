@@ -144,7 +144,7 @@ const storeConfig: GuideStoreDefinition = {
       ...this.state,
       orgId: data ? data.id : null,
       orgSlug: data ? data.slug : null,
-      organization: data ? data : null,
+      organization: data || null,
     };
     this.updateCurrentGuide();
   },

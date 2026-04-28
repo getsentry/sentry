@@ -332,7 +332,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
                   disabled={!showResetButton}
                   message={tct(
                     'Are you sure you want to disable all two-factor authentication methods for [name]?',
-                    {name: member.name ? member.name : 'this member'}
+                    {name: member.name || 'this member'}
                   )}
                   onConfirm={() => reset2fa()}
                 >

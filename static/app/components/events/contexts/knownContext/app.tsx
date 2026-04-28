@@ -75,7 +75,7 @@ export function getAppContextData({
           key: ctxKey,
           subject: t('Start Time'),
           value: getRelativeTimeFromEventDateCreated(
-            event.dateCreated ? event.dateCreated : event.dateReceived,
+            event.dateCreated || event.dateReceived,
             data.app_start_time
           ),
         };

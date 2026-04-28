@@ -46,7 +46,7 @@ export function PreviewTable({
     if (error || !members) {
       return (
         <EmptyStateWarning>
-          <p>{error ? error : t('No preview available')}</p>
+          <p>{error || t('No preview available')}</p>
         </EmptyStateWarning>
       );
     }

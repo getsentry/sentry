@@ -141,10 +141,9 @@ export function ThreadSelector({
           <ThreadName>
             {t('Thread #%s: ', activeThread.id)}
             <ActiveThreadName>
-              {activeThread.name
-                ? activeThread.name
-                : getThreadInfo(event, activeThread, exception).label ||
-                  `<${t('unknown')}>`}
+              {activeThread.name ||
+                getThreadInfo(event, activeThread, exception).label ||
+                `<${t('unknown')}>`}
             </ActiveThreadName>
           </ThreadName>
         </OverlayTrigger.Button>

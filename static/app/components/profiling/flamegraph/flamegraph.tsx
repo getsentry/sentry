@@ -1269,8 +1269,7 @@ function Flamegraph(): ReactElement {
   // of the frame weights and timing are relative to the entire profile. If there is a user selected
   // root however, all weights are relative to that sub tree.
   const referenceNode = useMemo(
-    () =>
-      flamegraphProfiles.selectedRoot ? flamegraphProfiles.selectedRoot : flamegraph.root,
+    () => flamegraphProfiles.selectedRoot || flamegraph.root,
     [flamegraphProfiles.selectedRoot, flamegraph.root]
   );
 

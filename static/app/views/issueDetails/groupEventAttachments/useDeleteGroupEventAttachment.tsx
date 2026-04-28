@@ -65,9 +65,8 @@ export function useDeleteGroupEventAttachment() {
     },
     onError: (error, variables, context) => {
       addErrorMessage(
-        error?.responseJSON?.detail
-          ? (error.responseJSON.detail as string)
-          : t('An error occurred while deleting the attachment')
+        error?.responseJSON?.detail ||
+          t('An error occurred while deleting the attachment')
       );
 
       if (context) {

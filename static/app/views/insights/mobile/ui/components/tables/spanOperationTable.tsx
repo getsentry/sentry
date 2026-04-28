@@ -49,7 +49,7 @@ export function SpanOperationTable({
     // 'has:span.description',
     // 'transaction.op:ui.load',
     `transaction:${transaction}`,
-    `${SpanFields.SPAN_OP}:${spanOp ? spanOp : `[${VALID_SPAN_OPS.join(',')}]`}`,
+    `${SpanFields.SPAN_OP}:${spanOp || `[${VALID_SPAN_OPS.join(',')}]`}`,
     ...(spanOp ? [`${SpanFields.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
     ...(subregions.length

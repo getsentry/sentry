@@ -87,11 +87,8 @@ function CommitRow({
         <Message>{formatCommitMessage(commit.message)}</Message>
       )}
       <MetaWrapper>
-        {customAvatar ? (
-          customAvatar
-        ) : commit.author ? (
-          <UserAvatar size={16} user={commit.author} />
-        ) : null}
+        {customAvatar ||
+          (commit.author ? <UserAvatar size={16} user={commit.author} /> : null)}
         <Meta>
           <Tooltip
             title={tct(

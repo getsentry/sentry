@@ -74,8 +74,10 @@ export default function ProjectOwnership() {
   });
 
   const handleOwnershipSave = (newOwnership: IssueOwnership) => {
-    setApiQueryData<IssueOwnership>(queryClient, ownershipQueryKey, data =>
-      newOwnership ? newOwnership : data
+    setApiQueryData<IssueOwnership>(
+      queryClient,
+      ownershipQueryKey,
+      data => newOwnership || data
     );
     closeModal();
   };

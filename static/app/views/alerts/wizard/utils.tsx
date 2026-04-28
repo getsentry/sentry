@@ -97,7 +97,7 @@ export function getAlertTypeFromAggregateDataset({
     }
     return 'eap_metrics';
   }
-  return alertType ? alertType : 'custom_transactions';
+  return alertType || 'custom_transactions';
 }
 
 export function hasLogAlerts(organization: Organization): boolean {

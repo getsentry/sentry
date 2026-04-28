@@ -703,7 +703,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               }
               return (
                 <StyledProjectBadge
-                  project={project ? project : {slug: data.project}}
+                  project={project || {slug: data.project}}
                   avatarSize={16}
                 />
               );

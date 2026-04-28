@@ -466,7 +466,7 @@ function Highlights({
         <Stack justify="center" align="center">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
-              project={project ? project : {slug: node.projectSlug ?? ''}}
+              project={project || {slug: node.projectSlug ?? ''}}
               avatarSize={18}
               hideName
             />

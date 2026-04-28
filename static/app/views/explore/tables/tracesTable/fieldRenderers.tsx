@@ -182,7 +182,7 @@ function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
         return (
           <ProjectBadge
             hideName={hideName}
-            project={project ? project : {slug: projectSlug}}
+            project={project || {slug: projectSlug}}
             avatarSize={16}
             avatarProps={{hasTooltip: true, tooltip: projectSlug}}
           />

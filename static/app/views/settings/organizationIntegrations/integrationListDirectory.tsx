@@ -269,7 +269,7 @@ export default function IntegrationListDirectory() {
     ({value: newCategory}: SelectOption<string>) => {
       navigate(
         {
-          query: {...location.query, category: newCategory ? newCategory : undefined},
+          query: {...location.query, category: newCategory || undefined},
         },
         {replace: true}
       );
@@ -288,7 +288,7 @@ export default function IntegrationListDirectory() {
     (newSearch: string) => {
       navigate(
         {
-          query: {...location.query, search: newSearch ? newSearch : undefined},
+          query: {...location.query, search: newSearch || undefined},
         },
         {replace: true}
       );

@@ -341,7 +341,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
 
       if (status === 'failed') {
         this.setState({
-          detailedError: {actions: [error ? error : t('An error occurred')]},
+          detailedError: {actions: [error || t('An error occurred')]},
           loading: false,
         });
         this.handleRuleSaveFailure(t('An error occurred'));
@@ -1023,7 +1023,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         []),
     ];
 
-    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
+    const environment = rule?.environment || ALL_ENVIRONMENTS_KEY;
 
     return (
       <FormField
@@ -1170,7 +1170,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
     } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
-    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
+    const environment = rule?.environment || ALL_ENVIRONMENTS_KEY;
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());

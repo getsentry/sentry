@@ -201,7 +201,7 @@ export function formatFilterValue({
 }): string {
   switch (token.type) {
     case Token.VALUE_TEXT: {
-      const content = token.value ? token.value : token.text;
+      const content = token.value || token.text;
 
       if (!token.value) {
         return content;

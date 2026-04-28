@@ -147,7 +147,7 @@ function useLogsAggregatesApiOptions({
       path: {organizationIdOrSlug: organization.slug},
       query: {
         ...eventView.getEventsAPIPayload(location),
-        per_page: limit ? limit : undefined,
+        per_page: limit || undefined,
         cursor: aggregateCursor,
         referrer,
         caseInsensitive,

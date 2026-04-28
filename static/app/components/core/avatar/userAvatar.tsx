@@ -24,11 +24,7 @@ export function UserAvatar({renderTooltip, user, ...props}: UserAvatarProps) {
       {...getUserAvatarProps(user)}
       round
       tooltip={
-        renderTooltip
-          ? renderTooltip(user)
-          : props.tooltip
-            ? props.tooltip
-            : userDisplayName(user)
+        renderTooltip ? renderTooltip(user) : props.tooltip || userDisplayName(user)
       }
     />
   );

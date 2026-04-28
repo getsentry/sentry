@@ -41,7 +41,7 @@ export function useMetricSessionStats(
     {
       query: {
         project: project.id ? [Number(project.id)] : [],
-        environment: environment ? environment : undefined,
+        environment: environment || undefined,
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         query,
         groupBy: ['session.status'],

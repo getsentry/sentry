@@ -35,7 +35,7 @@ export const AskSeerListItem = styled('div')<{
 
   &:hover,
   &:focus {
-    cursor: ${p => (p.cursor ? p.cursor : 'pointer')};
+    cursor: ${p => p.cursor || 'pointer'};
   }
 
   &[aria-selected='true'] {

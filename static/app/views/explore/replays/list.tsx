@@ -60,9 +60,7 @@ function ReplaysHeader() {
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
 
-  const titleContent = title ? (
-    title
-  ) : (
+  const titleContent = title || (
     <Fragment>
       {t('Session Replay')}
       <PageHeadingQuestionTooltip

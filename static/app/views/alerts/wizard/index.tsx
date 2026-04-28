@@ -142,7 +142,7 @@ export default function AlertWizard() {
                   }/`,
                 }),
                 query: {
-                  ...(metricRuleTemplate ? metricRuleTemplate : {}),
+                  ...metricRuleTemplate,
                   project: projectSlug,
                   referrer: location?.query?.referrer,
                 },

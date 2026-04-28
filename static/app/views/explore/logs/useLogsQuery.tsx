@@ -143,7 +143,7 @@ function useLogsQueryKey({
       ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
       cursor,
       orderby,
-      per_page: limit ? limit : undefined,
+      per_page: limit || undefined,
       referrer,
       sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
       caseInsensitive: caseInsensitive ? '1' : undefined,

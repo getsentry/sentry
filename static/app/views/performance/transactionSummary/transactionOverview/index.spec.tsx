@@ -45,7 +45,7 @@ function initializeData({
   });
   const initialData = initializeOrg({
     organization,
-    projects: projects ? projects : [project],
+    projects: projects || [project],
     router: {
       location: {
         pathname: '/performance/summary/',

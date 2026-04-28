@@ -101,7 +101,7 @@ export function uptimeFormDataToEndpointPayload(
       mode: UptimeMonitorMode.MANUAL,
       recoveryThreshold: data.recoveryThreshold ?? UPTIME_DEFAULT_RECOVERY_THRESHOLD,
       downtimeThreshold: data.downtimeThreshold ?? UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
-      environment: data.environment ? data.environment : null,
+      environment: data.environment || null,
     },
   };
 }

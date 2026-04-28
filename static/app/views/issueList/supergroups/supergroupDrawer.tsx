@@ -295,9 +295,7 @@ function SupergroupIssueList({
           <DrawerActionsBar groupIds={visibleGroupIds} />
           <PanelBody>
             {sortedGroups.map(group => {
-              const members = memberList?.[group.project?.slug]
-                ? memberList[group.project.slug]
-                : undefined;
+              const members = memberList?.[group.project?.slug] || undefined;
               return (
                 <IssueRow key={group.id}>
                   {matchedIds.has(group.id) && (

@@ -17,7 +17,7 @@ const getRow = (row: any) => [
     </strong>
   </td>,
   <td key="version" style={{textAlign: 'center'}}>
-    {row.version ? row.version : 'n/a'}
+    {row.version || 'n/a'}
   </td>,
   <td key="updated" style={{textAlign: 'right'}}>
     {moment(row.updatedAt).fromNow()}

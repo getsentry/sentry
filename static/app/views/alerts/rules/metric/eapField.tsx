@@ -191,7 +191,7 @@ export function EAPField({aggregate, onChange, eventTypes, project}: Props) {
         newAggregate = updateVisualizeAggregate({
           newAggregate: option.value,
           oldAggregate: aggregation || DEFAULT_EAP_AGGREGATION,
-          oldArguments: aggregateFuncArgs ? aggregateFuncArgs : [DEFAULT_EAP_FIELD],
+          oldArguments: aggregateFuncArgs || [DEFAULT_EAP_FIELD],
         });
       }
       onChange(newAggregate, {});

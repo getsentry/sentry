@@ -28,7 +28,7 @@ export function OSBrowserDropdownFilter({
           key: 'name',
           label: tct('[type] name: [name]', {
             type,
-            name: name ? name : t('undefined'),
+            name: name || t('undefined'),
           }),
           children: [
             {
@@ -58,7 +58,7 @@ export function OSBrowserDropdownFilter({
           key: 'version',
           label: tct('[type] version: [version]', {
             type,
-            version: version ? version : t('undefined'),
+            version: version || t('undefined'),
           }),
           children: [
             {

@@ -79,7 +79,7 @@ export class FlamegraphChart {
     }
 
     this.status = 'insufficient data';
-    const type = options.type ? options.type : measurements.length > 1 ? 'line' : 'area';
+    const type = options.type || (measurements.length > 1 ? 'line' : 'area');
 
     for (let j = 0; j < measurements.length; j++) {
       const measurement = measurements[j]!;

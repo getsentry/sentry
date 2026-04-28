@@ -103,7 +103,7 @@ export function ProductTrialAlert(props: ProductTrialAlertProps) {
     );
     alertText = t(
       'You have full access to unlimited %s until %s',
-      getProductName(product ? product : trial.category),
+      getProductName(product || trial.category),
       trial.endDate
     );
 

@@ -164,11 +164,7 @@ function StoryProps(props: {node: PropTreeNode}) {
         {props.node.prop.description ? (
           <StoryPropDescription>{props.node.prop.description}</StoryPropDescription>
         ) : null}
-        <StoryType>
-          {props.node.prop.type.raw
-            ? props.node.prop.type.raw
-            : props.node.prop.type.name}
-        </StoryType>
+        <StoryType>{props.node.prop.type.raw || props.node.prop.type.name}</StoryType>
       </StoryTypesTableCell>
     </Fragment>
   );

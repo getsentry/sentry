@@ -221,7 +221,7 @@ function ExceptionCrumbContent({
   return (
     <Fragment>
       <BreadcrumbText>
-        {type ? type : null}
+        {type || null}
         {type && hasValue ? `: ${formattedValue}` : hasValue ? formattedValue : null}
       </BreadcrumbText>
       {children}

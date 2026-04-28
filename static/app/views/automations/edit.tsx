@@ -129,13 +129,11 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       return undefined;
     }
     return {
-      triggers: automation.triggers
-        ? automation.triggers
-        : {
-            id: 'when',
-            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-            conditions: [],
-          },
+      triggers: automation.triggers || {
+        id: 'when',
+        logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+        conditions: [],
+      },
       actionFilters: assignSubfilterIds(automation.actionFilters),
     };
   }, [automation]);

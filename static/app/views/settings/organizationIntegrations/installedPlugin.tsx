@@ -121,7 +121,7 @@ class InstalledPlugin extends Component<Props> {
     const {projectItem} = this.props;
     return {
       slug: projectItem.projectSlug,
-      platform: projectItem.projectPlatform ? projectItem.projectPlatform : undefined,
+      platform: projectItem.projectPlatform || undefined,
     };
   }
 

@@ -429,7 +429,7 @@ export function TagExplorer(props: Props) {
             </GuideAnchor>
             <GridEditable
               isLoading={isLoading}
-              data={tableData?.data ? tableData.data : []}
+              data={tableData?.data || []}
               columnOrder={columns}
               columnSortBy={columnSortBy}
               grid={{

@@ -87,9 +87,9 @@ export function getOperatingSystemContextData({
         return {
           key: ctxKey,
           subject: t('Distro'),
-          value: data.distribution?.pretty_name
-            ? data.distribution?.pretty_name
-            : `${data.distribution?.name}${data.distribution?.version ? `(${data.distribution.version})` : ''}`,
+          value:
+            data.distribution?.pretty_name ||
+            `${data.distribution?.name}${data.distribution?.version ? `(${data.distribution.version})` : ''}`,
         };
       default:
         return {

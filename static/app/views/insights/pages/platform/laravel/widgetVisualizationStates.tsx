@@ -35,7 +35,7 @@ export function WidgetVisualizationStates<T extends WidgetVisualization>({
     );
   }
   if (isEmpty) {
-    return emptyMessage ? emptyMessage : <WidgetEmptyStateWarning />;
+    return emptyMessage || <WidgetEmptyStateWarning />;
   }
   return <VisualizationType {...visualizationProps} />;
 }

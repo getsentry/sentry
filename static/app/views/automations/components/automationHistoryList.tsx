@@ -129,9 +129,7 @@ export function AutomationHistoryList({
                     platform={row.group.project.platform ?? 'default'}
                     size={16}
                   />
-                  <TruncatedText>
-                    {row.group.title ? row.group.title : `#${row.group.id}`}
-                  </TruncatedText>
+                  <TruncatedText>{row.group.title || `#${row.group.id}`}</TruncatedText>
                 </Flex>
               </StyledLink>
             </SimpleTable.RowCell>

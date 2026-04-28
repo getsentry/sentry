@@ -165,7 +165,7 @@ export function DataExport({
           }}
           icon={icon}
         >
-          {children ? children : t('Export All to CSV')}
+          {children || t('Export All to CSV')}
         </Button>
       )}
     </Feature>

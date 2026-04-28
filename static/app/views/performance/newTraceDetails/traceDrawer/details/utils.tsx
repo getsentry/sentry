@@ -83,7 +83,7 @@ export function getSearchInExploreTarget(
       end,
       statsPeriod,
       query: search.formatString(),
-      project: projectIds ? projectIds : ALL_ACCESS_PROJECTS,
+      project: projectIds || ALL_ACCESS_PROJECTS,
     },
   };
 }

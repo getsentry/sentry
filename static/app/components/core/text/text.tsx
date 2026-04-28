@@ -215,7 +215,7 @@ export const Text = styled(
 
   overflow: ${p => (p.ellipsis ? 'hidden' : undefined)};
   text-overflow: ${p => (p.ellipsis ? 'ellipsis' : undefined)};
-  white-space: ${p => (p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined)};
+  white-space: ${p => p.wrap || (p.ellipsis ? 'nowrap' : undefined)};
   text-wrap: ${p => p.textWrap ?? undefined};
   word-break: ${p => p.wordBreak ?? undefined};
   width: ${p => (p.ellipsis ? '100%' : undefined)};

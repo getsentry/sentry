@@ -91,7 +91,7 @@ export default function ProjectDebugSymbols() {
     (value: string) => {
       navigate({
         ...location,
-        query: {...location.query, cursor: undefined, query: value ? value : undefined},
+        query: {...location.query, cursor: undefined, query: value || undefined},
       });
     },
     [navigate, location]

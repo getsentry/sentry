@@ -676,7 +676,7 @@ class _QueryField extends Component<Props> {
 
     // if there's more than 2 parameters, set gridColumns to 2 so they go onto the next line instead
     const containerColumns =
-      parameters.length > 2 ? 2 : gridColumns ? gridColumns : parameters.length + 1;
+      parameters.length > 2 ? 2 : gridColumns || parameters.length + 1;
 
     let gridColumnsQuantity: undefined | number = undefined;
 

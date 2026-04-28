@@ -91,7 +91,7 @@ export function AttributeField({
     select: selectTraceItemTagCollection('string'),
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
-    `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId ? projectId : 'all'}`,
+    `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId || 'all'}`,
     {} as TagCollection
   );
 

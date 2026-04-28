@@ -347,7 +347,7 @@ function spanDescriptionRenderFunc(field: string, projects: Record<string, Proje
           <Description>
             {project && (
               <ProjectBadge
-                project={project ? project : {slug: data.project}}
+                project={project || {slug: data.project}}
                 avatarSize={16}
                 avatarProps={{hasTooltip: true, tooltip: project.slug}}
                 hideName

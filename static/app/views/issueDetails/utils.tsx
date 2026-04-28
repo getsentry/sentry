@@ -335,13 +335,13 @@ export function getUserTagValue(tagValue: TagValue): {
   } else if (defined(tagValue?.email)) {
     title = tagValue?.email;
   } else if (defined(tagValue?.username)) {
-    title = title ? title : tagValue?.username;
+    title = title || tagValue?.username;
   } else if (defined(tagValue?.ip_address) || (defined(tagValue?.ipAddress) && !title)) {
     title = tagValue?.ip_address ?? tagValue?.ipAddress;
   }
 
   if (defined(tagValue?.id)) {
-    title = title ? title : tagValue?.id;
+    title = title || tagValue?.id;
     if (tagValue?.id && tagValue?.id !== 'None') {
       subtitle = tagValue?.id;
     }

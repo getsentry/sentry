@@ -333,7 +333,7 @@ function createDataSource(data: MetricDetectorFormData): NewDataSource {
     query,
     aggregate: datasetConfig.toApiAggregate(data.aggregateFunction),
     timeWindow: data.interval,
-    environment: data.environment ? data.environment : null,
+    environment: data.environment || null,
     eventTypes,
   };
 }

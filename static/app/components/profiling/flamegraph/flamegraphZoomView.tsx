@@ -351,11 +351,9 @@ function FlamegraphZoomView({
 
   useDrawHoveredBorderEffect({
     scheduler,
-    hoveredNode: hoveredNode
-      ? hoveredNode
-      : contextMenuState.open
-        ? hoveredNodeOnContextMenuOpen.current
-        : null,
+    hoveredNode:
+      hoveredNode ||
+      (contextMenuState.open ? hoveredNodeOnContextMenuOpen.current : null),
     canvas: flamegraphCanvas,
     view: flamegraphView,
     theme: flamegraphTheme,

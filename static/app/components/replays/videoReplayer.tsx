@@ -258,12 +258,9 @@ export class VideoReplayer {
 
     // This is used when a replay is restarted
     // Add another stop notification so the timer doesn't run over
-    this._timer.addNotificationAtTime(
-      this._clipDuration ? this._clipDuration : this._durationMs,
-      () => {
-        this.stopReplay();
-      }
-    );
+    this._timer.addNotificationAtTime(this._clipDuration || this._durationMs, () => {
+      this.stopReplay();
+    });
   }
 
   /**

@@ -807,7 +807,6 @@ export default typescript.config([
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule

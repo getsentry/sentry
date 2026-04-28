@@ -80,7 +80,7 @@ export function SpanOperationTable({transaction, primaryRelease}: Props) {
     `${SpanFields.APP_START_TYPE}:${
       startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
     }`,
-    `${SpanFields.SPAN_OP}:${spanOp ? spanOp : `[${APP_START_SPANS.join(',')}]`}`,
+    `${SpanFields.SPAN_OP}:${spanOp || `[${APP_START_SPANS.join(',')}]`}`,
     ...(spanOp ? [`${SpanFields.SPAN_OP}:${spanOp}`] : []),
     ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
     ...(subregions.length > 0

@@ -132,11 +132,10 @@ function EventItem({timelineEvent, location}: EventItemProps) {
       <EventTitleWrapper>
         <EventTitle>{timelineEvent.title}</EventTitle>
         <EventDescription>
-          {timelineEvent.transaction
-            ? timelineEvent.transaction
-            : 'stack.function' in timelineEvent
+          {timelineEvent.transaction ||
+            ('stack.function' in timelineEvent
               ? timelineEvent['stack.function'].at(-1)
-              : null}
+              : null)}
         </EventDescription>
       </EventTitleWrapper>
     </EventItemRoot>

@@ -292,7 +292,7 @@ export function TagValueTable({
       >
         <GridEditable
           isLoading={isLoading}
-          data={tableData?.data ? tableData.data : []}
+          data={tableData?.data || []}
           columnOrder={newColumns}
           columnSortBy={[]}
           grid={{

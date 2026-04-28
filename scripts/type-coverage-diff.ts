@@ -410,9 +410,7 @@ async function main() {
     const currentRef = await getCurrentRef();
 
     // Determine the old commit to compare against
-    const oldCommit = opts.commit
-      ? opts.commit
-      : await getCommitFromDaysAgo(opts.daysAgo!);
+    const oldCommit = opts.commit || (await getCommitFromDaysAgo(opts.daysAgo!));
 
     // Get current commit SHA
     const {stdout: currentCommitOutput} = await execAsync('git rev-parse HEAD');

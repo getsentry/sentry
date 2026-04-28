@@ -64,7 +64,7 @@ export function QueryField({
             filterPrimaryOptions={option => option.value.kind !== FieldValueKind.FUNCTION}
             renderTagOverride={renderTagOverride}
           />
-          {fieldValidationError ? fieldValidationError : null}
+          {fieldValidationError || null}
           {extraActions}
           {canDelete && (
             <Button

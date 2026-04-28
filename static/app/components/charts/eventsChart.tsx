@@ -343,7 +343,7 @@ class Chart extends Component<ChartProps, State> {
         legend={legend}
         onLegendSelectChanged={this.handleLegendSelectChanged}
         series={series}
-        previousPeriod={previousSeries ? previousSeries : undefined}
+        previousPeriod={previousSeries || undefined}
         height={height}
         additionalSeries={additionalSeries}
       />
@@ -580,7 +580,7 @@ export class EventsChart extends Component<EventsChartProps> {
           </ErrorPanel>
         );
       }
-      const seriesData = results ? results : timeseriesData;
+      const seriesData = results || timeseriesData;
 
       return (
         <TransitionChart

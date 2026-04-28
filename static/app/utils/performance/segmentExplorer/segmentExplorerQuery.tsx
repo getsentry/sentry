@@ -55,7 +55,7 @@ function getRequestFunction(_props: QueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
-    apiPayload.sort = _props.sort ? _props.sort : apiPayload.sort;
+    apiPayload.sort = _props.sort || apiPayload.sort;
     if (_props.allTagKeys) {
       apiPayload.allTagKeys = _props.allTagKeys;
     }

@@ -119,7 +119,7 @@ export function CreditCardPanel({
         ) : subscription.paymentSource ? (
           <Fragment>
             <Text>{`${toTitleCase(subscription.paymentSource.brand, {allowInnerUpperCase: true})} ****${subscription.paymentSource.last4} ${String(subscription.paymentSource.expMonth).padStart(2, '0')}/${String(subscription.paymentSource.expYear).slice(-2)}`}</Text>
-            <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode ? subscription.paymentSource.zipCode : ''}`}</Text>
+            <Text>{`${countryName ? `${countryName} ` : ''} ${subscription.paymentSource.zipCode || ''}`}</Text>
           </Fragment>
         ) : (
           <Text>{t('No payment method on file')}</Text>

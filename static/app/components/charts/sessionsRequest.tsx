@@ -93,9 +93,7 @@ export class SessionsRequest extends Component<Props, State> {
       groupBy,
       start,
       end,
-      interval: interval
-        ? interval
-        : getSessionsInterval({start, end, period: statsPeriod}),
+      interval: interval || getSessionsInterval({start, end, period: statsPeriod}),
     };
   }
 

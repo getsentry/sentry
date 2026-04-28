@@ -106,7 +106,7 @@ function BaseGuideAnchor({
   );
 
   if (!active) {
-    return children ? children : null;
+    return children || null;
   }
 
   const totalStepCount = currentGuide?.steps.length ?? 0;

@@ -80,9 +80,7 @@ export function TraceContextVitals({rootEventResults, tree, containerWidth}: Pro
 
         return (
           <div key={vitalKey}>
-            <strong>
-              {vitalDetails.acronym ? vitalDetails.acronym : vitalDetails.name}:
-            </strong>{' '}
+            <strong>{vitalDetails.acronym || vitalDetails.name}:</strong>{' '}
             <span>{formattedValue}</span>
             {vital?.score !== undefined &&
               ` (${STATUS_TEXT[scoreToStatus(vital.score)]})`}

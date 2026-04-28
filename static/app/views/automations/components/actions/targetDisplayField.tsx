@@ -11,7 +11,7 @@ export function TargetDisplayField({placeholder}: {placeholder?: string}) {
     <AutomationBuilderInput
       name={`${actionId}.config.targetDisplay`}
       aria-label={t('Target')}
-      placeholder={placeholder ? placeholder : t('channel name or ID')}
+      placeholder={placeholder || t('channel name or ID')}
       value={action.config.targetDisplay ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({

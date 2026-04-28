@@ -274,13 +274,13 @@ export function TimeRangeSelector({
     // The absolute option was selected -> open absolute selector
     if (option.value === ABSOLUTE_OPTION_VALUE) {
       setInternalValue(current => {
-        const defaultStart = defaultAbsolute?.start
-          ? defaultAbsolute.start
-          : getPeriodAgo(
-              'hours',
-              parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-            ).toDate();
-        const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+        const defaultStart =
+          defaultAbsolute?.start ||
+          getPeriodAgo(
+            'hours',
+            parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+          ).toDate();
+        const defaultEnd = defaultAbsolute?.end || new Date();
         return {
           ...current,
           // Update default values for absolute selector

@@ -86,9 +86,7 @@ export function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       password:
         validData.password === undefined
           ? {'hidden-secret': true}
-          : validData.password
-            ? validData.password
-            : undefined,
+          : validData.password || undefined,
     });
   }
 

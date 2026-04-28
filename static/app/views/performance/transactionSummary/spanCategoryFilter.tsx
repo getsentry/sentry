@@ -103,7 +103,7 @@ export function SpanCategoryFilter({segmentSpanName}: Props) {
           icon={<IconFilter />}
           aria-label={t('Filter by category')}
         >
-          {selectedCategory ? selectedCategory : t('Filter')}
+          {selectedCategory || t('Filter')}
         </OverlayTrigger.Button>
       )}
     />

@@ -116,13 +116,13 @@ export function PageOverviewWebVitalsDetailPanel({
   }, [dashboardFilters]);
 
   // Transaction filter can come from dashboard filters or URL (for insights module)
-  const transaction = transactionFromDashboard
-    ? transactionFromDashboard
-    : location.query.transaction
+  const transaction =
+    transactionFromDashboard ||
+    (location.query.transaction
       ? Array.isArray(location.query.transaction)
         ? location.query.transaction[0]
         : location.query.transaction
-      : undefined;
+      : undefined);
 
   const {data: projectData} = useProjectRawWebVitalsQuery({
     transaction,

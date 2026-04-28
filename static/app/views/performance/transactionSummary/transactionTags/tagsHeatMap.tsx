@@ -132,7 +132,7 @@ export function TagsHeatMap(
   const histogramData = tableData?.histogram?.data?.length
     ? tableData.histogram.data
     : undefined;
-  const tagData = tableData?.tags?.data ? tableData.tags.data : undefined;
+  const tagData = tableData?.tags?.data || undefined;
 
   const rowKey = histogramData && findRowKey(histogramData[0]!);
 

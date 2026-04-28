@@ -74,7 +74,7 @@ export function NetworkTableCell({
   const renderFns = [
     () => (
       <Cell {...columnProps}>
-        <Text>{method ? method : 'GET'}</Text>
+        <Text>{method || 'GET'}</Text>
       </Cell>
     ),
     () => (

@@ -53,9 +53,7 @@ export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
   percentileValues?: EventsFilterPercentileValues
 ): EventsFilterOptions {
-  const {p99, p95, p75, p50} = percentileValues
-    ? percentileValues
-    : {p99: 0, p95: 0, p75: 0, p50: 0};
+  const {p99, p95, p75, p50} = percentileValues || {p99: 0, p95: 0, p75: 0, p50: 0};
   return {
     [EventsDisplayFilterName.P50]: {
       name: EventsDisplayFilterName.P50,

@@ -10,7 +10,7 @@ type Props = {
 
 export function UserEmails({Panel, user}: Props) {
   const primary = user.email;
-  const emails = user.emails ? user.emails : [{email: primary}];
+  const emails = user.emails || [{email: primary}];
 
   return (
     <Panel>

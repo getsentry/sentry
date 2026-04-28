@@ -164,7 +164,7 @@ export function DatasetSelectorTabs(props: Props) {
           query: {
             ...nextLocation.query,
             [DATASET_PARAM]: newValue,
-            incompatible: modifiedQuery ? modifiedQuery : undefined,
+            incompatible: modifiedQuery || undefined,
           },
         });
       }}

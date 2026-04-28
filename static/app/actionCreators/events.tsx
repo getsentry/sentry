@@ -126,7 +126,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       orderby,
       partial: partial ? '1' : undefined,
       withoutZerofill: withoutZerofill ? '1' : undefined,
-      referrer: referrer ? referrer : 'api.organization-event-stats',
+      referrer: referrer || 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
       sampling,

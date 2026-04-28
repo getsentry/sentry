@@ -83,9 +83,7 @@ export function IntegrationButton({
         external
         {...buttonProps}
       >
-        {externalInstallText
-          ? externalInstallText
-          : metadata.aspects.externalInstall.buttonText}
+        {externalInstallText || metadata.aspects.externalInstall.buttonText}
       </LinkButton>
     );
   }

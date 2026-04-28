@@ -15,7 +15,7 @@ const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 const f = (key: number, name: string, file?: string, image?: string): FlamegraphFrame => {
   return {
-    frame: new Frame({key: name + (file ? file : ''), name, file, image}),
+    frame: new Frame({key: name + (file || ''), name, file, image}),
     children: [],
     parent: null,
     start: 0,
@@ -23,7 +23,7 @@ const f = (key: number, name: string, file?: string, image?: string): Flamegraph
     key,
     depth: 0,
     node: new CallTreeNode(
-      new Frame({key: name + (file ? file : ''), name, file, image}),
+      new Frame({key: name + (file || ''), name, file, image}),
       null
     ),
   };

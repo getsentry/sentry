@@ -214,7 +214,7 @@ export function ResolveActions({
       {
         key: 'next-release',
         label: t('The next release'),
-        details: actionTitle ? actionTitle : t('The next release after the current one'),
+        details: actionTitle || t('The next release after the current one'),
         onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
       ...(hasSemverReleaseFeature && latestSemverRelease?.version
@@ -224,9 +224,7 @@ export function ResolveActions({
               label: t('The current semver release'),
               details: (
                 <Flex align="center" gap="2xs">
-                  {actionTitle ? (
-                    actionTitle
-                  ) : (
+                  {actionTitle || (
                     <Fragment>
                       <div>
                         <MaxReleaseWidthWrapper>
@@ -249,18 +247,17 @@ export function ResolveActions({
               label: t('The current release'),
               details: (
                 <Flex align="center" gap="2xs">
-                  {actionTitle ? (
-                    actionTitle
-                  ) : latestRelease ? (
-                    <Fragment>
-                      <div>
-                        <MaxReleaseWidthWrapper>
-                          {formatVersion(latestRelease.version)}
-                        </MaxReleaseWidthWrapper>
-                      </div>{' '}
-                      ({isSemver ? t('semver') : t('non-semver')})
-                    </Fragment>
-                  ) : null}
+                  {actionTitle ||
+                    (latestRelease ? (
+                      <Fragment>
+                        <div>
+                          <MaxReleaseWidthWrapper>
+                            {formatVersion(latestRelease.version)}
+                          </MaxReleaseWidthWrapper>
+                        </div>{' '}
+                        ({isSemver ? t('semver') : t('non-semver')})
+                      </Fragment>
+                    ) : null)}
                 </Flex>
               ),
               onAction: () =>

@@ -48,7 +48,7 @@ export default function MultiQueryMode() {
                     label: t('Traces'),
                     to: makeTracesPathname({organization, path: '/'}),
                   },
-                  {label: title ? title : t('Compare Queries')},
+                  {label: title || t('Compare Queries')},
                 ]}
               />
             </TopBar.Slot>
@@ -78,7 +78,7 @@ export default function MultiQueryMode() {
                   {label: t('Compare Queries')},
                 ]}
               />
-              <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
+              <Layout.Title>{title || t('Compare Queries')}</Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <Grid flow="column" align="center" gap="md">

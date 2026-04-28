@@ -94,8 +94,8 @@ export function parseQueryBuilderValue(
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
       invalidMessages: options?.invalidMessages,
       supportedTags: {
-        ...(options?.filterKeys ? options.filterKeys : {}),
-        ...(options?.filterKeyAliases ? options.filterKeyAliases : {}),
+        ...options?.filterKeys,
+        ...options?.filterKeyAliases,
       },
     })
   );

@@ -41,7 +41,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
     activity => activity.value === `${IncidentStatus.WARNING}`
   );
 
-  const triggeredActivity = criticalActivity ? criticalActivity : warningActivity!;
+  const triggeredActivity = criticalActivity || warningActivity!;
   const isCritical = Number(triggeredActivity.value) === IncidentStatus.CRITICAL;
 
   // Find duration by looking at the difference between the previous and current activity timestamp

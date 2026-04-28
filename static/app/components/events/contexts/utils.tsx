@@ -354,7 +354,7 @@ export function getContextIcon({
       return <UserAvatar user={user} size={parseInt(iconSize, 10)} />;
     }
     case 'gpu':
-      iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
+      iconName = generateIconName(value?.vendor_name || value?.name);
       break;
   }
   if (iconName.length === 0) {
@@ -497,7 +497,7 @@ export function getContextSummary({
     case 'device':
       title = (
         <DeviceName value={data?.model ?? ''}>
-          {deviceName => <span>{deviceName ? deviceName : data?.name}</span>}
+          {deviceName => <span>{deviceName || data?.name}</span>}
         </DeviceName>
       );
       if (defined(data?.arch)) {
@@ -537,12 +537,12 @@ export function getContextSummary({
         title = data?.ip_address;
       }
       if (defined(data?.id)) {
-        title = title ? title : data?.id;
+        title = title || data?.id;
         subtitle = data?.id;
         subtitleType = t('ID');
       }
       if (defined(data?.username)) {
-        title = title ? title : data?.username;
+        title = title || data?.username;
         subtitle = data?.username;
         subtitleType = t('Username');
       }

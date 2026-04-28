@@ -234,7 +234,7 @@ export function EditAccessSelector({
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
-        teams={selectedTeam ? selectedTeam : []}
+        teams={selectedTeam || []}
         maxVisibleAvatars={1}
         avatarSize={listOnly ? 30 : 25}
         renderUsersFirst

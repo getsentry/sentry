@@ -69,9 +69,7 @@ class MiniGraph extends Component<Props> {
     const intervalFidelity = display === 'bar' ? 'low' : 'high';
     const interval = isDaily
       ? '1d'
-      : eventView.interval
-        ? eventView.interval
-        : getInterval({start, end, period}, intervalFidelity);
+      : eventView.interval || getInterval({start, end, period}, intervalFidelity);
 
     return {
       organization,

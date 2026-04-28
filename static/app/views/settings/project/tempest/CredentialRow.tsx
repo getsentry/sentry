@@ -36,9 +36,7 @@ export function CredentialRow({
         <TimeSince date={credential.dateAdded} />
       </Flex>
 
-      <Flex align="center">
-        {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
-      </Flex>
+      <Flex align="center">{credential.createdByEmail || '\u2014'}</Flex>
 
       <Flex align="center" justify="end">
         <Tooltip

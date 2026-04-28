@@ -37,7 +37,7 @@ export function SpanGroupDetailsLink({
     ...location.query,
     project: projectId,
     ...(spanOp ? {[SPAN_OP]: spanOp} : {}),
-    ...(extraLinkQueryParams ? extraLinkQueryParams : {}),
+    ...extraLinkQueryParams,
   };
 
   return (

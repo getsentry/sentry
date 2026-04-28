@@ -43,9 +43,7 @@ export function useSessionsRequest({
     groupBy,
     start,
     end,
-    interval: interval
-      ? interval
-      : getSessionsInterval({start, end, period: statsPeriod}),
+    interval: interval || getSessionsInterval({start, end, period: statsPeriod}),
   };
 
   const sessionQuery = useApiQuery<SessionApiResponse>(

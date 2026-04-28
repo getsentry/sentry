@@ -797,7 +797,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     onChange={v => {
                       this.setState(state => ({
                         ...state,
-                        data: {...state.data, onDemandInvoicedManual: v ? v : null},
+                        data: {...state.data, onDemandInvoicedManual: v || null},
                       }));
                     }}
                   />
@@ -875,7 +875,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                                 ...state,
                                 data: {
                                   ...state.data,
-                                  [`softCapType${capitalizedApiName}`]: v ? v : null,
+                                  [`softCapType${capitalizedApiName}`]: v || null,
                                 },
                               }))
                             }

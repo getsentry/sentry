@@ -215,7 +215,7 @@ export function PageLayout(props: Props) {
         eventView={nextView}
         location={location}
         orgSlug={organization.slug}
-        queryExtras={{project: filterProjects ? filterProjects : undefined}}
+        queryExtras={{project: filterProjects || undefined}}
         referrer="api.insights.transaction-summary"
       >
         {({isLoading, tableData, error: discoverQueryError}) => {

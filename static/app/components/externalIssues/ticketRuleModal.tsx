@@ -190,8 +190,7 @@ export function TicketRuleModal({
               integrationId: instance.integration,
               query: initialConfigQuery,
             }),
-            (existingData: IntegrationIssueConfig | undefined) =>
-              data ? data : existingData
+            (existingData: IntegrationIssueConfig | undefined) => data || existingData
           );
           setIsDynamicallyRefetching(false);
         },

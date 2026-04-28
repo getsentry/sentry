@@ -129,7 +129,7 @@ function GraceAlert({children, action, dismiss, type, disableAction}: GraceAlert
       icon={type ? <IconWarning /> : dismiss ? <IconInfo /> : <IconWarning />}
       system
       trailingItems={trailingItems}
-      variant={type ? type : dismiss ? 'info' : 'danger'}
+      variant={type || (dismiss ? 'info' : 'danger')}
     >
       {children}
     </Alert>

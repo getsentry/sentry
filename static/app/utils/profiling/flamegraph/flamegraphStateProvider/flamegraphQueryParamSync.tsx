@@ -76,7 +76,7 @@ export function decodeFlamegraphStateFromQueryParams(
       ...decoded.search,
       highlightFrames: {
         ...decoded.search?.highlightFrames,
-        name: query.frameName ? query.frameName : undefined,
+        name: query.frameName || undefined,
       },
     };
   }
@@ -86,7 +86,7 @@ export function decodeFlamegraphStateFromQueryParams(
       ...decoded.search,
       highlightFrames: {
         ...decoded.search?.highlightFrames,
-        package: query.framePackage ? query.framePackage : undefined,
+        package: query.framePackage || undefined,
       },
     };
   }

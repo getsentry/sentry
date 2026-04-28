@@ -472,14 +472,12 @@ function UsageChartBody({
       }}
       series={series}
       tooltip={
-        chartTooltip
-          ? chartTooltip
-          : {
-              // Trigger to axis prevents tooltip from redrawing when hovering
-              // over individual bars
-              trigger: 'axis',
-              valueFormatter: tooltipValueFormatter,
-            }
+        chartTooltip || {
+          // Trigger to axis prevents tooltip from redrawing when hovering
+          // over individual bars
+          trigger: 'axis',
+          valueFormatter: tooltipValueFormatter,
+        }
       }
       onLegendSelectChanged={onLegendSelectChanged}
       legend={Legend({

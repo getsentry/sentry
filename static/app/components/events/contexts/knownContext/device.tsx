@@ -284,7 +284,7 @@ export function getDeviceContextData({
           key: ctxKey,
           subject: t('Boot Time'),
           value: getRelativeTimeFromEventDateCreated(
-            event.dateCreated ? event.dateCreated : event.dateReceived,
+            event.dateCreated || event.dateReceived,
             data.boot_time
           ),
         };

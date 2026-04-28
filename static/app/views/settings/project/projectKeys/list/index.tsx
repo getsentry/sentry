@@ -145,7 +145,7 @@ export default function ProjectKeys() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const keyList = keyListState ? keyListState : keyListResponse.json;
+  const keyList = keyListState || keyListResponse.json;
 
   const renderEmpty = () => {
     return (
