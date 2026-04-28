@@ -12,7 +12,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {safeParseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -154,8 +154,8 @@ function getPrefixSearchCacheKey(queryKey: unknown): PrefixSearchCacheKey | unde
     return undefined;
   }
 
-  const parsed = parseQueryKey(queryKey as unknown as ApiQueryKey);
-  if (parsed.version !== 'v2' || parsed.isInfinite || !parsed.options) {
+  const parsed = safeParseQueryKey(queryKey);
+  if (!parsed || parsed.version !== 'v2' || parsed.isInfinite || !parsed.options) {
     return undefined;
   }
 
