@@ -333,19 +333,19 @@ function useSlashCommands({
       ...(onCodeMode
         ? [
             {
-              title: '/code-mode off',
+              title: '/code-mode-off',
               key: '/code-mode-off',
               description: 'Disable code mode tools',
               handler: () => onCodeMode('off'),
             },
             {
-              title: '/code-mode on',
+              title: '/code-mode-on',
               key: '/code-mode-on',
               description: 'Enable code mode tools alongside standard tools',
               handler: () => onCodeMode('on'),
             },
             {
-              title: '/code-mode only',
+              title: '/code-mode-only',
               key: '/code-mode-only',
               description: 'Use only code mode tools (no standard tools)',
               handler: () => onCodeMode('only'),
