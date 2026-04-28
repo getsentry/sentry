@@ -1,3 +1,5 @@
+import {Global, css} from '@emotion/react';
+
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -10,6 +12,18 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+
+const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
+
+const topBarShrinkOverride = css`
+  *:has(> [${TITLE_MARKER_ATTR}]) {
+    flex: 1;
+    min-width: 0;
+  }
+  *:has(> [${TITLE_MARKER_ATTR}]) + * {
+    flex-shrink: 0;
+  }
+`;
 
 interface VcsItemConfig {
   icon: React.ComponentType<SVGIconProps>;
@@ -55,8 +69,17 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
 
   return (
     <Layout.HeaderContent unified>
+      <Global styles={topBarShrinkOverride} />
       <Layout.Title>
-        <Flex align="center" gap="lg" wrap="wrap" minHeight="1lh">
+        <Flex
+          align="center"
+          gap="lg"
+          wrap="nowrap"
+          minHeight="1lh"
+          overflow="hidden"
+          minWidth={0}
+          {...{[TITLE_MARKER_ATTR]: ''}}
+        >
           <Text size="lg" bold>
             {t('Snapshot')}
           </Text>
@@ -64,24 +87,31 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
           {project && <IdBadge project={project} avatarSize={16} />}
 
           {vcsItems.map(item => (
-            <Flex align="center" gap="xs" key={item.key}>
+            <Flex align="center" gap="xs" key={item.key} flexShrink={0}>
               <item.icon size="xs" />
               {item.href ? (
                 <ExternalLink href={item.href}>
-                  <Text size="sm" variant="accent" monospace={item.monospace}>
+                  <Text
+                    size="sm"
+                    variant="accent"
+                    monospace={item.monospace}
+                    wrap="nowrap"
+                  >
                     {item.label}
                   </Text>
                 </ExternalLink>
               ) : (
-                <Text size="sm">{item.label}</Text>
+                <Text size="sm" wrap="nowrap">
+                  {item.label}
+                </Text>
               )}
             </Flex>
           ))}
 
           {appId && (
-            <Flex align="center" gap="xs">
+            <Flex align="center" gap="xs" flexShrink={0}>
               <IconCode size="xs" />
-              <Text size="sm" variant="muted" monospace>
+              <Text size="sm" variant="muted" monospace wrap="nowrap">
                 {appId}
               </Text>
             </Flex>
