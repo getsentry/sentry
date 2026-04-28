@@ -400,8 +400,12 @@ class OrganizationSummarySerializer(Serializer):
         feature_set = set()
 
         with sentry_sdk.start_span(op="features.check", name="check batch features"):
-            # Check features in batch using the entity handler
-            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+            # Evaluate flags purely to populate the response — the user has not
+            # actually encountered any experiments yet, so suppress the auto
+            # exposure events the entity handler would otherwise log.
+            batch_features = features.batch_has(
+                org_features, actor=user, organization=obj, skip_experiment_exposure=True
+            )
 
             # batch_has has found some features
             if batch_features:
