@@ -14,9 +14,9 @@ const suspendReasons = [
   ['past_due', 'Past Due', 'This account has a past balance which needs to be paid.'],
 ] as const;
 
-type State = {
+interface State {
   suspensionReason: (typeof suspendReasons)[number][0] | null;
-};
+}
 
 /**
  * Rendered as part of a openAdminConfirmModal call

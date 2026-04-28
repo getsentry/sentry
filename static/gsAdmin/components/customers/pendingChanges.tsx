@@ -327,10 +327,10 @@ function getOnDemandChanges(subscription: Subscription) {
   return changes;
 }
 
-type Change = {
+interface Change {
   effectiveDate: string;
   items: React.ReactNode[];
-};
+}
 
 function getChanges(subscription: Subscription, planMigrations: PlanMigration[]) {
   const {pendingChanges} = subscription;

@@ -48,13 +48,13 @@ enum ArtifactsState {
   ERROR = 3,
 }
 
-type RelocationArtifact = {
+interface RelocationArtifact {
   description: string;
   path: string;
   regionName: string;
   relocation: Relocation;
   sizeInKbs: number;
-};
+}
 
 // A map of each expected relocation artifact to a user-legible description of what it is.
 const expectedRelocationArtifacts = new Map<string, string>(

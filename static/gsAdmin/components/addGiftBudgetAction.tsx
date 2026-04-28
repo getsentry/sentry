@@ -17,11 +17,11 @@ import {useApi} from 'sentry/utils/useApi';
 import type {Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
-type Props = {
+interface Props {
   onSuccess: () => void;
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 type ModalProps = Props & ModalRenderProps;
 

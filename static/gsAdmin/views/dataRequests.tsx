@@ -17,10 +17,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
-type ResultQuery = {
+interface ResultQuery {
   email: string;
   orgSlug: string;
-};
+}
 
 export function DataRequests() {
   const location = useLocation();

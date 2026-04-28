@@ -21,7 +21,7 @@ declare global {
   }
 }
 
-export type PromoCode = {
+export interface PromoCode {
   amount: string;
   campaign: string;
   code: string;
@@ -35,7 +35,7 @@ export type PromoCode = {
   trialDays: number;
   userEmail: string | null;
   userId: number;
-};
+}
 
 type RelocationStatus = 'IN_PROGRESS' | 'SUCCESS' | 'FAILURE' | 'PAUSE';
 
@@ -53,13 +53,13 @@ type RelocationStep = keyof typeof RelocationSteps;
 
 type RelocationProvenance = 'SELF_HOSTED' | 'SAAS_TO_SAAS';
 
-type RelocationAssociatedUser = {
+interface RelocationAssociatedUser {
   email: string;
   id: string;
   username: string;
-};
+}
 
-export type Relocation = {
+export interface Relocation {
   creator: RelocationAssociatedUser | null;
   dateAdded: string;
   dateUpdated: string;
@@ -78,67 +78,67 @@ export type Relocation = {
   uuid: string;
   wantOrgSlugs: string[];
   wantUsernames: string[];
-};
+}
 
-export type ContractDate = {
+export interface ContractDate {
   day?: number;
   month?: number;
   year?: number;
-};
+}
 
-type ContractPricingTier = {
+interface ContractPricingTier {
   end?: string;
   ratePerUnitCpe?: string;
   start?: string;
-};
+}
 
-type ContractTieredPricingRate = {
+interface ContractTieredPricingRate {
   tiers?: ContractPricingTier[];
-};
+}
 
-export type ContractSKUConfig = {
+export interface ContractSKUConfig {
   basePriceCents?: string;
   paygBudgetCents?: string;
   paygRate?: ContractTieredPricingRate;
   reservedRate?: ContractTieredPricingRate;
   reservedVolume?: string;
   sku?: string;
-};
+}
 
-export type ContractSharedSKUBudget = {
+export interface ContractSharedSKUBudget {
   paygBudgetCents?: string;
   reservedBudgetCents?: string;
   skus?: string[];
-};
+}
 
-type ContractMetadata = {
+interface ContractMetadata {
   id?: string;
   organizationId?: string;
-};
+}
 
-type ContractAddress = {
+interface ContractAddress {
   countryCode?: string;
-};
+}
 
-type ContractBillingConfig = {
+interface ContractBillingConfig {
   address?: ContractAddress;
   billingType?: string;
   channel?: string;
   contractEndDate?: ContractDate;
   contractStartDate?: ContractDate;
-};
+}
 
-type ContractPricingConfig = {
+interface ContractPricingConfig {
   basePriceCents?: string;
   billingPeriodEndDate?: ContractDate;
   billingPeriodStartDate?: ContractDate;
   maxSpendCents?: string;
   sharedSkuBudgets?: ContractSharedSKUBudget[];
   skuConfigs?: ContractSKUConfig[];
-};
+}
 
-export type Contract = {
+export interface Contract {
   billingConfig?: ContractBillingConfig;
   metadata?: ContractMetadata;
   pricingConfig?: ContractPricingConfig;
-};
+}

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 
-type Props = {
+interface Props {
   /**
    * The left-hand aligned label
    */
@@ -18,7 +18,7 @@ type Props = {
    * Pass a boolean to render 'yes' or 'no' as the child for true / false
    */
   yesNo?: boolean;
-};
+}
 
 /**
  * Detail label is used within DetailList

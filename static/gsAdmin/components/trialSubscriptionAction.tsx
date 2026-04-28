@@ -18,11 +18,11 @@ type Props = AdminConfirmRenderProps & {
   startEnterpriseTrial?: boolean;
 };
 
-type State = {
+interface State {
   trialDays: number;
   trialPlanOverride?: string;
   trialTier?: PlanTier;
-};
+}
 
 /**
  * Rendered as part of a openAdminConfirmModal call

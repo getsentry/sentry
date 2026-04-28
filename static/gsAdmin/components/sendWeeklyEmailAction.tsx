@@ -17,11 +17,11 @@ import type {
 
 type Props = {api: Client; orgId: string} & AdminConfirmRenderProps;
 
-type State = {
+interface State {
   deliveryEmail: string;
   dryRun: boolean;
   targetEmail: string;
-};
+}
 
 /**
  * Rendered as part of a openAdminConfirmModal call

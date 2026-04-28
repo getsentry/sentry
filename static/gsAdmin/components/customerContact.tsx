@@ -2,9 +2,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
+interface Props {
   owner?: Subscription['owner'];
-};
+}
 
 export function CustomerContact({owner}: Props) {
   return owner ? (

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   maxLabelSize?: number;
-};
+}
 
 export const DetailList = styled('dl')<Props>`
   display: grid;

@@ -9,11 +9,11 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   onUpdated: (data: any) => void;
   orgId: string;
-};
+}
 
 const CHANGE_CHOICES = [
   ['swap', 'Swap'],
@@ -22,12 +22,12 @@ const CHANGE_CHOICES = [
 
 type ModalProps = Props & ModalRenderProps;
 
-type ModalState = {
+interface ModalState {
   append: string | null;
   dryRun: boolean | null;
   dryRunInfo: any[];
   loading: boolean;
-};
+}
 
 class ChangeGoogleDomainModal extends Component<ModalProps, ModalState> {
   state: ModalState = {

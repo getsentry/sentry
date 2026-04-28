@@ -32,35 +32,35 @@ enum SeriesName {
   DROPPED = 'Dropped (Server)',
 }
 
-type SubSeries = {
+interface SubSeries {
   data: DataPoint[];
   seriesName: string;
-};
+}
 
-type SeriesItem = {
+interface SeriesItem {
   data: DataPoint[];
   seriesName: string;
   color?: string;
   subSeries?: SubSeries[];
-};
+}
 
-export type StatsGroup = {
+export interface StatsGroup {
   by: {
     outcome: string;
     reason: string;
   };
   series: Record<string, number[]>;
   totals: Record<string, number>;
-};
+}
 
-type Stats = {
+interface Stats {
   groups: StatsGroup[];
   intervals: Array<string | number>;
-};
+}
 
-type LegendProps = {
+interface LegendProps {
   points: Stats;
-};
+}
 
 export const useSeries = (): Record<string, SeriesItem> => {
   const theme = useTheme();
@@ -97,12 +97,12 @@ function isAbuseWithoutReason(by: {outcome: string; reason?: string}): boolean {
   return by.outcome === 'abuse' && (!by.reason || by.reason === 'none');
 }
 
-type AbuseData = {
+interface AbuseData {
   intervalMs: number;
   intervals: number[];
   regions: Array<{end: number; start: number}>;
   valueByTimestamp: Map<number, number>;
-};
+}
 
 function getAbuseData(
   intervals: Array<string | number>,
@@ -424,13 +424,13 @@ function FooterLegend({points}: LegendProps) {
   );
 }
 
-type Props = {
+interface Props {
   dataType: DataCategoryExact;
   orgSlug: Organization['slug'];
   onDemandPeriodEnd?: string;
   onDemandPeriodStart?: string;
   projectId?: Project['id'];
-};
+}
 
 export const CustomerStats = memo(
   ({orgSlug, projectId, dataType, onDemandPeriodStart, onDemandPeriodEnd}: Props) => {

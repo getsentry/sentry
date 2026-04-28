@@ -107,23 +107,23 @@ class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps
 
 const DollarsAndCentsField = withFormContext(DollarsAndCentsFieldNoContext);
 
-type Props = {
+interface Props {
   api: Client;
   billingConfig: BillingConfig | null;
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
-};
+}
 
 type ModalProps = ModalRenderProps & Props;
 
-type ModalState = {
+interface ModalState {
   data: any;
   // TODO(ts)
   effectiveAtDisabled: boolean;
   isLoading: boolean;
   provisionablePlans: Record<string, Plan>;
-};
+}
 
 /**
  * Convert cents to dollars

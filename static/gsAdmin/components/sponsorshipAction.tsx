@@ -14,9 +14,9 @@ type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
 };
 
-type State = {
+interface State {
   sponsoredType?: string | null;
-};
+}
 
 /**
  * Rendered as part of a openAdminConfirmModal call

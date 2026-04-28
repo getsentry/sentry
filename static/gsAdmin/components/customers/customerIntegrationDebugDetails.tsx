@@ -14,7 +14,7 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;
 };
 
-type IntegrationRow = {
+interface IntegrationRow {
   dateAdded: string | null;
   gracePeriodEnd: string | null;
   id: number;
@@ -27,7 +27,7 @@ type IntegrationRow = {
     status: number;
   };
   status: number;
-};
+}
 
 const STATUS_LABELS: Record<number, string> = {
   0: 'Active',

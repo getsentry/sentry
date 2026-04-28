@@ -22,7 +22,7 @@ import {
 import {getPlanCategoryName, isByteCategory} from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
-type Props = {
+interface Props {
   activePlan: Plan | null;
   formModel: FormModel;
   onCancel: () => void;
@@ -32,7 +32,7 @@ type Props = {
   onSubmitSuccess: (data: Data) => void;
   subscription: Subscription;
   tierPlans: BillingConfig['planList'];
-};
+}
 
 export function PlanList({
   activePlan,

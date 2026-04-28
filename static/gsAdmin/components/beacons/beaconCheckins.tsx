@@ -5,9 +5,9 @@ import {Truncate} from 'sentry/components/truncate';
 import type {BeaconData} from 'admin/components/beacons/beaconOverview';
 import ResultGrid from 'admin/components/resultGrid';
 
-type Props = {
+interface Props {
   data: BeaconData;
-};
+}
 
 const getRow = (row: any) => [
   <td key="id">{moment(row.dateCreated).fromNow()}</td>,

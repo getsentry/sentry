@@ -26,9 +26,9 @@ type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
 };
 
-type State = {
+interface State {
   freeEvents?: number;
-};
+}
 
 /**
  * Rendered as part of a openAdminConfirmModal call
