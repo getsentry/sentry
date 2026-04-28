@@ -83,7 +83,12 @@ class DiscoverAndPerformanceExamples:
                             },
                         },
                     ],
-                    "meta": {"dataset": "spans", "start": 1741368281123, "end": 1741368281123},
+                    "meta": {
+                        "dataset": "spans",
+                        "start": 1741368281123,
+                        "end": 1741368281123,
+                        "interval": 3600,
+                    },
                 }
             ),
             status_codes=["200"],
