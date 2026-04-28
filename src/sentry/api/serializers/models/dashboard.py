@@ -718,17 +718,22 @@ class DashboardRevisionSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs) -> DashboardRevisionResponse:
         created_by = attrs.get("created_by")
+        if created_by:
+            avatar = created_by.get("avatar") or {}
+            avatar_type = avatar.get("avatarType")
+            created_by_data: dict[str, Any] | None = {
+                "id": created_by["id"],
+                "name": created_by["name"],
+                "email": created_by["email"],
+                "avatarType": avatar_type,
+                "avatarUrl": avatar.get("avatarUrl") if avatar_type == "upload" else None,
+            }
+        else:
+            created_by_data = None
         return {
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": {
-                "id": created_by["id"],
-                "name": created_by["name"],
-                "email": created_by["email"],
-                "avatarUrl": created_by["avatarUrl"],
-            }
-            if created_by
-            else None,
+            "createdBy": created_by_data,
             "source": obj.source,
         }
