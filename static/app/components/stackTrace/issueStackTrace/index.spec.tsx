@@ -65,6 +65,7 @@ function makeCopyTestData() {
 
 describe('IssueStackTrace', () => {
   beforeEach(() => {
+    localStorage.clear();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {dismissed_ts: undefined, snoozed_ts: undefined},
@@ -109,6 +110,69 @@ describe('IssueStackTrace', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('persists raw and minified display selections per project', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const minifiedStacktrace = {
+      ...stacktrace,
+      frames: stacktrace.frames.map((frame, index) => ({
+        ...frame,
+        filename: `minified/${index}.js`,
+        function: frame.rawFunction ?? `raw_fn_${index}`,
+      })),
+    };
+    const storageKey = 'issue-details-stracktrace-display-org-slug-project-slug';
+
+    const {unmount} = render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: minifiedStacktrace,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Display options'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Unsymbolicated'}));
+    await userEvent.keyboard('{Escape}');
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+      expect(stored).toEqual(expect.arrayContaining(['raw-stack-trace', 'minified']));
+    });
+
+    unmount();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        projectSlug="project-slug"
+        values={[
+          {
+            type: 'ValueError',
+            value: 'list index out of range',
+            module: 'raven.base',
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            threadId: null,
+            rawStacktrace: minifiedStacktrace,
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText(/File "minified\/\d+\.js"/)).toBeInTheDocument();
   });
 
   it('shares display options across chained issue exceptions', async () => {

@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex} from '@sentry/scraps/layout';
@@ -39,6 +39,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -82,8 +83,20 @@ function IssueStackTraceLineCoverageLegend() {
   return <LineCoverageLegend />;
 }
 
+type PersistedDisplayOption = 'raw-stack-trace' | 'minified';
+
+const NO_PERSIST_KEY = '__no_persist_stacktrace_display__';
+
 export function IssueStackTrace(props: IssueStackTraceProps) {
   const {event, group, projectSlug} = props;
+  const organization = useOrganization();
+  const storageKey = projectSlug
+    ? `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`
+    : NO_PERSIST_KEY;
+  const [persistedOptions, setPersistedOptions] = useLocalStorageState<
+    PersistedDisplayOption[]
+  >(storageKey, []);
+
   const eventHasThreads = event.entries?.some(entry => entry.type === EntryType.THREADS);
   if (eventHasThreads) {
     return null;
@@ -119,7 +132,14 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
       <StackTraceViewStateProvider
         platform={event.platform}
         hasMinifiedStacktrace={hasMinifiedStacktrace}
+        defaultView={
+          projectSlug && persistedOptions.includes('raw-stack-trace') ? 'raw' : 'app'
+        }
+        defaultIsMinified={!!projectSlug && persistedOptions.includes('minified')}
       >
+        {projectSlug && (
+          <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />
+        )}
         <IssueStackTraceContent
           event={event}
           values={values}
@@ -130,6 +150,25 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
       </StackTraceViewStateProvider>
     </LineCoverageProvider>
   );
+}
+
+function PersistDisplayOptions({
+  setPersistedOptions,
+}: {
+  setPersistedOptions: (options: PersistedDisplayOption[]) => void;
+}) {
+  const {view, isMinified} = useStackTraceViewState();
+  useEffect(() => {
+    const next: PersistedDisplayOption[] = [];
+    if (view === 'raw') {
+      next.push('raw-stack-trace');
+    }
+    if (isMinified) {
+      next.push('minified');
+    }
+    setPersistedOptions(next);
+  }, [view, isMinified, setPersistedOptions]);
+  return null;
 }
 
 function IssueStackTraceContent({
