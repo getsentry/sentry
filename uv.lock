@@ -283,7 +283,7 @@ wheels = [
 
 [[package]]
 name = "devservices"
-version = "1.3.1"
+version = "1.3.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "packaging", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -293,7 +293,7 @@ dependencies = [
     { name = "supervisor", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.3.1-py3-none-any.whl", hash = "sha256:111c28fcd76c5a97402a3da727e7484cc22eda4a709c4ae09bd04cfa266a4575" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/devservices-1.3.2-py3-none-any.whl", hash = "sha256:70b92e0baea17a52895198259121419d687dcab1e520b0509de7c2ed90c6058c" },
 ]
 
 [[package]]
@@ -2361,7 +2361,7 @@ requires-dist = [
 dev = [
     { name = "codeowners-coverage", specifier = ">=0.3.0" },
     { name = "covdefaults", specifier = ">=2.3.0" },
-    { name = "devservices", specifier = ">=1.3.1" },
+    { name = "devservices", specifier = ">=1.3.2" },
     { name = "django-stubs", specifier = ">=5.2.9" },
     { name = "djangorestframework-stubs", specifier = ">=3.16.8" },
     { name = "docker", specifier = ">=7.1.0" },

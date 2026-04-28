@@ -17,7 +17,6 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
-from urllib3.exceptions import HTTPError
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -26,10 +25,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.autofix.utils import (
-    bulk_get_project_preferences,
-    bulk_read_preferences_from_sentry_db,
-)
+from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -237,32 +233,6 @@ def has_seer_explorer_access_with_detail(
     return True, None
 
 
-def _collect_repos_by_project_id(
-    organization: Organization, project_ids: list[int]
-) -> dict[str, list[dict[str, Any]]]:
-    """Fetch repo lists for each project, keyed by project id."""
-    if not project_ids:
-        return {}
-
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        prefs_by_pid = bulk_read_preferences_from_sentry_db(organization.id, project_ids)
-        return {
-            str(pid): [repo.dict() for repo in pref.repositories]
-            for pid, pref in prefs_by_pid.items()
-        }
-
-    try:
-        pref_dicts_by_pid = bulk_get_project_preferences(organization.id, project_ids)
-    except (SeerApiError, HTTPError, orjson.JSONDecodeError):
-        logger.exception(
-            "Failed to fetch Seer project preferences for explorer context",
-            extra={"organization_id": organization.id},
-        )
-        return {}
-
-    return {pid: pref.get("repositories") or [] for pid, pref in pref_dicts_by_pid.items() if pref}
-
-
 def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
@@ -273,7 +243,12 @@ def collect_user_org_context(
         organization=organization, status=ObjectStatus.ACTIVE
     ).values("id", "slug")
 
-    repos_by_pid = _collect_repos_by_project_id(organization, [p["id"] for p in all_projects])
+    prefs_by_pid = bulk_read_preferences_from_sentry_db(
+        organization.id, [p["id"] for p in all_projects]
+    )
+    repos_by_pid = {
+        str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
+    }
 
     all_org_projects = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}

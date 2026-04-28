@@ -279,6 +279,7 @@ def _execute_night_shift_run(
                     "group_id": c.group.id,
                     "action": c.action,
                     "seer_run_id": seer_run_id_by_group.get(c.group.id),
+                    "num_occurrences": c.group.times_seen,
                 }
                 for c in candidates
             ],

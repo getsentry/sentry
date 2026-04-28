@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,8 +13,7 @@ import {MemberListStore} from 'sentry/stores/memberListStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -41,16 +41,13 @@ export function IssueContext(props: BaseContextProps) {
     isPending: issueLoading,
     isError: issueError,
     data: issue,
-  } = useApiQuery<Group>(
-    makeFetchGroupQueryKey({
+  } = useQuery(
+    groupApiOptions({
       groupId: dataRow['issue.id'],
       organizationSlug: organization.slug,
       // The link to issue details doesn't seem to currently pass selected environments
       environments: [],
-    }),
-    {
-      staleTime: 30_000,
-    }
+    })
   );
 
   const title = issue?.title;

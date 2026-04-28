@@ -223,8 +223,9 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
-    // needs to be below sidebar
-    // @TODO(jonasbadalic) why does it need to be below sidebar?
+    // dashboard widget builder backdrop sits behind the sidebar
+    // because it renders on the right next to the sidebar
+    // @TODO(design-engineering): resolve this inconsistency
     widgetBuilderDrawer: 1016,
 
     settingsSidebarNavMask: 1017,

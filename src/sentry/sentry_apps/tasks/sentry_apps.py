@@ -550,6 +550,7 @@ def clear_cell_cache(sentry_app_id: int, cell_name: str) -> None:
     name="sentry.sentry_apps.tasks.sentry_apps.workflow_notification",
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
+    processing_deadline_duration=15,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator
@@ -704,7 +705,7 @@ def get_webhook_data(
     namespace=sentryapp_tasks,
     retry=Retry(times=3, delay=60 * 5),
     compression_type=CompressionType.ZSTD,
-    processing_deadline_duration=8,
+    processing_deadline_duration=12,
     silo_mode=SiloMode.CELL,
 )
 @retry_decorator

@@ -498,7 +498,7 @@ describe('SpansTabContent', () => {
       expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
       expect(
-        screen.queryByRole('menuitemradio', {name: 'Metrics'})
+        screen.queryByRole('menuitemradio', {name: 'Application Metrics'})
       ).not.toBeInTheDocument();
     });
 
@@ -515,7 +515,9 @@ describe('SpansTabContent', () => {
         screen.getByRole('button', {name: 'Add a cross event query'})
       );
 
-      expect(screen.getByRole('menuitemradio', {name: 'Metrics'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Application Metrics'})
+      ).toBeInTheDocument();
     });
 
     it('adds a cross event query', async () => {

@@ -1,13 +1,11 @@
-import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useCallback, useState} from 'react';
+import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {mergeGroups} from 'sentry/actionCreators/group';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {HookOrDefault} from 'sentry/components/hookOrDefault';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -67,12 +65,13 @@ export function SimilarStackTrace({project}: Props) {
         ? '/organizations/$organizationIdOrSlug/issues/$issueId/similar-issues-embeddings/'
         : '/organizations/$organizationIdOrSlug/issues/$issueId/similar/',
       {
-        path: {organizationIdOrSlug: organization.slug, issueId: params.groupId},
+        path: canFetch
+          ? {organizationIdOrSlug: organization.slug, issueId: params.groupId}
+          : skipToken,
         query: hasEmbeddings ? {k: 10, threshold: 0.01} : {...location.query, limit: 50},
         staleTime: 0,
       }
     ),
-    enabled: canFetch,
     select: response => {
       const items = response.json.map(tuple => processSimilarItem(tuple, hasEmbeddings));
       return {
@@ -159,56 +158,46 @@ export function SimilarStackTrace({project}: Props) {
     });
   }, [checkedIds, similar, filtered, location.query, mergeMutate]);
 
-  const {data: event} = useGroupEvent({groupId: params.groupId, eventId: 'latest'});
+  const {data: event, isPending: isEventPending} = useGroupEvent({
+    groupId: params.groupId,
+    eventId: 'latest',
+  });
   const platformSupportsLongStacktraces = LONG_STACKTRACE_PLATFORMS.includes(
     event?.platform ?? ''
   );
 
-  const hasSimilarItems =
-    (hasSimilarityFeature || hasEmbeddings) &&
-    (similar.length > 0 || filtered.length > 0);
-
-  const loading = isPending || isProjectPending || !canFetch;
+  const loading = isPending || isProjectPending || isEventPending || !canFetch;
 
   return (
-    <Fragment>
-      <HeaderWrapper>
-        <Title>{t('Issues with a similar stack trace')}</Title>
-        <small>
+    <Stack gap="xl" align="stretch">
+      <Stack gap="xs" align="stretch">
+        <Heading as="h4" size="lg">
+          {t('Issues with a similar stack trace')}
+        </Heading>
+        <Text as="p" variant="muted" size="sm">
           {t(
             'This is an experimental feature. Data may not be immediately available while we process merges.'
           )}
-        </small>
-      </HeaderWrapper>
-      {isError ? (
-        <LoadingError
-          message={t('Unable to load similar issues, please try again later')}
-          onRetry={() => refetch()}
-        />
-      ) : loading ? (
-        <LoadingIndicator />
-      ) : hasSimilarItems ? (
-        <List
-          items={similar}
-          filteredItems={filtered}
-          onMerge={handleMerge}
-          onToggle={handleToggle}
-          checkedIds={checkedIds}
-          busyIds={busyIds}
-          project={project}
-          groupId={params.groupId}
-          pageLinks={pageLinks}
-          hasSimilarityEmbeddingsFeature={hasEmbeddings}
-        />
-      ) : (
-        <Panel>
-          <EmptyStateWarning>
-            <p>{getEmptyMessage(hasEmbeddings, platformSupportsLongStacktraces)}</p>
-          </EmptyStateWarning>
-        </Panel>
-      )}
+        </Text>
+      </Stack>
+      <List
+        loading={loading}
+        isError={isError}
+        onRetry={() => refetch()}
+        emptyMessage={getEmptyMessage(hasEmbeddings, platformSupportsLongStacktraces)}
+        items={similar}
+        filteredItems={filtered}
+        onMerge={handleMerge}
+        onToggle={handleToggle}
+        checkedIds={checkedIds}
+        busyIds={busyIds}
+        project={project}
+        groupId={params.groupId}
+        pageLinks={pageLinks}
+        hasSimilarityEmbeddingsFeature={hasEmbeddings}
+      />
       <DataConsentBanner source="grouping" />
-    </Fragment>
+    </Stack>
   );
 }
 
@@ -218,26 +207,13 @@ function getEmptyMessage(
 ) {
   if (!platformSupportsLongStacktraces) {
     return t(
-      "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames."
+      'No similar issues found. This can happen when the issue has no stacktrace or in-app frames, or when the stacktrace has over 30 frames.'
     );
   }
   if (hasEmbeddings) {
     return t(
-      "There don't seem to be any similar issues. This can occur when the issue has no stacktrace or in-app frames."
+      'No similar issues found. This can happen when the issue has no stacktrace or in-app frames.'
     );
   }
-  return t("There don't seem to be any similar issues.");
+  return t('No similar issues found.');
 }
-
-const Title = styled('h4')`
-  font-size: ${p => p.theme.font.size.lg};
-  margin-bottom: ${p => p.theme.space.sm};
-`;
-
-const HeaderWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.xl};
-
-  small {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;

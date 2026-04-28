@@ -190,7 +190,7 @@ describe('getDetectorOpenInDestination', () => {
     });
 
     describe('Metrics', () => {
-      it('returns "Open in Metrics" with correct query parameters', () => {
+      it('returns "Open in Application Metrics" with correct query parameters', () => {
         const detector = MetricDetectorFixture({
           dataSources: [
             SnubaQueryDataSourceFixture({
@@ -220,7 +220,7 @@ describe('getDetectorOpenInDestination', () => {
           statsPeriod: '7d',
         });
 
-        expect(result?.buttonText).toBe('Open in Metrics');
+        expect(result?.buttonText).toBe('Open in Application Metrics');
         expect(result?.to).toContain('/explore/metrics/');
         expect(result?.to).toContain('project=1');
         expect(result?.to).toContain('environment=prod');
@@ -261,7 +261,7 @@ describe('getDetectorOpenInDestination', () => {
           statsPeriod: '7d',
         });
 
-        expect(result?.buttonText).toBe('Open in Metrics');
+        expect(result?.buttonText).toBe('Open in Application Metrics');
         const to = result?.to as string;
         const metricParams = new URL(`https://example.com${to}`).searchParams.getAll(
           'metric'

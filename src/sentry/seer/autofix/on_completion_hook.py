@@ -21,10 +21,9 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    clear_preference_automation_handoff,
     read_preference_from_sentry_db,
-    resolve_repository_ids,
     set_project_seer_preference,
-    write_preference_to_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.explorer.client_models import Artifact
@@ -510,10 +509,7 @@ class AutofixOnCompletionHook(ExplorerOnCompletionHook):
 
         if features.has("organizations:seer-project-settings-dual-write", organization):
             try:
-                resolved_preference = resolve_repository_ids(organization.id, [updated_preference])[
-                    0
-                ]
-                write_preference_to_sentry_db(project, resolved_preference)
+                clear_preference_automation_handoff(project)
             except Exception:
                 logger.exception(
                     "seer.write_preferences.failed",
