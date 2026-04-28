@@ -1,12 +1,12 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {Event} from 'sentry/types/event';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {
-  getGroupEventQueryKey,
+  groupEventApiOptions,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
 } from 'sentry/views/issueDetails/utils';
@@ -46,18 +46,17 @@ export function useGroupEvent({
     (location.query.statsPeriod || location.query.start || location.query.end);
   const periodQuery = hasSetStatsPeriod ? getPeriod(pageFilters.datetime) : {};
 
-  const queryKey = getGroupEventQueryKey({
-    orgSlug: organization.slug,
-    groupId,
-    eventId,
-    environments,
-    query: eventQuery,
-    ...periodQuery,
-  });
+  const staleTime = isSpecificEventId ? Infinity : 30_000;
 
-  const staleTime = isSpecificEventId ? Infinity : 30000;
-
-  return useApiQuery<Event>(queryKey, {
+  return useQuery({
+    ...groupEventApiOptions({
+      orgSlug: organization.slug,
+      groupId,
+      eventId,
+      environments,
+      query: eventQuery,
+      ...periodQuery,
+    }),
     staleTime,
     enabled: options?.enabled && !!eventId,
     retry: false,

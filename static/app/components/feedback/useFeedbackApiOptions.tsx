@@ -1,23 +1,20 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
 
-import {getFeedbackItemQueryKey} from 'sentry/components/feedback/getFeedbackItemQueryKey';
+import {
+  getFeedbackItemApiOptions,
+  type FeedbackItemApiOptions,
+} from 'sentry/components/feedback/getFeedbackItemApiOptions';
 import {
   useFeedbackListApiOptions,
   useFeedbackListInfiniteApiOptions,
 } from 'sentry/components/feedback/useFeedbackListApiOptions';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   children: ReactNode;
   organization: Organization;
 }
-
-type ItemQueryKeys = {
-  eventQueryKey: ApiQueryKey | undefined;
-  issueQueryKey: ApiQueryKey | undefined;
-};
 
 type FeedbackListApiOptions = ReturnType<typeof useFeedbackListApiOptions>;
 type FeedbackListInfiniteApiOptions = ReturnType<
@@ -25,14 +22,12 @@ type FeedbackListInfiniteApiOptions = ReturnType<
 >;
 
 interface TContext {
-  getItemQueryKeys: (id: string) => ItemQueryKeys;
+  getItemApiOptions: (id: string) => FeedbackItemApiOptions;
   listApiOptions: FeedbackListInfiniteApiOptions;
   listHeadTime: number;
   listPrefetchApiOptions: FeedbackListApiOptions;
   resetListHeadTime: () => void;
 }
-
-const EMPTY_ITEM_QUERY_KEYS = {issueQueryKey: undefined, eventQueryKey: undefined};
 
 const FeedbackApiOptionsProvider = createContext<TContext | null>(null);
 
@@ -42,16 +37,16 @@ export function FeedbackApiOptions({children, organization}: Props) {
     setHeadTimeMs(Date.now());
   }, []);
 
-  const itemQueryKeyRef = useRef<Map<string, ItemQueryKeys>>(new Map());
-  const getItemQueryKeys = useCallback(
+  const itemApiOptionsRef = useRef<Map<string, FeedbackItemApiOptions>>(new Map());
+  const getItemApiOptions = useCallback(
     (feedbackId: string) => {
-      if (feedbackId && !itemQueryKeyRef.current.has(feedbackId)) {
-        itemQueryKeyRef.current.set(
+      if (!itemApiOptionsRef.current.has(feedbackId)) {
+        itemApiOptionsRef.current.set(
           feedbackId,
-          getFeedbackItemQueryKey({feedbackId, organization})
+          getFeedbackItemApiOptions({feedbackId, organization})
         );
       }
-      return itemQueryKeyRef.current.get(feedbackId) ?? EMPTY_ITEM_QUERY_KEYS;
+      return itemApiOptionsRef.current.get(feedbackId)!;
     },
     [organization]
   );
@@ -71,7 +66,7 @@ export function FeedbackApiOptions({children, organization}: Props) {
   return (
     <FeedbackApiOptionsProvider.Provider
       value={{
-        getItemQueryKeys,
+        getItemApiOptions,
         listHeadTime,
         listPrefetchApiOptions,
         listApiOptions,
