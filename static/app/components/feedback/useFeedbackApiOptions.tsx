@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {createContext, useCallback, useContext, useRef, useState} from 'react';
+import {createContext, useCallback, useContext, useState} from 'react';
 
 import {
   getFeedbackItemApiOptions,
@@ -37,17 +37,8 @@ export function FeedbackApiOptions({children, organization}: Props) {
     setHeadTimeMs(Date.now());
   }, []);
 
-  const itemApiOptionsRef = useRef<Map<string, FeedbackItemApiOptions>>(new Map());
   const getItemApiOptions = useCallback(
-    (feedbackId: string) => {
-      if (!itemApiOptionsRef.current.has(feedbackId)) {
-        itemApiOptionsRef.current.set(
-          feedbackId,
-          getFeedbackItemApiOptions({feedbackId, organization})
-        );
-      }
-      return itemApiOptionsRef.current.get(feedbackId)!;
-    },
+    (feedbackId: string) => getFeedbackItemApiOptions({feedbackId, organization}),
     [organization]
   );
 
