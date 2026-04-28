@@ -197,16 +197,23 @@ export function AutofixAgent({canWrite, preference, project}: Props) {
           schema={z.object({nightShift: z.enum(['on', 'off', 'default'])})}
           initialValue={getNightShiftValue(project)}
           mutationOptions={{
-            mutationFn: ({nightShift}: {nightShift: NightShiftValue}) =>
-              updateProject.mutateAsync({
-                seerNightshiftTweaks:
-                  nightShift === 'default'
-                    ? null
-                    : {
-                        ...project.seerNightshiftTweaks,
-                        enabled: nightShift === 'on',
-                      },
-              }),
+            mutationFn: ({nightShift}: {nightShift: NightShiftValue}) => {
+              if (nightShift === 'default') {
+                // 'default' means "no preference for enabled" — drop just that
+                // key while preserving the manual-run debug fields. If nothing
+                // else was set, send null so the option is unset entirely.
+                const {enabled: _enabled, ...rest} = project.seerNightshiftTweaks ?? {};
+                return updateProject.mutateAsync({
+                  seerNightshiftTweaks: Object.keys(rest).length === 0 ? null : rest,
+                });
+              }
+              return updateProject.mutateAsync({
+                seerNightshiftTweaks: {
+                  ...project.seerNightshiftTweaks,
+                  enabled: nightShift === 'on',
+                },
+              });
+            },
           }}
         >
           {field => (

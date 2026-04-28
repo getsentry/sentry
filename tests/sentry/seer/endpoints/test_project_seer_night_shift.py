@@ -33,6 +33,7 @@ class ProjectSeerNightShiftTest(APITestCase):
             intelligence_level="high",
             reasoning_effort="high",
             extra_triage_instructions="",
+            triggering_user_id=self.user.id,
         )
 
     @with_feature("organizations:seer-night-shift")
@@ -56,6 +57,7 @@ class ProjectSeerNightShiftTest(APITestCase):
             intelligence_level="high",
             reasoning_effort="high",
             extra_triage_instructions="",
+            triggering_user_id=self.user.id,
         )
 
     @with_feature("organizations:seer-night-shift")
@@ -88,6 +90,7 @@ class ProjectSeerNightShiftTest(APITestCase):
             intelligence_level="low",
             reasoning_effort="medium",
             extra_triage_instructions="Be terse.",
+            triggering_user_id=self.user.id,
         )
 
     def test_without_feature_returns_404(self) -> None:

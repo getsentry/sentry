@@ -32,6 +32,7 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
 
         dry_run = bool(request.data.get("dryRun", False))
         tweaks = get_night_shift_tweaks(project)
+        triggering_user_id = request.user.id if request.user.is_authenticated else None
 
         logger.info(
             "night_shift.manual_trigger.dispatched",
@@ -39,6 +40,7 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
                 "project_id": project.id,
                 "project_slug": project.slug,
                 "organization_id": project.organization_id,
+                "triggering_user_id": triggering_user_id,
                 "dry_run": dry_run,
                 "max_candidates": tweaks.max_candidates,
                 "intelligence_level": tweaks.intelligence_level,
@@ -54,5 +56,6 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
             intelligence_level=tweaks.intelligence_level,
             reasoning_effort=tweaks.reasoning_effort,
             extra_triage_instructions=tweaks.extra_triage_instructions,
+            triggering_user_id=triggering_user_id,
         )
         return Response({"agent_run_id": agent_run_id}, status=200)

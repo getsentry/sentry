@@ -603,6 +603,21 @@ class TestRunNightshiftForProjects(TestCase):
             "target_project_ids": [project.id],
         }
 
+    def test_extras_contain_triggering_user_id_when_provided(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.agentic_triage_strategy",
+            return_value=([], None),
+        ):
+            run_nightshift_for_projects(
+                project_ids=[project.id], dry_run=True, triggering_user_id=4242
+            )
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        assert run.extras["triggering_user_id"] == 4242
+
     def test_runs_even_when_project_tweak_is_disabled(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)

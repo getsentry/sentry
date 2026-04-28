@@ -170,6 +170,7 @@ def run_nightshift_for_projects(
     intelligence_level: IntelligenceLevel | None = None,
     reasoning_effort: ReasoningEffort | None = None,
     extra_triage_instructions: str | None = None,
+    triggering_user_id: int | None = None,
     **kwargs: Any,
 ) -> int | None:
     """One-off night shift run scoped to one or more projects, e.g. from the
@@ -230,6 +231,7 @@ def run_nightshift_for_projects(
             ),
             project_ids=[p.id for p in projects],
             dry_run=dry_run,
+            triggering_user_id=triggering_user_id,
             log_extra=log_extra,
         )
     except Exception:
@@ -273,6 +275,7 @@ def _execute_night_shift_run(
     options: SeerNightShiftRunOptions,
     project_ids: list[int] | None = None,
     dry_run: bool,
+    triggering_user_id: int | None = None,
     log_extra: dict[str, object],
 ) -> int | None:
     """Create a SeerNightShiftRun, run triage against eligible projects, and
@@ -287,6 +290,8 @@ def _execute_night_shift_run(
     }
     if project_ids is not None:
         extras["target_project_ids"] = project_ids
+    if triggering_user_id is not None:
+        extras["triggering_user_id"] = triggering_user_id
 
     run = SeerNightShiftRun.objects.create(
         organization=organization,
