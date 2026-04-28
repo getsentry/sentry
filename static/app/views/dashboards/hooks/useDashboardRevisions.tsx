@@ -5,7 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
 export type DashboardRevision = {
-  createdBy: {email: string; id: string; name: string} | null;
+  createdBy: {email: string; id: string; name: string; avatarUrl?: string | null} | null;
   dateCreated: string;
   id: string;
   source: 'edit' | 'edit-with-agent' | 'pre-restore';
