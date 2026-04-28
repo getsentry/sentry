@@ -2,9 +2,6 @@ import {Fragment} from 'react';
 import {Outlet, useMatches} from 'react-router-dom';
 
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
-import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
@@ -14,9 +11,6 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {ModuleName} from 'sentry/views/insights/types';
 
 function MobileVitalsHeader() {
-  const {isProjectCrossPlatform} = useCrossPlatformProject();
-  const hasPlatformizedInsights = useHasPlatformizedInsights();
-
   return (
     <MobileHeader
       headerTitle={
@@ -27,9 +21,6 @@ function MobileVitalsHeader() {
             title={MODULE_DESCRIPTION}
           />
         </Fragment>
-      }
-      headerActions={
-        isProjectCrossPlatform && !hasPlatformizedInsights && <PlatformSelector />
       }
       module={ModuleName.MOBILE_VITALS}
     />
