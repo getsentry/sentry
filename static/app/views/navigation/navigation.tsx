@@ -333,16 +333,13 @@ export function PrimaryNavigationFooterItems() {
             icon: <IconSearch />,
             onClick: () => {
               if (organization.features.includes('cmd-k-supercharged')) {
-                const seerCallback = isSeerExplorerEnabled(organization)
-                  ? openSeerExplorer
-                  : undefined;
                 toggleCommandPalette(
                   {},
                   organization,
                   state,
                   dispatch,
                   'button',
-                  seerCallback
+                  isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
                 );
               } else {
                 openHelpSearchModal({organization});

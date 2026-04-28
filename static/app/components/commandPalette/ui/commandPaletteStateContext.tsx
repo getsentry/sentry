@@ -191,17 +191,15 @@ export function CommandPaletteHotkeys() {
       includeInputs: true,
       callback: () => {
         if (organization?.features.includes('cmd-k-supercharged')) {
-          const seerCallback =
-            organization && isSeerExplorerEnabled(organization)
-              ? openSeerExplorer
-              : undefined;
           toggleCommandPalette(
             {},
             organization,
             state,
             dispatch,
             'keyboard',
-            seerCallback
+            organization && isSeerExplorerEnabled(organization)
+              ? openSeerExplorer
+              : undefined
           );
         } else {
           openCommandPaletteDeprecated();
