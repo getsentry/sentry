@@ -530,6 +530,26 @@ class OrganizationService(RpcService):
         """
         pass
 
+    @cell_rpc_method(resolve=ByCellName())
+    @abstractmethod
+    def find_organization_id_by_option_value(
+        self, *, cell_name: str, key: str, value: str
+    ) -> int | None:
+        """Find the lowest organization_id whose OrganizationOption(key, value)
+        matches the given pair, in the resolved cell.
+
+        Returns ``None`` when no row matches in this cell. Callers must fan
+        out across ``find_all_cell_names()`` if a global lookup is required.
+
+        OrganizationOption has no DB index on ``(key, value)`` — narrow by
+        ``key`` first; the JSONField equality on ``value`` is acceptable for
+        low-cardinality keys (e.g. ``stripe_projects:account_id``). Ordering
+        by ``organization_id`` gives a deterministic result when multiple
+        rows share the same ``(key, value)`` (the unique constraint is
+        ``(organization, key)``, not ``(key, value)``).
+        """
+        pass
+
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def send_sso_link_emails(
