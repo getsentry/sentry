@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
@@ -98,6 +98,7 @@ function useTraceItemAttributeConfig({
     }),
     enabled,
     select: selectTraceItemTagCollection(),
+    placeholderData: keepPreviousData,
   });
 
   const booleanBaseKeys = useMemo(() => {
