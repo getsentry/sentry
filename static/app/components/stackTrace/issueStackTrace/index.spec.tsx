@@ -148,7 +148,7 @@ describe('IssueStackTrace', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+      const stored = JSON.parse(localStorage.getItem(storageKey)!);
       expect(stored).toEqual(expect.arrayContaining(['raw-stack-trace', 'minified']));
     });
 
