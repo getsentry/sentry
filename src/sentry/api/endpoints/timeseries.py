@@ -9,6 +9,7 @@ class StatsMeta(TypedDict):
     dataset: str
     start: float
     end: float
+    interval: float
 
 
 class Row(TypedDict):

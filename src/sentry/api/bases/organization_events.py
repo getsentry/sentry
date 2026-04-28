@@ -525,6 +525,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 if readable_value:
                     result["readable"] = readable_value
 
+    def get_default_interval_from_range(self, date_range: timedelta) -> str:
+        """The interval used when the request omits one."""
+        return get_interval_from_range(date_range, False)
+
     def get_rollup(
         self,
         request: Request,
@@ -533,11 +537,12 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         use_rpc: bool,
     ) -> int:
         """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
+        default_interval = self.get_default_interval_from_range(snuba_params.date_range)
         try:
             rollup = get_rollup_from_request(
                 request,
                 snuba_params.date_range,
-                default_interval=None,
+                default_interval=default_interval,
                 error=InvalidSearchQuery(),
                 top_events=top_events,
                 allow_interval_over_range=not use_rpc,
@@ -548,8 +553,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             if use_rpc:
                 raise
             sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-            date_range = snuba_params.date_range
-            stats_period = parse_stats_period(get_interval_from_range(date_range, False))
+            stats_period = parse_stats_period(default_interval)
             rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
         return rollup
 

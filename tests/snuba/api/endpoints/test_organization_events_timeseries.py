@@ -83,6 +83,21 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
+    def test_default_interval_matches_frontend(self) -> None:
+        # 2-hour window omitting interval should bucket at 1m, matching
+        # Explore's ``useChartInterval`` default.
+        response = self.do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "project": [self.project.id, self.project2.id],
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["interval"] == 60_000
+        timeseries = response.data["timeSeries"][0]
+        assert timeseries["meta"]["interval"] == 60_000
+
     def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
@@ -111,6 +126,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "dataset": "discover",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 3_600_000,
         }
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
@@ -155,6 +171,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "dataset": "discover",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 3_600_000,
         }
         assert len(response.data["timeSeries"]) == 2
         timeseries = response.data["timeSeries"][0]
@@ -228,6 +245,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "dataset": "discover",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 3_600_000,
         }
         assert len(response.data["timeSeries"]) == 4
         timeseries = response.data["timeSeries"][0]
@@ -361,6 +379,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "dataset": "discover",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 3_600_000,
         }
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]

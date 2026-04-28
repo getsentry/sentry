@@ -55,6 +55,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.dates import get_default_interval_for_chart
 from sentry.utils.snuba import SnubaTSResult
 
 TOP_EVENTS_DATASETS = {
@@ -97,6 +98,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             }
         }
     )
+
+    def get_default_interval_from_range(self, date_range: timedelta) -> str:
+        # Match Explore's ``useChartInterval`` default so unfurled and
+        # backend-driven charts bucket the same way as the in-app chart when
+        # the request omits an explicit ``interval``. Dashboards will move to
+        # the same default when its frontend dropdown is updated.
+        return get_default_interval_for_chart(date_range)
 
     def get_request_querysource(self, request: Request, referrer: str) -> QuerySource:
         if referrer in SENTRY_BACKEND_REFERRERS:
@@ -361,6 +369,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 dataset=DATASET_LABELS[dataset],
                 start=snuba_params.start_date.timestamp() * 1000,
                 end=snuba_params.end_date.timestamp() * 1000,
+                interval=rollup * 1000,
             ),
             timeSeries=self.serialize_result(result, axes, rollup, now),
         )

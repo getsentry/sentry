@@ -46,6 +46,7 @@ from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import RPC_DATASETS
+from sentry.utils.dates import get_default_interval_for_chart
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
 SENTRY_BACKEND_REFERRERS = [
@@ -65,6 +66,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+
+    def get_default_interval_from_range(self, date_range: timedelta) -> str:
+        return get_default_interval_for_chart(date_range)
 
     def get_features(
         self, organization: Organization, request: Request

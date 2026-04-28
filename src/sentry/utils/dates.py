@@ -137,6 +137,20 @@ def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
     return "5m" if high_fidelity else "15m"
 
 
+def get_default_interval_for_chart(date_range: timedelta) -> str:
+    if date_range >= timedelta(days=30):
+        return "3h"
+    if date_range >= timedelta(weeks=2):
+        return "1h"
+    if date_range >= timedelta(days=4):
+        return "30m"
+    if date_range >= timedelta(hours=48):
+        return "10m"
+    if date_range >= timedelta(hours=12):
+        return "5m"
+    return "1m"
+
+
 def get_rollup_from_request(
     request: HttpRequest,
     date_range: timedelta,

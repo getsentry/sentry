@@ -67,6 +67,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 3_600_000,
         }
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
@@ -135,6 +136,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 60_000,
         }
         assert len(response.data["timeSeries"]) == 2
 
@@ -186,6 +188,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
+            "interval": 3_600_000,
         }
         assert len(response.data["timeSeries"]) == 1
         timeseries = response.data["timeSeries"][0]
