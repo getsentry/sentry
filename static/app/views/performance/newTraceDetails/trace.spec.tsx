@@ -949,7 +949,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We were unable to find any spans for this trace. Seeing this often?/i
+        /We were unable to find any spans for this trace\. If you came here from Logs or Application Metrics/i
       )
     ).toBeInTheDocument();
   });
