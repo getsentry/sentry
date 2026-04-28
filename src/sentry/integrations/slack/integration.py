@@ -348,6 +348,9 @@ class SlackIntegrationProvider(IntegrationProvider):
     integration_cls = SlackIntegration
 
     # some info here: https://api.slack.com/authentication/quickstart
+    # If you're adding a new scope to perform an action,
+    # you must check whether the user's app installation has the appropriate scope.
+    # This is because they may have an outdated installation of the Slack App without the new scope.
     identity_oauth_scopes = frozenset(
         [
             "channels:read",
