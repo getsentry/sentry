@@ -47,7 +47,7 @@ export default Storybook.story('RevisionListItem', story => {
     return (
       <ItemContainer>
         <RevisionDiffBody
-          isAnyLoading
+          isLoading
           isError={false}
           snapshot={undefined}
           baseRevisionId={null}
@@ -61,7 +61,7 @@ export default Storybook.story('RevisionListItem', story => {
     return (
       <ItemContainer>
         <RevisionDiffBody
-          isAnyLoading={false}
+          isLoading={false}
           isError
           snapshot={undefined}
           baseRevisionId={null}

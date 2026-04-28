@@ -11,6 +11,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
+import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
@@ -135,7 +136,7 @@ export function RevisionListItem({
           </Flex>
 
           <RevisionDiffBody
-            isAnyLoading={isAnyLoading}
+            isLoading={isAnyLoading}
             isError={isError}
             snapshot={snapshot}
             baseRevisionId={baseRevisionId}
@@ -148,7 +149,7 @@ export function RevisionListItem({
 }
 
 export function RevisionDiffBody({
-  isAnyLoading,
+  isLoading,
   isError,
   snapshot,
   baseRevisionId,
@@ -156,11 +157,11 @@ export function RevisionDiffBody({
 }: {
   baseRevisionId: string | null;
   baseSnapshot: DashboardDetails | undefined;
-  isAnyLoading: boolean;
   isError: boolean;
+  isLoading: boolean;
   snapshot: DashboardDetails | undefined;
 }) {
-  if (isAnyLoading) return <LoadingIndicator />;
+  if (isLoading) return <LoadingIndicator />;
   if (isError) {
     return (
       <Text size="sm" variant="muted">
@@ -255,14 +256,12 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
   const fields = status === 'modified' ? change.fields : undefined;
   const layoutChanged = status === 'modified' ? change.layoutChanged : false;
 
-  const STATUS_MAP: Record<
-    WidgetChange['status'],
-    {label: string; variant: 'success' | 'danger' | 'warning'}
-  > = {
-    added: {label: t('Added'), variant: 'success'},
-    removed: {label: t('Removed'), variant: 'danger'},
-    modified: {label: t('Modified'), variant: 'warning'},
-  };
+  const STATUS_MAP: Record<WidgetChange['status'], {label: string; variant: TagVariant}> =
+    {
+      added: {label: t('Added'), variant: 'success'},
+      removed: {label: t('Removed'), variant: 'danger'},
+      modified: {label: t('Modified'), variant: 'warning'},
+    };
 
   const {label: statusLabel, variant: tagVariant} = STATUS_MAP[status];
 
