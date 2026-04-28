@@ -142,12 +142,10 @@ export default function SentryAppDetailedView() {
   const isError = isSentryAppError || isFeatureDataError || isAppInstallsError;
 
   useEffect(() => {
-    if (sentryApp?.status === 'internal' && sentryApp.name) {
-      navigate(`/settings/${organization.slug}/developer-settings/${integrationSlug}/`, {
-        state: {sentryAppName: sentryApp.name},
-      });
+    if (sentryApp?.status === 'internal') {
+      navigate(`/settings/${organization.slug}/developer-settings/${integrationSlug}/`);
     }
-  }, [sentryApp?.name, sentryApp?.status, navigate, organization.slug, integrationSlug]);
+  }, [sentryApp?.status, navigate, organization.slug, integrationSlug]);
 
   useEffect(() => {
     recordInteraction(integrationSlug, 'sentry_app_viewed');

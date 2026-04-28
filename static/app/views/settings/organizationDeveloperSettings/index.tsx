@@ -1,5 +1,6 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -21,7 +22,7 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -43,6 +44,7 @@ function OrganizationDeveloperSettings() {
   const organization = useOrganization();
   const hasPageFrame = useHasPageFrameFeature();
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   const value =
     ['public', 'internal'].find(tab => tab === location?.query?.type) || 'internal';
@@ -68,6 +70,25 @@ function OrganizationDeveloperSettings() {
       staleTime: 0,
     }
   );
+
+  // Seed each app into the per-slug query cache so the detail/edit page
+  // can render the breadcrumb name on first paint without a network round-trip.
+  useEffect(() => {
+    if (!fetchedApplications) {
+      return;
+    }
+    for (const app of fetchedApplications) {
+      setApiQueryData<SentryApp>(
+        queryClient,
+        [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+            path: {sentryAppIdOrSlug: app.slug},
+          }),
+        ],
+        app
+      );
+    }
+  }, [fetchedApplications, queryClient]);
 
   if (isPending) {
     return <LoadingIndicator />;

@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
@@ -40,7 +41,7 @@ import {
   sortIntegrations,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -75,6 +76,7 @@ const debouncedTrackIntegrationSearch = debounce(
 function useIntegrationList() {
   const queryOptions = {staleTime: 0};
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const extraAppSlug = searchParams.get('extra_app');
   const isExtraAppEnabled = !!extraAppSlug;
@@ -202,6 +204,22 @@ function useIntegrationList() {
     // Omit this organization's published apps since orgOwnedApps already includes them
     return list.filter(app => !publishedAppSlugSet.has(app.slug));
   }, [orgOwnedApps, extraApp, publishedApps]);
+
+  // Seed each org-owned app into the per-slug query cache so the developer-settings
+  // edit page can render the breadcrumb name on first paint without a network round-trip.
+  useEffect(() => {
+    for (const app of orgOwnedApps) {
+      setApiQueryData<SentryApp>(
+        queryClient,
+        [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+            path: {sentryAppIdOrSlug: app.slug},
+          }),
+        ],
+        app
+      );
+    }
+  }, [orgOwnedApps, queryClient]);
 
   const list = useMemo(() => {
     return [
