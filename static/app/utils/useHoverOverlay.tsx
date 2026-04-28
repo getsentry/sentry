@@ -87,10 +87,12 @@ const SKIP_DELAY_WINDOW = 600;
 // consumers only read it at the moment of a HOVER transition. Open-listeners
 // exist so siblings can snap-close mid-exit-animation when another overlay
 // takes over.
+type OpenListener = (origin: symbol) => void;
+
 interface DelayGroup {
   coolDownTimer: number | undefined;
   isWarm: boolean;
-  openListeners: Set<() => void>;
+  openListeners: Set<OpenListener>;
 }
 
 function createDelayGroup(): DelayGroup {
@@ -124,14 +126,14 @@ export function HoverOverlayGroupProvider({children}: {children: React.ReactNode
   );
 }
 
-function warmUpGroup(group: DelayGroup) {
+function warmUpGroup(group: DelayGroup, origin: symbol) {
   if (group.coolDownTimer !== undefined) {
     window.clearTimeout(group.coolDownTimer);
     group.coolDownTimer = undefined;
   }
   group.isWarm = true;
   for (const listener of group.openListeners) {
-    listener();
+    listener(origin);
   }
 }
 
@@ -290,6 +292,10 @@ function useHoverOverlay({
   const theme = useTheme();
   const describeById = useId();
   const group = useContext(DelayGroupContext);
+  // Stable identity for this instance — used by warmUpGroup to tell each
+  // listener whether it's the one that just opened (skip self-close) or a
+  // sibling that should snap shut.
+  const selfTokenRef = useRef<symbol>(Symbol('hoverOverlay'));
 
   const [status, setStatus] = useState<OverlayStatus>('idle');
   const statusRef = useRef<OverlayStatus>('idle');
@@ -326,15 +332,19 @@ function useHoverOverlay({
     if (forceVisible) {
       return;
     }
-    const listener = () => {
-      if (statusRef.current === 'open' || statusRef.current === 'warming') {
+    const listener: OpenListener = origin => {
+      // Skip the overlay that's itself opening — identify by reference rather
+      // than by status, since rapid hover transitions can leave a sibling in
+      // 'open' before its leave event has been processed.
+      if (origin === selfTokenRef.current) {
         return;
       }
       if (!mayBeAnimatingOutRef.current) {
         return;
       }
-      if (statusRef.current === 'cooling') {
-        maybeClearRefTimeout(hideTimerRef);
+      maybeClearRefTimeout(openTimerRef);
+      maybeClearRefTimeout(hideTimerRef);
+      if (statusRef.current !== 'idle') {
         commitStatus('idle');
       }
       mayBeAnimatingOutRef.current = false;
@@ -408,7 +418,7 @@ function useHoverOverlay({
     // window, or a nested hover target): keep it open.
     if (statusRef.current === 'open' || statusRef.current === 'cooling') {
       commitStatus('open');
-      warmUpGroup(group);
+      warmUpGroup(group, selfTokenRef.current);
       return;
     }
 
@@ -417,14 +427,14 @@ function useHoverOverlay({
     // open overlay.
     if (delay === 0 || NODE_ENV === 'test' || group.isWarm) {
       commitStatus('open');
-      warmUpGroup(group);
+      warmUpGroup(group, selfTokenRef.current);
       return;
     }
 
     commitStatus('warming');
     openTimerRef.current = window.setTimeout(() => {
       commitStatus('open');
-      warmUpGroup(group);
+      warmUpGroup(group, selfTokenRef.current);
     }, delay ?? OPEN_DELAY);
   }, [delay, showOnlyOnOverflow, triggerElement, commitStatus, group]);
 

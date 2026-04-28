@@ -7,7 +7,7 @@ import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -109,7 +109,7 @@ export function AutofixSetupWriteAccessModal({
   useEffect(() => {
     return () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
     };
   }, [queryClient, orgSlug, groupId]);

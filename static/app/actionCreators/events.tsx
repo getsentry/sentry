@@ -131,7 +131,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       dataset,
       sampling,
       extrapolationMode,
-    }).filter(([, value]) => typeof value !== 'undefined')
+    }).filter(([, value]) => value !== undefined)
   );
 
   // Doubling period for absolute dates is not accurate unless starting and
