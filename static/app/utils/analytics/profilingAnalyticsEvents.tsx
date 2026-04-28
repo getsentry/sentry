@@ -21,7 +21,7 @@ export type AggregateProfileSource =
   | 'transaction aggregate calltree'
   | 'transaction aggregate flamegraph';
 
-export type ProfilingEventParameters = {
+export interface ProfilingEventParameters {
   'profiling_views.aggregate_flamegraph.zoom.reset': {
     profile_type: AggregateProfileSource;
   };
@@ -90,7 +90,7 @@ export type ProfilingEventParameters = {
   'profiling_views.trace.profile_context.pagination': {
     direction: string;
   };
-};
+}
 
 type EventKey = keyof ProfilingEventParameters;
 

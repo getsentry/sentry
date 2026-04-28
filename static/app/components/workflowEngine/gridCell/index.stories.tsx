@@ -11,7 +11,7 @@ import {
 import * as Storybook from 'sentry/stories';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
-type ExampleAutomation = {
+interface ExampleAutomation {
   actions: ActionType[];
   creator: string | null;
   linkedItems: {
@@ -23,7 +23,7 @@ type ExampleAutomation = {
   openIssues: number;
   timeAgo: Date | null;
   title: TitleCellProps;
-};
+}
 
 export default Storybook.story('Grid Cell Components', story => {
   const data: ExampleAutomation[] = [

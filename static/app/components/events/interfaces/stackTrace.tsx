@@ -13,13 +13,13 @@ import {StackTraceContent} from './crashContent/stackTrace';
 import {NoStackTraceMessage} from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
-type Props = {
+interface Props {
   data: NonNullable<ExceptionValue['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
-};
+}
 
 function StackTraceContentWrapper({
   event,

@@ -2,7 +2,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   className?: string;
   ['data-test-id']?: string;
@@ -26,7 +26,7 @@ type Props = {
    */
   isParagraph?: boolean;
   style?: CSSProperties;
-};
+}
 
 export const TextOverflow = styled(
   ({

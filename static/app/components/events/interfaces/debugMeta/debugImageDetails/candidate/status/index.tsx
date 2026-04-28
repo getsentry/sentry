@@ -5,9 +5,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {t} from 'sentry/locale';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 
-type Props = {
+interface Props {
   status: CandidateDownloadStatus;
-};
+}
 
 export function Status({status, ...props}: Props) {
   switch (status) {

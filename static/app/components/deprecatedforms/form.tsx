@@ -9,7 +9,7 @@ import {FormContext} from 'sentry/components/deprecatedforms/formContext';
 import {FormState} from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 
-type FormProps = {
+interface FormProps {
   cancelLabel?: string;
   children?: React.ReactNode;
   className?: string;
@@ -30,9 +30,9 @@ type FormProps = {
   resetOnError?: boolean;
   submitDisabled?: boolean;
   submitLabel?: string;
-};
+}
 
-type FormClassState = {
+interface FormClassState {
   data: any;
   errors: {non_field_errors?: Array<Record<PropertyKey, unknown>>} & Record<
     PropertyKey,
@@ -40,7 +40,7 @@ type FormClassState = {
   >;
   initialData: Record<PropertyKey, unknown>;
   state: FormState;
-};
+}
 
 export class Form<
   Props extends FormProps = FormProps,

@@ -12,11 +12,11 @@ import {useParams} from 'sentry/utils/useParams';
 
 import type {Result} from './sources/types';
 
-type Props = {
+interface Props {
   highlighted: boolean;
   item: Result['item'];
   matches: Result['matches'];
-};
+}
 
 const DEFAULT_AVATAR_SIZE = 24;
 

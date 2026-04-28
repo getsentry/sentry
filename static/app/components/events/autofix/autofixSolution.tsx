@@ -111,7 +111,7 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   });
 }
 
-type AutofixSolutionProps = {
+interface AutofixSolutionProps {
   groupId: string;
   runId: string;
   solution: AutofixSolutionTimelineEvent[];
@@ -125,7 +125,7 @@ type AutofixSolutionProps = {
   isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
-};
+}
 
 const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
@@ -211,7 +211,7 @@ const Description = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-type SolutionEventListProps = {
+interface SolutionEventListProps {
   events: AutofixSolutionTimelineEvent[];
   groupId: string;
   onDeleteItem: (index: number) => void;
@@ -219,7 +219,7 @@ type SolutionEventListProps = {
   runId: string;
   retainInsightCardIndex?: number | null;
   stepIndex?: number;
-};
+}
 
 function SolutionEventList({
   events,

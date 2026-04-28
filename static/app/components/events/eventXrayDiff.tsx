@@ -55,10 +55,10 @@ function EventXrayDiffSection({baseMetricId, headMetricId, project}: SectionProp
   );
 }
 
-type Props = {
+interface Props {
   event: Event;
   project: Project;
-};
+}
 
 function EventXrayDiff(props: Props) {
   const ids = getMetricIds(props.event);

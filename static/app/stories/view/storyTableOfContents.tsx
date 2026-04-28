@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-type Entry = {
+interface Entry {
   ref: HTMLElement;
   title: string;
-};
+}
 
 function toAlphaNumeric(str: string): string {
   return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -114,10 +114,10 @@ function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
   return [activeId, setActiveId];
 }
 
-type NestedEntry = {
+interface NestedEntry {
   children: NestedEntry[];
   entry: Entry;
-};
+}
 
 const TAGNAME_ORDER = ['H6', 'H5', 'H4', 'H3', 'H2'];
 

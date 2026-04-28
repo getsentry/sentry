@@ -3,12 +3,12 @@ import {createStore} from 'reflux';
 
 import type {Repository} from 'sentry/types/integrations';
 
-type State = {
+interface State {
   orgSlug?: string;
   repositories?: Repository[];
   repositoriesError?: Error;
   repositoriesLoading?: boolean;
-};
+}
 
 interface RepositoryStoreDefinition extends StoreDefinition {
   get(): State;

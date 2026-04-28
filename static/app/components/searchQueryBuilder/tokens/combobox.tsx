@@ -41,7 +41,7 @@ import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
-type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
+interface SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> {
   children: CollectionChildren<T>;
   inputLabel: string;
   inputValue: string;
@@ -113,11 +113,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   shouldFilterResults?: boolean;
   tabIndex?: number;
-};
+}
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
-export type CustomComboboxMenuProps<T> = {
+export interface CustomComboboxMenuProps<T> {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
@@ -127,7 +127,7 @@ export type CustomComboboxMenuProps<T> = {
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
   portalTarget?: HTMLElement | null;
-};
+}
 
 export type CustomComboboxMenu<T> = (
   props: CustomComboboxMenuProps<T>

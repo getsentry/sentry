@@ -74,11 +74,11 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
   }, {});
 }
 
-type UpdateMemberOptions = {
+interface UpdateMemberOptions {
   data: Member | null;
   memberId: string;
   orgId: string;
-};
+}
 
 export function updateMember(api: Client, {orgId, memberId, data}: UpdateMemberOptions) {
   return api.requestPromise(`/organizations/${orgId}/members/${memberId}/`, {
@@ -87,11 +87,11 @@ export function updateMember(api: Client, {orgId, memberId, data}: UpdateMemberO
   });
 }
 
-type ResendMemberInviteOptions = {
+interface ResendMemberInviteOptions {
   memberId: string;
   orgId: string;
   regenerate?: boolean;
-};
+}
 
 export function resendMemberInvite(
   api: Client,

@@ -6,10 +6,10 @@ import type {Plugin} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useTogglePluginMutation} from 'sentry/views/settings/projectPlugins/useTogglePluginMutation';
 
-type Props = {
+interface Props {
   pluginList: Plugin[];
   project: Project;
-};
+}
 
 export function PluginList({project, pluginList}: Props) {
   const togglePluginMutation = useTogglePluginMutation({

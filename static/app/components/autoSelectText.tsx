@@ -3,16 +3,16 @@ import classNames from 'classnames';
 
 import {selectText} from 'sentry/utils/selectText';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   className?: string;
   ref?: React.Ref<AutoSelectHandle>;
   style?: React.CSSProperties;
-};
+}
 
-type AutoSelectHandle = {
+interface AutoSelectHandle {
   selectText: () => void;
-};
+}
 
 export function AutoSelectText({children, className, ref, ...props}: Props) {
   const element = useRef<HTMLSpanElement>(null);

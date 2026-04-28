@@ -3,12 +3,12 @@ import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-type Props = {
+interface Props {
   enabled: boolean;
   orgSlug: string;
   replayId: string;
   pollInterval?: number;
-};
+}
 
 // A react hook to poll for replay record on the backend every POLL_INTERVAL
 export function usePollReplayRecord({

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 export function HighlightCornerContainer({children}: Props) {
   return (

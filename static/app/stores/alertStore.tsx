@@ -6,7 +6,7 @@ import type {AlertVariant} from 'sentry/utils/theme';
 
 import type {StrictStoreDefinition} from './types';
 
-type Alert = {
+interface Alert {
   message: React.ReactNode;
   variant: AlertVariant;
   expireAfter?: number;
@@ -17,7 +17,7 @@ type Alert = {
   onClose?: () => void;
   opaque?: boolean;
   url?: string;
-};
+}
 
 interface InternalAlertStoreDefinition {
   count: number;

@@ -6,7 +6,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 
-type FormSectionProps = {
+interface FormSectionProps {
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -14,7 +14,7 @@ type FormSectionProps = {
   description?: React.ReactNode;
   step?: number;
   trailingItems?: React.ReactNode;
-};
+}
 
 export function FormSection({
   children,

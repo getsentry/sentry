@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
 
-export type GetActorArgs<E extends Element> = {
+export interface GetActorArgs<E extends Element> {
   className?: string;
   onBlur?: (e: React.FocusEvent<E>) => void;
   onChange?: (e: React.ChangeEvent<E>) => void;
@@ -14,32 +14,32 @@ export type GetActorArgs<E extends Element> = {
   onMouseEnter?: (e: React.MouseEvent<E>) => void;
   onMouseLeave?: (e: React.MouseEvent<E>) => void;
   style?: React.CSSProperties;
-};
+}
 
-export type GetMenuArgs<E extends Element> = {
+export interface GetMenuArgs<E extends Element> {
   className?: string;
   onClick?: (e: React.MouseEvent<E>) => void;
   onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   onMouseDown?: (e: React.MouseEvent<E>) => void;
   onMouseEnter?: (e: React.MouseEvent<E>) => void;
   onMouseLeave?: (e: React.MouseEvent<E>) => void;
-};
+}
 
 // Props for the "actor" element of `<DropdownMenu>`
 // This is the element that handles visibility of the dropdown menu
-type ActorProps<E extends Element> = {
+interface ActorProps<E extends Element> {
   onClick: (e: React.MouseEvent<E>) => void;
   onKeyDown: (e: React.KeyboardEvent<E>) => void;
   onMouseEnter: (e: React.MouseEvent<E>) => void;
   onMouseLeave: (e: React.MouseEvent<E>) => void;
-};
+}
 
-type MenuProps<E extends Element> = {
+interface MenuProps<E extends Element> {
   onClick: (e: React.MouseEvent<E>) => void;
   onMouseEnter: (e: React.MouseEvent<E>) => void;
   onMouseLeave: (e: React.MouseEvent<E>) => void;
   role: string;
-};
+}
 
 export type GetActorPropsFn = <E extends Element = Element>(
   opts?: GetActorArgs<E>
@@ -49,18 +49,18 @@ type GetMenuPropsFn = <E extends Element = Element>(
   opts?: GetMenuArgs<E>
 ) => MenuProps<E>;
 
-type MenuActions = {
+interface MenuActions {
   close: (event?: React.MouseEvent) => void;
   open: (event?: React.MouseEvent) => void;
-};
+}
 
-type RenderProps = {
+interface RenderProps {
   actions: MenuActions;
   getActorProps: GetActorPropsFn;
   getMenuProps: GetMenuPropsFn;
   getRootProps: (props?: Record<string, unknown>) => Record<string, unknown> | undefined;
   isOpen: boolean;
-};
+}
 
 export interface DeprecatedDropdownMenuProps {
   /**

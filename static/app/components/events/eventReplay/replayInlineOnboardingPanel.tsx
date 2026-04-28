@@ -19,10 +19,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type OnboardingCTAProps = {
+interface OnboardingCTAProps {
   platform: PlatformKey;
   projectId: string;
-};
+}
 
 export default function ReplayInlineOnboardingPanel({
   platform,

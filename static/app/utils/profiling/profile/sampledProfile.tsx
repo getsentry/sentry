@@ -35,12 +35,12 @@ function sortStacks(
   return 0;
 }
 
-type Sample = {
+interface Sample {
   aggregate_sample_duration: number;
   references: Profiling.ProfileReference[];
   stack: number[];
   weight: number | undefined;
-};
+}
 
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,

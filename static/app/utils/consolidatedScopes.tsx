@@ -44,11 +44,11 @@ const SPECIAL_PERMISSION_SCOPES = new Set<string>(
   SPECIAL_SENTRY_APP_PERMISSIONS.map(permission => permission.scope)
 );
 
-type PermissionLevelResources = {
+interface PermissionLevelResources {
   admin: string[];
   read: string[];
   write: string[];
-};
+}
 /**
  * Numerical value of the scope where Admin is higher than Write,
  * which is higher than Read. Used to sort scopes by access.

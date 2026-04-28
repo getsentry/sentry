@@ -7,26 +7,26 @@ import {GenericDiscoverQuery, useGenericDiscoverQuery} from './genericDiscoverQu
 /**
  * An individual row in a DiscoverQuery result
  */
-export type TableDataRow = {
+export interface TableDataRow {
   [key: string]: string | number;
   id: string;
-};
+}
 
 /**
  * A DiscoverQuery result including rows and metadata.
  */
-export type TableData = {
+export interface TableData {
   data: TableDataRow[];
   meta?: MetaType;
-};
+}
 
 /**
  * A DiscoverQuery result including rows and metadata from the events endpoint.
  */
-export type EventsTableData = {
+export interface EventsTableData {
   data: TableDataRow[];
   meta?: EventsMetaType;
-};
+}
 
 export type TableDataWithTitle = TableData & {title: string};
 

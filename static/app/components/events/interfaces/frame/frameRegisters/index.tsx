@@ -9,11 +9,11 @@ import {defined} from 'sentry/utils';
 import {getSortedRegisters} from './utils';
 import {FrameRegisterValue} from './value';
 
-type Props = {
+interface Props {
   registers: NonNullable<StacktraceType['registers']>;
   deviceArch?: string;
   meta?: Record<any, any>;
-};
+}
 
 const CLIPPED_HEIGHT = 250;
 

@@ -1,9 +1,9 @@
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-type Props = {
+interface Props {
   value: string | number;
   className?: string;
-};
+}
 
 export function Count({value, className}: Props) {
   return (

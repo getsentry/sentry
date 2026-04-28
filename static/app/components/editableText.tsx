@@ -9,7 +9,7 @@ import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
-type Props = {
+interface Props {
   onChange: (value: string) => void;
   value: string;
   /**
@@ -34,7 +34,7 @@ type Props = {
    * line-height from its context (e.g. when rendered inside a breadcrumb row).
    */
   variant?: 'compact';
-};
+}
 
 export function EditableText({
   value,

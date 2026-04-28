@@ -7,10 +7,10 @@ import type {ImageStatus} from 'sentry/types/debugImage';
 
 import {getProcessingTooltip, ProcessingIcon} from './processingIcon';
 
-type Props = {
+interface Props {
   debug_status?: ImageStatus | null;
   unwind_status?: ImageStatus | null;
-};
+}
 
 function StatusItem({status, label}: {label: string; status: ImageStatus}) {
   const tooltip = getProcessingTooltip(status);

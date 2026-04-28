@@ -10,7 +10,7 @@ import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram
 
 type Histograms = Record<string, HistogramData>;
 
-type HistogramProps = {
+interface HistogramProps {
   fields: string[];
   numBuckets: number;
   dataFilter?: DataFilter;
@@ -18,7 +18,7 @@ type HistogramProps = {
   max?: number;
   min?: number;
   precision?: number;
-};
+}
 
 type RequestProps = DiscoverQueryProps & HistogramProps;
 

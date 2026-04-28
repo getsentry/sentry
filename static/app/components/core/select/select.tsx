@@ -403,23 +403,23 @@ function Menu(props: React.ComponentProps<typeof selectComponents.Menu>) {
   );
 }
 
-type MultipleProps<OptionType extends OptionTypeBase> = {
+interface MultipleProps<OptionType extends OptionTypeBase> {
   multiple: true;
   clearable?: boolean;
   onChange?: (option: OptionType[]) => void;
-};
+}
 
-type SingleProps<OptionType extends OptionTypeBase> = {
+interface SingleProps<OptionType extends OptionTypeBase> {
   clearable?: false;
   multiple?: false;
   onChange?: (option: OptionType) => void;
-};
+}
 
-type SingleClearableProps<OptionType extends OptionTypeBase> = {
+interface SingleClearableProps<OptionType extends OptionTypeBase> {
   clearable: true;
   multiple?: false;
   onChange?: (option: OptionType | null) => void;
-};
+}
 
 type SelectProps<OptionType extends OptionTypeBase> =
   | MultipleProps<OptionType>

@@ -18,11 +18,11 @@ interface Props {
 type ApiReturnType = Record<string, number>;
 
 // This is what the hook consumer gets:
-type HookReturnType = {
+interface HookReturnType {
   ignored: number;
   resolved: number;
   unresolved: number;
-};
+}
 
 export function useMailboxCounts({
   organization,

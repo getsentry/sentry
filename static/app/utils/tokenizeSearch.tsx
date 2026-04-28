@@ -27,11 +27,11 @@ const FILTER_TOKENS = [
   TokenType.ENDS_WITH_FILTER,
 ];
 
-type Token = {
+interface Token {
   type: TokenType;
   value: string;
   key?: string;
-};
+}
 
 function isOp(t: Token) {
   return t.type === TokenType.OPERATOR;

@@ -5,7 +5,7 @@ import type {DataForwarderProviderSlug} from 'sentry/views/settings/organization
 type SetupType = 'automatic' | 'manual';
 type StackTraceView = 'stacktrace_issue_details' | 'integration_configuration_detail';
 
-export type EcosystemEventParameters = {
+export interface EcosystemEventParameters {
   'data_forwarding.add_forwarder_clicked': Record<string, unknown>;
   'data_forwarding.back_button_clicked': Record<string, unknown>;
   'data_forwarding.delete_cancelled': {
@@ -76,7 +76,7 @@ export type EcosystemEventParameters = {
     setup_type: SetupType;
     view: StackTraceView;
   };
-};
+}
 
 type EcosystemEventKeys = keyof EcosystemEventParameters;
 

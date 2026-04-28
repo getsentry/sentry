@@ -18,7 +18,7 @@ import type {
   NotificationAction,
 } from 'sentry/types/notificationActions';
 
-type SlackFormProps = {
+interface SlackFormProps {
   /**
    * The notification action being represented
    */
@@ -30,7 +30,7 @@ type SlackFormProps = {
   onCancel: () => void;
   onChange: (name: string, value: any) => void;
   onSave: () => void;
-};
+}
 
 export function SlackForm({
   action,

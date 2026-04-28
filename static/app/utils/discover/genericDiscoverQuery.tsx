@@ -36,7 +36,7 @@ export class QueryError extends Error {
   }
 }
 
-export type GenericChildrenProps<T> = {
+export interface GenericChildrenProps<T> {
   /**
    * Error, if not null.
    */
@@ -53,14 +53,14 @@ export type GenericChildrenProps<T> = {
    * Data / result.
    */
   tableData: T | null;
-};
+}
 
-type OptionalContextProps = {
+interface OptionalContextProps {
   eventView?: EventView | ImmutableEventView;
   orgSlug?: string;
-};
+}
 
-type BaseDiscoverQueryProps = {
+interface BaseDiscoverQueryProps {
   /**
    * Used as the default source for cursor values.
    */
@@ -106,7 +106,7 @@ type BaseDiscoverQueryProps = {
    * frequently on component unmounts.
    */
   skipAbort?: boolean;
-};
+}
 
 export type DiscoverQueryPropsWithContext = BaseDiscoverQueryProps & OptionalContextProps;
 export type DiscoverQueryProps = BaseDiscoverQueryProps & {
@@ -117,11 +117,11 @@ export type DiscoverQueryProps = BaseDiscoverQueryProps & {
 type InnerRequestProps<P> = DiscoverQueryProps & P;
 type OuterRequestProps<P> = DiscoverQueryPropsWithContext & P;
 
-type ReactProps<T> = {
+interface ReactProps<T> {
   children?: (props: GenericChildrenProps<T>) => React.ReactNode;
-};
+}
 
-type ComponentProps<T, P> = {
+interface ComponentProps<T, P> {
   /**
    * Route to the endpoint
    */
@@ -151,7 +151,7 @@ type ComponentProps<T, P> = {
    * An external hook in addition to the event view check to check if data should be refetched
    */
   shouldRefetchData?: (prevProps: Props<T, P>, props: Props<T, P>) => boolean;
-};
+}
 
 type Props<T, P> = InnerRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
 type OuterProps<T, P> = OuterRequestProps<P> & ReactProps<T> & ComponentProps<T, P>;
@@ -312,12 +312,12 @@ export type DiscoverQueryRequestParams = Partial<
   EventQuery & LocationQuery & _DiscoverQueryExtras
 >;
 
-type RetryOptions = {
+interface RetryOptions {
   statusCodes: number[];
   tries: number;
   baseTimeout?: number;
   timeoutMultiplier?: number;
-};
+}
 
 const BASE_TIMEOUT = 500;
 const TIMEOUT_MULTIPLIER = 1.75;

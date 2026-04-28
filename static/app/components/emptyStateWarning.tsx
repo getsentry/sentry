@@ -4,13 +4,13 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
 import type {IconVariant} from 'sentry/icons/svgIcon';
 
-type Props = {
+interface Props {
   children?: React.ReactNode;
   className?: string;
   small?: boolean;
   variant?: IconVariant;
   withIcon?: boolean;
-};
+}
 
 export function EmptyStateWarning({
   small = false,

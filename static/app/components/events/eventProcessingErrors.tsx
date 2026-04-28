@@ -15,11 +15,11 @@ import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type Props = {
+interface Props {
   event: Event;
   isShare: boolean;
   project: Project;
-};
+}
 
 const keyMapping = {
   image_uuid: 'Debug ID',

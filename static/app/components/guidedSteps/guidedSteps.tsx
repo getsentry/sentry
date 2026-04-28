@@ -20,12 +20,12 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
-type GuidedStepsProps = {
+interface GuidedStepsProps {
   children: React.ReactNode;
   className?: string;
   initialStep?: number;
   onStepChange?: (step: number) => void;
-};
+}
 
 interface GuidedStepsContextState {
   advanceToNextIncompleteStep: () => void;

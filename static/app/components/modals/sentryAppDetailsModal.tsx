@@ -26,13 +26,13 @@ import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
-type Props = {
+interface Props {
   closeModal: () => void;
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
   sentryApp: SentryApp;
-};
+}
 
 // No longer a modal anymore but yea :)
 export function SentryAppDetailsModal(props: Props) {

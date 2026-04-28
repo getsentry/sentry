@@ -245,11 +245,11 @@ export const CallTreeTableContainer = styled('div')`
   height: 100%;
 `;
 
-type SyncCallTreeScrollParams = {
+interface SyncCallTreeScrollParams {
   node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined;
   scrollContainer: HTMLElement | HTMLElement[] | null;
   coordinates?: {depth: number; top: number};
-};
+}
 
 // This is slighlty unfortunate and ugly, but because our two columns are sticky
 // we need to scroll the container to the left when we scroll to a node. This

@@ -2,12 +2,12 @@ import type {Field} from 'sentry/components/forms/types';
 
 import type {ControlSiloOrganization} from './controlSiloOrganization';
 
-export type AuthenticatorDevice = {
+export interface AuthenticatorDevice {
   authId: string;
   key_handle: string;
   name: string;
   timestamp?: string;
-};
+}
 
 interface BaseAuthenticator extends Partial<Omit<EnrolledAuthenticator, 'createdAt'>> {
   /**
@@ -105,7 +105,7 @@ interface RegisteredKey {
   version: string;
 }
 
-export type ChallengeData = {
+export interface ChallengeData {
   // will have only authenticateRequest or registerRequest
   authenticateRequests: SignRequest;
   registerRequests: RegisterRequest;
@@ -113,49 +113,49 @@ export type ChallengeData = {
   webAuthnAuthenticationData: string;
   // for WebAuthn register
   webAuthnRegisterData: string;
-};
+}
 
-type EnrolledAuthenticator = {
+interface EnrolledAuthenticator {
   authId: string;
   createdAt: string;
   lastUsedAt: string | null;
   name: string;
-};
+}
 
 /**
  * This is an authenticator that a user is enrolled in
  */
-export type UserEnrolledAuthenticator = {
+export interface UserEnrolledAuthenticator {
   dateCreated: EnrolledAuthenticator['createdAt'];
   dateUsed: EnrolledAuthenticator['lastUsedAt'];
   id: EnrolledAuthenticator['authId'];
   name: EnrolledAuthenticator['name'];
   type: Authenticator['id'];
-};
+}
 
 /**
  * XXX(ts): This actually all comes from getsentry. We should definitely
  * refactor this into a more proper 'hook' mechanism in the future
  */
-export type AuthConfig = {
+export interface AuthConfig {
   canRegister: boolean;
   githubLoginLink: string;
   googleLoginLink: string;
   hasNewsletter: boolean;
   serverHostname: string;
   vstsLoginLink: string;
-};
+}
 
 // Users can have SSO providers of their own (social login with github)
 // and organizations can have SSO configuration for SAML/google domain/okta.
 // https://github.com/getsentry/sentry/pull/52469#discussion_r1258387880
-export type AuthProvider = {
+export interface AuthProvider {
   key: string;
   name: string;
   requiredFeature: string;
-};
+}
 
-export type OrganizationAuthProvider = {
+export interface OrganizationAuthProvider {
   default_role: string;
   id: string;
   login_url: string;
@@ -163,7 +163,7 @@ export type OrganizationAuthProvider = {
   provider_name: string;
   require_link: boolean;
   scim_enabled: boolean;
-};
+}
 
 export enum UserIdentityCategory {
   SOCIAL_IDENTITY = 'social-identity',
@@ -178,15 +178,15 @@ export enum UserIdentityStatus {
   NEEDED_FOR_ORG_AUTH = 'needed_for_org_auth',
 }
 
-type UserIdentityProvider = {
+interface UserIdentityProvider {
   key: string;
   name: string;
-};
+}
 
 /**
  * UserIdentityConfig is used in Account Identities
  */
-export type UserIdentityConfig = {
+export interface UserIdentityConfig {
   category: UserIdentityCategory;
   dateAdded: string | null;
   dateSynced: string | null;
@@ -197,4 +197,4 @@ export type UserIdentityConfig = {
   organization: ControlSiloOrganization | null;
   provider: UserIdentityProvider;
   status: UserIdentityStatus;
-};
+}

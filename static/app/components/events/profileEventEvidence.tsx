@@ -11,7 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type ProfileEvidenceProps = {event: Event; projectSlug: string};
+interface ProfileEvidenceProps {event: Event; projectSlug: string}
 
 export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps) {
   const organization = useOrganization();

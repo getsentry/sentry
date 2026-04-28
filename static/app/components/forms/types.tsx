@@ -148,7 +148,7 @@ type FileType = {type: 'file'} & {
   accept?: string[];
 };
 
-type DateTimeType = {type: 'datetime'};
+interface DateTimeType {type: 'datetime'}
 
 export interface TableType {
   /**
@@ -169,7 +169,7 @@ export interface TableType {
 }
 
 // maps a sentry project to another field
-export type ProjectMapperType = {
+export interface ProjectMapperType {
   iconType: string;
   mappedDropdown: {
     items: Array<{label: string; url: string; value: string | number}>;
@@ -183,27 +183,27 @@ export type ProjectMapperType = {
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   type: 'project_mapper';
-};
+}
 
 type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
 // selects a sentry project with avatars
-type SentryProjectSelectorType = {
+interface SentryProjectSelectorType {
   projects: Project[];
   type: 'sentry_project_selector';
   avatarSize?: number;
-};
+}
 
-type SentryMemberSelectorType = {
+interface SentryMemberSelectorType {
   type: 'sentry_member_selector';
   multiple?: boolean;
-};
+}
 
-type SentryOrganizationRoleSelectorType = {
+interface SentryOrganizationRoleSelectorType {
   type: 'sentry_organization_role_selector';
-};
+}
 
 type SelectAsyncType = {
   type: 'select_async';
@@ -232,11 +232,11 @@ export type Field = (
 
 export type FieldObject = Field | (() => React.ReactNode);
 
-export type JsonFormObject = {
+export interface JsonFormObject {
   fields: FieldObject[];
   initiallyCollapsed?: boolean;
   title?: React.ReactNode;
-};
+}
 
 export type Data = Record<string, any>;
 

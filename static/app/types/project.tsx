@@ -5,16 +5,16 @@ import type {Organization, Team} from './organization';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
-export type SeerNightshiftTweaks = {
+export interface SeerNightshiftTweaks {
   enabled?: boolean;
-};
+}
 
 // Minimal project representation for use with avatars.
-export type AvatarProject = {
+export interface AvatarProject {
   slug: string;
   id?: string | number;
   platform?: PlatformKey;
-};
+}
 
 export type Project = {
   access: Scope[];
@@ -116,7 +116,7 @@ export type Project = {
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
-export type ProjectKey = {
+export interface ProjectKey {
   browserSdk: {
     choices: Array<[key: string, value: string]>;
   };
@@ -155,23 +155,23 @@ export type ProjectKey = {
   } | null;
   secret: string;
   useCase?: string;
-};
+}
 
-export type ProjectSdkUpdates = {
+export interface ProjectSdkUpdates {
   projectId: string;
   sdkName: string;
   sdkVersion: string;
   suggestions: SDKUpdatesSuggestion[];
-};
+}
 
-export type Environment = {
+export interface Environment {
   displayName: string;
   id: string;
   name: string;
 
   // XXX: Provided by the backend but unused due to `getUrlRoutingName()`
   // urlRoutingName: string;
-};
+}
 
 export interface TeamWithProjects extends Team {
   projects: Project[];
@@ -335,7 +335,7 @@ export type PlatformKey =
   | 'unreal'
   | 'xbox';
 
-export type PlatformIntegration = {
+export interface PlatformIntegration {
   id: PlatformKey;
   language: string;
   link: string | null;
@@ -345,4 +345,4 @@ export type PlatformIntegration = {
   iconConfig?: {
     withLanguageIcon: boolean;
   };
-};
+}

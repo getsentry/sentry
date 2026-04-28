@@ -459,7 +459,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
   };
 }
 
-export type CommonGroupAnalyticsData = {
+export interface CommonGroupAnalyticsData {
   days_since_last_seen: number;
   error_count: number;
   group_id: number;
@@ -479,7 +479,7 @@ export type CommonGroupAnalyticsData = {
   issue_status?: string;
   issue_substatus?: string | null;
   priority?: string;
-};
+}
 
 export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnalyticsData {
   const groupId = group ? parseInt(group.id, 10) : -1;

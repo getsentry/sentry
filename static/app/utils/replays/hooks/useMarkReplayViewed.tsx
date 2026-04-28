@@ -5,7 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = unknown;
 type TError = unknown;
-type TVariables = {projectSlug: string; replayId: string};
+interface TVariables {projectSlug: string; replayId: string}
 type TContext = unknown;
 
 export function useMarkReplayViewed() {

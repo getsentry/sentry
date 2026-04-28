@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   keyName: React.ReactNode;
   value: React.ReactNode;
   type?: undefined | 'error' | 'warning';
-};
+}
 
 export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
   display: grid;

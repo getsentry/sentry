@@ -1,10 +1,10 @@
 import type {Theme} from '@emotion/react';
 
-type Options = {
+interface Options {
   theme: Theme;
   minHeight?: number;
   streamlined?: boolean;
-};
+}
 
 /**
  * Note this is an object for `react-mentions` component and

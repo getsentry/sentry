@@ -11,11 +11,11 @@ export enum DismissId {
   RESOURCE_SIZE_ALERT = 0,
 }
 
-type PageAlertOptions = {
+interface PageAlertOptions {
   message: React.ReactNode | undefined;
   variant: AlertVariant;
   dismissId?: DismissId;
-};
+}
 
 const localStorageKey = 'sentry:page-alert';
 

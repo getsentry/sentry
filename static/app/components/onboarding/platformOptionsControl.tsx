@@ -36,7 +36,7 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
   }, [platformOptions, query]);
 }
 
-type OptionControlProps = {
+interface OptionControlProps {
   /**
    * Click handler.
    */
@@ -49,7 +49,7 @@ type OptionControlProps = {
    * Value of the currently selected item
    */
   value: string;
-};
+}
 
 function OptionControl({option, value, onChange}: OptionControlProps) {
   return (
@@ -61,7 +61,7 @@ function OptionControl({option, value, onChange}: OptionControlProps) {
   );
 }
 
-type PlatformOptionsControlProps = {
+interface PlatformOptionsControlProps {
   /**
    * Object with an option array for each platformOption
    */
@@ -74,7 +74,7 @@ type PlatformOptionsControlProps = {
    * Fired when the value changes
    */
   onChange?: (options: SelectedPlatformOptions) => void;
-};
+}
 
 export function PlatformOptionsControl({
   platformOptions,

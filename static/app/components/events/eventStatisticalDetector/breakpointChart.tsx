@@ -24,9 +24,9 @@ import type {BreakpointEvidenceData} from './breakpointChartOptions';
 import {RELATIVE_DAYS_WINDOW} from './consts';
 import {LineChart as Chart} from './lineChart';
 
-type EventBreakpointChartProps = {
+interface EventBreakpointChartProps {
   event: Event;
-};
+}
 
 export function EventBreakpointChart({event}: EventBreakpointChartProps) {
   const organization = useOrganization();

@@ -16,7 +16,7 @@ import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issu
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
 const MUTATION_KEY = 'create-project-and-rules';
 
-type Variables = {
+interface Variables {
   alertRuleConfig: Partial<RequestDataFragment>;
   createNotificationAction: ReturnType<
     typeof useCreateNotificationAction
@@ -24,13 +24,13 @@ type Variables = {
   platform: OnboardingSelectedSDK;
   projectName: string;
   team?: string;
-};
+}
 
-type Response = {
+interface Response {
   project: Project;
   ruleIds: string[];
   notificationRule?: IssueAlertRule;
-};
+}
 
 function useRollbackProject() {
   const api = useApi();

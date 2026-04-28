@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 
-type MenuItemProps = {
+interface MenuItemProps {
   /**
    * Enable to allow default event on click
    */
@@ -67,7 +67,7 @@ type MenuItemProps = {
    * Renders a bottom border (excludes the last item)
    */
   withBorder?: boolean;
-};
+}
 
 interface Props
   extends MenuItemProps, Omit<React.HTMLAttributes<HTMLLIElement>, 'onSelect'> {}

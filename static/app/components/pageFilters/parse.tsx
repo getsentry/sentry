@@ -161,7 +161,7 @@ function getEnvironment(maybe: ParamValue) {
   return toArray(maybe);
 }
 
-type InputParams = {
+interface InputParams {
   [others: string]: any;
   end?: ParamValue | Date;
   pageEnd?: ParamValue | Date;
@@ -174,17 +174,17 @@ type InputParams = {
   statsPeriod?: ParamValue;
 
   utc?: ParamValue | boolean;
-};
+}
 
-type ParsedParams = {
+interface ParsedParams {
   [others: string]: Location['query'][string];
   end?: string;
   start?: string;
   statsPeriod?: string | null;
   utc?: string;
-};
+}
 
-type DateTimeNormalizeOptions = {
+interface DateTimeNormalizeOptions {
   /**
    * Parse absolute date time (`start` / `end`) from the input parameters. When
    * set to false the start and end will always be `null`.
@@ -209,7 +209,7 @@ type DateTimeNormalizeOptions = {
    * no stats period is provided (or if it is an invalid stats period)
    */
   defaultStatsPeriod?: string | null;
-};
+}
 
 /**
  * Normalizes the DateTime components of the page filters.

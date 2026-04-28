@@ -22,11 +22,11 @@ type DiffMutation = Record<
   }
 >;
 
-type Args = {
+interface Args {
   rangeEndTimestampMs: number;
   rangeStartTimestampMs: number;
   replay: ReplayReader;
-};
+}
 
 async function extractDiffMutations({
   rangeEndTimestampMs,

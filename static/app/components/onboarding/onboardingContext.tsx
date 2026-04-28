@@ -18,7 +18,7 @@ interface ProjectDetailsFormState {
   teamSlug?: string;
 }
 
-type OnboardingContextProps = {
+interface OnboardingContextProps {
   clearDerivedState: () => void;
   setCreatedProjectSlug: (slug?: string) => void;
   setProjectDetailsForm: (form?: ProjectDetailsFormState) => void;
@@ -32,16 +32,16 @@ type OnboardingContextProps = {
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
-};
+}
 
-export type OnboardingSessionState = {
+export interface OnboardingSessionState {
   createdProjectSlug?: string;
   projectDetailsForm?: ProjectDetailsFormState;
   selectedFeatures?: ProductSolution[];
   selectedIntegration?: Integration;
   selectedPlatform?: OnboardingSelectedSDK;
   selectedRepository?: Repository;
-};
+}
 
 /**
  * Prefer using `useOnboardingContext` hook instead of directly using this context.
@@ -62,14 +62,14 @@ const OnboardingContext = createContext<OnboardingContextProps>({
   clearDerivedState: () => {},
 });
 
-type ProviderProps = {
+interface ProviderProps {
   children: React.ReactNode;
   /**
    * Optional initial session state. Primarily used in tests to seed the context
    * without touching session storage directly.
    */
   initialValue?: OnboardingSessionState;
-};
+}
 
 export function OnboardingContextProvider({children, initialValue}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<

@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 import type {EventExtraData} from './types';
 import {EventExtraDataType} from './types';
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 export function getEventExtraDataKnownDataDetails({
   data,

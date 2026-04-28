@@ -185,11 +185,11 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
-export type EventsTimeSeriesResponse = {
+export interface EventsTimeSeriesResponse {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
   };
-};
+}

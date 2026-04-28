@@ -9,11 +9,11 @@ import {defined} from 'sentry/utils';
 
 type Value = string | number | boolean;
 
-type DefaultProps = {
+interface DefaultProps {
   disabled?: boolean;
   hideErrorMessage?: boolean;
   required?: boolean;
-};
+}
 
 export type FormFieldProps = DefaultProps & {
   formContext: FormContextData;
@@ -31,10 +31,10 @@ export type FormFieldProps = DefaultProps & {
   value?: Value;
 };
 
-type FormFieldState = {
+interface FormFieldState {
   error: string | null;
   value: Value;
-};
+}
 
 export abstract class FormField<
   Props extends FormFieldProps = FormFieldProps,

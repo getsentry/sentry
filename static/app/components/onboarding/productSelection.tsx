@@ -502,7 +502,7 @@ export const platformProductAvailability = {
   unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 
-type ProductProps = {
+interface ProductProps {
   /**
    * If the product is checked. This information is grabbed from the URL.
    */
@@ -527,7 +527,7 @@ type ProductProps = {
    * Click handler. If the product is enabled, by clicking on the button, the product is added or removed from the URL.
    */
   onClick?: () => void;
-};
+}
 
 function Product({
   disabled,
@@ -577,7 +577,7 @@ function Product({
   );
 }
 
-export type ProductSelectionProps = {
+export interface ProductSelectionProps {
   /**
    * The current organization
    */
@@ -601,7 +601,7 @@ export type ProductSelectionProps = {
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
-};
+}
 
 export function ProductSelection({
   disabledProducts: disabledProductsProp,

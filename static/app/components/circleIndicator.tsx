@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   color?: string;
   /**
    * @default true
@@ -10,7 +10,7 @@ type Props = {
    * @default 14
    */
   size?: number;
-};
+}
 
 const defaultProps = {
   enabled: true,

@@ -4,9 +4,9 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-type RawQueryData = {
+interface RawQueryData {
   data: ReplayRecord[];
-};
+}
 
 export function useUserViewedReplays() {
   const organization = useOrganization();

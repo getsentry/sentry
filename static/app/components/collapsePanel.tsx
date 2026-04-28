@@ -9,18 +9,18 @@ import {tct} from 'sentry/locale';
 
 export const COLLAPSE_COUNT = 5;
 
-type ChildRenderProps = {
+interface ChildRenderProps {
   isExpanded: boolean;
   showMoreButton: React.ReactNode;
-};
+}
 
-type Props = {
+interface Props {
   children: (props: ChildRenderProps) => React.JSX.Element;
   items: number;
   buttonTitle?: string;
   collapseCount?: number;
   disableBorder?: boolean;
-};
+}
 
 /**
  *
@@ -57,13 +57,13 @@ export function CollapsePanel({
   });
 }
 
-type ShowMoreButtonProps = {
+interface ShowMoreButtonProps {
   items: number;
   onClick: () => void;
   buttonTitle?: string;
   collapseCount?: number;
   disableBorder?: boolean;
-};
+}
 
 function ShowMoreButton({
   items,

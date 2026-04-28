@@ -22,7 +22,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 const TRANSACTION_SEARCH_PERIOD = '14d';
 
-export type SearchBarProps = {
+export interface SearchBarProps {
   eventView: EventView;
   onSearch: (query: string) => void;
   organization: Organization;
@@ -30,7 +30,7 @@ export type SearchBarProps = {
   additionalConditions?: MutableSearch;
   className?: string;
   placeholder?: string;
-};
+}
 
 export function SearchBar(props: SearchBarProps) {
   const {

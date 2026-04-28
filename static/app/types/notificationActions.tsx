@@ -9,7 +9,7 @@ export enum NotificationActionService {
   SENTRY_NOTIFICATION = 'sentry_notification',
 }
 
-export type NotificationAction = {
+export interface NotificationAction {
   id: number;
   integrationId: number | null;
   organizationId: number;
@@ -20,9 +20,9 @@ export type NotificationAction = {
   targetIdentifier: string;
   targetType: string;
   triggerType: string;
-};
+}
 
-export type AvailableNotificationAction = {
+export interface AvailableNotificationAction {
   action: {
     serviceType: string;
     targetType: string;
@@ -33,4 +33,4 @@ export type AvailableNotificationAction = {
     targetIdentifier?: string;
   };
   requires: Array<{description: string; name: string}>;
-};
+}

@@ -12,7 +12,7 @@ type DetectorCreateAnalyticsEventPayload =
     })
   | {detector_type: string; success: false};
 
-export type MonitorsEventParameters = {
+export interface MonitorsEventParameters {
   'automation.created': AutomationAnalyticsEventPayload & {
     organization: Organization;
     source: 'drawer' | 'full';
@@ -29,7 +29,7 @@ export type MonitorsEventParameters = {
   'monitor.created': DetectorCreateAnalyticsEventPayload;
   'monitor.updated': DetectorAnalyticsEventPayload;
   'monitors.onboarding_modal_viewed': {step: number};
-};
+}
 
 type MonitorsAnalyticsKey = keyof MonitorsEventParameters;
 

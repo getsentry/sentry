@@ -42,10 +42,10 @@ type AvatarChooserType =
   | 'sentryAppSimple'
   | 'docIntegration';
 
-type DefaultChoice = {
+interface DefaultChoice {
   description?: React.ReactNode;
   label?: string;
-};
+}
 
 interface AvatarChooserProps {
   endpoint: string;

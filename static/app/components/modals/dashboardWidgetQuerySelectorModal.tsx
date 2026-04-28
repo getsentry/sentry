@@ -19,11 +19,11 @@ import {withPageFilters} from 'sentry/utils/withPageFilters';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
 
-export type DashboardWidgetQuerySelectorModalOptions = {
+export interface DashboardWidgetQuerySelectorModalOptions {
   dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   widget: Widget;
-};
+}
 
 type Props = ModalRenderProps &
   DashboardWidgetQuerySelectorModalOptions & {

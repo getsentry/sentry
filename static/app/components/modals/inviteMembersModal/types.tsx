@@ -1,13 +1,13 @@
 export type InviteStatus = Record<string, {sent: boolean; error?: string}>;
 
-export type InviteRow = {
+export interface InviteRow {
   emails: Set<string>;
   role: string;
   teams: Set<string>;
-};
+}
 
-export type NormalizedInvite = {
+export interface NormalizedInvite {
   email: string;
   role: string;
   teams: Set<string>;
-};
+}

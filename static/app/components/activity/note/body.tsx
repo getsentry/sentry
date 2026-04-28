@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
-type Props = {
+interface Props {
   text: string;
-};
+}
 
 function NoteBody({text}: Props) {
   return <StyledNoteBody data-test-id="activity-note-body" text={text} />;

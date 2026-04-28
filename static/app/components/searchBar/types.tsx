@@ -18,7 +18,7 @@ export enum ItemType {
 
 export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
 
-export type SearchGroup = {
+export interface SearchGroup {
   children: SearchItem[];
   icon: React.ReactNode;
   title: string;
@@ -30,9 +30,9 @@ export type SearchGroup = {
   desc?: string;
   documentation?: React.ReactNode;
   value?: string;
-};
+}
 
-export type SearchItem = {
+export interface SearchItem {
   active?: boolean;
   /**
    * When this item is selected, apply a filter to the search query
@@ -62,7 +62,7 @@ export type SearchItem = {
    * A value of null means that this item is not selectable in the search dropdown
    */
   value?: string | null;
-};
+}
 
 export enum ShortcutType {
   DELETE = 'delete',
@@ -71,7 +71,7 @@ export enum ShortcutType {
   PREVIOUS = 'previous',
 }
 
-export type Shortcut = {
+export interface Shortcut {
   canRunShortcut: (
     token: TokenResult<Token> | null | undefined,
     filterTokenCount: number
@@ -83,4 +83,4 @@ export type Shortcut = {
     actual: string[] | string;
     display?: string[] | string;
   };
-};
+}

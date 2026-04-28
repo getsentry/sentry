@@ -84,14 +84,14 @@ export function ArithmeticTokenFreeText({
   );
 }
 
-type FocusTokenFunction = {
+interface FocusTokenFunction {
   func: string;
   kind: TokenKind.FUNCTION;
-};
+}
 
-type FocusTokenLiteral = {
+interface FocusTokenLiteral {
   kind: TokenKind.LITERAL;
-};
+}
 
 type FocusToken = FocusTokenFunction | FocusTokenLiteral;
 

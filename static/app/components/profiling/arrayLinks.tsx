@@ -6,11 +6,11 @@ import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
 
-type Item = {
+interface Item {
   target: LocationDescriptor;
   value: string;
   onClick?: () => void;
-};
+}
 
 interface ArrayLinksProps {
   items: Item[];

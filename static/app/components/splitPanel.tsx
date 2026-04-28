@@ -57,20 +57,20 @@ const SplitPanelContext = createContext({
   resetSize: () => {},
 });
 
-type Side = {
+interface Side {
   content: React.ReactNode;
   default: number;
   max: number;
   min: number;
-};
+}
 
-type CommonProps = {
+interface CommonProps {
   availableSize: number;
   SplitDivider?: React.ComponentType<DividerProps>;
   onMouseDown?: (sizePct: `${number}%`) => void;
   onResize?: (newSize: number) => void;
   sizeStorageKey?: string;
-};
+}
 
 export type SplitPanelProps = CommonProps &
   (

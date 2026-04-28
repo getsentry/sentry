@@ -48,12 +48,12 @@ const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-type ContentOpts = {
+interface ContentOpts {
   Body: typeof Body;
   Header: typeof Header;
-};
+}
 
-type PositioningStrategyOpts = {
+interface PositioningStrategyOpts {
   /**
    * The anchor reference component in the backgrounds rect.
    */
@@ -66,7 +66,7 @@ type PositioningStrategyOpts = {
    * The wrapper being positioned Rect.
    */
   wrapperRect: DOMRect;
-};
+}
 
 interface PageOverlayProps extends React.ComponentProps<'div'> {
   /**

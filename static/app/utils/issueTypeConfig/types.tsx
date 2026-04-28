@@ -2,17 +2,17 @@ import type {IssueType} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
-export type ResourceLink = {
+export interface ResourceLink {
   link: string;
   text: string;
-};
+}
 
-type DisabledWithReasonConfig = {
+interface DisabledWithReasonConfig {
   enabled: boolean;
   disabledReason?: string;
-};
+}
 
-export type IssueTypeConfig = {
+export interface IssueTypeConfig {
   /**
    * Enable/disable actions for an issue type
    */
@@ -205,7 +205,7 @@ export type IssueTypeConfig = {
    * Whether or not the issue type is using the issue platform
    */
   usesIssuePlatform: boolean;
-};
+}
 
 export interface IssueCategoryConfigMapping extends Partial<
   Record<IssueType, Partial<IssueTypeConfig>>

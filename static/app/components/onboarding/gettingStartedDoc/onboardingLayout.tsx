@@ -40,7 +40,7 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
   defaultComponent: ProductSelection,
 });
 
-export type OnboardingLayoutProps = {
+export interface OnboardingLayoutProps {
   docsConfig: Docs<any>;
   dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
@@ -56,7 +56,7 @@ export type OnboardingLayoutProps = {
    * sync when the user changes products on the setup-docs step.
    */
   onProductSelectionSync?: (products: ProductSolution[]) => void;
-};
+}
 
 const EMPTY_ARRAY: never[] = [];
 

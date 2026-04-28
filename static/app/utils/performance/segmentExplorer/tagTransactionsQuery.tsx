@@ -5,15 +5,15 @@ import type {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
-type TableDataRow = {
+interface TableDataRow {
   [key: string]: string | number;
   id: string;
-};
+}
 
-type TableData = {
+interface TableData {
   data: TableDataRow[];
   meta?: MetaType;
-};
+}
 
 type QueryProps = DiscoverQueryProps & {
   children: (props: GenericChildrenProps<TableData>) => React.ReactNode;

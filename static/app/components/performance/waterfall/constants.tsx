@@ -10,11 +10,11 @@ export enum SpanBarType {
   AUTOGROUPED_AND_AFFECTED = 'autogrouped_and_affected',
 }
 
-type SpanBarColors = {
+interface SpanBarColors {
   alternate: string;
   insetTextColor: string;
   primary: string;
-};
+}
 
 // TODO: Need to eventually add dark mode colors as well
 export function getSpanBarColors(

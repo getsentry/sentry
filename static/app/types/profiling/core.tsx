@@ -1,9 +1,9 @@
-type Annotation = {
+interface Annotation {
   key: string;
   values: string[];
-};
+}
 
-export type Trace = {
+export interface Trace {
   device_classification: string;
   device_locale: string;
   device_manufacturer: string;
@@ -24,9 +24,9 @@ export type Trace = {
   span_annotations?: readonly Annotation[];
   spans?: readonly Span[];
   trace_annotations?: readonly Annotation[];
-};
+}
 
-type Span = {
+interface Span {
   duration_ms: number;
   id: string | number;
   name: string;
@@ -40,4 +40,4 @@ type Span = {
     success: boolean;
   }>;
   queue_label?: string;
-};
+}

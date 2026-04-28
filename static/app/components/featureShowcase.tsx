@@ -17,7 +17,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type ShowcaseContextValue = {
+interface ShowcaseContextValue {
   advance: () => void;
   back: () => void;
   close: () => void;
@@ -25,7 +25,7 @@ type ShowcaseContextValue = {
   hasNext: boolean;
   hasPrevious: boolean;
   stepCount: number;
-};
+}
 
 const ShowcaseContext = createContext<ShowcaseContextValue | null>(null);
 

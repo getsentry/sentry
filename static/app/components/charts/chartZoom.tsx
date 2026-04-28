@@ -27,11 +27,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
-type Period = {
+interface Period {
   end: DateString;
   period: string | null;
   start: DateString;
-};
+}
 
 type ZoomPropKeys =
   | 'period'
@@ -51,7 +51,7 @@ export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   utc?: boolean;
 }
 
-type Props = {
+interface Props {
   children: (props: ZoomRenderProps) => React.ReactNode;
   location: Location;
   navigate: ReactRouter3Navigate;
@@ -69,7 +69,7 @@ type Props = {
   utc?: boolean | null;
   xAxis?: XAXisComponentOption;
   xAxisIndex?: number | number[];
-};
+}
 
 /**
  * This is a very opinionated component that takes a render prop through `children`. It

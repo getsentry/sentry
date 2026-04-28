@@ -9,13 +9,13 @@ import {DetailedError} from 'sentry/components/errors/detailedError';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type DefaultProps = {
+interface DefaultProps {
   mini: boolean;
-};
+}
 
-type CustomComponentRenderProps = {
+interface CustomComponentRenderProps {
   error: Error | null;
-};
+}
 
 type Props = DefaultProps & {
   // allow the error message to be dismissable, which allows the
@@ -37,9 +37,9 @@ type Props = DefaultProps & {
   message?: React.ReactNode;
 };
 
-type State = {
+interface State {
   error: Error | null;
-};
+}
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
 

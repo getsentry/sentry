@@ -9,10 +9,10 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type EventGroupingInfoResponse = {
+interface EventGroupingInfoResponse {
   grouping_config: string | null;
   variants: Record<string, EventGroupVariant>;
-};
+}
 
 function generatePerformanceGroupInfo({
   event,

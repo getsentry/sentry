@@ -246,13 +246,13 @@ export interface MissingMember {
  * Backend provides {slug, name}. Features is added client-side
  * for compatibility with OrganizationContext.
  */
-export type SharedViewOrganization = {
+export interface SharedViewOrganization {
   slug: string;
   features?: string[];
   name?: string;
-};
+}
 
-export type AuditLog = {
+export interface AuditLog {
   actor: User;
   data: any;
   dateCreated: string;
@@ -262,9 +262,9 @@ export type AuditLog = {
   note: string;
   targetObject: number;
   targetUser: Actor | null;
-};
+}
 
-export type AccessRequest = {
+export interface AccessRequest {
   id: string;
   member: Member;
   team: Team;
@@ -273,7 +273,7 @@ export type AccessRequest = {
     name: string;
     username: string;
   }>;
-};
+}
 
 /**
  * Discover queries and result sets.
@@ -322,15 +322,15 @@ export type EventsStatsData = Array<
 
 type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
 
-type AccuracyStatsItem<T> = {
+interface AccuracyStatsItem<T> {
   timestamp: number;
   value: T;
-};
+}
 
 type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
 // API response for a single Discover timeseries
-export type EventsStats = {
+export interface EventsStats {
   data: EventsStatsData;
   confidence?: ConfidenceStatsData; // deprecated
   end?: number;
@@ -357,7 +357,7 @@ export type EventsStats = {
   order?: number;
   start?: number;
   totals?: {count: number};
-};
+}
 
 // API response for a top N Discover series or a multi-axis Discover series
 export type MultiSeriesEventsStats = Record<string, EventsStats>;
@@ -371,7 +371,7 @@ export type GroupedMultiSeriesEventsStats = Record<
   }
 >;
 
-export type EventsStatsSeries<F extends string> = {
+export interface EventsStatsSeries<F extends string> {
   data: Array<{
     axis: F;
     values: number[];
@@ -383,7 +383,7 @@ export type EventsStatsSeries<F extends string> = {
     start: number;
   };
   timestamps: number[];
-};
+}
 
 /**
  * Session API types.

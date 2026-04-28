@@ -4,13 +4,13 @@ import {t} from 'sentry/locale';
 import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
 
-type Props = {
+interface Props {
   children: (items: TimeRangeItem[]) => React.ReactElement;
   handleSelectRelative: (value: string) => void;
   relativePeriods?: Record<string, React.ReactNode>;
   shouldShowAbsolute?: boolean;
   shouldShowRelative?: boolean;
-};
+}
 
 export const SelectorItems = ({
   children,

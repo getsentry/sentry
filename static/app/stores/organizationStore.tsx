@@ -7,13 +7,13 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {HookStore} from './hookStore';
 import type {StrictStoreDefinition} from './types';
 
-type State = {
+interface State {
   dirty: boolean;
   loading: boolean;
   organization: Organization | null;
   error?: RequestError | null;
   errorType?: string | null;
-};
+}
 
 interface OrganizationStoreDefinition extends StrictStoreDefinition<State> {
   get(): State;

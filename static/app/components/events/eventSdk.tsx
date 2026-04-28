@@ -7,10 +7,10 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 import {KeyValueList} from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';
 
-type Props = {
+interface Props {
   meta?: Record<any, any>;
   sdk?: Event['sdk'];
-};
+}
 
 export function EventSdk({sdk, meta}: Props) {
   if (!sdk || isEmptyObject(sdk)) {

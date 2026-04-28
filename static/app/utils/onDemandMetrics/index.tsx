@@ -108,7 +108,7 @@ export function isOnDemandSearchKey(searchKey: string): boolean {
   );
 }
 
-type SearchFilter = {key: string; operator: string; value: string};
+interface SearchFilter {key: string; operator: string; value: string}
 
 function getSearchFilterKeys(query: string): string[] {
   try {

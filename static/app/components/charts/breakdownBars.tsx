@@ -5,22 +5,22 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
-type Point = {
+interface Point {
   label: string;
   value: number;
   active?: boolean;
   onClick?: () => void;
   tooltip?: string;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * The data to display. The caller should order the points
    * in the order they want bars displayed.
    */
   data: Point[];
   maxItems?: number;
-};
+}
 
 export function BreakdownBars({data, maxItems}: Props) {
   const total = data.reduce((sum, point) => point.value + sum, 0);

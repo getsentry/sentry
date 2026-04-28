@@ -5,11 +5,11 @@ import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
-type Props = {
+interface Props {
   groupId: string;
   orgSlug: string;
   projectSlug: string;
-};
+}
 
 export function EventAttachmentsCrashReportsNotice({
   orgSlug,

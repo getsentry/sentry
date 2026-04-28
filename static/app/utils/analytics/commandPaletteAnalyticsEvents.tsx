@@ -1,18 +1,18 @@
-type CommandPaletteOpenedEvent = {
+interface CommandPaletteOpenedEvent {
   /** How the command palette was opened */
   source: 'button' | 'keyboard';
-};
+}
 
-type CommandPaletteClosedEvent = {
+interface CommandPaletteClosedEvent {
   /** Whether the user interacted (typed a query or selected an action) before closing */
   had_interaction: boolean;
   /** The search query at time of close */
   query: string;
   /** Session ID to correlate events within a single palette session */
   session_id: string;
-};
+}
 
-type CommandPaletteActionSelectedEvent = {
+interface CommandPaletteActionSelectedEvent {
   /** The label of the selected action, serialized by the caller */
   action: string;
   /** The type of action selected */
@@ -25,27 +25,27 @@ type CommandPaletteActionSelectedEvent = {
   result_index: number;
   /** Session ID */
   session_id: string;
-};
+}
 
-type CommandPaletteSearchedEvent = {
+interface CommandPaletteSearchedEvent {
   /** The search query */
   query: string;
   /** Number of results returned for the query */
   result_count: number;
   /** Session ID */
   session_id: string;
-};
+}
 
-type CommandPaletteNoResultsEvent = {
+interface CommandPaletteNoResultsEvent {
   /** The selected group action label if the empty state occurred inside a group, undefined otherwise */
   action: string | undefined;
   /** The search query that produced no results */
   query: string;
   /** Session ID */
   session_id: string;
-};
+}
 
-type CommandPaletteSessionEvent = {
+interface CommandPaletteSessionEvent {
   /** Number of actions selected (including group drills) */
   actions_selected: number;
   /** Whether the session ended with a final action (navigate/callback) */
@@ -58,16 +58,16 @@ type CommandPaletteSessionEvent = {
   queries_typed: number;
   /** Session ID */
   session_id: string;
-};
+}
 
-export type CommandPaletteEventParameters = {
+export interface CommandPaletteEventParameters {
   'command_palette.action_selected': CommandPaletteActionSelectedEvent;
   'command_palette.closed': CommandPaletteClosedEvent;
   'command_palette.no_results': CommandPaletteNoResultsEvent;
   'command_palette.opened': CommandPaletteOpenedEvent;
   'command_palette.searched': CommandPaletteSearchedEvent;
   'command_palette.session': CommandPaletteSessionEvent;
-};
+}
 
 type CommandPaletteEventKey = keyof CommandPaletteEventParameters;
 

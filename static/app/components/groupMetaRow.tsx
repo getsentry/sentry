@@ -22,11 +22,11 @@ import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   data: Group;
   showAssignee?: boolean;
   showLifetime?: boolean;
-};
+}
 
 function Lifetime({
   firstSeen,

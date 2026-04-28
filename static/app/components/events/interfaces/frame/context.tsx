@@ -32,7 +32,7 @@ import {useSourceContext} from './useSourceContext';
 import {useStacktraceCoverage} from './useStacktraceCoverage';
 import {hasPotentialSourceContext} from './utils';
 
-type Props = {
+interface Props {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
@@ -49,7 +49,7 @@ type Props = {
   isFirst?: boolean;
   platform?: PlatformKey;
   registersMeta?: Record<any, any>;
-};
+}
 
 export function getLineCoverage(
   lines: Frame['context'],

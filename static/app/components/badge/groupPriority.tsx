@@ -26,19 +26,19 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type GroupPriorityDropdownProps = {
+interface GroupPriorityDropdownProps {
   groupId: string;
   onChange: (value: PriorityLevel) => void;
   value: PriorityLevel;
   disabled?: boolean;
   lastEditedBy?: 'system' | AvatarUser;
-};
+}
 
-type GroupPriorityBadgeProps = {
+interface GroupPriorityBadgeProps {
   priority: PriorityLevel;
   children?: React.ReactNode;
   showLabel?: boolean;
-};
+}
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
   [PriorityLevel.HIGH]: t('High'),

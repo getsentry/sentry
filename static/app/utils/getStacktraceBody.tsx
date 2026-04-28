@@ -1,7 +1,7 @@
 import {displayRawContent as rawStacktraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
 
-type GetStacktraceBodyArgs = {
+interface GetStacktraceBodyArgs {
   /** The Sentry event containing stack trace data. */
   event: Event;
   /** Whether the similarity embeddings feature is enabled. */
@@ -15,7 +15,7 @@ type GetStacktraceBodyArgs = {
   // If true, the generated stack trace will be in the default format for the platform.
   // If false, the stack trace will be structured according to newestFirst.
   rawTrace?: boolean;
-};
+}
 
 /**
  * Extracts and formats stack trace content from a Sentry event for display.

@@ -14,9 +14,9 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 
-type EventFunctionBreakpointChartProps = {
+interface EventFunctionBreakpointChartProps {
   event: Event;
-};
+}
 
 export function EventFunctionBreakpointChart({event}: EventFunctionBreakpointChartProps) {
   const evidenceData = event.occurrence?.evidenceData;
@@ -51,11 +51,11 @@ export function EventFunctionBreakpointChart({event}: EventFunctionBreakpointCha
   );
 }
 
-type EventFunctionBreakpointChartInnerProps = {
+interface EventFunctionBreakpointChartInnerProps {
   breakpoint: number;
   evidenceData: Record<string, any>;
   fingerprint: number;
-};
+}
 
 const SERIES = ['p95()'];
 

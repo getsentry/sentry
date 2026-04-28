@@ -4,11 +4,11 @@ import type {
   ColumnType,
 } from 'sentry/utils/discover/fields';
 
-export type SessionsMeta = {
+export interface SessionsMeta {
   name: string;
   operations: SessionsOperation[];
   type: ColumnType;
-};
+}
 
 export enum SessionField {
   SESSION = 'session',
@@ -34,7 +34,7 @@ export type SessionsOperation =
   | 'errored_rate'
   | 'unhandled_rate';
 
-export type SessionAggregationColumn = {
+export interface SessionAggregationColumn {
   outputType: AggregationOutputType | null;
   parameters: readonly AggregateParameter[];
-};
+}

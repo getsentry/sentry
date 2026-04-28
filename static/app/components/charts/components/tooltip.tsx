@@ -98,11 +98,11 @@ type TooltipFormatters =
   | 'nameFormatter'
   | 'markerFormatter';
 
-export type TooltipSubLabel = {
+export interface TooltipSubLabel {
   data: DataPoint[];
   label: string;
   parentLabel: string;
-};
+}
 
 export type FormatterOptions = Pick<
   NonNullable<ChartProps['tooltip']>,

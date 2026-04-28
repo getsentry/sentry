@@ -1,4 +1,4 @@
-export type StatsEventParameters = {
+export interface StatsEventParameters {
   'stats.docs_clicked': {
     dataCategory: string;
     source:
@@ -8,7 +8,7 @@ export type StatsEventParameters = {
       | 'card-invalid'
       | 'chart-title';
   };
-};
+}
 
 export const statsEventMap: Record<keyof StatsEventParameters, string> = {
   'stats.docs_clicked': 'Stats: Docs Clicked',

@@ -6,7 +6,7 @@ interface DateSelector {
   time: string;
 }
 
-export type CoreUIEventParameters = {
+export interface CoreUIEventParameters {
   'dateselector.time_changed': DateSelector;
   'dateselector.utc_changed': {
     path: string;
@@ -44,7 +44,7 @@ export type CoreUIEventParameters = {
   'user_feedback.viewed': {
     projects: string;
   };
-};
+}
 
 type CoreUIAnalyticsKey = keyof CoreUIEventParameters;
 

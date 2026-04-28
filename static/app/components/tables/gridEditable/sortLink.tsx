@@ -9,7 +9,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
 
-type Props = {
+interface Props {
   align: Alignments;
   canSort: boolean;
   direction: Directions;
@@ -18,7 +18,7 @@ type Props = {
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   preventScrollReset?: boolean;
   replace?: boolean;
-};
+}
 
 export function SortLink({
   align,

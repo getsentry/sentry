@@ -3,9 +3,9 @@ import {t} from 'sentry/locale';
 
 import {GridBodyCellStatus, GridRow} from './styles';
 
-type Props = {
+interface Props {
   emptyMessage: React.ReactNode;
-};
+}
 
 export function GridEditableEmptyData({emptyMessage}: Props) {
   return (

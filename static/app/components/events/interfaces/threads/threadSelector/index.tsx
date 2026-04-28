@@ -18,7 +18,7 @@ import {Option} from './option';
 import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
 import {getMappedThreadState} from './threadStates';
 
-type Props = {
+interface Props {
   activeThread: Thread;
   event: Event;
   exception: Required<ExceptionType> | undefined;
@@ -27,7 +27,7 @@ type Props = {
    * Expects threads to be sorted by crashed first
    */
   threads: readonly Thread[];
-};
+}
 
 const enum SortAttribute {
   ID = 'id',

@@ -12,11 +12,11 @@ type Props = {
   children?: React.ReactNode;
 } & typeof defaultProps;
 
-type State = {
+interface State {
   key: number;
   prevLoading: boolean;
   prevReloading: boolean;
-};
+}
 
 export class TransitionChart extends Component<Props, State> {
   static defaultProps = defaultProps;

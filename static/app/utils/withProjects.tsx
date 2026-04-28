@@ -2,10 +2,10 @@ import type {Project} from 'sentry/types/project';
 import {getDisplayName} from 'sentry/utils/getDisplayName';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type InjectedProjectsProps = {
+interface InjectedProjectsProps {
   projects: Project[];
   loadingProjects?: boolean;
-};
+}
 
 /**
  * Higher order component that uses ProjectsStore and provides a list of projects

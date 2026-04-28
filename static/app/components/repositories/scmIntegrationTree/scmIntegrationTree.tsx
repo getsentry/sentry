@@ -36,11 +36,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const ROW_HEIGHT = 56;
 const BOTTOM_PADDING = 24;
 
-type Props = {
+interface Props {
   providerFilter: ProviderFilter;
   repoFilter: RepoFilter;
   search: string;
-};
+}
 
 export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) {
   const api = useApi();

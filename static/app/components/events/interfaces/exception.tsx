@@ -15,14 +15,14 @@ import {ExceptionContent} from './crashContent/exception';
 import {NoStackTraceMessage} from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
-type Props = {
+interface Props {
   data: ExceptionType;
   event: Event;
   group: Group | undefined;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hideGuide?: boolean;
-};
+}
 
 export function Exception({
   event,

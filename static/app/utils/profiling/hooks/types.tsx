@@ -7,9 +7,9 @@ type BaseReference =
   | Profiling.BaseTransactionProfileReference
   | Profiling.BaseContinuousProfileReference;
 
-type SpecialColumns = {
+interface SpecialColumns {
   'all_examples()': BaseReference[];
-};
+}
 
 export type EventsResultsDataRow<F extends string> = Pick<
   SpecialColumns,
@@ -17,24 +17,24 @@ export type EventsResultsDataRow<F extends string> = Pick<
 > &
   Record<Exclude<F, keyof SpecialColumns>, string[] | string | number | null>;
 
-type EventsResultsMeta<F extends string> = {
+interface EventsResultsMeta<F extends string> {
   fields: Partial<Record<F, FieldValueType>>;
   units: Partial<Record<F, Unit>>;
-};
+}
 
-export type EventsResults<F extends string> = {
+export interface EventsResults<F extends string> {
   data: Array<EventsResultsDataRow<F>>;
   meta: EventsResultsMeta<F>;
-};
+}
 
-export type Sort<F> = {
+export interface Sort<F> {
   key: F;
   order: 'asc' | 'desc';
-};
+}
 
 export type TrendType = 'regression' | 'improvement';
 
-export type FunctionTrend = {
+export interface FunctionTrend {
   aggregate_range_1: number;
   aggregate_range_2: number;
   breakpoint: number;
@@ -49,16 +49,16 @@ export type FunctionTrend = {
   trend_difference: number;
   trend_percentage: number;
   unweighted_p_value: number;
-};
+}
 
 type EpochTime = number;
-type DataPoint = {count: number};
+interface DataPoint {count: number}
 type FunctionTrendStatsData = [EpochTime, DataPoint];
 
-type FunctionTrendStats = {
+interface FunctionTrendStats {
   data: FunctionTrendStatsData[];
   end: number;
   start: number;
-};
+}
 
 type FunctionExample = [EpochTime, Profiling.BaseProfileReference];

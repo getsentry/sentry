@@ -24,14 +24,14 @@ export enum ImageFeature {
   HAS_SYMBOLS = 'has_symbols',
 }
 
-type CandidateProcessingInfoOkStatus = {
+interface CandidateProcessingInfoOkStatus {
   status: CandidateProcessingStatus.OK;
-};
+}
 
-type CandidateProcessingInfoOtherStatus = {
+interface CandidateProcessingInfoOtherStatus {
   status: CandidateProcessingStatus.MALFORMED | CandidateProcessingStatus.ERROR;
   details?: string;
-};
+}
 
 export type CandidateProcessingInfo =
   | CandidateProcessingInfoOkStatus
@@ -48,44 +48,44 @@ export enum CandidateDownloadStatus {
   UNAPPLIED = 'unapplied',
 }
 
-type ImageFeatures = {
+interface ImageFeatures {
   [ImageFeature.HAS_SOURCES]: boolean;
   [ImageFeature.HAS_DEBUG_INFO]: boolean;
   [ImageFeature.HAS_UNWIND_INFO]: boolean;
   [ImageFeature.HAS_SYMBOLS]: boolean;
-};
+}
 
 type CandidateFeatures = ImageFeatures;
 
-type CandidateDownloadOkStatus = {
+interface CandidateDownloadOkStatus {
   features: CandidateFeatures;
   status: CandidateDownloadStatus.OK;
   details?: string;
-};
+}
 
-type CandidateDownloadDeletedStatus = {
+interface CandidateDownloadDeletedStatus {
   features: CandidateFeatures;
   status: CandidateDownloadStatus.DELETED;
   details?: string;
-};
+}
 
-type CandidateDownloadNotFoundStatus = {
+interface CandidateDownloadNotFoundStatus {
   status: CandidateDownloadStatus.NOT_FOUND;
   details?: string;
-};
+}
 
-type CandidateDownloadUnAppliedStatus = {
+interface CandidateDownloadUnAppliedStatus {
   features: CandidateFeatures;
   status: CandidateDownloadStatus.UNAPPLIED;
-};
+}
 
-type CandidateDownloadOtherStatus = {
+interface CandidateDownloadOtherStatus {
   status:
     | CandidateDownloadStatus.MALFORMED
     | CandidateDownloadStatus.NO_PERMISSION
     | CandidateDownloadStatus.ERROR;
   details?: string;
-};
+}
 
 export type CandidateDownload =
   | CandidateDownloadNotFoundStatus
@@ -100,14 +100,14 @@ interface ImageCandidateBase {
   source_name?: string;
 }
 
-type InternalSource = {
+interface InternalSource {
   dateCreated: string;
   filename: string;
   prettyFileType: string;
   size: number;
   symbolType: SymbolType;
   location?: string;
-};
+}
 
 export interface ImageCandidateOk extends ImageCandidateBase {
   download: CandidateDownloadOkStatus;
@@ -154,7 +154,7 @@ export enum ImageStatus {
   OTHER = 'other',
 }
 
-export type Image = {
+export interface Image {
   features: ImageFeatures;
   type: string;
   arch?: string;
@@ -169,7 +169,7 @@ export type Image = {
   image_vmaddr?: string;
   unwind_status?: ImageStatus | null;
   uuid?: string;
-};
+}
 
 export interface ImageWithCombinedStatus extends Image {
   /**

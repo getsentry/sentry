@@ -3,12 +3,12 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
-type SelectAllHeaderCheckboxProps = {
+interface SelectAllHeaderCheckboxProps {
   checked: boolean | 'indeterminate';
   onChange: (checked: boolean) => void;
   className?: string;
   disabled?: boolean;
-};
+}
 
 export function SelectAllHeaderCheckbox({
   checked,

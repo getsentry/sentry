@@ -191,16 +191,16 @@ export function setApiQueryData<TResponseData>(
   return updateResult?.[0];
 }
 
-type ApiMutationVariables<
+interface ApiMutationVariables<
   Headers extends Record<string, unknown> = Record<string, string>,
   Query extends Record<string, unknown> = Record<string, any>,
   Data extends Record<string, unknown> = Record<string, unknown>,
-> = {
+> {
   method: 'PUT' | 'POST' | 'DELETE';
   url: string;
   data?: Data;
   options?: Pick<QueryKeyEndpointOptions<Headers, Query>, 'query' | 'headers' | 'host'>;
-};
+}
 
 /**
  * This method can be used as a default `mutationFn` with `useMutation` hook.

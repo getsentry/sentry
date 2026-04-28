@@ -8,12 +8,12 @@ import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
-type SelectionKeyHandlerProps = {
+interface SelectionKeyHandlerProps {
   gridRef: React.RefObject<HTMLDivElement | null>;
   state: ListState<ParseResultToken>;
   undo: () => void;
   ref?: React.Ref<HTMLInputElement>;
-};
+}
 
 /**
  * SelectionKeyHandler is used to handle keyboard events when a selection is

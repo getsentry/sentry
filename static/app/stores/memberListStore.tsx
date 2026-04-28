@@ -3,12 +3,12 @@ import {createStore} from 'reflux';
 import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {User} from 'sentry/types/user';
 
-type State = {
+interface State {
   cursor: string | null;
   hasMore: boolean | null;
   loading: boolean;
   members: User[];
-};
+}
 
 // XXX(epurkhiser): Either this store is completely wrong, or it is misnamed, a
 // `Member` has one `User`, this stores users not members.

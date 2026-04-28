@@ -62,10 +62,10 @@ function EventInsightDiffSection({baseMetricId, headMetricId, project}: SectionP
   );
 }
 
-type Props = {
+interface Props {
   event: Event;
   project: Project;
-};
+}
 
 function EventInsightDiff(props: Props) {
   const ids = getMetricIds(props.event);

@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import type {PlatformKey} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   className?: string;
   /**
    * Maximum number of platform icons to display
@@ -16,7 +16,7 @@ type Props = {
    * Platform icon size in pixels
    */
   size?: number;
-};
+}
 
 type WrapperProps = Required<Pick<Props, 'size'>>;
 

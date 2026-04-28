@@ -1,4 +1,4 @@
-export type FeedbackEventParameters = {
+export interface FeedbackEventParameters {
   'feedback.details-integration-issue-clicked': {
     integration_key: string;
   };
@@ -24,7 +24,7 @@ export type FeedbackEventParameters = {
   'feedback.trace-section.loaded': {numEvents: number};
   'feedback.whats-new-banner-dismissed': Record<string, unknown>;
   'feedback.whats-new-banner-viewed': Record<string, unknown>;
-};
+}
 
 type FeedbackEventKey = keyof FeedbackEventParameters;
 

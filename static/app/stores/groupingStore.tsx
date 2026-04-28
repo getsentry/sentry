@@ -14,7 +14,7 @@ import {toArray} from 'sentry/utils/array/toArray';
 
 import type {StrictStoreDefinition} from './types';
 
-type State = {
+interface State {
   enableFingerprintCompare: boolean;
   error: boolean;
   loading: boolean;
@@ -31,9 +31,9 @@ type State = {
   unmergeState: Readonly<
     Map<any, Readonly<{busy?: boolean; checked?: boolean; collapsed?: boolean}>>
   >;
-};
+}
 
-type ApiFingerprint = {
+interface ApiFingerprint {
   id: string;
   latestEvent: Event;
   childId?: string;
@@ -44,17 +44,17 @@ type ApiFingerprint = {
   parentId?: string;
   parentLabel?: string;
   state?: string;
-};
+}
 
-type ChildFingerprint = {
+interface ChildFingerprint {
   childId: string;
   childLabel?: string;
   eventCount?: number;
   lastSeen?: string;
   latestEvent?: Event;
-};
+}
 
-export type Fingerprint = {
+export interface Fingerprint {
   children: ChildFingerprint[];
   eventCount: number;
   id: string;
@@ -65,13 +65,13 @@ export type Fingerprint = {
   parentId?: string;
   parentLabel?: string;
   state?: string;
-};
+}
 
-type IdState = {
+interface IdState {
   busy?: boolean;
   checked?: boolean;
   collapsed?: boolean;
-};
+}
 
 type UnmergeResponse = Pick<
   State,

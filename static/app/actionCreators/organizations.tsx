@@ -13,7 +13,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
-type RedirectRemainingOrganizationParams = {
+interface RedirectRemainingOrganizationParams {
   /**
    * navigate function from useNavigate
    */
@@ -26,7 +26,7 @@ type RedirectRemainingOrganizationParams = {
    * Should remove org?
    */
   removeOrg?: boolean;
-};
+}
 
 /**
  * After removing an organization, this will redirect to a remaining active organization or
@@ -66,7 +66,7 @@ export function redirectToRemainingOrganization({
   }
 }
 
-type RemoveParams = {
+interface RemoveParams {
   /**
    * The organization slug
    */
@@ -81,7 +81,7 @@ type RemoveParams = {
    * An optional success message to be used in a toast, if remove succeeds
    */
   successMessage?: string;
-};
+}
 
 function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
   const endpoint = `/organizations/${orgId}/`;
@@ -138,10 +138,10 @@ export function updateOrganization(org: Partial<Organization>) {
   OrganizationStore.onUpdate(org);
 }
 
-type FetchOrganizationByMemberParams = {
+interface FetchOrganizationByMemberParams {
   addOrg?: boolean;
   fetchOrgDetails?: boolean;
-};
+}
 
 export async function fetchOrganizationByMember(
   api: Client,
@@ -169,7 +169,7 @@ export async function fetchOrganizationByMember(
   return org;
 }
 
-type FetchOrganizationDetailsParams = {
+interface FetchOrganizationDetailsParams {
   /**
    * Should load projects in ProjectsStore
    */
@@ -184,7 +184,7 @@ type FetchOrganizationDetailsParams = {
    * Should set as active organization?
    */
   setActive?: boolean;
-};
+}
 export async function fetchOrganizationDetails(
   api: Client,
   orgId: string,

@@ -3,10 +3,10 @@ import {getDisplayName} from 'sentry/utils/getDisplayName';
 
 import {useOrganization} from './useOrganization';
 
-type InjectedOrganizationProps = {
+interface InjectedOrganizationProps {
   organization?: Organization;
   organizationAllowNull?: undefined | true;
-};
+}
 
 export function withOrganization<P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>

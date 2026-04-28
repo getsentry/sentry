@@ -6,14 +6,14 @@ import {ScoreBar} from 'sentry/components/scoreBar';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   barHeight: number;
   bars: number;
   miserableUsers: number | undefined;
   miseryLimit: number | undefined;
   totalUsers: number | undefined;
   userMisery: number;
-};
+}
 
 export function UserMisery(props: Props) {
   const theme = useTheme();

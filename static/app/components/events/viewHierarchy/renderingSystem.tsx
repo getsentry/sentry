@@ -7,10 +7,10 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type RenderingSystemProps = {
+interface RenderingSystemProps {
   platform?: string;
   system?: string;
-};
+}
 
 function RenderingSystem({platform, system}: RenderingSystemProps) {
   const organization = useOrganization();

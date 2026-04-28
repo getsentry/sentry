@@ -7,7 +7,7 @@ export interface SourceMapWizardBlueThunderAnalyticsParams {
   sdk_version?: string | null;
 }
 
-export type StackTraceEventParameters = {
+export interface StackTraceEventParameters {
   'source_map_debug_blue_thunder.modal_closed': SourceMapWizardBlueThunderAnalyticsParams;
   'source_map_debug_blue_thunder.modal_opened': SourceMapWizardBlueThunderAnalyticsParams;
   'source_map_debug_blue_thunder.source_map_wizard_command_copied': SourceMapWizardBlueThunderAnalyticsParams;
@@ -89,7 +89,7 @@ export type StackTraceEventParameters = {
     num_threads: number;
     platform?: string;
   };
-};
+}
 
 export const stackTraceEventMap: Record<keyof StackTraceEventParameters, string> = {
   'source_map_debug_blue_thunder.modal_closed': 'Source Map Debugger Modal Closed',

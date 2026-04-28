@@ -2,18 +2,18 @@ import type {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuilds
 import type {Organization} from 'sentry/types/organization';
 import type {ArtifactType} from 'sentry/views/settings/project/preprod/types';
 
-type BasePreprodBuildEvent = {
+interface BasePreprodBuildEvent {
   organization: Organization;
   build_id?: string;
   platform?: string | null;
   project_slug?: string;
   project_type?: string | null;
-};
+}
 
-type PreprodSettingsEvent = {
+interface PreprodSettingsEvent {
   organization: Organization;
   project_slug: string;
-};
+}
 
 export type BuildListPageSource =
   | 'preprod_builds_list'
@@ -21,7 +21,7 @@ export type BuildListPageSource =
   | 'releases_snapshots_tab'
   | 'releases_details_preprod_builds';
 
-export type PreprodBuildEventParameters = {
+export interface PreprodBuildEventParameters {
   'preprod.builds.compare.go_to_build_details': BasePreprodBuildEvent & {
     slot?: 'head' | 'base';
   };
@@ -87,7 +87,7 @@ export type PreprodBuildEventParameters = {
     images_removed?: number;
     images_unchanged?: number;
   };
-};
+}
 
 type PreprodBuildAnalyticsKey = keyof PreprodBuildEventParameters;
 

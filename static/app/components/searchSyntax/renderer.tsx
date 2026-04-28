@@ -11,7 +11,7 @@ import type {ParseResult, TokenResult} from './parser';
 import {Token} from './parser';
 import {isWithinToken} from './utils';
 
-type Props = {
+interface Props {
   /**
    * The result from parsing the search query string
    */
@@ -21,7 +21,7 @@ type Props = {
    * highlight active tokens and trigger error tooltips.
    */
   cursorPosition?: number;
-};
+}
 
 /**
  * Renders the parsed query with syntax highlighting.
@@ -277,11 +277,11 @@ function NumberToken({token}: {token: TokenResult<Token.VALUE_NUMBER>}) {
   );
 }
 
-type TokenGroupProps = {
+interface TokenGroupProps {
   active: boolean;
   invalid: boolean;
   warning?: boolean;
-};
+}
 
 const colorType = (p: TokenGroupProps) =>
   `${p.invalid ? 'invalid' : p.warning ? 'warning' : 'valid'}${

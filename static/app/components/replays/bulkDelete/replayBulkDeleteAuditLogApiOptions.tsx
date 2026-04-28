@@ -4,11 +4,11 @@ import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelet
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-type Query = {
+interface Query {
   referrer: string;
   offset?: number;
   per_page?: number;
-};
+}
 
 export function replayBulkDeleteAuditLogApiOptions(
   organization: Organization,

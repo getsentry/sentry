@@ -10,7 +10,7 @@ import {NoteBody} from './body';
 import {NoteHeader} from './header';
 import {NoteInput} from './input';
 
-type Props = {
+interface Props {
   /**
    * String for author name to be displayed in header.
    *
@@ -55,7 +55,7 @@ type Props = {
    */
   hideDate?: boolean;
   onCreate?: (data: NoteType) => void;
-};
+}
 
 function Note(props: Props) {
   const [editing, setEditing] = useState(false);

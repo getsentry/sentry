@@ -5,23 +5,23 @@ import {
   makeTimelineFormatter,
 } from 'sentry/utils/profiling/units/units';
 
-export type UIFrameNode = {
+export interface UIFrameNode {
   duration: number;
   end: number;
   node: UIFrameMeasurement;
   start: number;
   type: 'slow' | 'frozen';
-};
+}
 
-export type UIFrameMeasurements = {
+export interface UIFrameMeasurements {
   unit: string;
   values: UIFrameMeasurement[];
-};
+}
 
-type UIFrameMeasurement = {
+interface UIFrameMeasurement {
   elapsed: number;
   value: number;
-};
+}
 
 function sortFramesByStartedTime(a: UIFrameMeasurement, b: UIFrameMeasurement) {
   return a.elapsed - a.value - (b.elapsed - b.value);

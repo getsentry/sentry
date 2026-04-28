@@ -16,10 +16,10 @@ function showAlert(msg: string, type: Indicator['type']) {
 
 type ChangeId = string;
 
-type Change = {
+interface Change {
   data: any;
   itemIds: string[];
-};
+}
 
 type Item = BaseGroup | Group;
 

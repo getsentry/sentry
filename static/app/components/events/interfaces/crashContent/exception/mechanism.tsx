@@ -14,10 +14,10 @@ import {t} from 'sentry/locale';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
-type Props = {
+interface Props {
   data: StackTraceMechanism;
   meta?: Record<any, any>;
-};
+}
 
 export function Mechanism({data: mechanism, meta: mechanismMeta}: Props) {
   const {type, description, help_link, handled, source, meta = {}, data = {}} = mechanism;

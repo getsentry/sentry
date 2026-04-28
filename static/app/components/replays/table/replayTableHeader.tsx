@@ -16,13 +16,13 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
-type Props = {
+interface Props {
   columns: readonly ReplayTableColumn[];
   replays: ReplayListRecord[];
   onSortClick?: (key: string) => void;
   sort?: Sort;
   stickyHeader?: boolean;
-};
+}
 
 export function ReplayTableHeader({
   columns,

@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 
 type PillType = 'positive' | 'negative' | 'error';
 
-type Props = {
+interface Props {
   children?: React.ReactNode;
   className?: string;
   name?: React.ReactNode;
   type?: PillType;
   value?: number | string | boolean | null;
-};
+}
 
 export const Pill = memo(({name, value, children, type, className}: Props) => {
   const getTypeAndValue = (): Partial<{renderValue: string; valueType: PillType}> => {

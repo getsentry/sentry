@@ -4,10 +4,10 @@ import type {Location} from 'history';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 
-type Opts<Q> = {
+interface Opts<Q> {
   fieldsToClean: string[];
   shouldClean?: (newLocation: Location<Q>) => boolean;
-};
+}
 
 export function handleRouteLeave<Q extends Record<PropertyKey, unknown>>({
   fieldsToClean,

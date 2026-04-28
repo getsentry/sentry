@@ -33,22 +33,22 @@ type OperationName = string | typeof OtherOperation;
 type OperationNameIntervals = Record<OperationName, TimeWindowSpan[]>;
 type OperationNameCoverage = Record<OperationName, Duration>;
 
-type OpStats = {
+interface OpStats {
   name: OperationName;
   percentage: number;
   totalInterval: number;
-};
+}
 
 const TOP_N_SPANS = 4;
 
 type OpBreakdownType = OpStats[];
 
-type Props = {
+interface Props {
   event: Event | AggregateEventTransaction;
   operationNameFilters: ActiveOperationFilter;
   hideHeader?: boolean;
   topN?: number;
-};
+}
 
 export function generateStats(
   transactionEvent: EventTransaction | AggregateEventTransaction,

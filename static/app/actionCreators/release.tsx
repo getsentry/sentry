@@ -7,11 +7,11 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ReleaseStatus} from 'sentry/types/release';
 
-type ParamsGet = {
+interface ParamsGet {
   orgSlug: string;
   projectSlug: string;
   releaseVersion: string;
-};
+}
 
 export function archiveRelease(api: Client, params: ParamsGet) {
   const {orgSlug, releaseVersion} = params;

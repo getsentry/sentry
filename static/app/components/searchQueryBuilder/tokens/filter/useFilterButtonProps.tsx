@@ -4,10 +4,10 @@ import type {Node} from '@react-types/shared';
 
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
-type Props = {
+interface Props {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
-};
+}
 
 export function useFilterButtonProps({item, state}: Props) {
   const onFocus = useCallback(() => {

@@ -30,7 +30,7 @@ interface ChildRenderProps {
 
 type ChildRenderFunction = (renderPropProps: ChildRenderProps) => React.ReactNode;
 
-type SlideOverPanelProps = {
+interface SlideOverPanelProps {
   children: React.ReactNode | ChildRenderFunction;
   ariaLabel?: string;
   className?: string;
@@ -39,7 +39,7 @@ type SlideOverPanelProps = {
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
   ref?: React.Ref<HTMLDivElement>;
-};
+}
 
 export function SlideOverPanel({
   'data-test-id': testId,

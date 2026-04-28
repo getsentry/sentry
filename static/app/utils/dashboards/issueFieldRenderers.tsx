@@ -26,23 +26,23 @@ import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
-type RenderFunctionBaggage = {
+interface RenderFunctionBaggage {
   location: Location;
   organization: Organization;
   eventView?: EventView;
-};
+}
 
 type SpecialFieldRenderFunc = (
   data: EventData,
   baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
-type SpecialField = {
+interface SpecialField {
   renderFunc: SpecialFieldRenderFunc;
   sortField: string | null;
-};
+}
 
-type SpecialFields = {
+interface SpecialFields {
   assignee: SpecialField;
   count: SpecialField;
   events: SpecialField;
@@ -54,7 +54,7 @@ type SpecialFields = {
   links: SpecialField;
   userCount: SpecialField;
   users: SpecialField;
-};
+}
 
 /**
  * "Special fields" either do not map 1:1 to an single column in the event database,

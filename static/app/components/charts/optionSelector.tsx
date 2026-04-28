@@ -15,10 +15,10 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Truncate} from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
-type BaseProps = {
+interface BaseProps {
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
-};
+}
 
 type SingleUnClearableProps = DistributedOmit<
   SingleSelectProps<string>,

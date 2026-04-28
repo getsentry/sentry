@@ -21,7 +21,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
-type ModalOptions = {
+interface ModalOptions {
   /**
    * Set to `false` to disable the backdrop from being rendered.
    * Set to `true` (the default) to show a translucent backdrop.
@@ -56,9 +56,9 @@ type ModalOptions = {
    * Callback for when the modal is closed
    */
   onClose?: (reason?: 'close-button' | 'backdrop-click' | 'escape-key') => void;
-};
+}
 
-type ModalRenderProps = {
+interface ModalRenderProps {
   /**
    * Body container for the modal
    */
@@ -85,7 +85,7 @@ type ModalRenderProps = {
    * Reference to the modal's container.
    */
   modalContainerRef?: React.RefObject<HTMLDivElement | null>;
-};
+}
 
 /**
  * Meta-type to make re-exporting these in the action creator easy without
@@ -93,12 +93,12 @@ type ModalRenderProps = {
  *
  * eg. you won't accidentally import ModalRenderProps from here.
  */
-export type ModalTypes = {
+export interface ModalTypes {
   options: ModalOptions;
   renderProps: ModalRenderProps;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * Note this is the callback for the main App container and NOT the calling
    * component. GlobalModal is never used directly, but is controlled via
@@ -106,7 +106,7 @@ type Props = {
    * specify it when using the action creator.
    */
   onClose?: () => void;
-};
+}
 
 export function GlobalModal({onClose}: Props) {
   const {renderer, options, visible, triggerElement} = useGlobalModal();

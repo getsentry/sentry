@@ -61,22 +61,22 @@ export type HookName = keyof Hooks;
 /**
  * Route hooks.
  */
-type RouteHooks = {
+interface RouteHooks {
   'routes:legacy-organization-redirects': RouteObjectHook;
   'routes:org-settings': RouteObjectHook;
   'routes:root': RouteObjectHook;
   'routes:subscription-settings': RouteObjectHook;
-};
+}
 
-type AiSetupConfigrationProps = {
+interface AiSetupConfigrationProps {
   event: Event;
   group: Group;
   project: Project;
-};
+}
 
-type AiSetupDataConsentProps = {
+interface AiSetupDataConsentProps {
   groupId: string;
-};
+}
 
 /**
  * Component specific hooks for DateRange and SelectorItems
@@ -86,100 +86,100 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 
-type MemberListHeaderProps = {
+interface MemberListHeaderProps {
   members: Member[];
   organization: Organization;
-};
+}
 
-type DisabledCustomSymbolSources = {
+interface DisabledCustomSymbolSources {
   children: React.ReactNode;
   organization: Organization;
-};
+}
 
-type DisabledMemberTooltipProps = {children: React.ReactNode};
+interface DisabledMemberTooltipProps {children: React.ReactNode}
 
-type DashboardHeadersProps = {organization: Organization};
+interface DashboardHeadersProps {organization: Organization}
 
-type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingAlertProps = {children: React.ReactNode};
-type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
-type ProductUnavailableCTAProps = {organization: Organization};
+interface ReplayListPageHeaderProps {children?: React.ReactNode}
+interface ReplayOnboardingAlertProps {children: React.ReactNode}
+interface ReplayOnboardingCTAProps {children: React.ReactNode; organization: Organization}
+interface ProductUnavailableCTAProps {organization: Organization}
 
-type ProfilingBetaAlertBannerProps = {
+interface ProfilingBetaAlertBannerProps {
   organization: Organization;
-};
+}
 
-type ContinuousProfilingBetaAlertBannerProps = {
+interface ContinuousProfilingBetaAlertBannerProps {
   organization: Organization;
-};
+}
 
-type ContinuousProfilingBillingRequirementBannerProps = {
+interface ContinuousProfilingBillingRequirementBannerProps {
   project: Project;
-};
+}
 
-type CronsBillingBannerProps = {
+interface CronsBillingBannerProps {
   organization: Organization;
-};
+}
 
-type OrganizationHeaderProps = {
+interface OrganizationHeaderProps {
   organization: Organization;
-};
+}
 
 type ProductSelectionAvailabilityProps = Omit<ProductSelectionProps, 'disabledProducts'>;
 
-type DateRangeQueryLimitFooterProps = {
+interface DateRangeQueryLimitFooterProps {
   description: string;
   source: string;
-};
+}
 
-type FirstPartyIntegrationAlertProps = {
+interface FirstPartyIntegrationAlertProps {
   integrations: Integration[];
   hideCTA?: boolean;
   wrapWithContainer?: boolean;
-};
+}
 
-export type ScmGithubMultiOrgInstallProps = {
+export interface ScmGithubMultiOrgInstallProps {
   installations: InstallationInfo[];
   onNewInstall: () => void;
   onSelectInstallation: (installationId: string) => void;
   isDisabled?: boolean;
   newInstallDisabled?: boolean;
   popupBlockedNotice?: React.ReactNode;
-};
+}
 
-type FirstPartyIntegrationAdditionalCTAProps = {
+interface FirstPartyIntegrationAdditionalCTAProps {
   integrations: Integration[];
-};
+}
 
-type AttemptCloseAttemptProps = {
+interface AttemptCloseAttemptProps {
   handleRemoveAccount: () => void;
   organizationSlugs: string[];
-};
+}
 
-type CodecovLinkProps = {
+interface CodecovLinkProps {
   organization: Organization;
-};
+}
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 type MonitorCreatedCallback = (organization: Organization) => void;
 
-type CronsOnboardingPanelProps = {children: React.ReactNode};
+interface CronsOnboardingPanelProps {children: React.ReactNode}
 
 export type ParntershipAgreementType = 'standard' | 'partner_presence';
-export type PartnershipAgreementProps = {
+export interface PartnershipAgreementProps {
   agreements: ParntershipAgreementType[];
   partnerDisplayName: string;
   onSubmitSuccess?: () => void;
   organizationSlug?: string;
-};
+}
 
-export type MembershipSettingsProps = {
+export interface MembershipSettingsProps {
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-};
+}
 
-type DashboardLimitProviderProps = {
+interface DashboardLimitProviderProps {
   children:
     | ((limitData: {
         dashboardsLimit: number;
@@ -188,12 +188,12 @@ type DashboardLimitProviderProps = {
         limitMessage: React.ReactNode | null;
       }) => React.ReactNode)
     | React.ReactNode;
-};
+}
 
 /**
  * Component wrapping hooks
  */
-type ComponentHooks = {
+interface ComponentHooks {
   'component:ai-configure-seer-quota-sidebar': () => React.ComponentType<AutofixContentProps>;
   'component:ai-setup-configuration': () => React.ComponentType<AiSetupConfigrationProps>;
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
@@ -239,7 +239,7 @@ type ComponentHooks = {
   'component:superuser-access-category': React.ComponentType<any>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
-};
+}
 
 /**
  * Customization hooks are advanced hooks that return render-prop style
@@ -247,27 +247,27 @@ type ComponentHooks = {
  *
  * These are very similar to the component wrapping hooks
  */
-type CustomizationHooks = {
+interface CustomizationHooks {
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
   'member-invite-modal:organization-roles': (organization: Organization) => OrgRole[];
-};
+}
 
 /**
  * Analytics / tracking / and operational metrics backend hooks.
  */
-type AnalyticsHooks = {
+interface AnalyticsHooks {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
   'metrics:event': MetricsEvent;
-};
+}
 
 /**
  * feature-disabled:<feature-flag> hooks return components that will be
  * rendered in place for Feature components when the feature is not enabled.
  */
-export type FeatureDisabledHooks = {
+export interface FeatureDisabledHooks {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
   'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
@@ -293,12 +293,12 @@ export type FeatureDisabledHooks = {
   'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
-};
+}
 
 /**
  * Interface chrome hooks.
  */
-type InterfaceChromeHooks = {
+interface InterfaceChromeHooks {
   'cmdk:global-settings-actions': GenericComponentHook;
   footer: GenericComponentHook;
   'help-modal:footer': HelpModalFooterHook;
@@ -309,23 +309,23 @@ type InterfaceChromeHooks = {
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
   'sidebar:seer-config-reminder': GenericOrganizationComponentHook;
   'sidebar:try-business': SidebarTryBusinessHook;
-};
+}
 
 /**
  * Onboarding experience hooks
  */
-type OnboardingHooks = {
+interface OnboardingHooks {
   'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
-};
+}
 
 /**
  * Settings navigation hooks.
  */
-type SettingsHooks = {
+interface SettingsHooks {
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
-};
+}
 
 /**
  * Feature Specific Hooks
@@ -336,14 +336,14 @@ interface FeatureSpecificHooks extends SpendVisibilityHooks {}
  * Hooks related to Spend Visibitlity
  * (i.e. Per-Project Spike Protection + Spend Allocations)
  */
-type SpendVisibilityHooks = {
+interface SpendVisibilityHooks {
   'spend-visibility:spike-protection-project-settings': GenericProjectComponentHook;
-};
+}
 
 /**
  * Hooks that are actually React Hooks as well
  */
-type ReactHooks = {
+interface ReactHooks {
   'react-hook:route-activated': (
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
@@ -363,17 +363,17 @@ type ReactHooks = {
     isLoading: boolean;
   };
   'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
-};
+}
 
 /**
  * Callback hooks.
  * These hooks just call a function that has no return value
  * and perform some sort of callback logic
  */
-type CallbackHooks = {
+interface CallbackHooks {
   'callback:on-guide-update': GuideUpdateCallback;
   'callback:on-monitor-created': MonitorCreatedCallback;
-};
+}
 
 /**
  * Renders a React node with no props
@@ -540,15 +540,15 @@ type HelpModalFooterHook = (opts: {
  * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is
  * expected to have been transformed into marked up content.
  */
-type DecoratedIntegrationFeature = {
+interface DecoratedIntegrationFeature {
   /**
    * Marked up description
    */
   description: React.ReactNode;
   featureGate: string;
-};
+}
 
-type IntegrationFeatureGroup = {
+interface IntegrationFeatureGroup {
   /**
    * The list of features within this group
    */
@@ -558,9 +558,9 @@ type IntegrationFeatureGroup = {
    * or not.
    */
   hasFeatures: boolean;
-};
+}
 
-type FeatureGateSharedProps = {
+interface FeatureGateSharedProps {
   /**
    * The list of features, typically this is provided by the backend.
    */
@@ -569,7 +569,7 @@ type FeatureGateSharedProps = {
    * Organization of the integration we're querying feature gate details for.
    */
   organization: Organization;
-};
+}
 
 type IntegrationFeaturesProps = FeatureGateSharedProps & {
   /**

@@ -41,18 +41,18 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {FilterKeyItem} from './filterKeyListBox/types';
 
-type SearchQueryBuilderInputProps = {
+interface SearchQueryBuilderInputProps {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
-};
+}
 
-type SearchQueryBuilderInputInternalProps = {
+interface SearchQueryBuilderInputInternalProps {
   item: Node<ParseResultToken>;
   rowRef: React.RefObject<HTMLDivElement | null>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
-};
+}
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');

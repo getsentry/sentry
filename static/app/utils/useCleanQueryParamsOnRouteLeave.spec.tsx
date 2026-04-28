@@ -18,7 +18,7 @@ const MockBrowserHistoryReplace = jest.mocked(browserHistory.replace);
 
 jest.mocked(useLocation).mockReturnValue({pathname: '/home'} as Location);
 
-type QueryParams = {cursor: string; limit: number; project: string};
+interface QueryParams {cursor: string; limit: number; project: string}
 
 describe('useCleanQueryParamsOnRouteLeave', () => {
   beforeEach(() => {

@@ -23,7 +23,7 @@ const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
 
 const modifiers = ['command', 'shift', 'ctrl', 'alt'];
 
-type Hotkey = {
+interface Hotkey {
   /**
    * The callback triggered when the matching key is pressed
    */
@@ -45,7 +45,7 @@ type Hotkey = {
    * Do not call preventDefault on the keydown event
    */
   skipPreventDefault?: boolean;
-};
+}
 
 /**
  * Pass in the hotkey combinations under match and the corresponding callback

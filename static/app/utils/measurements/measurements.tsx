@@ -7,10 +7,10 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 
-export type Measurement = {
+export interface Measurement {
   key: string;
   name: string;
-};
+}
 
 export type MeasurementCollection = Record<string, Measurement>;
 
@@ -37,13 +37,13 @@ export function getMeasurements() {
   return {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
 }
 
-type ChildrenProps = {
+interface ChildrenProps {
   measurements: MeasurementCollection;
-};
+}
 
-type Props = {
+interface Props {
   children: (props: ChildrenProps) => React.ReactNode;
-};
+}
 
 export function Measurements({children}: Props) {
   const measurements = getMeasurements();

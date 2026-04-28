@@ -10,7 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
-type TimeOffsetLocationQueryParams = {
+interface TimeOffsetLocationQueryParams {
   /**
    * The time when the event happened.
    * Anything that can be parsed by `new Date()`; for example a timestamp in ms
@@ -29,9 +29,9 @@ type TimeOffsetLocationQueryParams = {
    * Should be less than the duration of the replay
    */
   t?: Query[string];
-};
+}
 
-type Opts = {
+interface Opts {
   /**
    * The organization name you'll see in the browser url
    */
@@ -50,7 +50,7 @@ type Opts = {
    * Used to calculate the offset into the replay from an event timestamp
    */
   replayStartTimestampMs?: number;
-};
+}
 
 type Result =
   | undefined

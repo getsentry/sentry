@@ -15,10 +15,10 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
-export type ReprocessEventModalOptions = {
+export interface ReprocessEventModalOptions {
   groupId: Group['id'];
   organization: Organization;
-};
+}
 
 export function ReprocessingEventModal({
   Header,

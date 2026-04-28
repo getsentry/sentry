@@ -16,11 +16,11 @@ import type {NavigationItem, NavigationSection} from 'sentry/views/settings/type
 import type {ChildProps, ResultItem} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
-type ConfigParams = {
+interface ConfigParams {
   debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: Project;
-};
+}
 
 type Config = ((params: ConfigParams) => NavigationSection[]) | NavigationSection[];
 

@@ -32,9 +32,9 @@ function SentryLogo({pride, fill, ...props}: SentryLogoProps) {
   return <IconSentry fill={fill} {...props} />;
 }
 
-type Props = {
+interface Props {
   className?: string;
-};
+}
 
 function BaseFooter({className}: Props) {
   const {isSelfHosted, version, privacyUrl, termsUrl, demoMode} =

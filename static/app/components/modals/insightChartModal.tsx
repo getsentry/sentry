@@ -6,13 +6,13 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 
-export type InsightChartModalOptions = {
+export interface InsightChartModalOptions {
   children: React.ReactNode;
   title: React.ReactNode;
   footer?: React.ReactNode;
   fullscreen?: boolean;
   height?: number;
-};
+}
 type Props = ModalRenderProps & InsightChartModalOptions;
 
 export default function InsightChartModal({

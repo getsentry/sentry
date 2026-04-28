@@ -5,17 +5,17 @@ import type {Key} from '@react-types/shared';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
-type DraggingState = {
+interface DraggingState {
   startPos: {
     x: number;
     y: number;
   };
-};
+}
 
-type TokenCoordinate = {
+interface TokenCoordinate {
   key: string;
   rect: DOMRect;
-};
+}
 
 type TokenCoordinateCache = Record<Key, TokenCoordinate>;
 

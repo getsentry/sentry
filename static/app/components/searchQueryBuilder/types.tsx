@@ -3,25 +3,25 @@ import type {ReactNode} from 'react';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
 import type {FieldDefinition} from 'sentry/utils/fields';
 
-export type FilterKeySection = {
+export interface FilterKeySection {
   children: string[];
   label: ReactNode;
   value: string;
-};
+}
 
 export enum QueryInterfaceType {
   TEXT = 'text',
   TOKENIZED = 'tokenized',
 }
 
-export type FocusOverride = {
+export interface FocusOverride {
   itemKey: string | 'end';
   part?: 'value' | 'key' | 'op';
-};
+}
 
 export type FieldDefinitionGetter = (key: string) => FieldDefinition | null;
 
-export type CallbackSearchState = {
+export interface CallbackSearchState {
   parsedQuery: ParseResult | null;
   queryIsValid: boolean;
-};
+}

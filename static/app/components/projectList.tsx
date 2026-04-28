@@ -9,12 +9,12 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type ProjectListProps = {
+interface ProjectListProps {
   projectSlugs: string[];
   className?: string;
   collapsedProjectsTooltip?: (projects: Array<Project | {slug: string}>) => ReactNode;
   maxVisibleProjects?: number;
-};
+}
 
 function DefaultCollapsedProjectsTooltip({
   projects,

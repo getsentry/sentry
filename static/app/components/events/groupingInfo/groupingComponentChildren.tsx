@@ -8,10 +8,10 @@ import {GroupingComponent} from './groupingComponent';
 import {GroupingComponentListItem} from './groupingComponentFrames';
 import {groupingComponentFilter} from './utils';
 
-type Props = {
+interface Props {
   component: EventGroupComponent;
   showNonContributing: boolean;
-};
+}
 
 export function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (

@@ -1,8 +1,8 @@
 import {cloneElement, useCallback, useRef} from 'react';
 
-type ClickProps<T> = {
+interface ClickProps<T> {
   onClick?: React.HTMLAttributes<T>['onClick'];
-};
+}
 
 interface Props<T extends HTMLElement> extends ClickProps<T> {
   children: React.ReactElement;

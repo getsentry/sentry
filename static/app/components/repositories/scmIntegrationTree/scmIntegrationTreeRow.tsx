@@ -27,7 +27,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
-type Props = {
+interface Props {
   node: TreeNode;
   onAddIntegration: () => void;
   onRemoveDisconnectedRepo: (repo: Repository) => void;
@@ -39,7 +39,7 @@ type Props = {
     isConnected: boolean
   ) => void;
   style: CSSProperties;
-};
+}
 
 export function ScmIntegrationTreeRow({
   node,

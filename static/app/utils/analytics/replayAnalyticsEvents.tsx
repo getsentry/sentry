@@ -1,7 +1,7 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import type {Output} from 'sentry/views/explore/replays/detail/network/details/getOutputType';
 
-export type ReplayEventParameters = {
+export interface ReplayEventParameters {
   'replay.ai-summary.chapter-clicked': {
     chapter_type?: 'error' | 'feedback';
   };
@@ -136,7 +136,7 @@ export type ReplayEventParameters = {
   'replay.view-html': {
     breadcrumb_type: string;
   };
-};
+}
 
 type ReplayEventKey = keyof ReplayEventParameters;
 

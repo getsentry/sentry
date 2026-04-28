@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import type {Commit} from 'sentry/types/integrations';
 import type {AvatarUser} from 'sentry/types/user';
 
-type Props = {
+interface Props {
   commit: Commit;
-};
+}
 
 const unknownUser: AvatarUser = {
   id: '',

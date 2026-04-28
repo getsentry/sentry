@@ -10,7 +10,7 @@ import {
 import {createPortal} from 'react-dom';
 
 type Slot = string;
-type SlotValue = {counter: number; element: HTMLElement | null};
+interface SlotValue {counter: number; element: HTMLElement | null}
 
 type SlotReducerState<T extends Slot> = Partial<Record<T, SlotValue>>;
 type SlotReducerAction<T extends Slot> =

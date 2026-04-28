@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 
-type SdkDocumentationProps = {
+interface SdkDocumentationProps {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
@@ -20,7 +20,7 @@ type SdkDocumentationProps = {
   hasScmOnboarding?: boolean;
   newOrg?: boolean;
   onProductSelectionSync?: (products: ProductSolution[]) => void;
-};
+}
 
 // Loads the component containing the documentation for the specified platform
 export function SdkDocumentation({

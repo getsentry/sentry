@@ -1,4 +1,4 @@
-type GuideStep = {
+interface GuideStep {
   /**
    * The main body of the step
    */
@@ -25,9 +25,9 @@ type GuideStep = {
    * The main title of the step
    */
   title?: string;
-};
+}
 
-type BaseGuide = {
+interface BaseGuide {
   guide: string;
   /**
    * Anchor targets required on the page. An empty list will cause the
@@ -57,7 +57,7 @@ type BaseGuide = {
    * level takes precedent.
    */
   priority?: number;
-};
+}
 
 export type Guide = BaseGuide & {
   /**

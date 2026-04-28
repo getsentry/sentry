@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {t} from 'sentry/locale';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-type Props = {
+interface Props {
   error?: RequestError | null;
-};
+}
 
 const keyToErrorText: Record<string, string> = {
   actions: t('Notify via integration'),

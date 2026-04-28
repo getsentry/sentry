@@ -9,27 +9,27 @@ export interface TourStep<T extends TourEnumType> {
   id: T;
 }
 
-type TourStartAction<T extends TourEnumType> = {
+interface TourStartAction<T extends TourEnumType> {
   stepId: T;
   type: 'START_TOUR';
-};
-type TourNextStepAction = {
+}
+interface TourNextStepAction {
   type: 'NEXT_STEP';
-};
-type TourPreviousStepAction = {
+}
+interface TourPreviousStepAction {
   type: 'PREVIOUS_STEP';
-};
-type TourSetStepAction<T extends TourEnumType> = {
+}
+interface TourSetStepAction<T extends TourEnumType> {
   stepId: T;
   type: 'SET_STEP';
-};
-type TourEndAction = {
+}
+interface TourEndAction {
   type: 'END_TOUR';
-};
-type TourSetRegistrationAction = {
+}
+interface TourSetRegistrationAction {
   isRegistered: boolean;
   type: 'SET_REGISTRATION';
-};
+}
 
 type TourAction<T extends TourEnumType> =
   | TourStartAction<T>

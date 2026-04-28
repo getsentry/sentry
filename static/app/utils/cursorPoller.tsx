@@ -3,10 +3,10 @@ import {Client} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
-type Options = {
+interface Options {
   linkPreviousHref: string;
   success: (data: any, headers: {queryCount: number}) => void;
-};
+}
 
 const BASE_DELAY = 3000;
 const MAX_DELAY = 60000;

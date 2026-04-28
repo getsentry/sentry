@@ -49,13 +49,13 @@ import {getThreadStacktrace} from './threads/threadSelector/getThreadStacktrace'
 import {NoStackTraceMessage} from './noStackTraceMessage';
 import {inferPlatform, isStacktraceNewestFirst} from './utils';
 
-type Props = {
+interface Props {
   data: EntryThreads['data'];
   event: Event;
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
-};
+}
 
 function getIntendedStackView(
   thread: Thread,

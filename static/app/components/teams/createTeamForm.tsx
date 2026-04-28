@@ -6,18 +6,18 @@ import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import {slugify} from 'sentry/utils/slugify';
 
-type Payload = {
+interface Payload {
   slug: string;
-};
+}
 
-type Props = {
+interface Props {
   onSubmit: (
     data: Payload,
     onSuccess: (team: Team) => void,
     onError: (team: Team) => void
   ) => void;
   organization: Organization;
-};
+}
 
 export function CreateTeamForm({organization, onSubmit}: Props) {
   return (

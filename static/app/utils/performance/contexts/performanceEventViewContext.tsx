@@ -2,9 +2,9 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 
 import {createDefinedContext} from './utils';
 
-type UsePerformanceEventViewContext = {
+interface UsePerformanceEventViewContext {
   eventView: EventView;
-};
+}
 
 const [
   PerformanceEventViewProvider,

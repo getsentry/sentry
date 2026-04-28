@@ -1,15 +1,15 @@
-type NavigationItemClicked = {
+interface NavigationItemClicked {
   item: string;
-};
+}
 
-type NavigationEventParameters = {
+interface NavigationEventParameters {
   'navigation.help_menu_opt_in_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.help_menu_opt_out_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.primary_item_clicked': NavigationItemClicked;
   'navigation.secondary_item_clicked': NavigationItemClicked;
   'navigation.tour_modal_dismissed': Record<string, unknown>;
   'navigation.tour_modal_shown': Record<string, unknown>;
-};
+}
 
 type NavigationEventKey = keyof NavigationEventParameters;
 

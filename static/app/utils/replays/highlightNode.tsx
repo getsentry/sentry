@@ -5,7 +5,7 @@ const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 const highlightsByNodeIds = new Map<number, {canvas: HTMLCanvasElement}>();
 const highlightsBySelector = new Map<string, {canvas: HTMLCanvasElement}>();
 
-type DrawProps = {annotation: string; color: string; spotlight: boolean};
+interface DrawProps {annotation: string; color: string; spotlight: boolean}
 
 interface AddHighlightByNodeIdsParams extends Partial<DrawProps> {
   nodeIds: number[];

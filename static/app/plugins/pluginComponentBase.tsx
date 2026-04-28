@@ -20,7 +20,7 @@ type GenericFieldProps = Parameters<typeof GenericField>[0];
 
 type Props = Record<string, unknown>;
 
-type State = {state: FormState};
+interface State {state: FormState}
 
 export abstract class PluginComponentBase<
   P extends Props = Props,

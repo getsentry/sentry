@@ -18,12 +18,12 @@ import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {useApi} from 'sentry/utils/useApi';
 
-type Props = {
+interface Props {
   orgSlug: string;
   repository: Repository;
   onRepositoryChange?: (data: Repository) => void;
   showProvider?: boolean;
-};
+}
 
 export function RepositoryRow({
   repository,

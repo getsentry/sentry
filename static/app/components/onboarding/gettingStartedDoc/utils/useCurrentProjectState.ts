@@ -9,12 +9,12 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type Props = {
+interface Props {
   allPlatforms: readonly PlatformKey[];
   currentPanel: '' | OnboardingDrawerKey;
   onboardingPlatforms: readonly PlatformKey[];
   targetPanel: OnboardingDrawerKey;
-};
+}
 
 export function useCurrentProjectState({
   currentPanel,

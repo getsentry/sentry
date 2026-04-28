@@ -26,7 +26,7 @@ import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRou
 
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
 
-type EventAttachmentsProps = {
+interface EventAttachmentsProps {
   event: Event;
   /**
    * Group is not available everywhere this component is used
@@ -34,7 +34,7 @@ type EventAttachmentsProps = {
   group: Group | undefined;
   project: Project;
   disableCollapsePersistence?: boolean;
-};
+}
 
 type AttachmentPreviewOpenMap = Record<string, boolean>;
 

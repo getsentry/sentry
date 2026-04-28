@@ -31,7 +31,7 @@ function isFrameUsedForGrouping(
   return minGroupingLevel <= groupingCurrentLevel;
 }
 
-type Props = {
+interface Props {
   data: StacktraceType;
   event: Event;
   newestFirst: boolean;
@@ -43,7 +43,7 @@ type Props = {
   isHoverPreviewed?: boolean;
   maxDepth?: number;
   meta?: Record<any, any>;
-};
+}
 
 export function NativeContent({
   className,

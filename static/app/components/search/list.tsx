@@ -23,7 +23,7 @@ interface RenderItemProps {
 
 type RenderItem = (props: RenderItemProps) => React.ReactNode;
 
-type Props = {
+interface Props {
   allLoaded: boolean;
   getItemProps: AutoCompleteOpts['getItemProps'];
   highlightedIndex: number;
@@ -34,7 +34,7 @@ type Props = {
   dropdownClassName?: string;
   maxResults?: number;
   renderItem?: RenderItem;
-};
+}
 
 function defaultItemRenderer({item, highlighted, itemProps, matches}: RenderItemProps) {
   return (
@@ -98,7 +98,7 @@ export function List({
   );
 }
 
-type SearchItemProps = {
+interface SearchItemProps {
   getItemProps: Props['getItemProps'];
   highlighted: boolean;
   index: number;
@@ -106,7 +106,7 @@ type SearchItemProps = {
   matches: Result['matches'];
   registerVisibleItem: Props['registerVisibleItem'];
   renderItem: RenderItem;
-};
+}
 
 // XXX(epurkhiser): We memoize the ResultRow component since there will be many
 // of them, we do not want them re-rendering every time we change the

@@ -5,15 +5,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 // Props that function children will get.
-type ChildRenderProps = {
+interface ChildRenderProps {
   hasAccess: boolean;
   hasSuperuser: boolean;
-};
+}
 
 // TODO(TS): This should be ReactNode but conflicts between react 17 & 18
 type ChildFunction = (props: ChildRenderProps) => any;
 
-type Props = {
+interface Props {
   /**
    * List of required access levels
    */
@@ -48,7 +48,7 @@ type Props = {
    * the team, they will have appropriate scopes.
    */
   team?: Team;
-};
+}
 
 /**
  * Component to handle access restrictions.

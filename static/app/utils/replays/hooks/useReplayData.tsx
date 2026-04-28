@@ -18,7 +18,7 @@ import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-type Options = {
+interface Options {
   /**
    * The organization slug
    */
@@ -40,7 +40,7 @@ type Options = {
    * You can override this for testing
    */
   segmentsPerPage?: number;
-};
+}
 
 const REPLAY_ERROR_FIELDS = [
   'error.type',

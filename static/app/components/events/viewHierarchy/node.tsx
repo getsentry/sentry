@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type NodeProps = {
+interface NodeProps {
   id: string;
   isExpanded: boolean;
   label: string;
@@ -12,7 +12,7 @@ type NodeProps = {
   collapsible?: boolean;
   isFocused?: boolean;
   isSelected?: boolean;
-};
+}
 
 export function Node({
   label,

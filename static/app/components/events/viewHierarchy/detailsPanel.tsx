@@ -6,10 +6,10 @@ import {defined} from 'sentry/utils';
 
 import type {ViewHierarchyWindow} from '.';
 
-type DetailsPanelProps = {
+interface DetailsPanelProps {
   data: ViewHierarchyWindow;
   getTitle?: (data: ViewHierarchyWindow) => string;
-};
+}
 
 function DetailsPanel({data, getTitle}: DetailsPanelProps) {
   const keyValueData = Object.entries(omit(data, 'children')).map(([key, value]) => ({

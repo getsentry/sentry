@@ -51,7 +51,7 @@ import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
 import {SymbolicatorStatus} from './types';
 
-type Props = {
+interface Props {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   emptySourceNotation: boolean;
   event: Event;
@@ -77,7 +77,7 @@ type Props = {
   prevFrame: Frame | undefined;
   registers: StacktraceType['registers'];
   registersMeta: Record<any, any>;
-};
+}
 
 function NativeFrame({
   frame,

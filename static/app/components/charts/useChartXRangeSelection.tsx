@@ -16,7 +16,7 @@ import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import type {EChartBrushEndHandler, EChartBrushStartHandler} from 'sentry/types/echarts';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
-export type Selection = {
+export interface Selection {
   /**
    * The panel ID of the selection box that echarts assigns. It's a special encoded string, so we collect it here instead of hardcoding it.
    * We need this to draw a selection box programmatically, like on load from the initial state in the url.
@@ -24,7 +24,7 @@ export type Selection = {
   panelId: string;
 
   range: [number, number];
-};
+}
 
 type SelectionState = {
   actionMenuPosition: {left: number; position: 'left' | 'right'; top: number} | null;
@@ -32,7 +32,7 @@ type SelectionState = {
   selection: Selection;
 } | null;
 
-type BoxSelectionOptions = {
+interface BoxSelectionOptions {
   /**
    * The brush option override for the chart, to enable brush mode.
    */
@@ -57,7 +57,7 @@ type BoxSelectionOptions = {
    * The floating action menu that is displayed when the user finishes dragging.
    */
   ActionMenu?: React.ReactNode;
-};
+}
 
 const CHART_X_RANGE_BRUSH_OPTION: BrushComponentOption = {
   mainType: 'brush',
@@ -72,13 +72,13 @@ const CHART_X_RANGE_BRUSH_OPTION: BrushComponentOption = {
   transformable: false,
 };
 
-export type SelectionCallbackParams = {
+export interface SelectionCallbackParams {
   clearSelection: () => void;
   selectionState: SelectionState;
   setSelectionState: (selectionState: SelectionState) => void;
-};
+}
 
-export type ChartXRangeSelectionProps = {
+export interface ChartXRangeSelectionProps {
   /**
    * The ref to the chart component.
    */
@@ -133,7 +133,7 @@ export type ChartXRangeSelectionProps = {
    * The callback that is called when the selection/dragging starts.
    */
   onSelectionStart?: (params: SelectionCallbackParams) => void;
-};
+}
 
 export function useChartXRangeSelection({
   chartRef,

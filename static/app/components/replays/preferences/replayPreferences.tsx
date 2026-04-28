@@ -2,11 +2,11 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 const LOCAL_STORAGE_KEY = 'replay-config';
 
-export type ReplayPrefs = {
+export interface ReplayPrefs {
   isSkippingInactive: boolean;
   playbackSpeed: number;
   timestampType: 'relative' | 'absolute';
-};
+}
 
 const CAN_SKIP_PREFS: ReplayPrefs = {
   isSkippingInactive: true,

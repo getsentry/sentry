@@ -1,6 +1,6 @@
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 
-export type DynamicSamplingEventParameters = {
+export interface DynamicSamplingEventParameters {
   'dynamic_sampling.custom_rule_add': {
     projects: number[];
     query: string;
@@ -20,7 +20,7 @@ export type DynamicSamplingEventParameters = {
   'dynamic_sampling_transaction_summary.no_samples': {
     query: string;
   };
-};
+}
 
 type DynamicSamplingAnalyticsKey = keyof DynamicSamplingEventParameters;
 

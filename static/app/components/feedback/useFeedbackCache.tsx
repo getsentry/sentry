@@ -9,10 +9,10 @@ import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/t
 
 type TFeedbackIds = 'all' | string[];
 
-type ListCache = {
+interface ListCache {
   pageParams: unknown[];
   pages: Array<ApiResponse<FeedbackIssueListItem[]>>;
-};
+}
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
 function isIssueEndpointUrl(query: {queryKey: readonly unknown[]}) {

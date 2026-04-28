@@ -9,10 +9,10 @@ interface Props {
   organization: Organization;
 }
 
-export type FeedbackItemApiOptions = {
+export interface FeedbackItemApiOptions {
   eventApiOptions: ReturnType<typeof feedbackEventApiOptions>;
   issueApiOptions: ReturnType<typeof feedbackIssueApiOptions>;
-};
+}
 
 function feedbackIssueApiOptions(orgSlug: string, feedbackId: string) {
   return apiOptions.as<FeedbackIssue>()(

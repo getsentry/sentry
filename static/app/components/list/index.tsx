@@ -6,13 +6,13 @@ import {getListSymbolStyle, listSymbol} from './utils';
 
 type ListItemChild = React.ReactElement<ListItemProps> | undefined | false;
 
-type Props = {
+interface Props {
   children: ListItemChild | ListItemChild[];
   className?: string;
   'data-test-id'?: string;
   initialCounterValue?: number;
   symbol?: keyof typeof listSymbol | React.ReactElement;
-};
+}
 
 export const List = styled(
   ({

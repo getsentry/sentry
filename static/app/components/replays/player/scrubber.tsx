@@ -9,10 +9,10 @@ import {toPercent} from 'sentry/utils/number/toPercent';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
-type Props = {
+interface Props {
   className?: string;
   showZoomIndicators?: boolean;
-};
+}
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
   const replay = useReplayReader();

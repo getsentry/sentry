@@ -9,15 +9,15 @@ import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {breakTokensByLine} from 'sentry/utils/usePrismTokens';
 
-type ComplexSyntax = {
+interface ComplexSyntax {
   example: string;
   search: RegExp;
-};
+}
 
-type BlockCommentSyntax = {
+interface BlockCommentSyntax {
   end: string | ComplexSyntax;
   start: string | ComplexSyntax;
-};
+}
 
 // Most languages use C-style block comments, so we default to that unless otherwise specified.
 const DEFAULT_BLOCK_COMMENT_SYNTAX = [{start: '/*', end: '*/'}];

@@ -1,4 +1,4 @@
-export type QuickStartEventParameters = {
+export interface QuickStartEventParameters {
   'quick_start.completed': {
     referrer: string;
   };
@@ -21,7 +21,7 @@ export type QuickStartEventParameters = {
   'quick_start.task_group_completed': {
     group: 'getting_started' | 'beyond_basics';
   };
-};
+}
 
 export const quickStartEventMap: Record<keyof QuickStartEventParameters, string> = {
   'quick_start.opened': 'Quick Start: Opened',

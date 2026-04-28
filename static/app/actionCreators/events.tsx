@@ -26,7 +26,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-type Options = {
+interface Options {
   organization: OrganizationSummary;
   partial: boolean;
   comparisonDelta?: number;
@@ -52,7 +52,7 @@ type Options = {
   topEvents?: number;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
-};
+}
 
 export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;
 
@@ -151,7 +151,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
   return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
 };
 
-export type EventQuery = {
+export interface EventQuery {
   field: string[];
   query: string;
   cursor?: string;
@@ -165,21 +165,21 @@ export type EventQuery = {
   referrer?: string;
   sort?: string | string[];
   team?: string | string[];
-};
+}
 
-export type TagSegment = {
+export interface TagSegment {
   count: number;
   name: string;
   url: LocationDescriptor;
   value: string;
   isOther?: boolean;
   key?: string;
-};
+}
 
-export type Tag = {
+export interface Tag {
   key: string;
   topValues: TagSegment[];
-};
+}
 
 /**
  * Fetches tag facets for a query
@@ -211,9 +211,9 @@ export function fetchTotalCount(
 
   const queryOption = {...urlParams, query: query.query};
 
-  type Response = {
+  interface Response {
     count: number;
-  };
+  }
 
   return api
     .requestPromise(`/organizations/${orgSlug}/events-meta/`, {
@@ -222,11 +222,11 @@ export function fetchTotalCount(
     .then((res: Response) => res.count);
 }
 
-type FetchEventAttachmentParameters = {
+interface FetchEventAttachmentParameters {
   eventId: string;
   orgSlug: string;
   projectSlug: string | undefined;
-};
+}
 
 type FetchEventAttachmentResponse = IssueAttachment[];
 
@@ -265,18 +265,18 @@ export const useFetchEventAttachments = (
   );
 };
 
-type DeleteEventAttachmentVariables = {
+interface DeleteEventAttachmentVariables {
   attachmentId: string;
   eventId: string;
   orgSlug: string;
   projectSlug: string;
-};
+}
 
 type DeleteEventAttachmentResponse = unknown;
 
-type DeleteEventAttachmentContext = {
+interface DeleteEventAttachmentContext {
   previous?: IssueAttachment[];
-};
+}
 
 type DeleteEventAttachmentOptions = UseMutationOptions<
   DeleteEventAttachmentResponse,

@@ -14,7 +14,7 @@ import {
   Token,
 } from 'sentry/components/searchSyntax/parser';
 
-type TestCase = {
+interface TestCase {
   /**
    * Additional parser configuration
    */
@@ -31,9 +31,9 @@ type TestCase = {
    * This is set when the query is expected to completely fail to parse.
    */
   raisesError?: boolean;
-};
+}
 
-type TreeTransformerOpts = {
+interface TreeTransformerOpts {
   /**
    * The function used to transform each node
    */
@@ -42,7 +42,7 @@ type TreeTransformerOpts = {
    * The tree to transform
    */
   tree: Array<TokenResult<Token>>;
-};
+}
 
 /**
  * Utility function to visit every Token node within an AST tree and apply

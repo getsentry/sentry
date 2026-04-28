@@ -10,11 +10,11 @@ import {useProjects} from 'sentry/utils/useProjects';
 // Refetch the data every second
 const DEFAULT_POLL_INTERVAL_MS = 1000;
 
-type Props = {
+interface Props {
   orgSlug: Organization['slug'];
   pollUntilFirstEvent?: boolean;
   projectSlug?: Project['slug'];
-};
+}
 
 function isProjectActive(project: Project) {
   const olderThanOneHour = project

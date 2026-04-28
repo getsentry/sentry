@@ -7,10 +7,10 @@ import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
 import type {GroupListColumn} from './groupList';
 
-type Props = {
+interface Props {
   withChart: boolean;
   withColumns?: GroupListColumn[];
-};
+}
 
 export function GroupListHeader({
   withChart = true,

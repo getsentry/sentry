@@ -4,7 +4,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
-type RecordType = {
+interface RecordType {
   offsetMs: number;
   data?:
     | Record<string, any>
@@ -19,7 +19,7 @@ type RecordType = {
         };
         label: string;
       };
-};
+}
 
 function getNodeIdAndLabel(record: RecordType) {
   if (!record.data || typeof record.data !== 'object') {

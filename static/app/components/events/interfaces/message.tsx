@@ -10,13 +10,13 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type Props = {
+interface Props {
   data: {
     formatted: string | null;
     params?: Record<string, any> | any[] | null;
   };
   event: Event;
-};
+}
 
 function renderParams(params: Props['data']['params'], meta: any) {
   if (!params || isEmptyObject(params)) {

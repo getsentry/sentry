@@ -4,7 +4,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {DateString} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 
-type DateObject = {
+interface DateObject {
   /**
    * Ending date object
    */
@@ -17,14 +17,14 @@ type DateObject = {
    * Starting date object
    */
   start?: DateString;
-};
+}
 
-type Options = {
+interface Options {
   /**
    * Doubles the given period (useful for getting previous period data)
    */
   shouldDoublePeriod?: boolean;
-};
+}
 
 /**
  * Gets the period to query with if we need to double the initial period in order

@@ -6,13 +6,13 @@ import type {EventTag} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
-type Props = {
+interface Props {
   tag: EventTag;
   locationSearch?: string;
   meta?: Meta;
   streamPath?: string;
   withOnlyFormattedText?: boolean;
-};
+}
 
 export function EventTagsValue({
   tag: {key, value},

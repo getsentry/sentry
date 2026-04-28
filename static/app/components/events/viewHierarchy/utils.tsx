@@ -128,12 +128,12 @@ export function getDeepestNodeAtPoint(
   return clickedNode;
 }
 
-type ViewConfig = {
+interface ViewConfig {
   emptyMessage: string;
   nodeField: ViewHierarchyNodeField;
   showWireframe: boolean;
   title: string;
-};
+}
 
 const defaultViewConfig: ViewConfig = {
   title: t('View Hierarchy'),

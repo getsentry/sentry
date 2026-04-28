@@ -26,10 +26,10 @@ interface Props {
   queryReferrer: ReplayListQueryReferrer;
 }
 
-type ReplaysListResponse = {
+interface ReplaysListResponse {
   data: ReplayListRecord[];
   enabled: boolean;
-};
+}
 
 function getQueryForReplaysList({
   options,

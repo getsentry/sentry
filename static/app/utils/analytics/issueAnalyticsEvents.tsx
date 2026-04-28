@@ -5,10 +5,10 @@ import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
-type IssueStream = {
+interface IssueStream {
   group_id: string;
   was_shown_suggestion: boolean;
-};
+}
 
 type ActionableItemDebugParam = {
   type: string;
@@ -41,7 +41,7 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
   to_priority: PriorityLevel;
 }
 
-export type IssueEventParameters = {
+export interface IssueEventParameters {
   'actionable_items.expand_clicked': ActionableItemDebugParam;
   'breadcrumbs.drawer.action': {control: string; value?: string};
   'breadcrumbs.issue_details.change_time_display': {value: string};
@@ -302,7 +302,7 @@ export type IssueEventParameters = {
   'tour-guide.open': {id?: string; step_count?: number; tour_key?: string};
   'whats_new.link_clicked': Pick<Broadcast, 'title'> &
     Partial<Pick<Broadcast, 'category'>>;
-};
+}
 
 type IssueEventKey = keyof IssueEventParameters;
 

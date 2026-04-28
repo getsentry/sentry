@@ -27,7 +27,7 @@ import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fiel
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-type TimeSeriesData = {
+interface TimeSeriesData {
   allTimeseriesData?: EventsStatsData;
   comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
@@ -41,9 +41,9 @@ type TimeSeriesData = {
   timeseriesResultsUnits?: Record<string, DataUnit>;
   timeseriesTotals?: {count: number};
   yAxis?: string | string[];
-};
+}
 
-type LoadingStatus = {
+interface LoadingStatus {
   /**
    * Whether there was an error retrieving data
    */
@@ -51,7 +51,7 @@ type LoadingStatus = {
   loading: boolean;
   reloading: boolean;
   errorMessage?: string;
-};
+}
 
 // Can hold additional data from the root an events stat object (eg. start, end, order, isMetricsData).
 interface AdditionalSeriesInfo {
@@ -65,7 +65,7 @@ export type RenderProps = LoadingStatus &
     seriesAdditionalInfo?: Record<string, AdditionalSeriesInfo>;
   };
 
-type DefaultProps = {
+interface DefaultProps {
   includeAllArgs: false;
   /**
    * Include data for previous period
@@ -109,9 +109,9 @@ type DefaultProps = {
    * Absolute start date for query
    */
   start?: DateString;
-};
+}
 
-type EventsRequestPartialProps = {
+interface EventsRequestPartialProps {
   /**
    * API client instance
    */
@@ -227,7 +227,7 @@ type EventsRequestPartialProps = {
    * the child render function will be called with `results`
    */
   yAxis?: string | string[];
-};
+}
 
 interface EventsRequestPropsWithTimeAggregation
   extends DefaultProps, EventsRequestPartialProps {
@@ -245,13 +245,13 @@ export type EventsRequestProps =
   | EventsRequestPropsWithTimeAggregation
   | EventsRequestPropsWithoutTimeAggregation;
 
-type EventsRequestState = {
+interface EventsRequestState {
   errored: boolean;
   fetchedWithPrevious: boolean;
   reloading: boolean;
   timeseriesData: null | EventsStats | MultiSeriesEventsStats;
   errorMessage?: string;
-};
+}
 
 const propNamesToIgnore = [
   'api',

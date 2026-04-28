@@ -1,4 +1,4 @@
-export type McpMonitoringEventParameters = {
+export interface McpMonitoringEventParameters {
   'mcp-monitoring.column-sort': {
     column: string;
     direction: 'asc' | 'desc';
@@ -11,7 +11,7 @@ export type McpMonitoringEventParameters = {
     newTable: string;
     previousTable: string;
   };
-};
+}
 
 export const mcpMonitoringEventMap: Record<keyof McpMonitoringEventParameters, string> = {
   'mcp-monitoring.page-view': 'MCP Monitoring: Page View',

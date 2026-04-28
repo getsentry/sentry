@@ -4,7 +4,7 @@ import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/
 import type {PlatformEventParameters} from './platformAnalyticsEvents';
 import {platformEventMap} from './platformAnalyticsEvents';
 
-export type IntegrationView = {
+export interface IntegrationView {
   view?:
     | MessagingIntegrationAnalyticsView
     | 'external_install'
@@ -24,7 +24,7 @@ export type IntegrationView = {
     | 'seer_onboarding_code_review'
     | 'test_analytics_onboarding'
     | 'test_analytics_org_selector';
-};
+}
 
 type SingleIntegrationEventParams = {
   integration: string; // the slug
@@ -71,10 +71,10 @@ type IntegrationInstallationInputValueChangeEventParams = {
   field_name: string;
 } & SingleIntegrationEventParams;
 
-type ProjectOwnershipModalParams = {
+interface ProjectOwnershipModalParams {
   page: 'issue_details' | 'project_settings';
   net_change?: number;
-};
+}
 
 // Event key to payload mappings
 export type IntegrationEventParameters = {

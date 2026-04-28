@@ -1,17 +1,17 @@
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-type FlamegraphSearchResult = {
+interface FlamegraphSearchResult {
   frame: FlamegraphFrame;
   match: ReadonlyArray<[number, number]>;
-};
+}
 
-type SpansSearchResult = {
+interface SpansSearchResult {
   match: ReadonlyArray<[number, number]>;
   span: SpanChartNode;
-};
+}
 
-export type FlamegraphSearch = {
+export interface FlamegraphSearch {
   highlightFrames: {name: string | undefined; package: string | undefined} | null;
   index: number | null;
   query: string;
@@ -19,32 +19,32 @@ export type FlamegraphSearch = {
     frames: Map<string, FlamegraphSearchResult>;
     spans: Map<string, SpansSearchResult>;
   };
-};
+}
 
-type ClearFlamegraphSearchAction = {
+interface ClearFlamegraphSearchAction {
   type: 'clear search';
-};
+}
 
-type SetFlamegraphResultsAction = {
+interface SetFlamegraphResultsAction {
   payload: {
     query: string;
     results: FlamegraphSearch['results'];
   };
   type: 'set search results';
-};
+}
 
-type FlamegraphSearchArrowNavigationAction = {
+interface FlamegraphSearchArrowNavigationAction {
   payload: number;
   type: 'set search index position';
-};
+}
 
-type SetHighlightAllFrames = {
+interface SetHighlightAllFrames {
   payload: {
     name: string;
     package: string;
   } | null;
   type: 'set highlight all frames';
-};
+}
 
 type FlamegraphSearchAction =
   | ClearFlamegraphSearchAction

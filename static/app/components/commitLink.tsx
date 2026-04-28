@@ -7,16 +7,16 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
-type CommitFormatterParameters = {
+interface CommitFormatterParameters {
   baseUrl: string;
   commitId: string;
-};
+}
 
-type CommitProvider = {
+interface CommitProvider {
   commitUrl: (opts: CommitFormatterParameters) => string;
   icon: React.ComponentType<SVGIconProps>;
   providerIds: string[];
-};
+}
 
 // TODO(epurkhiser, jess): This should be moved into plugins.
 const SUPPORTED_PROVIDERS: readonly CommitProvider[] = [
@@ -42,7 +42,7 @@ const SUPPORTED_PROVIDERS: readonly CommitProvider[] = [
   },
 ];
 
-type Props = {
+interface Props {
   className?: string;
   commitId?: string;
   commitTitle?: string;
@@ -50,7 +50,7 @@ type Props = {
   onClick?: () => void;
   repository?: Repository;
   showIcon?: boolean;
-};
+}
 
 export function CommitLink({
   inline,

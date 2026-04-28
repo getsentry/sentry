@@ -170,7 +170,7 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
-export type MenuListItemProps = {
+export interface MenuListItemProps {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -216,7 +216,7 @@ export type MenuListItemProps = {
    * Items to be added to the right of the label.
    */
   trailingItems?: ExtraContent;
-};
+}
 
 interface OtherProps {
   as?: React.ElementType;

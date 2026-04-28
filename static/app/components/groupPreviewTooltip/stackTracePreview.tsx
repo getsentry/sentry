@@ -93,14 +93,14 @@ export function StackTracePreviewContent({
   return <StackTraceContent {...commonProps} expandFirstFrame={false} />;
 }
 
-type StackTracePreviewProps = {
+interface StackTracePreviewProps {
   children: React.ReactNode;
   groupId: string;
   eventId?: string;
   groupingCurrentLevel?: number;
   projectSlug?: string;
   query?: string;
-};
+}
 
 interface StackTracePreviewBodyProps extends Pick<
   StackTracePreviewProps,

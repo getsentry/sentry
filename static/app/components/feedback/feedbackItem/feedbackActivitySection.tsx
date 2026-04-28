@@ -16,9 +16,9 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 
-type Props = {
+interface Props {
   feedbackItem: Group;
-};
+}
 
 export function FeedbackActivitySection(props: Props) {
   const {feedbackItem} = props;

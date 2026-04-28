@@ -3,19 +3,19 @@ import {useMemo, useReducer} from 'react';
 
 import type {ReducerAction} from 'sentry/types/reducerAction';
 
-export type UndoableNode<S> = {
+export interface UndoableNode<S> {
   current: S;
   next: UndoableNode<S> | undefined;
   previous: UndoableNode<S> | undefined;
-};
+}
 
-type UndoAction = {
+interface UndoAction {
   type: 'undo';
-};
+}
 
-type RedoAction = {
+interface RedoAction {
   type: 'redo';
-};
+}
 
 export type UndoableReducerAction<A> = UndoAction | RedoAction | A;
 

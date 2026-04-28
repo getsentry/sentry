@@ -12,7 +12,7 @@ import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
-type Props = {
+interface Props {
   chainedException: boolean;
   data: ExceptionValue['stacktrace'];
   event: Event;
@@ -26,7 +26,7 @@ type Props = {
   meta?: Record<any, any>;
   stackView?: StackView;
   threadId?: number;
-};
+}
 
 export function StackTrace({
   stackView,

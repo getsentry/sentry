@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   message: React.ReactNode;
   docLink?: string;
   highlightMessage?: React.ReactNode;
-};
+}
 
 export function SearchInvalidTag({message, highlightMessage, docLink}: Props) {
   return (

@@ -21,10 +21,10 @@ import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
 
-type Props = {
+interface Props {
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
-};
+}
 
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));

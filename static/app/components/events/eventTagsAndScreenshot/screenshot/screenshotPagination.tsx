@@ -6,14 +6,14 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   nextDisabled: boolean;
   onNext: React.MouseEventHandler;
   onPrevious: React.MouseEventHandler;
   previousDisabled: boolean;
   className?: string;
   headerText?: React.ReactNode;
-};
+}
 
 export function ScreenshotPagination({
   className,

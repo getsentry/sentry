@@ -28,7 +28,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-type Props = {
+interface Props {
   eventId: Event['id'];
   onDelete: (attachmentId: EventAttachment['id']) => void;
   openVisualizationModal: (eventAttachment: EventAttachment, downloadUrl: string) => void;
@@ -40,7 +40,7 @@ type Props = {
   onNext?: ReactEventHandler;
   onPrevious?: ReactEventHandler;
   onlyRenderScreenshot?: boolean;
-};
+}
 
 export function Screenshot({
   eventId,

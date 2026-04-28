@@ -12,7 +12,7 @@ export interface SortConfig<RecordType extends BaseRecord> {
   getValue: (row: RecordType) => any;
 }
 
-type Props<SortableRecord extends BaseRecord> = {
+interface Props<SortableRecord extends BaseRecord> {
   field: string;
   handleSort: (fieldName: string) => void;
   label: ReactNode;
@@ -20,7 +20,7 @@ type Props<SortableRecord extends BaseRecord> = {
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
   ref?: React.Ref<HTMLButtonElement>;
-};
+}
 
 const StyledIconInfo = styled(IconInfo)`
   display: block;

@@ -4,10 +4,10 @@ import type {Node} from '@react-types/shared';
 
 import type {MenuItemProps} from './item';
 
-type DropdownMenuSectionProps = {
+interface DropdownMenuSectionProps {
   children: React.ReactNode;
   node: Node<MenuItemProps>;
-};
+}
 
 /**
  * A wrapper component for menu sections. See:

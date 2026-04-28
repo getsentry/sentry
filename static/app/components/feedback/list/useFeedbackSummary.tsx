@@ -4,11 +4,11 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type FeedbackSummaryResponse = {
+interface FeedbackSummaryResponse {
   numFeedbacksUsed: number;
   success: boolean;
   summary: string | null;
-};
+}
 
 export function useFeedbackSummary(): {
   isError: boolean;

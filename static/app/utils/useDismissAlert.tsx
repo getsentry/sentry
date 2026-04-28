@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
-type Opts = {
+interface Opts {
   /**
    * Key in localStorage.
    * Use a format like: `${organization.id}:my-feature`
@@ -14,7 +14,7 @@ type Opts = {
    * After expiration the user will need to re-dismiss things.
    */
   expirationDays?: number;
-};
+}
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 

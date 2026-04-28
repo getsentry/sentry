@@ -3,13 +3,13 @@ import type {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
 
-type Props = {
+interface Props {
   frame: Frame;
   className?: string;
   hasHiddenDetails?: boolean;
   meta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
-};
+}
 
 export function FunctionName({
   frame,

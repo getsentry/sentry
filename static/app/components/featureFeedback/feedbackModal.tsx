@@ -46,7 +46,7 @@ const defaultFeedbackTypes = [
   t('Other reason'),
 ];
 
-type ChildrenProps<T> = {
+interface ChildrenProps<T> {
   Body: (props: {
     children: React.ReactNode;
     showSelfHostedMessage?: boolean;
@@ -61,20 +61,20 @@ type ChildrenProps<T> = {
   Header: (props: {children: React.ReactNode}) => ReturnType<ModalRenderProps['Header']>;
   onFieldChange: <Field extends keyof T>(field: Field, value: T[Field]) => void;
   state: T;
-};
+}
 
-type CustomFeedbackModal<T> = {
+interface CustomFeedbackModal<T> {
   children: (props: ChildrenProps<T>) => React.ReactNode;
   featureName: string;
   initialData: T;
-};
+}
 
-type DefaultFeedbackModal = {
+interface DefaultFeedbackModal {
   featureName: string;
   children?: undefined;
   feedbackTypes?: string[];
   secondaryAction?: React.ReactNode;
-};
+}
 
 export type FeedbackModalProps<T extends Data> = (
   | DefaultFeedbackModal

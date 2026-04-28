@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
+interface TPayload {activity: GroupActivity[]; note?: NoteType; noteId?: string}
 type TMethod = 'PUT' | 'POST' | 'DELETE';
 type TData = GroupActivity;
 type TError = RequestError;

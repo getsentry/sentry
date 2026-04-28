@@ -1,8 +1,8 @@
-type Props = {
+interface Props {
   className?: string;
   height?: string;
   showWordmark?: boolean;
-};
+}
 
 export function LogoSentry({showWordmark = true, height = '32px', className}: Props) {
   const wordmarkSvg = (

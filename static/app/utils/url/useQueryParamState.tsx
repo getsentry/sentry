@@ -35,9 +35,9 @@ type UseQueryParamStateProps<T> =
   | UseQueryParamStateWithListDecoder<T>
   | UseQueryParamStateWithSortsDecoder<T>;
 
-type UseQueryParamStateOptions = {
+interface UseQueryParamStateOptions {
   updateUrl?: boolean;
-};
+}
 
 /**
  * Hook to manage a state that is synced with a query param in the URL

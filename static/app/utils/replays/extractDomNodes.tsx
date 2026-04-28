@@ -4,12 +4,12 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getNodeIds} from 'sentry/utils/replays/types';
 import {constructSelector} from 'sentry/views/explore/replays/selectors/constructSelector';
 
-export type Extraction = {
+export interface Extraction {
   frame: ReplayFrame;
   html: string[];
   selectors: Map<number, string>;
   timestamp: number;
-};
+}
 
 export const extractDomNodes = {
   shouldVisitFrame: (frame: any) => {

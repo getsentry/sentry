@@ -3,19 +3,19 @@ import styled from '@emotion/styled';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 
-export type LoadingContainerProps = {
+export interface LoadingContainerProps {
   children?: React.ReactNode;
   className?: string;
   isLoading?: boolean;
   isReloading?: boolean;
   maskBackgroundColor?: string;
   showChildrenWhileLoading?: boolean;
-};
+}
 
-type MaskProps = {
+interface MaskProps {
   isReloading: boolean;
   maskBackgroundColor: string;
-};
+}
 
 export function LoadingContainer({
   isLoading = false,

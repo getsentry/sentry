@@ -1,7 +1,7 @@
 import {Tag} from '@sentry/scraps/badge';
 import {Container} from '@sentry/scraps/layout';
 
-export type RawFlag = {
+export interface RawFlag {
   action: string;
   createdAt: string;
   createdBy: string | null | undefined;
@@ -10,18 +10,18 @@ export type RawFlag = {
   id: number;
   tags: Record<string, any>;
   provider?: string | null;
-};
+}
 
-export type RawFlagData = {data: RawFlag[]};
+export interface RawFlagData {data: RawFlag[]}
 
-type FlagSeriesDatapoint = {
+interface FlagSeriesDatapoint {
   // flag action
   label: {formatter: () => string};
   // flag name
   name: string;
   // unix timestamp
   xAxis: number;
-};
+}
 
 export function hydrateToFlagSeries(rawFlagData: RawFlag[]): FlagSeriesDatapoint[] {
   // transform raw flag data into series data

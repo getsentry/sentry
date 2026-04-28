@@ -10,7 +10,7 @@ import {StatusTooltip} from './status/statusTooltip';
 import {Actions} from './actions';
 import {Information} from './information';
 
-type Props = {
+interface Props {
   baseUrl: string;
   candidate: ImageCandidate;
   hasReprocessWarning: boolean;
@@ -19,7 +19,7 @@ type Props = {
   organization: Organization;
   projSlug: Project['slug'];
   eventDateReceived?: string;
-};
+}
 
 export function Candidate({
   candidate,

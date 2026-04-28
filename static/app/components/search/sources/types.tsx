@@ -3,7 +3,7 @@ import type {Fuse} from 'sentry/utils/fuzzySearch';
 /**
  * A result item that sources create.
  */
-export type ResultItem = {
+export interface ResultItem {
   /**
    * The timestamp of when the result was determined. Used for sorting so that
    * we do not re-order already resolved results.
@@ -72,7 +72,7 @@ export type ResultItem = {
    * The path to visit when the result is clicked.
    */
   to?: string | {hash: string; pathname: string};
-};
+}
 
 /**
  * Result with the source item and any highlighted text fragments that matched.
@@ -83,7 +83,7 @@ export type Result = Fuse.FuseResult<ResultItem>;
  * Common type send to child function
  * by search source components.
  */
-export type ChildProps = {
+export interface ChildProps {
   /**
    * Whether or not results have been loaded
    */
@@ -92,4 +92,4 @@ export type ChildProps = {
    * Matched results
    */
   results: Result[];
-};
+}

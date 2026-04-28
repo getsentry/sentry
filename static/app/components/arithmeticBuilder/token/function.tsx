@@ -73,7 +73,7 @@ export function ArithmeticTokenFunction({
   );
 }
 
-type Argument = {label: string; value: string};
+interface Argument {label: string; value: string}
 
 interface ArgumentsGridProps extends ArithmeticTokenFunctionProps {
   rowRef: RefObject<HTMLDivElement | null>;

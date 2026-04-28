@@ -11,14 +11,14 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type OptionControlProps = {
+interface OptionControlProps {
   onChange: (selectedOption: SelectOption<string>) => void;
   option: PlatformOption<any>;
   value: string;
   disabled?: boolean;
-};
+}
 
-type PlatformOptionsControlProps = {
+interface PlatformOptionsControlProps {
   /**
    * Object with an option array for each platformOption
    */
@@ -27,7 +27,7 @@ type PlatformOptionsControlProps = {
    * Whether the option is disabled
    */
   disabled?: boolean;
-};
+}
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
   const selectedItem = option.items.find(v => v.value === value) ?? option.items[0]!;

@@ -7,12 +7,12 @@ import type {StrictStoreDefinition} from './types';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
-type State = {
+interface State {
   options: ModalOptions;
   renderer: Renderer | null;
   focusTrap?: FocusTrap;
   triggerElement?: HTMLElement | null;
-};
+}
 
 interface ModalStoreDefinition extends StrictStoreDefinition<State> {
   closeModal(): void;

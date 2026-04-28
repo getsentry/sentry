@@ -1,6 +1,6 @@
 import type {ReleaseComparisonChartType} from 'sentry/types/release';
 
-export type ReleasesEventParameters = {
+export interface ReleasesEventParameters {
   'releases.bubbles_legend': {selected: boolean};
   'releases.change_chart_type': {chartType: ReleaseComparisonChartType};
   'releases.drawer_opened': {organization: string; source: string; release?: boolean};
@@ -12,7 +12,7 @@ export type ReleasesEventParameters = {
   };
   'releases.quickstart_create_integration_modal.close': {project_id: string};
   'releases.quickstart_viewed': {project_id: string};
-};
+}
 
 type ReleasesEventKey = keyof ReleasesEventParameters;
 

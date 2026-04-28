@@ -141,11 +141,11 @@ function convertProfileMeasurementsToUIFrames(
   return measurements;
 }
 
-type FlamegraphCandidate = {
+interface FlamegraphCandidate {
   frame: FlamegraphFrame;
   threadId: number;
   isActiveThread?: boolean; // this is the thread referred to by the active profile index
-};
+}
 
 function findLongestMatchingFrame(
   flamegraph: FlamegraphModel,

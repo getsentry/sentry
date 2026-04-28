@@ -1,7 +1,7 @@
-type ExtractedSlug = {
+interface ExtractedSlug {
   domain: string;
   slug: string;
-};
+}
 
 // XXX: If you change this also change its sibiling in:
 // - static/index.ejs

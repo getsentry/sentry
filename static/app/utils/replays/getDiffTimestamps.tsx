@@ -3,11 +3,11 @@ import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
 import {isHydrationErrorFrame, isRRWebChangeFrame} from 'sentry/utils/replays/types';
 
-type ReplayDiffOffsets = {
+interface ReplayDiffOffsets {
   frameOrEvent: HydrationErrorFrame | Event;
   leftOffsetMs: number;
   rightOffsetMs: number;
-};
+}
 
 export function getReplayDiffOffsetsFromFrame(
   replay: ReplayReader | null,

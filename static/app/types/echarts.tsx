@@ -9,7 +9,7 @@ import type EChartsReact from 'echarts-for-react';
 
 import type {Confidence} from 'sentry/types/organization';
 
-export type SeriesDataUnit = {
+export interface SeriesDataUnit {
   // number because we sometimes use timestamps
   name: string | number;
   value: number;
@@ -17,9 +17,9 @@ export type SeriesDataUnit = {
     color?: string;
   };
   onClick?: (series: Series, instance: ECharts) => void;
-};
+}
 
-export type Series = {
+export interface Series {
   data: SeriesDataUnit[];
   seriesName: string;
   areaStyle?: {
@@ -37,7 +37,7 @@ export type Series = {
   symbol?: LineSeriesOption['symbol'];
   symbolSize?: LineSeriesOption['symbolSize'];
   z?: number;
-};
+}
 
 export type ReactEchartsRef = EChartsReact;
 

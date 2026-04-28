@@ -8,19 +8,19 @@ import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {WebVital} from 'sentry/utils/fields';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 
-export type VitalData = {
+export interface VitalData {
   good: number;
   meh: number;
   p75: number | null;
   poor: number;
   total: number;
-};
+}
 
 export type VitalsData = Record<string, VitalData>;
 
-type VitalsProps = {
+interface VitalsProps {
   vitals: WebVital[];
-};
+}
 
 type RequestProps = DiscoverQueryPropsWithContext & VitalsProps;
 

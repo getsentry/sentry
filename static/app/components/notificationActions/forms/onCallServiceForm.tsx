@@ -12,7 +12,7 @@ import type {
   NotificationAction,
 } from 'sentry/types/notificationActions';
 
-type OnCallServiceFormProps = {
+interface OnCallServiceFormProps {
   /**
    * Map of pagerduty/opsgenie integration IDs to available actions for those IDs
    */
@@ -28,7 +28,7 @@ type OnCallServiceFormProps = {
   onCancel: () => void;
   onChange: (names: string[], values: any[]) => void;
   onSave: () => void;
-};
+}
 
 export function OnCallServiceForm({
   action,

@@ -1,9 +1,9 @@
 import type {StoreDefinition} from 'reflux';
 import {createStore} from 'reflux';
 
-type State = {
+interface State {
   filter: string | null;
-};
+}
 
 interface DebugMetaStoreInterface extends StoreDefinition {
   get(): State;
@@ -12,9 +12,9 @@ interface DebugMetaStoreInterface extends StoreDefinition {
   updateFilter(word: string): void;
 }
 
-type Internals = {
+interface Internals {
   filter: string | null;
-};
+}
 
 const storeConfig: StoreDefinition & DebugMetaStoreInterface & Internals = {
   filter: null,

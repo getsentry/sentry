@@ -11,7 +11,7 @@ function makeLocalStorageKey(orgSlug: string) {
   return `global-selection:${orgSlug}`;
 }
 
-type StoredObject = {
+interface StoredObject {
   end: string | null;
   environments: string[];
   period: string | null;
@@ -19,7 +19,7 @@ type StoredObject = {
   projects: number[];
   start: string | null;
   utc: 'true' | null;
-};
+}
 
 /**
  * Updates the localstorage page filters data for the specified filters.

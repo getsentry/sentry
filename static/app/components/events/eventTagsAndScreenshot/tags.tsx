@@ -20,7 +20,7 @@ import type {Project} from 'sentry/types/project';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type Props = {
+interface Props {
   event: Event;
   projectSlug: Project['slug'];
   /**
@@ -29,7 +29,7 @@ type Props = {
   additionalActions?: React.ReactNode;
   disableCollapsePersistence?: boolean;
   ref?: React.Ref<HTMLDivElement>;
-};
+}
 
 export function EventTagsDataSection({
   ref,

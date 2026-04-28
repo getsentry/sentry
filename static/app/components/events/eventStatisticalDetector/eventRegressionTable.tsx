@@ -35,10 +35,10 @@ type MetricColumnKey =
   | 'throughputAfter'
   | 'percentageChange';
 type TableColumnKey = 'description' | 'operation' | MetricColumnKey;
-type TableColumn = {
+interface TableColumn {
   key: TableColumnKey;
   name: ReactNode;
-};
+}
 
 interface EventRegressionTableProps {
   causeType: 'duration' | 'throughput';

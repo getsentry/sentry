@@ -12,11 +12,11 @@ const lsKey = 'sentryUTMTouches';
 const toFirstTouchKey = (utm: string) => `ft_${utm}__c`;
 const toLastTouchKey = (utm: string) => `lt_${utm}__c`;
 
-type UTMState = {
+interface UTMState {
   data: Record<string, string>;
   touches: Record<string, string>;
   trackableQuery: Record<string, string>;
-};
+}
 
 export function getUTMState(): UTMState {
   const query = qs.parse(window.location.search);

@@ -12,12 +12,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {GroupIntegrationIssueResult} from './types';
 
-type LinkedIssueResponse = {
+interface LinkedIssueResponse {
   id: string;
   issue_url: string;
   label: string;
   link: string;
-};
+}
 
 /**
  * Formats plugin issues into external issue actions

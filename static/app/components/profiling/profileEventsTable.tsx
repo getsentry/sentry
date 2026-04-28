@@ -99,12 +99,12 @@ export function ProfileEventsTable<F extends FieldType>(
   );
 }
 
-type RenderBagger = {
+interface RenderBagger {
   location: Location;
   organization: Organization;
   projects: Project[];
   view?: DomainView;
-};
+}
 
 function renderTableBody<F extends FieldType>(
   meta: EventsResults<F>['meta'],

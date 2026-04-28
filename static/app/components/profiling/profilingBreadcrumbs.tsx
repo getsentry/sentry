@@ -84,23 +84,23 @@ function trailToCrumb(
   }
 }
 
-type ProfilingTrail = {
+interface ProfilingTrail {
   payload: {
     query: Location['query'];
   };
   type: 'landing';
-};
+}
 
-type ProfileSummaryTrail = {
+interface ProfileSummaryTrail {
   payload: {
     projectSlug: Project['slug'];
     query: Location['query'];
     transaction: string;
   };
   type: 'profile summary';
-};
+}
 
-type FlamegraphTrail = {
+interface FlamegraphTrail {
   payload: {
     profileId: string;
     projectSlug: string;
@@ -108,7 +108,7 @@ type FlamegraphTrail = {
     transaction: string;
   };
   type: 'flamechart';
-};
+}
 
 type Trail = ProfilingTrail | ProfileSummaryTrail | FlamegraphTrail;
 

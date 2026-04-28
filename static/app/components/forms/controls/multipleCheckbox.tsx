@@ -6,29 +6,29 @@ import noop from 'lodash/noop';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
-type Props<T> = {
+interface Props<T> {
   children: ReactNode;
   name: string;
   value: T[];
   className?: string;
   disabled?: boolean;
   onChange?: (value: T[], event: React.ChangeEvent<HTMLInputElement>) => void;
-};
+}
 
-type CheckboxItemProps<T> = {
+interface CheckboxItemProps<T> {
   children: ReactNode;
   value: T;
   className?: string;
   disabled?: boolean;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-};
+}
 
-type MultipleCheckboxContextValue<T> = {
+interface MultipleCheckboxContextValue<T> {
   disabled: Props<T>['disabled'];
   handleChange: (itemValue: T, event: React.ChangeEvent<HTMLInputElement>) => void;
   name: string;
   value: Props<T>['value'];
-};
+}
 
 const MultipleCheckboxContext = createContext<MultipleCheckboxContextValue<any>>({
   handleChange: noop,

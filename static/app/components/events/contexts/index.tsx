@@ -5,10 +5,10 @@ import {ContextDataSection} from 'sentry/components/events/contexts/contextDataS
 import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type Props = {
+interface Props {
   event: Event;
   disableCollapsePersistence?: boolean;
-};
+}
 
 interface UnknownContextValue {
   [key: string]: any;

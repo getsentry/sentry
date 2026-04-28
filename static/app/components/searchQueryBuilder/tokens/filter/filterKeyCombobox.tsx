@@ -25,11 +25,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type KeyComboboxProps = {
+interface KeyComboboxProps {
   item: Node<ParseResultToken>;
   onCommit: () => void;
   token: TokenResult<Token.FILTER>;
-};
+}
 
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);

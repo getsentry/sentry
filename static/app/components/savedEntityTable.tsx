@@ -22,7 +22,7 @@ import type {DateString} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type SavedEntityTableProps = {
+interface SavedEntityTableProps {
   children: ReactNode;
   emptyMessage: ReactNode;
   header: ReactNode;
@@ -32,7 +32,7 @@ type SavedEntityTableProps = {
   className?: string;
   'data-test-id'?: string;
   pageSize?: number;
-};
+}
 
 function LoadingSkeleton({pageSize}: {pageSize: number}) {
   return Array.from({length: pageSize}, (_, index) => (

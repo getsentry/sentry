@@ -12,7 +12,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   hasAccess: boolean;
   isSnoozed: boolean;
   onSnooze: (nextState: {
@@ -24,7 +24,7 @@ type Props = {
   type: 'issue' | 'metric';
   disabled?: boolean;
   ruleId?: string;
-};
+}
 
 export function SnoozeAlert({
   isSnoozed,

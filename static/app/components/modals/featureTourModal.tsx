@@ -9,18 +9,18 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-export type TourStep = {
+export interface TourStep {
   body: React.ReactNode;
   title: string;
   actions?: React.ReactNode;
   image?: React.ReactNode;
-};
+}
 
-type ChildProps = {
+interface ChildProps {
   showModal: () => void;
-};
+}
 
-type Props = {
+interface Props {
   children: (props: ChildProps) => React.ReactNode;
   /**
    * Provide a URL for the done state to open in a new tab.
@@ -43,9 +43,9 @@ type Props = {
    * Triggered when the tour is closed by completion or IconClose
    */
   onCloseModal?: (currentIndex: number, durationOpen: number) => void;
-};
+}
 
-type State = {
+interface State {
   /**
    * The last known step
    */
@@ -56,7 +56,7 @@ type State = {
    * Used to calculate how long the modal was open
    */
   openedAt: number;
-};
+}
 
 const defaultProps = {
   doneText: t('Done'),
@@ -126,10 +126,10 @@ type ContentsProps = ModalRenderProps &
   Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> &
   Pick<State, 'openedAt'>;
 
-type ContentsState = {
+interface ContentsState {
   current: number;
   openedAt: number;
-};
+}
 
 class ModalContents extends Component<ContentsProps, ContentsState> {
   static defaultProps = defaultProps;

@@ -24,12 +24,12 @@ interface WebAuthnParams {
   superuserReason?: string;
 }
 
-type Props = {
+interface Props {
   api: Client;
   hasStaff: boolean;
-};
+}
 
-type State = {
+interface State {
   authenticators: Authenticator[];
   error: boolean;
   errorType: string;
@@ -37,7 +37,7 @@ type State = {
   showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
-};
+}
 
 class SuperuserStaffAccessFormContent extends Component<Props, State> {
   constructor(props: any) {

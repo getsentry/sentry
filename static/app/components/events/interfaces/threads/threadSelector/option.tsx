@@ -11,18 +11,18 @@ import type {EntryData} from 'sentry/types/group';
 import {ThreadSelectorGrid} from './styles';
 import type {ThreadStates} from './threadStates';
 
-type Props = {
+interface Props {
   crashedInfo: EntryData | undefined;
   details: ThreadInfo;
   hasThreadStates: boolean;
   thread: Thread;
-};
+}
 
-type ThreadInfo = {
+interface ThreadInfo {
   filename?: string;
   label?: string;
   state?: ThreadStates;
-};
+}
 
 export function Option({thread, crashedInfo, details, hasThreadStates}: Props) {
   const label = details.label ?? `<${t('unknown')}>`;

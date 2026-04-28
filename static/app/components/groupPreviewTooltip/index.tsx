@@ -6,7 +6,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {SpanEvidencePreview} from './spanEvidencePreview';
 import {StackTracePreview} from './stackTracePreview';
 
-type GroupPreviewTooltipProps = {
+interface GroupPreviewTooltipProps {
   children: React.ReactNode;
   groupId: string;
   groupingCurrentLevel?: number;
@@ -15,7 +15,7 @@ type GroupPreviewTooltipProps = {
   project?: Project;
   projectId?: string;
   query?: string;
-};
+}
 
 export function GroupPreviewTooltip({
   children,

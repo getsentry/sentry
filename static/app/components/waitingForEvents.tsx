@@ -13,7 +13,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-type Props = {
+interface Props {
   org: Organization;
   project?: Project;
   /**
@@ -23,7 +23,7 @@ type Props = {
    * - undefined to indicate the project API should be consulted to find out
    */
   sampleIssueId?: string;
-};
+}
 
 function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
   const {data, error, isPending} = useQuery(

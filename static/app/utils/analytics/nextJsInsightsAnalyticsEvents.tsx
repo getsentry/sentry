@@ -1,4 +1,4 @@
-type NextJsInsightsEventParameters = {
+interface NextJsInsightsEventParameters {
   'nextjs-insights.page-view': {
     view: string;
   };
@@ -8,7 +8,7 @@ type NextJsInsightsEventParameters = {
   'nextjs-insights.ui_toggle': {
     isEnabled: boolean;
   };
-};
+}
 
 export const nextJsInsightsEventMap: Record<keyof NextJsInsightsEventParameters, string> =
   {

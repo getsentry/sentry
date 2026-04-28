@@ -12,13 +12,13 @@ import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-type Props = {
+interface Props {
   issueId: string;
   orgSlug: string;
   report: UserReport;
   className?: string;
   showEventLink?: boolean;
-};
+}
 
 export function EventUserFeedback({
   className,

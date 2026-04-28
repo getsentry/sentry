@@ -32,7 +32,7 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 type EnvironmentId = Environment['id'];
 
-type Options = {
+interface Options {
   /**
    * Do not reset the `cursor` query parameter when updating page filters
    */
@@ -53,20 +53,20 @@ type Options = {
    * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
    */
   storageNamespace?: string;
-};
+}
 
 /**
  * This is the 'update' object used for updating the page filters. The types
  * here are a bit wider to allow for easy updates.
  */
-type PageFiltersUpdate = {
+interface PageFiltersUpdate {
   end?: DateString;
   environment?: string[] | null;
   period?: string | null;
   project?: number[] | null;
   start?: DateString;
   utc?: boolean | null;
-};
+}
 
 /**
  * Represents the input for updating the date time of page filters
@@ -102,7 +102,7 @@ function mergeDatetime(
   return datetime;
 }
 
-export type InitializeUrlStateParams = {
+export interface InitializeUrlStateParams {
   location: Location;
   memberProjects: Project[];
   navigate: ReactRouter3Navigate;
@@ -146,7 +146,7 @@ export type InitializeUrlStateParams = {
    * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Starfish)
    */
   storageNamespace?: string;
-};
+}
 
 export function initializeUrlState({
   organization,

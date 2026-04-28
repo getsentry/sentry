@@ -4,10 +4,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 
-type Opts = {
+interface Opts {
   minVersion: string;
   projectId: string[];
-};
+}
 
 export function useProjectSdkNeedsUpdate({
   minVersion,

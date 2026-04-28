@@ -5,23 +5,23 @@ import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {Result} from './types';
 
-type ChildProps = {
+interface ChildProps {
   allLoaded: boolean;
   results: Result[];
-};
+}
 
-type Props = {
+interface Props {
   children: (props: ChildProps) => React.ReactElement;
   params: {orgId: string};
   query: string;
   sources: Array<React.ComponentType<any>>;
   searchOptions?: Fuse.IFuseOptions<any>;
-};
+}
 
-type SourceResult = {
+interface SourceResult {
   isLoading: boolean;
   results: Result[];
-};
+}
 
 export function SearchSources(props: Props) {
   const {children, sources} = props;

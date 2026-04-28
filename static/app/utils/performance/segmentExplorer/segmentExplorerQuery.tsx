@@ -10,7 +10,7 @@ import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 /**
  * An individual row in a Segment explorer result
  */
-export type TableDataRow = {
+export interface TableDataRow {
   aggregate: number;
   comparison: number;
   count: number;
@@ -18,12 +18,12 @@ export type TableDataRow = {
   sumdelta: number;
   tags_key: string;
   tags_value: string;
-};
+}
 
-export type TableData = {
+export interface TableData {
   data: TableDataRow[];
   meta: Record<string, ColumnValueType>;
-};
+}
 
 /**
  * A Segment Explorer result including rows and metadata.

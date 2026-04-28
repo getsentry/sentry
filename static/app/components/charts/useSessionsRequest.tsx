@@ -7,7 +7,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
+interface Props {
   field: SessionFieldWithOperation[];
   end?: string;
   environment?: string[];
@@ -19,7 +19,7 @@ type Props = {
   shouldFilterSessionsInTimeWindow?: boolean;
   start?: string;
   statsPeriod?: string | null;
-};
+}
 
 export function useSessionsRequest({
   shouldFilterSessionsInTimeWindow,

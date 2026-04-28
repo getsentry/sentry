@@ -14,9 +14,9 @@ import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type Props = {
+interface Props {
   replayErrors: RawReplayError[];
-};
+}
 
 export function ErrorCounts({replayErrors}: Props) {
   const {pathname, query} = useLocation();

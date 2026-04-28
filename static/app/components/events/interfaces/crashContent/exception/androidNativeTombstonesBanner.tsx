@@ -18,17 +18,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const TOMBSTONES_DOCS_URL =
   'https://docs.sentry.io/platforms/android/configuration/tombstones/';
 
-type TabConfig = {
+interface TabConfig {
   code: string;
   label: string;
   language: string;
   value: string;
-};
+}
 
-type SdkConfig = {
+interface SdkConfig {
   defaultTab: string;
   tabs: TabConfig[];
-};
+}
 
 const ANDROID_SDK_CONFIG: SdkConfig = {
   defaultTab: 'manifest',

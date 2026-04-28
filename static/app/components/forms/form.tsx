@@ -13,9 +13,9 @@ import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
-type RenderProps = {
+interface RenderProps {
   model: FormModel;
-};
+}
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 

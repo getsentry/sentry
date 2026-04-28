@@ -149,7 +149,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   getMirror: () => null,
 });
 
-type Props = {
+interface Props {
   /**
    * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
@@ -180,7 +180,7 @@ type Props = {
    * Override return fields for testing
    */
   value?: Partial<ReplayPlayerContextProps>;
-};
+}
 
 function useCurrentTime(callback: () => number) {
   const [currentTime, setCurrentTime] = useState(0);

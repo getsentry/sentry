@@ -7,10 +7,10 @@ import {Redaction} from './redaction';
 import {getTooltipText} from './utils';
 import {ValueElement} from './valueElement';
 
-type Props = {
+interface Props {
   value: React.ReactNode;
   meta?: Record<any, any>;
-};
+}
 
 export function AnnotatedTextValue({value, meta}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {

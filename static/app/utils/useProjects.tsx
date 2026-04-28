@@ -12,7 +12,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type ProjectPlaceholder = AvatarProject;
 
-type State = {
+interface State {
   /**
    * The error that occurred if fetching failed
    */
@@ -40,7 +40,7 @@ type State = {
    * Pagination
    */
   nextCursor?: null | string;
-};
+}
 
 type Result = {
   /**
@@ -64,7 +64,7 @@ type Result = {
   reloadProjects: () => Promise<void>;
 } & Pick<State, 'fetching' | 'hasMore' | 'fetchError' | 'initiallyLoaded'>;
 
-type Options = {
+interface Options {
   /**
    * Number of projects to return when not using `props.slugs`
    */
@@ -78,15 +78,15 @@ type Options = {
    * otherwise fetch from API
    */
   slugs?: string[];
-};
+}
 
-type FetchProjectsOptions = {
+interface FetchProjectsOptions {
   cursor?: State['nextCursor'];
   lastSearch?: State['lastSearch'];
   limit?: Options['limit'];
   search?: State['lastSearch'];
   slugs?: string[];
-};
+}
 
 /**
  * Helper function to actually load projects

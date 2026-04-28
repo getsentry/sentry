@@ -9,7 +9,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 
-export type ConfirmMessageRenderProps = {
+export interface ConfirmMessageRenderProps {
   /**
    * Closes the modal, if `bypass` is true, will call `onConfirm` callback
    */
@@ -31,9 +31,9 @@ export type ConfirmMessageRenderProps = {
    * This should be called in the components componentDidMount.
    */
   setConfirmCallback: (cb: () => void) => void;
-};
+}
 
-type ConfirmButtonsRenderProps = {
+interface ConfirmButtonsRenderProps {
   /**
    * Applications can call this function to manually close the modal.
    */
@@ -43,13 +43,13 @@ type ConfirmButtonsRenderProps = {
    * onConfirm / onCancel callbacks.
    */
   defaultOnClick: () => void;
-};
+}
 
-type ChildrenRenderProps = {
+interface ChildrenRenderProps {
   open: () => void;
-};
+}
 
-export type OpenConfirmOptions = {
+export interface OpenConfirmOptions {
   /**
    * If true, will skip the confirmation modal and call `onConfirm` callback
    */
@@ -132,7 +132,7 @@ export type OpenConfirmOptions = {
    * Used to render a message instead of using the static `message` prop.
    */
   renderMessage?: (renderProps: ConfirmMessageRenderProps) => React.ReactNode;
-};
+}
 
 interface Props extends OpenConfirmOptions {
   /**

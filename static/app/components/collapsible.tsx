@@ -4,21 +4,21 @@ import {Button} from '@sentry/scraps/button';
 
 import {t, tn} from 'sentry/locale';
 
-type CollapseButtonRenderProps = {
+interface CollapseButtonRenderProps {
   onCollapse: () => void;
-};
+}
 
-type ExpandButtonRenderProps = {
+interface ExpandButtonRenderProps {
   numberOfHiddenItems: number;
   onExpand: () => void;
-};
+}
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   collapseButton?: (props: CollapseButtonRenderProps) => React.ReactNode;
   expandButton?: (props: ExpandButtonRenderProps) => React.ReactNode;
   maxVisibleItems?: number;
-};
+}
 
 /**
  * This component is used to show first X items and collapse the rest

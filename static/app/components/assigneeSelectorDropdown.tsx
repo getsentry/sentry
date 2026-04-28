@@ -39,12 +39,12 @@ const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   codeowners: t('Codeowners'),
 };
 
-export type AssignableEntity = {
+export interface AssignableEntity {
   assignee: User | Actor;
   id: string;
   type: Actor['type'];
   suggestedAssignee?: SuggestedAssignee;
-};
+}
 
 export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
@@ -52,12 +52,12 @@ export type SuggestedAssignee = Actor & {
   suggestedReasonText?: React.ReactNode;
 };
 
-type AssignableTeam = {
+interface AssignableTeam {
   display: string;
   email: string;
   id: string;
   team: Team;
-};
+}
 
 interface AssigneeSelectorDropdownProps {
   /**

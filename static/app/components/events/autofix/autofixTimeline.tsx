@@ -5,7 +5,7 @@ import {Timeline} from 'sentry/components/timeline';
 
 import type {AutofixTimelineEvent} from './types';
 
-type Props = {
+interface Props {
   events: AutofixTimelineEvent[];
   groupId: string;
   runId: string;
@@ -13,7 +13,7 @@ type Props = {
   getCustomIcon?: (event: AutofixTimelineEvent) => React.ReactNode;
   retainInsightCardIndex?: number | null;
   stepIndex?: number;
-};
+}
 
 export function AutofixTimeline({
   events,

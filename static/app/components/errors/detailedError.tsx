@@ -9,7 +9,7 @@ import {IconFlag} from 'sentry/icons';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   /**
    * Error heading
    */
@@ -27,7 +27,7 @@ type Props = {
    * Retry callback
    */
   onRetry?: (e: React.MouseEvent) => void;
-};
+}
 
 export function DetailedError({
   className,

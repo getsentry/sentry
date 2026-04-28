@@ -10,11 +10,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {FieldMeta} from './meta';
 
-export type BaseFieldProps<T extends HTMLElement> = {
+export interface BaseFieldProps<T extends HTMLElement> {
   disabled?: boolean | string;
   ref?: Ref<T>;
-};
-type FieldChildrenProps<T extends HTMLElement> = {
+}
+interface FieldChildrenProps<T extends HTMLElement> {
   'aria-describedby': string;
   'aria-invalid': boolean;
   disabled: boolean;
@@ -22,7 +22,7 @@ type FieldChildrenProps<T extends HTMLElement> = {
   name: string;
   onBlur: () => void;
   ref: Ref<T>;
-};
+}
 
 export const useAutoSaveIndicator = () => {
   const field = useFieldContext();
@@ -114,7 +114,7 @@ function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
   }, [isDisabledByAutoSave, ref]);
 }
 
-type FieldState = {indicator: React.ReactNode};
+interface FieldState {indicator: React.ReactNode}
 
 export function BaseField<T extends HTMLElement>(
   props: BaseFieldProps<T> & {

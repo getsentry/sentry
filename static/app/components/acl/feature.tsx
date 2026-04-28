@@ -13,7 +13,7 @@ import {ComingSoon} from './comingSoon';
 
 const renderComingSoon = () => <ComingSoon />;
 
-type Props = {
+interface Props {
   /**
    * If children is a function then will be treated as a render prop and
    * passed FeatureRenderProps.
@@ -66,17 +66,17 @@ type Props = {
    * Should the component require all features or just one or more.
    */
   requireAll?: boolean;
-};
+}
 
 /**
  * Common props passed to children and disabled render handlers.
  */
-type FeatureRenderProps = {
+interface FeatureRenderProps {
   features: string[];
   hasFeature: boolean;
   organization: Organization;
   project?: Project;
-};
+}
 
 /**
  * When a feature is disabled the caller of Feature may provide a `renderDisabled`
@@ -98,11 +98,11 @@ interface ChildRenderProps extends FeatureRenderProps {
 
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
-type AllFeatures = {
+interface AllFeatures {
   configFeatures: readonly string[];
   organization: readonly string[];
   project: readonly string[];
-};
+}
 
 const PROJECT_PREFIX = 'projects:';
 const ORG_PREFIX = 'organizations:';

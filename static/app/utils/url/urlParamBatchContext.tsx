@@ -4,10 +4,10 @@ import * as qs from 'query-string';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type BatchContextType = {
+interface BatchContextType {
   batchUrlParamUpdates: (updates: Record<string, string | string[] | undefined>) => void;
   flushUpdates: () => void;
-};
+}
 
 const BatchContext = createContext<BatchContextType | null>(null);
 

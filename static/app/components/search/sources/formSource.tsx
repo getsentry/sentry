@@ -9,20 +9,20 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {ChildProps, Result} from './types';
 import {makeResolvedTs, strGetFn} from './utils';
 
-type FormSearchField = {
+interface FormSearchField {
   description: React.ReactNode;
   field: {name: string};
   route: string;
   title: React.ReactNode;
-};
+}
 
 let ALL_FORM_FIELDS_CACHED: FormSearchField[] | null = null;
 
-type SearchMapParams = {
+interface SearchMapParams {
   fields: Record<string, Field>;
   formGroups: JsonFormObject[];
   route: string;
-};
+}
 
 /**
  * Creates a list of objects to be injected by a search source
