@@ -363,7 +363,7 @@ class GroupSerializerBase(Serializer, ABC):
         is_subscribed, subscription_details = get_subscription_from_attributes(attrs)
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-        issue_category = obj.issue_category_v2.name.lower()
+        issue_category = obj.issue_category.name.lower()
 
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),

@@ -39,14 +39,13 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
 
         try:
             issue_category = group.issue_category
-            issue_category_v2 = group.issue_category_v2
         except ValueError:
             return False
 
         if include:
-            return bool(value == issue_category or value == issue_category_v2)
+            return bool(value == issue_category)
 
-        return bool(value != issue_category and value != issue_category_v2)
+        return bool(value != issue_category)
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any]) -> str:

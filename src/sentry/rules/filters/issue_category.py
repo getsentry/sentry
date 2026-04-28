@@ -44,7 +44,7 @@ class IssueCategoryFilter(EventFilter):
         include_category = self.get_option("include", "true") != "false"
 
         if group:
-            category_matches = value == group.issue_category or value == group.issue_category_v2
+            category_matches = value == group.issue_category or value == group.issue_category
             return category_matches if include_category else not category_matches
 
         return False
