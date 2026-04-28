@@ -491,6 +491,25 @@ describe('CommandPalette', () => {
       expect(await screen.findByRole('option', {name: 'Dark'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Light'})).not.toBeInTheDocument();
     });
+
+    it('shows a group preview when the group label matches but its children do not', async () => {
+      render(
+        <GlobalActionsComponent>
+          <CMDKAction display={{label: 'Help'}}>
+            <CMDKAction to="/docs/" display={{label: 'Open Documentation'}} />
+            <CMDKAction to="/discord/" display={{label: 'Join Discord'}} />
+          </CMDKAction>
+        </GlobalActionsComponent>
+      );
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, 'help');
+
+      expect(
+        await screen.findByRole('option', {name: 'Open Documentation'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Join Discord'})).toBeInTheDocument();
+    });
   });
 
   describe('action with onAction and children', () => {
