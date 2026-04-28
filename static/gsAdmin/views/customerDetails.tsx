@@ -873,10 +873,15 @@ export function CustomerDetails() {
             key: 'migrateLegacySeer',
             name: 'Migrate From Legacy Seer',
             help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
-            disabled: ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
+            disabled:
+              ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
+                subscription.planTier as PlanTier
+              ) || !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
               subscription.planTier as PlanTier
-            ),
-            disabledReason: 'Only available for AM1, AM2, and AM3 plans.',
+            )
+              ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
+              : 'Only available for AM1, AM2, and AM3 plans.',
             confirmModalOpts: {
               priority: 'danger',
               confirmText: 'Migrate',
