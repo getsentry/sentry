@@ -100,10 +100,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     )
 
     def get_default_interval_from_range(self, date_range: timedelta) -> str:
-        # Match Explore's ``useChartInterval`` default so unfurled and
-        # backend-driven charts bucket the same way as the in-app chart when
-        # the request omits an explicit ``interval``. Dashboards will move to
-        # the same default when its frontend dropdown is updated.
         return get_default_interval_for_chart(date_range)
 
     def get_request_querysource(self, request: Request, referrer: str) -> QuerySource:
