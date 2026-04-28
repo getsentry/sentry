@@ -28,8 +28,8 @@ BUCKET_CURSOR_KEY = "ds::per_org:bucket_cursor"
 
 
 def _next_bucket_index() -> int:
-    redis_client = get_redis_client_for_ds()
     try:
+        redis_client = get_redis_client_for_ds()
         bucket_index = (redis_client.incr(BUCKET_CURSOR_KEY) - 1) % BUCKET_COUNT
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
