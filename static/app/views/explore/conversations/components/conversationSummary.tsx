@@ -43,6 +43,7 @@ interface ConversationSummaryProps {
 }
 
 const VISIBLE_TRACE_COUNT = 5;
+const VISIBLE_TOOL_COUNT = 5;
 
 function getTraceUrl(orgSlug: string, traceId: string, spanId: string) {
   return normalizeUrl(
@@ -177,11 +178,31 @@ export function ConversationAggregatesBar({
             <Text size="sm" bold variant="muted" wrap="nowrap">
               {t('Used Tools')}
             </Text>
-            {aggregates.toolNames.map(name => (
+            {aggregates.toolNames.slice(0, VISIBLE_TOOL_COUNT).map(name => (
               <Tag key={name} variant="info">
                 {name}
               </Tag>
             ))}
+            {aggregates.toolNames.length > VISIBLE_TOOL_COUNT && (
+              <DropdownMenu
+                size="sm"
+                triggerLabel={
+                  <Text size="sm" variant="muted">
+                    {t('+%s more', aggregates.toolNames.length - VISIBLE_TOOL_COUNT)}
+                  </Text>
+                }
+                triggerProps={{
+                  size: 'zero',
+                  priority: 'transparent',
+                  showChevron: false,
+                }}
+                items={aggregates.toolNames.slice(VISIBLE_TOOL_COUNT).map(name => ({
+                  key: name,
+                  label: <Tag variant="info">{name}</Tag>,
+                  textValue: name,
+                }))}
+              />
+            )}
           </ToolTagsRow>
         )
       )}
