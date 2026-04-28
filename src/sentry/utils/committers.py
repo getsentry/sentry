@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence
 from enum import Enum
 from functools import reduce
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from django.core.cache import cache
 from django.db.models import Q
@@ -22,6 +22,12 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.users.services.user.service import user_service
+
+if TYPE_CHECKING:
+    from sentry.notifications.notifications.digest_types import (
+        NotificationSerializedEvent,
+        NotificationSerializedGroupEvent,
+    )
 from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
 from sentry.utils.iterators import chunked
@@ -412,7 +418,7 @@ def get_serialized_committers(project: Project, group_id: int) -> Sequence[Autho
 
 def get_serialized_event_file_committers(
     project: Project,
-    event: Event | GroupEvent,
+    event: Event | GroupEvent | NotificationSerializedEvent | NotificationSerializedGroupEvent,
 ) -> Sequence[AuthorCommitsSerialized]:
     if event.group_id is None:
         return []

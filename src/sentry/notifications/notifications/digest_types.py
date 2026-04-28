@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.services.eventstore.models import Event, GroupEvent
+
+if TYPE_CHECKING:
+    from sentry.interfaces.base import Interface
 
 
 class NotificationSerializedEvent(BaseModel):
@@ -47,6 +51,12 @@ class NotificationSerializedEvent(BaseModel):
     def get_event_metadata(self) -> dict[str, Any]:
         return self.data.get("metadata") or {}
 
+    @property
+    def interfaces(self) -> Mapping[str, Interface]:
+        from sentry.interfaces.base import get_interfaces
+
+        return get_interfaces(self.data)
+
     @classmethod
     def from_event(cls, event: Event) -> NotificationSerializedEvent:
         return cls(
@@ -65,7 +75,7 @@ class NotificationSerializedEvent(BaseModel):
 
 
 class NotificationSerializedGroupEvent(NotificationSerializedEvent):
-    _occurrence: IssueOccurrenceData | None
+    occurrence_data: IssueOccurrenceData | None = None
 
     @classmethod
     def from_group_event(cls, event: GroupEvent) -> NotificationSerializedGroupEvent:
@@ -81,11 +91,11 @@ class NotificationSerializedGroupEvent(NotificationSerializedEvent):
             message=event.message,
             tags=list(event.tags),
             data=dict(event.data.items()),
-            _occurrence=event.occurrence.to_dict() if event.occurrence else None,
+            occurrence_data=event.occurrence.to_dict() if event.occurrence else None,
         )
 
     @property
     def occurrence(self) -> IssueOccurrence | None:
-        if self._occurrence is None:
+        if self.occurrence_data is None:
             return None
-        return IssueOccurrence.from_dict(self._occurrence)
+        return IssueOccurrence.from_dict(self.occurrence_data)

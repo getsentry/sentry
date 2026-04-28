@@ -37,6 +37,10 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
+from sentry.notifications.notifications.digest_types import (
+    NotificationSerializedEvent,
+    NotificationSerializedGroupEvent,
+)
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import cell_silo_function
 from sentry.types.rules import NotificationRuleDetails
@@ -343,9 +347,15 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
 
 
 def get_notification_group_title(
-    group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
+    group: Group,
+    event: Event | GroupEvent | NotificationSerializedEvent | NotificationSerializedGroupEvent,
+    max_length: int = 255,
+    **kwargs: str,
 ) -> str:
-    if isinstance(event, GroupEvent) and event.occurrence is not None:
+    if (
+        isinstance(event, (GroupEvent, NotificationSerializedGroupEvent))
+        and event.occurrence is not None
+    ):
         issue_title = event.occurrence.issue_title
         return issue_title
     else:
@@ -368,10 +378,12 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
         notify(provider, notification, participants, shared_context, extra_context)
 
 
-def get_replay_id(event: Event | GroupEvent) -> str | None:
+def get_replay_id(
+    event: Event | GroupEvent | NotificationSerializedEvent | NotificationSerializedGroupEvent,
+) -> str | None:
     replay_id = event.data.get("contexts", {}).get("replay", {}).get("replay_id", {})
     if (
-        isinstance(event, GroupEvent)
+        isinstance(event, (GroupEvent, NotificationSerializedGroupEvent))
         and event.occurrence is not None
         and event.occurrence.evidence_data
     ):

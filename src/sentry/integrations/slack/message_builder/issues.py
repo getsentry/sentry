@@ -52,6 +52,10 @@ from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.notifications.digest_types import (
+    NotificationSerializedEvent,
+    NotificationSerializedGroupEvent,
+)
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
@@ -153,20 +157,40 @@ def build_action_text(
     return f"*Issue {status} by <@{identity.external_id}>*"
 
 
-def format_release_tag(value: str, event: Event | GroupEvent | None) -> str:
+def format_release_tag(
+    value: str,
+    event: Event
+    | GroupEvent
+    | NotificationSerializedEvent
+    | NotificationSerializedGroupEvent
+    | None,
+    project: Project | None = None,
+) -> str:
     """Format the release tag using the short version and make it a link"""
     if not event:
         return ""
 
-    path = f"/releases/{value}/"
-    url = event.project.organization.absolute_url(path)
     release_description = parse_release(value, json_loads=orjson.loads).get("description")
+
+    # Serialized events don't carry .project — use the explicitly passed project
+    if project is not None:
+        url = project.organization.absolute_url(f"/releases/{value}/")
+    elif hasattr(event, "project"):
+        url = event.project.organization.absolute_url(f"/releases/{value}/")
+    else:
+        return str(release_description)
+
     return f"<{url}|{release_description}>"
 
 
 def get_tags(
-    event_for_tags: Event | GroupEvent | None,
+    event_for_tags: Event
+    | GroupEvent
+    | NotificationSerializedEvent
+    | NotificationSerializedGroupEvent
+    | None,
     tags: set[str] | list[tuple[str]] | None = None,
+    project: Project | None = None,
 ) -> Sequence[Mapping[str, str | bool]]:
     """Get tag keys and values for block kit"""
     fields = []
@@ -186,7 +210,7 @@ def get_tags(
                 continue
             labeled_value = tagstore.backend.get_tag_value_label(key, value)
             if std_key == "release":
-                labeled_value = format_release_tag(labeled_value, event_for_tags)
+                labeled_value = format_release_tag(labeled_value, event_for_tags, project)
             fields.append(
                 {
                     "title": std_key,
@@ -257,7 +281,9 @@ def get_option_groups(group: Group) -> Sequence[OptionGroup]:
 
 
 def get_suggested_assignees(
-    project: Project, event: Event | GroupEvent, current_assignee: RpcUser | Team | None
+    project: Project,
+    event: Event | GroupEvent | NotificationSerializedEvent | NotificationSerializedGroupEvent,
+    current_assignee: RpcUser | Team | None,
 ) -> list[str]:
     """Get suggested assignees as a list of formatted strings"""
     suggested_assignees, _ = ProjectOwnership.get_owners(project.id, event.data)
@@ -413,7 +439,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         group: Group,
-        event: Event | GroupEvent | None = None,
+        event: Event
+        | GroupEvent
+        | NotificationSerializedEvent
+        | NotificationSerializedGroupEvent
+        | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
@@ -447,7 +477,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_title_block(
         self,
-        event_or_group: Event | GroupEvent | Group,
+        event_or_group: Event
+        | GroupEvent
+        | NotificationSerializedEvent
+        | NotificationSerializedGroupEvent
+        | Group,
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
@@ -491,7 +525,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return f"*Initial Guess*: {escape_slack_markdown_text('  '.join(parts))}"
 
-    def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
+    def get_culprit_block(
+        self,
+        event_or_group: Event
+        | GroupEvent
+        | NotificationSerializedEvent
+        | NotificationSerializedGroupEvent
+        | Group,
+    ) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
@@ -590,9 +631,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         # If an event is unspecified, use the tags of the latest event (if one exists).
         event_for_tags = self.event or self.group.get_latest_event()
 
-        event_or_group: Group | Event | GroupEvent = (
-            self.event if self.event is not None else self.group
-        )
+        event_or_group: (
+            Group
+            | Event
+            | GroupEvent
+            | NotificationSerializedEvent
+            | NotificationSerializedGroupEvent
+        ) = self.event if self.event is not None else self.group
 
         action_text = ""
 
@@ -666,7 +711,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             block_id["rule"] = rule_id
 
         # build tags block
-        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)
+        tags = get_tags(event_for_tags=event_for_tags, tags=self.tags, project=project)
         if tags:
             blocks.append(self.get_tags_block(tags, block_id))
 

@@ -25,6 +25,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.notifications.digest_types import NotificationSerializedGroupEvent
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -90,7 +91,7 @@ class AlertRuleNotification(ProjectNotification):
         notification_uuid: str | None = None,
     ) -> None:
         event = notification.event
-        group = event.group
+        group = notification.group if notification.group is not None else event.group
         project = group.project
         super().__init__(project, notification_uuid)
         self.group = group
@@ -100,16 +101,16 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+        if group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
             # profile issues use the generic template for now
             if (
-                isinstance(event, GroupEvent)
+                isinstance(event, (GroupEvent, NotificationSerializedGroupEvent))
                 and event.occurrence
                 and event.occurrence.evidence_data.get("template_name") == "profile"
             ):
                 email_template_name = GENERIC_TEMPLATE_NAME
             else:
-                email_template_name = event.group.issue_category.name.lower()
+                email_template_name = group.issue_category.name.lower()
         else:
             email_template_name = GENERIC_TEMPLATE_NAME
 
@@ -128,7 +129,10 @@ class AlertRuleNotification(ProjectNotification):
         )
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return str(self.event.get_email_subject())
+        if hasattr(self.event, "get_email_subject"):
+            return str(self.event.get_email_subject())
+        # Serialized events lack get_email_subject(); fall back to group
+        return str(self.group.get_email_subject())
 
     @property
     def reference(self) -> Model | None:
@@ -235,7 +239,8 @@ class AlertRuleNotification(ProjectNotification):
 
         template_name = (
             self.event.occurrence.evidence_data.get("template_name")
-            if isinstance(self.event, GroupEvent) and self.event.occurrence
+            if isinstance(self.event, (GroupEvent, NotificationSerializedGroupEvent))
+            and self.event.occurrence
             else None
         )
 
@@ -276,7 +281,10 @@ class AlertRuleNotification(ProjectNotification):
             context["snooze_alert"] = False
             context["snooze_alert_url"] = None
 
-        if isinstance(self.event, GroupEvent) and self.event.occurrence:
+        if (
+            isinstance(self.event, (GroupEvent, NotificationSerializedGroupEvent))
+            and self.event.occurrence
+        ):
             context["issue_title"] = self.event.occurrence.issue_title
             context["subtitle"] = self.event.occurrence.subtitle
             context["culprit"] = self.event.occurrence.culprit

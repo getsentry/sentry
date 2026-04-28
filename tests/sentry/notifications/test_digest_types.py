@@ -1,14 +1,11 @@
 from sentry.notifications.notifications.digest_types import NotificationSerializedEvent
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 
 class TestSerializedEvent(TestCase):
     def _get_event(self) -> Event:
         return self.store_event(data={"message": "oh no"}, project_id=self.project.id)
-
-    def _get_group_event(self) -> GroupEvent:
-        return self.store_group_event(data={"message": "oh no"}, project_id=self.project.id)
 
     def test_basic_serialization(self) -> None:
         event = self._get_event()

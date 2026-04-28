@@ -133,9 +133,10 @@ def assert_get_personalized_digests(
     personalized_digests = get_personalized_digests(digest, participants_by_provider_by_event)
     for actor, user_digest in personalized_digests.items():
         assert actor.actor_type == ActorType.USER and actor.id in expected_result
-        assert {e.event_id for e in get_event_from_groups_in_digest(user_digest)} == {
-            e.event_id for e in expected_result[actor.id]
-        }
+        # Digest events are serialized; compare by event_id
+        digest_event_ids = {e.event_id for e in get_event_from_groups_in_digest(user_digest)}
+        expected_event_ids = {e.event_id for e in expected_result[actor.id]}
+        assert digest_event_ids == expected_event_ids
         result_user_ids.append(actor.id)
 
     assert sorted(expected_result.keys()) == sorted(result_user_ids)

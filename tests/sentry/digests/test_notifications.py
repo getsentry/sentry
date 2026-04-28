@@ -16,6 +16,7 @@ from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWith
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.notifications.digest_types import NotificationSerializedEvent
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
@@ -51,7 +52,7 @@ class BindRecordsTestCase(TestCase):
 
     def test_success(self) -> None:
         (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
-        assert record == self.record.with_rules([self.rule])
+        assert record == self.record.with_rules([self.rule], self.event.group)
 
     def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped
@@ -60,7 +61,7 @@ class BindRecordsTestCase(TestCase):
     def test_filters_invalid_rules(self) -> None:
         # If the record can't be associated with a rule, the rule should be dropped
         (record,) = _bind_records([self.record], self.group_mapping, {})
-        assert record == self.record.with_rules([])
+        assert record == self.record.with_rules([], self.event.group)
 
 
 class GroupRecordsTestCase(TestCase):
@@ -84,7 +85,12 @@ class GroupRecordsTestCase(TestCase):
         records = [
             RecordWithRuleObjects(
                 event.event_id,
-                NotificationWithRuleObjects(event, [self.rule], self.notification_uuid),
+                NotificationWithRuleObjects(
+                    NotificationSerializedEvent.from_event(event),
+                    [self.rule],
+                    self.notification_uuid,
+                    group,
+                ),
                 event.datetime.timestamp(),
             )
             for event in events

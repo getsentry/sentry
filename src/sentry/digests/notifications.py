@@ -110,14 +110,12 @@ def _bind_records(
         elif group.get_status() != GroupStatus.UNRESOLVED:
             continue
 
-        record.value.event.group = group
-
         record_rules = [
             rule
             for rule in (rules.get(rule_id) for rule_id in record.value.rules)
             if rule is not None
         ]
-        ret.append(record.with_rules(record_rules))
+        ret.append(record.with_rules(record_rules, group))
 
     return ret
 
@@ -127,9 +125,9 @@ def _group_records(
 ) -> Digest:
     grouped: Digest = defaultdict(lambda: defaultdict(list))
     for record in records:
-        assert record.value.event.group is not None
+        assert record.value.group is not None
         for rule in record.value.rules:
-            grouped[rule][record.value.event.group].append(record)
+            grouped[rule][record.value.group].append(record)
     return grouped
 
 

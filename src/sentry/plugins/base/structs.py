@@ -11,12 +11,13 @@ class Annotation:
 
 
 class Notification:
-    def __init__(self, event, rule=None, rules=None):
+    def __init__(self, event, rule=None, rules=None, group=None):
         if rule and not rules:
             rules = [rule]
 
         self.event = event
         self.rules = rules or []
+        self.group = group
 
     @property
     def rule(self):

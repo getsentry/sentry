@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING, NamedTuple
 from sentry.utils.dates import to_datetime
 
 if TYPE_CHECKING:
+    from sentry.models.group import Group
     from sentry.models.rule import Rule
+    from sentry.notifications.notifications.digest_types import (
+        NotificationSerializedEvent,
+        NotificationSerializedGroupEvent,
+    )
     from sentry.services.eventstore.models import Event, GroupEvent
 
 
@@ -23,12 +28,25 @@ class Notification(NamedTuple):
     notification_uuid: str | None = None
     identifier_key: IdentifierKey = IdentifierKey.RULE
 
-    def with_rules(self, rules: list[Rule]) -> NotificationWithRuleObjects:
+    def with_rules(self, rules: list[Rule], group: Group) -> NotificationWithRuleObjects:
+        from sentry.notifications.notifications.digest_types import (
+            NotificationSerializedEvent,
+            NotificationSerializedGroupEvent,
+        )
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, GroupEvent):
+            serialized_event: NotificationSerializedEvent | NotificationSerializedGroupEvent = (
+                NotificationSerializedGroupEvent.from_group_event(self.event)
+            )
+        else:
+            serialized_event = NotificationSerializedEvent.from_event(self.event)
+
         return NotificationWithRuleObjects(
-            event=self.event,
+            event=serialized_event,
             rules=rules,
             notification_uuid=self.notification_uuid,
-            # We don't really worry about identifier_key here since this method is not used after we pop record from redis
+            group=group,
         )
 
 
@@ -41,18 +59,19 @@ class Record(NamedTuple):
     def datetime(self) -> datetime_mod.datetime:
         return to_datetime(self.timestamp)
 
-    def with_rules(self, rules: list[Rule]) -> RecordWithRuleObjects:
+    def with_rules(self, rules: list[Rule], group: Group) -> RecordWithRuleObjects:
         return RecordWithRuleObjects(
             key=self.key,
-            value=self.value.with_rules(rules),
+            value=self.value.with_rules(rules, group),
             timestamp=self.timestamp,
         )
 
 
 class NotificationWithRuleObjects(NamedTuple):
-    event: Event | GroupEvent
+    event: NotificationSerializedEvent | NotificationSerializedGroupEvent
     rules: list[Rule]
     notification_uuid: str | None
+    group: Group
 
 
 class RecordWithRuleObjects(NamedTuple):

@@ -65,7 +65,11 @@ def send_as_alert_notification(
         ),
         key=get_timestamp,
     )
-    notification = Notification(record.value.event, rules=record.value.rules)
+    # TODO: record.value.event is now a NotificationSerializedEvent which lacks .project/.get_email_subject().
+    # AlertRuleNotification deeply depends on Event APIs — fully updating it is a follow-up.
+    notification = Notification(
+        record.value.event, rules=record.value.rules, group=record.value.group
+    )
     mail_adapter.notify(
         notification, target_type, target_identifier, fallthrough_choice=fallthrough_choice
     )

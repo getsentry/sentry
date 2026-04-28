@@ -39,7 +39,13 @@ from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
+    from sentry.notifications.notifications.digest_types import (
+        NotificationSerializedEvent,
+        NotificationSerializedGroupEvent,
+    )
     from sentry.services.eventstore.models import Event, GroupEvent
+
+    AnyEvent = Event | GroupEvent | NotificationSerializedEvent | NotificationSerializedGroupEvent
 
 logger = logging.getLogger(__name__)
 
@@ -198,7 +204,7 @@ def get_participants_for_release(
 
 def get_owners(
     project: Project,
-    event: Event | GroupEvent | None = None,
+    event: AnyEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> tuple[list[Actor], str]:
     """
@@ -228,7 +234,7 @@ def get_owners(
 def get_owner_reason(
     project: Project,
     target_type: ActionTargetType,
-    event: Event | GroupEvent | None = None,
+    event: AnyEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> str | None:
     """
@@ -252,7 +258,7 @@ def get_owner_reason(
     return None
 
 
-def get_suspect_commit_users(project: Project, event: Event | GroupEvent) -> list[RpcUser]:
+def get_suspect_commit_users(project: Project, event: AnyEvent) -> list[RpcUser]:
     """
     Returns a list of users that are suspect committers for the given event.
 
@@ -283,7 +289,7 @@ def determine_eligible_recipients(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | GroupEvent | None = None,
+    event: AnyEvent | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
 ) -> Iterable[Actor]:
     """
@@ -355,7 +361,7 @@ def get_send_to(
     project: Project,
     target_type: ActionTargetType,
     target_identifier: int | None = None,
-    event: Event | GroupEvent | None = None,
+    event: AnyEvent | None = None,
     notification_type_enum: NotificationSettingEnum = NotificationSettingEnum.ISSUE_ALERTS,
     fallthrough_choice: FallthroughChoiceType | None = None,
     rules: Iterable[Rule] | None = None,

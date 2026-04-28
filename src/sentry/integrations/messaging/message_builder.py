@@ -13,6 +13,10 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.notifications.digest_types import (
+    NotificationSerializedEvent,
+    NotificationSerializedGroupEvent,
+)
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data, get_rule_or_workflow_id
@@ -67,7 +71,13 @@ def format_actor_options_slack(actors: Iterable[Team | RpcUser]) -> list[_SlackA
     )
 
 
-def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
+def build_attachment_title(
+    obj: Group
+    | Event
+    | GroupEvent
+    | NotificationSerializedEvent
+    | NotificationSerializedGroupEvent,
+) -> str:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
     title = obj.title
@@ -78,14 +88,16 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     elif ev_type == "csp":
         title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"
     else:
-        if isinstance(obj, GroupEvent):
+        if isinstance(obj, (GroupEvent, NotificationSerializedGroupEvent)):
             if obj.occurrence is not None:
                 title = obj.occurrence.issue_title
         else:
-            if not isinstance(obj, Group):
+            if not isinstance(obj, (Group, NotificationSerializedEvent)):
                 group = obj.group
-            else:
+            elif isinstance(obj, Group):
                 group = obj
+            else:
+                group = None
 
             if group is not None:
                 event = group.get_latest_event()
@@ -234,7 +246,14 @@ def get_title_link_workflow_engine_ui(
     return url
 
 
-def build_attachment_text(group: Group, event: Event | GroupEvent | None = None) -> Any | None:
+def build_attachment_text(
+    group: Group,
+    event: Event
+    | GroupEvent
+    | NotificationSerializedEvent
+    | NotificationSerializedGroupEvent
+    | None = None,
+) -> Any | None:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -243,7 +262,10 @@ def build_attachment_text(group: Group, event: Event | GroupEvent | None = None)
     if not event:
         event = group.get_latest_event()
 
-    if isinstance(event, GroupEvent) and event.occurrence is not None:
+    if (
+        isinstance(event, (GroupEvent, NotificationSerializedGroupEvent))
+        and event.occurrence is not None
+    ):
         important = event.occurrence.important_evidence_display
         if important:
             return important.value
@@ -254,7 +276,13 @@ def build_attachment_text(group: Group, event: Event | GroupEvent | None = None)
 
 
 def build_attachment_replay_link(
-    group: Group, url_format: str, event: Event | GroupEvent | None = None
+    group: Group,
+    url_format: str,
+    event: Event
+    | GroupEvent
+    | NotificationSerializedEvent
+    | NotificationSerializedGroupEvent
+    | None = None,
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
     if has_replay and group.has_replays():

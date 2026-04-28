@@ -22,6 +22,10 @@ from sentry.digests.utils import (
 )
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.notifications.digest_types import (
+    NotificationSerializedEvent,
+    NotificationSerializedGroupEvent,
+)
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
 from sentry.notifications.utils import has_alert_integration
@@ -35,7 +39,6 @@ from sentry.notifications.utils.links import (
     get_integration_link,
     get_rules,
 )
-from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user_option import user_option_service
@@ -204,7 +207,8 @@ class DigestNotification(ProjectNotification):
     def get_extra_context(
         self,
         participants_by_provider_by_event: Mapping[
-            Event | GroupEvent, Mapping[ExternalProviders, set[Actor]]
+            NotificationSerializedEvent | NotificationSerializedGroupEvent,
+            Mapping[ExternalProviders, set[Actor]],
         ],
     ) -> Mapping[Actor, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(
