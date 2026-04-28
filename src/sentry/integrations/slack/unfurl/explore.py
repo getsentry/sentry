@@ -240,6 +240,9 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     explore_dataset = _get_explore_dataset(url)
     dataset_config = _get_explore_dataset_config(explore_dataset)
 
+    # Parse visualization params from the URL.
+    # Each metric uses a "metric" JSON param with nested aggregateFields.
+    # Traces uses "visualize" and logs uses "aggregateField".
     y_axes: list[str] = []
     group_bys: list[str] = []
     chart_type: int | None = None
@@ -269,8 +272,6 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         except (json.JSONDecodeError, TypeError, AttributeError):
             pass
 
-    # Match the frontend's getSpansAggregateFieldsFromLocation: aggregateField
-    # is the canonical source when present, falling back to legacy visualize.
     visualize_fields = raw_query.getlist("aggregateField") or raw_query.getlist("visualize")
     for field_json in visualize_fields:
         try:
