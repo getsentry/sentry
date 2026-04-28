@@ -115,6 +115,9 @@ function findEmptyPrefixMatch(
   }
 
   for (const query of client.getQueryCache().getAll()) {
+    if (query.isStale()) {
+      continue;
+    }
     const cachedSearch = getPrefixSearchCacheKey(query.queryKey);
     if (
       !cachedSearch ||
