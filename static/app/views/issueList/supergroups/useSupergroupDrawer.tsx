@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useEffect, useEffectEvent, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -63,8 +63,7 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
 
   const supergroup = lookupSupergroup ?? fetchedSupergroup;
 
-  const stripDrawerParam = useRef<() => void>(() => {});
-  stripDrawerParam.current = () => {
+  const stripDrawerParam = useEffectEvent(() => {
     navigate(
       {
         pathname: location.pathname,
@@ -75,7 +74,7 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
       },
       {replace: true, preventScrollReset: true}
     );
-  };
+  });
 
   const lastOpenedIdRef = useRef<string | undefined>(undefined);
 
@@ -94,7 +93,7 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
 
     if (!supergroup) {
       if (isError) {
-        stripDrawerParam.current();
+        stripDrawerParam();
       }
       return;
     }
@@ -117,7 +116,7 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
           !el.closest('[data-overlay]'),
         shouldCloseOnLocationChange: nextLocation =>
           !nextLocation.query[SUPERGROUP_DRAWER_QUERY_PARAM],
-        onClose: () => stripDrawerParam.current(),
+        onClose: () => stripDrawerParam(),
       }
     );
   }, [hasTopIssuesUI, drawerSupergroupId, supergroup, isError, memberList, openDrawer]);
