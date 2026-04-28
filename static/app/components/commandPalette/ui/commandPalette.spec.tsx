@@ -136,6 +136,23 @@ describe('CommandPalette', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('does not reset focus to the first item after mouse leave', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+    const initialPathname = router.location.pathname;
+
+    await userEvent.hover(await screen.findByRole('option', {name: 'Other'}));
+    await userEvent.unhover(screen.getByRole('listbox', {name: 'Search results'}));
+    await userEvent.keyboard('{Enter}');
+
+    expect(router.location.pathname).toBe(initialPathname);
+    expect(closeSpy).not.toHaveBeenCalled();
+  });
+
   it('ArrowUp from the first item wraps to the last selectable item', async () => {
     const closeSpy = jest.spyOn(modalActions, 'closeModal');
     render(
