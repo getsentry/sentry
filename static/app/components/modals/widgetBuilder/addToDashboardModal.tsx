@@ -24,7 +24,6 @@ import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -47,6 +46,7 @@ import type {
   Widget,
 } from 'sentry/views/dashboards/types';
 import {
+  DashboardFilter,
   DEFAULT_WIDGET_NAME,
   DisplayType,
   MAX_WIDGETS,
@@ -167,7 +167,9 @@ function AddToDashboardModal({
     // Track mounted state so we dont call setState on unmounted components
     let unmounted = false;
 
-    fetchDashboards(api, organization.slug).then(response => {
+    fetchDashboards(api, organization.slug, {
+      filter: DashboardFilter.EXCLUDE_PREBUILT,
+    }).then(response => {
       // If component has unmounted, dont set state
       if (unmounted) {
         return;
@@ -386,7 +388,6 @@ function AddToDashboardModal({
           tooltipOptions: {position: 'right', isHoverable: true},
         },
         ...dashboards
-          .filter(dashboard => !defined(dashboard.prebuiltId)) // Cannot add to prebuilt dashboards
           .filter(dashboard =>
             // if adding from a dashboard, currentDashboardId will be set and we'll remove it from the list of options
             currentDashboardId ? dashboard.id !== currentDashboardId : true
