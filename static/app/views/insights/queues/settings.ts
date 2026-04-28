@@ -5,8 +5,6 @@ export const BASE_URL = 'queues';
 export const DATA_TYPE = t('Queue');
 export const DATA_TYPE_PLURAL = t('Queues');
 
-export const DESTINATION_TITLE = t('Destination Summary');
-
 export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';
 export const CONSUMER_QUERY_FILTER = 'span.op:queue.process';
 export const PRODUCER_QUERY_FILTER = 'span.op:queue.publish';
