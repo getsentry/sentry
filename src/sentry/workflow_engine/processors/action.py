@@ -329,7 +329,7 @@ def filter_recently_fired_workflow_actions(
         "organizations:workflow-engine-deduplicate-actions",
         event_data.event.project.organization,
     ):
-        actions_for_dedup = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
+        actions_for_dedup = Action.objects.filter(id__in=action_to_workflows_ids.keys())
         dedup_key_to_entry: dict[str, tuple[int, set[WorkflowId]]] = {}
         for action in actions_for_dedup:
             dedup_key = action.get_dedup_key()
@@ -350,14 +350,14 @@ def filter_recently_fired_workflow_actions(
         wf_id for wf_ids in action_to_workflows_ids.values() for wf_id in wf_ids
     }
 
-    actions_queryset = Action.objects.filter(id__in=list(action_to_workflows_ids.keys()))
+    actions_queryset = Action.objects.filter(id__in=action_to_workflows_ids.keys())
 
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
         When(
-            id=action_id, then=Value(min(list(workflow_ids)))
+            id=action_id, then=Value(min(wf_ids))
         )  # select 1 workflow to fire for, this is arbitrary but deterministic
-        for action_id, workflow_ids in action_to_workflows_ids.items()
+        for action_id, wf_ids in action_to_workflows_ids.items()
     ]
 
     return FilteredActions(
