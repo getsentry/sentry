@@ -366,7 +366,7 @@ export function BlockComponent({
                     // Check if this tool call corresponds to the selected link
                     const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
                     const hasLink = correspondingLinkIndex !== undefined;
-                    const isLoading = // TODO:
+                    const isLoading =
                       blockStatus === 'loading' || blockStatus === 'pending';
 
                     const toolLinkParams = toolLinkByCallId.get(toolCall.id);
@@ -386,7 +386,7 @@ export function BlockComponent({
                             ? t('Tool call failed')
                             : t('Tool call returned empty results')
                         }
-                        disabled={!isFailed && !isEmptyResults}
+                        disabled={isLoading || (!isFailed && !isEmptyResults)}
                       >
                         <ToolCallText size="xs" variant="muted" monospace>
                           {toolString}
