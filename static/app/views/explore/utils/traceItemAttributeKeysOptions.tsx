@@ -1,3 +1,9 @@
+import {
+  queryOptions,
+  type QueryClient,
+  type QueryFunctionContext,
+} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -8,11 +14,6 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
-import {
-  queryOptions,
-  type QueryClient,
-  type QueryFunctionContext,
-} from 'sentry/utils/queryClient';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 type AttributeType = {
