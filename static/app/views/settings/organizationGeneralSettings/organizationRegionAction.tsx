@@ -6,9 +6,9 @@ import type {Organization} from 'sentry/types/organization';
 import {getRegionDataFromOrganization, getRegions} from 'sentry/utils/regions';
 import {DATA_STORAGE_DOCS_LINK} from 'sentry/views/organizationCreate';
 
-type Props = {
+interface Props {
   organization?: Organization;
-};
+}
 
 const OrganizationRegionInformationWrapper = styled('div')`
   margin-top: ${p => p.theme.space.xl};

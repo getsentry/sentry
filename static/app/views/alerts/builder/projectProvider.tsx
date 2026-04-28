@@ -20,10 +20,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-type AlertBuilderOutletContext = {
+interface AlertBuilderOutletContext {
   members: Member[] | undefined;
   project: Project;
-};
+}
 
 function AlertBuilderOutlet(props: AlertBuilderOutletContext) {
   return <Outlet context={props} />;

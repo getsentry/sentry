@@ -25,14 +25,14 @@ import {
 } from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';
 
-type Props = {
+interface Props {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
   selection: PageFilters;
   platform?: PlatformKey;
   query?: string;
-};
+}
 
 export function ProjectAnrScoreCard({
   isProjectStabilized,

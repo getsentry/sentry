@@ -36,9 +36,9 @@ import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-type FetchApiTokenParameters = {
+interface FetchApiTokenParameters {
   tokenId: string;
-};
+}
 type FetchApiTokenResponse = InternalAppApiToken;
 
 const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>

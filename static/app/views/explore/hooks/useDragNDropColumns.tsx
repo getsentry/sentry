@@ -4,11 +4,11 @@ import {arrayMove} from '@dnd-kit/sortable';
 
 import {uniqueId} from 'sentry/utils/guid';
 
-export type Column<T> = {
+export interface Column<T> {
   column: T;
   id: number;
   uniqueId: string;
-};
+}
 
 interface UseDragAndDropColumnsProps<T> {
   columns: T[];

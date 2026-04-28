@@ -6,9 +6,9 @@ import {Histogram} from 'sentry/utils/performance/histogram';
 
 import {ZOOM_END, ZOOM_START} from './utils';
 
-type Props = {
+interface Props {
   location: Location;
-};
+}
 
 export function ChartControls({location}: Props) {
   return (

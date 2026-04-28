@@ -157,11 +157,11 @@ async function fetchTraceMetaInBatches(
   return {meta, apiErrors};
 }
 
-export type TraceMetaQueryResults = {
+export interface TraceMetaQueryResults {
   data: TraceMeta | EAPTraceMeta | undefined;
   errors: Error[];
   status: QueryStatus;
-};
+}
 
 export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults {
   const api = useApi();

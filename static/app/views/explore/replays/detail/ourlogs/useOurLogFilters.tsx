@@ -11,23 +11,23 @@ import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogSeverityLevel} from 'sentry/views/explore/logs/utils';
 
-type FilterFields = {
+interface FilterFields {
   f_ol_search: string;
   f_ol_severity: string[];
-};
+}
 
-type Options = {
+interface Options {
   logItems: OurLogsResponseItem[];
-};
+}
 
-type Return = {
+interface Return {
   getSeverityLevels: () => Array<SelectOption<string>>;
   items: OurLogsResponseItem[];
   searchTerm: string;
   selectValues: Array<SelectOption<string>>;
   setSearchTerm: (searchTerm: string) => void;
   setSeverityLevel: (val: Array<SelectOption<string>>) => void;
-};
+}
 
 const FILTERS = {
   severity: (item: OurLogsResponseItem, severities: string[]) => {

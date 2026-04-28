@@ -12,7 +12,7 @@ import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/se
 
 import type {PlottableTimeSeriesValueType} from './plottable';
 
-export type ContinuousTimeSeriesConfig = {
+export interface ContinuousTimeSeriesConfig {
   /**
    * Optional alias. If not provided, the series name from the legend will be computed from the `TimeSeries`.
    */
@@ -31,9 +31,9 @@ export type ContinuousTimeSeriesConfig = {
    * Callback for ECharts' `onHighlight`. Called with the data point that corresponds to the highlighted point in the chart
    */
   onHighlight?: (datum: Readonly<TimeSeries['values'][number]>) => void;
-};
+}
 
-export type ContinuousTimeSeriesPlottingOptions = {
+export interface ContinuousTimeSeriesPlottingOptions {
   /**
    * Final plottable color. If no color is specified in configuration, a fallback must be provided while attempting to plot
    */
@@ -46,7 +46,7 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
   yAxisPosition: 'left' | 'right';
-};
+}
 
 /**
  * `ContinuousTimeSeries` is a plottable that represents a continuous data time series. This is used for tasks like plotting a changing duration over time, for example. This is distinct from plotting items like sample series, threshold lines, etc. This ABC is inherited by specific plottable time series like `Line`, `Area`, and `Bars` to enforce the interface and share functionality.

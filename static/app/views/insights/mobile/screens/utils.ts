@@ -42,14 +42,14 @@ export enum PerformanceScore {
   NONE = 'none',
 }
 
-export type VitalStatus = {
+export interface VitalStatus {
   description: string | undefined;
   formattedValue: string | undefined;
   score: PerformanceScore;
   value: MetricValue | undefined;
-};
+}
 
-type GenericVitalItem<T extends 'spansMetrics' | 'metrics'> = {
+interface GenericVitalItem<T extends 'spansMetrics' | 'metrics'> {
   dataset: T;
   description: string;
   docs: React.ReactNode;
@@ -59,11 +59,11 @@ type GenericVitalItem<T extends 'spansMetrics' | 'metrics'> = {
   sdkDocLinks: Record<string, string>;
   setup: React.ReactNode | undefined;
   title: string;
-};
+}
 
 export type VitalItem = GenericVitalItem<'metrics'> | GenericVitalItem<'spansMetrics'>;
 
-export type MetricValue = {
+export interface MetricValue {
   // the field type if defined, e.g. duration
   type: string | undefined;
 
@@ -72,7 +72,7 @@ export type MetricValue = {
 
   // the actual value
   value: string | number | undefined;
-};
+}
 
 export const STATUS_UNKNOWN: VitalStatus = {
   description: undefined,

@@ -20,11 +20,11 @@ type GroupedAuthorCommits = Record<
   {author: User | undefined; commitCount: number}
 >;
 
-type Props = {
+interface Props {
   orgId: string;
   projectSlug: string;
   version: string;
-};
+}
 
 export function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
   const {

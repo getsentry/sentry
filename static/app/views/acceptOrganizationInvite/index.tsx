@@ -20,7 +20,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-type InviteDetails = {
+interface InviteDetails {
   existingMember: boolean;
   hasAuthProvider: boolean;
   needs2fa: boolean;
@@ -28,7 +28,7 @@ type InviteDetails = {
   orgSlug: string;
   requireSso: boolean;
   ssoProvider?: string;
-};
+}
 
 function AcceptActions({
   inviteDetails,

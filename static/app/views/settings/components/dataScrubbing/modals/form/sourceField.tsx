@@ -16,31 +16,31 @@ import {
 
 import {SourceSuggestionExamples} from './sourceSuggestionExamples';
 
-type FieldProps = {
+interface FieldProps {
   'aria-describedby': string;
   'aria-invalid': boolean;
   disabled: boolean;
   id: string;
   name: string;
   onBlur: () => void;
-};
+}
 
-type Props = {
+interface Props {
   fieldProps: FieldProps;
   isRegExMatchesSelected: boolean;
   onChange: (value: string) => void;
   suggestions: SourceSuggestion[];
   value: string;
-};
+}
 
-type State = {
+interface State {
   activeSuggestion: number;
   fieldValues: Array<SourceSuggestion | SourceSuggestion[]>;
   help: string;
   hideCaret: boolean;
   showSuggestions: boolean;
   suggestions: SourceSuggestion[];
-};
+}
 
 export class SourceField extends Component<Props, State> {
   state: State = {

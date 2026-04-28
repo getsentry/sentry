@@ -16,10 +16,10 @@ const FREQUENCY_OPTIONS = [
   {value: 43200, label: t('30 days')},
 ];
 
-type ActionIntervalSelectFieldProps = {
+interface ActionIntervalSelectFieldProps {
   help?: string;
   label?: string;
-};
+}
 
 export function ActionThrottleSelectField(props: ActionIntervalSelectFieldProps) {
   return (

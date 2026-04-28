@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 
-type InsightInfoModalOptions = {
+interface InsightInfoModalOptions {
   children: ReactNode;
   title: string;
-};
+}
 
 type Props = ModalRenderProps & InsightInfoModalOptions;
 

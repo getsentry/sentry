@@ -18,10 +18,10 @@ import type {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {
+interface RouteParams {
   projectId?: string;
   ruleId?: string;
-};
+}
 
 type Props = {
   eventView: EventView | undefined;

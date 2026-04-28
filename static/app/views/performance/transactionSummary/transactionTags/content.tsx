@@ -37,13 +37,13 @@ import {X_AXIS_SELECT_OPTIONS} from './constants';
 import {TAG_PAGE_TABLE_CURSOR, TagsDisplay} from './tagsDisplay';
 import {decodeSelectedTagKey} from './utils';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
   projects: Project[];
   transactionName: string;
-};
+}
 
 type TagOption = string;
 

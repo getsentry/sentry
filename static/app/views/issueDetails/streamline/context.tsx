@@ -159,27 +159,27 @@ interface IssueDetailsState {
   sectionData: Partial<Record<SectionKey, SectionConfig>>;
 }
 
-type UpdateEventSectionAction = {
+interface UpdateEventSectionAction {
   key: SectionKey;
   type: 'UPDATE_EVENT_SECTION';
   config?: Partial<SectionConfig>;
-};
+}
 
-type UpdateNavScrollMarginAction = {margin: number; type: 'UPDATE_NAV_SCROLL_MARGIN'};
+interface UpdateNavScrollMarginAction {margin: number; type: 'UPDATE_NAV_SCROLL_MARGIN'}
 
-type UpdateEventCountAction = {count: number; type: 'UPDATE_EVENT_COUNT'};
+interface UpdateEventCountAction {count: number; type: 'UPDATE_EVENT_COUNT'}
 
-type UpdateSidebarAction = {isOpen: boolean; type: 'UPDATE_SIDEBAR_STATE'};
+interface UpdateSidebarAction {isOpen: boolean; type: 'UPDATE_SIDEBAR_STATE'}
 
-type UpdateDetectorDetailsAction = {
+interface UpdateDetectorDetailsAction {
   detectorDetails: DetectorDetails;
   type: 'UPDATE_DETECTOR_DETAILS';
-};
+}
 
-type RemoveEventSectionAction = {
+interface RemoveEventSectionAction {
   key: SectionKey;
   type: 'REMOVE_EVENT_SECTION';
-};
+}
 
 type IssueDetailsActions =
   | UpdateEventSectionAction

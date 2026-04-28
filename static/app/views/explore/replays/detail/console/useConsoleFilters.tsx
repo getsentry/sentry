@@ -11,16 +11,16 @@ import {
 } from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
-export type FilterFields = {
+export interface FilterFields {
   f_c_logLevel: string[];
   f_c_search: string;
-};
+}
 
-type Options = {
+interface Options {
   frames: BreadcrumbFrame[];
-};
+}
 
-type Return = {
+interface Return {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
   getLogLevels: () => Array<{label: string; value: string}>;
   items: BreadcrumbFrame[];
@@ -28,7 +28,7 @@ type Return = {
   searchTerm: string;
   setLogLevel: (logLevel: string[]) => void;
   setSearchTerm: (searchTerm: string) => void;
-};
+}
 
 function getFilterableField(frame: BreadcrumbFrame) {
   if (isConsoleFrame(frame)) {

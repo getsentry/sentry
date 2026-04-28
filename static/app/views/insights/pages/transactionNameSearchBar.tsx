@@ -22,7 +22,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-type SearchBarProps = {
+interface SearchBarProps {
   onSearch: (query: string) => void;
   organization: Organization;
   /** The project ids to search for */
@@ -30,7 +30,7 @@ type SearchBarProps = {
   /** The query in the search bar */
   query: string;
   className?: string;
-};
+}
 
 export function TransactionNameSearchBar(props: SearchBarProps) {
   const {organization, onSearch, query: searchQuery, projectIds, className} = props;

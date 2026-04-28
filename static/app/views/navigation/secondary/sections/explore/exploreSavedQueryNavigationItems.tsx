@@ -11,9 +11,9 @@ import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReord
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
-type Props = {
+interface Props {
   queries: SavedQuery[];
-};
+}
 
 export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const organization = useOrganization();

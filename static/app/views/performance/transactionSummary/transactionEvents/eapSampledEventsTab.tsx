@@ -128,7 +128,7 @@ export function EAPSampledEventsTab() {
   );
 }
 
-type FilterBarProps = {
+interface FilterBarProps {
   eventView: EventView;
   eventsDisplayFilterName: EventsDisplayFilterName;
   location: Location;
@@ -137,7 +137,7 @@ type FilterBarProps = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   transactionName: string;
   maxDuration?: number;
-};
+}
 
 function FilterBar(props: FilterBarProps) {
   const {eventView, location} = props;

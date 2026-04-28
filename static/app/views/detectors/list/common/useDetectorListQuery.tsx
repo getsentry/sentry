@@ -10,10 +10,10 @@ import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
 import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 
-type UseDetectorListQueryOptions = {
+interface UseDetectorListQueryOptions {
   assigneeFilter?: string;
   detectorFilter?: Exclude<DetectorType, 'issue_stream'>;
-};
+}
 
 export function useDetectorListQuery({
   detectorFilter,

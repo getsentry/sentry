@@ -28,9 +28,9 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   return results.join(', ');
 };
 
-type Props = {
+interface Props {
   event: Event;
-};
+}
 
 export function EventCreatedTooltip({event}: Props) {
   const user = useUser();

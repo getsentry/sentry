@@ -23,7 +23,7 @@ import {
 import {useAlertsProject} from 'sentry/views/insights/common/utils/useAlertsProject';
 import type {SpanFields} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   chartType: ChartType;
   referrer: string;
   yAxes: string[];
@@ -32,7 +32,7 @@ type Props = {
   interval?: string;
   search?: MutableSearch;
   title?: string;
-};
+}
 
 export function ChartActionDropdown({
   chartType,
@@ -105,12 +105,12 @@ export function ChartActionDropdown({
   );
 }
 
-type BaseProps = {
+interface BaseProps {
   alertMenuOptions: MenuItemProps[];
   exploreUrl: LocationDescriptor;
   referrer: string;
   addToDashboardOptions?: AddToSpanDashboardOptions | AddToSpanDashboardOptions[];
-};
+}
 
 export function BaseChartActionDropdown({
   alertMenuOptions,

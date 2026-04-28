@@ -75,7 +75,7 @@ type SpanTableRow = {
     [SpanFields.PROFILE_ID]?: string;
   };
 
-type Props = {
+interface Props {
   avg: number;
   data: SpanTableRow[];
   groupId: string;
@@ -86,7 +86,7 @@ type Props = {
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
   source?: TraceViewSources;
-};
+}
 
 export function SpanSamplesTable({
   groupId,

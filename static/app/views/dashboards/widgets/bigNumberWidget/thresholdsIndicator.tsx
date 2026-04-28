@@ -6,13 +6,13 @@ import {normalizeUnit} from 'sentry/views/dashboards/utils';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {ThresholdsHoverWrapper} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 
-type ValidThresholds = {
+interface ValidThresholds {
   max_values: {
     max1: number;
     max2: number;
   };
   unit?: string;
-};
+}
 
 interface ThresholdsIndicatorProps {
   thresholds: ValidThresholds;

@@ -49,10 +49,10 @@ export type ModulesWithOnboarding = Exclude<
   | ModuleName.OTHER
 >;
 
-type ModuleOnboardingProps = {
+interface ModuleOnboardingProps {
   children: React.ReactNode;
   moduleName: ModulesWithOnboarding;
-};
+}
 
 export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps) {
   const organization = useOrganization();
@@ -135,7 +135,7 @@ export function ModulesOnboardingPanel({
   );
 }
 
-type ModulePreviewProps = {moduleName: ModulesWithOnboarding};
+interface ModulePreviewProps {moduleName: ModulesWithOnboarding}
 
 function getSDKName(sdk: PlatformKey) {
   const currentPlatform = platforms.find(p => p.id === sdk);
@@ -249,14 +249,14 @@ const ValueProp = styled('div')`
   }
 `;
 
-type EmptyStateContent = {
+interface EmptyStateContent {
   description: React.ReactNode;
   heading: React.ReactNode;
   imageSrc: any;
   valuePropDescription: React.ReactNode;
   valuePropPoints: React.ReactNode[];
   supportedSdks?: PlatformKey[];
-};
+}
 
 const EMPTY_STATE_CONTENT: Record<ModulesWithOnboarding, EmptyStateContent> = {
   [ModuleName.APP_START]: {

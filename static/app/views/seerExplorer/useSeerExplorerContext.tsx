@@ -22,13 +22,13 @@ import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
 
 export type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
-type SeerExplorerContextValue = {
+interface SeerExplorerContextValue {
   closeSeerExplorer: () => void;
   isOpen: boolean;
   openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
   sessionState: SeerExplorerSessionState;
   toggleSeerExplorer: () => void;
-};
+}
 
 export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},

@@ -4,21 +4,21 @@ import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
 
-export type ChartSelectionQueryParam = {
+export interface ChartSelectionQueryParam {
   chartIndex: number;
   panelId: string;
   range: [number, number];
-};
+}
 
 type ChartSelectionState = {
   chartIndex: number;
   selection: Selection;
 } | null;
 
-type ChartSelectionContextValue = {
+interface ChartSelectionContextValue {
   chartSelection: ChartSelectionState;
   setChartSelection: (state: ChartSelectionState) => void;
-};
+}
 
 const ChartSelectionContext = createContext<ChartSelectionContextValue | undefined>(
   undefined

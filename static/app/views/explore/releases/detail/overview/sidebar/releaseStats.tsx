@@ -9,11 +9,11 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Required<ReleaseProject>;
   release: Release;
-};
+}
 
 export function ReleaseStats({organization, release, project}: Props) {
   const {lastDeploy, dateCreated, version} = release;

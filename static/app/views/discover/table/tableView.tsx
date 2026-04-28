@@ -67,7 +67,7 @@ import {TableActions} from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
 
-type TableViewProps = {
+interface TableViewProps {
   error: string | null;
   eventView: EventView;
   isFirstPage: boolean;
@@ -87,7 +87,7 @@ type TableViewProps = {
   isHomepage?: boolean;
   queryDataset?: SavedQueryDatasets;
   spanOperationBreakdownKeys?: string[];
-};
+}
 
 /**
  * The `TableView` is marked with leading _ in its method names. It consumes

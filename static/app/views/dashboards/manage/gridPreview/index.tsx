@@ -36,9 +36,9 @@ function MiniWidget({displayType, color}: {color: string; displayType: DisplayTy
   }
 }
 
-type Props = {
+interface Props {
   widgetPreview: WidgetPreview[];
-};
+}
 
 export function GridPreview({widgetPreview}: Props) {
   const theme = useTheme();

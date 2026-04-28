@@ -99,10 +99,10 @@ import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
-type LogsTabProps = {
+interface LogsTabProps {
   datePageFilterProps: DatePageFilterProps;
   tableExpando: TableExpando;
-};
+}
 
 interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];

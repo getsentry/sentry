@@ -69,12 +69,12 @@ export const PAGE_QUERY_PARAMS = [
   'clientDiscard',
 ];
 
-export type OrganizationStatsProps = {
+export interface OrganizationStatsProps {
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
   selection: PageFilters;
-};
+}
 
 export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
   get dataCategoryInfo(): DataCategoryInfo {

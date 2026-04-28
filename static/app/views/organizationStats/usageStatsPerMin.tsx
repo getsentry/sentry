@@ -10,12 +10,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
-type Props = {
+interface Props {
   dataCategory: DataCategory;
   dataCategoryApiName: DataCategoryExact;
   organization: Organization;
   projectIds: number[];
-};
+}
 
 /**
  * Making 1 extra API call to display this number isn't very efficient.

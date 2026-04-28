@@ -5,7 +5,7 @@ export enum MessageType {
   INFO = 'info',
 }
 
-export type TempestCredentials = {
+export interface TempestCredentials {
   clientId: string;
   clientSecret: string;
   createdByEmail: string;
@@ -16,4 +16,4 @@ export type TempestCredentials = {
   latestFetchedItemId: string;
   message: string;
   messageType: MessageType | null;
-};
+}

@@ -19,11 +19,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
-};
+}
 
 export function StatusBreakdown({eventView, location, organization}: Props) {
   const navigate = useNavigate();

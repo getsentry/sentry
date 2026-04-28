@@ -17,10 +17,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
-type SearchSuggestion = {
+interface SearchSuggestion {
   label: string;
   query: string;
-};
+}
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: t('Prioritized'), query: 'is:unresolved issue.priority:[high, medium]'},

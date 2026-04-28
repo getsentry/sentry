@@ -28,16 +28,16 @@ import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import type {NavigationGroupProps, NavigationItem} from 'sentry/views/settings/types';
 
-type ProjectSettingsCommandPaletteEntry = {
+interface ProjectSettingsCommandPaletteEntry {
   display: {
     label: string;
     icon?: ReactNode;
   };
   keywords: string[];
   to: string;
-};
+}
 
-type ProjectSettingsCommandPaletteGroup = {
+interface ProjectSettingsCommandPaletteGroup {
   items: Array<{
     display: {
       label: string;
@@ -48,13 +48,13 @@ type ProjectSettingsCommandPaletteGroup = {
   }>;
   label: string;
   icon?: ReactNode;
-};
+}
 
-type ProjectSettingsCommandPaletteSection = {
+interface ProjectSettingsCommandPaletteSection {
   items: Array<ProjectSettingsCommandPaletteEntry | ProjectSettingsCommandPaletteGroup>;
   label: string;
   icon?: ReactNode;
-};
+}
 
 export const PROJECT_SETTINGS_ICONS: Record<string, ReactNode> = {
   '': <IconSettings />,

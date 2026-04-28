@@ -13,12 +13,12 @@ export enum Output {
   DATA = 'data',
 }
 
-type Args = {
+interface Args {
   isCaptureBodySetup: boolean;
   isSetup: boolean;
   item: SectionProps['item'];
   visibleTab: TabKey;
-};
+}
 
 export function getOutputType({
   isCaptureBodySetup,

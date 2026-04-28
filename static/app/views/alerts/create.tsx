@@ -41,10 +41,10 @@ import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils
 import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
-type RouteParams = {
+interface RouteParams {
   alertType?: AlertRuleType;
   projectId?: string;
-};
+}
 
 export default function Create() {
   const organization = useOrganization();

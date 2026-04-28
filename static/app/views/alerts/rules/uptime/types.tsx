@@ -77,12 +77,12 @@ export enum CheckStatus {
   MISSED_WINDOW = 'missed_window',
 }
 
-type StatsBucket = {
+interface StatsBucket {
   [CheckStatus.SUCCESS]: number;
   [CheckStatus.FAILURE]: number;
   [CheckStatus.FAILURE_INCIDENT]: number;
   [CheckStatus.MISSED_WINDOW]: number;
-};
+}
 
 export type CheckStatusBucket = [timestamp: number, stats: StatsBucket];
 
@@ -112,7 +112,7 @@ export enum UptimeComparisonType {
   NEVER = 'never',
 }
 
-export type UptimeComparison = {cmp: UptimeComparisonType};
+export interface UptimeComparison {cmp: UptimeComparisonType}
 
 export type UptimeHeaderOperand =
   | {header_op: 'none'}

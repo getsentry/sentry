@@ -233,12 +233,12 @@ function SentryAppExternalInstallationContent() {
   );
 }
 
-type CheckAndRenderProps = {
+interface CheckAndRenderProps {
   isInstalled: boolean | undefined;
   organization: Organization | undefined;
   selectedOrgSlug: string | undefined;
   sentryApp: SentryApp;
-};
+}
 
 function CheckAndRenderError({
   organization,
@@ -298,10 +298,10 @@ function CheckAndRenderError({
   return null;
 }
 
-type SingleOrgProps = {
+interface SingleOrgProps {
   organizations: OrganizationSummary[];
   sentryApp: SentryApp;
-};
+}
 function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
   const organizationName = organizations[0]!.name;
   return (
@@ -318,12 +318,12 @@ function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
 
 type SelectOrgCallback = (slug: string) => void;
 
-type MultiOrgProps = {
+interface MultiOrgProps {
   onSelectOrg: SelectOrgCallback;
   organizations: OrganizationSummary[];
   selectedOrgSlug: string | undefined;
   sentryApp: SentryApp;
-};
+}
 function MultiOrgView({
   onSelectOrg,
   organizations,

@@ -4,17 +4,17 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-type Payload = {
+interface Payload {
   clientId: string;
   clientSecret: string;
-};
+}
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
   formProps?: Partial<typeof Form>;
   onSuccess?: (data: Payload) => void;
-};
+}
 
 export function AddTempestCredentialsForm({
   organization,

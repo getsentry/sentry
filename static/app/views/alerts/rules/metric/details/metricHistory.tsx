@@ -25,10 +25,10 @@ import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils
 
 const COLLAPSE_COUNT = 3;
 
-type MetricAlertActivityProps = {
+interface MetricAlertActivityProps {
   incident: Incident;
   organization: Organization;
-};
+}
 
 function MetricAlertActivity({organization, incident}: MetricAlertActivityProps) {
   const activities = (incident.activities ?? []).filter(
@@ -128,9 +128,9 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
   );
 }
 
-type Props = {
+interface Props {
   incidents?: Incident[];
-};
+}
 
 export function MetricHistory({incidents}: Props) {
   const organization = useOrganization();

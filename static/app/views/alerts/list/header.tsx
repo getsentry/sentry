@@ -20,9 +20,9 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type Props = {
+interface Props {
   activeTab: 'stream' | 'rules';
-};
+}
 
 export function AlertHeader({activeTab}: Props) {
   const navigate = useNavigate();

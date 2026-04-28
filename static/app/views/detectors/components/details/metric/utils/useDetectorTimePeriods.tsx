@@ -51,10 +51,10 @@ function resolveStatsPeriodForDetector({
   return largest ?? MetricDetectorTimePeriod.SEVEN_DAYS;
 }
 
-type DetectorTimePeriodOption = {
+interface DetectorTimePeriodOption {
   label: React.ReactNode;
   value: MetricDetectorTimePeriod;
-};
+}
 
 export function useDetectorTimePeriodOptions(params: {
   dataset: DetectorDataset | undefined;

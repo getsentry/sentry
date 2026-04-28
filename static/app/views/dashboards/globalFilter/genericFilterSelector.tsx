@@ -5,13 +5,13 @@ import {NumericFilterSelector} from 'sentry/views/dashboards/globalFilter/numeri
 import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
-export type GenericFilterSelectorProps = {
+export interface GenericFilterSelectorProps {
   globalFilter: GlobalFilter;
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
   disableRemoveFilter?: boolean;
-};
+}
 
 function getFilterSelector(
   globalFilter: GlobalFilter

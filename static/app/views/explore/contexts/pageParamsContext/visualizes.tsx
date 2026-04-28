@@ -20,9 +20,9 @@ export const DEFAULT_VISUALIZATION_AGGREGATE = ALLOWED_EXPLORE_VISUALIZE_AGGREGA
 export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
-type VisualizeOptions = {
+interface VisualizeOptions {
   chartType?: ChartType;
-};
+}
 
 export interface BaseVisualize {
   yAxes: readonly string[];

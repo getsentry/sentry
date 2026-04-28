@@ -32,14 +32,14 @@ import {
 } from 'sentry/views/insights/mobile/screenload/constants';
 import {ModuleName} from 'sentry/views/insights/types';
 
-type Query = {
+interface Query {
   primaryRelease: string;
   project: string;
   spanGroup: string;
   transaction: string;
   [QueryParameterNames.SPANS_SORT]: string;
   spanDescription?: string;
-};
+}
 
 const EVENT = 'event';
 const SPANS = 'spans';

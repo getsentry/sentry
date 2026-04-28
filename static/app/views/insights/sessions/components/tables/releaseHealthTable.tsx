@@ -26,7 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReleaseProjectColumn} from 'sentry/views/explore/releases/list/releaseCard';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
 
-type ReleaseHealthItem = {
+interface ReleaseHealthItem {
   adoption: number;
   adoption_stage: string;
   crash_free_sessions: number;
@@ -37,7 +37,7 @@ type ReleaseHealthItem = {
   release: string;
   sessions: number;
   status: string;
-};
+}
 
 interface Props {
   data: ReleaseHealthItem[];

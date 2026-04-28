@@ -10,11 +10,11 @@ import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState
 
 import {isEmptyTrace} from './utils';
 
-type UseTraceTreeParams = {
+interface UseTraceTreeParams {
   replay: HydratedReplayRecord | null;
   trace: UseApiQueryResult<TraceTree.Trace | undefined, any>;
   traceSlug?: string;
-};
+}
 
 export function useTraceTree({trace, replay, traceSlug}: UseTraceTreeParams): TraceTree {
   const api = useApi();

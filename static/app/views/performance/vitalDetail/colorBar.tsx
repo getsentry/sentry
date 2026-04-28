@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-type ColorStop = {
+interface ColorStop {
   color: string;
   percent: number;
   renderBarStatus?: (barStatus: ReactNode, key: string) => ReactNode;
-};
+}
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   colorStops: ColorStop[];
@@ -28,10 +28,10 @@ export function ColorBar(props: Props) {
   );
 }
 
-type VitalBarProps = {
+interface VitalBarProps {
   fractions: number[];
   barHeight?: number;
-};
+}
 
 const VitalBar = styled('div')<VitalBarProps>`
   height: ${p => (p.barHeight ? `${p.barHeight}px` : '16px')};

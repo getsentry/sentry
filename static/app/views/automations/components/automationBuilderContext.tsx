@@ -202,52 +202,52 @@ const initialAutomationBuilderState: AutomationBuilderState = {
   ],
 };
 
-type AddWhenConditionAction = {
+interface AddWhenConditionAction {
   conditionType: DataConditionType;
   type: 'ADD_WHEN_CONDITION';
-};
+}
 
-type RemoveWhenConditionAction = {
+interface RemoveWhenConditionAction {
   id: string;
   type: 'REMOVE_WHEN_CONDITION';
-};
+}
 
-type UpdateWhenConditionAction = {
+interface UpdateWhenConditionAction {
   id: string;
   params: {
     comparison?: any;
     type?: DataConditionType;
   };
   type: 'UPDATE_WHEN_CONDITION';
-};
+}
 
-type UpdateWhenLogicTypeAction = {
+interface UpdateWhenLogicTypeAction {
   logicType: DataConditionGroupLogicType;
   type: 'UPDATE_WHEN_LOGIC_TYPE';
-};
+}
 
-type AddIfAction = {
+interface AddIfAction {
   type: 'ADD_IF';
-};
+}
 
-type RemoveIfAction = {
+interface RemoveIfAction {
   groupId: string;
   type: 'REMOVE_IF';
-};
+}
 
-type AddIfConditionAction = {
+interface AddIfConditionAction {
   conditionType: DataConditionType;
   groupId: string;
   type: 'ADD_IF_CONDITION';
-};
+}
 
-type RemoveIfConditionAction = {
+interface RemoveIfConditionAction {
   conditionId: string;
   groupId: string;
   type: 'REMOVE_IF_CONDITION';
-};
+}
 
-type UpdateIfConditionAction = {
+interface UpdateIfConditionAction {
   conditionId: string;
   groupId: string;
   params: {
@@ -255,32 +255,32 @@ type UpdateIfConditionAction = {
     type?: DataConditionType;
   };
   type: 'UPDATE_IF_CONDITION';
-};
+}
 
-type AddIfActionAction = {
+interface AddIfActionAction {
   actionHandler: ActionHandler;
   groupId: string;
   type: 'ADD_IF_ACTION';
-};
+}
 
-type RemoveIfActionAction = {
+interface RemoveIfActionAction {
   actionId: string;
   groupId: string;
   type: 'REMOVE_IF_ACTION';
-};
+}
 
-type UpdateIfActionAction = {
+interface UpdateIfActionAction {
   actionId: string;
   groupId: string;
   params: Partial<Omit<Action, 'id' | 'type'>>;
   type: 'UPDATE_IF_ACTION';
-};
+}
 
-type UpdateIfLogicTypeAction = {
+interface UpdateIfLogicTypeAction {
   groupId: string;
   logicType: DataConditionGroupLogicType;
   type: 'UPDATE_IF_LOGIC_TYPE';
-};
+}
 
 type AutomationBuilderAction =
   | AddWhenConditionAction

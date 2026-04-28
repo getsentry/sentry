@@ -31,7 +31,7 @@ import {useGenericWidgetQueries} from './genericWidgetQueries';
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
-type LogsWidgetQueriesProps = {
+interface LogsWidgetQueriesProps {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
@@ -42,7 +42,7 @@ type LogsWidgetQueriesProps = {
   onDataFetched?: (results: OnDataFetchedProps) => void;
   selection?: PageFilters;
   widgetInterval?: string;
-};
+}
 
 type LogsWidgetQueriesImplProps = LogsWidgetQueriesProps & {
   getConfidenceInformation: (result: SeriesResult) => {

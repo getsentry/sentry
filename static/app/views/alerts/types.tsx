@@ -13,7 +13,7 @@ export enum AlertRuleType {
   CRONS = 'crons',
 }
 
-export type Incident = {
+export interface Incident {
   alertRule: MetricRule;
   dateClosed: string | null;
   dateCreated: string;
@@ -34,25 +34,25 @@ export type Incident = {
   statusMethod: IncidentStatusMethod;
   title: string;
   activities?: ActivityType[];
-};
+}
 
 /** @internal exported for tests */
-export type IncidentStats = {
+export interface IncidentStats {
   eventStats: {
     data: Data;
   };
   totalEvents: number;
   uniqueUsers: number;
-};
+}
 
-type ActivityTypeDraft = {
+interface ActivityTypeDraft {
   comment: null | string;
   dateCreated: string;
   id: string;
   incidentIdentifier: string;
   type: IncidentActivityType;
   user: User | null;
-};
+}
 
 export type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
@@ -115,11 +115,11 @@ export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
 
 export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert | CronRule;
 
-export type Anomaly = {
+export interface Anomaly {
   anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
   timestamp: number;
   value: number;
-};
+}
 
 export enum AnomalyType {
   HIGH_CONFIDENCE = 'anomaly_higher_confidence',

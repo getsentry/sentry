@@ -13,11 +13,11 @@ import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monit
 
 import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 
-type Props = {
+interface Props {
   monitorEnvs: MonitorEnvironment[];
   monitorSlug: string;
   project: Project;
-};
+}
 
 const PER_PAGE = 10;
 

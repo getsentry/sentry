@@ -48,10 +48,10 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-type Props = {
+interface Props {
   onChangeSlug: (slug: string) => void;
   project: Project;
-};
+}
 
 function isPlatformAllowed({
   isSelfHosted,

@@ -13,14 +13,14 @@ import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
   event?: Event;
   isHomepage?: boolean;
   savedQuery?: SavedQuery;
-};
+}
 
 export function DiscoverBreadcrumb({
   eventView,

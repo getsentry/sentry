@@ -9,9 +9,9 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   search: MutableSearch;
-};
+}
 
 export function CacheHitMissChart({search}: Props) {
   const referrer = Referrer.SAMPLES_CACHE_HIT_MISS_CHART;

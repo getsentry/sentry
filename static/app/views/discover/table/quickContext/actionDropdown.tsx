@@ -28,7 +28,7 @@ enum QueryUpdateActions {
   SHOW_LESS_THAN = 'show-less-than',
 }
 
-type Props = {
+interface Props {
   contextValueType: ContextValueType;
   dataRow: EventData;
   eventView: EventView;
@@ -36,7 +36,7 @@ type Props = {
   organization: Organization;
   queryKey: string;
   value: string | number | string[];
-};
+}
 
 export function ActionDropDown(props: Props) {
   const navigate = useNavigate();

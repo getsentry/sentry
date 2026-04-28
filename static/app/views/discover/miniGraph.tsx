@@ -27,7 +27,7 @@ import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   location: Location;
@@ -35,7 +35,7 @@ type Props = {
   theme: Theme;
   referrer?: string;
   yAxis?: string[];
-};
+}
 
 class MiniGraph extends Component<Props> {
   shouldComponentUpdate(nextProps: any) {

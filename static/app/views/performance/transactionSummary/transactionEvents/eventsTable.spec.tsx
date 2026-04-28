@@ -15,9 +15,9 @@ import {
 
 const theme = ThemeFixture();
 
-type Data = {
+interface Data {
   features?: string[];
-};
+}
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];

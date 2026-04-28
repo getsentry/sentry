@@ -71,14 +71,14 @@ const renderDisabled = (p: any) => (
   </Hovercard>
 );
 
-type SaveAsDropdownProps = {
+interface SaveAsDropdownProps {
   disabled: boolean;
   modifiedHandleCreateQuery: (
     e: React.MouseEvent<Element> | React.FormEvent<HTMLFormElement>
   ) => void;
   onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
   queryName: string;
-};
+}
 
 export function SaveAsDropdown({
   queryName,
@@ -136,9 +136,9 @@ export function SaveAsDropdown({
   );
 }
 
-type DefaultProps = {
+interface DefaultProps {
   disabled: boolean;
-};
+}
 
 type Props = DefaultProps & {
   api: Client;
@@ -165,12 +165,12 @@ type Props = DefaultProps & {
   isHomepage?: boolean;
 };
 
-type State = {
+interface State {
   isEditingQuery: boolean;
   isNewQuery: boolean;
 
   queryName: string;
-};
+}
 
 class SavedQueryButtonGroup extends PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {

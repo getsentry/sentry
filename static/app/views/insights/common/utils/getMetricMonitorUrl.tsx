@@ -5,7 +5,7 @@ import {parseEventTypesFromQuery} from 'sentry/views/detectors/datasetConfig/eve
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 
-type Params = {
+interface Params {
   aggregate: string;
   dataset: Dataset;
   organization: Organization;
@@ -15,7 +15,7 @@ type Params = {
   name?: string;
   query?: string;
   referrer?: string;
-};
+}
 
 const DEFAULT_EAP_EVENT_TYPES = [EventTypes.TRACE_ITEM_SPAN];
 

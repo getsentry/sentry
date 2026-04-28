@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-type Props = {
+interface Props {
   app: SentryApp;
   onDelete: (app: SentryApp) => void;
 
@@ -18,7 +18,7 @@ type Props = {
   // If you want to disable the publish or delete buttons, pass in a reason to display to the user in a tooltip
   disablePublishReason?: string;
   onPublish?: () => void;
-};
+}
 
 export function ActionButtons({
   org,

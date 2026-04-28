@@ -10,12 +10,12 @@ import {t} from 'sentry/locale';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import type {TagValueLoader} from 'sentry/views/issueList/types';
 
-type Props = {
+interface Props {
   onSearch: (q: string) => void;
   query: string;
   relativeDateOptions: React.ComponentProps<typeof DatePageFilter>['relativeOptions'];
   tagValueLoader: TagValueLoader;
-};
+}
 
 const SUPPORTED_TAGS = {
   ...SEMVER_TAGS,

@@ -37,10 +37,10 @@ type Props = {
   project: Project;
 } & RouteComponentProps<{projectId: string}>;
 
-type State = {
+interface State {
   environments: null | Environment[];
   isLoading: boolean;
-};
+}
 
 class ProjectEnvironments extends Component<Props, State> {
   state: State = {
@@ -223,7 +223,7 @@ class ProjectEnvironments extends Component<Props, State> {
   }
 }
 
-type RowProps = {
+interface RowProps {
   environment: Environment;
   name: string;
   project: Project;
@@ -232,7 +232,7 @@ type RowProps = {
   isSystemRow?: boolean;
   onHide?: (env: Environment, isHidden: boolean) => void;
   shouldShowAction?: boolean;
-};
+}
 
 function EnvironmentRow({
   project,

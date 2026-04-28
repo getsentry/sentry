@@ -43,7 +43,7 @@ import {
 import {EventsTable} from './eventsTable';
 import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
-type Props = {
+interface Props {
   eventView: EventView;
   eventsDisplayFilterName: EventsDisplayFilterName;
   location: Location;
@@ -59,7 +59,7 @@ type Props = {
   transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
-};
+}
 
 const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),

@@ -12,7 +12,7 @@ import {ProjectApdexScoreCard} from './projectApdexScoreCard';
 import {ProjectStabilityScoreCard} from './projectStabilityScoreCard';
 import {ProjectVelocityScoreCard} from './projectVelocityScoreCard';
 
-type Props = {
+interface Props {
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
   location: Location;
@@ -21,7 +21,7 @@ type Props = {
   hasTransactions?: boolean;
   project?: Project;
   query?: string;
-};
+}
 
 export function ProjectScoreCards({
   organization,

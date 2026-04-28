@@ -16,10 +16,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {SectionHeadingWrapper, SidebarSection} from './styles';
 
-type Props = {
+interface Props {
   organization: Organization;
   project?: Project;
-};
+}
 
 export function ProjectTeamAccess({organization, project}: Props) {
   const location = useLocation();

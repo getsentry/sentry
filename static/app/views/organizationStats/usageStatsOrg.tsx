@@ -56,7 +56,7 @@ import {
 import {UsageStatsPerMin} from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 
-type ChartData = {
+interface ChartData {
   cardStats: {
     accepted?: string;
     accepted_stored?: string;
@@ -77,7 +77,7 @@ type ChartData = {
   chartSubLabels: TooltipSubLabel[];
   chartTransform: ChartDataTransform;
   dataError?: Error;
-};
+}
 
 export function getEndpointQueryDatetime(dataDatetime: DateTimeObject) {
   return dataDatetime.start && dataDatetime.end
@@ -688,10 +688,10 @@ const FooterDate = styled('div')`
   }
 `;
 
-type SpansStoredProps = {
+interface SpansStoredProps {
   acceptedStored: string;
   organization: Organization;
-};
+}
 
 const StyledSettingsButton = styled(LinkButton)`
   top: 2px;

@@ -36,7 +36,7 @@ import {
 } from 'sentry/views/explore/releases/detail/utils';
 import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
-type Props = {
+interface Props {
   allSessions: SessionApiResponse | null;
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
@@ -53,7 +53,7 @@ type Props = {
   period?: string | null;
   start?: string;
   utc?: boolean;
-};
+}
 
 class ReleaseSessionsChart extends Component<Props> {
   formatTooltipValue = (value: string | number | null, label?: string) => {

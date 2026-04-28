@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
-type DetectorTypeCellProps = {
+interface DetectorTypeCellProps {
   type: DetectorType;
   className?: string;
   disabled?: boolean;
-};
+}
 
 export function DetectorTypeCell({
   type,

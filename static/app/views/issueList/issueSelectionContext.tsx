@@ -34,10 +34,10 @@ interface IssueSelectionActions {
   toggleSelectAllVisible: () => void;
 }
 
-type IssueSelectionProviderProps = {
+interface IssueSelectionProviderProps {
   children: ReactNode;
   visibleGroupIds: string[];
-};
+}
 
 const IssueSelectionSummaryContext = createContext<IssueSelectionSummary | null>(null);
 const IssueSelectionActionsContext = createContext<IssueSelectionActions | null>(null);

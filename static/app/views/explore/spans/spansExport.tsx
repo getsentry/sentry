@@ -7,10 +7,10 @@ import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansT
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type SpansExportProps = {
+interface SpansExportProps {
   aggregatesTableResult: AggregatesTableResult;
   spansTableResult: SpansTableResult;
-};
+}
 
 const PAGINATION_LIMIT = 50;
 

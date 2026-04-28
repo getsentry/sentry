@@ -9,10 +9,10 @@ import {unreachable} from 'sentry/utils/unreachable';
 
 const MAX_PERIOD_HOURS = 14 * 24;
 
-type AbsoluteDateTimeObject = {
+interface AbsoluteDateTimeObject {
   end: DateString;
   start: DateString;
-};
+}
 
 export function getPreviousPeriod({period, start, end}: DateTimeObject) {
   if (start && end) {

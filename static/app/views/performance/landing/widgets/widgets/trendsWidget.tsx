@@ -41,9 +41,9 @@ import {Chart} from 'sentry/views/performance/trends/chart';
 import {TrendChangeType, TrendFunctionField} from 'sentry/views/performance/trends/types';
 import {getProjectID, trendsTargetRoute} from 'sentry/views/performance/utils';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformTrendsDiscover>;
-};
+}
 
 type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']

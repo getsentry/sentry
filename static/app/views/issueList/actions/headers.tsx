@@ -9,13 +9,13 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
-type Props = {
+interface Props {
   isReprocessingQuery: boolean;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   selection: PageFilters;
   statsPeriod: string;
   isSavedSearchesOpen?: boolean;
-};
+}
 
 export function Headers({
   selection,

@@ -17,7 +17,7 @@ import type {
 } from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
 
-type Props = {
+interface Props {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
@@ -28,7 +28,7 @@ type Props = {
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
-};
+}
 
 export function IssueWidgetQueries({
   children,

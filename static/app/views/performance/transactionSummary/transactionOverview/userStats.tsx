@@ -20,7 +20,7 @@ import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/tran
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {VitalInfo} from 'sentry/views/performance/vitalDetail/vitalInfo';
 
-type Props = {
+interface Props {
   error: QueryError | null;
   eventView: EventView;
   hasWebVitals: boolean;
@@ -29,7 +29,7 @@ type Props = {
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
-};
+}
 
 export function UserStats({
   isLoading,

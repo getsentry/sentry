@@ -14,12 +14,12 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceWaterfallSource} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 
-type Props = {
+interface Props {
   source: TraceWaterfallSource;
   traceEventView: EventView;
   trace_id: string;
   replayId?: string;
-};
+}
 
 export function TraceOpenInExploreButton({
   trace_id,

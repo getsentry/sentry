@@ -17,11 +17,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MergedList} from './mergedList';
 
-type Props = {
+interface Props {
   groupId: Group['id'];
   location: Location<Query>;
   project: Project;
-};
+}
 
 export function GroupMergedView(props: Props) {
   const organization = useOrganization();

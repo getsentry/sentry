@@ -58,10 +58,10 @@ import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitor
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type CronDetectorDetailsProps = {
+interface CronDetectorDetailsProps {
   detector: CronDetector;
   project: Project;
-};
+}
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
   const environments = detector.dataSources[0].queryObj.environments;

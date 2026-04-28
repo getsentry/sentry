@@ -16,7 +16,7 @@ import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 
-type Props = {
+interface Props {
   allRoles: OrgRole[];
   inviteRequest: Member;
   inviteRequestBusy: Record<string, boolean>;
@@ -24,7 +24,7 @@ type Props = {
   onDeny: (inviteRequest: Member) => void;
   onUpdate: (data: Partial<Member>) => void;
   organization: Organization;
-};
+}
 
 export function InviteRequestRow({
   inviteRequest,

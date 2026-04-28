@@ -27,7 +27,7 @@ import {
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 
-type AutomationListTableProps = {
+interface AutomationListTableProps {
   allResultsVisible: boolean;
   automations: Automation[];
   isError: boolean;
@@ -35,7 +35,7 @@ type AutomationListTableProps = {
   isSuccess: boolean;
   queryCount: string;
   sort: Sort | undefined;
-};
+}
 
 function LoadingSkeletons() {
   return Array.from({length: AUTOMATION_LIST_PAGE_LIMIT}).map((_, index) => (

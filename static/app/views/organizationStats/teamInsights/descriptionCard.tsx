@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   description: React.ReactNode;
   title: string;
-};
+}
 
 export function DescriptionCard({title, description, children}: Props) {
   return (

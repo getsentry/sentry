@@ -37,10 +37,10 @@ import {
   tokenPreview,
 } from 'sentry/views/settings/organizationAuthTokens';
 
-type FetchOrgAuthTokenParameters = {
+interface FetchOrgAuthTokenParameters {
   orgSlug: string;
   tokenId: string;
-};
+}
 type FetchOrgAuthTokenResponse = OrgAuthToken;
 
 const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>

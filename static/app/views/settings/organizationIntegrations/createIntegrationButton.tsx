@@ -9,10 +9,10 @@ import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyt
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type CreateIntegrationButtonProps = {
+interface CreateIntegrationButtonProps {
   analyticsView: IntegrationView['view'];
   size?: 'sm' | 'md';
-};
+}
 
 /**
  * Button to open the modal to create a new public/internal integration (Sentry App)

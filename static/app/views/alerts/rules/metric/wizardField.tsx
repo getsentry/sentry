@@ -31,8 +31,8 @@ import {
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: React.ReactNode; value: AlertType};
-type GroupedMenuOption = {label: string; options: MenuOption[]};
+interface MenuOption {label: React.ReactNode; value: AlertType}
+interface GroupedMenuOption {label: string; options: MenuOption[]}
 
 type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;

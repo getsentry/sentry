@@ -34,7 +34,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
 type DeleteTagResponse = unknown;
-type DeleteTagVariables = {key: TagWithTopValues['key']};
+interface DeleteTagVariables {key: TagWithTopValues['key']}
 
 export default function ProjectTags() {
   const organization = useOrganization();

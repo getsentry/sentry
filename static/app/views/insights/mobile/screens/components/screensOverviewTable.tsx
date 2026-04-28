@@ -34,12 +34,12 @@ export type Row =
       | 'avg(measurements.time_to_full_display)'
     >;
 
-type Props = {
+interface Props {
   data: {data: Row[]; meta: MetaType};
   eventView: EventView;
   isLoading: boolean;
   pageLinks: string | undefined;
-};
+}
 
 export function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   const moduleURL = useModuleURL(ModuleName.MOBILE_VITALS);

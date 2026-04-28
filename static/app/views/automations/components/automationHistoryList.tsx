@@ -21,12 +21,12 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 const DEFAULT_HISTORY_PER_PAGE = 10;
 
-type Props = {
+interface Props {
   automationId: string;
   emptyMessage?: string;
   limit?: number;
   query?: Record<string, any>;
-};
+}
 
 function Skeletons() {
   return (

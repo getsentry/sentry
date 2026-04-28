@@ -20,10 +20,10 @@ import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useS
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   title?: string;
-};
+}
 
 function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();

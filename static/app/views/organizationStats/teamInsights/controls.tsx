@@ -49,11 +49,11 @@ const PAGE_QUERY_PARAMS = [
   'environment',
 ];
 
-type Props = {
+interface Props {
   currentEnvironment?: string;
   currentTeam?: TeamWithProjects;
   showEnvironment?: boolean;
-};
+}
 
 export function TeamStatsControls({
   currentTeam,

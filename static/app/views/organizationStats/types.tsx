@@ -10,7 +10,7 @@ export interface UsageSeries extends SeriesApi {
   start: string;
 }
 
-export type UsageStat = {
+export interface UsageStat {
   accepted: number;
   accepted_stored: number;
   clientDiscard: number;
@@ -19,4 +19,4 @@ export type UsageStat = {
   invalid: number;
   rateLimited: number;
   total: number;
-};
+}

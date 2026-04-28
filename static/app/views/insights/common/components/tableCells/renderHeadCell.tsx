@@ -15,12 +15,12 @@ import {
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
-type Options = {
+interface Options {
   column: GridColumnHeader<string>;
   location?: Location;
   sort?: Sort;
   sortParameterName?: QueryParameterNames | typeof DEFAULT_SORT_PARAMETER_NAME;
-};
+}
 
 const DEFAULT_SORT_PARAMETER_NAME = 'sort';
 

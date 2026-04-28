@@ -153,10 +153,10 @@ export function ReleasesSelectControl({
   );
 }
 
-type LabelDetailsProps = {
+interface LabelDetailsProps {
   dateCreated?: string;
   eventCount?: number;
-};
+}
 
 function LabelDetails(props: LabelDetailsProps) {
   return (

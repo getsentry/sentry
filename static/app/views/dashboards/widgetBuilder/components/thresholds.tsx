@@ -11,12 +11,12 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-type ThresholdsSectionProps = {
+interface ThresholdsSectionProps {
   dataType?: string;
   dataUnit?: string;
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
-};
+}
 
 export function ThresholdsSection({
   dataType,

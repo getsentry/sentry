@@ -13,9 +13,9 @@ import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSea
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-type DeleteGroupSearchViewVariables = {
+interface DeleteGroupSearchViewVariables {
   id: string;
-};
+}
 export const useDeleteGroupSearchView = (
   options: Omit<
     UseMutationOptions<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>,

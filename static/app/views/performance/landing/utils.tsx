@@ -11,10 +11,10 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-type LandingDisplay = {
+interface LandingDisplay {
   field: LandingDisplayField;
   label: string;
-};
+}
 
 export enum LandingDisplayField {
   ALL = 'all',

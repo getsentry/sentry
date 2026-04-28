@@ -52,9 +52,9 @@ export function StackTraceMiniFrame({frame, event, projectId}: Props) {
   );
 }
 
-type MissingFrameProps = {
+interface MissingFrameProps {
   system?: string;
-};
+}
 
 export function MissingFrame({system}: MissingFrameProps) {
   const documentation = <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />;

@@ -17,10 +17,10 @@ import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components
 import {MobileBuildDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/mobileBuild/sidebar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type MobileBuildDetectorDetailsProps = {
+interface MobileBuildDetectorDetailsProps {
   detector: PreprodDetector;
   project: Project;
-};
+}
 
 export function MobileBuildDetectorDetails({
   detector,

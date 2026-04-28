@@ -7,10 +7,10 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 
 import {OnboardingStepHeading} from './onboardingStepHeading';
 
-type Props = {
+interface Props {
   platform: PlatformKey;
   stepHeaderText: string;
-};
+}
 export function SetupIntroduction({stepHeaderText, platform}: Props) {
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',

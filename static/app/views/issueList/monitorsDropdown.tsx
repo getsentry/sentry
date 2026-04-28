@@ -8,13 +8,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Counts = {
+interface Counts {
   counts: {
     active: number;
     disabled: number;
     total: number;
   };
-};
+}
 
 export function MonitorsDropdown() {
   const organization = useOrganization();

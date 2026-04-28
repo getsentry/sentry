@@ -36,10 +36,10 @@ export type AttributeDistribution = Array<{
   values: Array<{label: string; value: number}>;
 }>;
 
-type PaginationState = {
+interface PaginationState {
   cursor: string | undefined;
   page: number;
-};
+}
 
 export function AttributeDistribution() {
   const [searchQuery, setSearchQuery] = useQueryParamState({

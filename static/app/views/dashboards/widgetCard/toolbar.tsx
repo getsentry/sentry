@@ -9,7 +9,7 @@ import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 
-type ToolbarProps = {
+interface ToolbarProps {
   disableDelete?: boolean;
   disableDrag?: boolean;
   disableDuplicate?: boolean;
@@ -19,7 +19,7 @@ type ToolbarProps = {
   onDelete?: () => void;
   onDuplicate?: () => void;
   onEdit?: () => void;
-};
+}
 
 export function Toolbar({
   isMobile,

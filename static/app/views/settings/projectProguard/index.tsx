@@ -22,9 +22,9 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 import {ProjectProguardRow} from './projectProguardRow';
 
-export type ProguardMappingAssociation = {
+export interface ProguardMappingAssociation {
   releases: string[];
-};
+}
 
 export default function ProjectProguard() {
   const api = useApi();

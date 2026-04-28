@@ -11,11 +11,11 @@ import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 const DEFAULT_ISSUE_TYPES = [IssueType.WEB_VITALS];
 
-type QueryProps = {
+interface QueryProps {
   issueTypes?: Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>;
   transaction?: string;
   webVital?: WebVitals;
-};
+}
 
 export function getIssueQueryFilter({
   issueTypes = DEFAULT_ISSUE_TYPES,

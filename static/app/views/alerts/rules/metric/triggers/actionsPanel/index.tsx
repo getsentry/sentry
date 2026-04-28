@@ -37,7 +37,7 @@ import {
   type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 
-type Props = {
+interface Props {
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
   currentProject: string;
@@ -50,7 +50,7 @@ type Props = {
   projects: Project[];
   triggers: Trigger[];
   className?: string;
-};
+}
 
 /**
  * When a new action is added, all of its settings should be set to their default values.

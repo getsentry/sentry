@@ -28,21 +28,21 @@ type Props = {
 
 type State = StateLoading | StateError | StateSuccess;
 
-type StateError = {
+interface StateError {
   status: 'error';
-};
+}
 
-type StateLoading = {
+interface StateLoading {
   status: 'loading';
-};
+}
 
-type StateSuccess = {
+interface StateSuccess {
   emptyStats: boolean;
   series: Series[];
   since: number;
   status: 'success';
   until: number;
-};
+}
 
 export function KeyStats({api, organization, params, theme}: Props) {
   const {keyId, projectId} = params;

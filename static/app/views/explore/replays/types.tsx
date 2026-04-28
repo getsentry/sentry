@@ -11,7 +11,7 @@ type Geo = Record<string, string>;
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
-export type HydratedReplayRecord = {
+export interface HydratedReplayRecord {
   /**
    * Number that represents how much user activity happened in a replay.
    */
@@ -119,8 +119,8 @@ export type HydratedReplayRecord = {
     geo?: Geo;
   };
   warning_ids: string[];
-};
-type ArchivedReplayRecord = {
+}
+interface ArchivedReplayRecord {
   activity: null;
   browser: {
     name: null;
@@ -174,7 +174,7 @@ type ArchivedReplayRecord = {
     geo?: Geo;
   };
   warning_ids: never[];
-};
+}
 export type ReplayRecord = HydratedReplayRecord | ArchivedReplayRecord;
 
 // The ReplayRecord fields, but with nested fields represented as `foo.bar`.
@@ -185,7 +185,7 @@ export type ReplayRecordNestedFieldName =
   | `os.${keyof ReplayRecord['os']}`
   | `user.${keyof ReplayRecord['user']}`;
 
-export type ReplayListLocationQuery = {
+export interface ReplayListLocationQuery {
   cursor?: string;
   end?: string;
   environment?: string[];
@@ -198,7 +198,7 @@ export type ReplayListLocationQuery = {
   start?: string;
   statsPeriod?: string;
   utc?: 'true' | 'false';
-};
+}
 
 export type ReplayListQueryReferrer =
   | 'replayList'
@@ -285,7 +285,7 @@ export type ReplayListRecord = Pick<
   | 'warning_ids'
 >;
 
-export type DeadRageSelectorItem = {
+export interface DeadRageSelectorItem {
   aria_label: string;
   dom_element: {
     fullSelector: string;
@@ -296,9 +296,9 @@ export type DeadRageSelectorItem = {
   project_id: number;
   count_dead_clicks?: number;
   count_rage_clicks?: number;
-};
+}
 
-export type DeadRageSelectorListResponse = {
+export interface DeadRageSelectorListResponse {
   data: Array<{
     count_dead_clicks: number;
     count_rage_clicks: number;
@@ -306,9 +306,9 @@ export type DeadRageSelectorListResponse = {
     element: ReplayClickElement;
     project_id: number;
   }>;
-};
+}
 
-export type ReplayClickElement = {
+export interface ReplayClickElement {
   alt: string;
   aria_label: string;
   class: string[];
@@ -318,7 +318,7 @@ export type ReplayClickElement = {
   tag: string;
   testid: string;
   title: string;
-};
+}
 
 export interface DeadRageSelectorQueryParams {
   isWidgetData: boolean;

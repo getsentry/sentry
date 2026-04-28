@@ -24,7 +24,7 @@ import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   eventView: EventView;
   generateUrl: (key: string, value: string) => LocationDescriptor;
@@ -33,9 +33,9 @@ type Props = {
   totalValues: null | number;
   confirmedQuery?: boolean;
   onTagValueClick?: (title: string, value: TagSegment) => void;
-};
+}
 
-type State = {
+interface State {
   error: string;
   hasLoaded: boolean;
   hasMore: boolean;
@@ -44,7 +44,7 @@ type State = {
   totalValues: null | number;
   nextCursor?: string;
   tagLinks?: string;
-};
+}
 
 class Tags extends Component<Props, State> {
   state: State = {

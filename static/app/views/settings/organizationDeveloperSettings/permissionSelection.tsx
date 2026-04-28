@@ -92,7 +92,7 @@ import type {
  *
  */
 
-type Props = {
+interface Props {
   appPublished: boolean;
   onChange: (permissions: Permissions, hasContinuousIntegration: boolean) => void;
   permissions: Permissions;
@@ -104,14 +104,14 @@ type Props = {
    */
   displayedPermissions?: PermissionObj[];
   hasContinuousIntegration?: boolean;
-};
+}
 
-type State = {
+interface State {
   hasContinuousIntegration: boolean;
   permissions: Permissions;
-};
+}
 
-type SpecialPermissionFieldProps = {
+interface SpecialPermissionFieldProps {
   disabled: boolean;
   disabledReason: string;
   help: string;
@@ -119,7 +119,7 @@ type SpecialPermissionFieldProps = {
   name: string;
   onChange: (value: boolean) => void;
   value: boolean;
-};
+}
 
 function SpecialPermissionField({
   disabled,

@@ -12,10 +12,10 @@ const INCLUDE_CHOICES = [
   {value: false, label: t('not equal to')},
 ];
 
-type IssueTypeChoice = {
+interface IssueTypeChoice {
   label: string;
   value: string;
-};
+}
 
 const ISSUE_TYPE_CHOICES: IssueTypeChoice[] = VISIBLE_ISSUE_TYPES.map(value => ({
   value,

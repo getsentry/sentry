@@ -8,29 +8,29 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import type {MonitorConfig} from 'sentry/views/insights/crons/types';
 
-type MetricDetectorAnalytics = {
+interface MetricDetectorAnalytics {
   detector_type: MetricDetector['type'];
   aggregate?: SnubaQuery['aggregate'];
   dataset?: SnubaQuery['dataset'];
-};
+}
 
-type UptimeDetectorAnalytics = {
+interface UptimeDetectorAnalytics {
   detector_type: UptimeDetector['type'];
   uptime_mode: UptimeDetector['config']['mode'];
-};
+}
 
-type MonitorDetectorAnalytics = {
+interface MonitorDetectorAnalytics {
   cron_schedule_type: MonitorConfig['schedule_type'] | undefined;
   detector_type: CronDetector['type'];
-};
+}
 
-type ErrorDetectorAnalytics = {
+interface ErrorDetectorAnalytics {
   detector_type: Extract<Detector['type'], 'error' | 'issue_stream'>;
-};
+}
 
-type PreprodDetectorAnalytics = {
+interface PreprodDetectorAnalytics {
   detector_type: PreprodDetector['type'];
-};
+}
 
 type DetectorAnalyticsPayload =
   | MetricDetectorAnalytics

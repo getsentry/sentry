@@ -1,11 +1,11 @@
 import {PercentChange} from 'sentry/components/percentChange';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 
-type PercentChangeCellProps = {
+interface PercentChangeCellProps {
   deltaValue: number;
   colorize?: boolean;
   preferredPolarity?: '+' | '-';
-};
+}
 
 export function PercentChangeCell({
   deltaValue,

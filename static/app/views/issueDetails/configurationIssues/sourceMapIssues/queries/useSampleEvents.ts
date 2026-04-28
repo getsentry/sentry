@@ -5,12 +5,12 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SOURCE_MAP_ERROR_TYPES_QUERY} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/constants';
 
-type SampleEvent = {
+interface SampleEvent {
   event_id: string;
   group_id: string | null;
   timestamp: string;
   title: string;
-};
+}
 
 interface SamplesResult {
   data: SampleEvent[];

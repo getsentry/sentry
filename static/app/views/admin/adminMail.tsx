@@ -8,7 +8,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
-type Data = {
+interface Data {
   mailFrom: string;
   mailHost: string;
   mailListNamespace: string;
@@ -18,7 +18,7 @@ type Data = {
   mailUseTls: string;
   mailUsername: string;
   testMailEmail: string;
-};
+}
 
 export default function AdminMail() {
   const {data, isPending, isError, refetch} = useApiQuery<Data>(

@@ -67,11 +67,11 @@ import {
 import {WidgetFrame} from './widgetFrame';
 import {readableConditions} from './widgetLLMContext';
 
-export type OnDataFetchedParams = {
+export interface OnDataFetchedParams {
   tableResults?: TableDataWithTitle[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
-};
+}
 
 const DAYS_TO_MS = 24 * 60 * 60 * 1000;
 
@@ -131,7 +131,7 @@ type Props = WithRouterProps & {
   windowWidth?: number;
 };
 
-type Data = {
+interface Data {
   confidence?: Confidence;
   dataScanned?: 'full' | 'partial';
   isSampled?: boolean | null;
@@ -142,7 +142,7 @@ type Data = {
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
   totalIssuesCount?: string;
-};
+}
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();

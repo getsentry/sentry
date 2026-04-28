@@ -72,10 +72,10 @@ function getWidgetContents(widgetType: EAPWidgetType, spanCategory?: string) {
   return content;
 }
 
-type EAPChartsWidgetProps = {
+interface EAPChartsWidgetProps {
   query: string;
   transactionName: string;
-};
+}
 
 export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) {
   const location = useLocation();

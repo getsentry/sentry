@@ -9,10 +9,10 @@ import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   disabled: boolean;
   project: Project;
-};
+}
 
 export function RuleNameOwnerForm({disabled, project}: Props) {
   const renderRuleName = () => (

@@ -10,10 +10,10 @@ import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 
-type Props = {
+interface Props {
   release: Release;
   withHeading: boolean;
-};
+}
 
 export function ReleaseCardCommits({release, withHeading = true}: Props) {
   const commitCount = release.commitCount || 0;

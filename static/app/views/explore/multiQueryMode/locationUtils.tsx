@@ -22,7 +22,7 @@ import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 // Read utils begin
 
-export type ReadableExploreQueryParts = {
+export interface ReadableExploreQueryParts {
   fields: string[];
   groupBys: string[];
   query: string;
@@ -30,7 +30,7 @@ export type ReadableExploreQueryParts = {
   yAxes: string[];
   caseInsensitive?: '1' | null;
   chartType?: ChartType;
-};
+}
 
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
   yAxes: [DEFAULT_VISUALIZATION],
@@ -139,7 +139,7 @@ export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
 
 // Write utils begin
 
-type WritableExploreQueryParts = {
+interface WritableExploreQueryParts {
   caseInsensitive?: '1' | null;
   chartType?: ChartType;
   fields?: string[];
@@ -147,7 +147,7 @@ type WritableExploreQueryParts = {
   query?: string;
   sortBys?: readonly Sort[];
   yAxes?: string[];
-};
+}
 
 function getQueriesAsUrlParam(queries: WritableExploreQueryParts[]): string[] {
   return queries.map(query =>
@@ -307,13 +307,13 @@ function getCompareBaseUrl(organization: Organization) {
   });
 }
 
-type CompareRouteProps = {
+interface CompareRouteProps {
   location: Location;
   mode: Mode;
   organization: Organization;
   queries: WritableExploreQueryParts[];
   referrer?: string;
-};
+}
 
 export function generateExploreCompareRoute({
   organization,

@@ -9,7 +9,7 @@ import type {Project} from 'sentry/types/project';
 import {BuiltInRepositories} from './builtInRepositories';
 import {CustomRepositories} from './customRepositories';
 
-type Props = {
+interface Props {
   api: Client;
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
@@ -17,7 +17,7 @@ type Props = {
   location: Location;
   organization: Organization;
   project: Project;
-};
+}
 
 export function Sources({
   api,

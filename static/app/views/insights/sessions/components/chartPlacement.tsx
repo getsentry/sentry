@@ -15,7 +15,7 @@ import {ChartSelectionTitle} from 'sentry/views/insights/sessions/components/cha
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 type TChart = keyof typeof CHART_MAP;
-type Option = {label: string; value: TChart};
+interface Option {label: string; value: TChart}
 
 const Context = createContext<{
   chartName: undefined | TChart;

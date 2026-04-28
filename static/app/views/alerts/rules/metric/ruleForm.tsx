@@ -116,11 +116,11 @@ import {
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
-type RuleTaskResponse = {
+interface RuleTaskResponse {
   status: 'pending' | 'failed' | 'success';
   alertRule?: MetricRule;
   error?: string;
-};
+}
 
 type HistoricalDataset = ReturnType<typeof formatStatsToHistoricalDataset>;
 

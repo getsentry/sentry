@@ -15,11 +15,11 @@ import {AutomationListConnectedDetectors} from 'sentry/views/automations/compone
 import {ProjectsCell} from 'sentry/views/automations/components/automationListTable/projectsCell';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
 
-type AutomationListRowProps = {
+interface AutomationListRowProps {
   automation: Automation;
   onSelect: (id: string) => void;
   selected: boolean;
-};
+}
 
 export function AutomationListRow({
   automation,

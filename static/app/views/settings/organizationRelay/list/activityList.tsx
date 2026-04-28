@@ -6,9 +6,9 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import type {RelayActivity} from 'sentry/types/relay';
 
-type Props = {
+interface Props {
   activities: RelayActivity[];
-};
+}
 
 export function ActivityList({activities}: Props) {
   return (

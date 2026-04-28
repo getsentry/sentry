@@ -86,7 +86,7 @@ function OperationTitle({onClick}: TitleProps) {
   );
 }
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -110,7 +110,7 @@ type Props = {
     pageLinks: string | null;
     totalEventsCount: string | number;
   }) => ReactNode;
-};
+}
 
 export function EventsTable({
   eventView,

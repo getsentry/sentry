@@ -8,11 +8,11 @@ import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata
 import {t} from 'sentry/locale';
 import type {ActionType} from 'sentry/types/workflowEngine/actions';
 
-type AutomationActionSummaryProps = {
+interface AutomationActionSummaryProps {
   actions: ActionType[];
   className?: string;
   hasTooltip?: boolean;
-};
+}
 
 export function AutomationActionSummary({
   className,

@@ -47,9 +47,9 @@ function LoginProviders({
   );
 }
 
-type Props = {
+interface Props {
   authConfig: AuthConfig;
-};
+}
 
 export function LoginForm({authConfig}: Props) {
   const navigate = useNavigate();

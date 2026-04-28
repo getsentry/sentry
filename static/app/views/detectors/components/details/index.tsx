@@ -12,10 +12,10 @@ import {MetricDetectorDetails} from 'sentry/views/detectors/components/details/m
 import {MobileBuildDetectorDetails} from 'sentry/views/detectors/components/details/mobileBuild';
 import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
 
-type DetectorDetailsContentProps = {
+interface DetectorDetailsContentProps {
   detector: Detector;
   project: Project;
-};
+}
 
 export function DetectorDetailsContent({detector, project}: DetectorDetailsContentProps) {
   const detectorType = detector.type;

@@ -165,15 +165,15 @@ const getColumnsWithReplacedDuration = (
   return columns;
 };
 
-type TagValueProps = {
+interface TagValueProps {
   row: TableDataRow;
-};
+}
 
 export function TagValue(props: TagValueProps) {
   return <div className="truncate">{props.row.tags_value}</div>;
 }
 
-type Props = {
+interface Props {
   currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
   location: Location;
@@ -181,7 +181,7 @@ type Props = {
   projects: Project[];
   transactionName: string;
   domainViewFilters?: DomainViewFilters;
-};
+}
 
 export function TagExplorer(props: Props) {
   const {
@@ -449,12 +449,12 @@ export function TagExplorer(props: Props) {
   );
 }
 
-type HeaderProps = {
+interface HeaderProps {
   location: Location;
   organization: Organization;
   pageLinks: string | null;
   transactionName: string;
-};
+}
 
 function TagsHeader(props: HeaderProps) {
   const domainViewFilters = useDomainViewFilters();

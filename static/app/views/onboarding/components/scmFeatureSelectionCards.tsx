@@ -18,12 +18,12 @@ import {t} from 'sentry/locale';
 
 import {ScmFeatureCard} from './scmFeatureCard';
 
-type FeatureMeta = {
+interface FeatureMeta {
   description: string;
   icon: ComponentType<SVGIconProps>;
   label: string;
   alwaysEnabled?: boolean;
-};
+}
 
 const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
   [ProductSolution.ERROR_MONITORING]: {

@@ -4,10 +4,10 @@ import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct, tn} from 'sentry/locale';
 import {percent} from 'sentry/utils';
 
-type Props = {
+interface Props {
   pendingEvents: number;
   totalEvents: number;
-};
+}
 
 export function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
   const remainingEventsToReprocess = totalEvents - pendingEvents;

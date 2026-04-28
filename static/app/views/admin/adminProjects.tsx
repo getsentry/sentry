@@ -4,13 +4,13 @@ import {ResultGrid} from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-type Row = {
+interface Row {
   dateCreated: string;
   name: string;
   organization: Organization;
   slug: string;
   status: string;
-};
+}
 
 const getRow = (row: Row) => [
   <td key="name">

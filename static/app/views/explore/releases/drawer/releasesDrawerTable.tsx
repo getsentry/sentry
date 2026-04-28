@@ -38,13 +38,13 @@ import {
 } from 'sentry/views/explore/releases/drawer/utils';
 import {getReleaseNewIssuesUrl} from 'sentry/views/explore/releases/utils';
 
-type ReleaseHealthItem = {
+interface ReleaseHealthItem {
   date: string;
   error_count: number;
   project: ReleaseProject;
   project_id: number;
   release: string;
-};
+}
 
 interface Props extends PageFilters {
   onMouseOutRelease: (release: string) => void;

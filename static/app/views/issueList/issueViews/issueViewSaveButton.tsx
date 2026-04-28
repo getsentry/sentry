@@ -27,10 +27,10 @@ import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpda
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type IssueViewSaveButtonProps = {
+interface IssueViewSaveButtonProps {
   query: string;
   sort: IssueSortOptions;
-};
+}
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,

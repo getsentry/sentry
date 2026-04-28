@@ -42,7 +42,7 @@ type Props = {
   onSave?: (data: CodeOwner) => void;
 } & ModalRenderProps;
 
-type TCodeownersPayload = {codeMappingId: string | null; raw: string};
+interface TCodeownersPayload {codeMappingId: string | null; raw: string}
 type TCodeownersData = CodeOwner;
 type TCodeownersError = RequestError;
 type TCodeownersVariables = [TCodeownersPayload];

@@ -23,12 +23,12 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
-type GroupHistory = {
+interface GroupHistory {
   count: number;
   eventId: string;
   group: Group;
   lastTriggered: string;
-};
+}
 
 type Props = DateTimeObject & {
   project: Project;

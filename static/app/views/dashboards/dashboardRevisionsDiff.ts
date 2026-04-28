@@ -6,9 +6,9 @@ import {getFormattedDate} from 'sentry/utils/dates';
 import type {DashboardDetails, Widget, WidgetQuery} from './types';
 import {DashboardFilterKeys} from './types';
 
-type FieldChange = {after: string; before: string; field: string};
+interface FieldChange {after: string; before: string; field: string}
 
-type FilterChange = {after: string; before: string; label: string};
+interface FilterChange {after: string; before: string; label: string}
 
 function formatTime(d: DashboardDetails): string | null {
   if (d.period) return getRelativeSummary(d.period);

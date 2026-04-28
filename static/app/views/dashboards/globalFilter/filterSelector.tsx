@@ -56,13 +56,13 @@ import {
   type SubregionCode,
 } from 'sentry/views/insights/types';
 
-type FilterSelectorProps = {
+interface FilterSelectorProps {
   globalFilter: GlobalFilter;
   onRemoveFilter: (filter: GlobalFilter) => void;
   onUpdateFilter: (filter: GlobalFilter) => void;
   searchBarData: SearchBarData;
   disableRemoveFilter?: boolean;
-};
+}
 
 export function FilterSelector({
   globalFilter,

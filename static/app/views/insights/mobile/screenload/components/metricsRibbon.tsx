@@ -13,10 +13,10 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
-type TableData = {
+interface TableData {
   data: Array<Record<string, any>>;
   meta?: MetaType;
-};
+}
 
 interface BlockProps {
   dataKey: string | ((data?: TableData['data']) => number | undefined);

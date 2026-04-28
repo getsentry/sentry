@@ -40,14 +40,14 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
 
-type Props = {
+interface Props {
   transaction: string;
   browserTypes?: BrowserType[];
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
   subregions?: SubregionCode[];
-};
+}
 
 export function PageOverviewSidebar({
   projectScore,

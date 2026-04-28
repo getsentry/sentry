@@ -14,13 +14,13 @@ import {NoEvents} from './noEvents';
 
 type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 
-type Props = {
+interface Props {
   firstEvent: boolean;
   project: Project;
   stats: Project['stats'];
   onBarClick?: (data: {seriesName: string; timestamp: number; value: number}) => void;
   transactionStats?: Project['transactionStats'];
-};
+}
 
 export function ProjectChart({
   firstEvent,

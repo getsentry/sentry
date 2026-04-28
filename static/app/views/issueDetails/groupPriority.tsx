@@ -16,10 +16,10 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type GroupDetailsPriorityProps = {
+interface GroupDetailsPriorityProps {
   group: Group;
   onChange?: (priority: PriorityLevel) => void;
-};
+}
 
 const PRIORITY_BARS: Record<PriorityLevel, 1 | 2 | 3> = {
   [PriorityLevel.HIGH]: 3,

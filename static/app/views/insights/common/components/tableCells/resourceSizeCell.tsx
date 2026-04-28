@@ -1,9 +1,9 @@
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {ResourceSize} from 'sentry/views/insights/browser/resources/components/resourceSize';
 
-type Props = {
+interface Props {
   bytes?: number;
-};
+}
 
 export function ResourceSizeCell(props: Props) {
   const {bytes} = props;

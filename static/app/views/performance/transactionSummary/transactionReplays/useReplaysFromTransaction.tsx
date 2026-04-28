@@ -11,13 +11,13 @@ import {useApi} from 'sentry/utils/useApi';
 import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
 import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
 
-type Options = {
+interface Options {
   location: Location;
   organization: Organization;
   replayIdsEventView: EventView;
-};
+}
 
-export type EventSpanData = {
+export interface EventSpanData {
   'count()': number;
   replayId: string;
   'span_ops_breakdown.relative': string;
@@ -29,9 +29,9 @@ export type EventSpanData = {
   timestamp: string;
   trace: string;
   'transaction.duration': number;
-};
+}
 
-type Return = {
+interface Return {
   data: null | {
     events: EventSpanData[];
     replayRecordsEventView: EventView;
@@ -39,7 +39,7 @@ type Return = {
   fetchError: any;
   isFetching: boolean;
   pageLinks: null | string;
-};
+}
 
 export function useReplaysFromTransaction({
   location,

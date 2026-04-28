@@ -35,12 +35,12 @@ export enum EventsDisplayFilterName {
 
 export type PercentileValues = Record<EventsDisplayFilterName, number>;
 
-type EventsDisplayFilter = {
+interface EventsDisplayFilter {
   label: string;
   name: EventsDisplayFilterName;
   query?: string[][];
   sort?: {field: string; kind: 'desc' | 'asc'};
-};
+}
 
 type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
 

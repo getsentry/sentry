@@ -37,9 +37,9 @@ import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/us
 
 const AUTOMATIONS_PER_PAGE = 5;
 
-type Props = {
+interface Props {
   detector: Detector;
-};
+}
 
 interface DetectorAutomationsTableProps {
   detectorId: string;

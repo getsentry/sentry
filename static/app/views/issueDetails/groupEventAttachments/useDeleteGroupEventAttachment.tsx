@@ -17,9 +17,9 @@ type DeleteGroupEventAttachmentVariables = FetchGroupEventAttachmentsApiOptionsP
   projectSlug: string;
 };
 
-type DeleteGroupEventAttachmentContext = {
+interface DeleteGroupEventAttachmentContext {
   previous?: ApiResponse<IssueAttachment[]>;
-};
+}
 
 export function useDeleteGroupEventAttachment() {
   const api = useApi({persistInFlight: true});

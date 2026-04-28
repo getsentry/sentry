@@ -33,7 +33,7 @@ import {
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/formatVersionAndCenterTruncate';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   allOptionDescription: string;
   allOptionTitle: string;
   onChange: (selectedOption: SelectOption<SelectKey>) => void;
@@ -42,7 +42,7 @@ type Props = {
   triggerLabelPrefix: string;
   selectorName?: string;
   selectorValue?: string;
-};
+}
 
 function SingleReleaseSelector({
   allOptionDescription,
@@ -153,10 +153,10 @@ function SingleReleaseSelector({
   );
 }
 
-type LabelDetailsProps = {
+interface LabelDetailsProps {
   dateCreated?: string;
   screenCount?: number;
-};
+}
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
@@ -194,9 +194,9 @@ function getReleasesSortBy(
   return ReleasesSortOption.DATE;
 }
 
-type ReleaseSelectorProps = {
+interface ReleaseSelectorProps {
   moduleName: ModuleName;
-};
+}
 
 export function ReleaseSelector({moduleName}: ReleaseSelectorProps) {
   const {primaryRelease} = useReleaseSelection();

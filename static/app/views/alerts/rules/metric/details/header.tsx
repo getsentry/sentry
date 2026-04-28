@@ -27,7 +27,7 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type Props = {
+interface Props {
   hasMetricRuleDetailsError: boolean;
   onSnooze: (nextState: {
     snooze: boolean;
@@ -37,7 +37,7 @@ type Props = {
   organization: Organization;
   project?: Project;
   rule?: MetricRule;
-};
+}
 
 export function DetailsHeader({
   hasMetricRuleDetailsError,

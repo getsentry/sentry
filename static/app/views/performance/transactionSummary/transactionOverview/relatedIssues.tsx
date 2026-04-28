@@ -21,14 +21,14 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTransactionSummaryEAP} from 'sentry/views/performance/eap/useTransactionSummaryEAP';
 import {removeTracingKeysFromSearch} from 'sentry/views/performance/utils';
 
-type Props = {
+interface Props {
   location: Location;
   organization: Organization;
   transaction: string;
   end?: string;
   start?: string;
   statsPeriod?: string | null;
-};
+}
 
 export function RelatedIssues({
   location,

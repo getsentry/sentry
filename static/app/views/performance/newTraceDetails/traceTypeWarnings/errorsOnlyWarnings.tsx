@@ -23,11 +23,11 @@ import {TraceWarningComponents} from './styles';
 import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
-type ErrorOnlyWarningsProps = {
+interface ErrorOnlyWarningsProps {
   organization: Organization;
   traceSlug: string | undefined;
   tree: TraceTree;
-};
+}
 
 function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithNoPerformance: Project[] = [];

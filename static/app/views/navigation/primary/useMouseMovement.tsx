@@ -1,13 +1,13 @@
 import {useCallback, useEffect, useRef} from 'react';
 
-type MouseMovementData = {
+interface MouseMovementData {
   horizontalDirection: number;
   horizontalSpeed: number;
   verticalDirection: number;
   verticalSpeed: number;
   x: number;
   y: number;
-};
+}
 
 /**
  * Tracks mouse movement data (coordinates, speed, direction) for a given element.

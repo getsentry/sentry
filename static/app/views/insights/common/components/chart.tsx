@@ -74,7 +74,7 @@ interface ChartRenderingProps {
 
 export const ChartRenderingContext = createContext<ChartRenderingProps | null>(null);
 
-type Props = {
+interface Props {
   data: Series[];
   loading: boolean;
   type: ChartType;
@@ -112,7 +112,7 @@ type Props = {
   stacked?: boolean;
   throughput?: Array<{count: number; interval: string}>;
   tooltipFormatterOptions?: FormatterOptions;
-};
+}
 
 export function Chart({
   data,

@@ -16,13 +16,13 @@ type TracePreferencesAction =
   | {payload: boolean; type: 'set missing instrumentation'}
   | {payload: boolean; type: 'set autogrouping'};
 
-type TraceDrawerPreferences = {
+interface TraceDrawerPreferences {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
   sizes: Record<TraceLayoutPreferences, number>;
-};
+}
 
-export type TracePreferencesState = {
+export interface TracePreferencesState {
   autogroup: {
     parent: boolean;
     sibling: boolean;
@@ -33,13 +33,13 @@ export type TracePreferencesState = {
     width: number;
   };
   missing_instrumentation: boolean;
-};
+}
 
-export type StoredTracePreferences = {
+export interface StoredTracePreferences {
   autogroup: TracePreferencesState['autogroup'];
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;
-};
+}
 
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer left': 0.4,

@@ -20,11 +20,11 @@ interface AIOutputResult {
   toolCalls: string | null;
 }
 
-type RawMessage = {
+interface RawMessage {
   content?: any;
   parts?: any[];
   role?: string;
-};
+}
 
 /**
  * Normalizes any AI attribute value into a list of messages.

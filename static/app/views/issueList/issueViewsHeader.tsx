@@ -29,14 +29,14 @@ import {useHasIssueViews} from 'sentry/views/navigation/secondary/sections/issue
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type IssueViewsHeaderProps = {
+interface IssueViewsHeaderProps {
   onRealtimeChange: (active: boolean) => void;
   realtimeActive: boolean;
   selectedProjectIds: number[];
   title: ReactNode;
   description?: ReactNode;
   headerActions?: ReactNode;
-};
+}
 
 function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
   const organization = useOrganization();

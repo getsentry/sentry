@@ -25,23 +25,23 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationFeatureFlagsAuditLogTable} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
-export type Secret = {
+export interface Secret {
   createdAt: string;
   createdBy: number;
   id: number;
   provider: string;
   secret: string;
-};
+}
 
-type FetchSecretResponse = {data: Secret[]};
+interface FetchSecretResponse {data: Secret[]}
 
-type FetchSecretParameters = {
+interface FetchSecretParameters {
   orgSlug: string;
-};
+}
 
-type RemoveSecretQueryVariables = {
+interface RemoveSecretQueryVariables {
   id: number;
-};
+}
 
 export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
   [

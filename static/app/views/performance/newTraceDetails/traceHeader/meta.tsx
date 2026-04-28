@@ -17,11 +17,11 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-type MetaDataProps = {
+interface MetaDataProps {
   children: React.ReactNode;
   headingText: string;
   rightAlignBody?: boolean;
-};
+}
 
 function MetaSection({headingText, rightAlignBody, children}: MetaDataProps) {
   return (

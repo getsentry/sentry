@@ -46,13 +46,13 @@ import {ReplayPreview} from './sections/replayPreview';
 import {Request} from './sections/request';
 import {hasSDKContext} from './sections/sdk';
 
-type TransactionNodeDetailHeaderProps = {
+interface TransactionNodeDetailHeaderProps {
   event: EventTransaction;
   node: TransactionNode;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
   hideNodeActions?: boolean;
-};
+}
 
 function TransactionNodeDetailHeader({
   node,
@@ -229,13 +229,13 @@ export function TransactionNodeDetails({
   );
 }
 
-type TransactionSpecificSectionsProps = {
+interface TransactionSpecificSectionsProps {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
   node: TransactionNode;
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
-};
+}
 
 function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
   const location = useLocation();

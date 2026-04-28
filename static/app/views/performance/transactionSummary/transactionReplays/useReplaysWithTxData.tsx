@@ -1,10 +1,10 @@
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import type {EventSpanData} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysFromTransaction';
 
-type Opts = {
+interface Opts {
   events: EventSpanData[];
   replays: undefined | ReplayListRecord[];
-};
+}
 
 export type ReplayListRecordWithTx = ReplayListRecord & {
   txEvent: Record<string, any>;

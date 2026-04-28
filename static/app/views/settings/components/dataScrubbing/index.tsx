@@ -31,7 +31,7 @@ import {type Rule} from './types';
 const ADVANCED_DATASCRUBBING_LINK =
   'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/';
 
-type Props = {
+interface Props {
   endpoint: string;
   organization: Organization;
   additionalContext?: React.ReactNode;
@@ -39,7 +39,7 @@ type Props = {
   onSubmitSuccess?: (data: {relayPiiConfig: string}) => void;
   project?: Project;
   relayPiiConfig?: string | null;
-};
+}
 
 export function DataScrubbing({
   project,

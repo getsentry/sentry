@@ -7,11 +7,11 @@ import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/sett
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   browserTypes?: BrowserType[];
   subregions?: SubregionCode[];
   transaction?: string | null;
-};
+}
 
 export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   transaction,

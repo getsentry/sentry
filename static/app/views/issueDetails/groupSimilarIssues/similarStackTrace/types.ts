@@ -2,7 +2,7 @@ import type {Group} from 'sentry/types/group';
 
 type ScoreMap = Record<string, number | null | string>;
 
-export type SimilarItem = {
+export interface SimilarItem {
   isBelowThreshold: boolean;
   issue: Group;
   aggregate?: {
@@ -13,7 +13,7 @@ export type SimilarItem = {
     exception: Array<[string, number | null]>;
     message: Array<[string, number | null]>;
   };
-};
+}
 
 export type SimilarApiResponse = Array<[Group, ScoreMap]>;
 

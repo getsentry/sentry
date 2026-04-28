@@ -20,7 +20,7 @@ type AttributeValueUnit = DataUnit | null;
 
 type TimeSeriesValueType = AttributeValueType;
 export type TimeSeriesValueUnit = AttributeValueUnit;
-export type TimeSeriesMeta = {
+export interface TimeSeriesMeta {
   /**
    * Difference between the timestamps of the datapoints, in milliseconds.
    */
@@ -42,9 +42,9 @@ export type TimeSeriesMeta = {
    * For a top N request, the order is the position of this `TimeSeries` within the respective yAxis.
    */
   order?: number;
-};
+}
 
-export type TimeSeriesItem = {
+export interface TimeSeriesItem {
   /**
    * Milliseconds since Unix epoch
    */
@@ -64,7 +64,7 @@ export type TimeSeriesItem = {
    * Indicates the sampling rate that's associated with the data point. Might be `undefined` if the data set doesn't support extrapolation, or `null` if the extrapolation data was not known.
    */
   sampleRate?: number | null;
-};
+}
 
 /**
  * Right now the only kind of incompleteness reason from the backend is ingestion delay, but others are planned or possible (e.g., falling out of retention)
@@ -76,10 +76,10 @@ type IncompleteReason = 'INCOMPLETE_BUCKET';
  * The `value` can sometimes be an array, because some datasets support array values.
  * e.g., in the error dataset, the error type could be an array that looks like `["Exception", null, "TypeError"]`
  */
-type GroupBy = {
+interface GroupBy {
   key: string;
   value: string | number | boolean | null | Array<string | null> | Array<number | null>;
-};
+}
 
 // Aliases - allows divergence later if unique cases arise
 export type TimeSeriesGroupBy = GroupBy;
@@ -88,7 +88,7 @@ type CategoricalGroupBy = GroupBy;
 /**
  * Time series data. Unlike other time series abstractions, this is tightly supported by both the backend and the frontend. The `/events-timeseries/` endpoint uses this as the respone data, and `TimeSeriesWidgetVisualization` plottable objects accept this as the backing data.
  */
-export type TimeSeries = {
+export interface TimeSeries {
   meta: TimeSeriesMeta;
   values: TimeSeriesItem[];
   yAxis: string;
@@ -99,14 +99,14 @@ export type TimeSeries = {
    * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series, and `groupBy` is `null` in that case
    */
   groupBy?: TimeSeriesGroupBy[] | null;
-};
+}
 
 export type TabularValueType = AttributeValueType | null;
 export type TabularValueUnit = AttributeValueUnit;
-export type TabularMeta<TFields extends string = string> = {
+export interface TabularMeta<TFields extends string = string> {
   fields: Record<TFields, TabularValueType>;
   units: Record<TFields, TabularValueUnit>;
-};
+}
 type TabularRowValue = number | string | string[] | boolean | null;
 
 export type TabularRow<TFields extends string = string> = Record<
@@ -114,17 +114,17 @@ export type TabularRow<TFields extends string = string> = Record<
   TabularRowValue
 >;
 
-export type TabularData<TFields extends string = string> = {
+export interface TabularData<TFields extends string = string> {
   data: Array<TabularRow<TFields>>;
   meta: TabularMeta<TFields>;
-};
+}
 
-export type TabularColumn<TFields extends string = string> = {
+export interface TabularColumn<TFields extends string = string> {
   key: TFields;
   sortable?: boolean;
   type?: TabularValueType;
   width?: number;
-};
+}
 
 type ErrorProp = Error | string;
 export interface ErrorPropWithResponseJSON extends Error {
@@ -139,10 +139,10 @@ export interface StateProps {
 
 export type Thresholds = ThresholdsConfig;
 
-export type Release = {
+export interface Release {
   timestamp: string;
   version: string;
-};
+}
 
 export type LegendSelection = Record<string, boolean>;
 

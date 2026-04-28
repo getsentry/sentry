@@ -16,14 +16,14 @@ import {
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
-type Props = {
+interface Props {
   enabled: boolean;
   groupBys: string[];
   query: string;
   sortBys: Sort[];
   yAxes: string[];
   queryExtras?: RPCQueryExtras;
-};
+}
 
 export function useMultiQueryTableAggregateMode({
   groupBys,

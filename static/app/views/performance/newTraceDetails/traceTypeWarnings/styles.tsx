@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
-type BannerProps = {
+interface BannerProps {
   description: React.ReactNode;
   docsRoute: string;
   image: any;
@@ -19,7 +19,7 @@ type BannerProps = {
   organization: Organization;
   primaryButtonText: string;
   title: React.ReactNode;
-};
+}
 
 function Banner(props: BannerProps) {
   const {dismiss: snooze, isDismissed: isSnoozed} = useDismissAlert({

@@ -62,7 +62,7 @@ export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
 };
 
-type Props = {
+interface Props {
   generateEventView: (props: {
     location: Location;
     organization: Organization;
@@ -77,7 +77,7 @@ type Props = {
   tab: Tab;
   features?: string[];
   fillSpace?: boolean;
-};
+}
 
 export function PageLayout(props: Props) {
   const {

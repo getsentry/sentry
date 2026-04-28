@@ -18,11 +18,11 @@ import {
 import type {Project} from 'sentry/types/project';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type EventEntryContentProps = {
+interface EventEntryContentProps {
   entry: Entry;
   event: Event;
   projectSlug: Project['slug'];
-};
+}
 
 function EventEntryContent({entry, projectSlug, event}: EventEntryContentProps) {
   switch (entry.type) {

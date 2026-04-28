@@ -218,10 +218,10 @@ const AlertRowLink = styled(Link)`
   }
 `;
 
-type StatusColorProps = {
+interface StatusColorProps {
   isResolved: boolean;
   isWarning: boolean;
-};
+}
 
 const AlertBadgeWrapper = styled('div')<{icon: typeof IconExclamation}>`
   display: flex;

@@ -15,7 +15,7 @@ interface OptionRecord {
   value: string;
 }
 
-type Props = {
+interface Props {
   disabled: boolean;
   loading: boolean;
   memberValue: string | number;
@@ -25,7 +25,7 @@ type Props = {
   project: Project;
   ruleData: IssueAlertRuleAction | IssueAlertRuleCondition;
   teamValue: string | number;
-};
+}
 
 export class MemberTeamFields extends Component<Props> {
   handleChange = (attribute: 'targetType' | 'targetIdentifier', newValue: string) => {

@@ -6,14 +6,14 @@ import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {NEAR_AVERAGE_THRESHOLD_PERCENTAGE} from 'sentry/views/insights/settings';
 
-type Props = {
+interface Props {
   compareToDuration: number;
   duration: number;
   containerProps?: React.DetailedHTMLProps<
     React.HTMLAttributes<HTMLSpanElement>,
     HTMLSpanElement
   >;
-};
+}
 
 export function DurationComparisonCell({
   duration,

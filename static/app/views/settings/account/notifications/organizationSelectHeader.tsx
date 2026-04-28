@@ -7,11 +7,11 @@ import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-type OrganizationSelectHeaderProps = {
+interface OrganizationSelectHeaderProps {
   handleOrgChange: (orgId: string) => void;
   organizationId: string | undefined;
   organizations: Organization[];
-};
+}
 
 export function OrganizationSelectHeader({
   handleOrgChange,

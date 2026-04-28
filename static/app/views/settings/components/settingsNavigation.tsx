@@ -6,7 +6,7 @@ import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components'
 import {SettingsNavigationGroup} from 'sentry/views/settings/components/settingsNavigationGroup';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
 
-type DefaultProps = {
+interface DefaultProps {
   /**
    * Additional navigation configuration driven by hooks
    */
@@ -19,7 +19,7 @@ type DefaultProps = {
    * How far from the top of the page should the navigation be when stickied.
    */
   stickyTop: string;
-};
+}
 
 type Props = DefaultProps &
   NavigationProps & {

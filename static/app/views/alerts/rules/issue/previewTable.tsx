@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 
-type Props = {
+interface Props {
   error: string | null;
   groups: Group[];
   isLoading: boolean;
@@ -25,7 +25,7 @@ type Props = {
   onCursor: CursorHandler;
   page: number;
   pageLinks: string;
-};
+}
 
 export function PreviewTable({
   groups,

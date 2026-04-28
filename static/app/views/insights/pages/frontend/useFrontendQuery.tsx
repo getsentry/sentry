@@ -15,9 +15,9 @@ import {
 } from 'sentry/views/insights/pages/frontend/settings';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 
-type Props = {
+interface Props {
   includeWebVitalOps: boolean;
-};
+}
 
 export function useFrontendQuery(
   {includeWebVitalOps}: Props = {

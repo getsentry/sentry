@@ -5,10 +5,10 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 
-type Props = {
+interface Props {
   searchTerm: string;
   replayId?: string;
-};
+}
 
 export function OpenInLogsButton({searchTerm, replayId}: Props) {
   const organization = useOrganization();

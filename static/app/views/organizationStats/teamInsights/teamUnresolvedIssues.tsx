@@ -32,7 +32,7 @@ interface TeamUnresolvedIssuesProps extends DateTimeObject {
   environment?: string;
 }
 
-type UnresolvedCount = {unresolved: number};
+interface UnresolvedCount {unresolved: number}
 type ProjectReleaseCount = Record<string, Record<string, UnresolvedCount>>;
 
 export function TeamUnresolvedIssues({

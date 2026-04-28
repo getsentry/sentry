@@ -21,7 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import {withApi} from 'sentry/utils/withApi';
 
-type Props = {
+interface Props {
   api: Client;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
   onResetConfiguration: (projectId: string) => void;
@@ -37,7 +37,7 @@ type Props = {
   ) => void; // analytics callback
   className?: string;
   hasAccess?: boolean;
-};
+}
 
 class InstalledPlugin extends Component<Props> {
   get projectId() {

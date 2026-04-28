@@ -32,20 +32,20 @@ type RankedAttribute = AttributeBreakdownsComparison['rankedAttributes'][number]
 type CohortData = RankedAttribute['cohort1'];
 
 // Discriminated union for single vs comparison mode
-type SingleModeOptions = {
+interface SingleModeOptions {
   attributeDistribution: AttributeDistribution[number];
   cohortCount: number;
   mode: 'single';
   query: string;
-};
+}
 
-type ComparisonModeOptions = {
+interface ComparisonModeOptions {
   attribute: RankedAttribute;
   cohort1Total: number;
   cohort2Total: number;
   mode: 'comparison';
   query: string;
-};
+}
 
 export type AttributeBreakdownViewerModalOptions =
   | SingleModeOptions
@@ -54,21 +54,21 @@ export type AttributeBreakdownViewerModalOptions =
 type Props = ModalRenderProps & AttributeBreakdownViewerModalOptions;
 
 // Data computation types
-type SingleModeData = {
+interface SingleModeData {
   attributeName: string;
   mode: 'single';
   populationPercentages: {primary: number};
   tableColumns: TabularColumn[];
   tableData: TabularData;
-};
+}
 
-type ComparisonModeData = {
+interface ComparisonModeData {
   attributeName: string;
   mode: 'comparison';
   populationPercentages: {primary: number; secondary: number};
   tableColumns: TabularColumn[];
   tableData: TabularData;
-};
+}
 
 const SINGLE_MODE_CHART_QUERY: WidgetQuery = {
   columns: [t('Value')],
@@ -226,11 +226,11 @@ function computeComparisonModeData(
 }
 
 // Extract population indicator component
-type PopulationIndicatorProps = {
+interface PopulationIndicatorProps {
   color: string;
   percentage: number;
   tooltipTitle: string;
-};
+}
 
 function PopulationIndicatorComponent({
   color,

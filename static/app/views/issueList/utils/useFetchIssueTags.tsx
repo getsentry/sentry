@@ -31,7 +31,7 @@ import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsername
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
-type UseFetchIssueTagsParams = {
+interface UseFetchIssueTagsParams {
   org: Organization;
   projectIds: string[];
   enabled?: boolean;
@@ -41,7 +41,7 @@ type UseFetchIssueTagsParams = {
   start?: string;
   statsPeriod?: string | null;
   useCache?: boolean;
-};
+}
 
 const PREDEFINED_FIELDS = {
   ...ISSUE_PROPERTY_FIELDS.reduce<TagCollection>((acc, tag) => {

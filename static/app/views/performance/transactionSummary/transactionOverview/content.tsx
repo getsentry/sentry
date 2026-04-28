@@ -85,7 +85,7 @@ import {StatusBreakdown} from './statusBreakdown';
 import {TagExplorer} from './tagExplorer';
 import {UserStats} from './userStats';
 
-type Props = {
+interface Props {
   error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
@@ -97,7 +97,7 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
-};
+}
 
 export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
 

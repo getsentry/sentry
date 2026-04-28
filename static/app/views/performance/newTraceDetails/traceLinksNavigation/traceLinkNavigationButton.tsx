@@ -17,11 +17,11 @@ export type ConnectedTraceConnection = 'previous' | 'next';
 
 const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
 
-type TraceLinkNavigationButtonProps = {
+interface TraceLinkNavigationButtonProps {
   attributes: TraceItemResponseAttribute[];
   currentTraceStartTimestamp: number;
   direction: ConnectedTraceConnection;
-};
+}
 
 export function TraceLinkNavigationButton({
   direction,

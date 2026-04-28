@@ -23,14 +23,14 @@ type Props = ModalRenderProps & {
   savedRelays: Relay[];
 };
 
-type State = {
+interface State {
   disables: FormProps['disables'];
   errors: FormProps['errors'];
   isFormValid: boolean;
   requiredValues: Array<keyof Values>;
   title: string;
   values: Values;
-};
+}
 
 export class ModalManager<
   P extends Props = Props,

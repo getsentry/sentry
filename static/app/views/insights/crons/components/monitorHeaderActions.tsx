@@ -20,11 +20,11 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 import {StatusToggleButton} from './statusToggleButton';
 
-type Props = {
+interface Props {
   monitor: Monitor;
   onUpdate: (data: Monitor) => void;
   orgSlug: string;
-};
+}
 
 export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();

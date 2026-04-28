@@ -2,7 +2,7 @@ import {createContext, useContext, useState} from 'react';
 
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 
-type DetectorFormContextType = {
+interface DetectorFormContextType {
   detectorType: DetectorType;
   /**
    * Tracks whether the user has manually set the detector name.
@@ -11,7 +11,7 @@ type DetectorFormContextType = {
   hasSetDetectorName: boolean;
   setHasSetDetectorName: (value: boolean) => void;
   detector?: Detector;
-};
+}
 
 const DetectorFormContext = createContext<DetectorFormContextType | null>(null);
 

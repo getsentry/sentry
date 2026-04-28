@@ -27,7 +27,7 @@ import {useGenericWidgetQueries} from './genericWidgetQueries';
 type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
 
-type Props = {
+interface Props {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
@@ -39,7 +39,7 @@ type Props = {
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
-};
+}
 
 function WidgetQueriesWithOnDemandControl({
   children,

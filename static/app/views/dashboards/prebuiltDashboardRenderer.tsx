@@ -29,11 +29,11 @@ import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulate
 import {mergeGlobalFilters} from './globalFilter/utils';
 import {PREBUILT_DASHBOARDS, PrebuiltDashboardId} from './utils/prebuiltConfigs';
 
-type PrebuiltDashboardRendererProps = {
+interface PrebuiltDashboardRendererProps {
   prebuiltId: PrebuiltDashboardId;
   additionalGlobalFilters?: GlobalFilter[];
   storageNamespace?: string;
-};
+}
 
 export function PrebuiltDashboardRenderer({
   prebuiltId,

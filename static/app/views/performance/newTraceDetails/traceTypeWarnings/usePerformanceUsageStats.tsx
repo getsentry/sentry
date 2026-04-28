@@ -6,18 +6,18 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 // 1 hour in milliseconds
 const ONE_HOUR = 60 * 60 * 1000;
 
-type PerformanceStatsGroup = {
+interface PerformanceStatsGroup {
   by: {
     reason: string;
   };
   totals: {
     'sum(quantity)': number;
   };
-};
+}
 
-type PartialUsageStats = {
+interface PartialUsageStats {
   groups: PerformanceStatsGroup[];
-};
+}
 
 export function usePerformanceUsageStats({
   organization,

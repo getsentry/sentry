@@ -14,7 +14,7 @@ import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tabl
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {ModuleName} from 'sentry/views/insights/types';
 
-type Query = {
+interface Query {
   'device.class': string;
   primaryRelease: string;
   project: string;
@@ -22,7 +22,7 @@ type Query = {
   spanGroup: string;
   spanOp: string;
   transaction: string;
-};
+}
 
 export function ScreenSummaryContent() {
   const navigate = useNavigate();

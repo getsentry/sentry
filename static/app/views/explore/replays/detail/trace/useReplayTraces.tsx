@@ -11,17 +11,17 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
-export type ReplayTrace = {
+export interface ReplayTrace {
   timestamp: number | undefined;
   traceSlug: string;
-};
+}
 
-type ReplayTraceDataResults = {
+interface ReplayTraceDataResults {
   eventView: EventView | undefined;
   indexComplete: boolean;
   indexError: undefined | Error;
   replayTraces: ReplayTrace[] | undefined;
-};
+}
 
 // This hook fetches the traceIds and the min(timestamp) associated with each id, for a replay record.
 export function useReplayTraces({

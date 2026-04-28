@@ -24,7 +24,7 @@ import {ResolveActionsContainer as ResolveActions} from './resolveActions';
 import {ReviewAction} from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
-type Props = {
+interface Props {
   allInQuerySelected: boolean;
   anySelected: boolean;
   issues: Set<string>;
@@ -36,7 +36,7 @@ type Props = {
   query: string;
   queryCount: number;
   selectedProjectSlug?: string;
-};
+}
 
 export function ActionSet({
   queryCount,

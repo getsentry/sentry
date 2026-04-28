@@ -6,9 +6,9 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanFields;
 
-type Query = {
+interface Query {
   sort?: string;
-};
+}
 
 const SORTABLE_FIELDS = [
   `avg(${SPAN_SELF_TIME})`,

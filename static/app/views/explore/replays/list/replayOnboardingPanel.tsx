@@ -28,12 +28,12 @@ import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-type Breakpoints = {
+interface Breakpoints {
   lg: string;
   md: string;
   sm: string;
   xl: string;
-};
+}
 
 const OnboardingCTAHook = HookOrDefault({
   hookName: 'component:replay-onboarding-cta',

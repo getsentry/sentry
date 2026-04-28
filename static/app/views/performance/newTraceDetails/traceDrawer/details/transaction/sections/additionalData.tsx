@@ -17,10 +17,10 @@ enum EventExtraDataType {
 
 type TEventExtraData = Record<string, any>;
 
-type Output = {
+interface Output {
   subject: string;
   value?: React.ReactNode;
-};
+}
 
 function getEventExtraDataKnownDataDetails({
   data,

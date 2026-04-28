@@ -16,11 +16,11 @@ import {prettifyAggregation} from 'sentry/views/explore/utils';
 
 const MORE_TOKENS_WIDTH = 32;
 
-type SingleQueryProps = {
+interface SingleQueryProps {
   query: string;
   visualizes: BaseVisualize[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
-};
+}
 
 export function ExploreParams({
   query,

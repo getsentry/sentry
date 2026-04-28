@@ -45,14 +45,14 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 
-type Props = {
+interface Props {
   api: Client;
   dashboards: DashboardListItem[] | undefined;
   location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   isLoading?: boolean;
-};
+}
 
 enum ResponseKeys {
   NAME = 'title',
@@ -69,13 +69,13 @@ const SortKeys = {
   createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
 };
 
-type FavoriteButtonProps = {
+interface FavoriteButtonProps {
   api: Client;
   dashboardId: string;
   isFavorited: boolean;
   onDashboardsChange: () => void;
   organization: Organization;
-};
+}
 
 function FavoriteButton({
   isFavorited,

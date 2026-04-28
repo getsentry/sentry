@@ -9,9 +9,9 @@ import {ResourceCard} from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
 export function Resources(_props: Props) {
   return (

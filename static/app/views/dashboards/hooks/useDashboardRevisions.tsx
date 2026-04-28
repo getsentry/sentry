@@ -4,13 +4,13 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
-export type DashboardRevision = {
+export interface DashboardRevision {
   createdBy: {email: string; id: string; name: string} | null;
   dateCreated: string;
   id: string;
   source: 'edit' | 'edit-with-agent' | 'pre-restore';
   title: string;
-};
+}
 
 const REVISIONS_PATH =
   '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/revisions/' as const;

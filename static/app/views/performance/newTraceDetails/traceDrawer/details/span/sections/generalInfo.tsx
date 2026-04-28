@@ -26,12 +26,12 @@ import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModel
 
 import {useSpanAncestryAndGroupingItems} from './ancestry';
 
-type GeneralnfoProps = {
+interface GeneralnfoProps {
   location: Location;
   node: SpanNode;
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
-};
+}
 
 function SpanDuration({node}: {node: SpanNode}) {
   const span = node.value;

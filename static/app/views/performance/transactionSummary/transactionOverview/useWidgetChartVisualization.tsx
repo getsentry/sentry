@@ -26,11 +26,11 @@ import {Chart as DurationPercentileChart} from './durationPercentileChart/chart'
 
 const REFERRER = 'transaction-summary-charts-widget';
 
-type Options = {
+interface Options {
   query: string;
   selectedWidget: EAPWidgetType;
   transactionName: string;
-};
+}
 
 /**
  * Returns the representative visualization for the selected widget. Handles data fetching, error handling, and loading states.
@@ -76,11 +76,11 @@ export function useWidgetChartVisualization({
   return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
 }
 
-type DurationBreakdownVisualizationOptions = {
+interface DurationBreakdownVisualizationOptions {
   enabled: boolean;
   query: string;
   transactionName: string;
-};
+}
 
 function useDurationBreakdownVisualization({
   enabled,
@@ -165,11 +165,11 @@ function useDurationBreakdownVisualization({
   );
 }
 
-type DurationPercentilesVisualizationOptions = {
+interface DurationPercentilesVisualizationOptions {
   enabled: boolean;
   query: string;
   transactionName: string;
-};
+}
 
 function useDurationPercentilesVisualization({
   enabled,
@@ -224,11 +224,11 @@ function useDurationPercentilesVisualization({
   );
 }
 
-type WebVitalsVisualizationOptions = {
+interface WebVitalsVisualizationOptions {
   enabled: boolean;
   query: string;
   transactionName: string;
-};
+}
 
 function useWebVitalsVisualization({
   enabled,

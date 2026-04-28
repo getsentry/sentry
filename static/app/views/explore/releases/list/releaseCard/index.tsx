@@ -51,7 +51,7 @@ function getReleaseProjectId(release: Release, selection: PageFilters) {
   return undefined;
 }
 
-type Props = {
+interface Props {
   activeDisplay: ReleasesDisplayOption;
   getHealthData: ReleasesRequestRenderProps['getHealthData'];
   isTopRelease: boolean;
@@ -62,7 +62,7 @@ type Props = {
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
-};
+}
 
 export function ReleaseCard({
   release,

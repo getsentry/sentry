@@ -14,12 +14,12 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   codes: string[];
   isEnrolled: boolean;
   onRegenerateBackupCodes: () => void;
   className?: string;
-};
+}
 
 export function RecoveryCodes({
   className,

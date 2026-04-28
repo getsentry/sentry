@@ -27,16 +27,16 @@ const suggestionOptions = (
     }
   );
 
-type FieldProps = {
+interface FieldProps {
   'aria-describedby': string;
   'aria-invalid': boolean;
   disabled: boolean;
   id: string;
   name: string;
   onBlur: () => void;
-};
+}
 
-type Props = {
+interface Props {
   fieldProps: FieldProps;
   onChange: (value: string) => void;
   onErrorChange: (error: string | undefined) => void;
@@ -44,7 +44,7 @@ type Props = {
   orgSlug: string;
   value: string;
   projectId?: string;
-};
+}
 
 export function EventIdField({
   fieldProps,

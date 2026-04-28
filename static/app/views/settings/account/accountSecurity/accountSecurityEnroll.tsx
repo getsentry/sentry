@@ -46,7 +46,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {AuthenticatorHeader} from './components/authenticatorHeader';
 
-type GetFieldsOpts = {
+interface GetFieldsOpts {
   authenticator: Authenticator;
   /**
    * Flag to track if totp has been sent
@@ -60,7 +60,7 @@ type GetFieldsOpts = {
    * Flag to track if we are currently sending the otp code
    */
   sendingCode: boolean;
-};
+}
 
 /**
  * Retrieve additional form fields (or modify ones) based on 2fa method

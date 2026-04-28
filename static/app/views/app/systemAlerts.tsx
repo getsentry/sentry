@@ -5,7 +5,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {AlertMessage} from './alertMessage';
 
-type Props = {className?: string};
+interface Props {className?: string}
 
 function SystemAlerts(props: Props) {
   const alerts = useLegacyStore(AlertStore);

@@ -19,12 +19,12 @@ import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
-type Props = {
+interface Props {
   incident: Incident;
   organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;
-};
+}
 
 export function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
   const slug = incident.projects[0]!;

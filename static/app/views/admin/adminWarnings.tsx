@@ -5,10 +5,10 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type Data = {
+interface Data {
   groups: Array<[groupName: string, grouppedWarnings: string[]]>;
   warnings: string[];
-};
+}
 
 function AdminWarnings() {
   const {data, isPending, isError} = useApiQuery<Data>(

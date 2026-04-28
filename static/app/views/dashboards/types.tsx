@@ -99,7 +99,7 @@ interface WidgetQueryOnDemand {
   extractionState: OnDemandExtractionState;
 }
 
-export type LinkedDashboard = {
+export interface LinkedDashboard {
   // The destination dashboard id, set this to '-1' for prebuilt dashboards that link to other prebuilt dashboards
   dashboardId: string;
   field: string;
@@ -108,13 +108,13 @@ export type LinkedDashboard = {
   additionalGlobalFilterDatasetTargets?: WidgetType[];
   // Used for static dashboards that are not saved to the database
   staticDashboardId?: PrebuiltDashboardId;
-};
+}
 
 /**
  * A widget query is one or more aggregates and a single filter string (conditions.)
  * Widgets can have multiple widget queries, and they all combine into a unified timeseries view (for example)
  */
-export type WidgetQuery = {
+export interface WidgetQuery {
   aggregates: string[];
   columns: string[];
   conditions: string;
@@ -139,9 +139,9 @@ export type WidgetQuery = {
   // TODO: currently not stored in the backend, only used
   // by prebuilt dashboards in the frontend.
   slideOutId?: SlideoutId;
-};
+}
 
-type WidgetChangedReason = {
+interface WidgetChangedReason {
   equations: Array<{
     equation: string;
     reason: string | string[];
@@ -151,9 +151,9 @@ type WidgetChangedReason = {
     reason: string | string[];
   }> | null;
   selected_columns: string[];
-};
+}
 
-export type Widget = {
+export interface Widget {
   displayType: DisplayType;
   interval: string;
   queries: WidgetQuery[];
@@ -174,27 +174,27 @@ export type Widget = {
   tempId?: string;
   thresholds?: ThresholdsConfig | null;
   widgetType?: WidgetType;
-};
+}
 
 // We store an explicit set of keys in the backend now
 export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
 
-export type WidgetPreview = {
+export interface WidgetPreview {
   displayType: DisplayType;
   layout: WidgetLayout | null;
-};
+}
 
-export type DashboardPermissions = {
+export interface DashboardPermissions {
   isEditableByEveryone: boolean;
   teamsWithEditAccess?: number[];
-};
+}
 
 /**
  * The response shape from dashboard list endpoint
  */
-export type DashboardListItem = {
+export interface DashboardListItem {
   environment: string[];
   filters: DashboardFilters;
   id: string;
@@ -208,19 +208,19 @@ export type DashboardListItem = {
   lastVisited?: string;
   permissions?: DashboardPermissions;
   prebuiltId?: PrebuiltDashboardId;
-};
+}
 
 export enum DashboardFilterKeys {
   RELEASE = 'release',
   GLOBAL_FILTER = 'globalFilter',
 }
 
-export type DashboardFilters = {
+export interface DashboardFilters {
   [DashboardFilterKeys.RELEASE]?: string[];
   [DashboardFilterKeys.GLOBAL_FILTER]?: GlobalFilter[];
-};
+}
 
-export type GlobalFilter = {
+export interface GlobalFilter {
   // Dataset the global filter will be applied to
   dataset: WidgetType;
   // The tag being filtered
@@ -228,12 +228,12 @@ export type GlobalFilter = {
   // The raw filter condition string (e.g. 'tagKey:[values,...]')
   value: string;
   isTemporary?: boolean;
-};
+}
 
 /**
  * Saved dashboard with widgets
  */
-export type DashboardDetails = {
+export interface DashboardDetails {
   dateCreated: string;
   filters: DashboardFilters;
   id: string;
@@ -249,7 +249,7 @@ export type DashboardDetails = {
   prebuiltId?: PrebuiltDashboardId;
   start?: string;
   utc?: boolean;
-};
+}
 
 export enum DashboardState {
   VIEW = 'view',

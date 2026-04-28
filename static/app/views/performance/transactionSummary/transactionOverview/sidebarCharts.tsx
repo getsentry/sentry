@@ -31,14 +31,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
-type ContainerProps = {
+interface ContainerProps {
   error: QueryError | null;
   eventView: EventView;
   isLoading: boolean;
   organization: Organization;
   totals: Record<string, number> | null;
   transactionName: string;
-};
+}
 
 type Props = Pick<ContainerProps, 'organization' | 'isLoading' | 'error' | 'totals'> & {
   chartData: {
@@ -299,12 +299,12 @@ export function SidebarChartsContainer({
   );
 }
 
-type ChartValueProps = {
+interface ChartValueProps {
   'data-test-id': string;
   error: QueryError | null;
   isLoading: boolean;
   value: React.ReactNode;
-};
+}
 
 function ChartSummaryValue({error, isLoading, value, ...props}: ChartValueProps) {
   if (error) {

@@ -37,10 +37,10 @@ import type {
   WidgetDataResult,
 } from 'sentry/views/performance/landing/widgets/types';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
-};
+}
 
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const theme = useTheme();

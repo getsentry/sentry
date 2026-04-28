@@ -7,10 +7,10 @@ import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
-type Response = {
+interface Response {
   valid: boolean;
   detail?: string;
-};
+}
 
 /**
  * Checks whether a manually entered integration channel (e.g., Slack channel, Discord server) is valid.

@@ -11,10 +11,10 @@ import {
 
 import {hasSDKContext} from './sdk';
 
-type Props = {
+interface Props {
   cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
   event: EventTransaction;
-};
+}
 
 export function BuiltIn({event, cacheMetrics}: Props) {
   const items: SectionCardKeyValueList = [];

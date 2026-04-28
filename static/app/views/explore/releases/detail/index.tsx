@@ -48,7 +48,7 @@ import {useReleaseMeta} from 'sentry/views/explore/releases/utils/useReleaseMeta
 
 import {ReleaseHeader} from './header/releaseHeader';
 
-type ReleaseContextType = {
+interface ReleaseContextType {
   deploys: Deploy[];
   hasHealthData: boolean;
   project: Required<ReleaseProject>;
@@ -56,7 +56,7 @@ type ReleaseContextType = {
   release: ReleaseWithHealth;
   releaseBounds: ReleaseBounds;
   releaseMeta: ReleaseMeta;
-};
+}
 const ReleaseContext = createContext<ReleaseContextType>({} as ReleaseContextType);
 
 function pickLocationQuery(location: Location) {

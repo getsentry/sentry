@@ -13,10 +13,10 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {useTeams} from 'sentry/utils/useTeams';
 import {withProjects} from 'sentry/utils/withProjects';
 
-type BaseProps = {
+interface BaseProps {
   organization: Organization;
   transactionName: string;
-};
+}
 
 type Props = BaseProps &
   TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {

@@ -19,7 +19,7 @@ import {ActionWrapper} from './actionWrapper';
 
 const API_LIMIT = 1000;
 
-type Release = {date: string; version: string};
+interface Release {date: string; version: string}
 
 const useReleaseCount = (props: Props) => {
   const {organization, selection, isProjectStabilized, query} = props;
@@ -124,12 +124,12 @@ const useReleaseCount = (props: Props) => {
   };
 };
 
-type Props = {
+interface Props {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
   query?: string;
-};
+}
 
 export function ProjectVelocityScoreCard(props: Props) {
   const {organization} = props;

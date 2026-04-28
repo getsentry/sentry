@@ -2,12 +2,12 @@ import styled from '@emotion/styled';
 
 import {ListItem} from 'sentry/components/list/listItem';
 
-type Props = {
+interface Props {
   children: React.ReactElement;
   title: React.ReactNode;
   className?: string;
   subtitle?: React.ReactNode;
-};
+}
 
 export const Item = styled(({title, subtitle, children, className}: Props) => (
   <ListItem className={className}>

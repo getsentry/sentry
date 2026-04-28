@@ -2,12 +2,12 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-type Props = {
+interface Props {
   label: string;
   onSelect: (key: string) => void;
   options: Record<string, Omit<SelectOption<string>, 'value'>>;
   selected: string;
-};
+}
 
 export function ReleasesDropdown({label: prefix, options, selected, onSelect}: Props) {
   const mappedOptions = Object.entries(options).map(

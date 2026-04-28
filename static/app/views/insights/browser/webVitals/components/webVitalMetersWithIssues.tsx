@@ -32,21 +32,21 @@ import {
   type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 
-export type ProjectData = {
+export interface ProjectData {
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
   'p75(measurements.inp)': number;
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
-};
+}
 
-type Props = {
+interface Props {
   onClick?: (webVital: WebVitals) => void;
   projectData?: ProjectData[];
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
-};
+}
 
 export function WebVitalMetersWithIssues({
   onClick,
@@ -94,7 +94,7 @@ export function WebVitalMetersWithIssues({
   );
 }
 
-type VitalMeterProps = {
+interface VitalMeterProps {
   color: string;
   meterValue: number | undefined;
   score: number | undefined;
@@ -103,7 +103,7 @@ type VitalMeterProps = {
   isAggregateMode?: boolean;
   onClick?: (webVital: WebVitals) => void;
   transaction?: string;
-};
+}
 
 function VitalMeter({
   webVital,
@@ -205,13 +205,13 @@ function VitalMeter({
   );
 }
 
-type VitalContainerProps = {
+interface VitalContainerProps {
   meterBody: React.ReactNode;
   webVital: WebVitals;
   webVitalExists: boolean;
   isAggregateMode?: boolean;
   onClick?: (webVital: WebVitals) => void;
-};
+}
 
 function VitalContainer({
   webVital,

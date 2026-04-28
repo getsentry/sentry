@@ -1,22 +1,22 @@
 import {Component} from 'react';
 import {motion} from 'framer-motion';
 
-type RenderProps = {
+interface RenderProps {
   fallCount: number;
   fallingError: React.ReactNode;
   isFalling: boolean;
   triggerFall: (countIt?: boolean) => void;
-};
+}
 
-type Props = {
+interface Props {
   children: (renderProps: RenderProps) => React.ReactNode;
   onFall?: (fallCount: number) => void;
-};
+}
 
-type State = {
+interface State {
   fallCount: number;
   isFalling: boolean;
-};
+}
 
 export class FallingError extends Component<Props, State> {
   state: State = {

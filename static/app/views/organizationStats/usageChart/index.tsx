@@ -68,7 +68,7 @@ export const enum SeriesTypes {
   PROJECTED = 'Projected',
 }
 
-export type UsageChartProps = {
+export interface UsageChartProps {
   dataCategory: DataCategory;
   dataTransform: ChartDataTransform;
   usageDateEnd: string;
@@ -116,7 +116,7 @@ export type UsageChartProps = {
    */
   usageDateShowUtc?: boolean;
   yAxisFormatter?: (val: number) => string;
-};
+}
 
 /**
  * When the data transformation is set to cumulative, the chart will display
@@ -162,7 +162,7 @@ const getUnitYaxisFormatter =
       useUnitScaling: true,
     });
 
-export type ChartStats = {
+export interface ChartStats {
   accepted: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
   accepted_stored?: NonNullable<BarSeriesOption['data']>;
@@ -173,7 +173,7 @@ export type ChartStats = {
   onDemand?: NonNullable<BarSeriesOption['data']>;
   rateLimited?: NonNullable<BarSeriesOption['data']>;
   reserved?: NonNullable<BarSeriesOption['data']>;
-};
+}
 
 function chartMetadata({
   categoryOptions,

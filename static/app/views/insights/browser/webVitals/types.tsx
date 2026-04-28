@@ -2,7 +2,7 @@ import type {ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export type Row = {
+export interface Row {
   'count()': number;
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
@@ -12,9 +12,9 @@ export type Row = {
   project: string;
   'project.id': number;
   transaction: string;
-};
+}
 
-type TransactionSampleRow = {
+interface TransactionSampleRow {
   id: string;
   'profile.id': string;
   project: string;
@@ -28,20 +28,20 @@ type TransactionSampleRow = {
   'measurements.lcp'?: number;
   'measurements.ttfb'?: number;
   'transaction.duration'?: number;
-};
+}
 
 export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
-export type Score = {
+export interface Score {
   clsScore: number;
   fcpScore: number;
   inpScore: number;
   lcpScore: number;
   totalScore: number;
   ttfbScore: number;
-};
+}
 
-type SpanSampleRow = {
+interface SpanSampleRow {
   id: string;
   'profile.id': string;
   project: string;
@@ -59,13 +59,13 @@ type SpanSampleRow = {
   [SpanFields.LCP_ELEMENT]?: string;
   [SpanFields.SPAN_OP]?: string;
   [SpanFields.CLS_SOURCE]?: string;
-};
+}
 
 export type SpanSampleRowWithScore = SpanSampleRow & Score;
 
-export type Opportunity = {
+export interface Opportunity {
   opportunity: number;
-};
+}
 
 export type ProjectScore = Partial<Score>;
 

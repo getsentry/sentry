@@ -31,17 +31,17 @@ function getHorizontalDelta(x: number, y: number): number {
   return Math.min(x, y);
 }
 
-type ViewColumn = {
+interface ViewColumn {
   column_nodes: BaseNode[];
   column_refs: Array<HTMLElement | undefined>;
   translate: [number, number];
   width: number;
-};
+}
 
-type VerticalIndicator = {
+interface VerticalIndicator {
   ref: HTMLElement | null;
   timestamp: number | undefined;
-};
+}
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their

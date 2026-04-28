@@ -7,13 +7,13 @@ import {t} from 'sentry/locale';
 import type {useSortErrors} from 'sentry/views/explore/replays/detail/errorList/useSortErrors';
 
 type SortConfig = ReturnType<typeof useSortErrors>['sortConfig'];
-type Props = {
+interface Props {
   handleSort: ReturnType<typeof useSortErrors>['handleSort'];
   index: number;
   sortConfig: SortConfig;
   style: CSSProperties;
   ref?: React.Ref<HTMLButtonElement>;
-};
+}
 
 const COLUMNS: Array<{
   field: SortConfig['by'];

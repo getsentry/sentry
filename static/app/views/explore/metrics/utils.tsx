@@ -110,14 +110,14 @@ export function getMetricsUnit(
   return unitFromField;
 }
 
-type BaseGetMetricsUrlParams = {
+interface BaseGetMetricsUrlParams {
   id?: number;
   interval?: string;
   metricQueries?: BaseMetricQuery[];
   referrer?: string;
   selection?: PageFilters;
   title?: string;
-};
+}
 
 export function getMetricsUrl(
   params: BaseGetMetricsUrlParams & {organization: Organization}

@@ -63,24 +63,24 @@ export interface TraceItemDetailsResponse {
 
 // Span links are stored as JSON-encoded attributes in EAP for now. The backend
 // decodes the JSON for us. Since links are so structurally similar to spans, the types are similar as well.
-export type TraceItemResponseLink = {
+export interface TraceItemResponseLink {
   itemId: string;
   sampled: boolean;
   traceId: string;
   attributes?: TraceItemResponseAttribute[];
-};
+}
 
-type TraceItemDetailsUrlParams = {
+interface TraceItemDetailsUrlParams {
   organizationSlug: string;
   projectSlug: string;
   traceItemId: string;
-};
+}
 
-type TraceItemDetailsQueryParams = {
+interface TraceItemDetailsQueryParams {
   referrer: string;
   traceId: string;
   traceItemType: TraceItemDataset;
-};
+}
 
 export type TraceItemResponseAttribute =
   | {name: string; type: 'str'; value: string}

@@ -10,7 +10,7 @@ import type {Project} from 'sentry/types/project';
 import type {NormalizedTrendsTransaction, TrendChangeType, TrendView} from './types';
 import {transformDeltaSpread} from './utils';
 
-type TrendsListItemProps = {
+interface TrendsListItemProps {
   api: Client;
   currentTrendColumn: string;
   currentTrendFunction: string;
@@ -23,7 +23,7 @@ type TrendsListItemProps = {
   transactions: NormalizedTrendsTransaction[];
   trendChangeType: TrendChangeType;
   trendView: TrendView;
-};
+}
 
 export function CompareDurations({
   transaction,

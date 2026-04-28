@@ -11,9 +11,9 @@ import SubscriptionBox from 'sentry/views/settings/organizationDeveloperSettings
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
-type DefaultProps = {
+interface DefaultProps {
   webhookDisabled: boolean;
-};
+}
 
 type Props = DefaultProps & {
   events: WebhookEvent[];

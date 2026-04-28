@@ -31,7 +31,7 @@ import type {TableStat} from './usageTable';
 import UsageTable, {CellProject, CellStat} from './usageTable';
 import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
-type Props = {
+interface Props {
   dataCategory: DataCategoryInfo;
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
@@ -49,7 +49,7 @@ type Props = {
   tableCursor?: string;
   tableQuery?: string;
   tableSort?: string;
-};
+}
 
 const MAX_ROWS_USAGE_TABLE = 25;
 

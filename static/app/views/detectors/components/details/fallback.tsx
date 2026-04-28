@@ -16,10 +16,10 @@ import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/c
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type FallbackDetectorDetailsProps = {
+interface FallbackDetectorDetailsProps {
   detector: Detector;
   project: Project;
-};
+}
 
 export function FallbackDetectorDetails({
   detector,

@@ -21,9 +21,9 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import type {DeprecatedApiKey} from './types';
 
-type RouteParams = {
+interface RouteParams {
   apiKey: string;
-};
+}
 
 function OrganizationApiKeyDetails() {
   const organization = useOrganization();

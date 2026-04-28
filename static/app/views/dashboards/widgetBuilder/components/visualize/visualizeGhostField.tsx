@@ -26,14 +26,14 @@ import {
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
-type VisualizeGhostFieldProps = {
+interface VisualizeGhostFieldProps {
   activeId: number;
   aggregates: Array<SelectValue<FieldValue>>;
   fields: QueryFieldValue[];
   isBigNumberWidget: boolean;
   isTimeSeriesWidget: boolean;
   stringFields: string[];
-};
+}
 
 export function VisualizeGhostField({
   isTimeSeriesWidget,

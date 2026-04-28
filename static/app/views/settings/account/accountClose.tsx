@@ -48,10 +48,10 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   );
 }
 
-type OwnedOrg = {
+interface OwnedOrg {
   organization: Organization;
   singleOwner: boolean;
-};
+}
 
 function AccountClose() {
   const api = useApi();

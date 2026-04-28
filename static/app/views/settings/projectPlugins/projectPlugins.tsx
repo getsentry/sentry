@@ -16,14 +16,14 @@ import RouteError from 'sentry/views/routeError';
 
 import ProjectPluginRow from './projectPluginRow';
 
-type Props = {
+interface Props {
   error: React.ComponentProps<typeof RouteError>['error'];
   loading: boolean;
   onChange: React.ComponentProps<typeof ProjectPluginRow>['onChange'];
   organization: Organization;
   plugins: Plugin[];
   project: Project;
-};
+}
 
 export function ProjectPlugins({
   plugins,

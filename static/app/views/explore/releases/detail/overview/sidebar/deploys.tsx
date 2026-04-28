@@ -8,12 +8,12 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Deploy} from 'sentry/types/release';
 
-type Props = {
+interface Props {
   deploys: Deploy[];
   orgSlug: string;
   projectId: number;
   version: string;
-};
+}
 
 export function Deploys({version, orgSlug, projectId, deploys}: Props) {
   return (

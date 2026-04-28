@@ -5,10 +5,10 @@ import type {
   PreviewCheckResult,
 } from 'sentry/views/alerts/rules/uptime/types';
 
-type PreviewCheckResultState = {
+interface PreviewCheckResultState {
   data: PreviewCheckResult | null;
   error: PreviewCheckError | null;
-};
+}
 
 type PreviewCheckResultContextValue = PreviewCheckResultState & {
   resetPreviewCheckResult: () => void;

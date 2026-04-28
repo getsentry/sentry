@@ -16,7 +16,7 @@ import TransactionSummaryLayout from 'sentry/views/performance/transactionSummar
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
 
-type InitializeOrgProps = {
+interface InitializeOrgProps {
   location?: {
     pathname?: string;
     query?: Record<string, string>;
@@ -26,7 +26,7 @@ type InitializeOrgProps = {
     hasGranularReplayPermissions?: boolean;
     replayAccessMembers?: number[];
   };
-};
+}
 
 jest.mock('sentry/utils/useMedia', () => ({
   useMedia: jest.fn(() => true),

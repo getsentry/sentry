@@ -10,7 +10,7 @@ import {
   type UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 
-type Props = {
+interface Props {
   disabled: boolean;
   onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
@@ -22,17 +22,17 @@ type Props = {
   error?: Record<string, string>;
 
   hideControl?: boolean;
-};
+}
 
-type SensitivityFormItemProps = {
+interface SensitivityFormItemProps {
   onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   sensitivity: UnsavedMetricRule['sensitivity'];
-};
+}
 
-type DirectionFormItemProps = {
+interface DirectionFormItemProps {
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   thresholdType: UnsavedMetricRule['thresholdType'];
-};
+}
 
 function SensitivityFormItem({
   sensitivity,

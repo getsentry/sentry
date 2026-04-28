@@ -22,7 +22,7 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 import {SavedQueriesTable} from './savedQueriesTable';
 
-type Option = {label: string; value: SortOption};
+interface Option {label: string; value: SortOption}
 
 export function SavedQueriesLandingContent() {
   const organization = useOrganization();

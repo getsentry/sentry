@@ -6,12 +6,12 @@ import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
 
 import {CheckInCell} from './checkInCell';
 
-type Props = {
+interface Props {
   checkIns: CheckIn[];
   project: Project;
   hasMultiEnv?: boolean;
   isLoading?: boolean;
-};
+}
 
 export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}: Props) {
   const envColumn: Array<GridColumnOrder<CheckInCellKey>> = hasMultiEnv

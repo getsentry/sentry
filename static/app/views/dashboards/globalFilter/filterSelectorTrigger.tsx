@@ -14,13 +14,13 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
-type FilterSelectorTriggerProps = {
+interface FilterSelectorTriggerProps {
   activeFilterValues: string[];
   globalFilter: GlobalFilter;
   operator: TermOperator;
   options: Array<SelectOption<string>>;
   queryResult: UseQueryResult<string[], Error>;
-};
+}
 
 export function FilterSelectorTrigger({
   globalFilter,

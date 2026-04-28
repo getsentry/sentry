@@ -53,16 +53,16 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
 
-type ColumnTitle = {
+interface ColumnTitle {
   title: string | ReactNode;
   tooltip?: string | ReactNode;
-};
+}
 
 const COLUMN_TITLES_OPTIONAL_TOOLTIP = COLUMN_TITLES.map(title => {
   return {title};
 });
 
-type Props = {
+interface Props {
   eventView: EventView;
   location: Location;
   organization: Organization;
@@ -71,7 +71,7 @@ type Props = {
   theme: Theme;
   withStaticFilters: boolean;
   columnTitles?: ColumnTitle[];
-};
+}
 
 function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
   const fourteen_days_ago = new Date(Date.now() - 12096e5);
@@ -112,10 +112,10 @@ function TrackHasDataAnalytics({
   return children;
 }
 
-type TransactionData = {
+interface TransactionData {
   name: string;
   threshold: number;
-};
+}
 
 export function Table({
   columnTitles = COLUMN_TITLES_OPTIONAL_TOOLTIP,

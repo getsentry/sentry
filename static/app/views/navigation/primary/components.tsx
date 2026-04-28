@@ -739,10 +739,10 @@ const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
   }
 `;
 
-type PrimaryNavigationButtonOverlayProps = {
+interface PrimaryNavigationButtonOverlayProps {
   children: React.ReactNode;
   overlayProps: React.HTMLAttributes<HTMLDivElement>;
-};
+}
 
 export function usePrimaryNavigationButtonOverlay(props: UseOverlayProps = {}) {
   const {layout} = usePrimaryNavigation();

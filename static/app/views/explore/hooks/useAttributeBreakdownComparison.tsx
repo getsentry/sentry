@@ -12,7 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type AttributeBreakdownsComparison = {
+export interface AttributeBreakdownsComparison {
   cohort1Total: number;
   cohort2Total: number;
   rankedAttributes: Array<{
@@ -30,7 +30,7 @@ export type AttributeBreakdownsComparison = {
       rrr: number | null;
     };
   }>;
-};
+}
 
 export function useAttributeBreakdownComparison({
   aggregateFunction,

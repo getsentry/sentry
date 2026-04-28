@@ -14,16 +14,16 @@ import {
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 
-type Channel = {
+interface Channel {
   display: string;
   id: string;
   name: string;
   type: string;
-};
+}
 
-type ChannelListResponse = {
+interface ChannelListResponse {
   results: Channel[];
-};
+}
 
 export function MessagingIntegrationAlertRule({
   channel,

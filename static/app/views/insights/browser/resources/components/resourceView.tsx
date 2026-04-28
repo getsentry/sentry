@@ -33,10 +33,10 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
 
-type Option = {
+interface Option {
   label: string | React.ReactElement;
   value: string;
-};
+}
 
 export function ResourceView() {
   const filters = useResourceModuleFilters();

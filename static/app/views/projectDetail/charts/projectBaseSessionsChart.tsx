@@ -33,7 +33,7 @@ import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 import {ProjectSessionsAnrRequest} from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
 
-type Props = {
+interface Props {
   api: Client;
   displayMode:
     | DisplayModes.SESSIONS
@@ -48,7 +48,7 @@ type Props = {
   disablePrevious?: boolean;
   help?: string;
   query?: string;
-};
+}
 
 function ProjectBaseSessionsChart({
   title,
@@ -153,7 +153,7 @@ function ProjectBaseSessionsChart({
   );
 }
 
-type ChartProps = {
+interface ChartProps {
   displayMode:
     | DisplayModes.SESSIONS
     | DisplayModes.STABILITY
@@ -167,12 +167,12 @@ type ChartProps = {
   zoomRenderProps: ZoomRenderProps;
   additionalSeries?: LineSeriesOption[];
   previousTimeSeries?: Series[];
-};
+}
 
-type ChartState = {
+interface ChartState {
   forceUpdate: boolean;
   seriesSelection: Record<string, boolean>;
-};
+}
 
 class Chart extends Component<ChartProps, ChartState> {
   state: ChartState = {

@@ -6,10 +6,10 @@ import {Text} from '@sentry/scraps/text';
 import type {Integration} from 'sentry/types/integrations';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-type Props = {
+interface Props {
   integration: Integration;
   compact?: boolean;
-};
+}
 
 export function IntegrationItem({integration, compact = false}: Props) {
   return (

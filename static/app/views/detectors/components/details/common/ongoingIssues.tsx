@@ -9,12 +9,12 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type DetectorDetailsOngoingIssuesProps = {
+interface DetectorDetailsOngoingIssuesProps {
   // The time range used for the issues query.
   // When null, the query uses 90d as the stats period.
   dateTimeSelection: PageFilters['datetime'] | null;
   detector: Detector;
-};
+}
 
 const DEFAULT_STATS_PERIOD = '90d';
 

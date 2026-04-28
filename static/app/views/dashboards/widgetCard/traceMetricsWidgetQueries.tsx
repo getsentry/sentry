@@ -21,7 +21,7 @@ import {useGenericWidgetQueries} from './genericWidgetQueries';
 type SeriesResult = EventsTimeSeriesResponse;
 type TableResult = EventsTableData;
 
-type TraceMetricsWidgetQueriesProps = {
+interface TraceMetricsWidgetQueriesProps {
   children: (props: GenericWidgetQueriesResult) => React.JSX.Element;
   widget: Widget;
   cursor?: string;
@@ -33,7 +33,7 @@ type TraceMetricsWidgetQueriesProps = {
   // Optional selection override for widget viewer modal zoom functionality
   selection?: PageFilters;
   widgetInterval?: string;
-};
+}
 
 type TraceMetricsWidgetQueriesImplProps = TraceMetricsWidgetQueriesProps & {
   getConfidenceInformation: (result: SeriesResult) => {

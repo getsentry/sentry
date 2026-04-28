@@ -30,14 +30,14 @@ import {groupByOrganization} from 'sentry/views/settings/account/notifications/u
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-type EmailSelectOption = {label: string; value: string};
+interface EmailSelectOption {label: string; value: string}
 
-type ANBPProps = {
+interface ANBPProps {
   emailChoices: EmailSelectOption[];
   emailsByProject: Record<string, any>;
   projects: Project[];
   refetchEmailsByProject: () => void;
-};
+}
 
 function AccountNotificationsByProject({
   projects,

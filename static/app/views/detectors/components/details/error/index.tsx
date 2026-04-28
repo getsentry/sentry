@@ -32,10 +32,10 @@ import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/util
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type ErrorDetectorDetailsProps = {
+interface ErrorDetectorDetailsProps {
   detector: Detector;
   project: Project;
-};
+}
 
 const formatResolveAge = (resolveAge: number) => {
   if (!resolveAge) {

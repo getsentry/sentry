@@ -19,11 +19,11 @@ import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeCon
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type DetectorDetailsHeaderProps = {
+interface DetectorDetailsHeaderProps {
   detector: Detector;
   project: Project;
   useLocalDetailActions?: boolean;
-};
+}
 
 function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   const organization = useOrganization();

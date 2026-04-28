@@ -13,13 +13,13 @@ import {
 import type {SpanQueryFilters, SubregionCode} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   groupId: string;
   transactionName: string;
   displayedMetrics?: string[];
   subregions?: SubregionCode[];
   transactionMethod?: string;
-};
+}
 
 export function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod, subregions} = props;

@@ -86,9 +86,9 @@ function getOrgMutationOptions(organization: Organization) {
   });
 }
 
-export type IntegrationInformation = {
+export interface IntegrationInformation {
   providers: IntegrationProvider[];
-};
+}
 
 function makeIntegrationQueryKey({
   orgSlug,

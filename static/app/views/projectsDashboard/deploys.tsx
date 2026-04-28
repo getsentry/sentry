@@ -12,9 +12,9 @@ import type {Deploy as DeployType} from 'sentry/types/release';
 
 const DEPLOY_COUNT = 2;
 
-type Props = {
+interface Props {
   project: Project;
-};
+}
 
 export function Deploys({project}: Props) {
   const flattenedDeploys = Object.entries(project.latestDeploys || {}).map(

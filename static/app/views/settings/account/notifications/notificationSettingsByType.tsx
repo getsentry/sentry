@@ -38,9 +38,9 @@ import type {Identity} from './types';
 import {UnlinkedAlert} from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
 
-type Props = {
+interface Props {
   notificationType: string; // TODO(steve)? type better
-};
+}
 
 const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),

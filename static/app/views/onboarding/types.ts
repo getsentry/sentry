@@ -1,7 +1,7 @@
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 
-export type StepProps = {
+export interface StepProps {
   genSkipOnboardingLink: () => React.ReactNode;
   onComplete: (
     selectedPlatforms?: OnboardingSelectedSDK,
@@ -10,15 +10,15 @@ export type StepProps = {
   stepIndex: number;
   genBackButton?: () => React.ReactNode;
   recentCreatedProject?: Project;
-};
+}
 
-export type StepDescriptor = {
+export interface StepDescriptor {
   Component: React.ComponentType<StepProps>;
   cornerVariant: 'top-right' | 'top-left';
   id: OnboardingStepId;
   title: string;
   hasFooter?: boolean;
-};
+}
 
 export enum OnboardingStepId {
   WELCOME = 'welcome',

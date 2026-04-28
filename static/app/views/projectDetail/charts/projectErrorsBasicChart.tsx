@@ -16,10 +16,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
-type Props = {
+interface Props {
   onTotalValuesChange: (value: number | null) => void;
   projectId?: string;
-};
+}
 
 export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
   const organization = useOrganization();

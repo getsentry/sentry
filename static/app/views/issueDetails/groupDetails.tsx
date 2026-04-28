@@ -83,7 +83,7 @@ import {
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
-type FetchGroupDetailsState = {
+interface FetchGroupDetailsState {
   error: boolean;
   errorType: Error;
   event: Event | null;
@@ -91,7 +91,7 @@ type FetchGroupDetailsState = {
   loadingGroup: boolean;
   refetchData: () => void;
   refetchGroup: () => void;
-};
+}
 
 interface GroupDetailsContentProps {
   children: React.ReactNode;

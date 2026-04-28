@@ -14,12 +14,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];
 
-type Props = {
+interface Props {
   initialData: Partial<ServiceHook> & {isActive: boolean};
   organization: Organization;
   projectId: string;
   hookId?: string;
-};
+}
 
 export function ServiceHookSettingsForm({
   initialData,

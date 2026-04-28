@@ -16,11 +16,11 @@ const fakeOrgSlug = 'test-org';
 const fakePromoCode = 'free-hugs';
 const fakePublicKey = 'FAKE-PK-ANY';
 
-type FakeRegion = {
+interface FakeRegion {
   name: string;
   publicKey: string;
   url: string;
-};
+}
 
 const fakeRegions: Record<string, FakeRegion> = {
   Earth: {

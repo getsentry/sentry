@@ -18,13 +18,13 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type Props = {
+interface Props {
   data: ProjectKey;
   keyId: string;
   orgSlug: string;
   project: Project;
   updateData: (data: ProjectKey) => void;
-};
+}
 
 export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Props) {
   const api = useApi();

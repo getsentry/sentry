@@ -1,6 +1,6 @@
 import type {TreemapElement, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
 
-type SearchCtx = {
+interface SearchCtx {
   hasPath: boolean;
   isExact: boolean;
   // lowercased path parts if hasPath
@@ -10,7 +10,7 @@ type SearchCtx = {
   parts: string[];
   raw: string;
   term: string; // lowercased last segment (for direct matches)
-};
+}
 
 export function filterTreemapElement(
   element: TreemapElement,

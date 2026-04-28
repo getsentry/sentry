@@ -26,17 +26,17 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {RequestLog} from './requestLog';
 
-type Interactions = {
+interface Interactions {
   componentInteractions: Record<string, Array<[number, number]>>;
   views: Array<[number, number]>;
-};
+}
 
-type Stats = {
+interface Stats {
   installStats: Array<[number, number]>;
   totalInstalls: number;
   totalUninstalls: number;
   uninstallStats: Array<[number, number]>;
-};
+}
 
 function SentryApplicationDashboard() {
   const theme = useTheme();
@@ -242,9 +242,9 @@ function SentryApplicationDashboard() {
 
 export default SentryApplicationDashboard;
 
-type InteractionsChartProps = {
+interface InteractionsChartProps {
   data: Record<string, Array<[number, number]>>;
-};
+}
 function InteractionsChart({data}: InteractionsChartProps) {
   const theme = useTheme();
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(

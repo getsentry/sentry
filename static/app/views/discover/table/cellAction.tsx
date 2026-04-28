@@ -166,7 +166,7 @@ export function copyToClipboard(value: string | number | string[]) {
   });
 }
 
-type CellActionsOpts = {
+interface CellActionsOpts {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
   handleCellAction: (action: Actions, value: string | number) => void;
@@ -179,7 +179,7 @@ type CellActionsOpts = {
    * Any parsed out internal links that should be added to the menu as an option
    */
   to?: string;
-};
+}
 
 function makeCellActions({
   dataRow,

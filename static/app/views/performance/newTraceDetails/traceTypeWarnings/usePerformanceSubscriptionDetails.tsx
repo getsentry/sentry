@@ -4,7 +4,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 // Note: This does not fully represent the actual Subscription type.
 // Contains only the subset of attributes that we used in the hook.
-type Subscription = {
+interface Subscription {
   categories:
     | {
         transactions: {
@@ -34,7 +34,7 @@ type Subscription = {
   onDemandBudgets?: {
     enabled: boolean;
   };
-};
+}
 
 export function usePerformanceSubscriptionDetails({
   traceItemDataset,

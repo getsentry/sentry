@@ -30,16 +30,16 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SentrySelection = {id: string; name: string};
+interface SentrySelection {id: string; name: string}
 
-type BaseProps = {
+interface BaseProps {
   getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
   integration: Integration;
   type: 'user' | 'team';
   defaultOptions?: Array<{label: React.ReactNode; value: SentrySelection}>;
   mapping?: ExternalActorMappingOrSuggestion;
   onSubmitSuccess?: (data: ExternalActorMapping) => void | Promise<void>;
-};
+}
 
 type InlineProps = BaseProps & {
   isInline: true;

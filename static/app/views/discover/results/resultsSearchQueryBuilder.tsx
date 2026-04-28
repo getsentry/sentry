@@ -60,7 +60,7 @@ import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {IssueListSeerComboBox} from 'sentry/views/discover/results/issueListSeerComboBox';
 import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
-type DataProviderProps = {
+interface DataProviderProps {
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
   fields?: readonly Field[];
@@ -68,7 +68,7 @@ type DataProviderProps = {
   includeTransactions?: boolean;
   omitTags?: string[];
   projectIds?: number[] | readonly number[];
-};
+}
 
 type Props = {
   disabled?: boolean;

@@ -13,9 +13,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type Props = {
+interface Props {
   authConfig: AuthConfig;
-};
+}
 
 export function RegisterForm({authConfig}: Props) {
   const {hasNewsletter} = authConfig;

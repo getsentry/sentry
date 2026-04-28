@@ -22,9 +22,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';
 
-type Props = {
+interface Props {
   integration: Integration;
-};
+}
 
 export function IntegrationRepos(props: Props) {
   const [integrationReposErrorStatus, setIntegrationReposeErrorStatus] = useState<

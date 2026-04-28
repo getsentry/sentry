@@ -10,13 +10,13 @@ import type {Organization} from 'sentry/types/organization';
 
 import {ActionButtons} from './actionButtons';
 
-type Props = {
+interface Props {
   app: SentryApp;
   onClickRemove: (app: SentryApp) => void;
 
   organization: Organization;
   onClickPublish?: () => void;
-};
+}
 
 const UI_COMPONENT_TYPES = ['stacktrace-link', 'issue-link'];
 

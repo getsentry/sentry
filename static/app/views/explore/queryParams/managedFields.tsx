@@ -10,10 +10,10 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
-type DerivedUpdatedManagedFields = {
+interface DerivedUpdatedManagedFields {
   updatedFields?: string[];
   updatedManagedFields?: Set<string>;
-};
+}
 
 export function deriveUpdatedManagedFields(
   managedFields: Set<string>,

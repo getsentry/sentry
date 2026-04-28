@@ -5,12 +5,12 @@ import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
-type Props = {
+interface Props {
   onUpdate: (data: IssueUpdateData) => void;
   disabled?: boolean;
   tooltip?: string;
   tooltipProps?: Omit<TooltipProps, 'children' | 'title' | 'skipWrapper'>;
-};
+}
 
 export function ReviewAction({disabled, onUpdate, tooltipProps, tooltip}: Props) {
   return (

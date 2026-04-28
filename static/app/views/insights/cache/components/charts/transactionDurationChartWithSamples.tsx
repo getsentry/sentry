@@ -11,9 +11,9 @@ import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/i
 import type {SpanQueryFilters} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   samples: Samples;
-};
+}
 
 export function TransactionDurationChartWithSamples({samples}: Props) {
   const {transaction} = useLocationQuery({

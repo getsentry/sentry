@@ -5,10 +5,10 @@ type Integration = Parameters<typeof addIntegration>[0];
 
 type State = Record<string, Integration | undefined>;
 
-type Context = {
+interface Context {
   setState: React.Dispatch<React.SetStateAction<State>>;
   state: State;
-};
+}
 
 const Context = createContext<Context>({
   setState: () => {},

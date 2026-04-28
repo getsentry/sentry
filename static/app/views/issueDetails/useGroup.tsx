@@ -5,11 +5,11 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
-type GroupApiOptionsParameters = {
+interface GroupApiOptionsParameters {
   environments: string[];
   groupId: string;
   organizationSlug: string;
-};
+}
 
 export function groupApiOptions({
   groupId,

@@ -29,7 +29,7 @@ export enum GenericPerformanceWidgetDataType {
   SLOW_SCREENS_BY_WARM_START = 'slow_screens_by_warm_start',
 }
 
-export type PerformanceWidgetProps = {
+export interface PerformanceWidgetProps {
   chartDefinition: ChartDefinition;
   chartHeight: number;
 
@@ -46,7 +46,7 @@ export type PerformanceWidgetProps = {
   subTitle?: string;
 
   withStaticFilters?: boolean;
-};
+}
 
 export interface WidgetDataResult {
   hasData: boolean;
@@ -55,9 +55,9 @@ export interface WidgetDataResult {
 }
 export type WidgetDataConstraint = Record<string, WidgetDataResult | undefined>;
 
-type QueryChildren = {
+interface QueryChildren {
   children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
-};
+}
 type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
   QueryChildren & {
     eventView: EventView;
@@ -77,10 +77,10 @@ type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
   }
 >;
 
-export type QueryDefinition<
+export interface QueryDefinition<
   T extends WidgetDataConstraint,
   S extends WidgetDataResult | undefined,
-> = {
+> {
   component: QueryFC<T>;
   fields: string | string[];
   transform: (
@@ -89,13 +89,13 @@ export type QueryDefinition<
     queryDefinition: QueryDefinitionWithKey<T>
   ) => S; // TODO(k-fish): Fix any type.
   enabled?: (data: T) => boolean;
-};
+}
 type Queries<T extends WidgetDataConstraint> = Record<
   string,
   QueryDefinition<T, T[string]>
 >;
 
-type Visualization<T> = {
+interface Visualization<T> {
   component: React.ComponentType<{
     widgetData: T;
     grid?: React.ComponentProps<typeof BaseChart>['grid'];
@@ -108,7 +108,7 @@ type Visualization<T> = {
   fields?: string;
   noPadding?: boolean;
   queryFields?: string[]; // Used to determine placeholder and loading sizes. Will also be passed to the component.
-};
+}
 
 type Visualizations<T extends WidgetDataConstraint> = ReadonlyArray<Visualization<T>>; // Readonly because of index being used for React key.
 
@@ -122,7 +122,7 @@ type Subtitle<T> = React.ComponentType<{
   widgetData: T;
 }>;
 
-export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
+export interface GenericPerformanceWidgetProps<T extends WidgetDataConstraint> {
   Queries: Queries<T>;
   Visualizations: Visualizations<T>;
 
@@ -149,13 +149,13 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
    * @default 'panel'
    */
   containerType?: PerformanceWidgetContainerTypes;
-};
+}
 
-export type WidgetDataProps<T> = {
+export interface WidgetDataProps<T> {
   removeWidgetDataForKey: (dataKey: string) => void;
   setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
   widgetData: T;
-};
+}
 
 export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefinition<
   T,

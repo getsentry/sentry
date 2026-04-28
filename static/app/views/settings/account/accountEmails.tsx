@@ -214,7 +214,7 @@ export function EmailAddresses() {
   );
 }
 
-type EmailRowProps = {
+interface EmailRowProps {
   email: string;
   onRemove: (email: string) => void;
   onVerify: (email: string) => void;
@@ -222,7 +222,7 @@ type EmailRowProps = {
   isPrimary?: boolean;
   isVerified?: boolean;
   onSetPrimary?: (email: string) => void;
-};
+}
 
 function EmailRow({
   email,

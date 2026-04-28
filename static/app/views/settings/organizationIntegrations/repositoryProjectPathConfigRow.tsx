@@ -13,12 +13,12 @@ import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 
-type Props = {
+interface Props {
   onDelete: (pathConfig: RepositoryProjectPathConfig) => void;
   onEdit: (pathConfig: RepositoryProjectPathConfig) => void;
   pathConfig: RepositoryProjectPathConfig;
   project: Project;
-};
+}
 
 export function RepositoryProjectPathConfigRow({
   pathConfig,

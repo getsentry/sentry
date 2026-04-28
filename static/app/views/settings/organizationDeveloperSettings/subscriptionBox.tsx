@@ -13,7 +13,7 @@ import {PERMISSIONS_MAP} from 'sentry/views/settings/organizationDeveloperSettin
 
 type Resource = (typeof EVENT_CHOICES)[number];
 
-type Props = {
+interface Props {
   checked: boolean;
   disabledFromPermissions: boolean;
   isNew: boolean;
@@ -21,7 +21,7 @@ type Props = {
   organization: Organization;
   resource: Resource;
   webhookDisabled?: boolean;
-};
+}
 
 function SubscriptionBox({
   checked,

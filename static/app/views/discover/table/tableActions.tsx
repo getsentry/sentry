@@ -17,7 +17,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 
-type Props = {
+interface Props {
   error: string | null;
   eventView: EventView;
   isLoading: boolean;
@@ -29,7 +29,7 @@ type Props = {
   tableData: TableData | null | undefined;
   title: string;
   queryDataset?: SavedQueryDatasets;
-};
+}
 
 function handleDownloadAsCsv(title: string, {organization, eventView, tableData}: Props) {
   trackAnalytics('discover_v2.results.download_csv', {

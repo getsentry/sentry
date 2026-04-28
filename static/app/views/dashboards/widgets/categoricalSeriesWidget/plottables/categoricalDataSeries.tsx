@@ -14,7 +14,7 @@ import type {
 
 import type {PlottableCategoricalValueType} from './plottable';
 
-export type CategoricalDataSeriesConfig = {
+export interface CategoricalDataSeriesConfig {
   /**
    * Optional alias. If not provided, the series name from the legend will be
    * computed from the `CategoricalSeries`.
@@ -30,9 +30,9 @@ export type CategoricalDataSeriesConfig = {
    * corresponds to the highlighted point in the chart and its index.
    */
   onHighlight?: (datum: Readonly<CategoricalItem>, dataIndex: number) => void;
-};
+}
 
-export type CategoricalPlottingOptions = {
+export interface CategoricalPlottingOptions {
   /**
    * The theme object, used for styling (e.g., emphasis colors).
    */
@@ -47,7 +47,7 @@ export type CategoricalPlottingOptions = {
    * the original unit if normalization is applied.
    */
   unit?: DataUnit | null;
-};
+}
 
 /**
  * `CategoricalDataSeries` is a plottable that represents a categorical data

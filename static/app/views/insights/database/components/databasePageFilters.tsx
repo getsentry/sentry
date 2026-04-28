@@ -11,11 +11,11 @@ import {DatabaseSystemSelector} from 'sentry/views/insights/database/components/
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName} from 'sentry/views/insights/types';
 
-type Props = {
+interface Props {
   databaseCommand?: string;
   system?: string;
   table?: string;
-};
+}
 
 export function DatabasePageFilters(props: Props) {
   const {system, databaseCommand, table} = props;

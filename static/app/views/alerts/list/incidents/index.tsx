@@ -36,13 +36,13 @@ import {AlertListRow} from './row';
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
-type Props = {
+interface Props {
   location: Location;
   navigate: ReactRouter3Navigate;
   organization: Organization;
-};
+}
 
-type State = {
+interface State {
   incidentList: Incident[];
   /**
    * User has not yet seen the 'alert_stream' welcome prompt for this
@@ -54,7 +54,7 @@ type State = {
    * projects?
    */
   hasAlertRule?: boolean;
-};
+}
 
 class IncidentsList extends DeprecatedAsyncComponent<
   Props,

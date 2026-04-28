@@ -12,15 +12,15 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type UseTogglePluginMutationOptions = {
+interface UseTogglePluginMutationOptions {
   projectSlug: string;
   analyticsView?: 'legacy_integrations' | 'plugin_details';
-};
+}
 
-type TogglePluginParams = {
+interface TogglePluginParams {
   pluginId: string;
   shouldEnable: boolean;
-};
+}
 
 export function useTogglePluginMutation({
   projectSlug,

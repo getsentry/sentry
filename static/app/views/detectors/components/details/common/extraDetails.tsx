@@ -13,9 +13,9 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 export function DetectorExtraDetails({children}: Props) {
   return (

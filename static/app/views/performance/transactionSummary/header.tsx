@@ -52,7 +52,7 @@ import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
 const REPLAY_COUNT_LIMIT = 50;
 
-type Props = {
+interface Props {
   currentTab: Tab;
   eventView: EventView;
   location: Location;
@@ -62,7 +62,7 @@ type Props = {
   transactionName: string;
   metricsCardinality?: MetricsCardinalityContext;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
-};
+}
 
 export function TransactionHeader({
   eventView,

@@ -12,11 +12,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-type UpdateGroupSearchViewStarredVariables = {
+interface UpdateGroupSearchViewStarredVariables {
   id: string | number;
   starred: boolean;
   view: GroupSearchView;
-};
+}
 
 export const useUpdateGroupSearchViewStarred = (
   options: Omit<

@@ -24,13 +24,13 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 const BASELINE_DAYS = 7;
 const CHARTS_PER_PAGE = 9; // 3 rows × 3 columns max
 
-type AttributeComparisonSectionProps = {
+interface AttributeComparisonSectionProps {
   isOpenPeriodLoading: boolean;
   openPeriodEnd: string;
   openPeriodStart: string;
   projectId: string | number;
   snubaQuery: SnubaQuery;
-};
+}
 
 export function AttributeComparisonSection({
   snubaQuery,

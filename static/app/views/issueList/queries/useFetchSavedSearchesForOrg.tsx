@@ -3,9 +3,9 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type FetchSavedSearchesForOrgParameters = {
+interface FetchSavedSearchesForOrgParameters {
   orgSlug: string;
-};
+}
 
 type FetchSavedSearchesForOrgResponse = SavedSearch[];
 

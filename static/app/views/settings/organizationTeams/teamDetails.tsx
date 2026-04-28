@@ -20,9 +20,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type TeamDetailsOutletContext = {
+interface TeamDetailsOutletContext {
   team: Team;
-};
+}
 
 function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
   return <Outlet context={props} />;

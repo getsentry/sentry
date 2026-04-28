@@ -9,10 +9,10 @@ import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/
 import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
 
-type UpdateGroupSearchViewStarredOrderVariables = {
+interface UpdateGroupSearchViewStarredOrderVariables {
   orgSlug: string;
   viewIds: number[];
-};
+}
 
 export const useUpdateGroupSearchViewStarredOrder = () => {
   const api = useApi();

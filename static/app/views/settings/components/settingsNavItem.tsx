@@ -9,14 +9,14 @@ import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
-type Props = {
+interface Props {
   label: React.ReactNode;
   to: string;
   badge?: string | number | null | ReactElement;
   id?: string;
   index?: boolean;
   onClick?: (e: React.MouseEvent) => void;
-};
+}
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',

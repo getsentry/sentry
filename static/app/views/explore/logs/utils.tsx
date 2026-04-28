@@ -335,7 +335,7 @@ export function calculateAverageLogsPerSecond(
   return totalLogs / totalDurationSeconds;
 }
 
-type BaseGetLogsUrlParams = {
+interface BaseGetLogsUrlParams {
   aggregateFields?: Array<GroupBy | BaseVisualize>;
   aggregateFn?: string;
   aggregateParam?: string;
@@ -350,7 +350,7 @@ type BaseGetLogsUrlParams = {
   selection?: PageFilters;
   sortBy?: string;
   title?: string;
-};
+}
 
 export function getLogsUrl(
   params: BaseGetLogsUrlParams & {organization: Organization}

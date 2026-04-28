@@ -61,10 +61,10 @@ import {
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
-};
+}
 
 type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']

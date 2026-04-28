@@ -28,12 +28,12 @@ import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQ
 
 import {MobileBuildsChart} from './mobileBuildsChart';
 
-type Props = {
+interface Props {
   organization: Organization;
   selectedProjectIds: string[];
   defaultDisplay?: PreprodBuildsDisplay;
   hideDisplayToggle?: boolean;
-};
+}
 
 export function MobileBuilds({
   organization,

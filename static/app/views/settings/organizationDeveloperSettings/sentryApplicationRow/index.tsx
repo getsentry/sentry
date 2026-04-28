@@ -101,7 +101,7 @@ const CenterFlex = styled(Flex)`
   align-items: center;
 `;
 
-type PublishStatusProps = {status: SentryApp['status']; theme?: any};
+interface PublishStatusProps {status: SentryApp['status']; theme?: any}
 
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <CenterFlex>

@@ -22,11 +22,11 @@ import {VisualizeSection} from 'sentry/views/explore/multiQueryMode/queryConstru
 import {MultiQueryModeChart} from 'sentry/views/explore/multiQueryMode/queryVisualizations/chart';
 import {MultiQueryTable} from 'sentry/views/explore/multiQueryMode/queryVisualizations/table';
 
-type Props = {
+interface Props {
   index: number;
   query: ReadableExploreQueryParts;
   totalQueryRows: number;
-};
+}
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const {groupBys, query, yAxes, sortBys, caseInsensitive} = queryParts;

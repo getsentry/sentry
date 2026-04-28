@@ -95,10 +95,10 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
+interface Props {
   organization: Organization;
   project: Project;
-};
+}
 
 export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useApiQuery<SentryApp[]>(

@@ -53,7 +53,7 @@ import {ReleaseComparisonChartRow} from './releaseComparisonChartRow';
 import ReleaseEventsChart from './releaseEventsChart';
 import ReleaseSessionsChart from './releaseSessionsChart';
 
-export type ReleaseComparisonRow = {
+export interface ReleaseComparisonRow {
   allReleases: React.ReactNode;
   diff: React.ReactNode;
   diffColor: string | null;
@@ -63,9 +63,9 @@ export type ReleaseComparisonRow = {
   thisRelease: React.ReactNode;
   type: ReleaseComparisonChartType;
   tooltip?: React.ReactNode;
-};
+}
 
-type Props = {
+interface Props {
   allSessions: SessionApiResponse | null;
   api: Client;
   errored: boolean;
@@ -76,7 +76,7 @@ type Props = {
   release: ReleaseWithHealth;
   releaseSessions: SessionApiResponse | null;
   reloading: boolean;
-};
+}
 
 type EventsTotals = {
   allErrorCount: number;

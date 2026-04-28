@@ -23,13 +23,13 @@ import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-type Authorization = {
+interface Authorization {
   application: ApiApplication;
   homepageUrl: string;
   id: string;
   organization: Organization | null;
   scopes: string[];
-};
+}
 
 function AccountAuthorizations() {
   const api = useApi();

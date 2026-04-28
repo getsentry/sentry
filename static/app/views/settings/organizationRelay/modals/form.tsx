@@ -13,7 +13,7 @@ import type {Relay} from 'sentry/types/relay';
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;
 
-type Props = {
+interface Props {
   disables: Partial<Record<FormField, boolean>>;
   errors: Partial<Values>;
   isFormValid: boolean;
@@ -22,7 +22,7 @@ type Props = {
   onValidate: (field: FormField) => () => void;
   onValidateKey: () => void;
   values: Values;
-};
+}
 
 export function Form({
   values,

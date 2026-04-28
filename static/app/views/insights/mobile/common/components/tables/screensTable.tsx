@@ -26,12 +26,12 @@ import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCe
 import type {Row} from 'sentry/views/insights/mobile/screens/components/screensOverviewTable';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-type TableData = {
+interface TableData {
   data: Array<Record<string, string | number>>;
   meta?: MetaType;
-};
+}
 
-type Props = {
+interface Props {
   columnNameMap: Record<string, string>;
   columnOrder: string[];
   columnTooltipMap: Record<string, string> | undefined;
@@ -45,7 +45,7 @@ type Props = {
     row: TableDataRow
   ) => React.ReactNode;
   moduleName?: ModuleName;
-};
+}
 
 export function ScreensTable({
   data,

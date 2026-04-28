@@ -67,10 +67,10 @@ export function CredentialRow({
   );
 }
 
-type StatusTagProps = {
+interface StatusTagProps {
   statusType: 'error' | 'success' | 'pending' | 'warning';
   message?: string;
-};
+}
 
 const STATUS_CONFIG = {
   error: {label: 'Error', type: 'danger'},

@@ -128,11 +128,11 @@ export const getReleaseHandledIssuesUrl = (
 export const isReleaseArchived = (release: Release) =>
   release.status === ReleaseStatus.ARCHIVED;
 
-export type ReleaseBounds = {
+export interface ReleaseBounds {
   type: 'normal' | 'clamped' | 'ancient';
   releaseEnd?: string | null;
   releaseStart?: string | null;
-};
+}
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
   const retentionBound = moment().subtract(90, 'days');
@@ -170,10 +170,10 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   };
 }
 
-type GetReleaseParams = {
+interface GetReleaseParams {
   location: Location;
   releaseBounds: ReleaseBounds;
-};
+}
 
 export function getReleaseParams({location, releaseBounds}: GetReleaseParams) {
   const params = normalizeDateTimeParams(

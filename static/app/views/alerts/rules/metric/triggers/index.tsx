@@ -20,7 +20,7 @@ import {
   type UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 
-type Props = {
+interface Props {
   aggregate: UnsavedMetricRule['aggregate'];
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
@@ -46,7 +46,7 @@ type Props = {
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
   isMigration?: boolean;
-};
+}
 
 /**
  * A list of forms to add, edit, and delete triggers.

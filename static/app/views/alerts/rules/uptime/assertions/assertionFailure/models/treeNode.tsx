@@ -4,10 +4,10 @@ import type {UptimeOp} from 'sentry/views/alerts/rules/uptime/types';
 
 type ConnectorType = 'vertical' | 'horizontal';
 
-export type Connector = {
+export interface Connector {
   depth: number;
   type: ConnectorType;
-};
+}
 
 export abstract class TreeNode<T extends UptimeOp = UptimeOp> {
   value: T;

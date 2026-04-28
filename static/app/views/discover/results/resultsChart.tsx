@@ -32,7 +32,7 @@ import {withApi} from 'sentry/utils/withApi';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {ChartFooter} from 'sentry/views/discover/results/chartFooter';
 
-type ResultsChartProps = {
+interface ResultsChartProps {
   api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
@@ -40,7 +40,7 @@ type ResultsChartProps = {
   organization: Organization;
   yAxisValue: string[];
   customMeasurements?: CustomMeasurementCollection | undefined;
-};
+}
 
 class ResultsChart extends Component<ResultsChartProps> {
   shouldComponentUpdate(nextProps: ResultsChartProps) {
@@ -156,7 +156,7 @@ class ResultsChart extends Component<ResultsChartProps> {
   }
 }
 
-type ContainerProps = {
+interface ContainerProps {
   api: Client;
   confirmedQuery: boolean;
   eventView: EventView;
@@ -171,11 +171,11 @@ type ContainerProps = {
   total: number | null;
   yAxis: string[];
   hideFooter?: boolean;
-};
+}
 
-type ContainerState = {
+interface ContainerState {
   yAxisOptions: Array<SelectValue<string>>;
-};
+}
 
 class ResultsChartContainer extends Component<ContainerProps, ContainerState> {
   state: ContainerState = {

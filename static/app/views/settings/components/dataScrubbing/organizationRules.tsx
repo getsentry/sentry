@@ -14,9 +14,9 @@ import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubb
 
 import {Rules} from './rules';
 
-type Props = {
+interface Props {
   organization: Organization;
-};
+}
 
 export function OrganizationRules({organization}: Props) {
   const [isCollapsed, toggleIsCollapsed] = useReducer(prev => !prev, true);

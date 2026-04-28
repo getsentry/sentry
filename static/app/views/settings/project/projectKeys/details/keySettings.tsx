@@ -26,7 +26,7 @@ import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/c
 import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
-type Props = {
+interface Props {
   data: ProjectKey;
   onRemove: () => void;
   organization: Organization;
@@ -36,7 +36,7 @@ type Props = {
   };
   project: Project;
   updateData: (data: ProjectKey) => void;
-};
+}
 
 export function KeySettings({
   onRemove,

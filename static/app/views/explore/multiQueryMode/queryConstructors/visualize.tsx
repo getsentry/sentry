@@ -24,10 +24,10 @@ import {
 } from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type Props = {
+interface Props {
   index: number;
   query: ReadableExploreQueryParts;
-};
+}
 
 export function VisualizeSection({query, index}: Props) {
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');

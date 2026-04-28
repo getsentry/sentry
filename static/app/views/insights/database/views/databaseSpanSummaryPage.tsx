@@ -40,12 +40,12 @@ import type {SpanQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-type Query = {
+interface Query {
   transaction: string;
   transactionMethod: string;
   [QueryParameterNames.TRANSACTIONS_SORT]: string;
   aggregate?: string;
-};
+}
 
 export function DatabaseSpanSummaryPage() {
   const {groupId} = useParams<{groupId: string}>();

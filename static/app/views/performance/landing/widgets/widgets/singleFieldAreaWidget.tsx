@@ -29,10 +29,10 @@ import {
 } from 'sentry/views/performance/landing/widgets/utils';
 import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
   overall: WidgetDataResult;
-};
+}
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const location = useLocation();

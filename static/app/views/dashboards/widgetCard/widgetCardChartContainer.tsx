@@ -25,7 +25,7 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import WidgetCardChart from './chart';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
-type Props = {
+interface Props {
   selection: PageFilters;
   widget: TWidget;
   widgetLegendState: WidgetLegendSelectionState;
@@ -65,7 +65,7 @@ type Props = {
   tableItemLimit?: number;
   widgetInterval?: string;
   windowWidth?: number;
-};
+}
 
 export function WidgetCardChartContainer({
   selection,

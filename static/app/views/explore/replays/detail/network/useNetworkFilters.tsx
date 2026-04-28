@@ -18,22 +18,22 @@ const DEFAULT_FILTERS = {
   f_n_type: [],
 } as Record<NetworkSelectOption['qs'], string[]>;
 
-export type FilterFields = {
+export interface FilterFields {
   f_n_method: string[];
   f_n_search: string;
   f_n_status: string[];
   f_n_type: string[];
   n_detail_row?: string;
   n_detail_tab?: string;
-};
+}
 
-type Options = {
+interface Options {
   networkFrames: SpanFrame[];
-};
+}
 
 const UNKNOWN_STATUS = 'unknown';
 
-type Return = {
+interface Return {
   getMethodTypes: () => NetworkSelectOption[];
   getResourceTypes: () => NetworkSelectOption[];
   getStatusTypes: () => NetworkSelectOption[];
@@ -42,7 +42,7 @@ type Return = {
   selectValue: string[];
   setFilters: (val: NetworkSelectOption[]) => void;
   setSearchTerm: (searchTerm: string) => void;
-};
+}
 
 const FILTERS = {
   method: (item: SpanFrame, method: string[]) =>

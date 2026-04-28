@@ -20,7 +20,7 @@ const Label = styled('label')`
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
 
-type Props = {
+interface Props {
   disabled: boolean;
   enforceAllowed: boolean;
   enforceRetired: boolean;
@@ -28,7 +28,7 @@ type Props = {
   roleList: OrgRole[];
   roleSelected: string;
   setSelected: (id: string) => void;
-};
+}
 
 export function OrganizationRoleSelect({
   disabled,

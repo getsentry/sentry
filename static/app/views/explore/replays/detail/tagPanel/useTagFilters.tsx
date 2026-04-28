@@ -5,19 +5,19 @@ import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersIn
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
-export type FilterFields = {
+export interface FilterFields {
   f_t_search: string;
-};
+}
 
-type Options = {
+interface Options {
   tags: ReplayRecord['tags'];
-};
+}
 
-type Return = {
+interface Return {
   items: ReplayRecord['tags'];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
-};
+}
 
 const FILTERS = {
   searchTerm: (item: ReplayRecord['tags'], searchTerm: string) =>

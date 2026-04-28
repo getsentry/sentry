@@ -32,9 +32,9 @@ function OrganizationRestore() {
   );
 }
 
-type BodyProps = {
+interface BodyProps {
   orgSlug: string;
-};
+}
 
 function OrganizationRestoreBody({orgSlug}: BodyProps) {
   const {isPending, isError, data} = useQuery(
@@ -70,10 +70,10 @@ function OrganizationRestoreBody({orgSlug}: BodyProps) {
   );
 }
 
-type RestoreFormProps = {
+interface RestoreFormProps {
   orgSlug: string;
   organization: Organization;
-};
+}
 
 function RestoreForm({organization, orgSlug}: RestoreFormProps) {
   const endpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {

@@ -21,11 +21,11 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-type Props = {
+interface Props {
   groupId: string;
   moduleName: ModuleName;
   transactionRoute?: string;
-};
+}
 
 const PRIMARY_SPAN_QUERY_KEY = 'primarySpanSearchQuery';
 

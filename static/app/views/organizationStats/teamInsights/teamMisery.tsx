@@ -25,7 +25,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
 
-type TeamMiseryProps = {
+interface TeamMiseryProps {
   isLoading: boolean;
   location: Location;
   organization: Organization;
@@ -34,7 +34,7 @@ type TeamMiseryProps = {
   weekTableData: TableData | null;
   error?: QueryError | null;
   period?: string | null;
-};
+}
 
 function TeamMisery({
   organization,

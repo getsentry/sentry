@@ -15,13 +15,13 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type OrganizationProps = {
+interface OrganizationProps {
   organization: Organization;
-};
+}
 
-type BodyProps = {
+interface BodyProps {
   children: React.ReactNode;
-};
+}
 
 function DeletionInProgress({organization}: OrganizationProps) {
   return (

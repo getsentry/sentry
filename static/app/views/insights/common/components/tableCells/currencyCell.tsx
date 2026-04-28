@@ -7,9 +7,9 @@ import {tct} from 'sentry/locale';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatDollars} from 'sentry/utils/formatters';
 
-type Props = {
+interface Props {
   value: number | null;
-};
+}
 
 const NEGATIVE_COST_DOCS_URL =
   'https://docs.sentry.io/ai/monitoring/agents/costs/#troubleshooting';

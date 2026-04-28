@@ -5,14 +5,14 @@ import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {GroupEventAttachmentsTableRow} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
-type Props = {
+interface Props {
   attachments: IssueAttachment[];
   emptyMessage: string;
   groupId: string;
   isLoading: boolean;
   onDelete: (attachment: IssueAttachment) => void;
   projectSlug: string;
-};
+}
 
 export function GroupEventAttachmentsTable({
   isLoading,

@@ -27,12 +27,12 @@ import {withOrganization} from 'sentry/utils/withOrganization';
 
 const MAX_MEMBERS_TO_SHOW = 5;
 
-type Props = {
+interface Props {
   allowedRoles: OrgRole[];
   onModalClose: () => void;
   onSendInvite: () => void;
   organization: Organization;
-};
+}
 
 export function InviteBanner({
   organization,
@@ -218,11 +218,11 @@ export function InviteBanner({
 
 export default withOrganization(InviteBanner);
 
-type MemberCardsProps = {
+interface MemberCardsProps {
   handleSendInvite: (email: string) => void;
   missingMembers: MissingMember[];
   openInviteModal: () => void;
-};
+}
 
 function MemberCards({
   missingMembers,

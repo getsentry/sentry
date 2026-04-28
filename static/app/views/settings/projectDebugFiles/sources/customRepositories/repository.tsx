@@ -6,13 +6,13 @@ import type {CustomRepo} from 'sentry/types/debugFiles';
 import {Actions as CustomRepositoryActions} from './actions';
 import {customRepoTypeLabel} from './utils';
 
-type Props = {
+interface Props {
   hasAccess: boolean;
   hasFeature: boolean;
   onDelete: (repositoryId: string) => void;
   onEdit: (repositoryId: string) => void;
   repository: CustomRepo;
-};
+}
 
 export function Repository({repository, onDelete, onEdit, hasFeature, hasAccess}: Props) {
   return (

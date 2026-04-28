@@ -5,11 +5,11 @@ import type {Project} from 'sentry/types/project';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
-type ConfigParams = {
+interface ConfigParams {
   debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: Project;
-};
+}
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
 

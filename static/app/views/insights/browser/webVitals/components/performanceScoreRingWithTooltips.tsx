@@ -21,22 +21,22 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
 
-type Coordinates = {
+interface Coordinates {
   x: number;
   y: number;
-};
+}
 
 type WebVitalsLabelCoordinates = Partial<Record<WebVitals, Coordinates>>;
 
-type ProjectData = {
+interface ProjectData {
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
   'p75(measurements.inp)': number;
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
-};
+}
 
-type Props = {
+interface Props {
   projectScore: ProjectScore;
   ringBackgroundColors: readonly string[];
   ringSegmentColors: readonly string[];
@@ -55,9 +55,9 @@ type Props = {
   width?: number;
   x?: number;
   y?: number;
-};
+}
 
-type WebVitalLabelProps = {
+interface WebVitalLabelProps {
   coordinates: Coordinates;
   inPerformanceWidget: boolean;
   location: Location;
@@ -67,7 +67,7 @@ type WebVitalLabelProps = {
   differenceToPreviousPeriod?: ProjectScore;
   projectData?: ProjectData[];
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
-};
+}
 
 function WebVitalLabel({
   location,

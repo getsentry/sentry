@@ -15,7 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
 
-type Props = {
+interface Props {
   busyIds: ReadonlySet<string>;
   checkedIds: ReadonlySet<string>;
   emptyMessage: string;
@@ -30,7 +30,7 @@ type Props = {
   onToggle: (id: string) => void;
   pageLinks: string | null;
   project: Project;
-};
+}
 
 export function List({
   groupId,

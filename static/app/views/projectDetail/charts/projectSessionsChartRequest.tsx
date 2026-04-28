@@ -28,7 +28,7 @@ import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 
-type ProjectSessionsChartRequestRenderProps = {
+interface ProjectSessionsChartRequestRenderProps {
   errored: boolean;
   loading: boolean;
   previousTimeseriesData: Series | null;
@@ -36,9 +36,9 @@ type ProjectSessionsChartRequestRenderProps = {
   timeseriesData: Series[];
   totalSessions: number | null;
   additionalSeries?: LineSeriesOption[];
-};
+}
 
-export type ProjectSessionsChartRequestProps = {
+export interface ProjectSessionsChartRequestProps {
   api: Client;
   children: (renderProps: ProjectSessionsChartRequestRenderProps) => React.ReactNode;
   displayMode:
@@ -54,15 +54,15 @@ export type ProjectSessionsChartRequestProps = {
   theme: Theme;
   disablePrevious?: boolean;
   query?: string;
-};
+}
 
-type State = {
+interface State {
   errored: boolean;
   previousTimeseriesData: Series | null;
   reloading: boolean;
   timeseriesData: Series[] | null;
   totalSessions: number | null;
-};
+}
 
 class ProjectSessionsChartRequest extends Component<
   ProjectSessionsChartRequestProps,

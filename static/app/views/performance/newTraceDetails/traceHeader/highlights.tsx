@@ -21,10 +21,10 @@ import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTrace
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
-type HighlightDefinition = {
+interface HighlightDefinition {
   getSummary: () => {description: React.ReactNode; icon: React.ReactNode} | null;
   key: string;
-};
+}
 
 function getParsedAttributeValue(value: string | undefined) {
   const parts = value?.split(' ') ?? [];
@@ -306,11 +306,11 @@ const StyledVersion = styled(Version)`
   }
 `;
 
-type HighlightsProps = {
+interface HighlightsProps {
   organization: Organization;
   project: Project | undefined;
   rootEventResults: TraceRootEventQueryResults;
-};
+}
 
 export function Highlights({rootEventResults, organization, project}: HighlightsProps) {
   if (!rootEventResults.data) {

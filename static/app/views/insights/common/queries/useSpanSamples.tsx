@@ -20,7 +20,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanFields;
 
-type Options<Fields extends NonDefaultSpanSampleFields[]> = {
+interface Options<Fields extends NonDefaultSpanSampleFields[]> {
   groupId: string;
   transactionName: string;
   additionalFields?: Fields;
@@ -29,7 +29,7 @@ type Options<Fields extends NonDefaultSpanSampleFields[]> = {
   spanSearch?: MutableSearch;
   subregions?: SubregionCode[];
   transactionMethod?: string;
-};
+}
 
 export type SpanSample = Pick<
   SpanResponse,

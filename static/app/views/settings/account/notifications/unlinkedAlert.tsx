@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 
-type Props = {
+interface Props {
   organizations: OrganizationSummary[];
-};
+}
 
 export function UnlinkedAlert({organizations}: Props) {
   return (

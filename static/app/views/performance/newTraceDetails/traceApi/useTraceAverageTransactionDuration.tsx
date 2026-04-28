@@ -6,11 +6,11 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-type Props = {
+interface Props {
   location: Location;
   node: TransactionNode;
   organization: Organization;
-};
+}
 
 export const useTraceAverageTransactionDuration = ({
   node,

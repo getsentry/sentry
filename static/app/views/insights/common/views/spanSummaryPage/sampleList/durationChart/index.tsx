@@ -21,7 +21,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
-type Props = {
+interface Props {
   groupId: string;
   transactionName: string;
   additionalFields?: NonDefaultSpanSampleFields[];
@@ -36,7 +36,7 @@ type Props = {
   spanSearch?: MutableSearch;
   subregions?: SubregionCode[];
   transactionMethod?: string;
-};
+}
 
 export function DurationChart({
   groupId,

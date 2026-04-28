@@ -18,7 +18,7 @@ import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
 
-export type ExploreQueryChangedReason = {
+export interface ExploreQueryChangedReason {
   columns: string[];
   equations: Array<{
     equation: string;
@@ -28,9 +28,9 @@ export type ExploreQueryChangedReason = {
     orderby: string;
     reason: string | string[];
   }> | null;
-};
+}
 
-type ExploreSavedQueryRequest = {
+interface ExploreSavedQueryRequest {
   dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
   name: string;
   projects: number[];
@@ -54,7 +54,7 @@ type ExploreSavedQueryRequest = {
   }>;
   range?: string;
   start?: DateString;
-};
+}
 
 function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const pageFilters = usePageFilters();

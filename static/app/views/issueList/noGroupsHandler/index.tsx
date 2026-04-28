@@ -15,20 +15,20 @@ import {NoUnresolvedIssues} from './noUnresolvedIssues';
 const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
 const UpdatedEmptyState = lazy(() => import('sentry/components/updatedEmptyState'));
 
-type Props = {
+interface Props {
   api: Client;
   groupIds: string[];
   organization: Organization;
   query: string;
   emptyMessage?: React.ReactNode;
   selectedProjectIds?: number[];
-};
+}
 
-type State = {
+interface State {
   fetchingSentFirstEvent: boolean;
   firstEventProjects?: Project[] | null;
   sentFirstEvent?: boolean;
-};
+}
 
 /**
  * Component which is rendered when no groups/issues were found. This could

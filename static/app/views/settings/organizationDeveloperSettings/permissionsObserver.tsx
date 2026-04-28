@@ -16,10 +16,10 @@ import {
 import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
 
-type DefaultProps = {
+interface DefaultProps {
   appPublished: boolean;
   webhookDisabled: boolean;
-};
+}
 
 type Props = DefaultProps & {
   events: WebhookEvent[];
@@ -27,12 +27,12 @@ type Props = DefaultProps & {
   scopes: Scope[];
 };
 
-type State = {
+interface State {
   elevating: boolean;
   events: WebhookEvent[];
   hasContinuousIntegration: boolean;
   permissions: Permissions;
-};
+}
 
 export class PermissionsObserver extends Component<Props, State> {
   static defaultProps: DefaultProps = {

@@ -469,7 +469,7 @@ type HttpResponseFunctions =
   | SpanFunction.HTTP_RESPONSE_COUNT
   | SpanFunction.HTTP_RESPONSE_RATE;
 
-type CustomResponseFields = {
+interface CustomResponseFields {
   [SpanFields.USER_GEO_SUBREGION]: SubregionCode;
   [SpanFields.PLATFORM]: PlatformKey;
   [SpanFields.DB_SYSTEM]: SupportedDatabaseSystem;
@@ -492,7 +492,7 @@ type CustomResponseFields = {
     | 'data_loss'
     | 'unauthenticated';
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
-};
+}
 
 // Fields that are used as arguments to division() queries.
 // Kept narrow to avoid a cartesian product explosion in SpanResponseRaw.
@@ -615,4 +615,4 @@ export const subregionCodeToName = {
 
 export type SubregionCode = keyof typeof subregionCodeToName;
 
-export type SearchHook = {search: MutableSearch; enabled?: boolean};
+export interface SearchHook {search: MutableSearch; enabled?: boolean}

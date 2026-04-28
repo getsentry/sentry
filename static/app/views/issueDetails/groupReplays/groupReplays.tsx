@@ -49,9 +49,9 @@ import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupRe
 
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 
-type Props = {
+interface Props {
   group: Group;
-};
+}
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,

@@ -50,10 +50,10 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-type DataType = {
+interface DataType {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
-};
+}
 
 type ComponentData = React.ComponentProps<
   GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']

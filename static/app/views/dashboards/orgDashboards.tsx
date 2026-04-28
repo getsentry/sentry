@@ -25,12 +25,12 @@ import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
 import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
 
-type OrgDashboardsChildrenProps = {
+interface OrgDashboardsChildrenProps {
   dashboard: DashboardDetails | null;
   dashboards: DashboardListItem[];
   error: boolean;
   onDashboardUpdate: (updatedDashboard: DashboardDetails) => void;
-};
+}
 
 interface OrgDashboardsProps {
   children: (props: OrgDashboardsChildrenProps) => React.ReactNode;

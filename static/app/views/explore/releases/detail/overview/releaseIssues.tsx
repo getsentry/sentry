@@ -42,11 +42,11 @@ const issuesQuery: Record<IssuesType, string> = {
   [IssuesType.ALL]: 'release',
 };
 
-type IssuesQueryParams = {
+interface IssuesQueryParams {
   limit: number;
   query: string;
   sort: string;
-};
+}
 
 const defaultProps = {
   withChart: false,
@@ -61,7 +61,7 @@ type Props = {
   queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
-type State = {
+interface State {
   count: {
     all: number | null;
     new: number | null;
@@ -71,7 +71,7 @@ type State = {
   };
   onCursor?: () => void;
   pageLinks?: string;
-};
+}
 
 class ReleaseIssues extends Component<Props, State> {
   static defaultProps = defaultProps;

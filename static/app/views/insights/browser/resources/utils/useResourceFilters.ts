@@ -16,7 +16,7 @@ export enum BrowserStarfishFields {
   USER_GEO_SUBREGION = 'user.geo.subregion',
 }
 
-export type ModuleFilters = {
+export interface ModuleFilters {
   [BrowserStarfishFields.RESOURCE_RENDER_BLOCKING_STATUS]:
     | ''
     | 'non-blocking'
@@ -26,7 +26,7 @@ export type ModuleFilters = {
   [BrowserStarfishFields.SPAN_OP]?: ResourceSpanOps;
   [BrowserStarfishFields.TRANSACTION]?: string;
   [BrowserStarfishFields.USER_GEO_SUBREGION]?: SubregionCode[];
-};
+}
 
 export const useResourceModuleFilters = () => {
   const location = useLocation<ModuleFilters>();

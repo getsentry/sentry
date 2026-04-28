@@ -19,7 +19,7 @@ import {getQueryDatasource} from 'sentry/views/alerts/utils';
  * Discover query supports more features than alert rules
  * To create an alert rule from a discover query, some parameters need to be adjusted
  */
-type IncompatibleQueryProperties = {
+interface IncompatibleQueryProperties {
   /**
    * Must have zero or one environments
    */
@@ -33,7 +33,7 @@ type IncompatibleQueryProperties = {
    */
   hasProjectError: boolean;
   hasYAxisError: boolean;
-};
+}
 
 function incompatibleYAxis(eventView: EventView): boolean {
   const column = explodeFieldString(eventView.getYAxis());

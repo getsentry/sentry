@@ -20,11 +20,11 @@ export enum MessagingIntegrationAnalyticsView {
   PROJECT_CREATION = 'project_creation_messaging_integration_onboarding',
 }
 
-type Props = {
+interface Props {
   analyticsView: MessagingIntegrationAnalyticsView;
   projectId?: string;
   refetchConfigs?: () => void;
-};
+}
 
 export function SetupMessagingIntegrationButton({
   refetchConfigs,

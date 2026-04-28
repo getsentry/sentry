@@ -9,10 +9,10 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionHeader} from 'sentry/views/performance/transactionSummary/header';
 import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 
-type InitialOpts = {
+interface InitialOpts {
   features?: string[];
   platform?: PlatformKey;
-};
+}
 
 function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};

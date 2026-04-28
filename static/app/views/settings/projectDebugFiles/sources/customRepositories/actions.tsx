@@ -8,12 +8,12 @@ import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
+interface Props {
   hasAccess: boolean;
   hasFeature: boolean;
   onDelete: () => void;
   onEdit: () => void;
-};
+}
 
 export function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
   const actionsDisabled = !hasAccess || !hasFeature;

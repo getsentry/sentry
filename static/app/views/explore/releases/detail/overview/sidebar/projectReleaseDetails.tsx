@@ -22,11 +22,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {useFinalizeRelease} from 'sentry/views/explore/releases/components/useFinalizeRelease';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 
-type Props = {
+interface Props {
   project: AvatarProject;
   release: ReleaseWithHealth;
   releaseMeta: ReleaseMeta;
-};
+}
 
 export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
   const organization = useOrganization();

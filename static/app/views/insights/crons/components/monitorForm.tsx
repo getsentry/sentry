@@ -63,13 +63,13 @@ export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
-type Props = {
+interface Props {
   apiEndpoint: string;
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   monitor?: Monitor;
   submitLabel?: string;
-};
+}
 
 interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
   alertRule?: Partial<Monitor['alertRule']>;

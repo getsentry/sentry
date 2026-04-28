@@ -6,11 +6,11 @@ import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFea
 
 import type {DashboardDetails} from './types';
 
-type Props = {
+interface Props {
   dashboard: DashboardDetails | null;
   isEditingDashboard: boolean;
   onUpdate: (dashboard: DashboardDetails) => void;
-};
+}
 
 export function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
   const hasPageFrame = useHasPageFrameFeature();

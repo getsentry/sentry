@@ -69,11 +69,11 @@ async function maybeAutoExpandTrace(
   return tree;
 }
 
-type UseTraceScrollToEventOnLoadOptions = {
+interface UseTraceScrollToEventOnLoadOptions {
   onTraceLoad: () => void;
   pathToNodeOrEventId: ReturnType<typeof useTraceScrollToPath>['current'];
   tree: TraceTree;
-};
+}
 
 export function useTraceOnLoad(
   options: UseTraceScrollToEventOnLoadOptions
@@ -148,11 +148,11 @@ export function useTraceOnLoad(
   return status;
 }
 
-type UseTraceIssuesOnLoadOptions = {
+interface UseTraceIssuesOnLoadOptions {
   event: Event;
   onTraceLoad: () => void;
   tree: IssuesTraceTree;
-};
+}
 
 export function useTraceIssuesOnLoad(
   options: UseTraceIssuesOnLoadOptions

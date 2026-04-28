@@ -19,12 +19,12 @@ const friendlyAttachmentType: Record<string, string> = {
   'event.attachment': t('Other'),
 };
 
-type Props = {
+interface Props {
   attachment: IssueAttachment;
   groupId: string;
   onDelete: (attachment: IssueAttachment) => void;
   projectSlug: string;
-};
+}
 
 export function GroupEventAttachmentsTableRow({
   attachment,

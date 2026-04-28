@@ -1,16 +1,16 @@
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-type Tab = {
+interface Tab {
   node: BaseNode | 'trace' | 'profiles' | 'vitals';
   label?: string;
-};
+}
 
-export type TraceTabsReducerState = {
+export interface TraceTabsReducerState {
   current_tab: Tab | null;
   last_clicked_tab: Tab | null;
   tabs: Tab[];
-};
+}
 
 type TraceTabsReducerAction =
   | {payload: TraceTabsReducerState; type: 'initialize tabs reducer'}

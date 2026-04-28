@@ -29,9 +29,9 @@ type CreateSampleEventButtonProps = ButtonProps & {
   project?: Project;
 };
 
-type State = {
+interface State {
   creating: boolean;
-};
+}
 
 const EVENT_POLL_RETRIES = 30;
 const EVENT_POLL_INTERVAL = 1000;

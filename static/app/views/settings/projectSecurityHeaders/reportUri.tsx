@@ -16,11 +16,11 @@ export function getSecurityDsn(keyList: ProjectKey[]) {
   return endpoint;
 }
 
-type Props = {
+interface Props {
   keyList: ProjectKey[];
   orgId: string;
   projectId: string;
-};
+}
 
 export function ReportUri({keyList, orgId, projectId}: Props) {
   return (

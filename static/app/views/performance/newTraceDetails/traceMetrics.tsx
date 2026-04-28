@@ -16,10 +16,10 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
-type UseTraceViewMetricsDataProps = {
+interface UseTraceViewMetricsDataProps {
   children: React.ReactNode;
   traceSlug: string;
-};
+}
 
 export function TraceViewMetricsProviderWrapper({
   children,

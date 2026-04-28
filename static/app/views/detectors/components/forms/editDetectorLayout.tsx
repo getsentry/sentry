@@ -26,7 +26,7 @@ import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDet
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
+interface EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> {
   children: React.ReactNode;
   detector: TDetector;
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
@@ -34,7 +34,7 @@ type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
-};
+}
 
 export function EditDetectorLayout<
   TDetector extends Detector,

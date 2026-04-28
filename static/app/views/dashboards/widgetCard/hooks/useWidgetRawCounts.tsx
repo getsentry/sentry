@@ -9,16 +9,16 @@ import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilde
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
 
-type Props = {
+interface Props {
   selection: PageFilters;
   widget: Widget;
-};
+}
 
-type RawCountConfig = {
+interface RawCountConfig {
   dataset: DiscoverDatasets;
   enabled: boolean;
   supported: boolean;
-};
+}
 
 export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null {
   const rawCountConfig = useMemo<RawCountConfig>(() => {

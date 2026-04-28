@@ -61,7 +61,7 @@ function SpanSamplesPanelContainerSearchQueryBuilder({
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanFields;
 
-type Props = {
+interface Props {
   groupId: string;
   moduleName: ModuleName;
   transactionName: string;
@@ -72,7 +72,7 @@ type Props = {
   sectionTitle?: string;
   spanOp?: string;
   transactionMethod?: string;
-};
+}
 
 export function SpanSamplesContainer({
   groupId,

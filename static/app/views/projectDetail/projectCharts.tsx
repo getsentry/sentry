@@ -62,7 +62,7 @@ export enum DisplayModes {
   SESSIONS = 'sessions',
 }
 
-type Props = {
+interface Props {
   api: Client;
   chartId: string;
   chartIndex: number;
@@ -75,11 +75,11 @@ type Props = {
   project?: Project;
   projectId?: string;
   query?: string;
-};
+}
 
-type State = {
+interface State {
   totalValues: number | null;
-};
+}
 
 class ProjectCharts extends Component<Props, State> {
   state: State = {

@@ -27,10 +27,10 @@ import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
-type MetricDetectorDetailsProps = {
+interface MetricDetectorDetailsProps {
   detector: MetricDetector;
   project: Project;
-};
+}
 
 export function MetricDetectorDetails({detector, project}: MetricDetectorDetailsProps) {
   const dataSource = detector.dataSources[0];

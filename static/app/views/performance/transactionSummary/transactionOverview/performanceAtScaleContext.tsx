@@ -11,20 +11,20 @@ type TransactionListTableData =
     }
   | undefined;
 
-type PerformanceAtScaleContextProps = {
+interface PerformanceAtScaleContextProps {
   metricsSeriesDataEmpty: boolean | undefined;
   setMetricsSeriesDataEmpty: (data: boolean | undefined) => void;
   setTransactionListTableData: (data: TransactionListTableData) => void;
   transactionListTableData: TransactionListTableData;
-};
+}
 
 export const PerformanceAtScaleContext = createContext<
   PerformanceAtScaleContextProps | undefined
 >(undefined);
 
-type ProviderProps = {
+interface ProviderProps {
   children: React.ReactNode;
-};
+}
 
 export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
   const [metricsSeriesDataEmpty, setMetricsSeriesDataEmpty] = useState<

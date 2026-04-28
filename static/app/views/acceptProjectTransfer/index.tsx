@@ -18,10 +18,10 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-type TransferDetails = {
+interface TransferDetails {
   organizations: Organization[];
   project: Project;
-};
+}
 
 function AcceptProjectTransfer() {
   const api = useApi({persistInFlight: true});

@@ -24,13 +24,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {Repository} from './repository';
 import {dropDownItems, expandKeys, getRequestMessages} from './utils';
 
-type Props = {
+interface Props {
   api: Client;
   customRepositories: CustomRepo[];
   location: Location;
   organization: Organization;
   project: Project;
-};
+}
 
 export function CustomRepositories({
   api,

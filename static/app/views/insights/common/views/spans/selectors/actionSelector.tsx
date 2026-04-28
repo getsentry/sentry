@@ -19,12 +19,12 @@ import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const {SPAN_ACTION} = SpanFields;
 
-type Props = {
+interface Props {
   moduleName: ModuleName;
   filters?: Record<string, string>;
   spanCategory?: string;
   value?: string;
-};
+}
 
 export function ActionSelector({value = '', moduleName, spanCategory, filters}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching

@@ -4,10 +4,10 @@ import {Hovercard} from 'sentry/components/hovercard';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   examples: string[];
   sourceName: string;
-};
+}
 
 export function SourceSuggestionExamples({examples, sourceName}: Props) {
   return (

@@ -6,10 +6,10 @@ import {Panel} from 'sentry/components/panels/panel';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-type Props = {
+interface Props {
   disabled: boolean;
   onRefresh: () => void;
-};
+}
 
 export function WaitingActivity({onRefresh, disabled}: Props) {
   return (

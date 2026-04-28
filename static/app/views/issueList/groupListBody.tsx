@@ -21,7 +21,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NoGroupsHandler} from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
 
-type GroupListBodyProps = {
+interface GroupListBodyProps {
   displayReprocessingLayout: boolean;
   error: string | null;
   groupIds: string[];
@@ -34,9 +34,9 @@ type GroupListBodyProps = {
   refetchGroups: () => void;
   selectedProjectIds: number[];
   supergroupLookup?: SupergroupLookup;
-};
+}
 
-type GroupListProps = {
+interface GroupListProps {
   displayReprocessingLayout: boolean;
   groupIds: string[];
   groupStatsPeriod: string;
@@ -44,7 +44,7 @@ type GroupListProps = {
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
   supergroupLookup?: SupergroupLookup;
-};
+}
 
 const COLUMNS: GroupListColumn[] = [
   'graph',
