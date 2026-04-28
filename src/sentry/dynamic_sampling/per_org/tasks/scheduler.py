@@ -13,19 +13,6 @@ from sentry.dynamic_sampling.per_org.tasks.gate import (
     is_org_in_rollout,
     is_rollout_enabled,
 )
-from sentry.dynamic_sampling.per_org.tasks.steps.boost_low_volume_projects import (
-    boost_low_volume_projects,
-)
-from sentry.dynamic_sampling.per_org.tasks.steps.boost_low_volume_transactions import (
-    boost_low_volume_transactions,
-)
-from sentry.dynamic_sampling.per_org.tasks.steps.eap_batch import run_eap_batch
-from sentry.dynamic_sampling.per_org.tasks.steps.outcomes_volume import (
-    fetch_outcomes_volume,
-    has_recent_volume,
-)
-from sentry.dynamic_sampling.per_org.tasks.steps.recalibration import apply_recalibration
-from sentry.dynamic_sampling.per_org.tasks.steps.sliding_window import apply_sliding_window
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     TelemetryStatus,
@@ -34,7 +21,6 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
-from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -108,7 +94,6 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
         if not is_org_in_rollout(org.id):
             skipped += 1
             continue
-        # jitter the tasks over the entire bucket to avoid spawning all tasks at once
         run_calculations_per_org_task.apply_async(
             args=(org.id,),
             countdown=random.randint(0, JITTER_WINDOW_SECONDS),
@@ -142,28 +127,5 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> None:
 
 
 @instrumented
-def run_calculations_per_org(org_id: OrganizationId) -> TelemetryStatus | None:
-    if is_killswitch_engaged():
-        return TelemetryStatus.KILLSWITCHED
-
-    if not is_org_in_rollout(org_id):
-        return TelemetryStatus.NOT_IN_ROLLOUT
-
-    try:
-        organization = Organization.objects.get_from_cache(id=org_id)
-    except Organization.DoesNotExist:
-        return TelemetryStatus.ORG_NOT_FOUND
-
-    if not has_dynamic_sampling(organization):
-        return TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-
-    outcomes = fetch_outcomes_volume(org_id, organization)
-    if not has_recent_volume(outcomes):
-        return TelemetryStatus.NO_VOLUME
-
-    eap = run_eap_batch(org_id, organization)
-
-    apply_sliding_window(org_id, organization, eap)
-    apply_recalibration(org_id, organization, outcomes)
-    boost_low_volume_projects(org_id, organization, eap)
-    boost_low_volume_transactions(org_id, organization, eap)
+def run_calculations_per_org(org_id: OrganizationId) -> None:
+    pass

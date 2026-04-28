@@ -200,14 +200,8 @@ class NextBucketIndexTest(TestCase):
 
 
 class RunCalculationsPerOrgTest(TestCase):
-    def test_emits_not_in_rollout_without_completed_status(self) -> None:
+    def test_is_passthrough(self) -> None:
         with (
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.is_killswitch_engaged"
-            ) as is_killswitch_engaged,
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.is_org_in_rollout"
-            ) as is_org_in_rollout,
             patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer"),
             patch(
                 "sentry.dynamic_sampling.per_org.tasks.telemetry.metrics_sample_rate",
@@ -215,46 +209,9 @@ class RunCalculationsPerOrgTest(TestCase):
             ),
             patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit_status,
         ):
-            is_killswitch_engaged.return_value = False
-            is_org_in_rollout.return_value = False
-
-            assert run_calculations_per_org(1) == TelemetryStatus.NOT_IN_ROLLOUT
+            assert run_calculations_per_org(1) is None
 
         emit_status.assert_called_once_with(
             "dynamic_sampling.run_calculations_per_org.status",
-            TelemetryStatus.NOT_IN_ROLLOUT,
-        )
-
-    def test_emits_no_dynamic_sampling_without_completed_status(self) -> None:
-        organization = self.create_organization()
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.is_killswitch_engaged"
-            ) as is_killswitch_engaged,
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.is_org_in_rollout"
-            ) as is_org_in_rollout,
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.scheduler.has_dynamic_sampling"
-            ) as has_dynamic_sampling,
-            patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer"),
-            patch(
-                "sentry.dynamic_sampling.per_org.tasks.telemetry.metrics_sample_rate",
-                return_value=1.0,
-            ),
-            patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit_status,
-        ):
-            is_killswitch_engaged.return_value = False
-            is_org_in_rollout.return_value = True
-            has_dynamic_sampling.return_value = False
-
-            assert (
-                run_calculations_per_org(organization.id)
-                == TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-            )
-
-        emit_status.assert_called_once_with(
-            "dynamic_sampling.run_calculations_per_org.status",
-            TelemetryStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,
+            TelemetryStatus.COMPLETED,
         )
