@@ -12,7 +12,7 @@ import type {AlertRuleOptions} from 'sentry/views/projectInstall/issueAlertOptio
  * Cleared by the platform features step when the platform changes, so
  * stale inputs don't carry across platform selections.
  */
-export interface ProjectDetailsFormState {
+interface ProjectDetailsFormState {
   alertRuleConfig?: AlertRuleOptions;
   projectName?: string;
   teamSlug?: string;

@@ -187,7 +187,8 @@ function ProjectSeerGeneralForm({project}: {project: Project}) {
   const organization = useOrganization();
   const user = useUser();
   const queryClient = useQueryClient();
-  const {preference} = useProjectSeerPreferences(project);
+  const {data} = useProjectSeerPreferences(project);
+  const preference = data?.preference;
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {data: codingAgentIntegrations} = useQuery(
     organizationIntegrationsCodingAgents(organization)

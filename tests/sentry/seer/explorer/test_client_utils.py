@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock, patch
-
 import jwt
 from django.test import override_settings
 
@@ -10,11 +8,9 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
-from sentry.seer.models import SeerApiError
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.requests import make_request
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
@@ -196,9 +192,8 @@ class CollectUserOrgContextTest(TestCase):
         assert context is not None
         assert context.get("user_ip") == request.META.get("REMOTE_ADDR")
 
-    @with_feature("organizations:seer-project-settings-read-from-sentry")
-    def test_collect_context_populates_repos_from_sentry_db(self) -> None:
-        """With the read-from-sentry flag on, repos are pulled from Sentry's DB."""
+    def test_collect_context_populates_repos(self) -> None:
+        """Seer project preference repos are populated from SeerProjectRepository."""
         repo1 = self.create_repo(
             project=self.project1,
             name="acme/project-1-repo",
@@ -226,50 +221,6 @@ class CollectUserOrgContextTest(TestCase):
         user_by_id = {p["id"]: p for p in context["user_projects"]}
         assert [r["external_id"] for r in user_by_id[self.project1.id]["repos"]] == ["ext-1"]
         assert [r["external_id"] for r in user_by_id[self.project2.id]["repos"]] == ["ext-2"]
-
-    @patch("sentry.seer.explorer.client_utils.bulk_get_project_preferences")
-    def test_collect_context_populates_repos_from_seer_api(self, mock_bulk_get: MagicMock) -> None:
-        """Without the read-from-sentry flag, repos come from the Seer API."""
-        mock_bulk_get.return_value = {
-            str(self.project1.id): {
-                "repositories": [
-                    {"external_id": "seer-ext-1", "owner": "acme", "name": "from-seer"}
-                ]
-            },
-            str(self.project2.id): None,
-        }
-
-        context = collect_user_org_context(self.user, self.organization)
-
-        mock_bulk_get.assert_called_once()
-        call_args = mock_bulk_get.call_args
-        assert call_args.args[0] == self.organization.id
-        assert set(call_args.args[1]) == {
-            self.project1.id,
-            self.project2.id,
-            self.other_project.id,
-        }
-
-        all_by_id = {p["id"]: p for p in context["all_org_projects"]}
-        assert all_by_id[self.project1.id]["repos"] == [
-            {"external_id": "seer-ext-1", "owner": "acme", "name": "from-seer"}
-        ]
-        assert all_by_id[self.project2.id]["repos"] == []
-        assert all_by_id[self.other_project.id]["repos"] == []
-
-    @patch("sentry.seer.explorer.client_utils.bulk_get_project_preferences")
-    def test_collect_context_returns_empty_repos_when_seer_api_fails(
-        self, mock_bulk_get: MagicMock
-    ) -> None:
-        """Seer API failures don't break explorer startup; repos fall back to empty."""
-        mock_bulk_get.side_effect = SeerApiError("seer unavailable", 503)
-
-        context = collect_user_org_context(self.user, self.organization)
-
-        for project in context["all_org_projects"]:
-            assert project["repos"] == []
-        for project in context["user_projects"]:
-            assert project["repos"] == []
 
 
 class SnapshotToMarkdownTest(TestCase):

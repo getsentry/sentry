@@ -33,6 +33,7 @@ import {
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
+import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
@@ -85,6 +86,7 @@ function ExploreContentInner() {
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+      <SpansCommandPaletteActions />
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <AnalyticsArea name="explore.spans">
           <Stack flex={1}>
@@ -165,7 +167,7 @@ function SpansTabHeader() {
     />
   ) : null;
 
-  const titleTooltip = (
+  const titleContent = (
     <PageHeadingQuestionTooltip
       docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
       title={t(
@@ -190,7 +192,7 @@ function SpansTabHeader() {
           ) : (
             title || t('Traces')
           )}
-          {titleTooltip}
+          {titleContent}
         </TopBar.Slot>
         <TopBar.Slot name="actions">
           <StarSavedQueryButton />
@@ -210,18 +212,20 @@ function SpansTabHeader() {
 
   return (
     <Layout.Header unified>
+      {documentTitle}
       <Layout.HeaderContent unified>
-        {documentTitle}
-        {hasBreadcrumb ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.SPANS}
-            savedQueryName={savedQuery?.name}
-          />
-        ) : null}
-        <Layout.Title>
-          {title || t('Traces')}
-          {titleTooltip}
-        </Layout.Title>
+        <Fragment>
+          {hasBreadcrumb ? (
+            <ExploreBreadcrumb
+              traceItemDataset={TraceItemDataset.SPANS}
+              savedQueryName={savedQuery?.name}
+            />
+          ) : null}
+          <Layout.Title>
+            {title || t('Traces')}
+            {titleContent}
+          </Layout.Title>
+        </Fragment>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <Grid flow="column" align="center" gap="md">
