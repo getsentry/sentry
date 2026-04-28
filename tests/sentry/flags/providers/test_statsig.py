@@ -295,6 +295,40 @@ def test_handle_unsupported_events() -> None:
     assert len(logs) == 0
 
 
+def test_handle_gate_exposure_event() -> None:
+    """Gate exposure events have nested dicts in user, empty strings for
+    userID/value, and timeUUID with a _N suffix. These should pass
+    validation and be skipped as unsupported events."""
+    logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
+        {
+            "data": [
+                {
+                    "user": {
+                        "userID": "jdoe",
+                        "email": "jdoe@sentry.io",
+                        "custom": {"is_employee": "true"},
+                        "statsigEnvironment": {"tier": "production"},
+                        "customIDs": {"stableID": "abc-123"},
+                    },
+                    "userID": "",
+                    "value": "",
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::gate_exposure",
+                    "metadata": {
+                        "gate": "test_gate",
+                        "gateValue": "true",
+                        "ruleID": "rule123",
+                    },
+                    "statsigMetadata": {"something": 53},
+                    "timeUUID": "b3e28065-1234-5678-9abc-def012345678_0",
+                    "unitID": "user_abc",
+                },
+            ]
+        }
+    )
+    assert len(logs) == 0
+
+
 def test_handle_unsupported_config_changes() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
