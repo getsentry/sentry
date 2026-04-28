@@ -203,9 +203,9 @@ export default function ProjectUserFeedback() {
                       <Text size="sm" variant="muted">
                         {t(
                           'Toggles whether or not to enable auto spam detection in User Feedback.'
-                        )}
+                        )}{' '}
+                        <AiPrivacyNotice />
                       </Text>
-                      <AiPrivacyNotice />
                     </field.Layout.Stack>
                   )}
                 </AutoSaveForm>
