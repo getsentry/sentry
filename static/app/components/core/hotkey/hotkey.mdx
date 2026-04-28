@@ -12,12 +12,14 @@ resources:
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {InlineCode} from '@sentry/scraps/code';
+import {IconCommand, IconControl, IconShift, IconOption, IconReturn} from 'sentry/icons';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/hotkey');
 
-The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. On Mac, `command` renders as `⌘`; on other platforms it renders as `CTRL`. The `<Kbd>` component renders a single styled key cap.
+The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elements with automatic platform-aware modifier rendering. On Mac, `command` renders as <InlineCode><IconCommand size="xs" /></InlineCode>; on other platforms it renders as `Ctrl`. The `<Kbd>` component renders a single styled key cap.
 
 ## Hotkey
 
@@ -50,13 +52,17 @@ The `<Hotkey>` component displays keyboard shortcuts using semantic `<kbd>` elem
 
 Modifiers are automatically mapped per platform. No fallback arrays needed for standard modifier differences.
 
-| Key name  | Mac | Other platforms |
-| --------- | --- | --------------- |
-| `command` | `⌘` | `CTRL`          |
-| `ctrl`    | `⌃` | `CTRL`          |
-| `alt`     | `⌥` | `ALT`           |
-| `option`  | `⌥` | `ALT`           |
-| `shift`   | `⇧` | `⇧`             |
+| Key name  | Mac                                                | Other platforms                                   |
+| --------- | -------------------------------------------------- | ------------------------------------------------- |
+| `command` | <InlineCode><IconCommand size="xs" /></InlineCode> | `Ctrl`                                            |
+| `ctrl`    | <InlineCode><IconControl size="xs" /></InlineCode> | `Ctrl`                                            |
+| `alt`     | <InlineCode><IconOption size="xs" /></InlineCode>  | `Alt`                                             |
+| `option`  | <InlineCode><IconOption size="xs" /></InlineCode>  | `Alt`                                             |
+| `shift`   | <InlineCode><IconShift size="xs" /></InlineCode>   | <InlineCode><IconShift size="xs" /></InlineCode>  |
+| `enter`   | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
+| `return`  | <InlineCode><IconReturn size="xs" /></InlineCode>  | <InlineCode><IconReturn size="xs" /></InlineCode> |
+
+Keys without an explicit glyph mapping (e.g. `Home`, `End`, `PageUp`) render as title-cased text.
 
 ### Complex Shortcuts
 
@@ -72,7 +78,7 @@ Modifiers are automatically mapped per platform. No fallback arrays needed for s
     </Flex>
     <Flex gap="sm" align="center">
       <Text>Navigate:</Text>
-      <Hotkey value="shift+up" />
+      <Hotkey value="shift+right" />
     </Flex>
   </Flex>
 </Storybook.Demo>
@@ -80,7 +86,7 @@ Modifiers are automatically mapped per platform. No fallback arrays needed for s
 ```jsx
 <Hotkey value="command+z" />
 <Hotkey value="command+shift+z" />
-<Hotkey value="shift+up" />
+<Hotkey value="shift+right" />
 ```
 
 ### Array Form
@@ -89,6 +95,31 @@ Pass an array when the actual keys (not just modifiers) differ across platforms.
 
 ```jsx
 <Hotkey value={['command+backspace', 'delete']} />
+```
+
+## Variants
+
+Both `<Hotkey>` and `<Kbd>` accept a `variant` prop. The default `embossed` variant renders a raised key cap; `debossed` renders a sunken, muted key cap suited for use on filled or dark backgrounds.
+
+<Storybook.Demo>
+  <Flex gap="xl" align="center">
+    <Flex gap="sm" align="center">
+      <Text>Embossed (default):</Text>
+      <Hotkey value="command+k" variant="embossed" />
+    </Flex>
+    <Flex gap="sm" align="center">
+      <Text>Debossed:</Text>
+      <Hotkey value="command+k" variant="debossed" />
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Hotkey value="command+k" />
+<Hotkey value="command+k" variant="debossed" />
+
+<Kbd>Esc</Kbd>
+<Kbd variant="debossed">Esc</Kbd>
 ```
 
 ## Kbd

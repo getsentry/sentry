@@ -1,16 +1,16 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 function GitRepoLink({repo}: {repo: {name: string; owner: string; ok?: boolean}}) {
@@ -109,7 +109,7 @@ export function AutofixSetupWriteAccessModal({
   useEffect(() => {
     return () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
     };
   }, [queryClient, orgSlug, groupId]);

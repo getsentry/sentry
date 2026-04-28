@@ -112,11 +112,7 @@ export function WidgetPreview({
       isEditingDashboard={false}
       widgetLimitReached={false}
       showContextMenu={false}
-      widgetInterval={
-        organization.features.includes('dashboards-interval-selection')
-          ? chartInterval
-          : undefined
-      }
+      widgetInterval={chartInterval}
       onLegendSelectChanged={() => {}}
       legendOptions={
         widgetLegendState.widgetRequiresLegendUnselection(widget)

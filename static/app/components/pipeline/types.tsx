@@ -85,7 +85,8 @@ export interface PipelineStepProps<
   advance: (data?: A) => void;
   advanceError: RequestError | null;
   isAdvancing: boolean;
-  stepData: D;
+  isInitializing: boolean;
+  stepData: D | null;
   stepIndex: number;
   totalSteps: number;
 }

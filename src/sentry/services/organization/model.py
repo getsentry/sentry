@@ -10,6 +10,9 @@ class OrganizationOptions(pydantic.BaseModel):
     owning_email: str | None = None
     create_default_team: bool = True
     is_test: bool = False
+    ip_address: str | None = None
+    agree_terms: bool | None = None
+    aggregated_data_consent: bool | None = None
 
 
 class PostProvisionOptions(pydantic.BaseModel):

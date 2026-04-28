@@ -49,11 +49,8 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   });
   useFetchAllPages({result: repositoriesQuery});
   const {data: repositories, isFetching: isFetchingRepositories} = repositoriesQuery;
-  const {
-    preference,
-    codeMappingRepos,
-    isPending: isLoadingPreferences,
-  } = useProjectSeerPreferences(project);
+  const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
 
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);

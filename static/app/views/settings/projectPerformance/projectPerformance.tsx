@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -31,13 +32,7 @@ import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -202,7 +197,8 @@ export function ProjectPerformance() {
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
   const hasAIIssueDetection =
     organization.features.includes('gen-ai-features') &&
-    organization.features.includes('ai-issue-detection');
+    organization.features.includes('ai-issue-detection') &&
+    !organization.hideAiFeatures;
 
   const {
     data: threshold,
@@ -600,10 +596,10 @@ export function ProjectPerformance() {
       },
       visible: hasWebVitalsSeerSuggestions,
     },
-    [IssueTitle.AI_DETECTED_GENERAL]: {
+    ['AI Detected']: {
       name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
       type: 'boolean',
-      label: IssueTitle.AI_DETECTED_GENERAL,
+      label: t('AI Issue Detection'),
       help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
       defaultValue: true,
       onChange: value => {
@@ -1051,7 +1047,7 @@ export function ProjectPerformance() {
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
       {
-        title: IssueTitle.AI_DETECTED_GENERAL,
+        title: 'AI Detected',
         fields: [
           {
             name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,

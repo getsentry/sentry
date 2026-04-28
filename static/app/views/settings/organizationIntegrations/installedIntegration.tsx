@@ -14,7 +14,6 @@ import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
@@ -27,7 +26,9 @@ type Props = {
   onRemove: (integration: Integration) => void;
   organization: Organization;
   provider: IntegrationProvider;
-  trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
+  trackIntegrationAnalytics: (
+    eventKey: 'integrations.uninstall_clicked' | 'integrations.uninstall_completed'
+  ) => void; // analytics callback
   requiresUpgrade?: boolean;
 };
 

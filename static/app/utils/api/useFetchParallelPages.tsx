@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface Props {
@@ -100,7 +101,9 @@ export function useFetchParallelPages<Data>({
 
   const cursors = useMemo(
     () =>
-      new Array(Math.ceil(hits / perPage)).fill(0).map((_, i) => `0:${perPage * i}:0`),
+      Array.from({length: Math.ceil(hits / perPage)})
+        .fill(0)
+        .map((_, i) => `0:${perPage * i}:0`),
     [hits, perPage]
   );
 

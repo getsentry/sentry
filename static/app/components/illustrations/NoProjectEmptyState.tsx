@@ -208,13 +208,15 @@ const Smoke = styled('g')`
     animation: ${ploom} 3s infinite;
   }
 
-  ${new Array(3).fill(0).map(
-    (_, i) => css`
-      > :nth-child(${i + 1}) {
-        animation-delay: ${4 + i * 0.2}s;
-      }
-    `
-  )}
+  ${Array.from({length: 3})
+    .fill(0)
+    .map(
+      (_, i) => css`
+        > :nth-child(${i + 1}) {
+          animation-delay: ${4 + i * 0.2}s;
+        }
+      `
+    )}
 `;
 
 export function NoProjectEmptyState({className}: {className?: string}) {

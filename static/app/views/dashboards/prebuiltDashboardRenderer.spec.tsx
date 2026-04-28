@@ -1,12 +1,15 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
 jest.mock('sentry/views/dashboards/detail', () => ({
-  DashboardDetailWithInjectedProps: () => <div data-test-id="dashboard-detail" />,
+  DashboardDetailWithInjectedProps: ({pageAlerts}: {pageAlerts?: ReactNode}) => (
+    <div data-test-id="dashboard-detail">{pageAlerts}</div>
+  ),
 }));
 
 jest.mock('sentry/views/dashboards/utils/usePopulateLinkedDashboards', () => ({
@@ -17,39 +20,52 @@ jest.mock('sentry/views/dashboards/utils/usePopulateLinkedDashboards', () => ({
 }));
 
 describe('PrebuiltDashboardRenderer', () => {
-  const organization = OrganizationFixture();
+  const initialRouterConfig = {
+    location: {
+      pathname: '/insights/backend/',
+      query: {
+        project: '1',
+        environment: 'production',
+        statsPeriod: '7d',
+      },
+    },
+  };
 
-  it('renders dashboard link with page filter query params from the URL', async () => {
-    render(
-      <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.BACKEND_OVERVIEW} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/insights/backend/',
-            query: {
-              project: '1',
-              environment: 'production',
-              statsPeriod: '7d',
-            },
-          },
-        },
-      }
-    );
-
-    const link = await screen.findByRole('link', {
-      name: 'View this page on Dashboards',
+  it('redirects to the corresponding dashboard with page filter query params when flag is enabled', async () => {
+    const organization = OrganizationFixture({
+      features: ['insights-to-dashboards-ui-rollout'],
     });
 
-    expect(link).toHaveAttribute(
-      'href',
-      expect.stringContaining(`/organizations/${organization.slug}/dashboard/42/`)
+    const {router} = render(
+      <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.BACKEND_OVERVIEW} />,
+      {organization, initialRouterConfig}
     );
-    expect(link).toHaveAttribute('href', expect.stringContaining('project=1'));
-    expect(link).toHaveAttribute(
-      'href',
-      expect.stringContaining('environment=production')
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/dashboard/42/`
+      );
+    });
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        project: '1',
+        environment: 'production',
+        statsPeriod: '7d',
+      })
     );
-    expect(link).toHaveAttribute('href', expect.stringContaining('statsPeriod=7d'));
+  });
+
+  it('does not redirect when flag is disabled', async () => {
+    const organization = OrganizationFixture({features: []});
+
+    const {router} = render(
+      <PrebuiltDashboardRenderer prebuiltId={PrebuiltDashboardId.BACKEND_OVERVIEW} />,
+      {organization, initialRouterConfig}
+    );
+
+    // Wait for any potential async redirect to settle
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/insights/backend/');
+    });
   });
 });

@@ -36,11 +36,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 
@@ -110,12 +110,13 @@ export const ReplayActivityColumn: ReplayTableColumn = {
       return null;
     }
     const colors = theme.chart.getColorPalette(0);
-    const scoreBarPalette = new Array(10).fill([colors[0]]);
+    const scoreBarPalette = Array.from<string[]>({length: 10}).fill([colors[0]]);
     return (
       <DropdownContainer key="activity">
         <ScoreBar
           size={20}
           score={replay?.activity ?? 1}
+          // @ts-expect-error -- TODO: Resolve this mismatch
           palette={scoreBarPalette}
           radius={0}
         />

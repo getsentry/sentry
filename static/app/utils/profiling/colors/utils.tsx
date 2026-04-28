@@ -59,7 +59,7 @@ export function makeColorBufferForNodes(
 ): number[] {
   const length = frames.length;
   // Length * number of frames * color components
-  const colorBuffer: number[] = new Array(length * 4 * 6);
+  const colorBuffer = Array.from<number>({length: length * 4 * 6});
 
   for (let index = 0; index < length; index++) {
     const frame = frames[index];
@@ -90,7 +90,7 @@ function makeColorBuffer(
 ): number[] {
   const length = frames.length;
   // Length * number of frames * color components
-  const colorBuffer: number[] = new Array(length * 4 * 6);
+  const colorBuffer = Array.from<number>({length: length * 4 * 6});
 
   for (let index = 0; index < length; index++) {
     const frame = frames[index];

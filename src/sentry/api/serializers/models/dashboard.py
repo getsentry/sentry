@@ -10,7 +10,7 @@ from django.db.models import prefetch_related_objects
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -694,3 +694,34 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
         }
 
         return data
+
+
+class DashboardRevisionResponse(TypedDict):
+    id: str
+    title: str
+    dateCreated: datetime
+    createdBy: dict[str, Any] | None
+    source: str
+
+
+@register(DashboardRevision)
+class DashboardRevisionSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        user_ids = [r.created_by_id for r in item_list if r.created_by_id is not None]
+        users_by_id = {
+            u["id"]: {"id": u["id"], "name": u["name"], "email": u["email"]}
+            for u in user_service.serialize_many(filter={"user_ids": user_ids})
+        }
+        return {
+            revision: {"created_by": users_by_id.get(str(revision.created_by_id))}
+            for revision in item_list
+        }
+
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardRevisionResponse:
+        return {
+            "id": str(obj.id),
+            "title": obj.title,
+            "dateCreated": obj.date_added,
+            "createdBy": attrs.get("created_by"),
+            "source": obj.source,
+        }

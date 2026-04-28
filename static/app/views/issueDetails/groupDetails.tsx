@@ -2,13 +2,14 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -35,8 +36,8 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeBoolean} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -68,7 +69,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
-import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
@@ -210,14 +211,13 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
         defined(storeGroup.participants) &&
         defined(storeGroup.activity)
       ) {
-        setApiQueryData(
-          queryClient,
-          makeFetchGroupQueryKey({
+        queryClient.setQueryData(
+          groupApiOptions({
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-          }),
-          storeGroup
+          }).queryKey,
+          prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
     }, undefined) as () => void;
@@ -392,7 +392,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [group?.project.id, allProjectChanged, navigate]);
 
-  const errorType = groupError ? getFetchDataRequestErrorType(groupError.status) : null;
+  const errorType =
+    groupError instanceof RequestError
+      ? getFetchDataRequestErrorType(groupError.status)
+      : null;
   useEffect(() => {
     if (isGroupError) {
       Sentry.captureException(groupError);
@@ -578,7 +581,7 @@ function GroupDetailsContent({
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project, event});
-  const {isDrawerOpen} = useDrawer();
+  const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
   const {seerDrawer} = useLocationQuery({
@@ -590,7 +593,7 @@ function GroupDetailsContent({
   const {hasAutofixQuota} = useAiConfig(group, project);
 
   useEffect(() => {
-    if (isDrawerOpen) {
+    if (isAnyDrawerOpen) {
       return;
     }
 
@@ -611,7 +614,7 @@ function GroupDetailsContent({
     }
   }, [
     currentTab,
-    isDrawerOpen,
+    isAnyDrawerOpen,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,

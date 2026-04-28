@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import router
 from django.urls import reverse
@@ -57,6 +57,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["stack/root/file.py"],
             )
@@ -89,6 +90,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["app/src/main/java/com/waffleware/billing/Billing.kt"],
             )
@@ -129,6 +131,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=[
                     "sentry-graphql/src/main/java/io/sentry/graphql/GraphQLFetcher.java",
@@ -158,6 +161,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["stack/root/file.py"],
             )
@@ -194,6 +198,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["stack/root/file.py"],
             ),
@@ -201,6 +206,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/foobar",
                     branch="master",
+                    external_id="2",
                 ),
                 files=["stack/root/file.py"],
             ),
@@ -243,6 +249,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
                 RepoAndBranch(
                     name="getsentry/codemap",
                     branch="master",
+                    external_id="1",
                 ),
                 files=["top_level_file.py"],
             )
@@ -267,7 +274,13 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.data == {"text": "Could not find project"}
 
-    def test_non_project_member_permissions(self) -> None:
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[
+            {"name": "codemap", "identifier": "getsentry/codemap", "external_id": "99999"}
+        ],
+    )
+    def test_non_project_member_permissions(self, mock_get_repos: MagicMock) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -287,7 +300,13 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == status.HTTP_201_CREATED
 
-    def test_post_simple(self) -> None:
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[
+            {"name": "codemap", "identifier": "getsentry/codemap", "external_id": "99999"}
+        ],
+    )
+    def test_post_simple(self, mock_get_repos: MagicMock) -> None:
         config_data = {
             "projectId": self.project.id,
             "stackRoot": "/stack/root",
@@ -342,7 +361,11 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         response = self.client.post(self.url, data=config_data, format="json")
         assert response.status_code == 404, response.content
 
-    def test_post_existing_code_mapping(self) -> None:
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+        return_value=[{"name": "name", "identifier": "name", "external_id": "88888"}],
+    )
+    def test_post_existing_code_mapping(self, mock_get_repos: MagicMock) -> None:
         RepositoryProjectPathConfig.objects.create(
             project=self.project,
             stack_root="/stack/root",

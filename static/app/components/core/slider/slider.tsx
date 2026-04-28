@@ -185,7 +185,7 @@ export function Slider({
               {...inputProps}
               name={name}
               id={id ?? inputProps.id}
-              aria-invalid={htmlProps['aria-invalid'] as boolean | undefined}
+              aria-invalid={htmlProps['aria-invalid']}
               {...(ariaValueText !== undefined && {'aria-valuetext': ariaValueText})}
             />
           </VisuallyHidden>

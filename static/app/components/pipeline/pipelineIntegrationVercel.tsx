@@ -22,7 +22,7 @@ function VercelOAuthLoginStep({
 
   return (
     <OAuthLoginStep
-      oauthUrl={stepData.oauthUrl}
+      oauthUrl={stepData?.oauthUrl}
       isLoading={isAdvancing}
       serviceName="Vercel"
       onOAuthCallback={handleOAuthCallback}

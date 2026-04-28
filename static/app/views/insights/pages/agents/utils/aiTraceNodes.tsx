@@ -67,7 +67,7 @@ export function getGenAiOpType(node: BaseNode): string | undefined {
   return (
     (attributeObject?.[SpanFields.GEN_AI_OPERATION_TYPE] as string | undefined) ??
     getGenAiOperationTypeFromSpanName(
-      node.value && 'name' in node.value ? (node.value.name as string) : undefined
+      node.value && 'name' in node.value ? node.value.name : undefined
     )
   );
 }

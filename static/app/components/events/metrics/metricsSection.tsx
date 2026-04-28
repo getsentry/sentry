@@ -1,11 +1,11 @@
 import {useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -137,7 +137,7 @@ function MetricsSectionContent({
     <InterimSection
       key="metrics"
       type={SectionKey.METRICS}
-      title={t('Metrics')}
+      title={t('Application Metrics')}
       data-test-id="metrics-data-section"
     >
       <Flex direction="column" gap="xl">

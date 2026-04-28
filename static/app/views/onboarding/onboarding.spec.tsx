@@ -630,7 +630,10 @@ describe('Onboarding', () => {
 
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: ['onboarding-scm-experiment'],
+      features: [
+        'onboarding-scm-experiment',
+        'onboarding-scm-project-details-experiment',
+      ],
     });
 
     const githubProvider = GitHubIntegrationProviderFixture({
@@ -688,11 +691,47 @@ describe('Onboarding', () => {
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
-      await waitFor(() => {
-        expect(router.location.pathname).toBe(
-          `/onboarding/${scmOrganization.slug}/scm-connect/`
-        );
-      });
+      // Wait for scm-connect to render and its queries to resolve so the
+      // mounted-effect fetches hit the mocked endpoints before afterEach
+      // clears responses.
+      expect(await screen.findByText('GitHub')).toBeInTheDocument();
+
+      expect(router.location.pathname).toBe(
+        `/onboarding/${scmOrganization.slug}/scm-connect/`
+      );
+    });
+
+    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
+      renderOnboarding('welcome');
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_step_viewed',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'growth.onboarding_start_onboarding',
+        expect.anything()
+      );
+    });
+
+    it('fires scm_welcome_continue_clicked on start click and not the legacy event', async () => {
+      renderOnboarding('welcome');
+
+      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_continue_clicked',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'growth.onboarding_clicked_instrument_app',
+        expect.anything()
+      );
+
+      // Wait for scm-connect to render and its queries to resolve so the
+      // mounted-effect fetches hit the mocked endpoints before afterEach
+      // clears responses.
+      expect(await screen.findByText('GitHub')).toBeInTheDocument();
     });
 
     it('auto-selects existing integration and shows connected view', async () => {
@@ -740,7 +779,7 @@ describe('Onboarding', () => {
     it('skip for now advances to next step without skipping onboarding', async () => {
       const {router} = renderOnboarding('scm-connect');
 
-      expect(await screen.findByText('Connect a repository')).toBeInTheDocument();
+      expect(await screen.findByText('Connect a repo')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Skip for now'}));
 
@@ -749,6 +788,30 @@ describe('Onboarding', () => {
           `/onboarding/${scmOrganization.slug}/scm-platform-features/`
         );
       });
+    });
+
+    it('header skip button fires scm-connect analytics', async () => {
+      renderOnboarding('scm-connect');
+
+      await screen.findByText('Connect a repo');
+
+      const buttons = screen.getAllByRole('button', {name: 'Skip setup'});
+      expect(buttons).toHaveLength(1);
+      await userEvent.click(buttons[0]!);
+
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_header_skip_clicked',
+        expect.objectContaining({
+          step: 'scm-connect',
+        })
+      );
+    });
+
+    it('hides the welcome footer skip button in favor of the header button', () => {
+      renderOnboarding('welcome');
+
+      const buttons = screen.getAllByRole('button', {name: 'Skip setup'});
+      expect(buttons).toHaveLength(1);
     });
 
     it('renders scm-platform-features step and advances to scm-project-details', async () => {
@@ -773,6 +836,102 @@ describe('Onboarding', () => {
       await waitFor(() => {
         expect(router.location.pathname).toBe(
           `/onboarding/${scmOrganization.slug}/scm-project-details/`
+        );
+      });
+    });
+
+    it('skips scm-project-details and auto-creates the project when experiment is off', async () => {
+      ProjectsStore.loadInitialData([]);
+      const controlOrganization = OrganizationFixture({
+        features: ['onboarding-scm-experiment'],
+      });
+      const createdProject = ProjectFixture({
+        platform: 'javascript-nextjs',
+        slug: 'javascript-nextjs',
+      });
+      jest
+        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+        .mockImplementation(() => ({
+          project: createdProject,
+          isProjectActive: false,
+        }));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/`,
+        body: controlOrganization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/config/integrations/`,
+        body: {providers: [githubProvider]},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/integrations/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/repos/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/teams/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/sdks/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${controlOrganization.slug}/${createdProject.slug}/keys/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${controlOrganization.slug}/${createdProject.slug}/issues/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${controlOrganization.slug}/${createdProject.slug}/overview/`,
+        body: createdProject,
+      });
+      const createRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${controlOrganization.slug}/experimental/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      const {router} = render(
+        <OnboardingContextProvider
+          initialValue={{
+            selectedPlatform: nextJsPlatform,
+            selectedFeatures: [ProductSolution.ERROR_MONITORING],
+          }}
+        >
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: controlOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${controlOrganization.slug}/scm-platform-features/`,
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      await waitFor(() => {
+        expect(createRequest).toHaveBeenCalled();
+      });
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${controlOrganization.slug}/setup-docs/`
         );
       });
     });
@@ -872,6 +1031,72 @@ describe('Onboarding', () => {
       expect(stored.createdProjectSlug).toBeUndefined();
     });
 
+    describe('setup-docs analytics', () => {
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      function renderSetupDocs(project: ReturnType<typeof ProjectFixture>) {
+        jest
+          .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+          .mockImplementation(() => ({project, isProjectActive: false}));
+
+        MockApiClient.addMockResponse({
+          url: `/organizations/${scmOrganization.slug}/sdks/`,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${project.slug}/keys/`,
+          body: [ProjectKeysFixture()[0]],
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${project.slug}/issues/`,
+          body: [],
+        });
+
+        return render(
+          <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
+            <OnboardingWithoutContext />
+          </OnboardingContextProvider>,
+          {
+            organization: scmOrganization,
+            initialRouterConfig: {
+              location: {
+                pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+              },
+              route: '/onboarding/:orgId/:step/',
+            },
+          }
+        );
+      }
+
+      it('fires scm_take_to_error_clicked on Take me to my error click', async () => {
+        const project = ProjectFixture({
+          platform: 'javascript-nextjs',
+          slug: 'javascript-nextjs',
+          firstEvent: '2026-04-21T00:00:00.000Z',
+        });
+
+        renderSetupDocs(project);
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Take me to my error'})
+        );
+
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'onboarding.scm_take_to_error_clicked',
+          expect.objectContaining({
+            organization: scmOrganization,
+            platform: 'javascript-nextjs',
+          })
+        );
+        expect(trackAnalytics).not.toHaveBeenCalledWith(
+          'growth.onboarding_take_to_error',
+          expect.anything()
+        );
+      });
+    });
+
     it('clears derived state but preserves integration and repo on repo change', () => {
       const initialContext = {
         selectedIntegration: OrganizationIntegrationsFixture({
@@ -925,7 +1150,7 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('scm-connect');
 
       // Wait for the step to render
-      await screen.findByText('Connect a repository');
+      await screen.findByText('Connect a repo');
 
       await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 

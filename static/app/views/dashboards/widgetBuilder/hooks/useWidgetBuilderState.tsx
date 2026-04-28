@@ -90,7 +90,7 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
-export type WidgetBuilderStateLocalParams = {
+type WidgetBuilderStateLocalParams = {
   textContent?: string;
 };
 
@@ -819,9 +819,9 @@ export function useWidgetBuilderState(): {
             displayType !== DisplayType.BIG_NUMBER &&
             action.payload.length > 0
           ) {
-            const firstYAxisNotEquation = yAxis?.filter(
+            const firstYAxisNotEquation = yAxis?.find(
               field => field.kind !== FieldValueKind.EQUATION
-            )[0];
+            );
             const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
             );

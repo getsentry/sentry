@@ -16,7 +16,6 @@ import {
   CodeChangesCard,
   CodingAgentHandoffCard,
   SolutionCard,
-  type ArtifactData,
 } from 'sentry/components/events/autofix/v2/artifactCards';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
@@ -28,7 +27,7 @@ import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface InstrumentationFixSectionProps {
@@ -43,6 +42,8 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     isSeerExplorerEnabled(organization) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
+
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   const {
     runState,
@@ -73,7 +74,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
   const handleStartStep = useCallback(
     async (step: Parameters<typeof startStep>[0]) => {
-      await startStep(step, runState?.run_id);
+      await startStep(step, {runId: runState?.run_id});
     },
     [startStep, runState?.run_id]
   );
@@ -93,7 +94,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     } else {
       openSeerExplorer({startNewRun: true});
     }
-  }, [runState?.run_id]);
+  }, [runState?.run_id, openSeerExplorer]);
 
   const handleCodingAgentHandoff = useCallback(
     async (integration: CodingAgentIntegration) => {
@@ -164,7 +165,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
             // Only show solution and code changes for instrumentation issues
             if (key === 'solution') {
-              return <SolutionCard key="solution" data={artifact.data as ArtifactData} />;
+              return <SolutionCard key="solution" data={artifact.data} />;
             }
             return null;
           })}

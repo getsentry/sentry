@@ -450,7 +450,9 @@ export type RawReplayError = {
   ['issue.id']: number;
   level: string;
   ['project.name']: string;
-  timestamp: string;
+  // Discover returns ms-precision timestamps in "YYYY-MM-DD HH:MM:SS.sss"
+  // format (no "T", no timezone).
+  timestamp_ms: string;
   title: string;
 };
 

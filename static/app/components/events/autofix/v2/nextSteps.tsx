@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -19,7 +20,6 @@ import {cardAnimationProps} from 'sentry/components/events/autofix/v2/utils';
 import {IconChat, IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Artifact} from 'sentry/views/seerExplorer/types';
 
@@ -143,7 +143,9 @@ function StepButton({
           '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
           {
             settings: (
-              <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />
+              <Link
+                to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+              />
             ),
           }
         )}
@@ -193,7 +195,9 @@ function StepButton({
       title={tct(
         '[settings:"Enable Code Generation"] must be enabled for Seer to create pull requests.',
         {
-          settings: <Link to={`/settings/${organization.slug}/seer/#enableSeerCoding`} />,
+          settings: (
+            <Link to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`} />
+          ),
         }
       )}
     >

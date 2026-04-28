@@ -199,7 +199,7 @@ function MonitoringAndDataFeatures({
   planOptions: Plan[];
 }) {
   const activePlanTypeIndex = useMemo(
-    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase()),
     [activePlan]
   );
   const featureKeyToInfo: Partial<
@@ -384,7 +384,7 @@ function MonitoringAndDataFeatures({
 
 function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
   const activePlanTypeIndex = useMemo(
-    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase()),
     [activePlan]
   );
 

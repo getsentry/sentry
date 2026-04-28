@@ -226,28 +226,41 @@ def run_taskworker(
     """
     taskworker factory that can be reloaded
     """
-    from taskbroker_client.worker import TaskWorker
+    from taskbroker_client.worker import PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
     with managed_bgtasks(role="taskworker"):
-        worker = TaskWorker(
-            app_module="sentry.taskworker.bootstrap:app",
-            broker_hosts=make_broker_hosts(
-                host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
-            ),
-            max_child_task_count=max_child_task_count,
-            namespace=namespace,
-            concurrency=concurrency,
-            child_tasks_queue_maxsize=child_tasks_queue_maxsize,
-            result_queue_maxsize=result_queue_maxsize,
-            rebalance_after=rebalance_after,
-            processing_pool_name=processing_pool_name,
-            health_check_file_path=health_check_file_path,
-            health_check_sec_per_touch=health_check_sec_per_touch,
-            grpc_port=worker_rpc_port,
-            push_mode=push_mode,
-            **options,
-        )
+        if push_mode:
+            worker: PushTaskWorker | TaskWorker = PushTaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_service=rpc_host,
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                grpc_port=worker_rpc_port,
+            )
+        else:
+            worker = TaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_hosts=make_broker_hosts(
+                    host_prefix=rpc_host, num_brokers=num_brokers, host_list=rpc_host_list
+                ),
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+            )
         exitcode = worker.start()
         raise SystemExit(exitcode)
 

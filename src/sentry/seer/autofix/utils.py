@@ -70,6 +70,28 @@ class AutofixStoppingPoint(StrEnum):
     OPEN_PR = "open_pr"
 
 
+def extract_api_error_message(response: Any) -> str | None:
+    # Anthropic returns {"error": {"type": "...", "message": "..."}}; others
+    # (OpenAI, GitHub, Stripe) use one of "error.message" or top-level "message".
+    if response is None:
+        return None
+    try:
+        body = response.json()
+    except (ValueError, AttributeError):
+        return None
+    if not isinstance(body, dict):
+        return None
+    error = body.get("error")
+    if isinstance(error, dict):
+        message = error.get("message")
+        if isinstance(message, str) and message:
+            return message
+    message = body.get("message")
+    if isinstance(message, str) and message:
+        return message
+    return None
+
+
 def get_valid_automated_run_stopping_points(
     organization: Organization,
 ) -> set[AutofixStoppingPoint]:
@@ -537,11 +559,21 @@ def resolve_repository_ids(
     def _resolve_repo(repo: SeerRepoDefinition) -> SeerRepoDefinition:
         if repo.repository_id is not None:
             return repo
+
         resolved_id = resolved_ids.get(
             (repo.external_id, repo.provider.removeprefix("integrations:"))
         )
         if resolved_id is not None:
             return repo.copy(update={"repository_id": resolved_id})
+
+        logger.warning(
+            "seer.resolve_repository_ids.unresolved",
+            extra={
+                "organization_id": organization_id,
+                "external_id": repo.external_id,
+                "provider": repo.provider,
+            },
+        )
         return repo
 
     return [
@@ -682,6 +714,18 @@ def bulk_write_preferences_to_sentry_db(
     _write_preferences_to_sentry_db(project_preferences)
 
 
+def clear_preference_automation_handoff(project: Project) -> None:
+    """Atomically clear automation_handoff from a project's Seer preferences in Sentry DB."""
+    with transaction.atomic(using=router.db_for_write(ProjectOption)):
+        # Lock project rows to serialize concurrent preference writes.
+        list(Project.objects.select_for_update().filter(id=project.id))
+
+        project.delete_option("sentry:seer_automation_handoff_point")
+        project.delete_option("sentry:seer_automation_handoff_target")
+        project.delete_option("sentry:seer_automation_handoff_integration_id")
+        project.delete_option("sentry:seer_automation_handoff_auto_create_pr")
+
+
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
 ) -> SeerRepoDefinition | None:
@@ -735,9 +779,7 @@ def _build_automation_handoff(
 
 
 def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
-    """Read a single project's Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Read a single project's Seer preferences from Sentry DB."""
     seer_project_repo_qs = (
         SeerProjectRepository.objects.filter(project=project)
         .select_related("repository")
@@ -762,9 +804,7 @@ def read_preference_from_sentry_db(project: Project) -> SeerProjectPreference:
 def bulk_read_preferences_from_sentry_db(
     organization_id: int, project_ids: list[int]
 ) -> dict[int, SeerProjectPreference]:
-    """Bulk read Seer preferences from Sentry DB.
-
-    For now, should only be used under feature flag `organizations:seer-project-settings-read-from-sentry`."""
+    """Bulk read Seer preferences from Sentry DB."""
     if not project_ids:
         return {}
 
@@ -810,43 +850,6 @@ def bulk_read_preferences_from_sentry_db(
     return result
 
 
-def bulk_read_preferences(
-    organization: Organization, project_ids: list[int]
-) -> dict[int, SeerProjectPreference | None]:
-    """Read Seer project preferences in bulk, using the correct source based on feature flag.
-
-    Always returns ``dict[int, SeerProjectPreference | None]`` regardless of the
-    underlying read path (Sentry DB or Seer API)."""
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        return bulk_read_preferences_from_sentry_db(organization.id, project_ids)  # type: ignore[return-value]
-
-    raw = bulk_get_project_preferences(organization.id, project_ids)
-    tuning_by_id = ProjectOption.objects.get_value_bulk_id(
-        project_ids, "sentry:autofix_automation_tuning"
-    )
-    result: dict[int, SeerProjectPreference | None] = {}
-    for pid, data in raw.items():
-        int_pid = int(pid)
-        if data is None:
-            result[int_pid] = None
-            continue
-        try:
-            pref = SeerProjectPreference.validate(data)
-        except pydantic.ValidationError:
-            logger.exception(
-                "seer.bulk_read_preferences.validation_error",
-                extra={"project_id": pid, "organization_id": organization.id},
-            )
-            result[int_pid] = None
-            continue
-        tuning = tuning_by_id.get(int_pid)
-        if tuning is None:
-            tuning = projectoptions.get_well_known_default("sentry:autofix_automation_tuning")
-        pref.autofix_automation_tuning = tuning
-        result[int_pid] = pref
-    return result
-
-
 def set_project_seer_preference(preference: SeerProjectPreference) -> None:
     """Set Seer project preference for a single project via Seer API."""
     response = make_set_project_preference_request(
@@ -858,41 +861,13 @@ def set_project_seer_preference(preference: SeerProjectPreference) -> None:
         raise SeerApiError(response.data.decode("utf-8"), response.status)
 
 
-def has_project_connected_repos(
-    organization: Organization, project: Project, *, skip_cache: bool = False
-) -> bool:
-    """
-    Check if a project has connected repositories for Seer automation.
-    Checks Seer preferences first, then falls back to Sentry code mappings.
-    Results are cached for 15 minutes to minimize API calls.
-    """
-    cache_key = f"seer-project-has-repos:{organization.id}:{project.id}"
-    if not skip_cache:
-        cached_value = cache.get(cache_key)
-        if cached_value is not None:
-            return cached_value
-
-    has_repos = False
-    if features.has("organizations:seer-project-settings-read-from-sentry", organization):
-        has_repos = bool(read_preference_from_sentry_db(project).repositories)
-    else:
-        try:
-            preference = get_project_seer_preferences(project.id).preference
-            has_repos = bool(preference and preference.repositories)
-        except (SeerApiError, SeerApiResponseValidationError):
-            pass
-
-    if not has_repos:
-        # If it's the first autofix run of project we check code mapping.
-        has_repos = bool(get_autofix_repos_from_project_code_mappings(project))
-
-    logger.info(
-        "Checking if project has repositories connected",
-        extra={"org_id": organization.id, "project_id": project.id, "has_repos": has_repos},
-    )
-
-    cache.set(cache_key, has_repos, timeout=60 * 15)  # Cache for 15 minutes
-    return has_repos
+def has_project_connected_repos(organization: Organization, project: Project) -> bool:
+    """Check if a project has connected repositories for Seer automation."""
+    return SeerProjectRepository.objects.filter(
+        project=project,
+        project__organization_id=organization.id,
+        project__status=ObjectStatus.ACTIVE,
+    ).exists()
 
 
 def bulk_get_project_preferences(

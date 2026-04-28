@@ -427,9 +427,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    const allCategories = Object.values(DATA_CATEGORY_INFO).map(
-      c => c.plural as DataCategory
-    );
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
     const planCategories = allCategories.filter(c =>
       this.state.provisionablePlans[postData.plan]?.categories.includes(c)
     );

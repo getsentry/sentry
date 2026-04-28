@@ -25,7 +25,6 @@ import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
@@ -33,7 +32,6 @@ import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsUIRefresh} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {
   TraceMetricKnownFieldKey,
@@ -96,13 +94,16 @@ interface MetricSelectOption {
 export function MetricSelector({
   traceMetric,
   onChange,
+  projectIds,
+  environments,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  environments?: string[];
+  projectIds?: number[];
 }) {
   const triggerId = useId();
 
-  const organization = useOrganization();
   const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const searchRef = useRef<HTMLInputElement>(null);
@@ -114,8 +115,9 @@ export function MetricSelector({
   const debouncedSearch = useDebouncedValue(searchInputValue, DEFAULT_DEBOUNCE_DURATION);
   const {data: metricOptionsData, isFetching} = useMetricOptions({
     search: debouncedSearch,
+    projectIds,
+    environments,
   });
-  const hasMetricsUIRefresh = canUseMetricsUIRefresh(organization);
 
   const metricSelectValue = makeMetricSelectValue(
     hasMetricUnitsUI ? traceMetric : {name: traceMetric.name, type: traceMetric.type}
@@ -252,6 +254,7 @@ export function MetricSelector({
         if (scrollElementRef.current) {
           scrollElementRef.current.scrollTop = 0;
         }
+        searchRef.current?.focus({preventScroll: true});
       });
       return;
     }
@@ -398,9 +401,7 @@ export function MetricSelector({
         {...mergedTriggerProps}
         style={{width: '100%', fontWeight: 'bold', textAlign: 'left'}}
         disabled={isFetching && !traceMetric.name}
-        tooltipProps={
-          hasMetricsUIRefresh ? {title: traceMetric.name || t('None')} : undefined
-        }
+        tooltipProps={{title: traceMetric.name || t('None')}}
       >
         <Text ellipsis>{traceMetric.name || t('None')}</Text>
       </OverlayTrigger.Button>
@@ -428,7 +429,7 @@ export function MetricSelector({
                 >
                   <Flex align="center" justify="between" padding="sm lg">
                     <Text size="sm" bold wrap="nowrap">
-                      {t('Metrics')}
+                      {t('Application Metrics')}
                     </Text>
                     {isFetching ? (
                       <LoadingIndicator size={12} style={{margin: 0}} />
@@ -450,9 +451,8 @@ export function MetricSelector({
                       </InputGroup.LeadingItems>
                       <InputGroup.Input
                         {...comboBoxInputProps}
-                        placeholder={t('Search metrics\u2026')}
+                        placeholder={t('Search application metrics\u2026')}
                         size="xs"
-                        autoFocus
                         ref={searchRef}
                       />
                     </InputGroup>
@@ -491,7 +491,7 @@ export function MetricSelector({
                     {collectionItems.length === 0 ? (
                       <Flex align="center" justify="center" padding="xl">
                         <Text variant="muted" size="sm">
-                          {t('No metrics found')}
+                          {t('No application metrics found')}
                         </Text>
                       </Flex>
                     ) : (
@@ -626,7 +626,7 @@ function MetricDetailPanel({
   if (!metric) {
     return (
       <Flex align="center" justify="center" flex="1">
-        <Text variant="muted">{t('Select a metric to see details')}</Text>
+        <Text variant="muted">{t('Select an application metric to see details')}</Text>
       </Flex>
     );
   }

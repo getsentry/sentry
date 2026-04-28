@@ -4,7 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
@@ -30,8 +32,10 @@ function TestableMetricComponent() {
 }
 
 function Wrapper({children}: {children: ReactNode}) {
+  const organization = useOrganization();
+  const hasEquations = canUseMetricsEquations(organization);
   return (
-    <MultiMetricsQueryParamsProvider>
+    <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
       <TestableMetricComponent />
       {children}
     </MultiMetricsQueryParamsProvider>

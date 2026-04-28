@@ -112,7 +112,7 @@ export function AvatarChooser({
         } else {
           avatars[avatarIndex] = replacmentAvatar;
         }
-        return {...sentryApp, avatars} as SimpleAvatar;
+        return {...sentryApp, avatars};
       });
       return;
     }
