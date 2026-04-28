@@ -21,8 +21,6 @@ const productionEntryPoints = [
   // todo find out how chartcuterie works
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
-  'static/app/components/pipeline/**/*.{js,ts,tsx}',
-  // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
 ];
 
