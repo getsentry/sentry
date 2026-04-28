@@ -188,7 +188,7 @@ function GroupList({
     `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
   );
 
-  useSupergroupDrawer({lookup: supergroupLookup, memberList});
+  useSupergroupDrawer({lookup: supergroupLookup ?? {}, memberList});
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   const renderItems = useMemo(

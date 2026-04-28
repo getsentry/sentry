@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef} from 'react';
+import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -16,8 +17,8 @@ import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuper
 export const SUPERGROUP_DRAWER_QUERY_PARAM = 'supergroupDrawer';
 
 interface UseSupergroupDrawerOptions {
-  lookup?: SupergroupLookup;
-  memberList?: IndexedMembersByProject;
+  lookup: SupergroupLookup;
+  memberList: IndexedMembersByProject;
 }
 
 export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOptions) {
@@ -26,11 +27,14 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
   const navigate = useNavigate();
   const {openDrawer} = useDrawer();
 
+  const hasTopIssuesUI = organization.features.includes('top-issues-ui');
+
   const queryParam = location.query[SUPERGROUP_DRAWER_QUERY_PARAM];
-  const drawerSupergroupId = typeof queryParam === 'string' ? queryParam : undefined;
+  const drawerSupergroupId =
+    hasTopIssuesUI && typeof queryParam === 'string' ? queryParam : undefined;
 
   const lookupSupergroup = useMemo(() => {
-    if (!drawerSupergroupId || !lookup) {
+    if (!drawerSupergroupId) {
       return undefined;
     }
     for (const sg of Object.values(lookup)) {
@@ -76,6 +80,9 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
   const lastOpenedIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
+    if (!hasTopIssuesUI) {
+      return;
+    }
     if (!drawerSupergroupId) {
       lastOpenedIdRef.current = undefined;
       return;
@@ -93,6 +100,7 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
     }
 
     lastOpenedIdRef.current = drawerSupergroupId;
+    Sentry.getReplay()?.start();
     openDrawer(
       () => (
         <SupergroupDetailDrawer
@@ -112,5 +120,5 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
         onClose: () => stripDrawerParam.current(),
       }
     );
-  }, [drawerSupergroupId, supergroup, isError, memberList, openDrawer]);
+  }, [hasTopIssuesUI, drawerSupergroupId, supergroup, isError, memberList, openDrawer]);
 }
