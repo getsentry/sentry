@@ -102,6 +102,17 @@ START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=ti
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
+
+def _api_exposed_org_feature_names() -> list[str]:
+    return [
+        n
+        for n in features.all(
+            feature_type=features.OrganizationFeature, api_expose_only=True
+        ).keys()
+        if n.startswith(_ORGANIZATION_SCOPE_PREFIX)
+    ]
+
+
 logger = logging.getLogger(__name__)
 
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
@@ -356,13 +367,27 @@ class OrganizationSummarySerializer(Serializer):
         }
         auth_providers = self._serialize_auth_providers(configs_by_org_id, item_list, user)
 
+        include_feature_flags = kwargs.get("include_feature_flags", True)
+        by_org: dict[int, dict[str, bool | None] | None] = {}
+        if include_feature_flags and item_list:
+            names = _api_exposed_org_feature_names()
+            with sentry_sdk.start_span(op="features.check", name="check batch features"):
+                # One batch_has per org (all feature names per call) so the actor is
+                # applied and entity handler work stays O(orgs), not O(feature names).
+                for org in item_list:
+                    r = features.batch_has(names, actor=user, organization=org)
+                    by_org[org.id] = r.get(f"organization:{org.id}") if r else None
+
         data: MutableMapping[Organization, MutableMapping[str, Any]] = {}
         for item in item_list:
-            data[item] = {
+            row: MutableMapping[str, Any] = {
                 "avatar": avatars.get(item.id),
                 "auth_provider": auth_providers.get(item.id, None),
                 "has_api_key": configs_by_org_id[item.id].has_api_key,
             }
+            if include_feature_flags:
+                row["batch_features"] = by_org.get(item.id)
+            data[item] = row
         return data
 
     def _serialize_auth_providers(
@@ -385,35 +410,27 @@ class OrganizationSummarySerializer(Serializer):
         }
 
     def get_feature_set(
-        self, obj: Organization, attrs: Mapping[str, Any], user: User | RpcUser | AnonymousUser
+        self,
+        obj: Organization,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        batch_features: dict[str, bool | None] | None = None,
     ) -> list[str]:
-        from sentry import features
-
-        # Retrieve all registered organization features
-        org_features = [
-            feature
-            for feature in features.all(
-                feature_type=features.OrganizationFeature, api_expose_only=True
-            ).keys()
-            if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
-        ]
+        org_features = _api_exposed_org_feature_names()
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", name="check batch features"):
-            # Check features in batch using the entity handler
-            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+        if batch_features is None:
+            with sentry_sdk.start_span(op="features.check", name="check batch features"):
+                r = features.batch_has(org_features, actor=user, organization=obj)
+                batch_features = r.get(f"organization:{obj.id}") if r else None
 
-            # batch_has has found some features
-            if batch_features:
-                for feature_name, active in batch_features.get(
-                    f"organization:{obj.id}", {}
-                ).items():
-                    if active:
-                        # Remove organization prefix
-                        feature_set.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-
-                    # This feature_name was found via `batch_has`, don't check again using `has`
-                    org_features.remove(feature_name)
+        if batch_features:
+            prefix_len = len(_ORGANIZATION_SCOPE_PREFIX)
+            for name, active in batch_features.items():
+                if active:
+                    feature_set.add(name[prefix_len:])
+                if name in org_features:
+                    org_features.remove(name)
 
         with sentry_sdk.start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
@@ -501,7 +518,9 @@ class OrganizationSummarySerializer(Serializer):
         }
 
         if include_feature_flags:
-            context["features"] = self.get_feature_set(obj, attrs, user)
+            context["features"] = self.get_feature_set(
+                obj, attrs, user, batch_features=attrs.get("batch_features")
+            )
             context["extraOptions"] = {
                 "traces": {
                     "spansExtractionDate": options.get("performance.traces.spans_extraction_date"),
@@ -627,7 +646,7 @@ class OrganizationSerializer(OrganizationSummarySerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
-        attrs = super().get_attrs(item_list, user)
+        attrs = super().get_attrs(item_list, user, **kwargs)
 
         replay_permissions = {
             opt.organization_id: opt.value
@@ -969,7 +988,7 @@ class OrganizationWithProjectsAndTeamsSerializer(OrganizationSerializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
-        return super().get_attrs(item_list, user)
+        return super().get_attrs(item_list, user, **kwargs)
 
     def _project_list(self, organization: Organization, access: Access) -> list[Project]:
         project_list = list(
