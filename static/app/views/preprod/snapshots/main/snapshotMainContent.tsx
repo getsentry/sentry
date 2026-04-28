@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -91,7 +91,42 @@ export function SnapshotMainContent({
   canNavigateNext,
 }: SnapshotMainContentProps) {
   const [isDark, setIsDark] = useState(false);
+  const [pressedDir, setPressedDir] = useState<'up' | 'down' | null>(null);
   const toggleDark = () => setIsDark(v => !v);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (viewMode !== 'single') {
+        return;
+      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        setPressedDir('up');
+      } else if (e.key === 'ArrowDown') {
+        setPressedDir('down');
+      }
+    },
+    [viewMode]
+  );
+
+  const handleKeyUp = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      setPressedDir(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleKeyDown, handleKeyUp]);
+
   const toggle = (
     <ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
   );
@@ -570,18 +605,25 @@ const SingleViewGroup = styled(Stack)`
   min-height: 0;
 `;
 
+const NavButton = styled(Button)`
+  transition: transform 80ms ease;
+  &[data-pressed='true'] {
+    transform: scale(0.85);
+  }
+`;
+
 const SingleViewCard = styled(Card)`
-  flex: 1 1 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const SingleViewBody = styled('div')`
-  flex: 1 1 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
 `;
 
 const ColorPickerWrapper = styled('div')`
