@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
 import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -25,8 +25,9 @@ type ModalOptions = {
   /**
    * Set to `false` to disable the backdrop from being rendered.
    * Set to `true` (the default) to show a translucent backdrop.
+   * Set to `{}` to pass props to the Backdrop component.
    */
-  backdrop?: boolean;
+  backdrop?: boolean | ComponentProps<typeof Backdrop>;
   /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
@@ -222,7 +223,13 @@ export function GlobalModal({onClose}: Props) {
   return createPortal(
     <Fragment>
       <AnimatePresence>
-        {backdrop && visible && <Backdrop key="backdrop" zIndex="modal" />}
+        {backdrop && visible && (
+          <Backdrop
+            key="backdrop"
+            zIndex="modal"
+            {...(typeof backdrop === 'object' ? backdrop : {})}
+          />
+        )}
       </AnimatePresence>
       <Container
         data-test-id="modal-backdrop"

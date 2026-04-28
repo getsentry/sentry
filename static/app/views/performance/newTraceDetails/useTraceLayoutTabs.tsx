@@ -38,7 +38,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
   [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.METRICS]: {
     slug: TraceLayoutTabKeys.METRICS,
-    label: t('Metrics'),
+    label: t('Application Metrics'),
   },
   [TraceLayoutTabKeys.AI_SPANS]: {
     slug: TraceLayoutTabKeys.AI_SPANS,

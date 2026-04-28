@@ -176,6 +176,15 @@ describe('Performance > TransactionSummary', () => {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+      match: [
+        (_url, options) => {
+          return options.query?.dataset === 'spans';
+        },
+      ],
+    });
   });
 
   afterEach(() => {

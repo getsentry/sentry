@@ -42,7 +42,6 @@ function mapToBool<V>(obj: Record<string, V>): Record<string, boolean> {
  * Import one of the configured helpers instead:
  *   - `useReplayExists()`
  *   - `useReplayCountForIssues()`
- *   - `useReplayCountForTransactions()`
  *   - `useReplayCountForFeedbacks()`
  *
  * @private

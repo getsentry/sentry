@@ -160,8 +160,8 @@ export async function toggleCommandPalette(
   dispatch: CommandPaletteDispatch,
   source: 'button' | 'keyboard'
 ) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/commandPalette/ui/modal');
+  const {CommandPalette: Modal, modalCss} =
+    await import('sentry/components/commandPalette/ui/commandPalette');
 
   function closeCommandPaletteModal() {
     dispatch({type: 'toggle modal'});
@@ -346,6 +346,7 @@ export async function openWidgetViewerModal({
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
+      backdrop: {zIndex: 'widgetBuilderDrawer'},
       onClose,
     });
   } else {
@@ -354,6 +355,7 @@ export async function openWidgetViewerModal({
     openModal(deps => <Modal {...deps} {...options} />, {
       closeEvents: 'none',
       modalCss,
+      backdrop: {zIndex: 'widgetBuilderDrawer'},
       onClose,
     });
   }
