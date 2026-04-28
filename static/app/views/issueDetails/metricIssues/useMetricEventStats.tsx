@@ -118,7 +118,7 @@ export function useMetricEventStats(
         ? EAP_EXTRAPOLATION_MODE_MAP[extrapolationMode]
         : undefined,
       ...queryExtras,
-    }).filter(([, value]) => typeof value !== 'undefined')
+    }).filter(([, value]) => value !== undefined)
   );
 
   return useQuery({

@@ -813,6 +813,13 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_enabled") is False
 
+    def test_preprod_snapshot_pr_comments_only_if_diff_option(self) -> None:
+        self.get_success_response(
+            self.org_slug, self.proj_slug, preprodSnapshotPrCommentsOnlyIfDiff=True
+        )
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_snapshot_pr_comments_only_if_diff") is True
+
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(

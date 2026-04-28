@@ -1,17 +1,17 @@
-"""Cron entry point for the per-org dynamic sampling pipeline."""
-
 from __future__ import annotations
 
 from taskbroker_client.retry import Retry
 
-from sentry import options
+from sentry.dynamic_sampling.per_org.tasks.gate import is_killswitch_engaged, is_rollout_enabled
+from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    SCHEDULER_BEAT_STATUS_METRIC,
+    TelemetryStatus,
+    emit_status,
+)
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
-
-KILLSWITCH_OPTION = "dynamic-sampling.per_org.killswitch"
-ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
 
 
 @instrumented_task(
@@ -23,7 +23,9 @@ ROLLOUT_RATE_OPTION = "dynamic-sampling.per_org.rollout-rate"
 )
 @dynamic_sampling_task
 def schedule_per_org_calculations() -> None:
-    if options.get(KILLSWITCH_OPTION):
+    if is_killswitch_engaged():
+        emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.KILLSWITCHED)
         return
-    if options.get(ROLLOUT_RATE_OPTION) <= 0:
+    if not is_rollout_enabled():
+        emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.ROLLOUT_DISABLED)
         return

@@ -5,6 +5,7 @@ import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SchemaHintsSection} from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export const ExploreControlSection = styled('aside')<{expanded: boolean}>`
@@ -65,6 +66,12 @@ export const ExploreSchemaHintsSection = styled(SchemaHintsSection)`
 
 export const ExploreBodySearch = styled(Layout.Body)`
   flex-grow: 0;
+
+  position: sticky;
+  top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
+  z-index: ${p => p.theme.zIndex.header};
+  background-color: ${p => p.theme.tokens.background.primary};
+
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   padding-bottom: ${p => p.theme.space.xl};
 

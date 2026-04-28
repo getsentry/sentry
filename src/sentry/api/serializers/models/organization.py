@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict, cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -113,6 +113,12 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
         ("spike-projections", lambda opt: bool(opt.value)),
     ],
 }
+
+
+class ScmConfigBools(NamedTuple):
+    github_pr_bot: bool
+    github_nudge_invite: bool
+    gitlab_pr_bot: bool
 
 
 class _Status(TypedDict):
@@ -658,6 +664,62 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             return SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         return stopping_point
 
+    def _scm_config_bools(self, obj: Organization) -> ScmConfigBools:
+        """Derive the three SCM-toggle booleans for the org serializer response.
+
+        Under the org-option read path these come from OrganizationOption. Once
+        the `organizations:scm-config-oi-reads` flag is on, they are derived by
+        OR-ing the matching key across every active GitHub/GitLab
+        OrganizationIntegration config for the org.
+        """
+        if features.has("organizations:scm-config-oi-reads", obj):
+            from sentry.integrations.services.integration import integration_service
+
+            ois = integration_service.get_organization_integrations(
+                organization_id=obj.id,
+                providers=["github", "gitlab"],
+                status=ObjectStatus.ACTIVE,
+            )
+            if not ois:
+                return ScmConfigBools(
+                    github_pr_bot=False, github_nudge_invite=False, gitlab_pr_bot=False
+                )
+
+            provider_by_integration_id = {
+                i.id: i.provider
+                for i in integration_service.get_integrations(
+                    integration_ids=[oi.integration_id for oi in ois],
+                )
+            }
+
+            github_pr_bot = False
+            github_nudge_invite = False
+            gitlab_pr_bot = False
+            for oi in ois:
+                config = oi.config or {}
+                provider = provider_by_integration_id.get(oi.integration_id)
+                if provider == "github":
+                    github_pr_bot = github_pr_bot or bool(config.get("pr_comments", False))
+                    github_nudge_invite = github_nudge_invite or bool(
+                        config.get("nudge_invite", False)
+                    )
+                elif provider == "gitlab":
+                    gitlab_pr_bot = gitlab_pr_bot or bool(config.get("pr_comments", False))
+
+            return ScmConfigBools(
+                github_pr_bot=github_pr_bot,
+                github_nudge_invite=github_nudge_invite,
+                gitlab_pr_bot=gitlab_pr_bot,
+            )
+
+        return ScmConfigBools(
+            github_pr_bot=bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
+            github_nudge_invite=bool(
+                obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
+            ),
+            gitlab_pr_bot=bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
+        )
+
     def serialize(  # type: ignore[override]
         self,
         obj: Organization,
@@ -700,6 +762,8 @@ class OrganizationSerializer(OrganizationSummarySerializer):
         coding_agent_integration_id = obj.get_option(
             "sentry:seer_default_coding_agent_integration_id", None
         )
+
+        scm_config = self._scm_config_bools(obj)
 
         context: OrganizationSerializerResponse = {
             **base,
@@ -756,11 +820,9 @@ class OrganizationSerializer(OrganizationSummarySerializer):
             "hideAiFeatures": bool(
                 obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
             ),
-            "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)),
-            "githubNudgeInvite": bool(
-                obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
-            ),
-            "gitlabPRBot": bool(obj.get_option("sentry:gitlab_pr_bot", GITLAB_COMMENT_BOT_DEFAULT)),
+            "githubPRBot": scm_config.github_pr_bot,
+            "githubNudgeInvite": scm_config.github_nudge_invite,
+            "gitlabPRBot": scm_config.gitlab_pr_bot,
             "genAIConsent": bool(
                 obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
             ),

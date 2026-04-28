@@ -13,6 +13,8 @@ interface Action {
   };
   /** Optional keywords to improve searchability */
   keywords?: string[];
+  /** Max results shown before a "See all" expansion item appears */
+  limit?: number;
 }
 
 export type CMDKQueryOptions = Omit<
@@ -33,7 +35,7 @@ export function cmdkQueryOptions(
   return queryOptions({...options, meta: {cmdk: true}}) as CMDKQueryOptions;
 }
 
-export interface CommandPaletteActionLink extends Action {
+interface CommandPaletteActionLink extends Action {
   /** Navigate to a route when selected */
   to: LocationDescriptor;
 }
