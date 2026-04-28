@@ -87,6 +87,7 @@ export function RevisionListItem({
   const isAnyLoading = isSnapshotLoading || isBaseLoading;
   const isBaseError =
     !baseSnapshotOverride && baseRevisionId !== null && isBaseFetchError;
+  const isError = (!snapshotOverride && isSnapshotError) || isBaseError;
 
   const userForAvatar = createdBy
     ? ({
@@ -133,30 +134,54 @@ export function RevisionListItem({
             </Flex>
           </Flex>
 
-          {isAnyLoading ? (
-            <LoadingIndicator />
-          ) : (!snapshotOverride && isSnapshotError) || isBaseError ? (
-            <Text size="sm" variant="muted">
-              {t('Failed to load revision preview.')}
-            </Text>
-          ) : snapshot && baseRevisionId === null ? (
-            <Text size="sm" variant="muted">
-              {t('This is the oldest revision — no previous state to compare against.')}
-            </Text>
-          ) : snapshot ? (
-            <Flex direction="column" gap="xl">
-              <FilterDiffSection
-                base={baseSnapshot ?? EMPTY_SNAPSHOT}
-                snapshot={snapshot}
-              />
-              <WidgetDiffSection
-                widgetChanges={diffWidgets(baseSnapshot ?? EMPTY_SNAPSHOT, snapshot)}
-              />
-            </Flex>
-          ) : null}
+          <RevisionDiffBody
+            isAnyLoading={isAnyLoading}
+            isError={isError}
+            snapshot={snapshot}
+            baseRevisionId={baseRevisionId}
+            baseSnapshot={baseSnapshot}
+          />
         </Flex>
       </Flex>
     </RevisionItem>
+  );
+}
+
+function RevisionDiffBody({
+  isAnyLoading,
+  isError,
+  snapshot,
+  baseRevisionId,
+  baseSnapshot,
+}: {
+  baseRevisionId: string | null;
+  baseSnapshot: DashboardDetails | undefined;
+  isAnyLoading: boolean;
+  isError: boolean;
+  snapshot: DashboardDetails | undefined;
+}) {
+  if (isAnyLoading) return <LoadingIndicator />;
+  if (isError) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('Failed to load revision preview.')}
+      </Text>
+    );
+  }
+  if (!snapshot) return null;
+  if (baseRevisionId === null) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('This is the oldest revision — no previous state to compare against.')}
+      </Text>
+    );
+  }
+  const base = baseSnapshot ?? EMPTY_SNAPSHOT;
+  return (
+    <Flex direction="column" gap="xl">
+      <FilterDiffSection base={base} snapshot={snapshot} />
+      <WidgetDiffSection widgetChanges={diffWidgets(base, snapshot)} />
+    </Flex>
   );
 }
 
