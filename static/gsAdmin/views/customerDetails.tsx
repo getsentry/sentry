@@ -880,6 +880,7 @@ export function CustomerDetails() {
             confirmModalOpts: {
               priority: 'danger',
               confirmText: 'Migrate',
+              showAuditFields: false,
               renderModalSpecificContent: deps => (
                 <MigrateLegacySeerAction
                   orgId={orgId}
