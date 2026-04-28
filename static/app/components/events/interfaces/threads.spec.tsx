@@ -1328,10 +1328,11 @@ describe('Threads', () => {
         // Raw crash report content should be displayed
         await screen.findByText('crash report content');
 
-        // Download button should have correct URL
+        // Download button should have correct URL, including the active
+        // (crashed) thread id so the report is sorted with that thread first.
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&download=1`
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&thread_id=0&download=1`
         );
 
         // Click on minified option
@@ -1343,7 +1344,7 @@ describe('Threads', () => {
         // Download button should nonw have minified=true
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&download=1`
+          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=0&download=1`
         );
       });
     });

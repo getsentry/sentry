@@ -17,9 +17,17 @@ interface Props {
   type: 'original' | 'minified';
   values: ExceptionType['values'];
   platform?: PlatformKey;
+  threadId?: number;
 }
 
-export function RawContent({eventId, projectSlug, type, platform, values}: Props) {
+export function RawContent({
+  eventId,
+  projectSlug,
+  type,
+  platform,
+  values,
+  threadId,
+}: Props) {
   const organization = useOrganization();
 
   const isNative =
@@ -49,7 +57,10 @@ export function RawContent({eventId, projectSlug, type, platform, values}: Props
         }
       ),
       {
-        query: {minified: String(type === 'minified')},
+        query: {
+          minified: String(type === 'minified'),
+          ...(threadId !== undefined && {thread_id: String(threadId)}),
+        },
         headers: {Accept: '*/*; charset=utf-8'},
       },
     ],
