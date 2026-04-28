@@ -36,7 +36,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {MemberTeamFields} from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import {SentryAppRuleModal} from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
+import type {
+  SchemaFormConfig,
+  SentryAppExternalFormAlertRuleSubmitPayload,
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 interface FieldProps {
   data: Props['data'];
@@ -627,7 +630,7 @@ export function RuleNode({
    * @param formData Form data
    */
   const updateParentFromSentryAppRule = useCallback(
-    (formData: Record<string, unknown>): void => {
+    (formData: SentryAppExternalFormAlertRuleSubmitPayload): void => {
       for (const [name, value] of Object.entries(formData)) {
         onPropertyChange(index, name, value as string);
       }

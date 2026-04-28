@@ -269,7 +269,6 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Project'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Project'}), 'p');
 
     expect(await screen.findByText('project A')).toBeInTheDocument();

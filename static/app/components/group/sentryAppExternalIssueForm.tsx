@@ -51,9 +51,7 @@ export function SentryAppExternalIssueForm({
       element="issue-link"
       extraFields={{groupId: group.id}}
       extraRequestBody={{projectId: group.project.id}}
-      onSubmitSuccess={response => {
-        // element="issue-link" always returns a PlatformExternalIssue
-        const issue = response as PlatformExternalIssue;
+      onSubmitSuccess={issue => {
         onCreateExternalIssue(issue);
         onSubmitSuccess(issue);
       }}

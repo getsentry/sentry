@@ -50,30 +50,28 @@ export type SchemaFormConfig = {
   required_fields?: FieldFromSchema[];
 };
 
-type SentryAppSetting = {
+export type SentryAppExternalFormSetting = {
   name: string;
   value: unknown;
   label?: string;
 };
 
-type ResetValues = {
-  settings?: SentryAppSetting[];
+export type SentryAppExternalFormResetValues = {
+  settings?: SentryAppExternalFormSetting[];
 };
 
 type FieldGroups = Omit<SchemaFormConfig, 'uri' | 'description'>;
 
-type AlertRuleSubmitPayload = {
+export type SentryAppExternalFormAlertRuleSubmitPayload = {
   hasSchemaFormConfig: true;
   sentryAppInstallationUuid: string;
-  settings: SentryAppSetting[];
+  settings: SentryAppExternalFormSetting[];
 };
 
-type Props = {
+type BaseProps = {
   action: 'create' | 'link';
   appName: string;
   config: SchemaFormConfig;
-  element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: (response: PlatformExternalIssue | AlertRuleSubmitPayload) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request
@@ -90,8 +88,20 @@ type Props = {
   /**
    * Object containing reset values for fields if previously entered, in case this form is unmounted
    */
-  resetValues?: ResetValues;
+  resetValues?: SentryAppExternalFormResetValues;
 };
+
+type IssueLinkProps = BaseProps & {
+  element: 'issue-link';
+  onSubmitSuccess: (response: PlatformExternalIssue) => void;
+};
+
+type AlertRuleActionProps = BaseProps & {
+  element: 'alert-rule-action';
+  onSubmitSuccess: (response: SentryAppExternalFormAlertRuleSubmitPayload) => void;
+};
+
+type Props = IssueLinkProps | AlertRuleActionProps;
 
 function cloneSchemaFields(
   fields?: FieldFromSchema[],
@@ -195,7 +205,7 @@ function choiceLabelToString(label: Choice[1]) {
 
 function mergeFieldChoices(
   field: FieldFromSchema,
-  resetValues: ResetValues | undefined
+  resetValues: SentryAppExternalFormResetValues | undefined
 ): Array<[string, string]> {
   const choices = normalizeChoices(field.choices);
   const savedSetting = resetValues?.settings?.find(s => s.name === field.name);
@@ -220,7 +230,7 @@ function toSelectValues(
 function getBaseFieldDefaultValue(
   field: FieldFromSchema,
   externalDefaultValues: Record<string, unknown>,
-  resetValues: ResetValues | undefined
+  resetValues: SentryAppExternalFormResetValues | undefined
 ) {
   if (Object.prototype.hasOwnProperty.call(externalDefaultValues, field.name)) {
     return externalDefaultValues[field.name];
@@ -240,7 +250,7 @@ function getEffectiveFieldValue({
   externalDefaultValues: Record<string, unknown>;
   fieldGroups: FieldGroups;
   fieldName: string;
-  resetValues?: ResetValues;
+  resetValues?: SentryAppExternalFormResetValues;
 }) {
   if (Object.prototype.hasOwnProperty.call(currentFormValues, fieldName)) {
     return currentFormValues[fieldName];
@@ -254,18 +264,17 @@ function getEffectiveFieldValue({
   return getBaseFieldDefaultValue(field, externalDefaultValues, resetValues);
 }
 
-export function SentryAppExternalForm({
-  action,
-  appName,
-  config,
-  element,
-  onSubmitSuccess,
-  sentryAppInstallationUuid,
-  extraFields,
-  extraRequestBody,
-  getFieldDefault,
-  resetValues,
-}: Props) {
+export function SentryAppExternalForm(props: Props) {
+  const {
+    action,
+    appName,
+    config,
+    sentryAppInstallationUuid,
+    extraFields,
+    extraRequestBody,
+    getFieldDefault,
+    resetValues,
+  } = props;
   const api = useApi({persistInFlight: true});
   const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
 
@@ -275,9 +284,9 @@ export function SentryAppExternalForm({
   const normalizedExtraRequestBody = useStableSerializedValue<Record<string, unknown>>(
     extraRequestBody ?? {}
   );
-  const normalizedResetValues = useStableSerializedValue<ResetValues | undefined>(
-    resetValues
-  );
+  const normalizedResetValues = useStableSerializedValue<
+    SentryAppExternalFormResetValues | undefined
+  >(resetValues);
   const resolvedFieldGroups = useStableSerializedValue<FieldGroups>({
     required_fields: cloneSchemaFields(config.required_fields, getFieldDefault),
     optional_fields: cloneSchemaFields(config.optional_fields, getFieldDefault),
@@ -360,7 +369,7 @@ export function SentryAppExternalForm({
       getAllSchemaFields(nextFieldGroups).flatMap(field => field.depends_on ?? [])
     );
     const nextInitialValues =
-      element === 'alert-rule-action'
+      props.element === 'alert-rule-action'
         ? Object.fromEntries(
             (normalizedResetValues?.settings ?? []).map(setting => [
               setting.name,
@@ -447,7 +456,13 @@ export function SentryAppExternalForm({
     return () => {
       isCancelled = true;
     };
-  }, [action, element, fetchFieldChoices, normalizedResetValues, resolvedFieldGroups]);
+  }, [
+    action,
+    fetchFieldChoices,
+    normalizedResetValues,
+    props.element,
+    resolvedFieldGroups,
+  ]);
 
   const triggerFieldNames = useMemo(
     () =>
@@ -706,9 +721,6 @@ export function SentryAppExternalForm({
           uri: config.uri,
         },
       }),
-    onSuccess: response => {
-      onSubmitSuccess(response);
-    },
     onError: error => {
       if (!(error instanceof RequestError)) {
         addErrorMessage(t('Unable to %s %s issue.', action, appName));
@@ -718,10 +730,10 @@ export function SentryAppExternalForm({
 
   const handleSubmit = useCallback(
     async (values: Record<string, unknown>) => {
-      if (element === 'alert-rule-action') {
+      if (props.element === 'alert-rule-action') {
         const settings = Object.entries(values).map(([name, value]) => {
           const field = findSchemaField(fieldGroups, name);
-          const savedSetting: SentryAppSetting = {name, value};
+          const savedSetting: SentryAppExternalFormSetting = {name, value};
 
           if (field?.uri && !Array.isArray(value)) {
             const selectedChoice = choicesByField[name]?.find(
@@ -736,7 +748,7 @@ export function SentryAppExternalForm({
           return savedSetting;
         });
 
-        onSubmitSuccess({
+        props.onSubmitSuccess({
           hasSchemaFormConfig: true,
           sentryAppInstallationUuid,
           settings,
@@ -744,16 +756,10 @@ export function SentryAppExternalForm({
         return;
       }
 
-      return createExternalIssue(values);
+      const issue = await createExternalIssue(values);
+      props.onSubmitSuccess(issue);
     },
-    [
-      choicesByField,
-      createExternalIssue,
-      element,
-      fieldGroups,
-      onSubmitSuccess,
-      sentryAppInstallationUuid,
-    ]
+    [choicesByField, createExternalIssue, fieldGroups, props, sentryAppInstallationUuid]
   );
 
   const formKey = useMemo(
