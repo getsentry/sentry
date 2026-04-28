@@ -92,15 +92,25 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             raise ResourceDoesNotExist
 
         if query:
-            # By default, we want to exact match the release or dist.
-            query_q = Q(releaseartifactbundle__release_name=query) | Q(
-                releaseartifactbundle__dist_name=query
+            org_id = project.organization_id
+            # Include organization_id in each Q so the composite indexes on
+            # releaseartifactbundle and debugidartifactbundle (which both lead
+            # with organization_id) can be used.
+            query_q = Q(
+                releaseartifactbundle__organization_id=org_id,
+                releaseartifactbundle__release_name=query,
+            ) | Q(
+                releaseartifactbundle__organization_id=org_id,
+                releaseartifactbundle__dist_name=query,
             )
 
             # In case the query contains an actual UUID, we will also try to match the bundle id or debug id. Checking
             # for the type before making the query saves us one join when not needed.
             if self.is_valid_uuid(query):
-                query_q |= Q(bundle_id=query) | Q(debugidartifactbundle__debug_id=query)
+                query_q |= Q(bundle_id=query) | Q(
+                    debugidartifactbundle__organization_id=org_id,
+                    debugidartifactbundle__debug_id=query,
+                )
 
             # At the end we apply the chain of OR filters to the query. In case both the release and debug ids tables
             # are used, we will make two left outer joins.
