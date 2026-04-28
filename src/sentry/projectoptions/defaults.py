@@ -228,5 +228,8 @@ register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", defa
 # Boolean to enable/disable snapshot PR comments for this project.
 register(key="sentry:preprod_snapshot_pr_comments_enabled", default=False)
 
+# When True, only post snapshot PR comments if the comparison reports any diffs.
+register(key="sentry:preprod_snapshot_pr_comments_only_if_diff", default=False)
+
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

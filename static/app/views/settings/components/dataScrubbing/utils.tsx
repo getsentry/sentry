@@ -83,7 +83,7 @@ function getDatasetLabel(dataset: AllowedDataScrubbingDatasets) {
   const labelMap: Record<AllowedDataScrubbingDatasets, string> = {
     [AllowedDataScrubbingDatasets.DEFAULT]: t('Events'),
     [AllowedDataScrubbingDatasets.LOGS]: t('Logs'),
-    [AllowedDataScrubbingDatasets.METRICS]: t('Metrics'),
+    [AllowedDataScrubbingDatasets.METRICS]: t('Application Metrics'),
   };
   return labelMap[dataset];
 }
@@ -95,7 +95,7 @@ export function getDatasetLabelLong(dataset: AllowedDataScrubbingDatasets) {
   const labelMap: Record<AllowedDataScrubbingDatasets, string> = {
     [AllowedDataScrubbingDatasets.DEFAULT]: t('Errors, Transactions, Attachments'),
     [AllowedDataScrubbingDatasets.LOGS]: t('Logs'),
-    [AllowedDataScrubbingDatasets.METRICS]: t('Metrics'),
+    [AllowedDataScrubbingDatasets.METRICS]: t('Application Metrics'),
   };
   return labelMap[dataset];
 }

@@ -1,7 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence} from 'framer-motion';
 
+import {Backdrop} from '@sentry/scraps/backdrop';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
@@ -83,16 +84,7 @@ export function AppSizeInsightsSidebar({
   return (
     <Fragment>
       <AnimatePresence>
-        {isOpen && (
-          <Backdrop
-            key="backdrop"
-            initial={{opacity: 0}}
-            animate={{opacity: 1}}
-            exit={{opacity: 0}}
-            transition={{duration: 0.1}}
-            onClick={onClose}
-          />
-        )}
+        {isOpen && <Backdrop key="backdrop" zIndex="drawer" onClick={onClose} />}
       </AnimatePresence>
       {isOpen && (
         <SlideOverPanel
@@ -157,17 +149,6 @@ export function AppSizeInsightsSidebar({
     </Fragment>
   );
 }
-
-const Backdrop = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  pointer-events: auto;
-`;
 
 const Header = styled(Flex)`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
