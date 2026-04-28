@@ -28,7 +28,8 @@ type State = {
 
 /**
  * Rendered as part of an openAdminConfirmModal call.
- * Runs the MigrateLegacySeer job logic for a single organization.
+ * Posts to the CustomerMigrateLegacySeerAdminEndpoint to migrate a single
+ * organization off legacy Seer reserved budgets.
  */
 class MigrateLegacySeerAction extends Component<Props, State> {
   state: State = {
@@ -65,7 +66,11 @@ class MigrateLegacySeerAction extends Component<Props, State> {
     const periodEnd = moment(subscription.onDemandPeriodEnd).format('ll');
 
     const timingOptions: Array<[boolean, string, string]> = [
-      [true, 'Immediately', 'Remove legacy Seer from the subscription right now.'],
+      [
+        true,
+        'Immediately',
+        `Remove legacy Seer from the subscription right now. The current billing period end (${periodEnd}) is unchanged — the org will simply be invoiced at that date without the legacy Seer line item.`,
+      ],
       [
         false,
         `At period end (${periodEnd})`,
@@ -76,8 +81,7 @@ class MigrateLegacySeerAction extends Component<Props, State> {
     return (
       <Fragment>
         <p>
-          This will remove legacy Seer reserved budgets and optionally schedule a 14-day
-          Seer seat trial starting at the next billing period.
+          Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan.
         </p>
 
         {timingOptions.map(([value, label, help]) => (
@@ -100,7 +104,7 @@ class MigrateLegacySeerAction extends Component<Props, State> {
           </div>
         ))}
 
-        <label style={{marginBottom: 10, marginTop: 10, display: 'block'}}>
+        <label style={{marginBottom: 4, marginTop: 10, display: 'block'}}>
           <input
             type="checkbox"
             name="addSeerTrial"
@@ -108,8 +112,24 @@ class MigrateLegacySeerAction extends Component<Props, State> {
             style={{marginRight: 5}}
             onChange={e => this.setState({addSeerTrial: e.target.checked})}
           />
-          <strong>Add 14-day Seer seat trial</strong> at the next billing period.
+          <strong>Add 14-day Seer seat trial</strong>{' '}
+          {applyImmediately
+            ? 'starting immediately'
+            : `starting at the next billing period (${periodEnd})`}
+          .
         </label>
+        <p style={{marginTop: 20}}>
+          After migration, users opt in to Seer from their organization settings. Share
+          this link with the customer:{' '}
+          <a
+            href="https://docs.sentry.io/product/ai-in-sentry/seer/#getting-started-with-seer"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Getting Started with Seer
+          </a>
+          .
+        </p>
       </Fragment>
     );
   }

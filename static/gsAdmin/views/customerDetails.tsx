@@ -872,7 +872,7 @@ export function CustomerDetails() {
           {
             key: 'migrateLegacySeer',
             name: 'Migrate From Legacy Seer',
-            help: 'Run the MigrateLegacySeer job for this organization: stages pending changes to remove legacy Seer, applies prorated credit for eligible annual plans, and schedules a 14-day Seer trial.',
+            help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
             disabled: ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
               subscription.planTier as PlanTier
             ),
