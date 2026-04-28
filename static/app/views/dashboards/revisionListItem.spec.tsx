@@ -126,6 +126,21 @@ describe('RevisionListItem', () => {
     expect(await screen.findByText('alice@example.com')).toBeInTheDocument();
   });
 
+  it('renders the avatar image when avatarUrl is provided', async () => {
+    MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
+    MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
+
+    const avatarUrl = 'https://example.com/avatar.jpg';
+    renderItem({
+      createdBy: {id: '42', name: 'Alice', email: 'alice@example.com', avatarUrl},
+    });
+
+    expect(await screen.findByRole('img', {name: 'Alice'})).toHaveAttribute(
+      'src',
+      expect.stringContaining(avatarUrl)
+    );
+  });
+
   it('shows "Unknown" when createdBy is null', async () => {
     MockApiClient.addMockResponse({url: SNAPSHOT_URL, body: makeSnapshot()});
     MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
