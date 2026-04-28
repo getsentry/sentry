@@ -34,6 +34,7 @@ import {
   isExternalLocation,
 } from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   IconArrow,
@@ -512,7 +513,7 @@ export function CommandPalette({
                       }
                     },
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === 'Tab' && seerExplorerEnabled) {
+                      if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
                         e.preventDefault();
                         closeModal?.();
                         openSeerExplorer({
@@ -1131,6 +1132,16 @@ function CommandPaletteNoResults() {
               {t('May we suggest rephrasing your query?')}
             </Text>
           </Stack>
+        </Container>
+        <Container paddingTop="xl">
+          <FeedbackButton
+            priority="primary"
+            feedbackOptions={{
+              tags: {
+                ['feedback.source']: 'command_palette',
+              },
+            }}
+          />
         </Container>
       </Stack>
     </Flex>
