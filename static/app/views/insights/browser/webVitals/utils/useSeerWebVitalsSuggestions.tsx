@@ -1,11 +1,7 @@
-import {useQueries} from '@tanstack/react-query';
+import {queryOptions, useQueries} from '@tanstack/react-query';
 
-import {
-  makeAutofixQueryKey,
-  type AutofixResponse,
-} from 'sentry/components/events/autofix/useAutofix';
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {IssueType} from 'sentry/types/group';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
@@ -28,21 +24,18 @@ export function useSeerWebVitalsSuggestions({
   });
 
   const autofixQueries = useQueries({
-    queries: (issues ?? []).map(issue => {
-      const queryKey = makeAutofixQueryKey(organization.slug, issue.id);
-      return {
-        queryKey,
-        queryFn: fetchDataQuery<AutofixResponse>,
-        staleTime: Infinity,
+    queries: (issues ?? []).map(issue =>
+      queryOptions({
+        ...autofixApiOptions(organization.slug, issue.id),
         enabled: !isLoading && enabled && hasSeerWebVitalsSuggestions,
         retry: false,
-      };
-    }),
+      })
+    ),
   });
 
   const isLoadingAutofix = autofixQueries.some(query => query.isPending);
   const autofix = autofixQueries
-    .map(data => data.data?.[0]?.autofix ?? null)
+    .map(data => data.data?.autofix ?? null)
     .filter(data => data !== null);
 
   return {

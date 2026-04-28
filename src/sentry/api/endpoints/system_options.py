@@ -16,9 +16,11 @@ from sentry.utils.email import is_smtp_enabled
 
 logger = logging.getLogger("sentry")
 
-SYSTEM_OPTIONS_ALLOWLIST = (
-    # Used during setup before the superadmin role with the options.admin permission is authed
-    "system.admin-email"
+SYSTEM_OPTIONS_ALLOWLIST = frozenset(
+    [
+        # Used during setup before the superadmin role with the options.admin permission is authed
+        "system.admin-email"
+    ]
 )
 
 
@@ -79,8 +81,10 @@ class SystemOptionsEndpoint(Endpoint):
         if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
             return True
         if not request.access.has_permission("options.admin"):
-            # We ignore options.admin permission is all keys in the update match the allowlist.
-            return all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()])
+            # We ignore options.admin permission if all keys in the update match the allowlist.
+            return bool(request.data) and all(
+                [k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]
+            )
 
         return True
 

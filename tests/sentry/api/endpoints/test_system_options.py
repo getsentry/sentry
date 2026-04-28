@@ -99,6 +99,18 @@ class SystemOptionsTest(APITestCase):
         assert response.status_code == 200
         assert options.get("system.admin-email") == "new_admin@example.com"
 
+    def test_empty_payload_without_permission(self) -> None:
+        with override_settings(SENTRY_SELF_HOSTED=False):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {})
+            assert response.status_code == 403
+
+    def test_disallowed_substring_key_without_permission(self) -> None:
+        with override_settings(SENTRY_SELF_HOSTED=False):
+            self.login_as(user=self.user, superuser=True)
+            response = self.client.put(self.url, {"system": "x"})
+            assert response.status_code == 403
+
     def test_put_simple(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
