@@ -28,6 +28,41 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
+_CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+
+class CodeModeField(serializers.Field):
+    """Accepts 'off'|'on'|'only' strings, or booleans for backwards compat.
+
+    DRF's CharField rejects raw booleans before the field-level validator
+    runs, so we handle coercion in to_internal_value instead.
+    """
+
+    def to_internal_value(self, data: object) -> str | None:
+        if data is None:
+            return None
+        if data is True:
+            return "on"
+        if data is False:
+            return "off"
+        if isinstance(data, str):
+            lowered = data.lower()
+            if lowered in ("true",):
+                return "on"
+            if lowered in ("false",):
+                return "off"
+            if lowered in _CODE_MODE_VALUES:
+                return lowered
+        raise serializers.ValidationError(
+            f"Invalid value '{data}'. Must be 'off', 'on', 'only', or a boolean."
+        )
+
+    def to_representation(self, value: object) -> str | None:
+        if value is None:
+            return None
+        return str(value)
+
+
 class SeerExplorerChatSerializer(serializers.Serializer):
     query = serializers.CharField(
         required=True,
@@ -56,26 +91,12 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
-    override_code_mode_enable = serializers.CharField(
+    override_code_mode_enable = CodeModeField(
         required=False,
         default=None,
         allow_null=True,
-        allow_blank=False,
         help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
     )
-
-    def validate_override_code_mode_enable(self, value: str | bool | None) -> str | None:
-        if value is None:
-            return None
-        if value is True or value == "true":
-            return "on"
-        if value is False or value == "false":
-            return "off"
-        if isinstance(value, str) and value in ("off", "on", "only"):
-            return value
-        raise serializers.ValidationError(
-            f"Invalid value '{value}'. Must be 'off', 'on', 'only', or a boolean."
-        )
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
