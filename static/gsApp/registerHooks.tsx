@@ -109,9 +109,13 @@ const DisabledDashboardPage = lazy(
 
 const EnhancedOrganizationStats = lazy(() =>
   import('getsentry/hooks/spendVisibility/enhancedIndex').then(module => ({
-    default: module.ComponentWrapper,
+    default: module.EnhancedOrganizationStats,
   }))
 );
+
+function LazyEnhancedOrganizationStats(props: OrganizationStatsProps) {
+  return <LazyLoad LazyComponent={EnhancedOrganizationStats} {...props} />;
+}
 
 const GETSENTRY_HOOKS: Partial<Hooks> = {
   /**
@@ -241,9 +245,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:dashboards-header': () => DashboardBanner,
   'component:org-stats-banner': () => OrgStatsBanner,
   'component:org-stats-profiling-banner': () => OrgStatsProfilingBanner,
-  'component:enhanced-org-stats': () => (p: OrganizationStatsProps) => (
-    <LazyLoad LazyComponent={EnhancedOrganizationStats} {...p} />
-  ),
+  'component:enhanced-org-stats': () => LazyEnhancedOrganizationStats,
   'component:first-party-integration-alert': () => FirstPartyIntegrationAlertHook,
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
