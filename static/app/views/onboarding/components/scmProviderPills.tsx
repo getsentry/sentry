@@ -36,14 +36,14 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
     .join(' ');
 
   return (
-    <Flex justify="center">
+    <Flex justify="start">
       <Grid
         columns={{
           xs: columnsXs,
           md: columnsMd,
         }}
         justify="center"
-        gap="lg"
+        gap="md"
       >
         {primaryProviders.map(provider => (
           <IntegrationContext
