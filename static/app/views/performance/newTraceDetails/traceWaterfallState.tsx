@@ -112,7 +112,7 @@ function TraceEmpty() {
 
   return (
     <LoadingContainer animate>
-      <Text>{message}</Text>
+      <Text as="div">{message}</Text>
     </LoadingContainer>
   );
 }
