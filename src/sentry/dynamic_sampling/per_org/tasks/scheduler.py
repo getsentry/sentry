@@ -20,7 +20,6 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     instrumented,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -50,7 +49,7 @@ def _next_bucket_index() -> int:
     silo_mode=SiloMode.CELL,
 )
 @instrumented
-def schedule_per_org_calculations() -> None:
+def schedule_per_org_calculations() -> TelemetryStatus | None:
     if is_killswitch_engaged():
         return TelemetryStatus.KILLSWITCHED
     if not is_rollout_enabled():
@@ -112,7 +111,7 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
         amount=skipped,
         extra_tags=bucket_tag,
     )
-    return TelemetryStatus.COMPLETED
+    return
 
 
 @instrumented_task(
@@ -121,11 +120,6 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
     silo_mode=SiloMode.CELL,
 )
-@dynamic_sampling_task
-def run_calculations_per_org_task(org_id: OrganizationId) -> None:
-    run_calculations_per_org(org_id)
-
-
 @instrumented
-def run_calculations_per_org(org_id: OrganizationId) -> None:
-    pass
+def run_calculations_per_org_task(org_id: OrganizationId) -> None:
+    return
