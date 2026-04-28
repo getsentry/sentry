@@ -45,8 +45,8 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
     return undefined;
   }, [drawerSupergroupId, lookup]);
 
-  const {data: fetchedSupergroup, isError} = useQuery(
-    apiOptions.as<SupergroupDetail>()(
+  const {data: fetchedSupergroupResponse, isError} = useQuery(
+    apiOptions.as<{data: SupergroupDetail}>()(
       '/organizations/$organizationIdOrSlug/seer/supergroups/$supergroupId/',
       {
         path:
@@ -61,6 +61,7 @@ export function useSupergroupDrawer({lookup, memberList}: UseSupergroupDrawerOpt
     )
   );
 
+  const fetchedSupergroup = fetchedSupergroupResponse?.data;
   const supergroup = lookupSupergroup ?? fetchedSupergroup;
 
   const stripDrawerParam = useEffectEvent(() => {
