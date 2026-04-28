@@ -340,11 +340,11 @@ function Chart({
   );
 }
 
-const ChartWrapper = styled('div')`
+export const ChartWrapper = styled('div')`
   position: relative;
 `;
 
-const ChartList = styled('div')`
+export const ChartList = styled('div')`
   position: relative;
   display: grid;
   row-gap: ${p => p.theme.space.md};
