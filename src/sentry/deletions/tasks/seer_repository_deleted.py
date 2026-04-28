@@ -17,23 +17,28 @@ _RETRY_DELAY_S = 60
 
 
 @instrumented_task(
-    name="sentry.deletions.seer_notify_organization_deleted",
+    name="sentry.deletions.seer_notify_repository_deleted",
     namespace=deletion_tasks,
-    alias="sentry.deletions.overwatch_notify_organization_deleted",
     retry=Retry(times=_MAX_RETRIES, delay=_RETRY_DELAY_S, on=(HTTPError,)),
     silo_mode=SiloMode.CELL,
 )
-def notify_seer_organization_deleted(organization_id: int, **kwargs: Any) -> None:
+def notify_seer_repository_deleted(organization_id: int, repository_id: int, **kwargs: Any) -> None:
     """
-    Notify Seer that an organization was deleted from this Sentry region (code review offboard).
+    Notify Seer that a repository was deleted from this Sentry region (code review offboard).
     """
     viewer_context = SeerViewerContext(organization_id=organization_id)
     make_seer_request(
-        path=SeerEndpoint.ORGANIZATION_OFFBOARD.value,
-        payload={"organization_id": organization_id},
+        path=SeerEndpoint.REPOSITORY_OFFBOARD.value,
+        payload={
+            "organization_id": organization_id,
+            "repository_id": repository_id,
+        },
         viewer_context=viewer_context,
     )
     logger.info(
-        "seer.organization_deleted.success",
-        extra={"organization_id": organization_id},
+        "seer.repository_deleted.success",
+        extra={
+            "organization_id": organization_id,
+            "repository_id": repository_id,
+        },
     )

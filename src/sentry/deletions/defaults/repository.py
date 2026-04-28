@@ -1,5 +1,8 @@
+from django.db import router, transaction
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.deletions.tasks.seer_repository_deleted import notify_seer_repository_deleted
 from sentry.models.repository import Repository
 from sentry.signals import pending_delete
 
@@ -32,5 +35,11 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
         # TODO: child_relations should also send pending_delete so we
         # don't have to do this here.
         pending_delete.send(sender=type(instance), instance=instance, actor=self.get_actor())
+
+        transaction.on_commit(
+            lambda oid=instance.organization_id,
+            rid=instance.id: notify_seer_repository_deleted.delay(oid, rid),
+            using=router.db_for_write(Repository),
+        )
 
         return super().delete_instance(instance)
