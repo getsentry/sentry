@@ -366,21 +366,11 @@ class OrganizationSummarySerializer(Serializer):
         if include_feature_flags and item_list:
             names = _api_exposed_org_feature_names()
             with sentry_sdk.start_span(op="features.check", name="check batch features"):
-                if len(item_list) == 1:
-                    org = item_list[0]
+                # One batch_has per org (all feature names per call) so the actor is
+                # applied and entity handler work stays O(orgs), not O(feature names).
+                for org in item_list:
                     r = features.batch_has(names, actor=user, organization=org)
                     by_org[org.id] = r.get(f"organization:{org.id}") if r else None
-                else:
-                    merged: dict[int, dict[str, bool | None]] = {o.id: {} for o in item_list}
-                    for fn in names:
-                        batch = features.batch_has_for_organizations(fn, item_list)
-                        if not batch:
-                            continue
-                        for key, active in batch.items():
-                            oid = int(key.split(":", 1)[1])
-                            if oid in merged:
-                                merged[oid][fn] = active
-                    by_org = {oid: (m or None) for oid, m in merged.items()}
 
         data: MutableMapping[Organization, MutableMapping[str, Any]] = {}
         for item in item_list:
