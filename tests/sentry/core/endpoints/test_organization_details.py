@@ -970,6 +970,42 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert oi.config.get("some_other_setting") == "kept"
         assert oi.config.get("pr_comments") is True
 
+    def test_scm_serializer_derived_from_oi_config_when_flag_on(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="gh-derived",
+            oi_params={"config": {"pr_comments": True, "nudge_invite": False}},
+        )
+        self.create_integration(
+            organization=self.organization,
+            provider="gitlab",
+            external_id="gl-derived",
+            oi_params={"config": {"pr_comments": False}},
+        )
+        # Legacy org options disagree with the OI config to prove we are
+        # reading from the OI path.
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_pr_bot", value=False
+        )
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_nudge_invite", value=True
+        )
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:gitlab_pr_bot", value=True
+        )
+
+        self.method = "get"
+        try:
+            with self.feature("organizations:scm-config-oi-reads"):
+                response = self.get_success_response(self.organization.slug)
+        finally:
+            self.method = "put"
+
+        assert response.data["githubPRBot"] is True
+        assert response.data["githubNudgeInvite"] is False
+        assert response.data["gitlabPRBot"] is False
+
     @responses.activate
     @patch(
         "sentry.integrations.github.client.GitHubBaseClient.get_repos",
