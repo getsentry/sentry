@@ -115,7 +115,7 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> TelemetryStatus |
         amount=skipped,
         extra_tags=bucket_tag,
     )
-    return
+    return None
 
 
 @instrumented_task(
