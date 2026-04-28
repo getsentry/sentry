@@ -10,11 +10,16 @@ import {
   CommandPaletteStateProvider,
   useCommandPaletteState,
 } from './commandPaletteStateContext';
+export interface CMDKResourceContext {
+  /** 'selected' when the user has drilled into this action, otherwise undefined. */
+  state: 'selected' | undefined;
+}
 
 interface DisplayProps {
   label: string;
   details?: string;
   icon?: React.ReactNode;
+  trailingItem?: React.ReactNode;
 }
 
 interface CMDKActionDataBase {
@@ -34,7 +39,7 @@ interface CMDKActionDataOnAction extends CMDKActionDataBase {
 
 interface CMDKActionDataResource extends CMDKActionDataBase {
   prompt?: string;
-  resource?: (query: string) => CMDKQueryOptions;
+  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
 }
 
 /**
@@ -65,6 +70,12 @@ export function CommandPaletteProvider({children}: {children: React.ReactNode}) 
 interface CMDKActionProps {
   display: DisplayProps;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+  /**
+   * Stable reserved key for this node. Use the "cmdk:supplementary:" prefix to
+   * guarantee the section always sorts last in search results regardless of score.
+   * Example: id="cmdk:supplementary:help"
+   */
+  id?: string;
   keywords?: string[];
   /**
    * Maximum number of results to show. For async resources the default is 4;
@@ -73,8 +84,54 @@ interface CMDKActionProps {
   limit?: number;
   onAction?: () => void;
   prompt?: string;
-  resource?: (query: string) => CMDKQueryOptions;
+  resource?: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
   to?: LocationDescriptor;
+}
+
+interface CMDKActionWithResourceProps {
+  nodeKey: string;
+  query: string;
+  resource: (query: string, context: CMDKResourceContext) => CMDKQueryOptions;
+  state: 'selected' | undefined;
+  children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
+}
+
+function CMDKActionWithResource({
+  nodeKey,
+  query,
+  state,
+  resource,
+  children,
+}: CMDKActionWithResourceProps) {
+  const resourceOptions = resource(query, {state});
+  const {data} = useQuery({
+    ...resourceOptions,
+    enabled: resourceOptions.enabled ?? true,
+  });
+
+  // Render-prop: call function with async data (existing behavior).
+  // Static children: render as-is. Resource results are auto-rendered alongside
+  // static children so they register in the collection as depth-1 nodes
+  // (no prefix injection in search results).
+  const resolvedChildren =
+    typeof children === 'function' ? (data ? children(data) : null) : (children ?? null);
+
+  const resolvedResourceNodes =
+    typeof children !== 'function' && data
+      ? data.map((item, i) => {
+          // CommandPaletteActionGroup has an `actions` prop that CMDKAction doesn't
+          // accept, so we skip groups here — they can't be auto-rendered as leaf nodes.
+          if ('actions' in item) return null;
+          return <CMDKAction key={i} {...item} />;
+        })
+      : null;
+
+  return (
+    <CMDKCollection.Context.Provider value={nodeKey}>
+      {resolvedChildren}
+      {resolvedResourceNodes}
+    </CMDKCollection.Context.Provider>
+  );
 }
 
 /**
@@ -87,6 +144,7 @@ export function CMDKAction({
   display,
   keywords,
   children,
+  id,
   to,
   onAction,
   prompt,
@@ -107,43 +165,30 @@ export function CMDKAction({
         : {display, keywords, ref, onAction, limit: effectiveLimit}
       : {display, keywords, ref, to, limit: effectiveLimit};
 
-  const key = CMDKCollection.useRegisterNode(nodeData);
-  const {query} = useCommandPaletteState();
-
-  const resourceOptions = resource
-    ? resource(query)
-    : {queryKey: [] as unknown[], queryFn: () => null, enabled: false};
-
-  const {data} = useQuery({
-    ...resourceOptions,
-    enabled: !!resource && (resourceOptions.enabled ?? true),
-  });
+  const key = CMDKCollection.useRegisterNode(nodeData, id);
+  const {query, action: navAction} = useCommandPaletteState();
+  const state = navAction?.value.key === key ? 'selected' : undefined;
 
   if (!children && !resource) {
     return null;
   }
 
-  // Render-prop: call function with async data (existing behavior).
-  // Static children: render as-is. Resource results are auto-rendered alongside
-  // static children so they register in the collection as depth-1 nodes
-  // (no prefix injection in search results).
-  const resolvedChildren =
-    typeof children === 'function' ? (data ? children(data) : null) : (children ?? null);
-
-  const resolvedResourceNodes =
-    typeof children !== 'function' && data
-      ? (data as CommandPaletteAction[]).map((item, i) => {
-          // CommandPaletteActionGroup has an `actions` prop that CMDKAction doesn't
-          // accept, so we skip groups here — they can't be auto-rendered as leaf nodes.
-          if ('actions' in item) return null;
-          return <CMDKAction key={i} {...item} />;
-        })
-      : null;
+  if (resource) {
+    return (
+      <CMDKActionWithResource
+        nodeKey={key}
+        query={query}
+        state={state}
+        resource={resource}
+      >
+        {children}
+      </CMDKActionWithResource>
+    );
+  }
 
   return (
     <CMDKCollection.Context.Provider value={key}>
-      {resolvedChildren}
-      {resolvedResourceNodes}
+      {typeof children === 'function' ? null : children}
     </CMDKCollection.Context.Provider>
   );
 }

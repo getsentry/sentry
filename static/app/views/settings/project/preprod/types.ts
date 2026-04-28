@@ -22,7 +22,7 @@ export const METRICS_ARTIFACT_TYPES = [
   'app_clip_artifact',
 ] as const;
 
-export const ALL_ARTIFACT_TYPES = ['all_artifacts', ...METRICS_ARTIFACT_TYPES] as const;
+const ALL_ARTIFACT_TYPES = ['all_artifacts', ...METRICS_ARTIFACT_TYPES] as const;
 
 export type ArtifactType = (typeof ALL_ARTIFACT_TYPES)[number];
 

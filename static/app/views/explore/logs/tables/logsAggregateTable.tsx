@@ -137,9 +137,7 @@ export function LogsAggregateTable({
           },
           renderBodyCell: (column, row) => {
             const value =
-              typeof row[column.key] === 'undefined'
-                ? null
-                : (row[column.key] as string | number);
+              row[column.key] === undefined ? null : (row[column.key] as string | number);
             const level = getLogSeverityLevel(
               typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
                 ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]
@@ -151,6 +149,7 @@ export function LogsAggregateTable({
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
+              caseSensitiveHighlighting: false,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

@@ -38,45 +38,48 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        <Layout.Header unified>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: t('Explore'),
-                },
-                {
-                  label: t('Traces'),
-                  to: makeTracesPathname({
-                    organization,
-                    path: '/',
-                  }),
-                },
-                {
-                  label: t('Compare Queries'),
-                },
-              ]}
-            />
-            <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
-          </Layout.HeaderContent>
-          {hasPageFrameFeature ? (
-            <Fragment>
-              <TopBar.Slot name="actions">
-                <StarSavedQueryButton />
-                {defined(id) && savedQuery?.isPrebuilt === false && (
-                  <SavedQueryEditMenu />
-                )}
-              </TopBar.Slot>
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
-              </TopBar.Slot>
-            </Fragment>
-          ) : (
+        {hasPageFrameFeature ? (
+          <Fragment>
+            <TopBar.Slot name="title">
+              <Breadcrumbs
+                crumbs={[
+                  {label: t('Explore')},
+                  {
+                    label: t('Traces'),
+                    to: makeTracesPathname({organization, path: '/'}),
+                  },
+                  {label: title ? title : t('Compare Queries')},
+                ]}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="actions">
+              <StarSavedQueryButton />
+              {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
+            </TopBar.Slot>
+            <TopBar.Slot name="feedback">
+              <FeedbackButton
+                aria-label={t('Give Feedback')}
+                tooltipProps={{title: t('Give Feedback')}}
+              >
+                {null}
+              </FeedbackButton>
+            </TopBar.Slot>
+          </Fragment>
+        ) : (
+          <Layout.Header unified>
+            <Layout.HeaderContent>
+              <Breadcrumbs
+                crumbs={[
+                  {label: t('Explore')},
+                  {
+                    label: t('Traces'),
+                    to: makeTracesPathname({organization, path: '/'}),
+                  },
+                  {label: t('Compare Queries')},
+                ]}
+              />
+              <Layout.Title>{title ? title : t('Compare Queries')}</Layout.Title>
+            </Layout.HeaderContent>
             <Layout.HeaderActions>
               <Grid flow="column" align="center" gap="md">
                 <StarSavedQueryButton />
@@ -86,8 +89,8 @@ export default function MultiQueryMode() {
                 <FeedbackButton />
               </Grid>
             </Layout.HeaderActions>
-          )}
-        </Layout.Header>
+          </Layout.Header>
+        )}
         <Stack flex={1}>
           <MultiQueryModeContent />
         </Stack>

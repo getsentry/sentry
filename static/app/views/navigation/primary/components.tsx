@@ -280,7 +280,6 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
       disabled={layout === 'mobile'}
       position="right"
       skipWrapper
-      delay={600}
     >
       <NavigationButton
         {...props.buttonProps}
@@ -394,7 +393,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
               disabled={layout === 'mobile'}
               position="right"
               skipWrapper
-              delay={600}
             >
               <NavigationButton
                 {...triggerProps}

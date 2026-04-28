@@ -2,7 +2,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -10,56 +12,112 @@ import {
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {
+  type OpenSeerExplorerDrawerOptions,
+  useSeerExplorerDrawer,
+} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
+import {useSeerExplorerRunId} from 'sentry/views/seerExplorer/hooks/useSeerExplorerRunId';
+import {useSeerExplorerDeepLink} from 'sentry/views/seerExplorer/utils';
+
+export type SeerExplorerSessionState = 'inactive' | 'thinking' | 'done-thinking';
 
 type SeerExplorerContextValue = {
   closeSeerExplorer: () => void;
-  isMinimized: boolean;
   isOpen: boolean;
-  openSeerExplorer: () => void;
-  setIsMinimized: (value: boolean) => void;
+  openSeerExplorer: (options?: OpenSeerExplorerDrawerOptions) => void;
+  sessionState: SeerExplorerSessionState;
   toggleSeerExplorer: () => void;
 };
 
-const SeerExplorerContext = createContext<SeerExplorerContextValue>({
+export const SeerExplorerContext = createContext<SeerExplorerContextValue>({
   closeSeerExplorer: () => {},
-  isMinimized: false,
   isOpen: false,
   openSeerExplorer: () => {},
-  setIsMinimized: () => {},
+  sessionState: 'inactive',
   toggleSeerExplorer: () => {},
 });
 
 export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
-  // Initialize the global explorer panel state. Includes hotkeys.
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [runId] = useSeerExplorerRunId();
+  const {
+    openSeerExplorerDrawer,
+    closeSeerExplorerDrawer,
+    toggleSeerExplorerDrawer,
+    isOpen,
+  } = useSeerExplorerDrawer();
 
-  const openSeerExplorer = useCallback(() => {
-    setIsOpen(true);
-  }, []);
+  // Observes the shared session query so the button can reflect activity even
+  // when the drawer is closed. Shares the underlying query with
+  // `useSeerExplorer` via key-dedup, so there's no double polling.
+  const {isPolling} = useSeerExplorerPolling({runId});
 
-  const closeSeerExplorer = useCallback(() => {
-    setIsOpen(false);
-  }, []);
+  // Gates `thinking` / `done-thinking`: otherwise an initial fetch of a stale
+  // runId from sessionStorage flashes polling state before the user engages.
+  const [hasEverOpened, setHasEverOpened] = useState(false);
+  useEffect(() => {
+    if (isOpen) {
+      setHasEverOpened(true);
+    }
+  }, [isOpen]);
 
-  const toggleSeerExplorer = useCallback(() => {
-    setIsOpen(prev => !prev);
-  }, []);
+  // Sticky flag: session transitioned from polling → not-polling while the
+  // drawer was closed. Cleared when the drawer opens (user has seen the
+  // result) or when there's no active session.
+  const [isDoneThinking, setIsDoneThinking] = useState(false);
+  const wasPollingRef = useRef(false);
 
-  const contextValue = useMemo(
+  useEffect(() => {
+    const wasPolling = wasPollingRef.current;
+    wasPollingRef.current = isPolling;
+    if (hasEverOpened && wasPolling && !isPolling && !isOpen && runId !== null) {
+      setIsDoneThinking(true);
+    }
+  }, [isPolling, isOpen, runId, hasEverOpened]);
+
+  useEffect(() => {
+    if (isOpen || runId === null) {
+      setIsDoneThinking(false);
+    }
+  }, [isOpen, runId]);
+
+  const sessionState = hasEverOpened
+    ? isDoneThinking
+      ? 'done-thinking'
+      : isPolling
+        ? 'thinking'
+        : 'inactive'
+    : 'inactive';
+
+  const contextValue = useMemo<SeerExplorerContextValue>(
     () => ({
       isOpen,
-      isMinimized,
-      openSeerExplorer,
-      closeSeerExplorer,
-      setIsMinimized,
-      toggleSeerExplorer,
+      openSeerExplorer: openSeerExplorerDrawer,
+      closeSeerExplorer: closeSeerExplorerDrawer,
+      toggleSeerExplorer: toggleSeerExplorerDrawer,
+      sessionState,
     }),
-    [isOpen, isMinimized, openSeerExplorer, closeSeerExplorer, toggleSeerExplorer]
+    [
+      isOpen,
+      openSeerExplorerDrawer,
+      closeSeerExplorerDrawer,
+      toggleSeerExplorerDrawer,
+      sessionState,
+    ]
   );
 
-  // Hot keys for toggling the explorer panel.
   const {visible: isModalOpen} = useGlobalModal();
+
+  // Deep link effect while drawer closed (drawer content handles when open)
+  const deepLinkCallback = useCallback(
+    (_runId: number) => openSeerExplorerDrawer({runId: _runId}),
+    [openSeerExplorerDrawer]
+  );
+
+  useSeerExplorerDeepLink({
+    callback: deepLinkCallback,
+    enabled: !isOpen,
+  });
 
   useHotkeys(
     isModalOpen
@@ -68,11 +126,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           {
             match: ['command+/', 'ctrl+/', 'command+.', 'ctrl+.'],
             callback: () => {
-              if (isOpen && isMinimized) {
-                setIsMinimized(false);
-              } else {
-                toggleSeerExplorer();
-              }
+              toggleSeerExplorerDrawer();
             },
             includeInputs: true,
           },

@@ -11,12 +11,12 @@ import {ReplayContextKey} from 'sentry/types/event';
 import {FieldKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {findSpanAttributeValue} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 interface TitleProps {
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;

@@ -13,6 +13,7 @@ from django import forms
 from django.db import router, transaction
 from parsimonious.exceptions import ParseError
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
@@ -322,6 +323,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except forms.ValidationError as e:
                 # if we fail in create_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
+            except APIException:
+                raise
             except Exception as e:
                 logger.exception(
                     "Error when creating alert rule",
@@ -376,6 +379,8 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
             except forms.ValidationError as e:
                 # if we fail in update_metric_alert, then only one message is ever returned
                 raise serializers.ValidationError(e.error_list[0].message)
+            except APIException:
+                raise
             except Exception as e:
                 logger.exception(
                     "Error when updating alert rule",

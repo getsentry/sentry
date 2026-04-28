@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {Form} from 'sentry/components/forms/form';
@@ -16,6 +16,7 @@ describe('PermissionSelection', () => {
       <Form model={model}>
         <PermissionSelection
           appPublished={false}
+          hasContinuousIntegration
           permissions={{
             Event: 'no-access',
             Team: 'no-access',
@@ -38,6 +39,9 @@ describe('PermissionSelection', () => {
     expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
+    ).toBeInTheDocument();
   });
 
   it('lists human readable permissions', async () => {
@@ -76,5 +80,18 @@ describe('PermissionSelection', () => {
     expect(model.getValue('Event--permission')).toBe('admin');
     expect(model.getValue('Organization--permission')).toBe('read');
     expect(model.getValue('Member--permission')).toBe('no-access');
+  });
+
+  it('stores the Continuous Integration permission', async () => {
+    renderForm();
+    const ciCheckbox = await screen.findByRole('checkbox', {
+      name: 'Continuous Integration (CI)',
+    });
+
+    expect(ciCheckbox).toBeChecked();
+    await userEvent.click(ciCheckbox);
+
+    expect(model.getValue('ContinuousIntegration--permission')).toBe(false);
+    expect(model.getValue('scopes')).not.toContain('org:ci');
   });
 });

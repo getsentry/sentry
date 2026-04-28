@@ -2,6 +2,10 @@ import groupBy from 'lodash/groupBy';
 import invertBy from 'lodash/invertBy';
 import pick from 'lodash/pick';
 
+import {
+  SPECIAL_SENTRY_APP_PERMISSIONS,
+  type SpecialPermissionObj,
+} from 'sentry/constants';
 import type {Permissions} from 'sentry/types/integrations';
 
 const PERMISSION_LEVELS = {
@@ -36,6 +40,9 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
 const PROJECT_RELEASES = 'project:releases';
 const PROJECT_DISTRIBUTION = 'project:distribution';
 const ORG_INTEGRATIONS = 'org:integrations';
+const SPECIAL_PERMISSION_SCOPES = new Set<string>(
+  SPECIAL_SENTRY_APP_PERMISSIONS.map(permission => permission.scope)
+);
 
 type PermissionLevelResources = {
   admin: string[];
@@ -92,7 +99,7 @@ function topScopes(scopeList: string[]) {
  */
 function toResourcePermissions(scopes: string[]): Permissions {
   const permissions = {...DEFAULT_RESOURCE_PERMISSIONS};
-  let filteredScopes = [...scopes];
+  let filteredScopes = scopes.filter(scope => !SPECIAL_PERMISSION_SCOPES.has(scope));
   // The scope for releases is `project:releases`, but instead of displaying
   // it as a permission of Project, we want to separate it out into its own
   // row for Releases.
@@ -154,4 +161,15 @@ function toPermissions(scopes: string[]): PermissionLevelResources {
   return {...defaultPermissions, ...permissions};
 }
 
-export {comparePermissionLevels, toPermissions, toResourcePermissions};
+function getSpecialPermissions(scopes: string[]): SpecialPermissionObj[] {
+  return SPECIAL_SENTRY_APP_PERMISSIONS.filter(permission =>
+    scopes.includes(permission.scope)
+  );
+}
+
+export {
+  comparePermissionLevels,
+  getSpecialPermissions,
+  toPermissions,
+  toResourcePermissions,
+};

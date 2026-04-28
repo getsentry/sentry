@@ -1,14 +1,13 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {Placeholder} from 'sentry/components/placeholder';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -149,7 +148,6 @@ export function SchemaHintsList({
   source = SchemaHintsSources.EXPLORE,
   searchBarWidthOffset,
 }: SchemaHintsListProps) {
-  const theme = useTheme();
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
@@ -331,9 +329,6 @@ export function SchemaHintsList({
             drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
             drawerKey: 'schema-hints-drawer',
             resizable: true,
-            drawerCss: css`
-              height: calc(100% - ${theme.space['3xl']});
-            `,
             shouldCloseOnLocationChange: newLocation => {
               return (
                 location.pathname !== newLocation.pathname ||

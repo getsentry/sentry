@@ -106,6 +106,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     seerScannerAutomation = serializers.BooleanField(required=False)
+    seerNightshiftTweaks = serializers.JSONField(required=False, allow_null=True)
     preprodSizeStatusChecksEnabled = serializers.BooleanField(
         help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
         required=False,
@@ -120,6 +121,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False, allow_null=True
     )
     preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsOnlyIfDiff = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -157,6 +159,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchScreenshots",
         "autofixAutomationTuning",
         "seerScannerAutomation",
+        "seerNightshiftTweaks",
         "debugFilesRole",
         "preprodSizeStatusChecksEnabled",
         "preprodSizeStatusChecksRules",
@@ -169,6 +172,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotStatusChecksFailOnRemoved",
         "preprodDistributionPrCommentsEnabledByCustomer",
         "preprodSnapshotPrCommentsEnabled",
+        "preprodSnapshotPrCommentsOnlyIfDiff",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -812,6 +816,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
+        if "seerNightshiftTweaks" in result:
+            if project.update_option(
+                "sentry:seer_nightshift_tweaks", result["seerNightshiftTweaks"]
+            ):
+                changed_proj_settings["sentry:seer_nightshift_tweaks"] = result[
+                    "seerNightshiftTweaks"
+                ]
         if result.get("preprodSizeStatusChecksEnabled") is not None:
             if project.update_option(
                 "sentry:preprod_size_status_checks_enabled",
@@ -899,6 +910,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
                     "preprodSnapshotPrCommentsEnabled"
+                ]
+        if "preprodSnapshotPrCommentsOnlyIfDiff" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_only_if_diff",
+                result["preprodSnapshotPrCommentsOnlyIfDiff"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_only_if_diff"] = result[
+                    "preprodSnapshotPrCommentsOnlyIfDiff"
                 ]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:

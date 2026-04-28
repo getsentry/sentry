@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,16 +18,15 @@ import type {Project} from 'sentry/types/project';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
 import {PROJECT_STOPPING_POINT_OPTIONS} from 'sentry/utils/seer/stoppingPoint';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  useBulkMutateSelectedAgent,
-  useFetchAgentOptions,
-} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
+import {useBulkMutateSelectedAgent} from 'sentry/views/settings/seer/overview/utils/seerPreferredAgent';
 
 import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
   onSortClick: (key: Sort) => void;
   projects: Project[];
   sort: Sort;
@@ -102,6 +102,7 @@ export function ProjectTableHeader({
   onSortClick,
   sort,
   updateBulkAutofixAutomationSettings,
+  agentOptions,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
@@ -124,7 +125,6 @@ export function ProjectTableHeader({
     [projects, selectedIds]
   );
 
-  const agentOptions = useFetchAgentOptions({organization});
   const bulkMutateSelectedAgent = useBulkMutateSelectedAgent();
 
   return (
@@ -222,8 +222,8 @@ export function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === 'indeterminate' ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap" gap="md">
+        <FullGridAlert variant="info" system>
+          <Flex justify="start" width="100%" wrap="wrap" gap="md">
             {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
             <a onClick={selectAll}>
               {queryString
@@ -238,23 +238,15 @@ export function ProjectTableHeader({
       ) : null}
 
       {isAllSelected === true ? (
-        <FullGridAlert variant="warning" system>
-          <Flex justify="center" wrap="wrap">
-            <span>
-              {queryString
-                ? tct('Selected all [count] projects matching: [queryString].', {
-                    count: countSelected,
-                    queryString: <var>{queryString}</var>,
-                  })
-                : countSelected > projects.length
-                  ? t('Selected all %s+ projects.', projects.length)
-                  : tn(
-                      'Selected %s project.',
-                      'Selected all %s projects.',
-                      countSelected
-                    )}
-            </span>
-          </Flex>
+        <FullGridAlert variant="info" system>
+          {queryString
+            ? tct('Selected all [count] projects matching: [queryString].', {
+                count: countSelected,
+                queryString: <var>{queryString}</var>,
+              })
+            : countSelected > projects.length
+              ? t('Selected all %s+ projects.', projects.length)
+              : tn('Selected %s project.', 'Selected all %s projects.', countSelected)}
         </FullGridAlert>
       ) : null}
     </Fragment>

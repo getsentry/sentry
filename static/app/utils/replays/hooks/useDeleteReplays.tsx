@@ -1,14 +1,11 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
-import {
-  fetchMutation,
-  useMutation,
-  type QueryKeyEndpointOptions,
-} from 'sentry/utils/queryClient';
+import {fetchMutation, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 

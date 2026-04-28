@@ -8,8 +8,8 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/explore/replays/types';
 
 type Options = {
   location: Location;

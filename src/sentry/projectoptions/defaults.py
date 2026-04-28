@@ -1,10 +1,10 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import (
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     TARGET_SAMPLE_RATE_DEFAULT,
 )
 from sentry.projectoptions import register
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
@@ -182,10 +182,14 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should autofix run automatically on new issues
-register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
+register(key="sentry:autofix_automation_tuning", default=AUTOFIX_AUTOMATION_TUNING_DEFAULT)
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
+
+# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# stable API; the shape of the blob is expected to change.
+register(key="sentry:seer_nightshift_tweaks", default=None)
 
 # Seer project preferences
 register(
@@ -223,6 +227,9 @@ register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", defa
 
 # Boolean to enable/disable snapshot PR comments for this project.
 register(key="sentry:preprod_snapshot_pr_comments_enabled", default=False)
+
+# When True, only post snapshot PR comments if the comparison reports any diffs.
+register(key="sentry:preprod_snapshot_pr_comments_only_if_diff", default=False)
 
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)

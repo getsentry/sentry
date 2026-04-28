@@ -325,10 +325,6 @@ def log_alerting_quota_hit(
     metrics.incr("workflow_engine.quota.limit_hit", tags={"object_type": object_type})
 
 
-def toggle_detector(detector: Detector, enabled: bool) -> None:
-    detector.toggle(enabled)
-
-
 def validate_json_schema(value: Any, schema: Any) -> Any:
     try:
         validate(value, schema)

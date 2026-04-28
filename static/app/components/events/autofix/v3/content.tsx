@@ -14,14 +14,12 @@ import {
   useExplorerAutofix,
   type AutofixSection,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {
-  CodeChangesCard,
-  CodingAgentCard,
-  PullRequestsCard,
-  RootCauseCard,
-  SolutionCard,
-} from 'sentry/components/events/autofix/v3/autofixCards';
+import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
+import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
+import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
+import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -115,7 +113,7 @@ function SeerDrawerArtifacts({autofix, sections}: SeerDrawerArtifactsProps) {
 
         if (isCodingAgentsSection(section)) {
           return (
-            <CodingAgentCard key={section.step} autofix={autofix} section={section} />
+            <CodingAgentsCard key={section.step} autofix={autofix} section={section} />
           );
         }
 

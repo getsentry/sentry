@@ -1,6 +1,9 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -83,18 +86,33 @@ function TraceEmpty() {
   // and be navigated to a trace that doesn't contain any data yet. We add a 10
   // minute buffer to account for this.
   const message =
-    timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS)
-      ? t("We're still processing this trace. Please try refreshing after a minute")
-      : tct(
-          'We were unable to find any spans for this trace. Seeing this often? [feedbackLink: Send us feedback]',
-          {
-            feedbackLink: <FeedbackLink />,
-          }
-        );
+    timestamp &&
+    new Date(timestamp * 1000) >= new Date(Date.now() - TEN_MINUTES_IN_MS) ? (
+      t("We're still processing this trace. Please try refreshing after a minute")
+    ) : (
+      <div>
+        <Text as="p">
+          {t(
+            'We were unable to find any spans for this trace. If you came here from Logs or Application Metrics, traces may use different sampling rules.'
+          )}
+        </Text>
+        <br />
+        <Text as="p">
+          {tct(
+            'Find similar traces in Explore using [crossEventQueryingLink: Cross Event Querying].',
+            {
+              crossEventQueryingLink: (
+                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#cross-event-querying-beta" />
+              ),
+            }
+          )}
+        </Text>
+      </div>
+    );
 
   return (
     <LoadingContainer animate>
-      <div>{message}</div>
+      <Text as="div">{message}</Text>
     </LoadingContainer>
   );
 }
@@ -130,7 +148,7 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   top: 50%;
   position: absolute;
   gap: 10px;
-  max-width: 300px;
+  max-width: 450px;
   max-height: 150px;
   text-align: center;
   height: auto;
