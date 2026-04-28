@@ -86,7 +86,7 @@ interface CommandPaletteScore {
 }
 
 interface CommandPaletteProps extends ModalRenderProps {
-  openSeerExplorer?: () => void;
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void;
 }
 
 export function CommandPalette({
@@ -444,7 +444,9 @@ export function CommandPalette({
                       if (e.key === 'Tab' && seerExplorerEnabled) {
                         e.preventDefault();
                         closeModal?.();
-                        openSeerExplorer();
+                        openSeerExplorer({
+                          initialQuery: state.query.trim() || undefined,
+                        });
                         return;
                       }
 

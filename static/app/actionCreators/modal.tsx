@@ -159,7 +159,7 @@ export async function toggleCommandPalette(
   state: CommandPaletteState,
   dispatch: CommandPaletteDispatch,
   source: 'button' | 'keyboard',
-  openSeerExplorer?: () => void
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void
 ) {
   const {CommandPalette: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/commandPalette');

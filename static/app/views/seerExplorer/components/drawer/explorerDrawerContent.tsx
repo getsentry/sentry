@@ -33,8 +33,10 @@ import {
 
 export function ExplorerDrawerContent({
   getPageReferrer,
+  initialQuery,
 }: {
   getPageReferrer: () => string;
+  initialQuery?: string;
 }) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
@@ -87,6 +89,17 @@ export function ExplorerDrawerContent({
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
+
+  // Auto-submit the initial query forwarded from the command palette, but only
+  // once and only if the session is still empty (don't clobber an active run).
+  const hasAutoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (!initialQuery?.trim() || hasAutoSubmittedRef.current || !isEmptyState) {
+      return;
+    }
+    hasAutoSubmittedRef.current = true;
+    sendMessage(initialQuery.trim());
+  }, [initialQuery, isEmptyState, sendMessage]);
 
   const latestTodoBlockIndex = useMemo(() => {
     for (let i = blocks.length - 1; i >= 0; i--) {
