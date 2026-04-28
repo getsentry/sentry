@@ -15,7 +15,10 @@ import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/t
 import {encodeMetricQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -28,7 +31,11 @@ const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled'],
+    features: [
+      'tracemetrics-enabled',
+      'tracemetrics-alerts',
+      'tracemetrics-equations-in-alerts',
+    ],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
@@ -203,5 +210,50 @@ describe('useSaveAsMetricItems', () => {
         }),
       ])
     );
+  });
+
+  it('formats alerts submenu labels for equations', () => {
+    const equation =
+      'equation|sum(value,metric.a,counter,none) + avg(value,metric.a,counter,none)';
+    const encodedMetricQuery = encodeMetricQueryParams({
+      metric: {name: 'metric.a', type: 'counter'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeEquation(equation)],
+        aggregateSortBys: [{field: equation, kind: 'desc'}],
+        cursor: '',
+        fields: [],
+        sortBys: [],
+      }),
+      label: 'ƒ1',
+    });
+
+    mockedUseLocation.mockReturnValue(
+      LocationFixture({
+        query: {
+          interval: '5m',
+          metric: [encodedMetricQuery],
+        },
+      })
+    );
+
+    const {result} = renderHook(useSaveAsMetricItems, {
+      wrapper: createWrapper(),
+      initialProps: {interval: '5m'},
+    });
+
+    const createAlertItems = result.current.find(item => item.key === 'create-alert') as
+      | {children: Array<{label: string; to: string}>}
+      | undefined;
+    const createAlertItem = createAlertItems?.children?.find(item => item.label === 'ƒ1');
+
+    expect(createAlertItem).toBeDefined();
+
+    const url = new URL(createAlertItem?.to as string, 'http://example.com');
+    const queryParams = new URLSearchParams(url.search);
+    expect(queryParams.get('aggregate')).toBe(equation);
   });
 });

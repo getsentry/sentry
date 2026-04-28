@@ -1332,6 +1332,37 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "limit": "limit is required. The maximum limit is 5."
         }
 
+    def test_wheel_widget_allows_null_limit(self) -> None:
+        data = {
+            "title": "Performance Score",
+            "widgetType": "spans",
+            "displayType": "wheel",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [
+                        "performance_score(measurements.score.lcp)",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "columns": [
+                        "performance_score(measurements.score.lcp)",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "aggregates": [],
+                    "orderby": "",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 200, response.data
+
     def test_valid_widget_is_filters(self) -> None:
         data = {
             "title": "Errors over time",

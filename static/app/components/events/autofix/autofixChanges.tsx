@@ -23,7 +23,7 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -545,10 +545,10 @@ function CreatePRsButton({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       setHasClicked(true);
     },
@@ -628,10 +628,10 @@ function CreateBranchButton({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {

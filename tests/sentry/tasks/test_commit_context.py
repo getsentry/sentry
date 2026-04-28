@@ -12,6 +12,7 @@ from sentry.analytics.events.integration_commit_context_all_frames import (
 )
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
@@ -1073,6 +1074,79 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
+
+    def test_gh_comment_reads_oi_config_when_flag_on(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
+        """With scm-config-oi-reads on, PR comment gating reads OI config."""
+        from sentry.testutils.helpers.features import Feature
+
+        mock_get_commit_context.return_value = [self.blame]
+        OrganizationOption.objects.set_value(
+            organization=self.project.organization, key="sentry:github_pr_bot", value=True
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                integration_id=self.integration.id,
+                organization_id=self.project.organization.id,
+            ).update(config={"pr_comments": False})
+
+        with Feature({"organizations:scm-config-oi-reads": True}), self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @responses.activate
+    def test_gh_comment_oi_config_enabled_queues_comment(
+        self, mock_comment_workflow: MagicMock, mock_get_commit_context: MagicMock
+    ) -> None:
+        """With scm-config-oi-reads on and OI config enabled, comment is queued."""
+        from sentry.testutils.helpers.features import Feature
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id,
+                organization_id=self.project.organization.id,
+            )
+            oi.config = {"pr_comments": True}
+            oi.save(update_fields=["config"])
+
+        self.add_responses()
+
+        groupowner = GroupOwner.objects.create(
+            group_id=self.event.group_id,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=1,
+            project_id=self.event.project_id,
+            organization_id=self.project.organization_id,
+            context={
+                "commitId": self.commit.id,
+                "suspectCommitStrategy": SuspectCommitStrategy.SCM_BASED,
+            },
+            date_added=timezone.now(),
+        )
+
+        integration = integration_service.get_integration(
+            organization_id=self.code_mapping.organization_id
+        )
+        assert integration
+        install = integration.get_installation(organization_id=self.code_mapping.organization_id)
+        assert isinstance(install, CommitContextIntegration)
+
+        with Feature({"organizations:scm-config-oi-reads": True}), self.tasks():
+            install.queue_pr_comment_task_if_needed(
+                project=self.project,
+                commit=self.commit,
+                group_owner=groupowner,
+                group_id=self.event.group_id,
+            )
+            assert mock_comment_workflow.call_count == 1
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate

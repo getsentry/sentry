@@ -53,7 +53,7 @@ describe('getting started with react-native', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: /configure sentry/i})).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', {name: /send metrics and verify/i})
+      screen.getByRole('heading', {name: /send application metrics and verify/i})
     ).toBeInTheDocument();
 
     // Goes to the configure step

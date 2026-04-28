@@ -8,15 +8,22 @@ from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.pullrequest import CommentType, PullRequest, PullRequestCommit
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class FindReferencedGroupsTest(TestCase):
     def test_resolve_in_commit(self) -> None:
+        """
+        Legacy behavior (defer-commit-resolution flag OFF): commits with
+        "Fixes ISSUE-123" immediately resolve the referenced issue. Kept until
+        the new behavior is fully shipped.
+        """
         group = self.create_group()
 
         repo = Repository.objects.create(name="example", organization_id=group.organization.id)
@@ -25,25 +32,95 @@ class FindReferencedGroupsTest(TestCase):
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
             repository_id=repo.id,
             organization_id=group.organization.id,
-            # It makes reference to the first group
             message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
         )
 
         groups = commit.find_referenced_groups()
         assert len(groups) == 1
         assert group in groups
-        # These are created in resolved_in_commit
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+        ).exists()
         assert GroupHistory.objects.filter(
             group=group,
             status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
         ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+    @with_feature("organizations:defer-commit-resolution")
+    def test_resolve_in_commit_deferred(self) -> None:
+        """
+        With defer-commit-resolution ON: commits create GroupLinks but do NOT
+        immediately resolve issues. Resolution happens when a release is created
+        that includes these commits, via update_group_resolutions().
+        """
+        group = self.create_group()
+
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+        )
+
+        groups = commit.find_referenced_groups()
+        assert len(groups) == 1
+        assert group in groups
+        assert GroupLink.objects.filter(
+            group=group,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+        ).exists()
+        assert GroupHistory.objects.filter(
+            group=group,
+            status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+        ).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+    @with_feature("organizations:defer-commit-resolution")
+    def test_resolve_in_commit_resolved_via_release(self) -> None:
+        """
+        With defer-commit-resolution ON: a commit referencing a group on a
+        feature branch leaves the group unresolved. Once that commit lands in a
+        release (i.e. is merged to the default branch and shipped), the release
+        creation flow resolves the group via update_group_resolutions().
+        """
+        group = self.create_group()
+
+        repo = Repository.objects.create(name="example", organization_id=group.organization.id)
+
+        commit = Commit.objects.create(
+            key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
+            repository_id=repo.id,
+            organization_id=group.organization.id,
+            message=f"Foo Biz\n\nFixes {group.qualified_short_id}",
+        )
+
+        # Feature-branch commit: GroupLink exists but group is still unresolved.
         assert GroupLink.objects.filter(
             group=group,
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
         ).exists()
         group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # Commit lands in a release; resolution should now fire.
+        release = self.create_release(project=group.project, version="1.0.0")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()

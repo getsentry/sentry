@@ -43,7 +43,11 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  parseFunction,
+  prettifyParsedFunction,
+  stripEquationPrefix,
+} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
@@ -1260,7 +1264,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
 
-    let formattedAggregate = aggregate;
+    let formattedAggregate = stripEquationPrefix(aggregate);
 
     const func = parseFunction(aggregate);
     if (func && isEapAlertType(alertType)) {

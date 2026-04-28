@@ -19,7 +19,7 @@ export function getCrossEventDropdownItems(
   ];
 
   if (canUseMetricsUI(organization)) {
-    items.push({key: 'metrics', label: t('Metrics')});
+    items.push({key: 'metrics', label: t('Application Metrics')});
   }
 
   return items;
@@ -34,7 +34,7 @@ export function getCrossEventDatasetOptions(
   ];
 
   if (canUseMetricsUI(organization)) {
-    options.push({value: 'metrics', label: t('Metrics')});
+    options.push({value: 'metrics', label: t('Application Metrics')});
   }
 
   return options;

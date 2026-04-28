@@ -157,7 +157,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
-      expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
     });
 
     it('shows feedback UI on no click', async () => {
@@ -191,11 +191,10 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Try a different approach');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink root cause'}));
-      expect(autofix.startStep).toHaveBeenCalledWith(
-        'root_cause',
-        1,
-        'Try a different approach'
-      );
+      expect(autofix.startStep).toHaveBeenCalledWith('root_cause', {
+        runId: 1,
+        userContext: 'Try a different approach',
+      });
     });
 
     it('proceeds like yes on nevermind click', async () => {
@@ -209,7 +208,7 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.click(screen.getByRole('button', {name: 'Nevermind, make a plan'}));
-      expect(autofix.startStep).toHaveBeenCalledWith('solution', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
     });
 
     it('shows coding agent dropdown with Add Integration CTA when no integrations exist', async () => {
@@ -326,7 +325,7 @@ describe('SeerDrawerNextStep', () => {
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Yes, write a code fix'}));
-      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {runId: 1});
     });
 
     it('shows feedback UI on no click', async () => {
@@ -358,11 +357,10 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Consider edge cases');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink plan'}));
-      expect(autofix.startStep).toHaveBeenCalledWith(
-        'solution',
-        1,
-        'Consider edge cases'
-      );
+      expect(autofix.startStep).toHaveBeenCalledWith('solution', {
+        runId: 1,
+        userContext: 'Consider edge cases',
+      });
     });
 
     it('proceeds like yes on nevermind click', async () => {
@@ -378,7 +376,7 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(
         screen.getByRole('button', {name: 'Nevermind, write a code fix'})
       );
-      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', 1);
+      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {runId: 1});
     });
   });
 
@@ -455,11 +453,10 @@ describe('SeerDrawerNextStep', () => {
       await userEvent.click(screen.getByRole('button', {name: 'No'}));
       await userEvent.type(screen.getByRole('textbox'), 'Fix the error handling');
       await userEvent.click(screen.getByRole('button', {name: 'Rethink code changes'}));
-      expect(autofix.startStep).toHaveBeenCalledWith(
-        'code_changes',
-        1,
-        'Fix the error handling'
-      );
+      expect(autofix.startStep).toHaveBeenCalledWith('code_changes', {
+        runId: 1,
+        userContext: 'Fix the error handling',
+      });
     });
 
     it('proceeds like yes on nevermind click', async () => {

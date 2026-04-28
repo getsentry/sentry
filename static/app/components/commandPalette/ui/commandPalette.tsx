@@ -1,18 +1,19 @@
 import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
 import {useIsFetching} from '@tanstack/react-query';
-import {AnimatePresence, motion} from 'framer-motion';
+import {animate, AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -20,6 +21,7 @@ import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
@@ -34,19 +36,36 @@ import {
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClose,
+  IconLink,
+  IconMegaphone,
+  IconOpen,
+  IconSearch,
+  IconSeer,
+} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
 
-function makeLeadingItemAnimation(theme: Theme) {
+function makeLeadingItemAnimation(theme: Theme, instant = false) {
+  if (instant) {
+    return {
+      initial: {scale: 1, opacity: 1},
+      animate: {scale: 1, opacity: 1},
+      exit: {scale: 1, opacity: 1, transition: {duration: 0}},
+      transition: {duration: 0},
+    };
+  }
   return {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
@@ -75,17 +94,45 @@ interface CommandPaletteScore {
   score: number;
 }
 
-interface CommandPaletteProps {
-  closeModal?: () => void;
+interface CommandPaletteProps extends ModalRenderProps {
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void;
 }
 
-export function CommandPalette(props: CommandPaletteProps) {
+export function CommandPalette({
+  Body,
+  closeModal,
+  openSeerExplorer,
+}: CommandPaletteProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const store = CMDKCollection.useStore();
-
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+  const seerExplorerEnabled = !!openSeerExplorer;
+  const openForm = useFeedbackForm();
+
+  const getDocEl = useCallback(
+    () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    [state.input]
+  );
+
+  const animatePress = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 0.99}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
+
+  const animatePop = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 1.01}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -93,23 +140,92 @@ export function CommandPalette(props: CommandPaletteProps) {
     preload(errorIllustration, {as: 'image'});
   }
 
+  const debouncedQuery = useDebouncedValue(state.query, 300);
+  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
+  const isLoading =
+    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
+  const isEmptyPromptQuery =
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
+
   const currentNodes = useMemo(() => {
     const currentRootKey = state.action?.value.key ?? null;
     const nodes = presortBySlotRef(store.tree(currentRootKey));
     return nodes;
   }, [store, state.action]);
 
-  const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
-    if (!state.query) {
-      return flattenActions(currentNodes, null);
-    }
+  const [actions, prefixMap, isSeerFallback] = useMemo<
+    [CMDKFlatItem[], Map<string, string[]>, boolean]
+  >(() => {
+    const [scored, scoredPrefixMap] = state.query
+      ? (() => {
+          const scores = new Map<string, CommandPaletteScore>();
+          scoreTree(currentNodes, scores, state.query.toLowerCase());
+          return flattenActions(currentNodes, scores, state.action !== null);
+        })()
+      : flattenActions(currentNodes, null);
 
-    const scores = new Map<string, CommandPaletteScore>();
-    scoreTree(currentNodes, scores, state.query.toLowerCase());
-    return flattenActions(currentNodes, scores, state.action !== null);
-  }, [currentNodes, state.action, state.query]);
+    // When a query produces no matches and Seer Explorer is available, inject
+    // synthetic items directly into the collection so they participate in the
+    // palette's existing keyboard navigation rather than rendering as separate
+    // DOM elements outside the list. The guard prevents the fallback from
+    // appearing while an async query is still in flight or the debounce has
+    // not yet settled.
+    const showSeerFallback =
+      scored.length === 0 &&
+      !!state.query &&
+      seerExplorerEnabled &&
+      !isLoading &&
+      !isEmptyPromptQuery;
 
-  const analytics = useCommandPaletteAnalytics(actions.length);
+    if (!showSeerFallback) return [scored, scoredPrefixMap, false];
+
+    const truncated =
+      state.query.length > 24 ? state.query.slice(0, 24) + '...' : state.query;
+
+    const fallback: CMDKFlatItem[] = [
+      {
+        key: 'cmdk:no-results:header',
+        parent: null,
+        children: [],
+        listItemType: 'section',
+        display: {label: t('No results for "%s"', truncated)},
+      },
+      {
+        key: 'cmdk:no-results:ask-seer',
+        parent: null,
+        children: [],
+        listItemType: 'action',
+        display: {label: t('Ask Seer: %s', state.query), icon: <IconSeer />},
+        onAction: () =>
+          openSeerExplorer?.({initialQuery: state.query.trim() || undefined}),
+      },
+      ...(openForm
+        ? [
+            {
+              key: 'cmdk:no-results:feedback',
+              parent: null,
+              children: [] as CMDKFlatItem[],
+              listItemType: 'action' as const,
+              display: {label: t('Tell us what to improve'), icon: <IconMegaphone />},
+              onAction: () => openForm({tags: {['feedback.source']: 'command_palette'}}),
+            },
+          ]
+        : []),
+    ];
+
+    return [fallback, new Map(), true];
+  }, [
+    currentNodes,
+    state.action,
+    state.query,
+    seerExplorerEnabled,
+    isLoading,
+    isEmptyPromptQuery,
+    openSeerExplorer,
+    openForm,
+  ]);
+
+  const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
 
   const sectionKeys = useMemo(() => {
     return new Set(
@@ -216,7 +332,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     disallowTypeAhead: true,
   });
 
-  const {closeModal} = props;
   const onActionSelection = useCallback(
     (
       key: string | number | null,
@@ -234,6 +349,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
+        animatePress();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
@@ -251,6 +367,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       if ('prompt' in action && action.prompt) {
+        animatePress();
         dispatch({
           type: 'push action',
           key: action.key,
@@ -280,7 +397,16 @@ export function CommandPalette(props: CommandPaletteProps) {
         action.onAction();
       }
     },
-    [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
+    [
+      actions,
+      prefixMap,
+      analytics,
+      animatePress,
+      closeModal,
+      dispatch,
+      navigate,
+      state.query,
+    ]
   );
 
   // Dispatch the deferred reset once the close animation finishes. framer-motion
@@ -318,15 +444,12 @@ export function CommandPalette(props: CommandPaletteProps) {
     };
   }, []);
 
-  const debouncedQuery = useDebouncedValue(state.query, 300);
-  const isFetchingQueries = useIsFetching({predicate: q => q.meta?.cmdk === true});
+  // Skip leading-icon animations when there is no query — any icon transition
+  // while the input is empty (e.g. a brief loading state after clearing) should
+  // be invisible rather than drawing attention with a flash.
+  const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
 
-  const isLoading =
-    (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
-  const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
-
-  return (
+  const content = (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
@@ -339,7 +462,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                       <MotionContainer
                         position="absolute"
                         left="-2px"
-                        {...makeLeadingItemAnimation(theme)}
+                        {...leadingIconAnimation}
                       >
                         <LoadingIndicator
                           data-test-id="command-palette-loading"
@@ -354,25 +477,23 @@ export function CommandPalette(props: CommandPaletteProps) {
                             priority="transparent"
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
+                              animatePop();
                               dispatch({type: 'pop action'});
                               state.input.current?.focus();
                             }}
                             aria-label={t('Return to previous action')}
-                            {...makeLeadingItemAnimation(theme)}
+                            {...leadingIconAnimation}
                             {...containerProps}
                           />
                         )}
                       </Container>
                     ) : (
-                      <MotionIconSearch
-                        size="sm"
-                        aria-hidden
-                        {...makeLeadingItemAnimation(theme)}
-                      />
+                      <MotionIconSearch size="sm" aria-hidden {...leadingIconAnimation} />
                     )}
                   </AnimatePresence>
                 </StyledInputLeadingItems>
                 <StyledInputGroupInput
+                  seerEnabled={seerExplorerEnabled}
                   autoFocus
                   ref={state.input}
                   value={state.query}
@@ -392,8 +513,19 @@ export function CommandPalette(props: CommandPaletteProps) {
                       }
                     },
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
+                        e.preventDefault();
+                        dispatch({type: 'trigger action'});
+                        closeModal?.();
+                        openSeerExplorer({
+                          initialQuery: state.query.trim() || undefined,
+                        });
+                        return;
+                      }
+
                       if (e.key === 'Backspace' && state.query.length === 0) {
                         if (state.action) {
+                          animatePop();
                           dispatch({type: 'pop action'});
                           e.preventDefault();
                           return;
@@ -409,6 +541,13 @@ export function CommandPalette(props: CommandPaletteProps) {
                           e.preventDefault();
                           return;
                         }
+                        if (state.action) {
+                          animatePop();
+                          dispatch({type: 'pop action'});
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
                       }
 
                       if (e.key === 'Enter') {
@@ -421,23 +560,32 @@ export function CommandPalette(props: CommandPaletteProps) {
                   })}
                 />
                 <InputGroup.TrailingItems>
-                  <AnimatePresence mode="popLayout">
-                    {state.query.length > 0 || state.action ? (
-                      <Container position="absolute" right="-8px">
-                        <MotionButton
-                          size="xs"
-                          priority="transparent"
-                          aria-label={t('Reset')}
-                          icon={<IconClose size="xs" aria-hidden />}
-                          onClick={() => {
-                            dispatch({type: 'reset'});
-                            state.input.current?.focus();
-                          }}
-                          {...makeLeadingItemAnimation(theme)}
-                        />
-                      </Container>
-                    ) : null}
-                  </AnimatePresence>
+                  {seerExplorerEnabled ? (
+                    <Flex align="center" gap="xs">
+                      <Text size="xs" variant="muted">
+                        {t('Ask Seer')}
+                      </Text>
+                      <Hotkey variant="debossed" value="tab" />
+                    </Flex>
+                  ) : (
+                    <AnimatePresence mode="popLayout">
+                      {state.query.length > 0 || state.action ? (
+                        <Container position="absolute" right="-8px">
+                          <MotionButton
+                            size="xs"
+                            priority="transparent"
+                            aria-label={t('Reset')}
+                            icon={<IconClose size="xs" aria-hidden />}
+                            onClick={() => {
+                              dispatch({type: 'reset'});
+                              state.input.current?.focus();
+                            }}
+                            {...makeLeadingItemAnimation(theme)}
+                          />
+                        </Container>
+                      ) : null}
+                    </AnimatePresence>
+                  )}
                 </InputGroup.TrailingItems>
               </InputGroup>
             );
@@ -475,8 +623,11 @@ export function CommandPalette(props: CommandPaletteProps) {
           />
         </ResultsList>
       )}
+      <CommandPaletteHints />
     </Fragment>
   );
+
+  return <Body>{content}</Body>;
 }
 
 /**
@@ -929,6 +1080,45 @@ function makeMenuItemFromAction(
   };
 }
 
+function CommandPaletteHints() {
+  return (
+    <Stack padding="0 2xs">
+      <Stack.Separator border="muted" />
+      <Flex align="center" justify="between" padding="xs 0 2xs 0">
+        <Flex align="center" gap="lg">
+          <Flex align="center" gap="xs">
+            <Flex align="center" gap="2xs">
+              <Hotkey variant="debossed" value="up" />
+              <Hotkey variant="debossed" value="down" />
+            </Flex>
+            <Text size="xs" variant="muted">
+              {t('Move')}
+            </Text>
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value="enter" />
+            <Text size="xs" variant="muted">
+              {t('Select')}
+            </Text>
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value="shift+enter" />
+            <Text size="xs" variant="muted">
+              {t('New tab')}
+            </Text>
+          </Flex>
+        </Flex>
+        <Flex align="center" gap="xs">
+          <Text size="xs" variant="muted">
+            {t('Toggle Command Palette')}
+          </Text>
+          <Hotkey variant="debossed" value="command+k" />
+        </Flex>
+      </Flex>
+    </Stack>
+  );
+}
+
 function CommandPaletteNoResults() {
   return (
     <Flex
@@ -970,9 +1160,9 @@ const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
 `;
 
-const StyledInputGroupInput = styled(InputGroup.Input)`
+const StyledInputGroupInput = styled(InputGroup.Input)<{seerEnabled?: boolean}>`
   padding-left: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space.md});
-  padding-right: 38px;
+  padding-right: ${p => (p.seerEnabled ? '104px' : '38px')};
 `;
 
 const ResultsList = styled(Flex)`
@@ -990,3 +1180,17 @@ const ResultsList = styled(Flex)`
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;
+
+export const modalCss = (theme: Theme) => {
+  return css`
+    [role='document'] {
+      padding: ${theme.space.xs};
+
+      background-color: ${theme.tokens.background.primary};
+      border-radius: ${theme.radius.xl};
+      border-bottom-right-radius: ${theme.radius.md};
+      border-bottom-left-radius: ${theme.radius.md};
+      will-change: transform;
+    }
+  `;
+};

@@ -1,10 +1,8 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
-import type {FeedbackEvent, FeedbackIssue} from 'sentry/utils/feedback/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
@@ -14,24 +12,13 @@ interface Props {
 
 export function useFetchFeedbackData({feedbackId}: Props) {
   const organization = useOrganization();
-  const {getItemQueryKeys} = useFeedbackApiOptions();
-  const {issueQueryKey, eventQueryKey} = getItemQueryKeys(feedbackId);
+  const {getItemApiOptions} = useFeedbackApiOptions();
+  const {issueApiOptions, eventApiOptions} = getItemApiOptions(feedbackId);
 
-  const {data: issueData, ...issueResult} = useApiQuery<FeedbackIssue>(
-    issueQueryKey ?? ([''] as unknown as ApiQueryKey),
-    {
-      staleTime: 0,
-      enabled: Boolean(issueQueryKey),
-    }
-  );
+  const issueResult = useQuery(issueApiOptions);
+  const issueData = issueResult.data;
 
-  const {data: eventData, ...eventResult} = useApiQuery<FeedbackEvent>(
-    eventQueryKey ?? ([''] as unknown as ApiQueryKey),
-    {
-      staleTime: 0,
-      enabled: Boolean(eventQueryKey),
-    }
-  );
+  const {data: eventData} = useQuery(eventApiOptions);
 
   const {markAsRead} = useMutateFeedback({
     feedbackIds: [feedbackId],
@@ -54,7 +41,6 @@ export function useFetchFeedbackData({feedbackId}: Props) {
 
   return {
     eventData,
-    eventResult,
     issueData,
     issueResult,
   };
