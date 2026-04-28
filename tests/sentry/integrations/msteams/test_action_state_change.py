@@ -10,6 +10,8 @@ from requests import PreparedRequest
 from rest_framework.response import Response
 
 from sentry.api.client import ApiClient
+from sentry.constants import ObjectStatus
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams.card_builder.identity import build_linking_card
 from sentry.integrations.msteams.constants import SALT
 from sentry.integrations.msteams.link_identity import build_linking_url
@@ -284,6 +286,23 @@ class StatusActionTest(APITestCase):
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_action_rejected_when_organization_integration_is_not_active(
+        self, verify: MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.org.id,
+                integration=self.integration,
+            ).update(status=ObjectStatus.PENDING_DELETION)
+
+        resp = self.post_webhook(action_type=ACTION_TYPE.ARCHIVE, archive_input="-1")
+
+        assert resp.status_code == 404
+        self.group1.refresh_from_db()
+        assert self.group1.get_status() == GroupStatus.UNRESOLVED
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

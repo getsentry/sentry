@@ -575,9 +575,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             if integration is None:
                 group = None
-            elif not integration_service.get_organization_integration(
+            elif not integration_service.get_organization_integrations(
                 organization_id=group.project.organization_id,
                 integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+                limit=1,
             ):
                 group = None
 
