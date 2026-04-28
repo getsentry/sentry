@@ -38,7 +38,9 @@ class RepositoryDeletionTask(ModelDeletionTask[Repository]):
 
         transaction.on_commit(
             lambda oid=instance.organization_id,
-            rid=instance.id: notify_seer_repository_deleted.delay(oid, rid),
+            rid=instance.id,
+            prov=instance.provider,
+            rname=instance.name: notify_seer_repository_deleted.delay(oid, rid, prov, rname),
             using=router.db_for_write(Repository),
         )
 

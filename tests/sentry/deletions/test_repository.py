@@ -37,7 +37,7 @@ class DeleteRepositoryTest(TransactionTestCase, HybridCloudTestMixin):
         with self.tasks():
             run_scheduled_deletions()
 
-        mock_notify_seer.delay.assert_called_once_with(org.id, repo.id)
+        mock_notify_seer.delay.assert_called_once_with(org.id, repo.id, repo.provider, repo.name)
         assert not Repository.objects.filter(id=repo.id).exists()
 
     def test_simple(self) -> None:

@@ -13,6 +13,8 @@ class NotifySeerRepositoryDeletedTest(TestCase):
         super().setUp()
         self.organization_id = 12345
         self.repository_id = 67890
+        self.provider = "integrations:github"
+        self.repository_name = "acme/widget"
 
     @patch("sentry.deletions.tasks.seer_repository_deleted.make_seer_request")
     @patch("sentry.deletions.tasks.seer_repository_deleted.logger")
@@ -21,7 +23,12 @@ class NotifySeerRepositoryDeletedTest(TestCase):
     ) -> None:
         mock_make_seer_request.return_value = b"{}"
 
-        notify_seer_repository_deleted(self.organization_id, self.repository_id)
+        notify_seer_repository_deleted(
+            self.organization_id,
+            self.repository_id,
+            self.provider,
+            self.repository_name,
+        )
 
         mock_make_seer_request.assert_called_once()
         kwargs = mock_make_seer_request.call_args.kwargs
@@ -29,6 +36,8 @@ class NotifySeerRepositoryDeletedTest(TestCase):
         assert kwargs["payload"] == {
             "organization_id": self.organization_id,
             "repository_id": self.repository_id,
+            "provider": self.provider,
+            "repository_name": self.repository_name,
         }
         assert kwargs["viewer_context"]["organization_id"] == self.organization_id
 
@@ -37,6 +46,8 @@ class NotifySeerRepositoryDeletedTest(TestCase):
             extra={
                 "organization_id": self.organization_id,
                 "repository_id": self.repository_id,
+                "provider": self.provider,
+                "repository_name": self.repository_name,
             },
         )
 
@@ -45,6 +56,11 @@ class NotifySeerRepositoryDeletedTest(TestCase):
         mock_make_seer_request.side_effect = RuntimeError("seer unavailable")
 
         with pytest.raises(RuntimeError, match="seer unavailable"):
-            notify_seer_repository_deleted(self.organization_id, self.repository_id)
+            notify_seer_repository_deleted(
+                self.organization_id,
+                self.repository_id,
+                self.provider,
+                self.repository_name,
+            )
 
         mock_make_seer_request.assert_called_once()

@@ -22,9 +22,17 @@ _RETRY_DELAY_S = 60
     retry=Retry(times=_MAX_RETRIES, delay=_RETRY_DELAY_S, on=(HTTPError,)),
     silo_mode=SiloMode.CELL,
 )
-def notify_seer_repository_deleted(organization_id: int, repository_id: int, **kwargs: Any) -> None:
+def notify_seer_repository_deleted(
+    organization_id: int,
+    repository_id: int,
+    provider: str | None,
+    repository_name: str,
+    **kwargs: Any,
+) -> None:
     """
     Notify Seer that a repository was deleted from this Sentry region (code review offboard).
+
+    ``repository_name`` is the full repo identifier stored on ``Repository.name`` (e.g. ``owner/repo``).
     """
     viewer_context = SeerViewerContext(organization_id=organization_id)
     make_seer_request(
@@ -32,6 +40,8 @@ def notify_seer_repository_deleted(organization_id: int, repository_id: int, **k
         payload={
             "organization_id": organization_id,
             "repository_id": repository_id,
+            "provider": provider,
+            "repository_name": repository_name,
         },
         viewer_context=viewer_context,
     )
@@ -40,5 +50,7 @@ def notify_seer_repository_deleted(organization_id: int, repository_id: int, **k
         extra={
             "organization_id": organization_id,
             "repository_id": repository_id,
+            "provider": provider,
+            "repository_name": repository_name,
         },
     )
