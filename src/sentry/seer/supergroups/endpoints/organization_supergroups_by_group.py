@@ -25,6 +25,12 @@ from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
+# When the union of group_ids across all supergroups exceeds this, we skip the
+# per-group fan-out: the status filter (which would prune resolved ids from
+# each supergroup) and assignee lookups. Counts/group_ids then reflect what
+# Seer returned, and assignees come back empty.
+_MAX_GROUPS_FOR_FETCH = 100
+
 
 class OrganizationSupergroupsByGroupPermission(OrganizationPermission):
     scope_map = {
@@ -87,11 +93,11 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
 
         # Seer returns every group_id in each supergroup regardless of request. We apply any
         # filters from the request after we get the data from Seer.
-        if status_param:
-            all_response_group_ids: list[int] = []
-            for sg in data["data"]:
-                all_response_group_ids.extend(sg["group_ids"])
+        all_response_group_ids = {gid for sg in data["data"] for gid in sg["group_ids"]}
+        if len(all_response_group_ids) > _MAX_GROUPS_FOR_FETCH:
+            return Response({"data": data["data"], "meta": {"estimated": True}})
 
+        if status_param:
             matching_ids = set(
                 Group.objects.filter(
                     id__in=all_response_group_ids,
@@ -104,7 +110,12 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
             data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
 
-        return Response({"data": _add_assignees(organization, data["data"])})
+        return Response(
+            {
+                "data": _add_assignees(organization, data["data"]),
+                "meta": {"estimated": False},
+            }
+        )
 
 
 def _add_assignees(
