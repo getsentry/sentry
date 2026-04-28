@@ -140,6 +140,12 @@ runs:
       run: |
         sentry init
 
+        # Prevent git from spawning background gc/maintenance processes during
+        # dependency clones, which races with shutil.copytree (git 2.54 regression).
+        git config --global gc.auto 0
+        git config --global maintenance.auto 0
+        git config --global fetch.writeCommitGraph false
+
         # This is necessary to bring up devservices with appropriate sentry config
         cd "$WORKDIR"
 
