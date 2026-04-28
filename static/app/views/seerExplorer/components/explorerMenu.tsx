@@ -330,7 +330,7 @@ function useSlashCommands({
             },
           ]
         : []),
-      ...(onCodeMode
+      ...(isSentryEmployee && onCodeMode
         ? [
             {
               title: '/code-mode-off',
