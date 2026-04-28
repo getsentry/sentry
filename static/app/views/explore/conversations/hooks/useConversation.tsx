@@ -184,10 +184,7 @@ export function useConversation(
   const hasConversationTimestamps =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
-  // Ignore page-filter project and stats period so the conversation is always
-  // found regardless of the current selection. When conversation timestamps
-  // are provided, narrow the window with 1-hour padding; otherwise let the
-  // backend default to its full retention range.
+  // Ignore page filters so the conversation is always found.
   const queryParams = {
     project: [ALL_ACCESS_PROJECTS],
     per_page: 1000,
