@@ -3,7 +3,7 @@
 !src/sentry
 !src/sentry/static
 !src/sentry/static/sentry/images
-!src/sentry/static/sentry/images/logos/**
+!src/sentry/static/sentry/images/**
 !src/sentry/locale
 !src/sentry/locale/**
 !build-utils
