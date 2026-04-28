@@ -20,12 +20,12 @@ const aliases: Record<string, string> = {
   '\u2303': 'control', // ⌃
   option: 'alt',
   '\u2325': 'alt', // ⌥
-  '\u21e7': 'shift', // ⇧
+  '\u21E7': 'shift', // ⇧
   return: 'enter',
   esc: 'escape',
   del: 'delete',
   ins: 'insert',
-  '\u21ea': 'capslock', // ⇪
+  '\u21EA': 'capslock', // ⇪
 };
 
 function canonicalize(keyName: string): string {
@@ -111,13 +111,13 @@ const otherGlyphs: Record<string, KeyGlyph> = {
 
 // same glyph on all platforms
 const universalGlyphs: Record<string, KeyGlyph> = {
-  shift: {icon: <IconShift {...sharedProps} />, label: '\u21e7'},
-  enter: {icon: <IconReturn {...sharedProps} />, label: '\u21b5'},
+  shift: {icon: <IconShift {...sharedProps} />, label: '\u21E7'},
+  enter: {icon: <IconReturn {...sharedProps} />, label: '\u21B5'},
   left: {icon: <IconArrow {...sharedProps} direction="left" />, label: '\u2190'},
   right: {icon: <IconArrow {...sharedProps} direction="right" />, label: '\u2192'},
   up: {icon: <IconArrow {...sharedProps} direction="up" />, label: '\u2191'},
   down: {icon: <IconArrow {...sharedProps} direction="down" />, label: '\u2193'},
-  backspace: {label: '\u232b'},
+  backspace: {label: '\u232B'},
   delete: {label: 'Del'},
   tab: {label: 'Tab'},
   escape: {label: 'Esc'},

@@ -88,13 +88,27 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
         assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
 
-    def test_images_changed_always_fails(self):
+    def test_images_changed_fails_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
         assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
 
-    def test_images_renamed_always_fails(self):
+    def test_images_changed_ignored_when_flag_off(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
+        assert (
+            self._status_with_changes_map(artifact, metrics, fail_on_changed=False)
+            == StatusCheckStatus.SUCCESS
+        )
+
+    def test_images_renamed_ignored_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
-        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
+        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.SUCCESS
+
+    def test_images_renamed_fails_when_flag_on(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
+        assert (
+            self._status_with_changes_map(artifact, metrics, fail_on_renamed=True)
+            == StatusCheckStatus.FAILURE
+        )
 
     def test_no_changes_succeeds(self):
         artifact, metrics, _ = self._make_artifact_with_comparison()
@@ -137,10 +151,37 @@ class BuildChangesMapTest(SnapshotTasksTestBase):
         )
         assert changes_map[artifact.id] is True
 
-    def test_changed_always_detected(self):
+    def test_changed_detected_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
         changes_map = build_changes_map(
             [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
+        )
+        assert changes_map[artifact.id] is True
+
+    def test_changed_ignored_when_flag_off(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
+        changes_map = build_changes_map(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: _get_comparison(metrics)},
+            fail_on_changed=False,
+        )
+        assert not any(changes_map.values())
+
+    def test_renamed_ignored_by_default(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
+        changes_map = build_changes_map(
+            [artifact], {artifact.id: metrics}, {metrics.id: _get_comparison(metrics)}
+        )
+        assert not any(changes_map.values())
+
+    def test_renamed_detected_when_flag_on(self):
+        artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
+        changes_map = build_changes_map(
+            [artifact],
+            {artifact.id: metrics},
+            {metrics.id: _get_comparison(metrics)},
+            fail_on_renamed=True,
         )
         assert changes_map[artifact.id] is True
 
