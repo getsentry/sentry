@@ -397,15 +397,17 @@ def get_bundles_indexing_state(
     total_bundles = 0
     indexed_bundles = 0
 
+    organization_id = (
+        org_or_project.organization_id if isinstance(org_or_project, Project) else org_or_project.id
+    )
     filter: dict = {
+        "organization_id": organization_id,
+        "releaseartifactbundle__organization_id": organization_id,
         "releaseartifactbundle__release_name": release_name,
         "releaseartifactbundle__dist_name": dist_name,
     }
     if isinstance(org_or_project, Project):
-        filter["releaseartifactbundle__organization_id"] = org_or_project.organization.id
         filter["projectartifactbundle__project_id"] = org_or_project.id
-    else:
-        filter["releaseartifactbundle__organization_id"] = org_or_project.id
 
     query = (
         ArtifactBundle.objects.filter(**filter)
