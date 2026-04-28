@@ -183,6 +183,7 @@ export function OnboardingWithoutContext() {
   const hasNewWelcomeUI = useHasNewWelcomeUI();
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
+    reportExposure: true,
   });
 
   // Only report exposure for users who are actually in SCM onboarding —

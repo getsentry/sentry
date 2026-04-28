@@ -9,7 +9,7 @@ import {_resetExposureTracking, useExperiment} from 'getsentry/hooks/useExperime
 
 function TestComponent({
   feature,
-  reportExposure,
+  reportExposure = true,
 }: {
   feature: string;
   reportExposure?: boolean;

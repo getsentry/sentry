@@ -23,10 +23,12 @@ export interface UseExperimentOptions {
   feature: string;
   /**
    * Whether to report that the user has been exposed to this experiment.
-   * When true (the default), the hook will fire an exposure event on mount,
-   * recording that the user has "seen" the experiment. Set to false when you
-   * need to check the assignment without triggering exposure — for example,
-   * to conditionally render a feature only if other criteria are also met.
+   * Defaults to false. Set to true at the single call site that represents
+   * the user actually seeing the experiment so exposure is counted exactly
+   * once. The backend org serializer already auto-logs exposure for every
+   * experiment-mode flagpole flag, so this option exists mainly for the
+   * synchronous browser-side Amplitude group property write that needs to
+   * win the race against events fired on the same mount.
    *
    * This option is reactive: changing it from false to true will report
    * exposure at that point.
@@ -56,7 +58,8 @@ function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
  * @param options.feature - The experiment key, matching the flagpole flag name
  *   without the "organizations:" prefix (e.g. "my-experiment").
  * @param options.reportExposure - Whether to log an exposure event. Defaults
- *   to true. Set to false to check the assignment without exposing the user.
+ *   to false. Set to true at the single call site that represents the user
+ *   actually seeing the experiment.
  *
  * @example
  * ```tsx
