@@ -240,9 +240,6 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
     explore_dataset = _get_explore_dataset(url)
     dataset_config = _get_explore_dataset_config(explore_dataset)
 
-    # Parse visualization params from the URL.
-    # Each metric uses a "metric" JSON param with nested aggregateFields.
-    # Traces uses "visualize" and logs uses "aggregateField".
     y_axes: list[str] = []
     group_bys: list[str] = []
     chart_type: int | None = None
