@@ -1185,7 +1185,7 @@ class SimpleGroupSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
-        issue_category = obj.issue_category_v2.name.lower()
+        issue_category = obj.issue_category.name.lower()
 
         return SimpleGroupSerializerResponse(
             id=str(obj.id),
