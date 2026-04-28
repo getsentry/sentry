@@ -152,7 +152,9 @@ export function CommandPalette({
     return nodes;
   }, [store, state.action]);
 
-  const [actions, prefixMap] = useMemo<[CMDKFlatItem[], Map<string, string[]>]>(() => {
+  const [actions, prefixMap, isSeerFallback] = useMemo<
+    [CMDKFlatItem[], Map<string, string[]>, boolean]
+  >(() => {
     const [scored, scoredPrefixMap] = state.query
       ? (() => {
           const scores = new Map<string, CommandPaletteScore>();
@@ -174,7 +176,7 @@ export function CommandPalette({
       !isLoading &&
       !isEmptyPromptQuery;
 
-    if (!showSeerFallback) return [scored, scoredPrefixMap];
+    if (!showSeerFallback) return [scored, scoredPrefixMap, false];
 
     const truncated =
       state.query.length > 24 ? state.query.slice(0, 24) + '...' : state.query;
@@ -210,7 +212,7 @@ export function CommandPalette({
         : []),
     ];
 
-    return [fallback, new Map()];
+    return [fallback, new Map(), true];
   }, [
     currentNodes,
     state.action,
@@ -222,7 +224,7 @@ export function CommandPalette({
     openForm,
   ]);
 
-  const analytics = useCommandPaletteAnalytics(actions.length);
+  const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
 
   const sectionKeys = useMemo(() => {
     return new Set(
