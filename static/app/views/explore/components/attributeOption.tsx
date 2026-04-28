@@ -57,7 +57,7 @@ export function buildAttributeOptions({
   // the first occurrence by `option.value`. Number/MEASUREMENT comes before
   // string/TAG and boolean/BOOLEAN so that a key present in multiple typed
   // collections preserves its measurement variant, matching the hand-rolled
-  // hand-rolled ordering before this helper was extracted.
+  // ordering before this helper was extracted.
   return [
     ...Object.values(numberTags).map(tag => optionFromTag(tag, traceItemType)),
     ...Object.values(stringTags).map(tag => optionFromTag(tag, traceItemType)),
