@@ -104,16 +104,12 @@ export function SnapshotMainContent({
         return;
       }
       if (e.key === 'ArrowUp' && canNavigatePrev) {
-        e.preventDefault();
         setPressedDir('up');
-        onNavigateSingleView('prev');
       } else if (e.key === 'ArrowDown' && canNavigateNext) {
-        e.preventDefault();
         setPressedDir('down');
-        onNavigateSingleView('next');
       }
     },
-    [viewMode, canNavigatePrev, canNavigateNext, onNavigateSingleView]
+    [viewMode, canNavigatePrev, canNavigateNext]
   );
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
