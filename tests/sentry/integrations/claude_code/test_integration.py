@@ -7,7 +7,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -234,7 +234,12 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
+            installation_vault_lookup=ANY,
+            installation_vault_writer=ANY,
         )
+        passed = mock_cls.call_args.kwargs
+        assert passed["installation_vault_lookup"] == installation.get_vault_id_for_installation
+        assert passed["installation_vault_writer"] == installation.set_vault_id_for_installation
 
     def test_get_client_with_environment_and_workspace(self) -> None:
         mock_cls, mock_client = _mock_client_class()
@@ -262,6 +267,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id="agent-123",
             agent_version=1,
             model=None,
+            installation_vault_lookup=ANY,
+            installation_vault_writer=ANY,
         )
 
     def test_get_client_passes_model_from_metadata(self) -> None:
@@ -284,6 +291,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model="claude-sonnet-4-6",
+            installation_vault_lookup=ANY,
+            installation_vault_writer=ANY,
         )
 
     def test_get_client_passes_none_model_when_metadata_has_none(self) -> None:
@@ -306,6 +315,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
             agent_id=None,
             agent_version=None,
             model=None,
+            installation_vault_lookup=ANY,
+            installation_vault_writer=ANY,
         )
 
     def test_get_client_class_not_configured(self) -> None:
@@ -412,6 +423,112 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
         assert "workspace_is_default" in fields
         assert fields["workspace_is_default"]["type"] == "boolean"
         assert "workspace_name" not in fields
+
+    # ── installation_vault_ids helpers ───────────────────────────────
+
+    def test_installation_vault_ids_default_empty(self) -> None:
+        installation = self._create_installation()
+        assert installation.get_vault_id_for_installation(42) is None
+
+    def test_installation_vault_ids_round_trip(self) -> None:
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_pre"},
+        )
+        assert installation.get_vault_id_for_installation(42) == "vault_pre"
+
+    def test_set_vault_id_for_installation_writes_metadata(self) -> None:
+        installation = self._create_installation()
+
+        installation.set_vault_id_for_installation(42, "vault_abc")
+
+        assert installation.get_vault_id_for_installation(42) == "vault_abc"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {"42": "vault_abc"}
+
+    def test_set_vault_id_for_installation_merges_concurrent_writer(self) -> None:
+        installation = self._create_installation()
+
+        original_read = installation._read_fresh_metadata
+
+        def read_with_concurrent_writer():
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                Integration.objects.filter(id=installation.model.id).update(
+                    metadata={
+                        **installation.model.metadata,
+                        "installation_vault_ids": {"99": "vault_other"},
+                    }
+                )
+            return original_read()
+
+        with patch.object(
+            installation, "_read_fresh_metadata", side_effect=read_with_concurrent_writer
+        ):
+            installation.set_vault_id_for_installation(42, "vault_mine")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {
+            "99": "vault_other",
+            "42": "vault_mine",
+        }
+
+    def test_pop_vault_id_for_installation_removes_and_returns(self) -> None:
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_abc", "7": "vault_xyz"},
+        )
+
+        popped = installation.pop_vault_id_for_installation(42)
+
+        assert popped == "vault_abc"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {"7": "vault_xyz"}
+
+    def test_pop_vault_id_for_installation_missing_returns_none(self) -> None:
+        installation = self._create_installation()
+
+        assert installation.pop_vault_id_for_installation(42) is None
+
+    # ── uninstall ────────────────────────────────────────────────────
+
+    def test_uninstall_archives_each_vault_and_clears_metadata(self) -> None:
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_a", "7": "vault_b"},
+        )
+        mock_cls, mock_client = _mock_client_class()
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        archive_calls = [c.args[0] for c in mock_client.archive_vault.call_args_list]
+        assert sorted(archive_calls) == ["vault_a", "vault_b"]
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {}
+
+    def test_uninstall_no_vaults_is_a_noop(self) -> None:
+        installation = self._create_installation()
+        mock_cls, mock_client = _mock_client_class()
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        mock_client.archive_vault.assert_not_called()
+
+    def test_uninstall_clears_metadata_even_when_archive_fails(self) -> None:
+        installation = self._create_installation(
+            installation_vault_ids={"42": "vault_a"},
+        )
+        mock_cls, mock_client = _mock_client_class()
+        mock_client.archive_vault.side_effect = RuntimeError("anthropic api blew up")
+
+        with patch(MOCK_GET_CLIENT_CLASS, return_value=mock_cls):
+            installation.uninstall()
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=installation.model.id)
+        assert integration.metadata["installation_vault_ids"] == {}
 
     # ── launch ───────────────────────────────────────────────────────
 
