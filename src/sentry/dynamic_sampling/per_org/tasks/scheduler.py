@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import random
+from datetime import datetime, timezone
+
+import sentry_sdk
+from django.db.models import F
+from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
 from sentry.dynamic_sampling.per_org.tasks.gate import (
@@ -21,13 +27,12 @@ from sentry.dynamic_sampling.per_org.tasks.steps.outcomes_volume import (
 from sentry.dynamic_sampling.per_org.tasks.steps.recalibration import apply_recalibration
 from sentry.dynamic_sampling.per_org.tasks.steps.sliding_window import apply_sliding_window
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
-    SCHEDULER_BEAT_ORG_STATUS_METRIC,
-    SCHEDULER_BEAT_STATUS_METRIC,
+    SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     TelemetryStatus,
     emit_status,
     instrumented,
 )
-from sentry.dynamic_sampling.rules.utils import OrganizationId
+from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
@@ -35,6 +40,20 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
 from sentry.utils.query import RangeQuerySetWrapper
+
+BUCKET_COUNT = 10
+JITTER_WINDOW_SECONDS = 60
+BUCKET_CURSOR_KEY = "ds::per_org:bucket_cursor"
+
+
+def _next_bucket_index() -> int:
+    redis_client = get_redis_client_for_ds()
+    try:
+        next_value = redis_client.incr(BUCKET_CURSOR_KEY)
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+        return datetime.now(tz=timezone.utc).minute % BUCKET_COUNT
+    return (int(next_value) - 1) % BUCKET_COUNT
 
 
 @instrumented_task(
@@ -44,19 +63,43 @@ from sentry.utils.query import RangeQuerySetWrapper
     retry=Retry(times=0),
     silo_mode=SiloMode.CELL,
 )
-@dynamic_sampling_task
+@instrumented
 def schedule_per_org_calculations() -> None:
     if is_killswitch_engaged():
-        emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.KILLSWITCHED)
-        return
+        return TelemetryStatus.KILLSWITCHED
     if not is_rollout_enabled():
-        emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.ROLLOUT_DISABLED)
-        return
+        return TelemetryStatus.ROLLOUT_DISABLED
+
+    bucket_index = _next_bucket_index()
+    schedule_per_org_calculations_bucket.apply_async(args=(bucket_index,))
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket",
+    namespace=telemetry_experience_tasks,
+    processing_deadline_duration=5 * 60,
+    retry=Retry(times=3, delay=5),
+    silo_mode=SiloMode.CELL,
+)
+@instrumented
+def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
+    bucket_index = bucket_index % BUCKET_COUNT
+    bucket_tag = {"bucket_index": str(bucket_index)}
+
+    if is_killswitch_engaged():
+        return TelemetryStatus.KILLSWITCHED
+    if not is_rollout_enabled():
+        return TelemetryStatus.ROLLOUT_DISABLED
 
     dispatched = 0
     skipped = 0
+    queryset = (
+        Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+        .annotate(_bucket=Mod(F("id"), BUCKET_COUNT))
+        .filter(_bucket=bucket_index)
+    )
     orgs = RangeQuerySetWrapper[Organization](
-        Organization.objects.filter(status=OrganizationStatus.ACTIVE),
+        queryset,
         step=1000,
         result_value_getter=lambda o: o.id,
     )
@@ -65,19 +108,32 @@ def schedule_per_org_calculations() -> None:
         if not is_org_in_rollout(org.id):
             skipped += 1
             continue
-        run_calculations_per_org_task.apply_async(args=(org.id,))
+        # jitter the tasks over the entire bucket to avoid spawning all tasks at once
+        run_calculations_per_org_task.apply_async(
+            args=(org.id,),
+            countdown=random.randint(0, JITTER_WINDOW_SECONDS),
+        )
         dispatched += 1
 
-    emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.COMPLETED)
-    emit_status(SCHEDULER_BEAT_ORG_STATUS_METRIC, TelemetryStatus.DISPATCHED, amount=dispatched)
-    emit_status(SCHEDULER_BEAT_ORG_STATUS_METRIC, TelemetryStatus.ROLLOUT_EXCLUDED, amount=skipped)
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        TelemetryStatus.DISPATCHED,
+        amount=dispatched,
+        extra_tags=bucket_tag,
+    )
+    emit_status(
+        SCHEDULER_BUCKET_ORG_STATUS_METRIC,
+        TelemetryStatus.ROLLOUT_EXCLUDED,
+        amount=skipped,
+        extra_tags=bucket_tag,
+    )
+    return TelemetryStatus.COMPLETED
 
 
 @instrumented_task(
     name="sentry.dynamic_sampling.per_org.run_calculations_per_org",
     namespace=telemetry_experience_tasks,
-    processing_deadline_duration=20 * 60 + 5,
-    retry=Retry(times=5, delay=5),
+    processing_deadline_duration=2 * 60,  # 2 minute timeout per org
     silo_mode=SiloMode.CELL,
 )
 @dynamic_sampling_task
