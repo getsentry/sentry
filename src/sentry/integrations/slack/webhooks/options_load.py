@@ -13,7 +13,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
+from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.message_builder import format_actor_options_slack
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.options_load import SlackOptionsLoadRequest
 from sentry.models.group import Group
@@ -98,6 +100,14 @@ class SlackOptionsLoadEndpoint(Endpoint):
             .filter(id=slack_request.group_id)
             .first()
         )
+
+        if group and not integration_service.get_organization_integrations(
+            organization_id=group.project.organization_id,
+            integration_id=slack_request.integration.id,
+            status=ObjectStatus.ACTIVE,
+            limit=1,
+        ):
+            group = None
 
         if not group:
             _logger.warning(
