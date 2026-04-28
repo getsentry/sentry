@@ -32,7 +32,6 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
     ),
     "sum": AggregateDefinition(
         internal_function=Function.FUNCTION_SUM,
-        infer_search_type_from_arguments=True,
         default_search_type="integer",
         arguments=[
             AttributeArgumentDefinition(
@@ -40,6 +39,42 @@ REPLAYS_AGGREGATE_DEFINITIONS = {
                     "duration",
                     "number",
                     "integer",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "min": AggregateDefinition(
+        internal_function=Function.FUNCTION_MIN,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
+                    "currency",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            )
+        ],
+    ),
+    "max": AggregateDefinition(
+        internal_function=Function.FUNCTION_MAX,
+        default_search_type="duration",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "string",
+                    "duration",
+                    "number",
+                    "integer",
+                    "percentage",
                     "currency",
                     *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,

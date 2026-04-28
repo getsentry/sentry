@@ -59,7 +59,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
-        dataset = self.get_dataset(request)
+        dataset = self.get_dataset(request, organization)
 
         def data_fn(offset, limit):
             query_details = {

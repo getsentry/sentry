@@ -171,7 +171,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
 
-            dataset = self.get_dataset(request)
+            dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
             if top_events > 0:
                 if dataset not in TOP_EVENTS_DATASETS:
