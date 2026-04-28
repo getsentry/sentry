@@ -54,8 +54,23 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="git_base_ref",
+            internal_name="git_base_ref",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_base_sha",
+            internal_name="git_base_sha",
+            search_type="string",
+        ),
+        ResolvedAttribute(
             public_alias="git_head_ref",
             internal_name="git_head_ref",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="git_head_sha",
+            internal_name="git_head_sha",
             search_type="string",
         ),
         ResolvedAttribute(
