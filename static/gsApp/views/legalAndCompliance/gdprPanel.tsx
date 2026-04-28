@@ -6,7 +6,7 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid, Stack} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -159,21 +159,22 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
           subscription.gdprDetails[`${prefix}Email`]
         )
       : false;
-    const contactDetails = subscription.gdprDetails ? (
-      <ContactDetailsWrapper>
-        <div>
-          <strong>{subscription.gdprDetails[`${prefix}Name`]}</strong> (
-          {subscription.gdprDetails[`${prefix}Email`]})
-        </div>
-        <div>
-          <div>{subscription.gdprDetails[`${prefix}Address`]}</div>
-          <div>{subscription.gdprDetails[`${prefix}Phone`]}</div>
-        </div>
-      </ContactDetailsWrapper>
-    ) : null;
+    const contactDetails =
+      hasInformation && subscription.gdprDetails ? (
+        <Stack gap="0">
+          <Text>
+            <Text bold>{subscription.gdprDetails[`${prefix}Name`]}</Text> (
+            {subscription.gdprDetails[`${prefix}Email`]})
+          </Text>
+          <Text>{subscription.gdprDetails[`${prefix}Address`]}</Text>
+          <Text>{subscription.gdprDetails[`${prefix}Phone`]}</Text>
+        </Stack>
+      ) : (
+        <Text>{t('There is no information on file for this contact.')}</Text>
+      );
 
     return hasAccess ? (
-      <div>
+      <Stack gap="sm" align="start">
         {contactDetails}
         <Button
           size="xs"
@@ -194,13 +195,9 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
         >
           {hasInformation ? t('Update Details') : t('Add Contact Details')}
         </Button>
-      </div>
+      </Stack>
     ) : (
-      <div>
-        {hasInformation
-          ? contactDetails
-          : t('There is no information on file for this contact.')}
-      </div>
+      <div>{contactDetails}</div>
     );
   }
 
@@ -211,26 +208,26 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
         <ItemLayout>
           <div>
             <div>{sectionTitles.euRep}</div>
-            <SubText>
+            <Text variant="muted" size="sm">
               {t(
                 `Person designated, where applicable, to represent customers not
                  established in the EU with regard to their obligations under the
                  General Data Protection Regulation (GDPR).`
               )}
-            </SubText>
+            </Text>
           </div>
           {getAction('euRep')}
         </ItemLayout>
         <ItemLayout>
           <div>
             <div>{sectionTitles.dpo}</div>
-            <SubText>
+            <Text variant="muted" size="sm">
               {t(
                 `Person designated, where applicable, to facilitate compliance with the
                  provisions of the GDPR, which defines the criteria and the conditions
                  under which a data protection officer shall be designated.`
               )}
-            </SubText>
+            </Text>
           </div>
           {getAction('dpo')}
         </ItemLayout>
@@ -243,14 +240,4 @@ const ItemLayout = styled(PanelItem)`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: ${p => p.theme.space['3xl']};
-`;
-
-const SubText = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const ContactDetailsWrapper = styled('div')`
-  margin-bottom: ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.font.size.sm};
 `;
