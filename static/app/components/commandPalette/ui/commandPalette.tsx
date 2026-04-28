@@ -430,6 +430,7 @@ export function CommandPalette({
                   </AnimatePresence>
                 </StyledInputLeadingItems>
                 <StyledInputGroupInput
+                  seerEnabled={seerExplorerEnabled}
                   autoFocus
                   ref={state.input}
                   value={state.query}
@@ -1066,8 +1067,11 @@ function CommandPaletteNoResults({
     return (
       <Flex direction="column" paddingTop="xs">
         <Flex padding="sm md">
-          <Text size="sm" variant="muted">
-            {t('No results for "%s"', query)}
+          <Text size="sm" bold variant="primary">
+            {t(
+              'No results for "%s"',
+              query.length > 24 ? query.slice(0, 24) + '...' : query
+            )}
           </Text>
         </Flex>
         <NoResultsAction
@@ -1087,7 +1091,9 @@ function CommandPaletteNoResults({
               <IconSeer />
             </IconDefaultsProvider>
           </Flex>
-          <Text size="sm">{t('Ask Seer')}</Text>
+          <Text size="sm" ellipsis>
+            {query ? t('Ask Seer: %s', query) : t('Ask Seer')}
+          </Text>
         </NoResultsAction>
         {openForm && (
           <NoResultsAction
@@ -1107,7 +1113,7 @@ function CommandPaletteNoResults({
                 <IconMegaphone />
               </IconDefaultsProvider>
             </Flex>
-            <Text size="sm">{t('Give Feedback')}</Text>
+            <Text size="sm">{t('Tell us what to improve')}</Text>
           </NoResultsAction>
         )}
       </Flex>
@@ -1164,9 +1170,9 @@ const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
 `;
 
-const StyledInputGroupInput = styled(InputGroup.Input)`
+const StyledInputGroupInput = styled(InputGroup.Input)<{seerEnabled?: boolean}>`
   padding-left: calc(${p => p.theme.space['2xl']} + ${p => p.theme.space.md});
-  padding-right: 38px;
+  padding-right: ${p => (p.seerEnabled ? '104px' : '38px')};
 `;
 
 const ResultsList = styled(Flex)`
