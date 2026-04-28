@@ -94,20 +94,41 @@ type Props = {
   resetValues?: ResetValues;
 };
 
-function cloneSchemaFields(fields?: FieldFromSchema[]) {
+function cloneSchemaFields(
+  fields?: FieldFromSchema[],
+  getFieldDefault?: (field: FieldFromSchema) => string
+) {
   return (
-    fields?.map(field => ({
-      ...field,
-      choices: field.choices ? [...field.choices] : field.choices,
-      depends_on: field.depends_on ? [...field.depends_on] : field.depends_on,
-    })) ?? []
+    fields?.map(field => {
+      const nextField: FieldFromSchema = {
+        ...field,
+        choices: field.choices ? [...field.choices] : field.choices,
+        depends_on: field.depends_on ? [...field.depends_on] : field.depends_on,
+      };
+
+      if (nextField.default && getFieldDefault) {
+        nextField.defaultValue = getFieldDefault(nextField);
+      }
+
+      return nextField;
+    }) ?? []
   );
 }
 
-function cloneSchemaConfig(config: SchemaFormConfig): FieldGroups {
+function cloneSchemaConfig(
+  config: SchemaFormConfig,
+  getFieldDefault?: (field: FieldFromSchema) => string
+): FieldGroups {
   return {
-    required_fields: cloneSchemaFields(config.required_fields),
-    optional_fields: cloneSchemaFields(config.optional_fields),
+    required_fields: cloneSchemaFields(config.required_fields, getFieldDefault),
+    optional_fields: cloneSchemaFields(config.optional_fields, getFieldDefault),
+  };
+}
+
+function cloneFieldGroups(fieldGroups: FieldGroups): FieldGroups {
+  return {
+    required_fields: cloneSchemaFields(fieldGroups.required_fields),
+    optional_fields: cloneSchemaFields(fieldGroups.optional_fields),
   };
 }
 
@@ -180,7 +201,6 @@ function toSelectValues(
 function getBaseFieldDefaultValue(
   field: FieldFromSchema,
   externalDefaultValues: Record<string, unknown>,
-  getFieldDefault: ((field: FieldFromSchema) => string) | undefined,
   resetValues: ResetValues | undefined
 ) {
   if (Object.prototype.hasOwnProperty.call(externalDefaultValues, field.name)) {
@@ -188,10 +208,6 @@ function getBaseFieldDefaultValue(
   }
 
   let defaultValue = field.defaultValue;
-
-  if (field.default && getFieldDefault) {
-    defaultValue = getFieldDefault(field);
-  }
 
   const resetValue = getSavedSetting(resetValues, field.name);
   if (resetValue) {
@@ -206,14 +222,12 @@ function getEffectiveFieldValue({
   externalDefaultValues,
   fieldGroups,
   fieldName,
-  getFieldDefault,
   resetValues,
 }: {
   currentFormValues: Record<string, unknown>;
   externalDefaultValues: Record<string, unknown>;
   fieldGroups: FieldGroups;
   fieldName: string;
-  getFieldDefault?: (field: FieldFromSchema) => string;
   resetValues?: ResetValues;
 }) {
   if (Object.prototype.hasOwnProperty.call(currentFormValues, fieldName)) {
@@ -225,12 +239,7 @@ function getEffectiveFieldValue({
     return undefined;
   }
 
-  return getBaseFieldDefaultValue(
-    field,
-    externalDefaultValues,
-    getFieldDefault,
-    resetValues
-  );
+  return getBaseFieldDefaultValue(field, externalDefaultValues, resetValues);
 }
 
 export function SentryAppExternalForm({
@@ -246,8 +255,32 @@ export function SentryAppExternalForm({
   resetValues,
 }: Props) {
   const api = useApi({persistInFlight: true});
+  const serializedExtraFields = JSON.stringify(extraFields ?? {});
+  const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
+  const serializedResetValues = JSON.stringify(resetValues ?? {});
+  const serializedResolvedFieldGroups = JSON.stringify(
+    cloneSchemaConfig(config, getFieldDefault)
+  );
+
+  const normalizedExtraFields = useMemo(
+    () => JSON.parse(serializedExtraFields) as Record<string, unknown>,
+    [serializedExtraFields]
+  );
+  const normalizedExtraRequestBody = useMemo(
+    () => JSON.parse(serializedExtraRequestBody) as Record<string, unknown>,
+    [serializedExtraRequestBody]
+  );
+  const normalizedResetValues = useMemo(
+    () => JSON.parse(serializedResetValues) as ResetValues,
+    [serializedResetValues]
+  );
+  const resolvedFieldGroups = useMemo(
+    () => JSON.parse(serializedResolvedFieldGroups) as FieldGroups,
+    [serializedResolvedFieldGroups]
+  );
+
   const [fieldGroups, setFieldGroups] = useState<FieldGroups>(() =>
-    cloneSchemaConfig(config)
+    cloneFieldGroups(resolvedFieldGroups)
   );
   const currentFormValuesRef = useRef<Record<string, unknown>>({});
   const [dynamicFieldValues, setDynamicFieldValues] = useState<Record<string, unknown>>(
@@ -260,9 +293,6 @@ export function SentryAppExternalForm({
   const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
   const [isFetchingDependentFields, setIsFetchingDependentFields] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
-
-  const serializedExtraFields = JSON.stringify(extraFields ?? {});
-  const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
 
   const fetchFieldChoices = useCallback(
     async ({
@@ -283,7 +313,7 @@ export function SentryAppExternalForm({
       }
 
       const query: Record<string, unknown> = {
-        ...extraRequestBody,
+        ...normalizedExtraRequestBody,
         query: input,
         uri: field.uri,
       };
@@ -297,8 +327,7 @@ export function SentryAppExternalForm({
               externalDefaultValues: defaultValues,
               fieldGroups: nextFieldGroups,
               fieldName: dependentField,
-              getFieldDefault,
-              resetValues,
+              resetValues: normalizedResetValues,
             }),
           ])
         );
@@ -315,17 +344,17 @@ export function SentryAppExternalForm({
         defaultValue: response?.defaultValue,
       };
     },
-    [api, extraRequestBody, getFieldDefault, resetValues, sentryAppInstallationUuid]
+    [api, normalizedExtraRequestBody, normalizedResetValues, sentryAppInstallationUuid]
   );
 
   useEffect(() => {
     let isCancelled = false;
-    const nextFieldGroups = cloneSchemaConfig(config);
+    const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
     const nextTriggerFieldNames = new Set(
       getAllSchemaFields(nextFieldGroups).flatMap(field => field.depends_on ?? [])
     );
     const nextInitialValues =
-      element === 'alert-rule-action' ? getResetInitialValues(resetValues) : {};
+      element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
 
     setFieldGroups(nextFieldGroups);
     currentFormValuesRef.current = nextInitialValues;
@@ -351,8 +380,7 @@ export function SentryAppExternalForm({
                 externalDefaultValues: {},
                 fieldGroups: nextFieldGroups,
                 fieldName: dependentField,
-                getFieldDefault,
-                resetValues,
+                resetValues: normalizedResetValues,
               })
             )
           )
@@ -408,16 +436,7 @@ export function SentryAppExternalForm({
     return () => {
       isCancelled = true;
     };
-  }, [
-    action,
-    config,
-    element,
-    fetchFieldChoices,
-    getFieldDefault,
-    resetValues,
-    serializedExtraFields,
-    serializedExtraRequestBody,
-  ]);
+  }, [action, element, fetchFieldChoices, normalizedResetValues, resolvedFieldGroups]);
 
   const triggerFieldNames = useMemo(
     () =>
@@ -433,8 +452,7 @@ export function SentryAppExternalForm({
       const defaultValue = getBaseFieldDefaultValue(
         field,
         externalDefaultValues,
-        getFieldDefault,
-        resetValues
+        normalizedResetValues
       );
 
       const disabled =
@@ -447,8 +465,7 @@ export function SentryAppExternalForm({
                 externalDefaultValues,
                 fieldGroups,
                 fieldName: dependentField,
-                getFieldDefault,
-                resetValues,
+                resetValues: normalizedResetValues,
               })
             )
         );
@@ -480,7 +497,7 @@ export function SentryAppExternalForm({
           };
         case 'select':
           return {
-            choices: mergeFieldChoices(field, resetValues),
+            choices: mergeFieldChoices(field, normalizedResetValues),
             default: defaultValue,
             disabled,
             help: field.help,
@@ -515,8 +532,7 @@ export function SentryAppExternalForm({
     dynamicFieldValues,
     externalDefaultValues,
     fieldGroups,
-    getFieldDefault,
-    resetValues,
+    normalizedResetValues,
     triggerFieldNames,
   ]);
 
@@ -533,21 +549,21 @@ export function SentryAppExternalForm({
       nextQueryOptions[field.name] = debouncedInput =>
         // eslint-disable-next-line @tanstack/query/exhaustive-deps -- field/default state drives the request key; refs and state setters should not affect cache identity.
         queryOptions({
-          initialData: toSelectValues(mergeFieldChoices(field, resetValues)),
+          initialData: toSelectValues(mergeFieldChoices(field, normalizedResetValues)),
           queryKey: [
             'sentry-app-external-request',
             sentryAppInstallationUuid,
             field.name,
             field.uri,
             debouncedInput,
-            JSON.stringify(mergeFieldChoices(field, resetValues)),
+            JSON.stringify(mergeFieldChoices(field, normalizedResetValues)),
             dynamicFieldValues,
             externalDefaultValues,
             serializedExtraRequestBody,
           ],
           queryFn: async (): Promise<Array<SelectValue<string>>> => {
             if (!debouncedInput) {
-              return toSelectValues(mergeFieldChoices(field, resetValues));
+              return toSelectValues(mergeFieldChoices(field, normalizedResetValues));
             }
 
             const {choices} = await fetchFieldChoices({
@@ -579,7 +595,7 @@ export function SentryAppExternalForm({
     externalDefaultValues,
     fetchFieldChoices,
     fieldGroups,
-    resetValues,
+    normalizedResetValues,
     sentryAppInstallationUuid,
     serializedExtraRequestBody,
   ]);
@@ -677,14 +693,14 @@ export function SentryAppExternalForm({
       if (field.type !== 'select') {
         continue;
       }
-      lookup[field.name] = mergeFieldChoices(field, resetValues);
+      lookup[field.name] = mergeFieldChoices(field, normalizedResetValues);
     }
 
     return {
       ...lookup,
       ...asyncOptionsCache,
     };
-  }, [asyncOptionsCache, fieldGroups, resetValues]);
+  }, [asyncOptionsCache, fieldGroups, normalizedResetValues]);
 
   const submitDisabled = isFetchingDependentFields;
 
@@ -698,7 +714,7 @@ export function SentryAppExternalForm({
         url: `/sentry-app-installations/${sentryAppInstallationUuid}/external-issue-actions/`,
         method: 'POST',
         data: {
-          ...extraFields,
+          ...normalizedExtraFields,
           ...values,
           action,
           uri: config.uri,
