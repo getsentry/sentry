@@ -45,9 +45,9 @@ export const platformOptions: PlatformOptions = {
 };
 
 // Note: platformOptions is defined in index.tsx where it's used
-export type PlatformOptions = {
+export interface PlatformOptions {
   siblingOption: PlatformOption<SiblingOption>;
-};
+}
 export type Params = DocsParams<PlatformOptions>;
 
 const isAngular = (siblingOption: string): boolean =>

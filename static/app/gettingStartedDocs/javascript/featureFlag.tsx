@@ -3,12 +3,12 @@ import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStarted
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
-type FeatureFlagConfiguration = {
+interface FeatureFlagConfiguration {
   integrationName: string;
   makeConfigureCode: (dsn: string) => string;
   makeVerifyCode: () => string;
   packageName: string;
-};
+}
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
   FeatureFlagProviderEnum,
