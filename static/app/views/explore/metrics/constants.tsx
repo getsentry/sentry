@@ -65,7 +65,7 @@ export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
 
 const TRACEMETRICS_FILTERS: FilterKeySection = {
   value: 'tracemetrics_filters',
-  label: t('Metrics'),
+  label: t('Application Metrics'),
   children: [...SENTRY_TRACEMETRIC_STRING_TAGS, ...SENTRY_TRACEMETRIC_NUMBER_TAGS],
 };
 

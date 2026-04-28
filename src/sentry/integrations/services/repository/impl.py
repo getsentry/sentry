@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -12,7 +14,10 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.integrations.services.repository.serial import serialize_repository
+from sentry.models.code_review_event import CodeReviewEvent
+from sentry.models.commit import Commit
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.tasks.seer.cleanup import (
     bulk_cleanup_seer_repository_preferences,
@@ -164,6 +169,65 @@ class DatabaseBackedRepositoryService(RepositoryService):
                         ),
                         using=router.db_for_write(Repository),
                     )
+
+    def find_recently_active_repo_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+        cutoff_days: int,
+    ) -> list[str]:
+        if not external_ids:
+            return []
+
+        cutoff = timezone.now() - timedelta(days=cutoff_days)
+        repo_id_to_external = dict(
+            Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                external_id__in=external_ids,
+                status=ObjectStatus.ACTIVE,
+            ).values_list("id", "external_id")
+        )
+        if not repo_id_to_external:
+            return []
+
+        repo_ids = list(repo_id_to_external.keys())
+        active_repo_ids: set[int] = set()
+
+        active_repo_ids.update(
+            Commit.objects.filter(
+                repository_id__in=repo_ids,
+                date_added__gte=cutoff,
+            )
+            .values_list("repository_id", flat=True)
+            .distinct()
+        )
+        active_repo_ids.update(
+            PullRequest.objects.filter(
+                repository_id__in=repo_ids,
+                date_added__gte=cutoff,
+            )
+            .values_list("repository_id", flat=True)
+            .distinct()
+        )
+        active_repo_ids.update(
+            CodeReviewEvent.objects.filter(
+                organization_id=organization_id,
+                repository_id__in=repo_ids,
+                trigger_at__gte=cutoff,
+            )
+            .values_list("repository_id", flat=True)
+            .distinct()
+        )
+        return [
+            eid
+            for rid, eid in repo_id_to_external.items()
+            if rid in active_repo_ids and eid is not None
+        ]
 
     def disable_repositories_by_external_ids(
         self,
