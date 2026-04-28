@@ -216,7 +216,7 @@ function FilterActions({
       // Feed query in key ensures onAction closures reference the current query.
       // eslint-disable-next-line @tanstack/query/exhaustive-deps
       cmdkQueryOptions({
-        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query],
+        queryKey: [cacheKey, organization.slug, pageFilterCacheKey, query, tags.length],
         queryFn: () => tags.map(makeFilterKeyItem),
         staleTime: Infinity,
       });
