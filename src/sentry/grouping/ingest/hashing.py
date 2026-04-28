@@ -260,7 +260,13 @@ def get_or_create_grouphashes(
     hashes: Iterable[str],
     grouping_config_id: str,
 ) -> list[GroupHash]:
-    is_secondary = grouping_config_id == project.get_option("sentry:secondary_grouping_config")
+    # A config is only truly "secondary" if it matches the secondary config AND differs from the
+    # primary config. If they're the same (e.g., after a transition where the old primary became
+    # the secondary), we must not treat primary hashes as secondary or they'll be filtered out
+    # as non-existent, leaving grouphashes empty and breaking group assignment downstream.
+    is_secondary = grouping_config_id == project.get_option(
+        "sentry:secondary_grouping_config"
+    ) and grouping_config_id != project.get_option("sentry:grouping_config")
     use_caching = options.get("grouping.use_ingest_grouphash_caching")
     grouphashes: list[GroupHash] = []
 
