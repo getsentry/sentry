@@ -14,10 +14,10 @@ import type {Subscription} from 'getsentry/types';
 import {getTrialLength} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type ChildRenderProps = {
+interface ChildRenderProps {
   action: 'upgrade' | 'trial';
   hasBillingAccess: boolean;
-};
+}
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 

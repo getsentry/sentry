@@ -23,7 +23,7 @@ import {
   type GetsentryEventKey,
 } from 'getsentry/utils/trackGetsentryAnalytics';
 
-type ChildRenderProps = {
+interface ChildRenderProps {
   action:
     | 'start_trial'
     | 'send_to_checkout'
@@ -34,9 +34,9 @@ type ChildRenderProps = {
   defaultButtonText: string;
   hasBillingScope: boolean;
   onClick: (e?: React.MouseEvent) => void;
-};
+}
 
-type Props = {
+interface Props {
   api: Client;
   children: (opts: ChildRenderProps) => React.ReactNode;
   organization: Organization;
@@ -52,7 +52,7 @@ type Props = {
    * if true, non-billing users clicking will trigger trial and plan upgrade requests
    */
   triggerMemberRequests?: boolean;
-};
+}
 
 function LoadingButton(props: {
   defaultOnClick: () => void;

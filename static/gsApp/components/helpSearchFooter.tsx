@@ -7,10 +7,10 @@ import type {Organization} from 'sentry/types/organization';
 
 import ZendeskLink from 'getsentry/components/zendeskLink';
 
-type Props = {
+interface Props {
   closeModal: () => void;
   organization: Organization;
-};
+}
 
 export function HelpSearchFooter({organization, closeModal}: Props) {
   return (

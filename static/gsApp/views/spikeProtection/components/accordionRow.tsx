@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 
 import {IconChevron} from 'sentry/icons';
 
-type AccordionRowProps = {
+interface AccordionRowProps {
   /**
    * The body of the accordion that is shown & hidden
    */
@@ -26,7 +26,7 @@ type AccordionRowProps = {
    * Action to execute upon opening accordion
    */
   onOpen?: () => Promise<void>;
-};
+}
 
 export function AccordionRow({
   disabled = false,

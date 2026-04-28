@@ -17,12 +17,12 @@ type ChildRenderProps = Parameters<ChildrenRenderFn>[0] & {
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
-type Props = {
+interface Props {
   children: React.ReactNode | ChildRenderFunction;
   features: string[];
   hasFeature: boolean;
   organization: Organization;
-};
+}
 
 export function DisabledAuthProvider({
   organization,

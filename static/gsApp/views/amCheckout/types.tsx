@@ -12,13 +12,13 @@ import type {
   Subscription,
 } from 'getsentry/types';
 
-type BaseCheckoutData = {
+interface BaseCheckoutData {
   plan: string;
   addOns?: CheckoutAddOns;
   applyNow?: boolean;
   onDemandBudget?: OnDemandBudgets;
   onDemandMaxSpend?: number;
-};
+}
 
 export type CheckoutFormData = BaseCheckoutData & {
   reserved: Partial<Record<DataCategory, number>>;
@@ -31,7 +31,7 @@ export type CheckoutAPIData = Omit<BaseCheckoutData, 'addOns'> & {
 } & Partial<Reservations> &
   Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
 
-export type StepProps = {
+export interface StepProps {
   activePlan: Plan;
   billingConfig: BillingConfig;
   formData: CheckoutFormData;
@@ -41,10 +41,10 @@ export type StepProps = {
   subscription: Subscription;
   checkoutTier?: PlanTier;
   referrer?: string;
-};
+}
 
-export type PlanContent = {
+export interface PlanContent {
   description: React.ReactNode;
   features: Record<string, React.ReactNode>;
   hasMoreLink?: boolean;
-};
+}

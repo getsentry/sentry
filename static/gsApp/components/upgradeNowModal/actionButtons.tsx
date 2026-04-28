@@ -23,7 +23,7 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import type {Reservations} from './types';
 import {redirectToManage} from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   plan: Plan;
   previewData: PreviewData;
@@ -32,7 +32,7 @@ type Props = {
   surface: AM2UpdateSurfaces;
   isActionDisabled?: boolean;
   onComplete?: () => void;
-};
+}
 
 export function ActionButtons({
   isActionDisabled,

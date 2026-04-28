@@ -4,9 +4,9 @@ import type {Integration} from 'sentry/types/integrations';
 
 import {UpsellButton} from 'getsentry/components/upsellButton';
 
-type Props = {
+interface Props {
   integrations: Integration[];
-};
+}
 
 export function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
   // only render this upsell CTA when we have disabled integrations or one on grace perioid

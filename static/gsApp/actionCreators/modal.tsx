@@ -14,24 +14,24 @@ import type {Invoice, Plan, PreviewData, Subscription} from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess, supportsPayg} from 'getsentry/utils/billing';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type UpsellModalOptions = {
+interface UpsellModalOptions {
   organization: Organization;
   source: string;
-};
+}
 
 export async function openUpsellModal(options: UpsellModalOptions) {
   const {default: Modal, modalCss} = await import('getsentry/components/upsellModal');
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type TrialModalProps = {
+interface TrialModalProps {
   organization: Organization;
-};
+}
 
-type PartnerPlanModalProps = {
+interface PartnerPlanModalProps {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 function genTrialModalOnClose(
   options: TrialModalProps,
@@ -140,11 +140,11 @@ const onDemandBudgetEditModalCss = (theme: Theme) => css`
   }
 `;
 
-type OpenInvoicePaymentOptions = {
+interface OpenInvoicePaymentOptions {
   invoice: Invoice;
   organization: Organization;
   reloadInvoice: () => void;
-};
+}
 
 export async function openInvoicePaymentModal(options: OpenInvoicePaymentOptions) {
   const {default: Modal} = await import('getsentry/views/invoiceDetails/paymentForm');
@@ -152,7 +152,7 @@ export async function openInvoicePaymentModal(options: OpenInvoicePaymentOptions
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type UpsellModalProps = {
+interface UpsellModalProps {
   organization: Organization;
   plan: Plan;
   previewData: PreviewData;
@@ -161,7 +161,7 @@ type UpsellModalProps = {
   surface: AM2UpdateSurfaces;
   isActionDisabled?: boolean;
   onComplete?: () => void;
-};
+}
 
 export async function openAM2UpsellModal(options: UpsellModalProps) {
   const {default: Modal, modalCss} =
@@ -170,7 +170,7 @@ export async function openAM2UpsellModal(options: UpsellModalProps) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export type UpsellModalSamePriceProps = {
+export interface UpsellModalSamePriceProps {
   organization: Organization;
   plan: Plan;
   previewData: PreviewData;
@@ -178,7 +178,7 @@ export type UpsellModalSamePriceProps = {
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
   onComplete?: () => void;
-};
+}
 
 export async function openAM2UpsellModalSamePrice(options: UpsellModalSamePriceProps) {
   const {default: Modal, modalCss} =
@@ -187,12 +187,12 @@ export async function openAM2UpsellModalSamePrice(options: UpsellModalSamePriceP
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-type ProfilingUpsellModalProps = {
+interface ProfilingUpsellModalProps {
   organization: Organization;
   subscription: Subscription;
   isActionDisabled?: boolean;
   onComplete?: () => void;
-};
+}
 
 export async function openAM2ProfilingUpsellModal(options: ProfilingUpsellModalProps) {
   const {default: Modal, modalCss} =

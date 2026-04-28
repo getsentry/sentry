@@ -196,10 +196,10 @@ function InvoiceDetails() {
   );
 }
 
-type AttributeProps = {
+interface AttributeProps {
   invoice: Invoice;
   billingDetails?: BillingDetails;
-};
+}
 
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   let paymentStatus = InvoiceStatus.CLOSED;
@@ -255,10 +255,10 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
   );
 }
 
-type ContentsProps = {
+interface ContentsProps {
   invoice: Invoice;
   billingDetails?: BillingDetails;
-};
+}
 
 function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
   // If an Invoice has 'isReverseCharge: true', it should be noted in

@@ -15,7 +15,7 @@ import type {SpendAllocation} from './components/types';
 import type {BigNumUnits} from './utils';
 import {midPeriod} from './utils';
 
-type Props = {
+interface Props {
   deleteSpendAllocation: (
     selectedMetric: DataCategory | null,
     targetId: number,
@@ -26,7 +26,7 @@ type Props = {
   openForm: (formData?: SpendAllocation) => (e: React.MouseEvent) => void;
   selectedMetric: DataCategory;
   spendAllocations?: SpendAllocation[];
-};
+}
 
 export function ProjectAllocationsTable({
   deleteSpendAllocation,

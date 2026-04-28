@@ -9,28 +9,28 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
-type InjectedSubscriptionProps = {
+interface InjectedSubscriptionProps {
   subscription: Subscription;
-};
+}
 
-type DependentProps = {
+interface DependentProps {
   organization?: Organization;
   // Generalized type for routing parameters.
   params?: Record<string, any | undefined>;
   subscription?: Subscription;
-};
+}
 
-type Options = {
+interface Options {
   /**
    * Disable displaying the loading indicator while waiting for the
    * subscription to load.
    */
   noLoader?: boolean;
-};
+}
 
-type State = {
+interface State {
   subscription?: Subscription;
-};
+}
 
 /**
  * HoC to inject the subscription object into the wrapped component. The

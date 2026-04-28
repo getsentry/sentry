@@ -7,13 +7,13 @@ import type {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
-type Props = {
+interface Props {
   api: Client;
   fetchSpendAllocations: () => Promise<void>;
   hasScope: boolean;
   orgSlug: string;
   setErrors: Dispatch<string | null>;
-};
+}
 
 export function EnableSpendAllocations({
   hasScope,

@@ -27,10 +27,10 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {redirectToManage} from './upgradeNowModal/utils';
 
-type ReplayOnboardingCTAUpsellProps = {
+interface ReplayOnboardingCTAUpsellProps {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 function ReplayOnboardingCTAUpsell({
   organization,
@@ -264,11 +264,11 @@ const ButtonList = styled((props: GridProps) => (
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-type ReplayOnboardingCTAProps = {
+interface ReplayOnboardingCTAProps {
   children: ReactNode;
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 /**
  * The majority of orgs have the replays feature, so we check for that first

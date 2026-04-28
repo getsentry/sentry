@@ -6,13 +6,13 @@ import {detectorListApiOptions} from 'sentry/views/detectors/hooks/index';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 
-type MetricDetectorLimitResponse = {
+interface MetricDetectorLimitResponse {
   detectorCount: number;
   detectorLimit: number;
   hasReachedLimit: boolean;
   isError: boolean;
   isLoading: boolean;
-};
+}
 
 const UNLIMITED_QUOTA = -1;
 const NO_COUNT = -1;

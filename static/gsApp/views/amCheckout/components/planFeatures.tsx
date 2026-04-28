@@ -47,7 +47,7 @@ type FeatureKey =
   | 'relay'
   | DataCategory;
 
-type FeatureInfo = {
+interface FeatureInfo {
   /**
    * A mapping where the key is the minimum plan type needed to
    * display the feature, and the value is the display string.
@@ -57,7 +57,7 @@ type FeatureInfo = {
   displayStringPrefix?: string;
   displayStringSuffix?: string;
   excludedTiers?: PlanTier[];
-};
+}
 
 const ORDERED_PLAN_TYPES = ['developer', 'team', 'business'];
 

@@ -2,9 +2,9 @@ import kebabCase from 'lodash/kebabCase';
 
 import {Heading} from '@sentry/scraps/text';
 
-type Props = {
+interface Props {
   title: string;
-};
+}
 
 export function StepHeader({title}: Props) {
   const dataTestId = `header-${kebabCase(title)}`;

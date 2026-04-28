@@ -15,7 +15,7 @@ import {getTrialLength, hasJustStartedPlanTrial} from 'getsentry/utils/billing';
 
 import {withSubscription} from './withSubscription';
 
-type MemberInviteProps = {
+interface MemberInviteProps {
   children: (opts: {
     canSend: boolean;
     isOverMemberLimit: boolean;
@@ -26,7 +26,7 @@ type MemberInviteProps = {
   organization: Organization;
   subscription: Subscription;
   willInvite: boolean;
-};
+}
 
 function MemberInviteModalCustomization({
   organization,

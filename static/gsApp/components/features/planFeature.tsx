@@ -9,7 +9,7 @@ import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import type {Plan, Subscription} from 'getsentry/types';
 import {isBizPlanFamily, isDeveloperPlan} from 'getsentry/utils/billing';
 
-type RenderProps = {
+interface RenderProps {
   /**
    * The plan that the user must upgrade to to use this feature.
    *
@@ -23,14 +23,14 @@ type RenderProps = {
    * plan tier that is DIFFERENT from the users current subscription tier.
    */
   tierChange: string | null;
-};
+}
 
-type Props = {
+interface Props {
   children: (opts: RenderProps) => React.ReactNode;
   features: string[];
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 /**
  * Plan feature determines which plan a user must be on in order to access a

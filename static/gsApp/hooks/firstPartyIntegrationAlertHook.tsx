@@ -9,11 +9,11 @@ import {AlertContainer} from 'sentry/views/settings/organizationIntegrations/int
 
 import {UpsellButton} from 'getsentry/components/upsellButton';
 
-type Props = {
+interface Props {
   integrations: Integration[];
   hideCTA?: boolean;
   wrapWithContainer?: boolean;
-};
+}
 
 export function FirstPartyIntegrationAlertHook({
   integrations,

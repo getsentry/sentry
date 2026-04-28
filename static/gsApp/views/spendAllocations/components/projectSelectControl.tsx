@@ -12,12 +12,12 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type Props = {
+interface Props {
   disabled: boolean;
   filteredIdList: string[];
   onChange: (option: SelectValue<string>) => void;
   value: string; // project ID
-};
+}
 
 export function ProjectSelectControl({
   disabled,

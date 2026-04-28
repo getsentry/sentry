@@ -11,10 +11,10 @@ import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 const MARKETING_EVENT_SESSION_KEY = 'marketing_event_recorded';
 
 // fields should be string but need to validate
-type MarketingEventSchema = {
+interface MarketingEventSchema {
   event_name: unknown;
   event_label?: unknown;
-};
+}
 
 /**
  * This function initializes the user for analytics (Amplitude)

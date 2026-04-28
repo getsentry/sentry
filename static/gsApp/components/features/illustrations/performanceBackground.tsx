@@ -83,9 +83,9 @@ const starGroupAnimation = {
   },
 };
 
-type Props = {
+interface Props {
   anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+}
 
 export function PerformanceBackground({anchorRef}: Props) {
   return (

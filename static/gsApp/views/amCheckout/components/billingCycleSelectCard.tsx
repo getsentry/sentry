@@ -13,7 +13,7 @@ import {displayBudgetName, isDeveloperPlan} from 'getsentry/utils/billing';
 import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
-type BillingCycleSelectCardProps = {
+interface BillingCycleSelectCardProps {
   formattedPriceAfterDiscount: string;
   formattedPriceBeforeDiscount: string;
   isSelected: boolean;
@@ -21,7 +21,7 @@ type BillingCycleSelectCardProps = {
   plan: Plan;
   priceAfterDiscount: number;
   subscription: Subscription;
-};
+}
 
 export function BillingCycleSelectCard({
   subscription,

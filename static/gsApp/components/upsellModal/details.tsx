@@ -36,7 +36,7 @@ const ROTATE_INTERVAL = 6000;
  */
 const FIRST_ROTATE_TIMEOUT = 10000;
 
-type Props = {
+interface Props {
   onCloseModal: () => void;
   organization: Organization;
   /**
@@ -50,16 +50,16 @@ type Props = {
    * Show specific content related to a trial being rest
    */
   showTrialResetContent?: boolean;
-};
+}
 
-type State = {
+interface State {
   /**
    * When the user clicks a feature we will stop auto-rotating the list of
    * features on a timer.
    */
   hasClickedFeature: boolean;
   highlightedFeatureId: string | null;
-};
+}
 
 /**
  * All available features. Mostly just cataloged into this variable for ease of

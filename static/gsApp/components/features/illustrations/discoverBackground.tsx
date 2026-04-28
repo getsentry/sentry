@@ -6,9 +6,9 @@ import {motion} from 'framer-motion';
 // Computed using SVGGeometryElement.getTotalLength()
 const STROKE_LENGTH = 4445;
 
-type Props = {
+interface Props {
   anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+}
 
 const Stroke = styled(motion.path)`
   stroke-dasharray: ${STROKE_LENGTH} ${STROKE_LENGTH};

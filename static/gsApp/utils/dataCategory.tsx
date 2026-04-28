@@ -49,13 +49,13 @@ export function getCreditDataCategory(credit: RecurringCredit): DataCategory | n
   return category;
 }
 
-type CategoryNameProps = {
+interface CategoryNameProps {
   category: DataCategory;
   capitalize?: boolean;
   hadCustomDynamicSampling?: boolean;
   plan?: Plan;
   title?: boolean;
-};
+}
 
 /**
  * Convert a billed category to a display name.

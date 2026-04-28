@@ -14,10 +14,10 @@ import {getTrialDaysLeft} from 'getsentry/utils/billing';
 import {TrialBadge} from './trial/badge';
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 export function TrialAlert({organization, subscription}: Props) {
   if (!subscription.isTrial) {

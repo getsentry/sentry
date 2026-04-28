@@ -50,11 +50,11 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {AddAutofixRepoModal} from 'sentry/views/settings/projectSeer/addAutofixRepoModal';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
-type ProjectState = {
+interface ProjectState {
   isPending: boolean;
   preference: any;
   codeMappingRepos?: SeerRepoDefinition[];
-};
+}
 
 type ProjectStateMap = Record<string, ProjectState>;
 

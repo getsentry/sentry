@@ -35,7 +35,7 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 const COUNTRY_CODE_CHOICES = countryCodes.map(({name, code}) => [code, name]);
 
-type Props = {
+interface Props {
   onSubmitSuccess: (data: Record<PropertyKey, unknown>) => void;
   organization: Organization;
   /**
@@ -72,13 +72,13 @@ type Props = {
    * Form submit button label.
    */
   submitLabel?: string;
-};
+}
 
-type State = {
+interface State {
   showTaxNumber: boolean;
   countryCode?: string | null;
   taxFieldInfo?: TaxFieldInfo;
-};
+}
 
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 

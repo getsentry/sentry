@@ -87,13 +87,13 @@ const CANCEL_STEPS: Array<{
   },
 ];
 
-type State = {
+interface State {
   canSubmit: boolean;
   checkboxes: Record<string, boolean>;
   showFollowup: boolean;
   understandsMembers: boolean;
   val: CancelReason[0] | null;
-};
+}
 
 function CancelSubscriptionForm() {
   const organization = useOrganization();

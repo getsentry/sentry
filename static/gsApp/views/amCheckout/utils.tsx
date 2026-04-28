@@ -62,20 +62,20 @@ const CURRENCY_LOCALE = 'en-US';
  * 100.30 => $100.30
  * -100 => -$100
  */
-type DisplayPriceTypes = {
+interface DisplayPriceTypes {
   cents: number;
   formatBigNum?: boolean;
-};
+}
 
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
 // required.
-export type IntentDetails = {
+export interface IntentDetails {
   paymentIntent: string;
   paymentSecret: string;
-};
+}
 
-type APIDataProps = {
+interface APIDataProps {
   formData: CheckoutFormData;
   isPreview?: boolean;
   onDemandBudget?: OnDemandBudgets;
@@ -83,7 +83,7 @@ type APIDataProps = {
   previewToken?: PreviewData['previewToken'];
   referrer?: string;
   shouldUpdateOnDemand?: boolean;
-};
+}
 
 export function displayPrice({cents, formatBigNum = false}: DisplayPriceTypes): string {
   const dollars = cents / 100;
@@ -128,11 +128,11 @@ export function displayPriceWithCents({
   );
 }
 
-type UnitPriceProps = {
+interface UnitPriceProps {
   cents: number;
   maxDigits?: number;
   minDigits?: number;
-};
+}
 
 /**
  * Includes cents in the price when needed and excludes $ for separate formatting.
@@ -188,7 +188,7 @@ export function getBucket({
   throw new Error('Invalid data category for plan');
 }
 
-type ReservedTotalProps = {
+interface ReservedTotalProps {
   plan: Plan;
   reserved: Partial<Record<DataCategory, number>>;
   addOns?: CheckoutAddOns;
@@ -196,7 +196,7 @@ type ReservedTotalProps = {
   creditCategory?: InvoiceItemType;
   discountType?: string;
   maxDiscount?: number;
-};
+}
 
 /**
  * Returns the price for a reserved budget category (ie. Seer) in cents.
@@ -269,12 +269,12 @@ export function getReservedPriceCents({
   return reservedCents;
 }
 
-type DiscountedPriceProps = {
+interface DiscountedPriceProps {
   amount: number;
   basePrice: number;
   creditCategory: InvoiceItemType | null;
   discountType: string;
-};
+}
 
 /**
  * Gets the price in cents after the discount is applied.

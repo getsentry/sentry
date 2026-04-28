@@ -23,10 +23,10 @@ import {SubscriptionUpsellBanner} from './subscriptionUpsellBanner';
 import {TrialAlert} from './trialAlert';
 import {hasPermissions} from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 /**
  * Header and Tab navigation common across subscription views.

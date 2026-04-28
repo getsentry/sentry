@@ -172,13 +172,13 @@ export const modalCss = css`
 
 export default UpsellModal;
 
-type ActionButtonsProps = {
+interface ActionButtonsProps {
   hasPriceChange: boolean;
   organization: Organization;
   subscription: Subscription;
   isActionDisabled?: boolean;
   onComplete?: () => void;
-};
+}
 
 function ActionButtons({
   hasPriceChange,

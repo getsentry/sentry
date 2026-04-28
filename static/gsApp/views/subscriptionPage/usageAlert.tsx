@@ -33,10 +33,10 @@ import {ButtonWrapper, SubscriptionBody} from './styles';
 
 type ProjectedOverages = string[];
 
-type Props = {
+interface Props {
   subscription: Subscription;
   usage: CustomerUsage;
-};
+}
 
 export function UsageAlert({subscription, usage}: Props) {
   const organization = useOrganization();

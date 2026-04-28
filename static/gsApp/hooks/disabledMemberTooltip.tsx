@@ -6,10 +6,10 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
   subscription: Subscription;
-};
+}
 
 function DisabledMemberTooltip({subscription, children}: Props) {
   // only disabling members for plans with exactly 1 member

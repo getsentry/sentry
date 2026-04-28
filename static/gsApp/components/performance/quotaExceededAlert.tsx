@@ -168,11 +168,11 @@ function useQuotaExceededAlertMessage(
 
 type TraceItemDatasetGS = 'logs' | 'spans';
 
-type Props = {
+interface Props {
   referrer: string;
   subscription: Subscription;
   traceItemDataset: TraceItemDatasetGS;
-};
+}
 
 export function QuotaExceededAlert(props: Props) {
   const organization = useOrganization();

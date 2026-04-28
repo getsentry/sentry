@@ -6,7 +6,9 @@ import {makeAnalyticsFunction} from 'sentry/utils/analytics/makeAnalyticsFunctio
 import type {EventType} from 'getsentry/components/addEventsCTA';
 import type {AddOnCategory, CheckoutType, Subscription} from 'getsentry/types';
 
-type HasSub = {subscription: Subscription};
+interface HasSub {
+  subscription: Subscription;
+}
 type QuotaAlert = {event_types: string; is_warning: boolean; source?: string} & HasSub;
 type UpsellProvider = {
   action: string;
@@ -22,9 +24,9 @@ type AddEventCTA = HasSub & {
   source: string;
   event_types?: string;
 };
-type BillingInfoUpdateEvent = {
+interface BillingInfoUpdateEvent {
   referrer?: string;
-};
+}
 type ManualPaymentEvent = BillingInfoUpdateEvent;
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
@@ -38,13 +40,13 @@ type OnDemandBudgetUpdate = Partial<Record<OnDemandCategory, number>> & {
   total_budget: number;
 };
 
-export type ProductUnavailableUpsellAlert = {
+export interface ProductUnavailableUpsellAlert {
   action: 'update_plan' | 'manage_subscription' | 'request_update';
   has_performance: boolean;
   has_session_replay: boolean;
-};
+}
 
-type GetsentryEventParameters = {
+interface GetsentryEventParameters {
   'add_event_cta.clicked_cta': AddEventCTA;
   'am_checkout.viewed': HasSub;
   'billing_details.updated_billing_details': BillingInfoUpdateEvent;
@@ -253,7 +255,7 @@ type GetsentryEventParameters = {
   'usage_exceeded_modal.seen': HasSub;
   'zendesk_link.clicked': {source?: string};
   'zendesk_link.viewed': {source?: string};
-};
+}
 
 export type AM2UpdateSurfaces =
   | 'metrics'

@@ -74,7 +74,7 @@ import {
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/spendLimits/utils';
 
-type Props = {
+interface Props {
   api: Client;
   checkoutTier: PlanTier;
   isError: boolean;
@@ -85,9 +85,9 @@ type Props = {
   queryClient: QueryClient;
   subscription: Subscription;
   promotionData?: PromotionData;
-};
+}
 
-export type State = {
+export interface State {
   billingConfig: BillingConfig | null;
   error: Error | boolean;
   formData: CheckoutFormData | null;
@@ -97,7 +97,7 @@ export type State = {
   nextQueryParams: string[];
   invoice?: Invoice;
   previewData?: PreviewData;
-};
+}
 
 function AMCheckout(props: Props) {
   const {

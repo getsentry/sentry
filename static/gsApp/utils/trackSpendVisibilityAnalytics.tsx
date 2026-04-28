@@ -13,13 +13,13 @@ export enum SpendVisibilityEvents {
 }
 
 // The base params for these analytics
-export type SpendVisibilityBaseParams = {
+export interface SpendVisibilityBaseParams {
   subscription?: Subscription;
   view?: 'spike_protection_settings' | 'project_settings' | 'project_stats';
-};
+}
 
 // The parameters required for each event type
-type SpendVisibilityEventParameters = {
+interface SpendVisibilityEventParameters {
   [SpendVisibilityEvents.SP_DOCS_CLICKED]: SpendVisibilityBaseParams & {};
   [SpendVisibilityEvents.SP_DISCOVER_CLICKED]: SpendVisibilityBaseParams & {};
   [SpendVisibilityEvents.SP_PROJECT_TOGGLED]: SpendVisibilityBaseParams & {
@@ -28,7 +28,7 @@ type SpendVisibilityEventParameters = {
   };
   [SpendVisibilityEvents.SP_PROJECT_SEARCHED]: SpendVisibilityBaseParams & {};
   [SpendVisibilityEvents.SP_SETTINGS_VIEWED]: SpendVisibilityBaseParams & {};
-};
+}
 
 // A mapping of event key to readable, searchable name
 const spendVisibilityEventMap: Record<SpendVisibilityEvents, string> = {

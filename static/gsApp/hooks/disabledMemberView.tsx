@@ -28,9 +28,9 @@ import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface Props {
   subscription: Subscription;
-};
+}
 
 function DisabledMemberView(props: Props) {
   const {orgId} = useParams<{orgId: string}>();

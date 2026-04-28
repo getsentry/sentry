@@ -10,9 +10,9 @@ const DEFAULT_MESSAGE = tct(
   {mailto: <a href="mailto:support@sentry.io" />}
 );
 
-type Props = {
+interface Props {
   subscription: Subscription;
-};
+}
 
 export function PartnershipNote({subscription}: Props) {
   return (

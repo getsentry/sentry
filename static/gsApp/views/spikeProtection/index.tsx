@@ -20,7 +20,10 @@ import {SPIKE_PROTECTION_DOCS_LINK} from 'getsentry/views/spikeProtection/consta
 import SpikeProtectionProjects from 'getsentry/views/spikeProtection/spikeProtectionProjects';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-type Props = {organization: Organization; subscription: Subscription};
+interface Props {
+  organization: Organization;
+  subscription: Subscription;
+}
 
 function SpikeProtectionRoot({organization, subscription}: Props) {
   useEffect(() => {

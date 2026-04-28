@@ -56,11 +56,11 @@ type Props = {
   subscription: Subscription;
 } & ModalRenderProps;
 
-type State = {
+interface State {
   currentOnDemandBudget: OnDemandBudgets;
   onDemandBudget: OnDemandBudgets;
   updateError: undefined | Error | string | Record<string, string[]>;
-};
+}
 class SpendLimitsEditModal extends Component<Props, State> {
   constructor(props: Props) {
     super(props);

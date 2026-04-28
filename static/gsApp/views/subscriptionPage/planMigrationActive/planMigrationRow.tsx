@@ -10,43 +10,43 @@ import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 type Props = DataRow | PriceRow | RenewalPriceRow | PlanRow | ContractRow;
 
-type DataRow = {
+interface DataRow {
   currentValue: number | null;
   nextValue: number | null;
   type: DataCategoryExact;
   hasCredits?: boolean;
   previousType?: DataCategoryExact;
   titleOverride?: string;
-};
+}
 
-type PriceRow = {
+interface PriceRow {
   currentValue: number;
   discountPrice: number;
   nextValue: number;
   type: 'price';
   hasCredits?: boolean;
-};
+}
 
 // RenewalPriceRow shown for AUF plans only to differentiate between the first discount at the migration and second discounts at annual contract renewal
-type RenewalPriceRow = {
+interface RenewalPriceRow {
   currentValue: number;
   discountPrice: number;
   nextValue: number;
   type: 'renewal';
   hasCredits?: boolean;
-};
+}
 
-type PlanRow = {
+interface PlanRow {
   currentValue: string;
   nextValue: string;
   type: 'plan';
-};
+}
 
-type ContractRow = {
+interface ContractRow {
   currentValue: string;
   nextValue: string;
   type: 'contract';
-};
+}
 
 function formatCategoryRowString(
   category: DataCategoryExact,

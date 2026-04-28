@@ -4,9 +4,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 
-type Props = {
+interface Props {
   children: React.ReactNode;
-};
+}
 
 export function SubscriptionContext(props: Props) {
   const organization = useOrganization();

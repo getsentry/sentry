@@ -20,11 +20,11 @@ import {openInvoicePaymentModal} from 'getsentry/actionCreators/modal';
 import type {Invoice} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
+interface Props {
   invoice: Invoice;
   organization: Organization;
   reloadInvoice: () => void;
-};
+}
 
 export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   const api = useApi();

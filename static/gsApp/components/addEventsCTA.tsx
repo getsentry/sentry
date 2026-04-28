@@ -36,7 +36,7 @@ export type EventType = {
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
 
-type Props = {
+interface Props {
   api: Client;
   organization: Organization;
   referrer: string;
@@ -47,7 +47,7 @@ type Props = {
   eventTypes?: EventType[];
   handleRequestSent?: () => void;
   notificationType?: 'overage_warning' | 'overage_critical';
-};
+}
 
 /**
  *

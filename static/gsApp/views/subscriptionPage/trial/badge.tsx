@@ -8,10 +8,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Subscription} from 'getsentry/types';
 import {getTrialDaysLeft, getTrialLength} from 'getsentry/utils/billing';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 export function TrialBadge({subscription, organization}: Props) {
   if (subscription.isTrial) {

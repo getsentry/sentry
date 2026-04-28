@@ -18,14 +18,14 @@ import type {Policy, Subscription} from 'getsentry/types';
 import {PolicyStatus} from 'getsentry/views/legalAndCompliance/policyStatus';
 import {PanelItemPolicy} from 'getsentry/views/legalAndCompliance/styles';
 
-type PolicyRowProps = {
+interface PolicyRowProps {
   onAccept: (policy: Policy) => void;
   policies: Record<string, Policy>;
   policy: Policy;
   subscription: Subscription;
   showConsentText?: boolean;
   showUpdated?: boolean;
-};
+}
 
 // TODO(dcramer): we dont yet support multiple parent policies if a policy in the
 // chain does not require signature (and instead would just have you page through it)

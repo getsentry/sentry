@@ -2,13 +2,13 @@ import Reflux from 'reflux';
 
 import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 
-type State = {
+interface State {
   requested: boolean;
-};
+}
 
-type TrialRequestedStoreInterface = {
+interface TrialRequestedStoreInterface {
   getTrialRequstedState: () => State['requested'];
-};
+}
 
 const storeConfig: Reflux.StoreDefinition & TrialRequestedStoreInterface = {
   state: {

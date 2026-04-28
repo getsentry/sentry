@@ -19,13 +19,13 @@ import type {Subscription} from 'getsentry/types';
 import {hasJustStartedPlanTrial} from 'getsentry/utils/billing';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
-type Props = {
+interface Props {
   api: Client;
   children: React.ReactNode;
   organization: Organization;
   subscription: Subscription;
   className?: string;
-};
+}
 
 function TrialStartedSidebarItem({subscription, organization, children}: Props) {
   const [animationComplete, setAnimationComplete] = useState<boolean>(

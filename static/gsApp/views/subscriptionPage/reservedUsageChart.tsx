@@ -236,11 +236,11 @@ function calculateCategoryOnDemandUsage(
   };
 }
 
-type DroppedBreakdown = {
+interface DroppedBreakdown {
   other: number;
   overQuota: number;
   spikeProtection: number;
-};
+}
 
 export function selectedTransform(location: Location) {
   const transform = decodeScalar(location.query.transform) as

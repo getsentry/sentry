@@ -14,10 +14,10 @@ import {PanelBodyWithTable} from 'getsentry/views/subscriptionPage/styles';
 
 import {PlanMigrationTable} from './planMigrationTable';
 
-type Props = {
+interface Props {
   migration: undefined | PlanMigration;
   subscription: Subscription;
-};
+}
 
 function NewFeature({title}: {title: string}) {
   return (

@@ -37,7 +37,7 @@ declare global {
   }
 
   namespace React {
-    interface DOMAttributes<T> {
+    interface DOMAttributes<_T> {
       'data-test-id'?: string;
     }
   }
@@ -56,7 +56,7 @@ declare module 'sentry/types/system' {
   }
 }
 
-export type EventBucket = {
+export interface EventBucket {
   events: number;
   price: number;
   onDemandPrice?: number;
@@ -64,7 +64,7 @@ export type EventBucket = {
    * Available in performance plans
    */
   unitPrice?: number;
-};
+}
 
 export enum PlanName {
   DEVELOPER = 'Developer',
@@ -88,7 +88,7 @@ export enum ReservedBudgetCategoryType {
   SEER = 'seer',
 }
 
-export type ReservedBudgetCategory = {
+export interface ReservedBudgetCategory {
   /**
    * The API name of the budget
    */
@@ -133,21 +133,21 @@ export type ReservedBudgetCategory = {
    * The name of the product associated with the budget
    */
   productName: string;
-};
+}
 
 export enum AddOnCategory {
   SEER = 'seer',
   LEGACY_SEER = 'legacySeer',
 }
 
-export type AddOnCategoryInfo = {
+export interface AddOnCategoryInfo {
   apiName: AddOnCategory;
   billingFlag: string | null;
   dataCategories: DataCategory[];
   name: string;
   order: number;
   productName: string;
-};
+}
 
 export type AddOn = AddOnCategoryInfo & {
   /**
@@ -165,12 +165,12 @@ type AddOns = Partial<Record<AddOnCategory, AddOn>>;
 // how addons are represented in the checkout form data
 export type CheckoutAddOns = Partial<Record<AddOnCategory, Pick<AddOn, 'enabled'>>>;
 
-type RetentionSettings = {
+interface RetentionSettings {
   downsampled: number | null;
   standard: number | null;
-};
+}
 
-export type Plan = {
+export interface Plan {
   addOnCategories: Partial<Record<AddOnCategory, AddOnCategoryInfo>>;
   allowAdditionalReservedEvents: boolean;
   allowOnDemand: boolean;
@@ -216,9 +216,9 @@ export type Plan = {
   >;
   checkoutType?: CheckoutType;
   retentions?: Partial<Record<DataCategory, RetentionSettings>>;
-};
+}
 
-type PendingChanges = {
+interface PendingChanges {
   customPrice: number | null;
   customPricePcss: number | null;
   customPrices: Partial<Record<DataCategory, number | null>>;
@@ -232,7 +232,7 @@ type PendingChanges = {
   reserved: Partial<Record<DataCategory, number | null>>;
   reservedBudgets: PendingReservedBudget[];
   reservedCpe: Partial<Record<DataCategory, number | null>>;
-};
+}
 
 enum VatStatus {
   UNKNOWN = 'unknown',
@@ -242,7 +242,7 @@ enum VatStatus {
   OTHER = 'other',
 }
 
-export type GDPRDetails = {
+export interface GDPRDetails {
   dpoAddress: string;
   dpoEmail: string;
   dpoName: string;
@@ -251,9 +251,9 @@ export type GDPRDetails = {
   euRepEmail: string;
   euRepName: string;
   euRepPhone: string;
-};
+}
 
-type Partner = {
+interface Partner {
   externalId: string;
   isActive: boolean;
   name: string;
@@ -262,7 +262,7 @@ type Partner = {
     id: string;
     supportNote: string;
   };
-};
+}
 
 export enum BillingType {
   CREDIT_CARD = 'credit card',
@@ -275,19 +275,19 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-export type SharedOnDemandBudget = {
+export interface SharedOnDemandBudget {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
-};
+}
 
 type SharedOnDemandBudgetWithSpends = SharedOnDemandBudget & {
   onDemandSpendUsed: number;
 };
 
-export type PerCategoryOnDemandBudget = {
+export interface PerCategoryOnDemandBudget {
   budgetMode: OnDemandBudgetMode.PER_CATEGORY;
   budgets: Partial<Record<DataCategory, number>>;
-};
+}
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
   usedSpends: Partial<Record<DataCategory, number>>;
@@ -295,9 +295,9 @@ type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
 
 export type OnDemandBudgets = SharedOnDemandBudget | PerCategoryOnDemandBudget;
 
-type OnDemandBudgetsEnabled = {
+interface OnDemandBudgetsEnabled {
   enabled: boolean;
-};
+}
 
 type OnDemandBudgetsWithSpends =
   | SharedOnDemandBudgetWithSpends
@@ -308,7 +308,7 @@ export type SubscriptionOnDemandBudgets = OnDemandBudgetsEnabled &
 
 export type PendingOnDemandBudgets = OnDemandBudgetsEnabled & OnDemandBudgets;
 
-export type ProductTrial = {
+export interface ProductTrial {
   category: DataCategory;
   isStarted: boolean;
   reasonCode: number;
@@ -316,9 +316,9 @@ export type ProductTrial = {
   endDate?: string;
   lengthDays?: number;
   startDate?: string;
-};
+}
 
-export type Subscription = {
+export interface Subscription {
   accountBalance: number;
   billingInterval: 'monthly' | 'annual';
   // billingPeriod varies between 1-12 months. if you're looking for the monthly usage interval, use onDemandPeriodStart
@@ -479,9 +479,9 @@ export type Subscription = {
   vatID?: string | null;
 
   vatStatus?: VatStatus | null;
-};
+}
 
-type DiscountInfo = {
+interface DiscountInfo {
   amount: number;
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
@@ -494,9 +494,9 @@ type DiscountInfo = {
   modalDisclaimerText: string;
   planRequirement: 'business' | 'paid' | null;
   reminderText: string;
-};
+}
 
-export type Promotion = {
+export interface Promotion {
   autoOptIn: boolean;
   discountInfo: DiscountInfo;
   endDate: string;
@@ -506,9 +506,9 @@ export type Promotion = {
   slug: string;
   startDate: string;
   timeLimit: string;
-};
+}
 
-export type PromotionClaimed = {
+export interface PromotionClaimed {
   dateClaimed: string;
   dateCompleted: string;
   dateExpired: string;
@@ -516,20 +516,20 @@ export type PromotionClaimed = {
   isLastCycleForFreeEvents: boolean;
   promotion: Promotion;
   claimant?: User;
-};
+}
 
-export type PromotionData = {
+export interface PromotionData {
   activePromotions: PromotionClaimed[];
   availablePromotions: Promotion[];
   completedPromotions: PromotionClaimed[];
-};
+}
 
-export type Feature = {
+export interface Feature {
   description: string;
   name: string;
-};
+}
 
-export type BillingConfig = {
+export interface BillingConfig {
   annualDiscount: number;
   defaultPlan: string;
   defaultReserved: Partial<Record<DataCategory, number>>;
@@ -537,9 +537,9 @@ export type BillingConfig = {
   freePlan: string;
   id: string;
   planList: Plan[];
-};
+}
 
-export type BillingStat = {
+export interface BillingStat {
   accepted: number;
   date: string;
   dropped: {
@@ -557,10 +557,10 @@ export type BillingStat = {
    * Not present when user does not have the correct role
    */
   onDemandCostRunningTotal?: number;
-};
+}
 export type BillingStats = BillingStat[];
 
-export type BillingStatTotal = {
+export interface BillingStatTotal {
   accepted: number;
   dropped: number;
   droppedOther: number;
@@ -568,29 +568,29 @@ export type BillingStatTotal = {
   droppedSpikeProtection: number;
   filtered: number;
   projected: number;
-};
+}
 
-export type CustomerUsage = {
+export interface CustomerUsage {
   periodEnd: string;
   periodStart: string;
   stats: Record<string, BillingStats>;
   totals: Record<string, BillingStatTotal>;
   eventTotals?: Record<string, Record<string, BillingStatTotal>>;
-};
+}
 
-type StructuredAddress = {
+interface StructuredAddress {
   addressLine1: string | null;
   addressLine2: string | null;
   city: string | null;
   countryCode: string | null;
   postalCode: string | null;
   region: string | null;
-};
+}
 
-type TaxNumberName = {
+interface TaxNumberName {
   taxId: string;
   taxIdName: string;
-};
+}
 
 type SentryTaxIds = TaxNumberName & {
   region?: TaxNumberName & {
@@ -598,7 +598,7 @@ type SentryTaxIds = TaxNumberName & {
   };
 };
 
-export type Charge = {
+export interface Charge {
   amount: number;
   amountRefunded: number;
   cardLast4: string | null;
@@ -608,7 +608,7 @@ export type Charge = {
   isPaid: boolean;
   isRefunded: boolean;
   stripeID: string | null;
-};
+}
 
 export type InvoiceBase = StructuredAddress & {
   amount: number;
@@ -656,12 +656,12 @@ export type Invoice = InvoiceBase & {
   stripeInvoiceID: string | null;
 };
 
-type BaseInvoiceItem = {
+interface BaseInvoiceItem {
   amount: number;
   data: {period?: any; plan?: any; quantity?: any};
   description: string;
   type: InvoiceItemType;
-};
+}
 
 export type InvoiceItem = BaseInvoiceItem & {
   periodEnd: string;
@@ -810,7 +810,7 @@ export enum InvoiceStatus {
   AWAITING_PAYMENT = 'awaiting payment',
 }
 
-export type BillingMetricHistory = {
+export interface BillingMetricHistory {
   /**
    * Category name (e.g. "errors")
    */
@@ -834,9 +834,9 @@ export type BillingMetricHistory = {
   usage: number;
   usageExceeded: boolean;
   retention?: {downsampled: number | null; standard: number | null};
-};
+}
 
-export type BillingHistory = {
+export interface BillingHistory {
   categories: Record<string, BillingMetricHistory>;
   hadCustomDynamicSampling: boolean;
   id: string;
@@ -857,9 +857,9 @@ export type BillingHistory = {
   usage: Partial<Record<DataCategory, number>>;
   planDetails?: Plan;
   reservedBudgets?: ReservedBudget[];
-};
+}
 
-export type PreviewData = {
+export interface PreviewData {
   atPeriodEnd: boolean;
   balanceChange: number;
   billedAmount: number;
@@ -871,7 +871,7 @@ export type PreviewData = {
   proratedAmount: number;
   paymentIntent?: string;
   paymentSecret?: string;
-};
+}
 
 export type PreviewInvoiceItem = BaseInvoiceItem & {
   period_end: string;
@@ -912,12 +912,12 @@ type StaticCreditType =
  */
 export type CreditType = DynamicCreditType | StaticCreditType;
 
-type BaseRecurringCredit = {
+interface BaseRecurringCredit {
   amount: number;
   id: number;
   periodEnd: string;
   periodStart: string;
-};
+}
 
 interface RecurringDiscount extends BaseRecurringCredit {
   totalAmountRemaining: number;
@@ -962,13 +962,13 @@ export enum CohortId {
   TEST_ONE = 111,
 }
 
-export type Cohort = {
+export interface Cohort {
   cohortId: CohortId;
   nextPlan: NextPlanInfo | null;
   secondDiscount: number;
-};
+}
 
-export type NextPlanInfo = {
+export interface NextPlanInfo {
   contractPeriod: string;
   discountAmount: number;
   discountMonths: number;
@@ -985,9 +985,9 @@ export type NextPlanInfo = {
       }
     >
   >;
-};
+}
 
-export type PlanMigration = {
+export interface PlanMigration {
   cohort: Cohort | null;
   dateApplied: string | null;
   effectiveAt: string | null;
@@ -995,7 +995,7 @@ export type PlanMigration = {
   planTier: string;
   recurringCredits: RecurringCredit[];
   scheduled: boolean;
-};
+}
 
 export enum PlanTier {
   /**
@@ -1033,19 +1033,19 @@ export enum PlanTier {
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/
-export type PaymentCreateResponse = {
+export interface PaymentCreateResponse {
   amount: string;
   clientSecret: string;
   currency: string;
   returnUrl: string;
-};
+}
 // Response from /organizations/:orgSlug/payments/setup/
-export type PaymentSetupCreateResponse = {
+export interface PaymentSetupCreateResponse {
   clientSecret: string;
   id: string;
   lastError: string | null;
   status: string;
-};
+}
 
 export enum FTCConsentLocation {
   CHECKOUT = 0,
@@ -1071,10 +1071,10 @@ export interface MonitorCountResponse {
   overQuotaMonitorCount: number;
 }
 
-export type PendingReservedBudget = {
+export interface PendingReservedBudget {
   categories: Partial<Record<DataCategory, boolean | null>>;
   reservedBudget: number;
-};
+}
 
 export type ReservedBudget = {
   /**
@@ -1103,28 +1103,28 @@ export type ReservedBudget = {
   totalReservedSpend: number;
 } & ReservedBudgetCategory;
 
-export type ReservedBudgetMetricHistory = {
+export interface ReservedBudgetMetricHistory {
   reservedCpe: number; // in cents
   reservedSpend: number;
-};
+}
 
-export type ReservedBudgetForCategory = {
+export interface ReservedBudgetForCategory {
   apiName: string;
   freeBudget: number;
   prepaidBudget: number;
   reservedCpe: number; // in cents
   reservedSpend: number;
   totalReservedBudget: number;
-};
+}
 
-type PolicyConsent = {
+interface PolicyConsent {
   acceptedVersion: string;
   createdAt: string;
   userEmail: string;
   userName: string;
-};
+}
 
-export type Policy = {
+export interface Policy {
   active: boolean;
   /** Policy consent signature data if policy has been signed. Null if not signed or hasSignature is false. */
   consent: PolicyConsent | null;
@@ -1142,21 +1142,21 @@ export type Policy = {
   url: string | null;
   /** The current version */
   version: string | null;
-};
+}
 
-type PolicyFile = {
+interface PolicyFile {
   checksum: string;
   name: string;
   size: number;
-};
+}
 
-export type PolicyRevision = {
+export interface PolicyRevision {
   createdAt: string;
   current: boolean;
   file: PolicyFile | null;
   url: string | null;
   version: string;
-};
+}
 
 export interface BilledDataCategoryInfo extends DataCategoryInfo {
   /**
@@ -1212,7 +1212,7 @@ type SeatStatus =
   | 'REMOVED'
   | 'REALLOCATED';
 
-export type BillingSeatAssignment = {
+export interface BillingSeatAssignment {
   billingMetric: DataCategory;
   created: string;
   displayName: string;
@@ -1221,4 +1221,4 @@ export type BillingSeatAssignment = {
   projectId: number;
   seatIdentifier: string;
   status: SeatStatus;
-};
+}

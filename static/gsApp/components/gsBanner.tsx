@@ -284,7 +284,7 @@ function NoticeModal({
   );
 }
 
-type Props = {
+interface Props {
   api: Client;
   isLoading: boolean;
   organization: Organization;
@@ -294,14 +294,14 @@ type Props = {
     completedPromotions: PromotionClaimed[];
   };
   subscription: Subscription;
-};
+}
 
-type State = {
+interface State {
   deactivatedMemberDismissed: boolean;
   overageAlertDismissed: Record<EventType, boolean>;
   overageWarningDismissed: Record<EventType, boolean>;
   productTrialDismissed: Record<EventType, boolean>;
-};
+}
 
 class GSBanner extends Component<Props, State> {
   // assume dismissed until we've checked the backend

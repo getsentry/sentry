@@ -48,10 +48,10 @@ import {ProjectAllocationsTable} from './projectAllocationsTable';
 import {RootAllocationCard} from './rootAllocationCard';
 import {BigNumUnits} from './utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 export function SpendAllocationsRoot({organization, subscription}: Props) {
   const theme = useTheme();

@@ -34,10 +34,10 @@ import {
   parseOnDemandBudgetsFromSubscription,
 } from 'getsentry/views/spendLimits/utils';
 
-type Props = {
+interface Props {
   organization: Organization;
   subscription: Subscription;
-};
+}
 
 export function PendingChanges({organization, subscription}: Props) {
   const {pendingChanges} = subscription;

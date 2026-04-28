@@ -14,12 +14,12 @@ import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 import type {Reservations} from './types';
 
-type Props = {
+interface Props {
   organization: Organization;
   previewData: PreviewData;
   reservations: Reservations;
   subscription: Subscription;
-};
+}
 
 export function PlanTable({
   organization,

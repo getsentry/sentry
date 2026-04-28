@@ -64,10 +64,10 @@ function ExitSuperuserButton() {
   );
 }
 
-type Props = {
+interface Props {
   className?: string;
   organization?: Organization;
-};
+}
 
 export function SuperuserWarning({organization, className}: Props) {
   const hasPageFrame = useHasPageFrameFeature();
