@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -26,18 +26,6 @@ export function SentryAppRuleModal({
   resetValues,
   onSubmitSuccess,
 }: Props) {
-  const formResetValues = useMemo(
-    () => ({settings: resetValues?.settings}),
-    [resetValues?.settings]
-  );
-  const handleSubmitSuccess = useCallback(
-    (...params: Parameters<typeof onSubmitSuccess>) => {
-      onSubmitSuccess(...params);
-      closeModal();
-    },
-    [onSubmitSuccess]
-  );
-
   return (
     <Fragment>
       <Header closeButton>
@@ -51,8 +39,11 @@ export function SentryAppRuleModal({
           config={resetValues?.formFields || config}
           element="alert-rule-action"
           action="create"
-          onSubmitSuccess={handleSubmitSuccess}
-          resetValues={formResetValues}
+          onSubmitSuccess={(...params) => {
+            onSubmitSuccess(...params);
+            closeModal();
+          }}
+          resetValues={{settings: resetValues?.settings}}
         />
       </Body>
     </Fragment>
