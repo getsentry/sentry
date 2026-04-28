@@ -132,6 +132,38 @@ function cloneFieldGroups(fieldGroups: FieldGroups): FieldGroups {
   };
 }
 
+function normalizeChoices(
+  choices: readonly Choice[] | undefined
+): Array<[string, string]> {
+  return (
+    choices?.map(
+      ([value, label]) => [String(value), choiceLabelToString(label)] as [string, string]
+    ) ?? []
+  );
+}
+
+function omitValues(
+  values: Record<string, unknown>,
+  fieldNames: Set<string>
+): Record<string, unknown> {
+  const nextValues = {...values};
+
+  for (const fieldName of fieldNames) {
+    delete nextValues[fieldName];
+  }
+
+  return nextValues;
+}
+
+function getTriggerFieldValues(
+  values: Record<string, unknown>,
+  triggerFieldNames: Set<string>
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(values).filter(([name]) => triggerFieldNames.has(name))
+  );
+}
+
 function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
   const ref = useRef<{serializedValue: string; value: T} | null>(null);
 
@@ -155,9 +187,10 @@ function updateSchemaFieldChoices(
   fieldName: string,
   choices: Choices
 ): FieldGroups {
+  const normalizedChoices = normalizeChoices(choices);
   const updateGroup = (fields?: FieldFromSchema[]) =>
     fields?.map(field =>
-      field.name === fieldName ? {...field, choices: [...choices]} : field
+      field.name === fieldName ? {...field, choices: normalizedChoices} : field
     ) ?? [];
 
   return {
@@ -184,10 +217,7 @@ function mergeFieldChoices(
   field: FieldFromSchema,
   resetValues: ResetValues | undefined
 ): Array<[string, string]> {
-  const choices =
-    field.choices?.map(
-      ([value, label]) => [String(value), choiceLabelToString(label)] as [string, string]
-    ) ?? [];
+  const choices = normalizeChoices(field.choices);
 
   const savedSetting = getSavedSetting(resetValues, field.name);
   const savedValue = savedSetting?.value;
@@ -300,6 +330,7 @@ export function SentryAppExternalForm({
     Record<string, unknown>
   >({});
   const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
+  const dependentFetchVersionRef = useRef(0);
   const [isFetchingDependentFields, setIsFetchingDependentFields] = useState(false);
   const [formVersion, setFormVersion] = useState(0);
 
@@ -358,6 +389,7 @@ export function SentryAppExternalForm({
 
   useEffect(() => {
     let isCancelled = false;
+    const requestVersion = dependentFetchVersionRef.current + 1;
     const nextFieldGroups = cloneFieldGroups(resolvedFieldGroups);
     const nextTriggerFieldNames = new Set(
       getAllSchemaFields(nextFieldGroups).flatMap(field => field.depends_on ?? [])
@@ -365,18 +397,16 @@ export function SentryAppExternalForm({
     const nextInitialValues =
       element === 'alert-rule-action' ? getResetInitialValues(normalizedResetValues) : {};
 
+    dependentFetchVersionRef.current = requestVersion;
     setFieldGroups(nextFieldGroups);
     currentFormValuesRef.current = nextInitialValues;
     setDynamicFieldValues(
-      Object.fromEntries(
-        Object.entries(nextInitialValues).filter(([name]) =>
-          nextTriggerFieldNames.has(name)
-        )
-      )
+      getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)
     );
     setFormInitialValues(nextInitialValues);
     setExternalDefaultValues({});
     setAsyncOptionsCache({});
+    setIsFetchingDependentFields(false);
 
     const initializeDependentFields = async () => {
       const fieldsToPrefetch = getAllSchemaFields(nextFieldGroups).filter(
@@ -412,7 +442,7 @@ export function SentryAppExternalForm({
         }))
       );
 
-      if (isCancelled) {
+      if (isCancelled || requestVersion !== dependentFetchVersionRef.current) {
         return;
       }
 
@@ -494,10 +524,12 @@ export function SentryAppExternalForm({
           };
         case 'textarea':
           return {
+            autosize: field.autosize,
             default: defaultValue,
             disabled,
             help: field.help,
             label: field.label,
+            maxRows: field.maxRows,
             name: field.name,
             placeholder: field.placeholder,
             required,
@@ -585,7 +617,7 @@ export function SentryAppExternalForm({
 
             setAsyncOptionsCache(prev => ({
               ...prev,
-              [field.name]: choices,
+              [field.name]: normalizeChoices(choices),
             }));
 
             return toSelectValues(
@@ -632,22 +664,21 @@ export function SentryAppExternalForm({
         return;
       }
 
-      const nextCurrentValues = {...currentFormValuesRef.current, [fieldName]: value};
+      const impactedFieldNames = new Set(impactedFields.map(field => field.name));
+      const requestVersion = dependentFetchVersionRef.current + 1;
+      const nextCurrentValues = omitValues(
+        {...currentFormValuesRef.current, [fieldName]: value},
+        impactedFieldNames
+      );
       const nextDefaultValues = {...externalDefaultValues};
 
-      for (const impactedField of impactedFields) {
-        delete nextCurrentValues[impactedField.name];
-        delete nextDefaultValues[impactedField.name];
+      for (const impactedFieldName of impactedFieldNames) {
+        delete nextDefaultValues[impactedFieldName];
       }
 
+      dependentFetchVersionRef.current = requestVersion;
       currentFormValuesRef.current = nextCurrentValues;
-      setDynamicFieldValues(
-        Object.fromEntries(
-          Object.entries(nextCurrentValues).filter(([name]) =>
-            triggerFieldNames.has(name)
-          )
-        )
-      );
+      setDynamicFieldValues(getTriggerFieldValues(nextCurrentValues, triggerFieldNames));
       setFormInitialValues(nextCurrentValues);
       setExternalDefaultValues(nextDefaultValues);
       setIsFetchingDependentFields(true);
@@ -666,6 +697,10 @@ export function SentryAppExternalForm({
           }))
         );
 
+        if (requestVersion !== dependentFetchVersionRef.current) {
+          return;
+        }
+
         let updatedFieldGroups = fieldGroups;
         const updatedDefaultValues = {...nextDefaultValues};
 
@@ -681,15 +716,21 @@ export function SentryAppExternalForm({
           }
         }
 
-        setFieldGroups(updatedFieldGroups);
-        setFormInitialValues({
-          ...nextCurrentValues,
+        const mergedFormValues = {
+          ...omitValues(currentFormValuesRef.current, impactedFieldNames),
           ...updatedDefaultValues,
-        });
+        };
+
+        currentFormValuesRef.current = mergedFormValues;
+        setFieldGroups(updatedFieldGroups);
+        setDynamicFieldValues(getTriggerFieldValues(mergedFormValues, triggerFieldNames));
+        setFormInitialValues(mergedFormValues);
         setExternalDefaultValues(updatedDefaultValues);
         setFormVersion(version => version + 1);
       } finally {
-        setIsFetchingDependentFields(false);
+        if (requestVersion === dependentFetchVersionRef.current) {
+          setIsFetchingDependentFields(false);
+        }
       }
     },
     [externalDefaultValues, fetchFieldChoices, fieldGroups, triggerFieldNames]

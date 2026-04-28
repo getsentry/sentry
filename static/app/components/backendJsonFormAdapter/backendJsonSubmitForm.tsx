@@ -273,7 +273,8 @@ export function BackendJsonSubmitForm({
                           required={field.required}
                         >
                           <fieldApi.TextArea
-                            autosize
+                            autosize={field.autosize ?? true}
+                            maxRows={field.maxRows}
                             value={(fieldApi.state.value as string) ?? ''}
                             onChange={handleChange}
                             placeholder={field.placeholder}
