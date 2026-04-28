@@ -23,6 +23,8 @@ import {
 
 export type DiffMode = 'split' | 'wipe' | 'onion';
 
+export const TRANSPARENT_COLOR = 'transparent';
+
 interface DiffImageDisplayProps {
   diffImageBaseUrl: string;
   diffMode: DiffMode;
@@ -185,7 +187,7 @@ function SplitView({
             >
               <ImageWrapper>
                 <ZoomableImage src={headImageUrl} alt={t('Current Branch')} />
-                {diffMaskUrl && overlayColor !== 'transparent' && (
+                {diffMaskUrl && overlayColor !== TRANSPARENT_COLOR && (
                   <DiffOverlay $overlayColor={overlayColor} $maskUrl={diffMaskUrl} />
                 )}
               </ImageWrapper>

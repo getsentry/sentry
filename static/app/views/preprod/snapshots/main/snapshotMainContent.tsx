@@ -14,7 +14,11 @@ import {t} from 'sentry/locale';
 import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
 import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
-import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
+import {
+  DiffImageDisplay,
+  type DiffMode,
+  TRANSPARENT_COLOR,
+} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
 
 interface SnapshotMainContentProps {
@@ -296,8 +300,6 @@ function ImageFileName({
   }
   return <InlineCode variant="neutral">{fileName}</InlineCode>;
 }
-
-export const TRANSPARENT_COLOR = 'transparent';
 
 function OverlayControls({
   overlayColor,
