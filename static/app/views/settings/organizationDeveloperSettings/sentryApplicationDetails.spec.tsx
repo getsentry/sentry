@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', () => {
@@ -227,6 +228,27 @@ describe('Sentry Application Details', () => {
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
+    });
+
+    it('seeds the breadcrumb title from navigation state while loading', () => {
+      const breadcrumbTitleSpy = jest
+        .spyOn(BreadcrumbTitle, 'BreadcrumbTitle')
+        .mockImplementation(() => null);
+
+      render(<SentryApplicationDetails />, {
+        organization: OrganizationFixture({features: ['page-frame']}),
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/org-slug/developer-settings/${sentryApp.slug}/`,
+            state: {sentryAppName: sentryApp.name},
+          },
+          route: '/settings/:orgId/developer-settings/:appSlug/',
+        },
+      });
+
+      expect(breadcrumbTitleSpy.mock.calls[0]?.[0]).toMatchObject({
+        title: sentryApp.name,
+      });
     });
   });
 

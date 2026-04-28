@@ -47,7 +47,10 @@ export function SentryApplicationRow({
         <SentryAppAvatar sentryApp={app} size={36} />
         <SentryAppBox>
           <SentryAppName hideStatus={hideStatus}>
-            <Link to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}>
+            <Link
+              to={`/settings/${organization.slug}/developer-settings/${app.slug}/`}
+              state={{sentryAppName: app.name}}
+            >
               {app.name}
             </Link>
           </SentryAppName>

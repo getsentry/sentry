@@ -61,6 +61,9 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Member';
+type BreadcrumbLocationState = {
+  sentryAppName?: string;
+};
 
 const AVATAR_STYLES = {
   color: {
@@ -236,6 +239,10 @@ export default function SentryApplicationDetails() {
   };
 
   const showAuthInfo = () => !(app?.clientSecret?.[0] === '*');
+  const locationState = location.state as BreadcrumbLocationState | null;
+  const breadcrumbTitle = isEditingApp
+    ? (app?.name ?? locationState?.sentryAppName ?? '')
+    : t('New');
 
   const headerTitle = () => {
     const action = app ? 'Edit' : 'Create';
@@ -250,10 +257,13 @@ export default function SentryApplicationDetails() {
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
       refetch();
+      navigate(normalizeUrl(url));
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
+      navigate(normalizeUrl(url), {
+        state: {sentryAppName: data.name} satisfies BreadcrumbLocationState,
+      });
     }
-    navigate(normalizeUrl(url));
   };
 
   const handleSubmitError = (err: any) => {
@@ -409,10 +419,7 @@ export default function SentryApplicationDetails() {
   return (
     <div>
       {hasPageFrame ? (
-        <BreadcrumbTitle
-          routes={routes}
-          title={isEditingApp ? (app?.name ?? '') : t('New')}
-        />
+        <BreadcrumbTitle routes={routes} title={breadcrumbTitle} />
       ) : (
         <SettingsPageHeader title={headerTitle()} />
       )}

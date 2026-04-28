@@ -77,6 +77,13 @@ export function IntegrationRow(props: Props) {
     publishStatus === 'internal'
       ? `/settings/${organization.slug}/developer-settings/${slug}/`
       : `/settings/${organization.slug}/${urlMap[type]}/${slug}/`;
+  const detailLink =
+    publishStatus === 'internal'
+      ? {
+          pathname: baseUrl,
+          state: {sentryAppName: displayName},
+        }
+      : baseUrl;
 
   const renderDetails = () => {
     if (type === 'sentryApp') {
@@ -95,7 +102,7 @@ export function IntegrationRow(props: Props) {
     if (status) {
       return <IntegrationStatus status={status} />;
     }
-    return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
+    return <LearnMore to={detailLink}>{t('Learn More')}</LearnMore>;
   };
 
   return (
@@ -103,7 +110,7 @@ export function IntegrationRow(props: Props) {
       <Flex align="center" padding="xl">
         {customIcon ?? <PluginIcon size={36} pluginId={slug} />}
         <TitleContainer>
-          <IntegrationName to={baseUrl}>{displayName}</IntegrationName>
+          <IntegrationName to={detailLink}>{displayName}</IntegrationName>
           <IntegrationDetails>
             {renderStatus()}
             {renderDetails()}
