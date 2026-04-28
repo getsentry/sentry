@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -193,6 +193,19 @@ export function ListBox<T extends ObjectLike>({
 
   const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
+  useEffect(() => {
+    if (!virtualized || listState.selectionManager.focusedKey === null) {
+      return;
+    }
+
+    const focusedIndex = listItems.findIndex(
+      item => item.key === listState.selectionManager.focusedKey
+    );
+    if (focusedIndex !== -1) {
+      virtualizer.scrollToIndex(focusedIndex);
+    }
+  }, [virtualized, listItems, listState.selectionManager.focusedKey, virtualizer]);
+
   const refs = useMemo(() => {
     const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
       if (hasEverOverflowed || listItems.length === 0 || !scrollContainer) {
@@ -299,7 +312,7 @@ function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.value && 'details' in item.value) {
+      if (item?.props?.details) {
         return heightEstimation.large;
       }
       return heightEstimation.regular;
@@ -311,6 +324,9 @@ function useVirtualizedItems<T extends ObjectLike>({
     const virtualizedItems = virtualizer.getVirtualItems();
     return {
       items: virtualizedItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
       scrollElementRef,
       itemProps: (index: number) => ({
         ref: virtualizer.measureElement,
@@ -336,6 +352,7 @@ function useVirtualizedItems<T extends ObjectLike>({
 
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
     scrollElementRef: undefined,
     itemProps: () => undefined,
     wrapperProps: {

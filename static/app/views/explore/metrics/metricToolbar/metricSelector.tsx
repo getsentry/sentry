@@ -41,6 +41,7 @@ import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 
 export const NONE_UNIT = 'none';
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
+const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 
 function nextFrameCallback(cb: () => void) {
   if ('requestAnimationFrame' in window) {
@@ -356,7 +357,7 @@ export function MetricSelector({
   const virtualizer = useVirtualizer({
     count: collectionItems.length,
     getScrollElement: () => scrollElementRef.current,
-    estimateSize: () => 42,
+    estimateSize: () => METRIC_SELECTOR_OPTION_HEIGHT,
     overscan: 20,
   });
 
@@ -391,7 +392,7 @@ export function MetricSelector({
           key: index,
           start: 0,
           end: 0,
-          size: 42,
+          size: METRIC_SELECTOR_OPTION_HEIGHT,
           lane: 0,
         }));
 
@@ -540,7 +541,7 @@ export function MetricSelector({
                     )}
                   </Container>
                 </Stack>
-                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '200px'}}>
+                <Container width={{sm: '280px'}} padding="lg" minHeight={{sm: '260px'}}>
                   <MetricDetailPanel
                     metric={highlightedOption ?? optionFromTraceMetric}
                     hasMetricUnitsUI={hasMetricUnitsUI}
@@ -586,10 +587,6 @@ function MetricListBoxOption({
     onMouseEnter: () => {
       listState.selectionManager.setFocused(true);
       listState.selectionManager.setFocusedKey(item.key);
-    },
-    onMouseLeave: () => {
-      listState.selectionManager.setFocused(false);
-      listState.selectionManager.setFocusedKey(null);
     },
   });
 
@@ -725,7 +722,7 @@ function MetricAttributesSection({
       <Stack gap="xs">
         <Text size="md">{t('Attributes')}:</Text>
         <Flex gap="xs">
-          <LoadingIndicator size={16} />
+          <LoadingIndicator size={16} style={{margin: 0}} />
         </Flex>
       </Stack>
     );

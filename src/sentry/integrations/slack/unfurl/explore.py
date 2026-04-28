@@ -272,7 +272,7 @@ def map_explore_query_args(url: str, args: Mapping[str, str | None]) -> Mapping[
         except (json.JSONDecodeError, TypeError, AttributeError):
             pass
 
-    visualize_fields = raw_query.getlist("visualize") or raw_query.getlist("aggregateField")
+    visualize_fields = raw_query.getlist("aggregateField") or raw_query.getlist("visualize")
     for field_json in visualize_fields:
         try:
             parsed = json.loads(field_json)
