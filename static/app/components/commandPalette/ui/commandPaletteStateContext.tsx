@@ -187,15 +187,16 @@ export function CommandPaletteHotkeys() {
       match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
       includeInputs: true,
       callback: () => {
+        if (!organization) {
+          return;
+        }
         toggleCommandPalette(
           {},
           organization,
           state,
           dispatch,
           'keyboard',
-          organization && isSeerExplorerEnabled(organization)
-            ? openSeerExplorer
-            : undefined
+          isSeerExplorerEnabled(organization) ? openSeerExplorer : undefined
         );
       },
     },
