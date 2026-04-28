@@ -147,7 +147,7 @@ export function RevisionListItem({
   );
 }
 
-function RevisionDiffBody({
+export function RevisionDiffBody({
   isAnyLoading,
   isError,
   snapshot,
