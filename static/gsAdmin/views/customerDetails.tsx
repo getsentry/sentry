@@ -61,6 +61,7 @@ import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHi
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {ForkCustomerAction} from 'admin/components/forkCustomer';
+import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
@@ -73,6 +74,7 @@ import {toggleSpendAllocationModal} from 'admin/components/toggleSpendAllocation
 import {TrialSubscriptionAction} from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BilledDataCategoryInfo, BillingConfig, Subscription} from 'getsentry/types';
+import {PlanTier} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -866,6 +868,33 @@ export function CustomerDetails() {
                 onSuccess: reloadData,
               });
             },
+          },
+          {
+            key: 'migrateLegacySeer',
+            name: 'Migrate From Legacy Seer',
+            help: 'Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan, effective immediately or at the next billing period. Applies a prorated credit for eligible annual plans. Optionally adds a 14-day Seer seat trial.',
+            disabled:
+              ![PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
+                subscription.planTier as PlanTier
+              ) || !subscription.addOns?.legacySeer?.enabled,
+            disabledReason: [PlanTier.AM1, PlanTier.AM2, PlanTier.AM3].includes(
+              subscription.planTier as PlanTier
+            )
+              ? 'Only available for organizations with active legacy Seer that have not yet been migrated.'
+              : 'Only available for AM1, AM2, and AM3 plans.',
+            confirmModalOpts: {
+              priority: 'danger',
+              confirmText: 'Migrate',
+              showAuditFields: false,
+              renderModalSpecificContent: deps => (
+                <MigrateLegacySeerAction
+                  orgId={orgId}
+                  subscription={subscription}
+                  {...deps}
+                />
+              ),
+            },
+            onAction: params => onUpdateMutation.mutate({...params}),
           },
         ]}
         sections={[
