@@ -59,6 +59,11 @@ PREPROD_SIZE_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
+            public_alias="git_pr_number",
+            internal_name="git_pr_number",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
             public_alias="installable",
             internal_name="has_installable_file",
             search_type="boolean",
