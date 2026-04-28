@@ -62,7 +62,7 @@ def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = No
     )
 
 
-def instrumented(func: F) -> F:
+def track_dynamic_sampling(func: F) -> F:
     status_metric = f"{METRIC_PREFIX}.{func.__name__}.status"
     duration_metric = f"{METRIC_PREFIX}.{func.__name__}.duration"
 

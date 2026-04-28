@@ -6,7 +6,7 @@ import pytest
 
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     TelemetryStatus,
-    instrumented,
+    track_dynamic_sampling,
 )
 from sentry.testutils.helpers.options import override_options
 
@@ -19,7 +19,7 @@ _GATE_OPTIONS = {
 
 @override_options(_GATE_OPTIONS)
 def test_records_duration_and_reraises_with_failed_status_on_exception() -> None:
-    @instrumented
+    @track_dynamic_sampling
     def boom() -> None:
         raise ValueError("nope")
 
@@ -29,7 +29,7 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
 
 @override_options(_GATE_OPTIONS)
 def test_passes_result_through_and_emits_completed_on_success() -> None:
-    @instrumented
+    @track_dynamic_sampling
     def add(x: int, y: int) -> int:
         return x + y
 
@@ -47,7 +47,7 @@ def test_passes_result_through_and_emits_completed_on_success() -> None:
 
 @override_options(_GATE_OPTIONS)
 def test_emits_returned_terminal_status_without_completed_status() -> None:
-    @instrumented
+    @track_dynamic_sampling
     def skipped() -> TelemetryStatus:
         return TelemetryStatus.NOT_IN_ROLLOUT
 

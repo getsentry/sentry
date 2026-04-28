@@ -13,7 +13,7 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     TelemetryStatus,
     emit_status,
-    instrumented,
+    track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId, get_redis_client_for_ds
 from sentry.models.organization import Organization, OrganizationStatus
@@ -44,7 +44,7 @@ def _next_bucket_index() -> int:
     retry=Retry(times=0),
     silo_mode=SiloMode.CELL,
 )
-@instrumented
+@track_dynamic_sampling
 def schedule_per_org_calculations() -> None:
     bucket_index = _next_bucket_index()
     bucket_tag = {"bucket_index": str(bucket_index)}
@@ -93,6 +93,6 @@ def schedule_per_org_calculations() -> None:
     processing_deadline_duration=2 * 60,  # 2 minute timeout per org
     silo_mode=SiloMode.CELL,
 )
-@instrumented
+@track_dynamic_sampling
 def run_calculations_per_org_task(org_id: OrganizationId) -> None:
     return
