@@ -871,7 +871,7 @@ describe('conversationMessages utilities', () => {
         {
           generation: {
             id: 'gen-3',
-            value: {start_timestamp: 2.0, end_timestamp: 2.64},
+            value: {start_timestamp: 2, end_timestamp: 2.64},
           } as any,
           userContent: 'Q3',
           assistantContent: 'A3',

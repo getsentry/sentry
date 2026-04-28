@@ -156,7 +156,7 @@ function codingAgentsToMarkdown(artifact: ExplorerCodingAgentState[]): string | 
         ];
       })
       .filter(defined)
-      .flatMap(lines => lines)
+      .flat()
   );
 
   return parts.join('\n');

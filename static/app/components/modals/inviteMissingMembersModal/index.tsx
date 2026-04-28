@@ -58,7 +58,7 @@ export function InviteMissingMembersModal({
   const api = useApi();
 
   const allowedRolesMap = useMemo<Record<string, OrgRole>>(
-    () => allowedRoles.reduce((rolesMap, role) => ({...rolesMap, [role.id]: role}), {}),
+    () => Object.fromEntries(allowedRoles.map(role => [role.id, role])),
     [allowedRoles]
   );
 

@@ -64,7 +64,7 @@ export function ProjectChart({
       emphasis: {
         itemStyle: {
           color: theme.tokens.dataviz.semantic.neutral,
-          opacity: 1.0,
+          opacity: 1,
         },
       },
     });

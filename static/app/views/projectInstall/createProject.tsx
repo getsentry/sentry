@@ -241,7 +241,7 @@ export function CreateProject() {
     missingValues.isMissingAlertThreshold,
     missingValues.isMissingMessagingIntegrationChannel,
     isNotifyingViaIntegration && validateChannel.error,
-  ].filter(value => value).length;
+  ].filter(Boolean).length;
 
   const submitTooltipText =
     isNotifyingViaIntegration && validateChannel.error

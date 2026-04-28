@@ -1188,7 +1188,7 @@ function ViewerTableV2({
         }}
       />
       {!(
-        tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
+        /^-?release$/.test(tableWidget.queries[0]!.orderby) &&
         tableWidget.widgetType === WidgetType.RELEASE
       ) &&
         (links?.previous?.results || links?.next?.results) && (

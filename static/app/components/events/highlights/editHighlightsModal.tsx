@@ -233,14 +233,11 @@ function EditContextHighlightSection({
   ...props
 }: EditContextHighlightSectionProps) {
   const [ctxFilter, setCtxFilter] = useState('');
-  const ctxDisableMap: Record<string, Set<string>> = Object.entries(
-    highlightContext
-  ).reduce(
-    (disableMap, [contextType, contextKeys]) => ({
-      ...disableMap,
-      [contextType]: new Set(contextKeys),
-    }),
-    {}
+  const ctxDisableMap: Record<string, Set<string>> = Object.fromEntries(
+    Object.entries(highlightContext).map(([contextType, contextKeys]) => [
+      contextType,
+      new Set(contextKeys),
+    ])
   );
   const ctxData: Record<string, string[]> = getOrderedContextItems(event).reduce(
     (acc, {alias, value}) => {

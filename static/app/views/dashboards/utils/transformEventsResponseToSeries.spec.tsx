@@ -52,7 +52,7 @@ describe('transformEventsResponseToSeries', () => {
       'avg(transaction.duration)': {
         data: [
           [1737731713, [{count: 12.4}]],
-          [1737731773, [{count: 17.7}, {count: 1.0}]],
+          [1737731773, [{count: 17.7}, {count: 1}]],
         ],
         order: 0,
       },
@@ -121,7 +121,7 @@ describe('transformEventsResponseToSeries', () => {
         'avg(transaction.duration)': {
           data: [
             [1737731713, [{count: 12.4}]],
-            [1737731773, [{count: 17.7}, {count: 1.0}]],
+            [1737731773, [{count: 17.7}, {count: 1}]],
           ],
         },
         order: 0,

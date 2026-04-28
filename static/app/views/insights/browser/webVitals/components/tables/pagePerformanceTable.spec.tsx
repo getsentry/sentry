@@ -52,7 +52,7 @@ describe('PagePerformanceTable', () => {
             'count_scores(measurements.score.total)': 985,
             'performance_score(measurements.score.total)': 0.847767385770207,
             'opportunity_score(measurements.score.total)': 0.0001,
-            'p75(measurements.inp)': 144.0,
+            'p75(measurements.inp)': 144,
             'p75(measurements.ttfb)': 783.125,
             'p75(measurements.lcp)': 700.2999782562256,
             'p75(measurements.cls)': 0.17772871140057198,

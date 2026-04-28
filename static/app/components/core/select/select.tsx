@@ -569,7 +569,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     if (isGroupedOptions<OptionType>(choicesOrOptions)) {
       flatOptions = choicesOrOptions.flatMap(option => option.options);
     } else {
-      flatOptions = choicesOrOptions.flatMap((option: any) => option);
+      flatOptions = choicesOrOptions.flat();
     }
 
     const compare = (

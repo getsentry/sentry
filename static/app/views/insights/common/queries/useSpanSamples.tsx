@@ -100,9 +100,7 @@ export const useSpanSamples = <Fields extends NonDefaultSpanSampleFields[]>(
       {
         query: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
         yAxis: [`avg(${SPAN_SELF_TIME})`],
-        enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
-          Boolean(value)
-        ),
+        enabled: Object.values({'span.group': groupId, ...filters}).every(Boolean),
       },
       'api.insights.sidebar-span-metrics'
     );

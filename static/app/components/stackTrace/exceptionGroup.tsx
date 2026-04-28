@@ -19,14 +19,13 @@ type HiddenExceptionsState = Record<number, boolean>;
  */
 export function useHiddenExceptions(values: ExceptionValue[]) {
   const [hiddenExceptions, setHiddenExceptions] = useState<HiddenExceptionsState>(() =>
-    values
-      .filter(
-        ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
-      )
-      .reduce<HiddenExceptionsState>(
-        (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
-        {}
-      )
+    Object.fromEntries(
+      values
+        .filter(
+          ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
+        )
+        .map(next => [next.mechanism?.exception_id ?? -1, true])
+    )
   );
 
   const toggleRelatedExceptions = (exceptionId: number) => {

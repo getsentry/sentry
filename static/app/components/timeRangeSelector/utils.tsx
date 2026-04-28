@@ -314,7 +314,7 @@ export const timeRangeAutoCompleteFilter = function (
  */
 export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
   // If arbitraryPeriod is invalid
-  if (!arbitraryPeriod || !STATS_PERIOD_REGEX.exec(arbitraryPeriod)) {
+  if (!arbitraryPeriod || !STATS_PERIOD_REGEX.test(arbitraryPeriod)) {
     return {};
   }
 
@@ -332,8 +332,8 @@ export function getSortedRelativePeriods(
 ) {
   const entries = Object.entries(relativePeriods);
 
-  const validPeriods = entries.filter(([period]) => !!STATS_PERIOD_REGEX.exec(period));
-  const invalidPeriods = entries.filter(([period]) => !STATS_PERIOD_REGEX.exec(period));
+  const validPeriods = entries.filter(([period]) => !!STATS_PERIOD_REGEX.test(period));
+  const invalidPeriods = entries.filter(([period]) => !STATS_PERIOD_REGEX.test(period));
 
   const sortedValidPeriods = validPeriods.sort((a, b) => {
     const [periodA] = a;

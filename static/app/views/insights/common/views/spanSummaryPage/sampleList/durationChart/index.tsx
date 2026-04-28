@@ -91,9 +91,7 @@ export function DurationChart({
     {
       query: search,
       yAxis: [`avg(${SPAN_SELF_TIME})`],
-      enabled: Object.values({...filters, ...additionalFilters}).every(value =>
-        Boolean(value)
-      ),
+      enabled: Object.values({...filters, ...additionalFilters}).every(Boolean),
     },
     referrer
   );
@@ -102,7 +100,7 @@ export function DurationChart({
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [`avg(${SPAN_SELF_TIME})`, SPAN_OP],
-      enabled: Object.values(filters).every(value => Boolean(value)),
+      enabled: Object.values(filters).every(Boolean),
     },
     'api.insights.span-summary-panel-samples-table-avg'
   );

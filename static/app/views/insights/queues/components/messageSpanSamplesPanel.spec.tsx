@@ -67,14 +67,14 @@ describe('messageSpanSamplesPanel', () => {
       body: {
         data: [
           {
-            'sum(span.duration)': 10.0,
+            'sum(span.duration)': 10,
             'trace_status_rate(ok)': 0.8,
             'count_op(queue.publish)': 222,
             'count_op(queue.process)': 333,
-            'avg_if(span.duration,span.op,equals,queue.publish)': 3.0,
-            'avg_if(span.duration,span.op,equals,queue.process)': 4.0,
+            'avg_if(span.duration,span.op,equals,queue.publish)': 3,
+            'avg_if(span.duration,span.op,equals,queue.process)': 4,
             'count()': 555,
-            'avg(messaging.message.receive.latency)': 2.0,
+            'avg(messaging.message.receive.latency)': 2,
             'avg(span.duration)': 3.5,
           },
         ],

@@ -69,9 +69,8 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
 
   const isTeamRolesAllowedForRole = useCallback<(roleId: string) => boolean>(
     roleId => {
-      const roleOptionsMap = roleOptions.reduce<Record<string, OrgRole>>(
-        (rolesMap, roleOption) => ({...rolesMap, [roleOption.id]: roleOption}),
-        {}
+      const roleOptionsMap = Object.fromEntries(
+        roleOptions.map(roleOption => [roleOption.id, roleOption])
       );
       return roleOptionsMap[roleId]?.isTeamRolesAllowed ?? true;
     },

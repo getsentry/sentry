@@ -62,14 +62,13 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
         return {};
       }
 
-      return values
-        .filter(
-          ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
-        )
-        .reduce(
-          (acc, next) => ({...acc, [next.mechanism?.exception_id ?? -1]: true}),
-          {}
-        );
+      return Object.fromEntries(
+        values
+          .filter(
+            ({mechanism}) => mechanism?.is_exception_group && defined(mechanism.parent_id)
+          )
+          .map(next => [next.mechanism?.exception_id ?? -1, true])
+      );
     }
   );
 

@@ -2,6 +2,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProjectSdkUpdates} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,7 +45,7 @@ export function useOutdatedSDKProjects({enabled, projectId}: Options) {
       return semverCompare(update.sdkVersion, minimumRequiredVersion) === -1;
     })
     .map(update => ProjectsStore.getById(update.projectId))
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    .filter(defined);
 
   return {
     ...response,

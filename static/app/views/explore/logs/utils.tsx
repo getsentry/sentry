@@ -463,7 +463,7 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
   }
 
   const copy: Record<string, string | number | boolean> = {
-    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    ...Object.fromEntries(ourlog.attributes.map(({name, value}) => [name, value])),
     id: ourlog.itemId,
   };
   let warned = false;

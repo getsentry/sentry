@@ -6,7 +6,7 @@ import {DynamicSamplingPanel} from 'admin/views/dynamicSamplingPanel';
 const devEnvRule = {
   samplingValue: {
     type: 'sampleRate',
-    value: 1.0,
+    value: 1,
   },
   type: 'trace',
   condition: {

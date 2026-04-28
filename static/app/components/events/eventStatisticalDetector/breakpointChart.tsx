@@ -52,7 +52,7 @@ export function EventBreakpointChart({event}: EventBreakpointChartProps) {
     ? toArray(location.query.environment)
     : [];
   const parsedProjects = toArray(location.query.project ?? '-1')
-    .map(project => Number(project))
+    .map(Number)
     .filter(project => !Number.isNaN(project));
   const projects = parsedProjects.length > 0 ? parsedProjects : [-1];
   const exploreTarget =

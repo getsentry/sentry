@@ -82,7 +82,7 @@ describe('Performance > Widgets > Query Batching', () => {
               1636822800,
               [
                 {
-                  count: 30.0,
+                  count: 30,
                 },
               ],
             ],

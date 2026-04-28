@@ -36,14 +36,14 @@ function getFuzzyHighlightContext(
   highlightContext: HighlightContext,
   {alias, type: contextType, value, data}: ContextData
 ) {
-  const highlightContextSets: Record<ContextData['type'], Set<string>> = Object.entries(
-    highlightContext
-  ).reduce(
-    (hcSets, [ctxType, contextKeys]) => ({
-      ...hcSets,
-      [ctxType]: new Set(contextKeys),
-    }),
-    {}
+  const highlightContextSets: Record<
+    ContextData['type'],
+    Set<string>
+  > = Object.fromEntries(
+    Object.entries(highlightContext).map(([ctxType, contextKeys]) => [
+      ctxType,
+      new Set(contextKeys),
+    ])
   );
   const title = getContextTitle({alias, type: contextType, value});
   let highlightKey: string | undefined = undefined;

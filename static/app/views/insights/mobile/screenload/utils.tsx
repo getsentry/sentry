@@ -22,9 +22,8 @@ export function transformDeviceClassEvents({
   data?: Array<Partial<SpanResponse> & Pick<SpanResponse, 'device.class'>>;
   primaryRelease?: string;
 }): Record<string, Record<string, Series>> {
-  const transformedData = yAxes.reduce(
-    (acc, yAxis) => ({...acc, [YAXIS_COLUMNS[yAxis]]: {}}),
-    {}
+  const transformedData = Object.fromEntries(
+    yAxes.map(yAxis => [YAXIS_COLUMNS[yAxis], {}])
   );
 
   yAxes.forEach(val => {

@@ -798,21 +798,8 @@ export default typescript.config([
       'unicorn/custom-error-definition': 'error',
 
       'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-instanceof-array': 'error',
-      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
 
       // TODO: Evaluate which rules we could practically fix violations from & enable
       'unicorn/consistent-date-clone': 'off',
@@ -830,6 +817,7 @@ export default typescript.config([
       'unicorn/no-object-as-default-parameter': 'off',
       'unicorn/no-process-exit': 'off',
       'unicorn/no-thenable': 'off',
+      'unicorn/no-this-assignment': 'off',
       'unicorn/no-unnecessary-array-flat-depth': 'off',
       'unicorn/no-unnecessary-array-splice-count': 'off',
       'unicorn/no-unnecessary-slice-end': 'off',
@@ -866,6 +854,7 @@ export default typescript.config([
       'unicorn/require-array-join-separator': 'off',
       'unicorn/require-number-to-fixed-digits-argument': 'off',
       'unicorn/text-encoding-identifier-case': 'off',
+      'unicorn/throw-new-error': 'off',
     },
   },
   {

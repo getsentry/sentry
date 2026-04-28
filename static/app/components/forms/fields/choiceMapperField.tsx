@@ -236,7 +236,7 @@ export function ChoiceMapperField({
     } = fieldProps;
 
     const mappedKeys = Object.keys(columnLabels);
-    const emptyValue = mappedKeys.reduce((a, v) => ({...a, [v]: null}), {});
+    const emptyValue = Object.fromEntries(mappedKeys.map(v => [v, null]));
 
     const valueIsEmpty = hasValue(fieldProps.value);
     const value = valueIsEmpty ? fieldProps.value : {};

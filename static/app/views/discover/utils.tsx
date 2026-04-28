@@ -190,7 +190,7 @@ export function getPrebuiltQueries(organization: Organization) {
 function disableMacros(value: string | null | boolean | number) {
   const unsafeCharacterRegex = /^[=+\-@]/;
 
-  if (typeof value === 'string' && value.match(unsafeCharacterRegex)) {
+  if (typeof value === 'string' && unsafeCharacterRegex.test(value)) {
     return `'${value}`;
   }
 

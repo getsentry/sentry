@@ -155,7 +155,7 @@ const issuesCountRenderer = (
   field: 'events' | 'users' | 'lifetimeEvents' | 'lifetimeUsers'
 ) => {
   const {start, end, period} = data;
-  const isUserField = !!/user/i.exec(field.toLowerCase());
+  const isUserField = !!/user/i.test(field.toLowerCase());
   const primaryCount = data[field];
   const count = data[isUserField ? 'users' : 'events'];
   const lifetimeCount = data[isUserField ? 'lifetimeUsers' : 'lifetimeEvents'];

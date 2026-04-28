@@ -48,7 +48,7 @@ export function SampleInfo(props: Props) {
         `sum(${SpanFields.SPAN_SELF_TIME})`,
         `avg(${SpanFields.SPAN_SELF_TIME})`,
       ],
-      enabled: Object.values(ribbonFilters).every(value => Boolean(value)),
+      enabled: Object.values(ribbonFilters).every(Boolean),
     },
     'api.insights.span-summary-panel-metrics'
   );

@@ -117,7 +117,7 @@ function formatStepKey(key: string, isLoading: boolean): string {
     let ingVerb = verb;
     if (verb.endsWith('e') && !verb.endsWith('ee')) {
       ingVerb = verb.slice(0, -1) + 'ing';
-    } else if (verb.match(/[aeiou][^aeiou]$/)) {
+    } else if (/[aeiou][^aeiou]$/.test(verb)) {
       // Double consonant for short vowel + consonant (e.g., run -> running)
       ingVerb = verb + verb.slice(-1) + 'ing';
     } else {

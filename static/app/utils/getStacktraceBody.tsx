@@ -60,7 +60,7 @@ export function getStacktraceBody({
   // TODO(ts): This should be verified when EntryData has the correct type
   return exc.data.values
     .filter((value: any) => !!value.stacktrace)
-    .map((value: any) =>
+    .flatMap((value: any) =>
       rawStacktraceContent({
         data: value.stacktrace,
         platform: event.platform,
@@ -71,6 +71,5 @@ export function getStacktraceBody({
         newestFirst,
         includeJSContext,
       })
-    )
-    .reduce((acc: any, value: any) => acc.concat(value), []);
+    );
 }

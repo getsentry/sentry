@@ -94,9 +94,7 @@ export const _debouncedLoadStats = debounce(
 
     Promise.all(queries)
       .then(results => {
-        ProjectsStatsStore.onStatsLoadSuccess(
-          results.reduce((acc, result) => acc.concat(result), [])
-        );
+        ProjectsStatsStore.onStatsLoadSuccess(results.flat());
       })
       .catch(() => {
         addErrorMessage(t('Unable to fetch all project stats'));

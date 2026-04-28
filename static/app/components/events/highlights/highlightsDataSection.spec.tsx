@@ -25,9 +25,8 @@ describe('HighlightsDataSection', () => {
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
   });
-  const eventTagMap = TEST_EVENT_TAGS.reduce<Record<string, string>>(
-    (tagMap, tag) => ({...tagMap, [tag.key]: tag.value}),
-    {}
+  const eventTagMap = Object.fromEntries(
+    TEST_EVENT_TAGS.map(tag => [tag.key, tag.value])
   );
   const highlightTags = ['environment', 'handled', 'transaction', 'url'];
   const highlightContext = {

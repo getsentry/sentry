@@ -34,7 +34,7 @@ export const cardAnimationProps = {
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
   transition: {
-    duration: 1.0,
+    duration: 1,
     height: {
       type: 'spring',
       bounce: 0.2,

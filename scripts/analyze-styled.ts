@@ -749,25 +749,25 @@ class StyledComponentsDetector extends BaseDetector {
   private trackCssRules(cssRules: string): void {
     for (const line of cssRules.split('\n')) {
       if (
-        line.match(/^\s*$/) ||
+        /^\s*$/.test(line) ||
         line.trim() === '`' ||
-        line.match(/^\s*}/) ||
-        line.match(/^\s*\/\*.*\*\/\s*$/)
+        /^\s*}/.test(line) ||
+        /^\s*\/\*.*\*\/\s*$/.test(line)
       ) {
         continue;
       }
 
       // Skip selectors and media queries for rule counting
       if (
-        line.match(/^\s*[>&]/) ||
-        line.match(/^\s*@media/) ||
-        line.match(/^\s*@container/)
+        /^\s*[>&]/.test(line) ||
+        /^\s*@media/.test(line) ||
+        /^\s*@container/.test(line)
       ) {
         continue;
       }
 
       // Handle special expressions
-      if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
+      if (/^\s*\$\{p => p.theme.overflowEllipsis\};?/.test(line)) {
         const currentCount = this.cssRuleCounts.get('overflowEllipsis') || 0;
         this.cssRuleCounts.set('overflowEllipsis', currentCount + 1);
         continue;
@@ -878,15 +878,15 @@ class StyledComponentsDetector extends BaseDetector {
 
       for (const line of sc.cssRules.split('\n')) {
         if (
-          line.match(/^\s*$/) ||
+          /^\s*$/.test(line) ||
           line.trim() === '`' ||
-          line.match(/^\s*}/) ||
-          line.match(/^\s*\/\*.*\*\/\s*$/)
+          /^\s*}/.test(line) ||
+          /^\s*\/\*.*\*\/\s*$/.test(line)
         ) {
           continue;
         }
 
-        if (line.match(/^\s*[>&]/)) {
+        if (/^\s*[>&]/.test(line)) {
           const subSelector = line.match(/^\s*([>&])/)?.[1] || 'unknown sub selector';
           ruleInfo[subSelector] = ruleInfo[subSelector] || [];
           ruleInfo[subSelector].push({
@@ -896,7 +896,7 @@ class StyledComponentsDetector extends BaseDetector {
           continue;
         }
 
-        if (line.match(/^\s*@media/) || line.match(/^\s*@container/)) {
+        if (/^\s*@media/.test(line) || /^\s*@container/.test(line)) {
           const mediaQuery = '@media';
           ruleInfo[mediaQuery] = ruleInfo[mediaQuery] || [];
           ruleInfo[mediaQuery].push({
@@ -906,7 +906,7 @@ class StyledComponentsDetector extends BaseDetector {
           continue;
         }
 
-        if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
+        if (/^\s*\$\{p => p.theme.overflowEllipsis\};?/.test(line)) {
           ruleInfo['@expression: p.theme.overflowEllipsis'] =
             ruleInfo['@expression: p.theme.overflowEllipsis'] || [];
           ruleInfo['@expression: p.theme.overflowEllipsis'].push({
@@ -1227,19 +1227,19 @@ class FlexOnlyDivsDetector extends BaseDetector {
       // Parse CSS rules to check if it only contains flex rules
       for (const line of sc.cssRules.split('\n')) {
         if (
-          line.match(/^\s*$/) ||
+          /^\s*$/.test(line) ||
           line.trim() === '`' ||
-          line.match(/^\s*}/) ||
-          line.match(/^\s*\/\*.*\*\/\s*$/) ||
-          line.match(/^\s*[>&]/) ||
-          line.match(/^\s*@media/) ||
-          line.match(/^\s*@container/)
+          /^\s*}/.test(line) ||
+          /^\s*\/\*.*\*\/\s*$/.test(line) ||
+          /^\s*[>&]/.test(line) ||
+          /^\s*@media/.test(line) ||
+          /^\s*@container/.test(line)
         ) {
           continue;
         }
 
         // Handle special expressions
-        if (line.match(/^\s*\$\{p => p.theme.overflowEllipsis\};?/)) {
+        if (/^\s*\$\{p => p.theme.overflowEllipsis\};?/.test(line)) {
           // This is not a flex rule, so exclude this component
           hasOnlyFlexRules = false;
           break;

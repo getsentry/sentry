@@ -351,7 +351,7 @@ function EnhancedUsageStatsOrganization({
           errorStatuses.push(spikeThresholds.error);
         }
 
-        const loading = loadingStatuses.some(status => status);
+        const loading = loadingStatuses.some(Boolean);
         const error = errorStatuses.find(defined) ?? null;
 
         const shouldRenderRangeAlert = !loading && isSingleProject && !hasAccurateSpikes;
@@ -370,7 +370,7 @@ function EnhancedUsageStatsOrganization({
             }
             storedSpikes.push(
               ...getSpikeDetails({
-                loading: spikeDetailsLoading.some(status => status),
+                loading: spikeDetailsLoading.some(Boolean),
                 spikeThresholds: spikeThresholds.data,
                 spikesList: spikesList.data,
                 orgStats: usageStats.orgStats.data,

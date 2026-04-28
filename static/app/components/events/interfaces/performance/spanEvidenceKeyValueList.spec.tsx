@@ -41,7 +41,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     parentSpan.addChild({
       startTimestamp: 2.1,
-      endTimestamp: 4.0,
+      endTimestamp: 4,
       op: 'db',
       description: 'SELECT * FROM books',
       hash: 'aaa',
@@ -115,7 +115,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     parentSpan.addChild({
       startTimestamp: 2.1,
-      endTimestamp: 4.0,
+      endTimestamp: 4,
       op: 'db',
       description: 'SELECT * FROM books',
       hash: 'aaa',
@@ -189,7 +189,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     parentSpan.addChild({
       startTimestamp: 2.1,
-      endTimestamp: 4.0,
+      endTimestamp: 4,
       op: 'db.sql.active_record',
       description: 'SELECT * FROM books WHERE id = %s',
       hash: 'bbb',
@@ -652,7 +652,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
-      endTimestamp: 1.0,
+      endTimestamp: 1,
       op: 'resource.script',
       description: 'https://example.com/resource.js',
       problemSpan: ProblemSpan.OFFENDER,

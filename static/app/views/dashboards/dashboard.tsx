@@ -184,11 +184,7 @@ function DashboardInner({
 
   const fetchMemberList = useCallback(() => {
     // Stores MemberList in MemberListStore for use in modals and sets state for use is child components
-    fetchOrgMembers(
-      api,
-      organization.slug,
-      selection.projects?.map(projectId => String(projectId))
-    );
+    fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [api, organization.slug, selection.projects]);
 
   useEffect(() => {
