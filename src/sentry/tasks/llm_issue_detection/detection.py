@@ -208,7 +208,10 @@ def create_issue_occurrence_from_detection(
     trace_id = detected_issue.trace_id
     transaction_name = normalize_description(detected_issue.transaction_name)
 
-    if options.get("issue-detection.llm-detection.use-group-fingerprint") and (
+    use_group_fingerprint = features.has(
+        "organizations:llm-detection-use-group-fingerprint", project.organization
+    )
+    if use_group_fingerprint and (
         group_for_fingerprint := detected_issue.group_for_fingerprint.strip()
     ):
         fingerprint_key = group_for_fingerprint.lower().replace(" ", "-")

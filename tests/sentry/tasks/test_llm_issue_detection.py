@@ -24,7 +24,6 @@ from sentry.tasks.llm_issue_detection.trace_data import (
 from sentry.testutils.cases import APITransactionTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 
 
 class LLMIssueDetectionTest(TestCase):
@@ -191,8 +190,9 @@ class LLMIssueDetectionTest(TestCase):
         assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-get-/api"]
         assert occurrence.type == AIDetectedDBGroupType
 
+    @with_feature("organizations:llm-detection-use-group-fingerprint")
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_create_issue_occurrence_fingerprint_uses_group_for_fingerprint_when_option_on(
+    def test_create_issue_occurrence_fingerprint_uses_group_for_fingerprint_when_flag_on(
         self, mock_produce_occurrence
     ):
         detected_issue = DetectedIssue(
@@ -206,22 +206,22 @@ class LLMIssueDetectionTest(TestCase):
             verification_reason="Verified",
             group_for_fingerprint="Inefficient Database Queries:abc123def4567890",
         )
-        with override_options({"issue-detection.llm-detection.use-group-fingerprint": True}):
-            create_issue_occurrence_from_detection(
-                detected_issue=detected_issue,
-                project=self.project,
-            )
+        create_issue_occurrence_from_detection(
+            detected_issue=detected_issue,
+            project=self.project,
+        )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
         assert occurrence.fingerprint == [
             f"1-{AIDetectedDBGroupType.type_id}-inefficient-database-queries:abc123def4567890"
         ]
 
+    @with_feature("organizations:llm-detection-use-group-fingerprint")
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_same_group_for_fingerprint_groups_across_transactions_when_option_on(
+    def test_same_group_for_fingerprint_groups_across_transactions_when_flag_on(
         self, mock_produce_occurrence
     ):
         # Two issues with the same root cause but different transactions must produce the same
-        # fingerprint when the option is on — this is the under-grouping fix.
+        # fingerprint when the flag is on — this is the under-grouping fix.
         shared = "Inefficient Database Queries:abc123def4567890"
         for txn in ("GET /api/foo", "GET /api/bar", "POST /api/baz"):
             detected_issue = DetectedIssue(
@@ -235,11 +235,10 @@ class LLMIssueDetectionTest(TestCase):
                 verification_reason="Verified",
                 group_for_fingerprint=shared,
             )
-            with override_options({"issue-detection.llm-detection.use-group-fingerprint": True}):
-                create_issue_occurrence_from_detection(
-                    detected_issue=detected_issue,
-                    project=self.project,
-                )
+            create_issue_occurrence_from_detection(
+                detected_issue=detected_issue,
+                project=self.project,
+            )
 
         fingerprints = {
             call.kwargs["occurrence"].fingerprint[0]
@@ -247,8 +246,9 @@ class LLMIssueDetectionTest(TestCase):
         }
         assert len(fingerprints) == 1
 
+    @with_feature("organizations:llm-detection-use-group-fingerprint")
     @patch("sentry.tasks.llm_issue_detection.detection.produce_occurrence_to_kafka")
-    def test_falls_back_to_transaction_when_option_on_but_group_for_fingerprint_blank(
+    def test_falls_back_to_transaction_when_flag_on_but_group_for_fingerprint_blank(
         self, mock_produce_occurrence
     ):
         # If group_for_fingerprint is empty (rolling deploy: old seer talking to new sentry),
@@ -264,11 +264,10 @@ class LLMIssueDetectionTest(TestCase):
             verification_reason="Verified",
             group_for_fingerprint="   ",
         )
-        with override_options({"issue-detection.llm-detection.use-group-fingerprint": True}):
-            create_issue_occurrence_from_detection(
-                detected_issue=detected_issue,
-                project=self.project,
-            )
+        create_issue_occurrence_from_detection(
+            detected_issue=detected_issue,
+            project=self.project,
+        )
         occurrence = mock_produce_occurrence.call_args.kwargs["occurrence"]
         assert occurrence.fingerprint == [f"1-{AIDetectedDBGroupType.type_id}-get-/api"]
 

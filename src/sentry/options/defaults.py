@@ -4005,15 +4005,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# When True, fingerprint LLM-detected issues by detected_issue.group_for_fingerprint
-# (a stable signature derived from offender spans) instead of transaction_slug.
-register(
-    "issue-detection.llm-detection.use-group-fingerprint",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Controls whether deletion from EAP is enabled.
 register(
     "eventstream.eap.deletion-enabled",
