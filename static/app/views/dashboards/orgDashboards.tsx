@@ -13,7 +13,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -116,20 +115,6 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   }, [dashboardId, selectedDashboard?.id]);
 
   useEffect(() => {
-    if (!dashboardId) {
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboards/`,
-          query: {
-            ...location.query,
-          },
-        }),
-        {replace: true}
-      );
-    }
-  }, [dashboardId, organization.slug, location.query, navigate]);
-
-  useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
     // appear in the query params
 
@@ -170,21 +155,6 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       {replace: true}
     );
   }, [location, navigate, selectedDashboard]);
-
-  useEffect(() => {
-    if (!organization.features.includes('dashboards-basic')) {
-      // Redirect to Dashboards v1
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboards/`,
-          query: {
-            ...location.query,
-          },
-        }),
-        {replace: true}
-      );
-    }
-  }, [location.query, navigate, organization.slug, organization.features]);
 
   useEffect(() => {
     // Clean up the query cache when the dashboard unmounts to prevent
