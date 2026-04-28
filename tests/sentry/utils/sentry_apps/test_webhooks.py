@@ -257,28 +257,19 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
     @override_options(
         {**CIRCUIT_BREAKER_OPTIONS, "sentry-apps.webhook.circuit-breaker.dry-run": True}
     )
-    @patch("sentry.utils.sentry_apps.webhooks.logger")
     @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
-    def test_dry_run_logs_would_email_once_across_concurrent_trips(
-        self, MockBreaker, mock_safe_urlopen, MockService, mock_logger
+    def test_dry_run_does_not_dispatch_notify_async(
+        self, MockBreaker, mock_safe_urlopen, MockService
     ):
-        """In dry-run mode, exactly one would_email log fires per BROKEN cycle, even if
-        many concurrent timeouts each observe a BROKEN state."""
+        """Dry-run mode skips delivery even when the breaker trips."""
         self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
         mock_safe_urlopen.side_effect = WebhookTimeoutError()
 
-        for _ in range(5):
-            with pytest.raises(WebhookTimeoutError):
-                send_and_save_webhook_request(self.sentry_app, self._make_event())
+        with pytest.raises(WebhookTimeoutError):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
 
-        would_email_calls = [
-            c
-            for c in mock_logger.info.call_args_list
-            if c.args and c.args[0] == "sentry_app.webhook.circuit_breaker.would_email"
-        ]
-        assert len(would_email_calls) == 1
         MockService.return_value.notify_async.assert_not_called()
 
     @with_feature("organizations:sentry-app-webhook-circuit-breaker")

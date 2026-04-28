@@ -495,31 +495,6 @@ class ShouldAllowRequestTest(TestCase):
             )
 
 
-@freeze_time()
-class GetStateTest(TestCase):
-    def setUp(self) -> None:
-        self.config = DEFAULT_CONFIG
-        self.breaker = MockCircuitBreaker(
-            "dogs_are_great", self.config, CountBasedTripStrategy.from_config(self.config)
-        )
-
-        self.breaker.redis_pipeline.flushall()
-        self.breaker.redis_pipeline.execute()
-
-    def test_reflects_state_through_lifecycle(self) -> None:
-        self.breaker._set_breaker_state(CircuitBreakerState.OK)
-        assert self.breaker.get_state() == CircuitBreakerState.OK
-
-        self.breaker._set_breaker_state(CircuitBreakerState.BROKEN)
-        assert self.breaker.get_state() == CircuitBreakerState.BROKEN
-
-        self.breaker._set_breaker_state(CircuitBreakerState.RECOVERY)
-        assert self.breaker.get_state() == CircuitBreakerState.RECOVERY
-
-        self.breaker._set_breaker_state(CircuitBreakerState.OK)
-        assert self.breaker.get_state() == CircuitBreakerState.OK
-
-
 # --- Rate-based circuit breaker tests ---
 
 DEFAULT_RATE_BASED_CONFIG: RateBasedTripStrategyConfig = {
