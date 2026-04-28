@@ -359,7 +359,7 @@ export function ExplorerDrawerContent({
           <Fragment>
             {blocks.map((block: Block, index: number) => (
               <BlockComponent
-                key={block.id}
+                key={index} // For slide-in animation - run/mount once per new index
                 ref={el => {
                   blockRefs.current[index] = el;
                 }}
