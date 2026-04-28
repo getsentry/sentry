@@ -13,7 +13,9 @@ import {
 import {ArtifactCard} from 'sentry/components/events/autofix/v3/artifactCard';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
+import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {StyledMarkedText} from 'sentry/components/events/autofix/v3/styled';
+import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconList} from 'sentry/icons/iconList';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -36,8 +38,13 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
     () => (artifact ? artifactToMarkdown(artifact) : null),
     [artifact]
   );
-  const {runState, startStep} = autofix;
-  const runId = runState?.run_id;
+
+  const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
+    useResetAutofixStep({
+      autofix,
+      section,
+      step: 'solution',
+    });
 
   return (
     <ArtifactCard
@@ -48,15 +55,22 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
           ? () => copy(markdown, {successMessage: t('Copied to clipboard.')})
           : undefined
       }
+      allowReset
+      onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
-      {section.status === 'processing' ? (
-        <ArtifactLoadingDetails
-          blocks={section.blocks}
-          loadingMessage={t('Formulating a plan\u2026')}
-        />
-      ) : artifact?.data ? (
+      {artifact?.data ? (
         <Fragment>
-          <StyledMarkedText text={artifact.data.one_line_summary} />
+          {shouldShowReset && (
+            <AutofixResetPrompt
+              onClosePrompt={() => setShouldShowReset(false)}
+              onReset={handleReset}
+              placeholder={t('Give seer additional context to improve this plan.')}
+              prompt={t('How can this plan be improved?')}
+            />
+          )}
+          <ArtifactDetails>
+            <StyledMarkedText text={artifact.data.one_line_summary} />
+          </ArtifactDetails>
           {artifact.data.steps ? (
             <ArtifactDetails>
               <Text bold>{t('Steps to Resolve')}</Text>
@@ -75,6 +89,11 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
             </ArtifactDetails>
           ) : null}
         </Fragment>
+      ) : section.status === 'processing' ? (
+        <ArtifactLoadingDetails
+          blocks={section.blocks}
+          loadingMessage={t('Formulating a plan\u2026')}
+        />
       ) : (
         <ArtifactDetails>
           <Text>
@@ -86,7 +105,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
             <Button
               priority="primary"
               icon={<IconRefresh />}
-              onClick={() => startStep('solution', {runId})}
+              onClick={() => handleReset()}
             >
               {t('Re-run')}
             </Button>
