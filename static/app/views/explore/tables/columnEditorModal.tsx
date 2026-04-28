@@ -350,7 +350,12 @@ function buildColumnOptions({
     traceItemType,
     extraColumns: columns,
   })
-    .filter(option => !(hiddenKeys ?? []).includes(option.value))
+    .filter(option => {
+      const hidden = hiddenKeys ?? [];
+      if (hidden.includes(option.value)) return false;
+      if (typeof option.label === 'string' && hidden.includes(option.label)) return false;
+      return true;
+    })
     .toSorted((a, b) => {
       const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
       const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
