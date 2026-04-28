@@ -158,7 +158,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
               <Grid columns="max-content 1fr" gap="sm">
                 <IconClose size="sm" variant="danger" />
                 <Text variant="secondary" size="md" density="comfortable">
-                  {t('Read unrelated code: only what’s tied to you issues')}
+                  {t('Read unrelated code: only what’s tied to your issues')}
                 </Text>
               </Grid>
               <Grid columns="max-content 1fr" gap="sm">

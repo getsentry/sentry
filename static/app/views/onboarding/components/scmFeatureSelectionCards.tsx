@@ -23,6 +23,8 @@ type FeatureMeta = {
   icon: ComponentType<SVGIconProps>;
   label: string;
   alwaysEnabled?: boolean;
+  volume?: string;
+  volumeTooltip?: string;
 };
 
 const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
@@ -31,6 +33,10 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     icon: IconWarning,
     description: t('Automatically capture exceptions and stack traces'),
     alwaysEnabled: true,
+    volume: t('5,000 errors / mo'),
+    volumeTooltip: t(
+      'Free plan includes 5,000 errors / month. Additional usage starts at $0.00029/event.'
+    ),
   },
   [ProductSolution.PERFORMANCE_MONITORING]: {
     label: t('Tracing'),
@@ -38,16 +44,26 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t(
       'Find bottlenecks, broken requests, and understand application flow end-to-end'
     ),
+    volume: t('5M spans / mo'),
+    volumeTooltip: t(
+      'Free plan includes 5M spans / month. Additional usage starts at $0.000002/span.'
+    ),
   },
   [ProductSolution.SESSION_REPLAY]: {
     label: t('Session replay'),
     icon: IconTimer,
     description: t('Watch real user sessions to see what went wrong'),
+    volume: t('50 replays / mo'),
+    volumeTooltip: t(
+      'Free plan includes 50 replays / month. Additional usage starts at $0.00285/replay.'
+    ),
   },
   [ProductSolution.LOGS]: {
     label: t('Logging'),
     icon: IconTerminal,
     description: t('See logs in context with errors and performance issues'),
+    volume: t('5 GB logs / mo'),
+    volumeTooltip: t('Free plan includes 5 GB logs / month. Additional usage $0.50/GB.'),
   },
   [ProductSolution.PROFILING]: {
     label: t('Profiling'),
@@ -55,6 +71,8 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t(
       'Pinpoint the functions and lines of code responsible for performance issues'
     ),
+    volume: t('Usage-based'),
+    volumeTooltip: t('Requires a team or business plan. Starts at $0.031525/hr.'),
   },
   [ProductSolution.METRICS]: {
     label: t('Application Metrics'),
@@ -62,6 +80,8 @@ const FEATURE_META: Record<ProductSolution, FeatureMeta> = {
     description: t(
       'Track application performance and usage over time with custom metrics'
     ),
+    volume: t('5 GB / mo'),
+    volumeTooltip: t('Free plan includes 5 GB metrics / month'),
   },
 };
 
@@ -84,7 +104,7 @@ export function ScmFeatureSelectionCards({
         <Heading as="h3" size="xl">
           {t('What do you want to instrument?')}
         </Heading>
-        <Text size="md" variant="secondary">
+        <Text size="sm" variant="secondary">
           {t('Choose one or more')}
         </Text>
       </Flex>
@@ -106,6 +126,8 @@ export function ScmFeatureSelectionCards({
               disabledReason={disabledReason}
               onClick={() => onToggleFeature(feature)}
               alwaysEnabled={meta.alwaysEnabled}
+              volume={meta.volume}
+              volumeTooltip={meta.volumeTooltip}
             />
           );
         })}
