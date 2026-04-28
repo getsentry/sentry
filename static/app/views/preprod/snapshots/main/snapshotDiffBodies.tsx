@@ -92,13 +92,11 @@ export const SplitPairBody = memo(function SplitPairBody({
           </ZoomViewport>
         </Stack>
       </Grid>
-      <FloatingZoomControls>
-        <ZoomControls
-          onZoomIn={zoom1.zoomIn}
-          onZoomOut={zoom1.zoomOut}
-          onReset={zoom1.resetZoom}
-        />
-      </FloatingZoomControls>
+      <ZoomControls
+        onZoomIn={zoom1.zoomIn}
+        onZoomOut={zoom1.zoomOut}
+        onReset={zoom1.resetZoom}
+      />
     </Container>
   );
 });
@@ -346,13 +344,6 @@ const ZoomViewport = styled('div')`
 const ZoomTransformLayer = styled('div')`
   transform-origin: 0 0;
   will-change: transform;
-`;
-
-const FloatingZoomControls = styled('div')`
-  position: absolute;
-  bottom: ${p => p.theme.space.sm};
-  right: ${p => p.theme.space.sm};
-  z-index: 1;
 `;
 
 const WipeImg = styled('img')`
