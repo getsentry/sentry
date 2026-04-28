@@ -3,7 +3,11 @@ import {useQueryClient, type UseQueryOptions} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
 import {type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {type ApiQueryKey, parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {
+  type ApiQueryKey,
+  parseQueryKey,
+  safeParseQueryKey,
+} from 'sentry/utils/api/apiQueryKey';
 import {uniq} from 'sentry/utils/array/uniq';
 
 const BUFFER_WAIT_MS = 20;
@@ -92,11 +96,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
 
   const isApiQueryKeyForUrl = useCallback(
     (queryKey: readonly unknown[]): boolean => {
-      try {
-        return parseQueryKey(queryKey as ApiQueryKey).url === url;
-      } catch {
-        return false;
-      }
+      return safeParseQueryKey(queryKey)?.url === url;
     },
     [url]
   );
