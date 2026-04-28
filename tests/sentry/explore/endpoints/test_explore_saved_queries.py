@@ -2,7 +2,6 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.explore.endpoints.explore_saved_queries import (
-    PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
     sync_prebuilt_queries_starred,
 )
@@ -372,7 +371,11 @@ class ExploreSavedQueriesTest(APITestCase):
             .select_related("explore_saved_query")
         )
 
-        expected_names = sorted(q["name"] for q in PREBUILT_SAVED_QUERIES)
+        expected_names = sorted(
+            ExploreSavedQuery.objects.filter(
+                organization=self.org, prebuilt_id__isnull=False
+            ).values_list("name", flat=True)
+        )
         assert [s.explore_saved_query.name for s in starred] == expected_names
         assert [s.position for s in starred] == list(range(1, len(expected_names) + 1))
 
@@ -386,21 +389,25 @@ class ExploreSavedQueriesTest(APITestCase):
         # Simulate a "new prebuilt added later" by removing the starred record for
         # one prebuilt that lives alphabetically in the middle of the list, then
         # compacting the remaining positions.
-        sorted_names = sorted(q["name"] for q in PREBUILT_SAVED_QUERIES)
+        sorted_names = sorted(
+            ExploreSavedQuery.objects.filter(
+                organization=self.org, prebuilt_id__isnull=False
+            ).values_list("name", flat=True)
+        )
         middle_index = len(sorted_names) // 2
         middle_name = sorted_names[middle_index]
         middle_query = ExploreSavedQuery.objects.get(organization=self.org, name=middle_name)
         ExploreSavedQueryStarred.objects.filter(
             organization=self.org, user_id=self.user.id, explore_saved_query=middle_query
         ).delete()
-        for idx, starred in enumerate(
+        for idx, row in enumerate(
             ExploreSavedQueryStarred.objects.filter(
                 organization=self.org, user_id=self.user.id
             ).order_by("position"),
             start=1,
         ):
-            starred.position = idx
-            starred.save()
+            row.position = idx
+            row.save()
 
         sync_prebuilt_queries_starred(self.org, self.user.id)
 

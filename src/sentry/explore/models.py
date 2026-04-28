@@ -250,7 +250,8 @@ class ExploreSavedQueryStarredManager(BaseManager["ExploreSavedQueryStarred"]):
                 .first()
             )
 
-            if next_prebuilt is None:
+            position: int
+            if next_prebuilt is None or next_prebuilt.position is None:
                 position = self.get_last_position(organization, user_id) + 1
             else:
                 position = next_prebuilt.position
