@@ -5,7 +5,8 @@ import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -84,10 +85,10 @@ function GDPREditModal({
   return (
     <Fragment>
       <Header>
-        <h4>{sectionTitles[prefix]}</h4>
+        <Heading as="h4">{sectionTitles[prefix]}</Heading>
       </Header>
       <form.AppForm form={form}>
-        <FormWrapper>
+        <Stack gap="lg">
           <form.AppField name="name">
             {field => (
               <field.Layout.Row label={t('Full Name')}>
@@ -121,7 +122,7 @@ function GDPREditModal({
               </field.Layout.Row>
             )}
           </form.AppField>
-        </FormWrapper>
+        </Stack>
         <Footer>
           <Grid flow="column" align="center" gap="md">
             <Button type="button" onClick={closeModal}>
@@ -247,22 +248,6 @@ const ItemLayout = styled(PanelItem)`
 const SubText = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-/**
- * Allows the form to expand into the full width of the panel
- */
-const FormWrapper = styled('div')`
-  margin-left: -${p => p.theme.space['3xl']};
-  margin-right: -${p => p.theme.space['3xl']};
-  & > div {
-    padding-left: ${p => p.theme.space['3xl']};
-    padding-right: ${p => p.theme.space['3xl']} !important;
-  }
-
-  & > div > label {
-    width: 35%;
-  }
 `;
 
 const ContactDetailsWrapper = styled('div')`
