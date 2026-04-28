@@ -62,7 +62,12 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
       allowReset
       onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
-      {artifact?.data ? (
+      {section.status === 'processing' ? (
+        <ArtifactLoadingDetails
+          blocks={section.blocks}
+          loadingMessage={t('Finding the root cause\u2026')}
+        />
+      ) : artifact?.data ? (
         <Fragment>
           {shouldShowReset && (
             <AutofixResetPrompt
@@ -115,11 +120,6 @@ export function RootCauseCard({autofix, section}: RootCauseCardProps) {
             </ArtifactDetails>
           )}
         </Fragment>
-      ) : section.status === 'processing' ? (
-        <ArtifactLoadingDetails
-          blocks={section.blocks}
-          loadingMessage={t('Finding the root cause\u2026')}
-        />
       ) : (
         <ArtifactDetails>
           <Text>

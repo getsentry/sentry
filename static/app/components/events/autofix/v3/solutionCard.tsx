@@ -58,7 +58,12 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       allowReset
       onReset={canReset ? () => setShouldShowReset(true) : undefined}
     >
-      {artifact?.data ? (
+      {section.status === 'processing' ? (
+        <ArtifactLoadingDetails
+          blocks={section.blocks}
+          loadingMessage={t('Formulating a plan\u2026')}
+        />
+      ) : artifact?.data ? (
         <Fragment>
           {shouldShowReset && (
             <AutofixResetPrompt
@@ -89,11 +94,6 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
             </ArtifactDetails>
           ) : null}
         </Fragment>
-      ) : section.status === 'processing' ? (
-        <ArtifactLoadingDetails
-          blocks={section.blocks}
-          loadingMessage={t('Formulating a plan\u2026')}
-        />
       ) : (
         <ArtifactDetails>
           <Text>
