@@ -132,7 +132,7 @@ function MetricsHeader() {
           ) : (
             title || METRICS_TITLE
           )}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
           {titleTooltip}
         </TopBar.Slot>
         <TopBar.Slot name="feedback">
@@ -160,7 +160,7 @@ function MetricsHeader() {
         ) : null}
         <Layout.Title>
           {title || METRICS_TITLE}
-          <FeatureBadge type="beta" />
+          <FeatureBadge type="new" />
           {titleTooltip}
         </Layout.Title>
       </Layout.HeaderContent>
