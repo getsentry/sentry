@@ -64,12 +64,12 @@ import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {formatTo, fromNanoJoulesToWatts} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {SpanFields} from 'sentry/views/insights/types';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 import {
   useProfiles,
   useProfileTransaction,
 } from 'sentry/views/explore/profiling/profilesProvider';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
