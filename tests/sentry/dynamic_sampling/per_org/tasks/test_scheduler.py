@@ -122,7 +122,7 @@ class NextBucketIndexTest(TestCase):
 
         assert first_cycle == list(range(BUCKET_COUNT))
         assert cursor_after_cycle is not None
-        assert int(cursor_after_cycle) == 0
+        assert int(cursor_after_cycle) == BUCKET_COUNT
         assert next_cycle == [0, 1]
         assert cursor_after_next_cycle is not None
-        assert int(cursor_after_next_cycle) == 2
+        assert int(cursor_after_next_cycle) == BUCKET_COUNT + 2
