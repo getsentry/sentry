@@ -5,7 +5,6 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
-import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,12 +23,9 @@ interface ExplorerDrawerHeaderProps {
   onCopyLinkClick: (() => void) | undefined;
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
-  onOverrideCodeModeEnableChange: (value: 'off' | 'on' | 'only') => void;
   onOverrideCtxEngEnableToggle: () => void;
   onShowThinkingToggle: () => void;
-  overrideCodeModeEnable: 'off' | 'on' | 'only';
   overrideCtxEngEnable: boolean;
-  showCodeModeToggle: boolean;
   showContextEngineToggle: boolean;
   showThinking: boolean;
   showThinkingToggle: boolean;
@@ -44,9 +40,6 @@ export function ExplorerDrawerHeader({
   showContextEngineToggle,
   overrideCtxEngEnable,
   onOverrideCtxEngEnableToggle,
-  showCodeModeToggle,
-  overrideCodeModeEnable,
-  onOverrideCodeModeEnableChange,
   showThinking,
   showThinkingToggle,
   onShowThinkingToggle,
@@ -135,23 +128,6 @@ export function ExplorerDrawerHeader({
               </Text>
             </Flex>
           </Tooltip>
-        )}
-        {showCodeModeToggle && (
-          <Flex align="center" gap="xs" padding="xs sm" height="100%">
-            <Text size="sm" variant="muted">
-              {t('CM')}
-            </Text>
-            <SegmentedControl
-              size="xs"
-              value={overrideCodeModeEnable}
-              onChange={onOverrideCodeModeEnableChange}
-              aria-label={t('Code mode')}
-            >
-              <SegmentedControl.Item key="off">{t('Off')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="on">{t('On')}</SegmentedControl.Item>
-              <SegmentedControl.Item key="only">{t('Only')}</SegmentedControl.Item>
-            </SegmentedControl>
-          </Flex>
         )}
         {showThinkingToggle && (
           <Tooltip
