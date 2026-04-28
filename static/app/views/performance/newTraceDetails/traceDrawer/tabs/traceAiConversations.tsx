@@ -101,22 +101,22 @@ export function TraceAiConversations({
           />
         )}
         <StyledTabs value={activeSubTab} onChange={handleTabChange}>
-          <Container borderBottom="primary">
-            <Flex align="center" justify="between" gap="md">
+          <Flex direction="row" justify="between" align="center" borderBottom="primary">
+            <Container width="100%" minWidth="0">
               <TabList>
                 {tabItems.map(item => (
                   <TabList.Item key={item.key}>{item.label}</TabList.Item>
                 ))}
               </TabList>
-              {conversationUrl && (
-                <Flex flexShrink={0} padding="0 lg">
-                  <LinkButton size="xs" to={conversationUrl}>
-                    {t('Show full conversation')}
-                  </LinkButton>
-                </Flex>
-              )}
-            </Flex>
-          </Container>
+            </Container>
+            {conversationUrl && (
+              <Flex flexShrink={0} padding="0 lg">
+                <LinkButton size="xs" to={conversationUrl}>
+                  {t('Show full conversation')}
+                </LinkButton>
+              </Flex>
+            )}
+          </Flex>
           <FullHeightTabPanels>
             {tabItems.map(item =>
               item.conversationId ? (
