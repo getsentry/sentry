@@ -103,13 +103,17 @@ export function SnapshotMainContent({
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
         return;
       }
-      if (e.key === 'ArrowUp') {
+      if (e.key === 'ArrowUp' && canNavigatePrev) {
+        e.preventDefault();
         setPressedDir('up');
-      } else if (e.key === 'ArrowDown') {
+        onNavigateSingleView('prev');
+      } else if (e.key === 'ArrowDown' && canNavigateNext) {
+        e.preventDefault();
         setPressedDir('down');
+        onNavigateSingleView('next');
       }
     },
-    [viewMode]
+    [viewMode, canNavigatePrev, canNavigateNext, onNavigateSingleView]
   );
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
