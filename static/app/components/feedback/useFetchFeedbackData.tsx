@@ -15,13 +15,8 @@ export function useFetchFeedbackData({feedbackId}: Props) {
   const {getItemApiOptions} = useFeedbackApiOptions();
   const {issueApiOptions, eventApiOptions} = getItemApiOptions(feedbackId);
 
-  const {
-    data: issueData,
-    isError: issueIsError,
-    isFetched: issueIsFetched,
-    isFetching: issueIsFetching,
-    isPending: issueIsPending,
-  } = useQuery(issueApiOptions);
+  const issueResult = useQuery(issueApiOptions);
+  const issueData = issueResult.data;
 
   const {data: eventData} = useQuery(eventApiOptions);
 
@@ -39,19 +34,14 @@ export function useFetchFeedbackData({feedbackId}: Props) {
   // Until that is fixed, we're going to run `markAsRead` after the issue is
   // initially fetched in order to speedup initial fetch and avoid race conditions.
   useEffect(() => {
-    if (project?.isMember && issueIsFetched && issueData && !issueData.hasSeen) {
+    if (project?.isMember && issueResult.isFetched && issueData && !issueData.hasSeen) {
       markAsRead(true);
     }
-  }, [project?.isMember, issueData, issueIsFetched, markAsRead]);
+  }, [project?.isMember, issueData, issueResult.isFetched, markAsRead]);
 
   return {
     eventData,
     issueData,
-    issueResult: {
-      isError: issueIsError,
-      isFetched: issueIsFetched,
-      isFetching: issueIsFetching,
-      isPending: issueIsPending,
-    },
+    issueResult,
   };
 }
