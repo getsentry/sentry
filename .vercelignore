@@ -13,6 +13,7 @@
 !package.json
 !stylelint.config.js
 !tsconfig.json
+!config
 !rspack.config.ts
 !pnpm-lock.yaml
 !tests
