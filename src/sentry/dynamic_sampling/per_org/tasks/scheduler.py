@@ -59,6 +59,7 @@ def schedule_per_org_calculations() -> TelemetryStatus | None:
 
     bucket_index = _next_bucket_index()
     schedule_per_org_calculations_bucket.apply_async(args=(bucket_index,))
+    return None
 
 
 @instrumented_task(
@@ -69,7 +70,7 @@ def schedule_per_org_calculations() -> TelemetryStatus | None:
     silo_mode=SiloMode.CELL,
 )
 @instrumented
-def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
+def schedule_per_org_calculations_bucket(bucket_index: int) -> TelemetryStatus | None:
     bucket_index = bucket_index % BUCKET_COUNT
     bucket_tag = {"bucket_index": str(bucket_index)}
 

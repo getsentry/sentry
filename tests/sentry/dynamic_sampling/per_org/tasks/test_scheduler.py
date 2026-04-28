@@ -96,7 +96,9 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert _is_bucket_task(task)
         assert args == (0,)
         assert kwargs == {}
-        assert int(self.redis.get(BUCKET_CURSOR_KEY)) == 1
+        cursor = self.redis.get(BUCKET_CURSOR_KEY)
+        assert cursor is not None
+        assert int(cursor) == 1
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_beat_and_bucket_dispatch_only_next_bucket(self) -> None:
