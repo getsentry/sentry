@@ -221,3 +221,38 @@ class DisassociateOrganizationIntegrationTest(TestCase):
 
         repo.refresh_from_db()
         assert repo.integration_id is None
+
+
+@cell_silo_test
+class SerializeRepositoryTest(TestCase):
+    def test_returns_repository_in_same_organization(self) -> None:
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="getsentry/sentry",
+            external_id="100",
+            provider="integrations:github",
+        )
+
+        result = repository_service.serialize_repository(
+            organization_id=self.organization.id,
+            id=repo.id,
+        )
+
+        assert result is not None
+        assert result["id"] == str(repo.id)
+
+    def test_returns_none_for_repository_in_other_organization(self) -> None:
+        other_org = self.create_organization()
+        repo = Repository.objects.create(
+            organization_id=other_org.id,
+            name="getsentry/sentry",
+            external_id="100",
+            provider="integrations:github",
+        )
+
+        result = repository_service.serialize_repository(
+            organization_id=self.organization.id,
+            id=repo.id,
+        )
+
+        assert result is None
