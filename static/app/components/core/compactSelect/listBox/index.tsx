@@ -112,6 +112,10 @@ interface ListBoxProps<T extends ObjectLike>
    * If true, virtualization will be enabled for the list
    */
   virtualized?: boolean;
+  /**
+   * Vertical padding (in px) added to the virtualizer height. Defaults to 4 (theme.space.xs).
+   */
+  virtualizedListPadding?: number;
 }
 
 const EMPTY_SET = new Set<never>();
@@ -144,6 +148,7 @@ export function ListBox<T extends ObjectLike>({
   showDetails = true,
   onAction,
   virtualized,
+  virtualizedListPadding = listPaddingVertical,
   scrollContainerRef,
   className,
   ...props
@@ -191,7 +196,12 @@ export function ListBox<T extends ObjectLike>({
     listState.selectionManager.setFocusedKey(null);
   };
 
-  const virtualizer = useVirtualizedItems({listItems, virtualized, size});
+  const virtualizer = useVirtualizedItems({
+    listItems,
+    virtualized,
+    size,
+    listPadding: virtualizedListPadding,
+  });
 
   useEffect(() => {
     if (!virtualized || listState.selectionManager.focusedKey === null) {
@@ -299,8 +309,10 @@ function useVirtualizedItems<T extends ObjectLike>({
   listItems,
   virtualized = false,
   size,
+  listPadding,
 }: {
   listItems: Array<Node<T>>;
+  listPadding: number;
   size: FormSize;
   virtualized: boolean | undefined;
 }) {
@@ -335,7 +347,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
+          height: virtualizer.getTotalSize() + listPadding * 2,
           width: '100%',
           position: 'relative',
         },
