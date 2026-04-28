@@ -12,6 +12,7 @@ type DashboardsEventParametersWidgetBuilder = {
     issuesRatio: number;
     logRatio: number;
     title: string;
+    metricsRatio: number;
     tracingRatio: number;
   };
   'dashboards_views.widget_builder.change': {
