@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
@@ -51,6 +51,10 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {EventIdResponse} from 'sentry/types/event';
+import type {ShortIdResponse} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -79,6 +83,7 @@ import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/sett
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -91,6 +96,7 @@ import type {NavigationGroupProps} from 'sentry/views/settings/types';
 import {CMDKAction} from './cmdk';
 import type {CMDKResourceContext} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
+import {useCommandPaletteState} from './commandPaletteStateContext';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -113,6 +119,8 @@ const ORG_SETTINGS_ICONS: Record<string, React.ReactElement> = {
 };
 
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
+const EVENT_ID_PATTERN = /^[A-Fa-f0-9-]{32,36}$/;
+const SHORT_ID_PATTERN = /^\w[\w-]*-\w{3,}$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
@@ -122,6 +130,140 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
     return <CMDKAction key={index} {...item} />;
   }
   return null;
+}
+
+type ResolvedIdentifier =
+  | {
+      event: EventIdResponse['event'];
+      eventUrl: string;
+      group: Group;
+      groupUrl: string;
+      kind: 'event';
+      label: string;
+      project: Project;
+    }
+  | {
+      event: null;
+      group: Group;
+      groupUrl: string;
+      kind: 'issue';
+      label: string;
+      project: Project;
+    };
+
+function ResolvedIdentifierCommandPaletteAction() {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {query} = useCommandPaletteState();
+  const environments = useEnvironmentsFromUrl();
+  const isShortId = SHORT_ID_PATTERN.test(query);
+  const isEventId = EVENT_ID_PATTERN.test(query);
+
+  const {data} = useQuery({
+    ...cmdkQueryOptions({
+      queryKey: [
+        'command-palette-identifier-lookup',
+        organization.slug,
+        query,
+        isShortId,
+        environments,
+        projects,
+      ],
+      queryFn: async (): Promise<ResolvedIdentifier | null> => {
+        try {
+          if (isShortId) {
+            const shortIdLookup = await QUERY_API_CLIENT.requestPromise<ShortIdResponse>(
+              getApiUrl('/organizations/$organizationIdOrSlug/shortids/$issueId/', {
+                path: {organizationIdOrSlug: organization.slug, issueId: query},
+              })
+            );
+            const group = await QUERY_API_CLIENT.requestPromise<Group>(
+              getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  issueId: shortIdLookup.groupId,
+                },
+              }),
+              {
+                query: {
+                  ...(environments.length > 0 ? {environment: environments} : {}),
+                  expand: ['inbox', 'owners'],
+                  collapse: ['release', 'tags', 'stats'],
+                },
+              }
+            );
+            const project =
+              projects.find(p => p.slug === shortIdLookup.projectSlug) ??
+              (group.project as Project);
+            return {
+              event: null,
+              group,
+              groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
+              kind: 'issue',
+              label: t('Issue %s', shortIdLookup.shortId),
+              project,
+            };
+          }
+
+          const eventIdLookup = await QUERY_API_CLIENT.requestPromise<EventIdResponse>(
+            getApiUrl('/organizations/$organizationIdOrSlug/eventids/$eventId/', {
+              path: {organizationIdOrSlug: organization.slug, eventId: query},
+            })
+          );
+          const group = await QUERY_API_CLIENT.requestPromise<Group>(
+            getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                issueId: eventIdLookup.groupId,
+              },
+            }),
+            {
+              query: {
+                ...(environments.length > 0 ? {environment: environments} : {}),
+                expand: ['inbox', 'owners'],
+                collapse: ['release', 'tags', 'stats'],
+              },
+            }
+          );
+          const project =
+            projects.find(p => p.slug === eventIdLookup.projectSlug) ??
+            (group.project as Project);
+          return {
+            event: eventIdLookup.event,
+            eventUrl: `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdLookup.eventId}/`,
+            group,
+            groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
+            kind: 'event',
+            label: t('Event %s', eventIdLookup.eventId),
+            project,
+          };
+        } catch {
+          return null;
+        }
+      },
+      enabled: isShortId || isEventId,
+      staleTime: 30_000,
+    }),
+  });
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <CMDKAction
+      display={{
+        label: data.label,
+        details: data.group.metadata?.value,
+        icon: <ProjectAvatar project={data.project} size={16} />,
+      }}
+    >
+      {data.kind === 'event' && (
+        <CMDKAction display={{label: t('Go to event')}} to={data.eventUrl} />
+      )}
+      <CMDKAction display={{label: t('Go to issue')}} to={data.groupUrl} />
+    </CMDKAction>
+  );
 }
 
 /**
@@ -414,6 +556,7 @@ export function GlobalCommandPaletteActions() {
               <CMDKAction
                 key={item.path}
                 display={{label: item.title, icon: ORG_SETTINGS_ICONS[item.path]}}
+                keywords={item.keywords}
                 to={item.path}
               />
             ))}
@@ -682,6 +825,8 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         )}
       </CMDKAction>
+
+      <ResolvedIdentifierCommandPaletteAction />
 
       <CMDKAction
         id="cmdk:supplementary:help"

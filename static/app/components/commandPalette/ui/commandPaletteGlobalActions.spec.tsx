@@ -247,3 +247,133 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
   });
 });
+
+describe('GlobalCommandPaletteActions - search recall', () => {
+  const organization = OrganizationFixture({
+    features: [
+      'session-replay-ui',
+      'performance-view',
+      'dashboards-prebuilt-insights-dashboards',
+    ],
+  });
+  const project = ProjectFixture({id: '1', slug: 'project-a', organization});
+
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+  });
+
+  function renderPalette() {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+  }
+
+  it.each([
+    ['auth tok', /Organization Tokens/, /Personal Tokens/],
+    ['source map', /Project Settings.*Source Maps/],
+    ['codeowners', /Project Settings.*Ownership Rules/],
+    ['inbound', /Project Settings.*Inbound Filters/],
+    ['size', /Project Settings.*Mobile Builds/],
+  ])('finds expected actions for %s', async (query, ...expectedOptions) => {
+    renderPalette();
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, query);
+
+    for (const expectedOption of expectedOptions) {
+      expect(
+        await screen.findByRole('option', {name: expectedOption})
+      ).toBeInTheDocument();
+    }
+  });
+
+  it.each([
+    {
+      body: {
+        groupId: '42',
+        organizationSlug: organization.slug,
+        projectSlug: project.slug,
+        shortId: 'WEB-HZX',
+      },
+      expectedOption: /Issue WEB-HZX/,
+      groupBody: {
+        id: '42',
+        metadata: {},
+        project: {id: project.id, slug: project.slug},
+        status: 'unresolved',
+      },
+      query: 'WEB-HZX',
+      lookupUrl: `/organizations/${organization.slug}/shortids/WEB-HZX/`,
+    },
+    {
+      body: {
+        event: {id: '954df831ab094388ac98eee198584479'},
+        eventId: '954df831ab094388ac98eee198584479',
+        groupId: '42',
+        organizationSlug: organization.slug,
+        projectSlug: project.slug,
+      },
+      expectedOption: /Event 954df831ab094388ac98eee198584479/,
+      groupBody: {
+        id: '42',
+        metadata: {},
+        project: {id: project.id, slug: project.slug},
+        status: 'unresolved',
+      },
+      query: '954df831ab094388ac98eee198584479',
+      lookupUrl: `/organizations/${organization.slug}/eventids/954df831ab094388ac98eee198584479/`,
+    },
+  ])(
+    'resolves pasted identifiers for %s',
+    async ({query, lookupUrl, body, groupBody, expectedOption}) => {
+      MockApiClient.addMockResponse({
+        url: lookupUrl,
+        body,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/42/`,
+        body: groupBody,
+      });
+
+      renderPalette();
+
+      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      await userEvent.type(input, query);
+
+      expect(
+        await screen.findByRole('option', {name: expectedOption})
+      ).toBeInTheDocument();
+    }
+  );
+});

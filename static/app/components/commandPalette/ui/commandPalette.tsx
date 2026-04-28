@@ -904,10 +904,18 @@ function flattenActions(
       const matched = item.children.filter(
         c => scores.get(c.key)?.matched && !isEmptyResourceNode(c) && !seen.has(c.key)
       );
-      if (!matched.length) return [];
-      const sortedMatches = matched.sort((a, b) =>
-        compareCommandPaletteScores(scores.get(a.key), scores.get(b.key))
+      const fallbackChildren = item.children.filter(
+        c => !isEmptyResourceNode(c) && !seen.has(c.key)
       );
+      const shouldUseFallbackChildren =
+        matched.length === 0 && scores.get(item.key)?.matched;
+      const candidateChildren = shouldUseFallbackChildren ? fallbackChildren : matched;
+      if (!candidateChildren.length) return [];
+      const sortedMatches = shouldUseFallbackChildren
+        ? candidateChildren
+        : candidateChildren.sort((a, b) =>
+            compareCommandPaletteScores(scores.get(a.key), scores.get(b.key))
+          );
       const limitedMatches = getLimitedChildren(sortedMatches, item.limit);
       // Mark every child and their entire subtrees as seen — including those
       // beyond the limit — so neither over-limit children nor any of their
@@ -925,7 +933,7 @@ function flattenActions(
         root = parent;
       }
       const isNested = root.key !== item.key;
-      const seeMore = shouldShowSeeMore(matched.length, item.limit);
+      const seeMore = shouldShowSeeMore(candidateChildren.length, item.limit);
 
       if (isNested) {
         for (const child of limitedMatches) {
