@@ -212,17 +212,45 @@ class JiraInstalledTest(APITestCase):
         self.add_response()
 
         # JWT is signed by tenant `it2may+cody` (self.external_id) but the body
-        # claims a different tenant via clientKey. Without the iss/clientKey
-        # binding check the install would rebind clientKey's existing
-        # integration row to this attacker's shared secret.
+        # carries a different tenant in clientKey. With no `jira` sub-dict
+        # build_integration falls back to clientKey for external_id, so
+        # rejecting on iss != clientKey prevents persisting a row keyed by
+        # an unsigned tenant.
+        body = dict(self.body(client_key="some-other-tenant"))
+        body.pop("jira", None)
         self.get_error_response(
-            **self.body(client_key="someone-elses-tenant"),
+            **body,
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
         assert not Integration.objects.filter(
-            provider="jira", external_id="someone-elses-tenant"
+            provider="jira", external_id="some-other-tenant"
+        ).exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jira_external_id_does_not_match_jwt_iss(
+        self, mock_record_event: MagicMock
+    ) -> None:
+        self.add_response()
+
+        # JWT is signed by tenant `it2may+cody` (self.external_id) and clientKey
+        # matches it, but `jira.external_id` is different. Since
+        # build_integration prefers `state["jira"]["external_id"]` over
+        # clientKey, the persisted Integration.external_id must also match the
+        # signing tenant.
+        body = dict(self.body())
+        body["jira"] = {"metadata": {}, "external_id": "some-other-tenant"}
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(
+            provider="jira", external_id="some-other-tenant"
         ).exists()
         assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
 

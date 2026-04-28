@@ -14,6 +14,7 @@ from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.jira.webhooks.base import JiraWebhookBase
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
@@ -90,7 +91,19 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                     {"detail": "Could not decode JWT token"}, status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if decoded_claims.get("iss") != state.get("clientKey"):
+            # Bind the JWT issuer to whichever value will actually be persisted
+            # as Integration.external_id. Per Atlassian Connect, the `iss`
+            # claim on a lifecycle JWT is the tenant's clientKey
+            # (https://developer.atlassian.com/cloud/jira/platform/understanding-jwt-for-connect-apps/),
+            # so requiring iss == external_id ensures the tenant that signed
+            # the request is the same tenant whose Integration row we are
+            # about to write. JiraIntegrationProvider.build_integration
+            # prefers `state["jira"]["external_id"]` when present; otherwise
+            # it falls back to `state["clientKey"]`.
+            expected_external_id = state.get(IntegrationProviderSlug.JIRA.value, {}).get(
+                "external_id"
+            ) or state.get("clientKey")
+            if decoded_claims.get("iss") != expected_external_id:
                 lifecycle.record_halt(halt_reason="JWT iss does not match clientKey")
                 return self.respond(
                     {"detail": "Token issuer does not match clientKey"},
