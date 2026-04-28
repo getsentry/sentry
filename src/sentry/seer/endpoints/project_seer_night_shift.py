@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,7 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.models.project import Project
-from sentry.tasks.seer.night_shift.cron import run_night_shift_for_project
+from sentry.tasks.seer.night_shift.cron import run_nightshift_for_projects
+from sentry.tasks.seer.night_shift.tweaks import get_night_shift_tweaks
+
+logger = logging.getLogger("sentry.seer.endpoints.project_seer_night_shift")
 
 
 @cell_silo_endpoint
@@ -26,9 +31,28 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
             raise NotFound
 
         dry_run = bool(request.data.get("dryRun", False))
+        tweaks = get_night_shift_tweaks(project)
 
-        run_night_shift_for_project.apply_async(
-            args=[project.id],
-            kwargs={"dry_run": dry_run},
+        logger.info(
+            "night_shift.manual_trigger.dispatched",
+            extra={
+                "project_id": project.id,
+                "project_slug": project.slug,
+                "organization_id": project.organization_id,
+                "dry_run": dry_run,
+                "max_candidates": tweaks.max_candidates,
+                "intelligence_level": tweaks.intelligence_level,
+                "reasoning_effort": tweaks.reasoning_effort,
+                "extra_triage_instructions": tweaks.extra_triage_instructions,
+            },
         )
-        return Response(status=202)
+
+        agent_run_id = run_nightshift_for_projects(
+            project_ids=[project.id],
+            dry_run=dry_run,
+            max_candidates=tweaks.max_candidates,
+            intelligence_level=tweaks.intelligence_level,
+            reasoning_effort=tweaks.reasoning_effort,
+            extra_triage_instructions=tweaks.extra_triage_instructions,
+        )
+        return Response({"agent_run_id": agent_run_id}, status=200)
