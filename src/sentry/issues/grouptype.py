@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
 from django.apps import apps
@@ -232,49 +232,53 @@ class NotificationConfig:
     )  # TODO(cathy): view monitor button for crons. "text": "", "url": ""
 
 
-@dataclass(frozen=True)
 class GroupType:
-    type_id: int
-    slug: str
-    description: str
-    category: int
+    type_id: ClassVar[int]
+    slug: ClassVar[str]
+    description: ClassVar[str]
+    category: ClassVar[int]
     # New issue category mapping (under the organizations:issue-taxonomy flag)
     # When GA'd, the original `category` will be removed and this will be renamed to `category`.
-    category_v2: int
+    category_v2: ClassVar[int]
     # Allows delayed creation of issues for this group type until the issue is seen `noise_config.ignore_limit` times.
     # Then a new issue is created, ignoring past events.
-    noise_config: NoiseConfig | None = None
-    default_priority: int = PriorityLevel.MEDIUM
+    noise_config: ClassVar[NoiseConfig | None] = None
+    default_priority: ClassVar[int] = PriorityLevel.MEDIUM
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released. Add to HIDDEN_ISSUE_TYPES as well to prevent Events from this Group
     # being displayed on frontend.
-    released: bool = False
+    released: ClassVar[bool] = False
     # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
-    in_default_search: bool = True
+    in_default_search: ClassVar[bool] = True
 
     # Allow automatic resolution of an issue type, using the project-level option.
-    enable_auto_resolve: bool = True
+    enable_auto_resolve: ClassVar[bool] = True
     # Allow escalation forecasts and detection
-    enable_escalation_detection: bool = True
+    enable_escalation_detection: ClassVar[bool] = True
     # Quota around many of these issue types can be created per project in a given time window
-    creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
-    notification_config: NotificationConfig = NotificationConfig()
-    detector_settings: DetectorSettings | None = None
+    creation_quota: ClassVar[Quota] = Quota(
+        3600, 60, 5
+    )  # default 5 per hour, sliding window of 60 seconds
+    notification_config: ClassVar[NotificationConfig] = NotificationConfig()
+    detector_settings: ClassVar[DetectorSettings | None] = None
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
-    enable_status_change_workflow_notifications: bool = True
+    enable_status_change_workflow_notifications: ClassVar[bool] = True
     # Controls whether _all_ workflow notification types are enabled (e.g. assignment).
     # Useful when the group type is still in development
-    enable_workflow_notifications = True
+    enable_workflow_notifications: ClassVar[bool] = True
 
     # Controls whether users are able to manually update the group's priority.
-    enable_user_status_and_priority_changes = True
+    enable_user_status_and_priority_changes: ClassVar[bool] = True
 
     # Controls whether Seer automation is always triggered for this group type.
-    always_trigger_seer_automation = False
+    always_trigger_seer_automation: ClassVar[bool] = False
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
+        valid_categories = [category.value for category in GroupCategory]
+        if cls.category not in valid_categories:
+            raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
         registry.add(cls)
 
         if not cls.released:
@@ -282,11 +286,6 @@ class GroupType:
                 features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
-
-    def __post_init__(self) -> None:
-        valid_categories = [category.value for category in GroupCategory]
-        if self.category not in valid_categories:
-            raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:
@@ -351,7 +350,7 @@ def get_group_type_by_type_id(id: int) -> type[GroupType]:
 
 
 class ReplayGroupTypeDefaults:
-    notification_config = NotificationConfig(context=[])
+    notification_config: ClassVar[NotificationConfig] = NotificationConfig(context=[])
 
 
 @dataclass(frozen=True)

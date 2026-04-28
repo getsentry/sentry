@@ -291,8 +291,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         image_list = [
             SnapshotImageResponse(
                 **{k: v for k, v in metadata.dict().items() if k not in first_class},
-                key=metadata.content_hash
-                or key,  # TODO(EME-977): Remove backwards fallback for hash-keyed manifests once near EA/GA
+                key=metadata.content_hash,
                 display_name=metadata.display_name,
                 image_file_name=key,
                 group=metadata.group,
@@ -428,6 +427,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 comparison_type=comparison_type,
                 state=artifact.state,
                 vcs_info=vcs_info,
+                app_id=artifact.app_id,
                 images=image_list,
                 image_count=snapshot_metrics.image_count,
                 changed=categorized.changed,

@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -30,7 +31,6 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,11 +46,8 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {
-    preference,
-    isPending: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (

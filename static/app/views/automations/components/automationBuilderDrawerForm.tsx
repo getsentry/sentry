@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
 import {Observer} from 'mobx-react-lite';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,7 +15,6 @@ import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationBuilder} from 'sentry/views/automations/components/automationBuilder';
 import {

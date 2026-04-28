@@ -78,7 +78,7 @@ export function MetricsVisualize() {
   );
   const optionFromTraceMetric: MetricSelectOption = useMemo(
     () => ({
-      label: traceMetric.name || t('Select a metric'),
+      label: traceMetric.name || t('Select an application metric'),
       value: metricSelectValue,
       metricType: traceMetric.type as TraceMetricTypeValue,
       metricName: traceMetric.name,
@@ -226,14 +226,14 @@ export function MetricsVisualize() {
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
             <Tooltip
-              title={t('Select the metric to monitor for this detector.')}
+              title={t('Select the application metric to monitor for this detector.')}
               showUnderline
             >
-              <SectionLabel>{t('Metric')}</SectionLabel>
+              <SectionLabel>{t('Application Metric')}</SectionLabel>
             </Tooltip>
           </div>
           <Tooltip
-            title={t('No metrics found for this project')}
+            title={t('No application metrics found for this project')}
             disabled={!hasNoMetrics}
           >
             <div>
@@ -242,7 +242,7 @@ export function MetricsVisualize() {
                 options={isFetching ? previousOptions : (metricOptions ?? [])}
                 value={traceMetricSelectValue}
                 loading={isFetching}
-                menuTitle={t('Metrics')}
+                menuTitle={t('Application Metrics')}
                 onChange={(option: SelectOption<SelectKey>) => {
                   if ('metricType' in option) {
                     handleMetricChange(option as MetricSelectOption);
@@ -251,7 +251,7 @@ export function MetricsVisualize() {
                 disabled={hasNoMetrics}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps}>
-                    {traceMetric.name || t('Select a metric')}
+                    {traceMetric.name || t('Select an application metric')}
                   </OverlayTrigger.Button>
                 )}
               />
@@ -261,7 +261,7 @@ export function MetricsVisualize() {
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
             <Tooltip
-              title={t('The aggregation operation to apply to the metric.')}
+              title={t('The aggregation operation to apply to the application metric.')}
               showUnderline
             >
               <SectionLabel>{t('Operation')}</SectionLabel>

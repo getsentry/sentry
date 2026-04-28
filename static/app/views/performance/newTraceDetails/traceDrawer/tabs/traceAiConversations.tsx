@@ -9,18 +9,19 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {
   ConversationDetailPanel,
   ConversationLeftPanel,
   ConversationSplitLayout,
   ConversationViewSkeleton,
-} from 'sentry/views/insights/pages/conversations/components/conversationLayout';
-import {ConversationAggregatesBar} from 'sentry/views/insights/pages/conversations/components/conversationSummary';
-import {MessagesPanel} from 'sentry/views/insights/pages/conversations/components/messagesPanel';
-import {useConversation} from 'sentry/views/insights/pages/conversations/hooks/useConversation';
-import {useConversationSelection} from 'sentry/views/insights/pages/conversations/hooks/useConversationSelection';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/conversations/settings';
+} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
+import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {AiSpansSplitView} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiSpans';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -37,7 +38,7 @@ export function TraceAiConversations({
   traceSlug,
 }: TraceAiConversationsProps) {
   const organization = useOrganization();
-  const [activeSubTab, setActiveSubTab] = useState(`chat-${conversationIds[0]}`);
+  const [activeSubTab, setActiveSubTab] = useState('spans');
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
   const handleTabChange = useCallback((key: Key) => {
@@ -53,6 +54,8 @@ export function TraceAiConversations({
     ? activeSubTab.slice('chat-'.length)
     : null;
 
+  const traceTimeBounds = useMemo(() => getTimeBoundsFromNodes(allAiNodes), [allAiNodes]);
+
   const {
     nodes: conversationNodes,
     nodeTraceMap,
@@ -60,6 +63,7 @@ export function TraceAiConversations({
     error,
   } = useConversation({
     conversationId: activeConversationId ?? '',
+    ...traceTimeBounds,
   });
 
   const traceNodes = useMemo(
@@ -67,16 +71,17 @@ export function TraceAiConversations({
     [conversationNodes, nodeTraceMap, traceSlug]
   );
 
-  const tabItems = useMemo(() => {
-    const items: Array<{conversationId: string | null; key: string; label: string}> =
-      conversationIds.map(id => ({
+  const tabItems = useMemo(
+    (): Array<{conversationId: string | null; key: string; label: string}> => [
+      {key: 'spans', label: t('Spans'), conversationId: null},
+      ...conversationIds.map(id => ({
         key: `chat-${id}`,
         label: conversationIds.length === 1 ? t('Chat') : t('Chat %s', id.slice(0, 8)),
         conversationId: id,
-      }));
-    items.push({key: 'spans', label: t('Spans'), conversationId: null});
-    return items;
-  }, [conversationIds]);
+      })),
+    ],
+    [conversationIds]
+  );
 
   const conversationUrl = activeConversationId
     ? normalizeUrl(

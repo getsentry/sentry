@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {inlineCodeStyles} from '@sentry/scraps/code';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -27,7 +28,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {getConversationsUrl} from 'sentry/views/insights/pages/conversations/utils/urlParams';
+import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {Block, TodoItem} from 'sentry/views/seerExplorer/types';
 import {
   buildToolLinkUrl,
@@ -44,9 +45,11 @@ interface BlockProps {
   getPageReferrer?: () => string;
   isAwaitingFileApproval?: boolean;
   isAwaitingQuestion?: boolean;
-  isFocused?: boolean;
+  isHovered?: boolean;
   isLatestTodoBlock?: boolean;
   onClick?: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   onNavigate?: () => void;
   onRegisterEnterHandler?: (
     handler: (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean
@@ -54,6 +57,7 @@ interface BlockProps {
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
   runId?: number;
+  showThinking?: boolean;
 }
 
 function hasValidContent(content: string): boolean {
@@ -142,12 +146,14 @@ export function BlockComponent({
   isAwaitingFileApproval,
   isAwaitingQuestion,
   isLatestTodoBlock,
-  isFocused,
+  isHovered,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   onNavigate,
   onRegisterEnterHandler,
-  readOnly = false,
   ref,
+  showThinking = false,
 }: BlockProps) {
   const {copy} = useCopyToClipboard();
   const organization = useOrganization();
@@ -157,9 +163,18 @@ export function BlockComponent({
   const toolsUsed = getToolsStringFromBlock(block);
   const hasTools = toolsUsed.length > 0;
   const hasContent = hasValidContent(block.message.content);
+  const hasThinkingContentToShow =
+    showThinking && hasValidContent(block.message.thinking_content ?? '');
   const processedContent = useMemo(
     () => postProcessLLMMarkdown(block.message.content),
     [block.message.content]
+  );
+  const processedThinkingContent = useMemo(
+    () =>
+      hasThinkingContentToShow
+        ? postProcessLLMMarkdown(block.message.thinking_content ?? '')
+        : '',
+    [block.message.thinking_content, hasThinkingContentToShow]
   );
 
   // State to track selected tool link (for navigation)
@@ -355,39 +370,55 @@ export function BlockComponent({
   };
 
   const showActions =
-    isFocused &&
+    isHovered &&
     !block.loading &&
     !isAwaitingFileApproval &&
     !isAwaitingQuestion &&
-    !readOnly;
+    block.message.role === 'assistant';
   const showFeedbackButtons = block.message.role === 'assistant';
-  const showCopyButton = block.message.role !== 'user' && !!block.message.content?.trim();
+  const showCopyButton =
+    block.message.role === 'assistant' && !!block.message.content?.trim();
 
   const blockStatus = getToolStatus(block);
+  const isLoadingPlaceholder = blockStatus === 'loading' && !hasTools;
 
   return (
-    <Block ref={ref} isFocused={isFocused} onClick={onClick}>
+    <Block
+      ref={ref}
+      isHovered={isHovered}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
         {block.message.role === 'user' ? (
           <Flex align="start" justify="end" width="100%" padding="xl">
             <UserBlockContent>{block.message.content ?? ''}</UserBlockContent>
           </Flex>
+        ) : isLoadingPlaceholder ? (
+          <Flex align="center" gap="md" padding="xl" width="100%">
+            <ToolStatusSlot>
+              <BlockStatusIndicator status={blockStatus} />
+            </ToolStatusSlot>
+            <BlockContent text={block.message.content ?? ''} />
+          </Flex>
         ) : (
           <Flex align="start" width="100%">
-            {(blockStatus === 'loading' || blockStatus === 'pending') && !hasTools && (
-              <BlockIndicatorSlot hasOnlyTools={false}>
-                <Tooltip
-                  title={
-                    blockStatus === 'pending'
-                      ? t('Waiting for approval')
-                      : t('Running...')
-                  }
-                >
-                  <BlockSpinner />
-                </Tooltip>
-              </BlockIndicatorSlot>
-            )}
-            <BlockContentWrapper hasOnlyTools={!hasContent && hasTools}>
+            <BlockContentWrapper
+              hasOnlyTools={!hasContent && !hasThinkingContentToShow && hasTools}
+            >
+              {hasThinkingContentToShow && (
+                <Disclosure>
+                  <Disclosure.Title>
+                    <Text size="xs" variant="muted" monospace>
+                      {t('Thinking')}
+                    </Text>
+                  </Disclosure.Title>
+                  <Disclosure.Content>
+                    <MarkedText text={processedThinkingContent} />
+                  </Disclosure.Content>
+                </Disclosure>
+              )}
               {hasContent && (
                 <BlockContent
                   text={processedContent}
@@ -422,13 +453,11 @@ export function BlockComponent({
                     const correspondingLinkIndex = toolCallToLinkIndexMap.get(idx);
                     const hasLink = correspondingLinkIndex !== undefined;
                     const toolLinkParams = toolLinkByCallId.get(toolCall.id);
-                    const isFailed = Boolean(
-                      toolLinkParams?.is_error || toolLinkParams?.empty_results
-                    );
+                    const isFailed = Boolean(toolLinkParams?.is_error);
+                    const isEmptyResults = Boolean(toolLinkParams?.empty_results);
                     const isHighlighted =
-                      isFocused &&
-                      hasValidLinks &&
-                      correspondingLinkIndex !== undefined &&
+                      isHovered &&
+                      hasLink &&
                       correspondingLinkIndex === selectedLinkIndex;
                     const isTodoWriteCall = toolCall.function === 'todo_write';
                     const showTodoList =
@@ -436,6 +465,26 @@ export function BlockComponent({
                       isLatestTodoBlock &&
                       block.todos &&
                       block.todos.length > 0;
+
+                    const toolCallText = (
+                      <Tooltip
+                        title={
+                          isFailed
+                            ? t('Tool call failed')
+                            : t('Tool call returned empty results')
+                        }
+                        disabled={!isFailed && !isEmptyResults}
+                      >
+                        <ToolCallText
+                          size="xs"
+                          variant="muted"
+                          monospace
+                          isHighlighted={isHighlighted}
+                        >
+                          {toolString}
+                        </ToolCallText>
+                      </Tooltip>
+                    );
 
                     return (
                       <Stack gap="xs" key={`${toolCall.function}-${idx}`}>
@@ -453,49 +502,22 @@ export function BlockComponent({
                               }
                               isHighlighted={isHighlighted}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={isHighlighted}
-                              >
-                                {toolString}
-                              </ToolCallText>
+                              {toolCallText}
                               <ToolCallLinkIconWrapper isHighlighted={isHighlighted}>
-                                {isFailed ? (
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                ) : (
-                                  <ToolCallLinkIcon
-                                    size="xs"
-                                    isHighlighted={isHighlighted}
-                                  />
-                                )}
+                                <ToolCallLinkIcon
+                                  size="xs"
+                                  isHighlighted={isHighlighted}
+                                />
                               </ToolCallLinkIconWrapper>
-                              <EnterKeyHint isVisible={isHighlighted}>
-                                enter ⏎
-                              </EnterKeyHint>
                             </ToolCallLink>
                           ) : (
                             <ToolCallPlainRow
                               onMouseEnter={() => setSelectedLinkIndex(-1)}
                             >
-                              <ToolCallText
-                                size="xs"
-                                variant="muted"
-                                monospace
-                                isHighlighted={false}
-                              >
-                                {toolString}
-                              </ToolCallText>
-                              {isFailed && (
-                                <ToolCallBrokenLinkIconWrapper>
-                                  <Tooltip title={t('Tool call failed')}>
-                                    <ToolCallBrokenLinkIcon size="xs" />
-                                  </Tooltip>
-                                </ToolCallBrokenLinkIconWrapper>
-                              )}
+                              {toolCallText}
+                              <ToolCallBrokenLinkIconWrapper>
+                                <ToolCallBrokenLinkIcon size="xs" />
+                              </ToolCallBrokenLinkIconWrapper>
                             </ToolCallPlainRow>
                           )}
                         </ToolCallTextContainer>
@@ -533,7 +555,7 @@ export function BlockComponent({
 
 BlockComponent.displayName = 'BlockComponent';
 
-const Block = styled('div')<{isFocused?: boolean}>`
+const Block = styled('div')<{isHovered?: boolean}>`
   width: 100%;
   position: relative;
   flex-shrink: 0; /* Prevent blocks from shrinking */
@@ -592,21 +614,6 @@ const Spinner = styled('div')`
   flex-shrink: 0;
 `;
 
-const BlockSpinner = styled(Spinner)`
-  width: 18px;
-  height: 18px;
-`;
-
-const BlockIndicatorSlot = styled('div')<{hasOnlyTools?: boolean}>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  margin-top: ${p => (p.hasOnlyTools ? '10px' : '16px')};
-  margin-left: ${p => p.theme.space.xl};
-  flex-shrink: 0;
-`;
-
 const StatusIconContainer = styled('span')`
   display: inline-flex;
   align-items: center;
@@ -639,20 +646,18 @@ const BlockContentWrapper = styled('div')<{hasOnlyTools?: boolean}>`
 const BlockContent = styled(MarkedText)`
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
-  white-space: pre-wrap;
   word-wrap: break-word;
   padding-bottom: 0;
-  margin-bottom: -${p => p.theme.space.md};
 
   code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
+    ${p => inlineCodeStyles(p.theme, {variant: 'neutral'})};
   }
 
   p,
   li,
   ul,
   ol {
-    margin: -${p => p.theme.space.md} 0;
+    margin: ${p => p.theme.space.md} 0;
   }
 
   h1,
@@ -661,7 +666,7 @@ const BlockContent = styled(MarkedText)`
   h4,
   h5,
   h6 {
-    margin: 0;
+    margin: ${p => p.theme.space.md} 0;
     font-size: ${p => p.theme.font.size.lg};
   }
 
@@ -683,22 +688,14 @@ const BlockContent = styled(MarkedText)`
     font-weight: ${p => p.theme.font.weight.sans.medium};
   }
 
-  p:first-child,
-  li:first-child,
-  ul:first-child,
-  h1:first-child,
-  h2:first-child,
-  h3:first-child,
-  h4:first-child,
-  h5:first-child,
-  h6:first-child {
-    margin-top: 0;
+  hr {
+    margin: ${p => p.theme.space.md} 0;
   }
 `;
 
 const UserBlockContent = styled('div')`
   max-width: 80%;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: anywhere;
@@ -717,8 +714,8 @@ const ToolCallStack = styled(Stack)`
 
 const ToolCallTextContainer = styled('div')`
   display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
+  align-items: flex-start;
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
 `;
 
@@ -727,7 +724,7 @@ const ToolStatusSlot = styled('span')`
   align-items: center;
   justify-content: center;
   width: 12px;
-  height: 1lh;
+  height: 12px;
   flex-shrink: 0;
 `;
 
@@ -746,7 +743,7 @@ const ToolCallText = styled(Text)<{isHighlighted?: boolean}>`
 const ToolCallLink = styled('button')<{isHighlighted?: boolean}>`
   display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
   background: none;
   border: none;
@@ -774,17 +771,6 @@ const ToolCallLinkIconWrapper = styled('span')<{isHighlighted?: boolean}>`
   }
 `;
 
-const EnterKeyHint = styled('span')<{isVisible?: boolean}>`
-  display: inline-block;
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.interactive.link.accent.hover};
-  flex-shrink: 0;
-  margin-left: ${p => p.theme.space.xs};
-  visibility: ${p => (p.isVisible ? 'visible' : 'hidden')};
-  font-family: ${p => p.theme.font.family.mono};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
 const ToolCallLinkIcon = styled(IconLink)<{isHighlighted?: boolean}>`
   color: ${p =>
     p.isHighlighted
@@ -802,7 +788,7 @@ const ToolCallBrokenLinkIcon = styled(IconLinkBroken)`
 const ToolCallPlainRow = styled('span')`
   display: inline-flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space.md};
   max-width: 100%;
 `;
 

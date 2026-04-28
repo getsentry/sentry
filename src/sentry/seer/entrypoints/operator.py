@@ -19,19 +19,19 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
 )
-from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache, SeerOperatorExplorerCache
+from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
 )
 from sentry.seer.entrypoints.registry import (
+    agent_entrypoint_registry,
     autofix_entrypoint_registry,
-    explorer_entrypoint_registry,
 )
 from sentry.seer.entrypoints.types import (
+    SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
-    SeerExplorerEntrypoint,
 )
 from sentry.seer.explorer.client import SeerExplorerClient
 from sentry.seer.explorer.client_models import SeerRunState
@@ -457,16 +457,16 @@ class SeerAutofixOperator[CachePayloadT]:
             )
 
 
-class SeerExplorerOperator[CachePayloadT]:
+class SeerAgentOperator[CachePayloadT]:
     """
-    A class that connects to entrypoint implementations and runs Explorer operations for Seer.
+    A class that connects to entrypoint implementations and runs Seer Agent operations.
     It does this to ensure all entrypoints have consistent behavior and responses.
     """
 
-    def __init__(self, entrypoint: SeerExplorerEntrypoint[CachePayloadT]):
+    def __init__(self, entrypoint: SeerAgentEntrypoint[CachePayloadT]):
         self.entrypoint = entrypoint
 
-    def trigger_explorer(
+    def trigger_agent(
         self,
         *,
         organization: Organization,
@@ -477,12 +477,12 @@ class SeerExplorerOperator[CachePayloadT]:
         category_value: str,
     ) -> int | None:
         """
-        Start or continue an Explorer run and return the run_id.
+        Start or continue a Seer Agent run and return the run_id.
         If a run exists for this category (e.g. slack thread), continues it; otherwise starts new.
-        Uses the entrypoint's Explorer callbacks for success/error handling.
+        Uses the entrypoint's Agent callbacks for success/error handling.
         """
         event_lifecycle = SeerOperatorEventLifecycleMetric(
-            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_EXPLORER,
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AGENT,
             entrypoint_key=self.entrypoint.key,
         )
 
@@ -507,10 +507,10 @@ class SeerExplorerOperator[CachePayloadT]:
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
                     entrypoint_key=self.entrypoint.key,
                 ).capture(assume_success=False):
-                    self.entrypoint.on_trigger_explorer_error(error=str(e))
+                    self.entrypoint.on_trigger_agent_error(error=str(e))
                 lifecycle.record_failure(failure_reason=e)
                 return None
 
@@ -537,28 +537,28 @@ class SeerExplorerOperator[CachePayloadT]:
                     lifecycle.add_extra("continued", "false")
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
                     entrypoint_key=self.entrypoint.key,
                 ).capture(assume_success=False):
-                    self.entrypoint.on_trigger_explorer_error(error="An unexpected error occurred")
+                    self.entrypoint.on_trigger_agent_error(error="An unexpected error occurred")
                 lifecycle.record_failure(failure_reason=e)
                 return None
 
             lifecycle.add_extra("run_id", str(run_id))
 
             with SeerOperatorEventLifecycleMetric(
-                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_EXPLORER,
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AGENT,
                 entrypoint_key=self.entrypoint.key,
             ).capture():
-                self.entrypoint.on_trigger_explorer_success(run_id=run_id)
+                self.entrypoint.on_trigger_agent_success(run_id=run_id)
 
             with SeerOperatorEventLifecycleMetric(
-                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_EXPLORER_CACHE_PAYLOAD,
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_AGENT_CACHE_PAYLOAD,
                 entrypoint_key=self.entrypoint.key,
             ).capture():
-                cache_payload = self.entrypoint.create_explorer_cache_payload()
+                cache_payload = self.entrypoint.create_agent_cache_payload()
 
-            SeerOperatorExplorerCache.set(
+            SeerOperatorAgentCache.set(
                 entrypoint_key=str(self.entrypoint.key),
                 run_id=run_id,
                 cache_payload=cache_payload,
@@ -774,10 +774,10 @@ def get_latest_cause_id(autofix_state: AutofixState | None) -> int:
 
 
 class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
-    """Completion hook that notifies all entrypoints when an Explorer run finishes.
+    """Completion hook that notifies all entrypoints when a Seer Agent run finishes.
 
     Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
-    registry and calls on_explorer_update for each entrypoint that has access and
+    registry and calls on_agent_update for each entrypoint that has access and
     has a cached payload for this run.
     """
 
@@ -786,7 +786,7 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
         from sentry.seer.explorer.client_utils import fetch_run_status
 
         with SeerOperatorEventLifecycleMetric(
-            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_EXPLORER_COMPLETION,
+            interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
@@ -809,13 +809,13 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
             for (
                 entrypoint_key,
                 entrypoint_cls,
-            ) in explorer_entrypoint_registry.registrations.items():
+            ) in agent_entrypoint_registry.registrations.items():
                 if not entrypoint_cls.has_access(organization=organization):
                     continue
 
-                from sentry.seer.entrypoints.slack.entrypoint import SlackExplorerCachePayload
+                from sentry.seer.entrypoints.slack.entrypoint import SlackAgentCachePayload
 
-                cache_payload = SeerOperatorExplorerCache[SlackExplorerCachePayload].get(
+                cache_payload = SeerOperatorAgentCache[SlackAgentCachePayload].get(
                     entrypoint_key=str(entrypoint_key),
                     run_id=run_id,
                 )
@@ -830,11 +830,11 @@ class SeerOperatorCompletionHook(ExplorerOnCompletionHook):
                     return
 
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_EXPLORER_UPDATE,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AGENT_UPDATE,
                     entrypoint_key=str(entrypoint_key),
                 ).capture() as ept_lifecycle:
                     try:
-                        entrypoint_cls.on_explorer_update(
+                        entrypoint_cls.on_agent_update(
                             cache_payload=cache_payload,
                             summary=summary,
                             run_id=run_id,

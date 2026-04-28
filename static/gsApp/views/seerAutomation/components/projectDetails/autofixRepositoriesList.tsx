@@ -75,7 +75,7 @@ export function AutofixRepositories({canWrite, preference, project}: Props) {
   const tableHeaders = getTableHeaders(organization);
 
   const repoMap = useMemo(
-    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo]) ?? []),
+    () => new Map(preference?.repositories.map(repo => [repo.external_id, repo])),
     [preference]
   );
 

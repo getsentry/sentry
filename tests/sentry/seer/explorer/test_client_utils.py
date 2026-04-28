@@ -8,6 +8,7 @@ from sentry.seer.explorer.client_utils import (
     has_seer_explorer_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import make_request
@@ -191,6 +192,36 @@ class CollectUserOrgContextTest(TestCase):
         assert context is not None
         assert context.get("user_ip") == request.META.get("REMOTE_ADDR")
 
+    def test_collect_context_populates_repos(self) -> None:
+        """Seer project preference repos are populated from SeerProjectRepository."""
+        repo1 = self.create_repo(
+            project=self.project1,
+            name="acme/project-1-repo",
+            provider="integrations:github",
+            integration_id=999,
+            external_id="ext-1",
+        )
+        SeerProjectRepository.objects.create(project=self.project1, repository=repo1)
+        repo2 = self.create_repo(
+            project=self.project2,
+            name="acme/project-2-repo",
+            provider="integrations:github",
+            integration_id=999,
+            external_id="ext-2",
+        )
+        SeerProjectRepository.objects.create(project=self.project2, repository=repo2)
+
+        context = collect_user_org_context(self.user, self.organization)
+
+        all_by_id = {p["id"]: p for p in context["all_org_projects"]}
+        assert [r["external_id"] for r in all_by_id[self.project1.id]["repos"]] == ["ext-1"]
+        assert [r["external_id"] for r in all_by_id[self.project2.id]["repos"]] == ["ext-2"]
+        assert all_by_id[self.other_project.id]["repos"] == []
+
+        user_by_id = {p["id"]: p for p in context["user_projects"]}
+        assert [r["external_id"] for r in user_by_id[self.project1.id]["repos"]] == ["ext-1"]
+        assert [r["external_id"] for r in user_by_id[self.project2.id]["repos"]] == ["ext-2"]
+
 
 class SnapshotToMarkdownTest(TestCase):
     def test_single_node(self) -> None:
@@ -270,6 +301,67 @@ class SnapshotToMarkdownTest(TestCase):
         assert "# Dashboard" in result
         assert "# Widget-builder" in result
         assert '- **mode**: "creating"' in result
+
+    def test_priority_selects_highest(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {
+                    "nodeType": "dashboard",
+                    "data": {"title": "My Dashboard"},
+                    "children": [
+                        {"nodeType": "widget", "data": {"title": "W1"}, "children": []},
+                    ],
+                },
+                {
+                    "nodeType": "widget-builder",
+                    "priority": 1,
+                    "data": {"mode": "creating"},
+                    "children": [],
+                },
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# Widget-builder" in result
+        assert '- **mode**: "creating"' in result
+        assert "Dashboard" not in result
+
+    def test_priority_equal_renders_all(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "dashboard", "data": {"title": "D1"}, "children": []},
+                {"nodeType": "dashboard", "data": {"title": "D2"}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert result.count("# Dashboard") == 2
+
+    def test_priority_null_treated_as_zero(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "a", "priority": None, "data": {}, "children": []},
+                {"nodeType": "b", "priority": 1, "data": {}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# B" in result
+        assert "# A" not in result
+
+    def test_priority_multiple_highest(self) -> None:
+        snapshot = {
+            "version": 1,
+            "nodes": [
+                {"nodeType": "a", "priority": 1, "data": {}, "children": []},
+                {"nodeType": "b", "priority": 1, "data": {}, "children": []},
+                {"nodeType": "c", "data": {}, "children": []},
+            ],
+        }
+        result = snapshot_to_markdown(snapshot)
+        assert "# A" in result
+        assert "# B" in result
+        assert "# C" not in result
 
     def test_node_with_non_dict_data(self) -> None:
         snapshot = {

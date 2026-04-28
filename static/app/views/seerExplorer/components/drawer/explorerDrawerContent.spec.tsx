@@ -30,7 +30,8 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 describe('ExplorerDrawerContent', () => {
   const organization = OrganizationFixture({
     openMembership: true,
-    features: ['seer-explorer'],
+    features: ['seer-explorer', 'gen-ai-features'],
+    hideAiFeatures: false,
   });
 
   beforeEach(() => {

@@ -1,17 +1,19 @@
 import {Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import {preload} from 'react-dom';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selection';
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
-import {AnimatePresence, motion} from 'framer-motion';
+import {useIsFetching} from '@tanstack/react-query';
+import {animate, AnimatePresence, motion} from 'framer-motion';
 
 import errorIllustration from 'sentry-images/spot/computer-missing.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
+import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -19,6 +21,7 @@ import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
 
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
 import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
@@ -36,18 +39,24 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
-import {useIsFetching} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useNavigate} from 'sentry/utils/useNavigate';
-
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
 
-function makeLeadingItemAnimation(theme: Theme) {
+function makeLeadingItemAnimation(theme: Theme, instant = false) {
+  if (instant) {
+    return {
+      initial: {scale: 1, opacity: 1},
+      animate: {scale: 1, opacity: 1},
+      exit: {scale: 1, opacity: 1, transition: {duration: 0}},
+      transition: {duration: 0},
+    };
+  }
   return {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
@@ -76,17 +85,35 @@ interface CommandPaletteScore {
   score: number;
 }
 
-interface CommandPaletteProps {
-  closeModal?: () => void;
-}
-
-export function CommandPalette(props: CommandPaletteProps) {
+export function CommandPalette({Body, closeModal}: ModalRenderProps) {
   const theme = useTheme();
   const navigate = useNavigate();
   const store = CMDKCollection.useStore();
-
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
+
+  const getDocEl = useCallback(
+    () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    [state.input]
+  );
+
+  const animatePress = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 0.99}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
+
+  const animatePop = useCallback(() => {
+    const docEl = getDocEl();
+    if (docEl) {
+      animate(docEl, {scale: 1.01}, {duration: 0.028, ease: 'easeOut'}).then(() =>
+        animate(docEl, {scale: 1}, {type: 'spring', stiffness: 350, damping: 15})
+      );
+    }
+  }, [getDocEl]);
 
   // Preload the empty state image so it's ready if/when there are no results
   // Guard against non-string imports (e.g. SVG objects in test environments)
@@ -217,7 +244,6 @@ export function CommandPalette(props: CommandPaletteProps) {
     disallowTypeAhead: true,
   });
 
-  const {closeModal} = props;
   const onActionSelection = useCallback(
     (
       key: string | number | null,
@@ -235,6 +261,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       const carriedQuery = isSeeMoreAction(action.key) ? state.query : undefined;
 
       if (action.children.length > 0) {
+        animatePress();
         analytics.recordGroupAction(sourceAction, resultIndex);
         if ('onAction' in action) {
           // Run the primary callback before drilling into the secondary actions.
@@ -252,6 +279,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       }
 
       if ('prompt' in action && action.prompt) {
+        animatePress();
         dispatch({
           type: 'push action',
           key: action.key,
@@ -264,6 +292,12 @@ export function CommandPalette(props: CommandPaletteProps) {
       analytics.recordAction(action, resultIndex, '');
       dispatch({type: 'trigger action'});
 
+      // Close the palette before running the action. ModalStore is a single-slot
+      // system: calling openModal() inside onAction would replace the palette's
+      // renderer, and a closeModal() call afterwards would immediately close the
+      // newly opened modal instead of the palette.
+      closeModal?.();
+
       if ('to' in action) {
         const normalizedTo = normalizeUrl(action.to);
         if (isExternalLocation(normalizedTo) || options?.modifierKeys?.shiftKey) {
@@ -274,11 +308,32 @@ export function CommandPalette(props: CommandPaletteProps) {
       } else if ('onAction' in action) {
         action.onAction();
       }
-
-      closeModal?.();
     },
-    [actions, analytics, closeModal, dispatch, navigate, prefixMap, state.query]
+    [
+      actions,
+      analytics,
+      animatePress,
+      closeModal,
+      dispatch,
+      navigate,
+      prefixMap,
+      state.query,
+    ]
   );
+
+  // Dispatch the deferred reset once the close animation finishes. framer-motion
+  // only unmounts this component after the exit animation completes, so the
+  // cleanup runs at exactly the right time. If the user re-opens the palette
+  // before the animation ends, the component stays mounted and nothing fires.
+  const pendingResetRef = useRef(state.pendingReset);
+  pendingResetRef.current = state.pendingReset;
+  useEffect(() => {
+    return () => {
+      if (pendingResetRef.current) {
+        dispatch({type: 'reset'});
+      }
+    };
+  }, [dispatch]);
 
   const resultsListRef = useRef<HTMLDivElement>(null);
   const modifierKeysRef = useRef({shiftKey: false});
@@ -307,9 +362,14 @@ export function CommandPalette(props: CommandPaletteProps) {
   const isLoading =
     (state.query.length > 0 && debouncedQuery !== state.query) || isFetchingQueries > 0;
   const isEmptyPromptQuery =
-    state.action?.value.prompt !== undefined && state.query.length === 0;
+    state.action?.value.prompt !== undefined && (state.query.length === 0 || isLoading);
 
-  return (
+  // Skip leading-icon animations when there is no query — any icon transition
+  // while the input is empty (e.g. a brief loading state after clearing) should
+  // be invisible rather than drawing attention with a flash.
+  const leadingIconAnimation = makeLeadingItemAnimation(theme, !state.query);
+
+  const content = (
     <Fragment>
       <Flex direction="column" align="start" gap="md">
         <Flex position="relative" direction="row" align="center" gap="xs" width="100%">
@@ -322,7 +382,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                       <MotionContainer
                         position="absolute"
                         left="-2px"
-                        {...makeLeadingItemAnimation(theme)}
+                        {...leadingIconAnimation}
                       >
                         <LoadingIndicator
                           data-test-id="command-palette-loading"
@@ -337,21 +397,18 @@ export function CommandPalette(props: CommandPaletteProps) {
                             priority="transparent"
                             icon={<IconArrow direction="left" aria-hidden />}
                             onClick={() => {
+                              animatePop();
                               dispatch({type: 'pop action'});
                               state.input.current?.focus();
                             }}
                             aria-label={t('Return to previous action')}
-                            {...makeLeadingItemAnimation(theme)}
+                            {...leadingIconAnimation}
                             {...containerProps}
                           />
                         )}
                       </Container>
                     ) : (
-                      <MotionIconSearch
-                        size="sm"
-                        aria-hidden
-                        {...makeLeadingItemAnimation(theme)}
-                      />
+                      <MotionIconSearch size="sm" aria-hidden {...leadingIconAnimation} />
                     )}
                   </AnimatePresence>
                 </StyledInputLeadingItems>
@@ -377,6 +434,7 @@ export function CommandPalette(props: CommandPaletteProps) {
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Backspace' && state.query.length === 0) {
                         if (state.action) {
+                          animatePop();
                           dispatch({type: 'pop action'});
                           e.preventDefault();
                           return;
@@ -390,6 +448,13 @@ export function CommandPalette(props: CommandPaletteProps) {
                         if (state.query.length > 0) {
                           dispatch({type: 'set query', query: ''});
                           e.preventDefault();
+                          return;
+                        }
+                        if (state.action) {
+                          animatePop();
+                          dispatch({type: 'pop action'});
+                          e.preventDefault();
+                          e.stopPropagation();
                           return;
                         }
                       }
@@ -429,7 +494,7 @@ export function CommandPalette(props: CommandPaletteProps) {
       </Flex>
 
       {treeState.collection.size === 0 ? (
-        isEmptyPromptQuery ? null : (
+        isEmptyPromptQuery || isLoading ? null : (
           <CommandPaletteNoResults />
         )
       ) : (
@@ -458,8 +523,11 @@ export function CommandPalette(props: CommandPaletteProps) {
           />
         </ResultsList>
       )}
+      <CommandPaletteHints />
     </Fragment>
   );
+
+  return <Body>{content}</Body>;
 }
 
 /**
@@ -667,10 +735,17 @@ function flattenActions(
   // groups by their best child score so the most relevant sub-section surfaces
   // first. When we are inside an expanded group we also sort leaf actions by
   // their own score so the full result list matches the limited preview ordering.
+  // Sections with a "cmdk:supplementary:" reserved key always sort last,
+  // regardless of score.
   collected.sort((a, b) => {
     const aRootKey = nodeRootKey.get(a.key)!;
     const bRootKey = nodeRootKey.get(b.key)!;
     if (aRootKey !== bRootKey) {
+      const aIsSupplementary = aRootKey.startsWith('cmdk:supplementary:');
+      const bIsSupplementary = bRootKey.startsWith('cmdk:supplementary:');
+      if (aIsSupplementary !== bIsSupplementary) {
+        return aIsSupplementary ? 1 : -1;
+      }
       return compareCommandPaletteScores(
         rootBestScore.get(aRootKey),
         rootBestScore.get(bRootKey)
@@ -848,7 +923,7 @@ function makeMenuItemFromAction(
 ): CommandPaletteActionMenuItem {
   const prefix = prefixMap.get(action.key);
   const isExternal = 'to' in action ? isExternalLocation(action.to) : false;
-  const trailingItems =
+  const linkIndicator =
     'to' in action ? (
       <Flex
         align="center"
@@ -859,6 +934,13 @@ function makeMenuItemFromAction(
           {isExternal ? <IconOpen /> : <IconLink />}
         </IconDefaultsProvider>
       </Flex>
+    ) : undefined;
+  const trailingItems =
+    (action.display.trailingItem ?? linkIndicator) ? (
+      <Fragment>
+        {action.display.trailingItem}
+        {linkIndicator}
+      </Fragment>
     ) : undefined;
 
   return {
@@ -896,6 +978,45 @@ function makeMenuItemFromAction(
     children: [],
     hideCheck: true,
   };
+}
+
+function CommandPaletteHints() {
+  return (
+    <Stack padding="0 2xs">
+      <Stack.Separator border="muted" />
+      <Flex align="center" justify="between" padding="xs 0 2xs 0">
+        <Flex align="center" gap="lg">
+          <Flex align="center" gap="xs">
+            <Flex align="center" gap="2xs">
+              <Hotkey variant="debossed" value="up" />
+              <Hotkey variant="debossed" value="down" />
+            </Flex>
+            <Text size="xs" variant="muted">
+              {t('Move')}
+            </Text>
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value="enter" />
+            <Text size="xs" variant="muted">
+              {t('Select')}
+            </Text>
+          </Flex>
+          <Flex align="center" gap="xs">
+            <Hotkey variant="debossed" value="shift+enter" />
+            <Text size="xs" variant="muted">
+              {t('New tab')}
+            </Text>
+          </Flex>
+        </Flex>
+        <Flex align="center" gap="xs">
+          <Text size="xs" variant="muted">
+            {t('Toggle Command Palette')}
+          </Text>
+          <Hotkey variant="debossed" value="command+k" />
+        </Flex>
+      </Flex>
+    </Stack>
+  );
 }
 
 function CommandPaletteNoResults() {
@@ -959,3 +1080,17 @@ const ResultsList = styled(Flex)`
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;
+
+export const modalCss = (theme: Theme) => {
+  return css`
+    [role='document'] {
+      padding: ${theme.space.xs};
+
+      background-color: ${theme.tokens.background.primary};
+      border-radius: ${theme.radius.xl};
+      border-bottom-right-radius: ${theme.radius.md};
+      border-bottom-left-radius: ${theme.radius.md};
+      will-change: transform;
+    }
+  `;
+};

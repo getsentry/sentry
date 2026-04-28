@@ -35,7 +35,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {getProfileTargetId} from 'sentry/views/profiling/utils';
+import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
 const MAX_EXAMPLES_PER_FRAME = 5;
 

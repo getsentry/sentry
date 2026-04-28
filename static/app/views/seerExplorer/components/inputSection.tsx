@@ -34,7 +34,6 @@ interface InputSectionProps {
   canInterrupt: boolean;
   enabled: boolean;
   inputValue: string;
-  isFocused: boolean;
   onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
@@ -57,7 +56,6 @@ export function InputSection({
   blocks,
   enabled,
   inputValue,
-  isFocused,
   isMinimized = false,
   canInterrupt,
   waitingForInterrupt,
@@ -160,6 +158,7 @@ export function InputSection({
                 'This conversation is owned by another user and is read-only'
               )}
               rows={1}
+              size="md"
               data-test-id="seer-explorer-input"
             />
           </StyledInputGroup>
@@ -268,12 +267,11 @@ export function InputSection({
             onChange={onInputChange}
             onKeyDown={onKeyDown}
             onClick={onInputClick}
-            placeholder={
-              isFocused
-                ? t('Ask seer a question, or press / for commands.')
-                : t('Press Tab ⇥ to return here')
-            }
+            placeholder={t('Ask seer a question, or press / for commands.')}
             rows={1}
+            maxRows={5}
+            autosize
+            size="md"
             data-test-id="seer-explorer-input"
           />
         </StyledInputGroup>
@@ -325,7 +323,7 @@ const InputRow = styled('div')`
   display: flex;
   align-items: flex-end;
   gap: ${p => p.theme.space.sm};
-  margin: ${p => p.theme.space.sm};
+  margin: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const StyledInputGroup = styled(InputGroup)<{interrupted?: boolean}>`

@@ -64,7 +64,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
         installed_repos = Repository.objects.filter(
             integration_id=integration.id, organization_id=organization.id
         ).exclude(status=ObjectStatus.HIDDEN)
-        installed_repo_names = {installed_repo.name for installed_repo in installed_repos}
+        installed_external_ids = {repo.external_id for repo in installed_repos}
 
         install = integration.get_installation(organization_id=organization.id)
 
@@ -90,12 +90,12 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     name=repo["name"],
                     identifier=repo["identifier"],
                     defaultBranch=repo.get("default_branch"),
-                    isInstalled=repo["identifier"] in installed_repo_names,
+                    isInstalled=repo["external_id"] in installed_external_ids,
                     externalId=repo["external_id"],
                     url=repo.get("url"),
                 )
                 for repo in repositories
-                if not installable_only or repo["identifier"] not in installed_repo_names
+                if not installable_only or repo["external_id"] not in installed_external_ids
             ]
             return self.respond(
                 {"repos": serialized_repositories, "searchable": install.repo_search}

@@ -48,6 +48,13 @@ S017_msg = (
     "billing/platform/. Use only getsentry.billing.platform.* imports."
 )
 
+S018_msg = (
+    "S018 Use `sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache` "
+    "instead of `django.core.cache.backends.memcached.PyMemcacheCache`."
+)
+S018_fqn = "django.core.cache.backends.memcached.PyMemcacheCache"  # noqa: S018
+S018_module = "django.core.cache.backends.memcached"
+
 
 # --- S015: do not hardcode current or future UTC year as test "now" ---
 # Flag year >= current UTC year at lint time. Module/class scope + freeze_time(datetime(...)).
@@ -137,6 +144,10 @@ class SentryVisitor(ast.NodeVisitor):
                 x.name == "ThreadPoolExecutor" for x in node.names
             ):
                 self.errors.append((node.lineno, node.col_offset, S016_msg))
+            elif node.module == S018_module and any(
+                x.name == "PyMemcacheCache" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S018_msg))
 
         if (
             _is_platform_path(self.filename)
@@ -186,6 +197,12 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if node.id == "print":
             self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_Constant(self, node: ast.Constant) -> None:
+        if isinstance(node.value, str) and node.value == S018_fqn:
+            self.errors.append((node.lineno, node.col_offset, S018_msg))
 
         self.generic_visit(node)
 

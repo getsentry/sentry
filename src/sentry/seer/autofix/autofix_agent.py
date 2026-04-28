@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 
-from sentry import analytics, features, quotas
+from sentry import analytics, quotas
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -43,7 +43,6 @@ from sentry.seer.autofix.prompts import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_autofix_state,
-    get_project_seer_preferences,
     read_preference_from_sentry_db,
 )
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -527,28 +526,10 @@ def trigger_coding_agent_handoff(
         raise PermissionDenied("Code generation is disabled for this organization")
 
     auto_create_pr = False
-    repo_definitions: list[SeerRepoDefinition] = []
-    if features.has("organizations:seer-project-settings-read-from-sentry", group.organization):
-        preference = read_preference_from_sentry_db(group.project)
-        repo_definitions = preference.repositories
-        if preference.automation_handoff:
-            auto_create_pr = preference.automation_handoff.auto_create_pr
-    else:
-        try:
-            pref = get_project_seer_preferences(group.project_id).preference
-            if pref:
-                repo_definitions = pref.repositories
-                if pref.automation_handoff:
-                    auto_create_pr = pref.automation_handoff.auto_create_pr
-        except Exception:
-            logger.exception(
-                "autofix.coding_agent_handoff.get_preferences_error",
-                extra={
-                    "organization_id": group.organization.id,
-                    "run_id": run_id,
-                    "project_id": group.project_id,
-                },
-            )
+    preference = read_preference_from_sentry_db(group.project)
+    repo_definitions: list[SeerRepoDefinition] = preference.repositories
+    if preference.automation_handoff:
+        auto_create_pr = preference.automation_handoff.auto_create_pr
 
     if not repo_definitions:
         return {
