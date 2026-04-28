@@ -372,8 +372,8 @@ export function CartDiff({
     currentValues: Partial<Record<DataCategory, number>>;
     newValues: Partial<Record<DataCategory, number>>;
     shouldIncludeZero?: boolean;
-  }): ReservedChange[] | PerCategoryOnDemandChange[] => {
-    const nodes: ReservedChange[] | PerCategoryOnDemandChange[] = [];
+  }) => {
+    const nodes: ReservedChange[] = [];
 
     Object.entries(newValues).forEach(([category, newValue]) => {
       let currentValue = null;
