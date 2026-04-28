@@ -7,8 +7,10 @@ import {APP_STARTS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuilt
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const COLD_START_CONDITION = `has:${SpanFields.APP_VITALS_START_COLD_VALUE}`;
-const WARM_START_CONDITION = `has:${SpanFields.APP_VITALS_START_WARM_VALUE}`;
+const ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation,app.start]`;
+const COLD_START_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE}`;
+const WARM_START_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE}`;
+const TRANSACTION_EVENT_COUNT = `count_unique(${SpanFields.TRANSACTION_EVENT_ID})`;
 
 const COLD_START_TABLE_OPERATIONS_CONDITION = `!${SpanFields.SPAN_DESCRIPTION}:"Cold Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm Start" !${SpanFields.SPAN_DESCRIPTION}:"Cold App Start" !${SpanFields.SPAN_DESCRIPTION}:"Warm App Start" !${SpanFields.SPAN_DESCRIPTION}:"Initial Frame Render" has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation,app.start] has:ttid ${SpanFields.APP_VITALS_START_TYPE}:cold ${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
 
@@ -52,8 +54,8 @@ const TOTAL_COLD_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`count(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
-      aggregates: [`count(${SpanFields.APP_VITALS_START_COLD_VALUE})`],
+      fields: [TRANSACTION_EVENT_COUNT],
+      aggregates: [TRANSACTION_EVENT_COUNT],
       columns: [],
       conditions: COLD_START_CONDITION,
       orderby: '',
@@ -106,8 +108,8 @@ const TOTAL_WARM_START_COUNT_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`count(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
-      aggregates: [`count(${SpanFields.APP_VITALS_START_WARM_VALUE})`],
+      fields: [TRANSACTION_EVENT_COUNT],
+      aggregates: [TRANSACTION_EVENT_COUNT],
       columns: [],
       conditions: WARM_START_CONDITION,
       orderby: '',

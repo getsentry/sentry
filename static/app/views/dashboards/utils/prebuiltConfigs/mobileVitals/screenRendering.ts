@@ -6,7 +6,7 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {SCREEN_RENDERING_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const SPAN_OPERATIONS_CONDITION = `${SpanFields.SPAN_OP}:[app.start.cold,app.start.warm,contentprovider.load,application.load,activity.load,ui.load,process.load]`;
+const SPAN_OPERATIONS_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT}`;
 
 const SPAN_OPERATIONS_TABLE: Widget = {
   id: 'span-operations-table',

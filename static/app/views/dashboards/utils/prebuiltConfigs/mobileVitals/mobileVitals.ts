@@ -8,26 +8,22 @@ import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/se
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
-const COLD_START_CONDITION = `has:${SpanFields.APP_VITALS_START_COLD_VALUE}`;
-const WARM_START_CONDITION = `has:${SpanFields.APP_VITALS_START_WARM_VALUE}`;
-const TTID_CONDITION = `has:${SpanFields.APP_VITALS_TTID_VALUE}`;
-const TTFD_CONDITION = `has:${SpanFields.APP_VITALS_TTFD_VALUE}`;
+const ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${TRANSACTION_OP_CONDITION}`;
+const APP_START_TRANSACTION_OP_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation,app.start]`;
+const APP_START_ROOT_TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${APP_START_TRANSACTION_OP_CONDITION}`;
+const COLD_START_CONDITION = `${APP_START_ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_COLD_VALUE}`;
+const WARM_START_CONDITION = `${APP_START_ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_START_WARM_VALUE}`;
+const TTID_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE}`;
+const TTFD_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE}`;
+const TRANSACTION_EVENT_COUNT = `count_unique(${SpanFields.TRANSACTION_EVENT_ID})`;
 
-// Mirrors the appStarts.ts sub-dashboard which uses transaction.op without is_transaction:true.
-// The has: checks already restrict results to spans with app start data. OR is intentional:
-// a screen may only have warm-start data (app was already running) and should still appear.
-const APP_START_CONDITION = `${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
+const APP_START_CONDITION = `${APP_START_ROOT_TRANSACTION_CONDITION} (has:${SpanFields.APP_VITALS_START_COLD_VALUE} OR has:${SpanFields.APP_VITALS_START_WARM_VALUE})`;
 
-// Filters to root transaction spans (is_transaction:true) since TTID/TTFD are only set on
-// root spans. OR is intentional: TTFD can be absent while TTID is present
-// (reportFullyDrawn() is opt-in).
-const SCREEN_LOAD_CONDITION = `is_transaction:true ${TRANSACTION_OP_CONDITION} (has:${SpanFields.APP_VITALS_TTID_VALUE} OR has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
+// TTFD can be absent while TTID is present because reportFullyDrawn() is opt-in.
+const SCREEN_LOAD_CONDITION = `${ROOT_TRANSACTION_CONDITION} (has:${SpanFields.APP_VITALS_TTID_VALUE} OR has:${SpanFields.APP_VITALS_TTFD_VALUE})`;
 
-// Uses transaction.op (consistent with APP_START_CONDITION and SCREEN_LOAD_CONDITION) since
-// this table groups by transaction. Requires mobile.total_frames to be present — a single
-// `has:` on the shared denominator, because both the slow-frames and frozen-frames equations
-// are undefined when total_frames is absent.
-const SCREEN_RENDERING_CONDITION = `${TRANSACTION_OP_CONDITION} has:${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT}`;
+// A single `has:` on the shared denominator keeps the frame-rate equations defined.
+const SCREEN_RENDERING_CONDITION = `${ROOT_TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT}`;
 
 const COLD_START_BIG_NUMBER_WIDGET: Widget = {
   id: 'cold-start-big-number',
@@ -182,7 +178,8 @@ const CRASH_FREE_SESSION_RATE_BIG_NUMBER_WIDGET: Widget = {
 const SLOW_FRAME_RATE_WIDGET: Widget = {
   id: 'slow-frame-rate-big-number',
   title: t('Slow Frame Rate'),
-  description: 'The percentage of frames that were slow',
+  description:
+    'Percentage of slow frames across screen load transactions, calculated as total slow frames divided by total frames.',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -202,7 +199,7 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
       ],
       selectedAggregate: 2,
       columns: [],
-      conditions: TRANSACTION_OP_CONDITION,
+      conditions: SCREEN_RENDERING_CONDITION,
       orderby: '',
     },
   ],
@@ -218,7 +215,8 @@ const SLOW_FRAME_RATE_WIDGET: Widget = {
 const FROZEN_FRAME_RATE_WIDGET: Widget = {
   id: 'frozen-frame-rate-big-number',
   title: t('Frozen Frame Rate'),
-  description: 'The percentage of frames that were frozen',
+  description:
+    'Percentage of frozen frames across screen load transactions, calculated as total frozen frames divided by total frames.',
   displayType: DisplayType.BIG_NUMBER,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -238,7 +236,7 @@ const FROZEN_FRAME_RATE_WIDGET: Widget = {
       ],
       selectedAggregate: 2,
       columns: [],
-      conditions: TRANSACTION_OP_CONDITION,
+      conditions: SCREEN_RENDERING_CONDITION,
       orderby: '',
     },
   ],
@@ -265,7 +263,7 @@ const AVG_FRAME_DELAY_WIDGET: Widget = {
       fields: [`avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`],
       aggregates: [`avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`],
       columns: [],
-      conditions: TRANSACTION_OP_CONDITION,
+      conditions: SCREEN_RENDERING_CONDITION,
       orderby: '',
     },
   ],
@@ -293,17 +291,17 @@ const APP_START_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
         `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
-        `count(${SpanFields.SPAN_DURATION})`,
+        TRANSACTION_EVENT_COUNT,
       ],
       aggregates: [
         `avg(${SpanFields.APP_VITALS_START_COLD_VALUE})`,
         `avg(${SpanFields.APP_VITALS_START_WARM_VALUE})`,
-        `count(${SpanFields.SPAN_DURATION})`,
+        TRANSACTION_EVENT_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [t('Screen'), t('Cold Start'), t('Warm Start'), t('Screen Loads')],
       conditions: APP_START_CONDITION,
-      orderby: '-count(span.duration)',
+      orderby: `-${TRANSACTION_EVENT_COUNT}`,
       linkedDashboards: [
         {
           field: 'transaction',
@@ -325,7 +323,8 @@ const APP_START_TABLE: Widget = {
 const SCREEN_RENDERING_TABLE: Widget = {
   id: 'screen-rendering-table',
   title: t('Screen Rendering'),
-  description: '',
+  description:
+    'Frame rates are weighted across screen load transactions using total frame counts.',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -337,12 +336,12 @@ const SCREEN_RENDERING_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
-        `count(${SpanFields.SPAN_DURATION})`,
+        TRANSACTION_EVENT_COUNT,
       ],
       aggregates: [
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_SLOW_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
         `equation|sum(${SpanFields.APP_VITALS_FRAMES_FROZEN_COUNT})/sum(${SpanFields.APP_VITALS_FRAMES_TOTAL_COUNT})`,
-        `count(${SpanFields.SPAN_DURATION})`,
+        TRANSACTION_EVENT_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [
@@ -352,7 +351,7 @@ const SCREEN_RENDERING_TABLE: Widget = {
         t('Screen Loads'),
       ],
       conditions: SCREEN_RENDERING_CONDITION,
-      orderby: `-count(${SpanFields.SPAN_DURATION})`,
+      orderby: `-${TRANSACTION_EVENT_COUNT}`,
       linkedDashboards: [
         {
           field: 'transaction',
@@ -386,17 +385,17 @@ const SCREEN_LOAD_TABLE: Widget = {
         SpanFields.TRANSACTION,
         `avg(${SpanFields.APP_VITALS_TTID_VALUE})`,
         `avg(${SpanFields.APP_VITALS_TTFD_VALUE})`,
-        `count(${SpanFields.SPAN_DURATION})`,
+        TRANSACTION_EVENT_COUNT,
       ],
       aggregates: [
         `avg(${SpanFields.APP_VITALS_TTID_VALUE})`,
         `avg(${SpanFields.APP_VITALS_TTFD_VALUE})`,
-        `count(${SpanFields.SPAN_DURATION})`,
+        TRANSACTION_EVENT_COUNT,
       ],
       columns: [SpanFields.TRANSACTION],
       fieldAliases: [t('Screen'), 'TTID', 'TTFD', t('Screen Loads')],
       conditions: SCREEN_LOAD_CONDITION,
-      orderby: '-count(span.duration)',
+      orderby: `-${TRANSACTION_EVENT_COUNT}`,
       linkedDashboards: [
         {
           field: 'transaction',

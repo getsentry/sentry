@@ -6,8 +6,10 @@ import type {PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConf
 import {SCREEN_LOADS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
-const TTID_CONDITION = `has:${SpanFields.APP_VITALS_TTID_VALUE} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
-const TTFD_CONDITION = `has:${SpanFields.APP_VITALS_TTFD_VALUE} ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
+const TRANSACTION_CONDITION = `${SpanFields.IS_TRANSACTION}:true ${SpanFields.TRANSACTION_OP}:[ui.load,navigation]`;
+const TTID_CONDITION = `${TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTID_VALUE}`;
+const TTFD_CONDITION = `${TRANSACTION_CONDITION} has:${SpanFields.APP_VITALS_TTFD_VALUE}`;
+const TRANSACTION_EVENT_COUNT = `count_unique(${SpanFields.TRANSACTION_EVENT_ID})`;
 const SPAN_OPERATIONS_CONDITION = `${SpanFields.TRANSACTION_OP}:[ui.load,navigation] has:${SpanFields.SPAN_DESCRIPTION} ${SpanFields.SPAN_OP}:[file.read,file.write,ui.load,navigation,http.client,db,db.sql.room,db.sql.query,db.sql.transaction]`;
 
 const AVG_TTID_BIG_NUMBER_WIDGET: Widget = {
@@ -75,8 +77,8 @@ const TOTAL_COUNT_BIG_NUMBER_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`count(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+      fields: [TRANSACTION_EVENT_COUNT],
+      aggregates: [TRANSACTION_EVENT_COUNT],
       columns: [],
       conditions: TTID_CONDITION,
       orderby: '',
@@ -158,12 +160,12 @@ const TOTAL_COUNT_LINE_WIDGET: Widget = {
   queries: [
     {
       name: '',
-      fields: [`count(${SpanFields.SPAN_DURATION})`],
-      aggregates: [`count(${SpanFields.SPAN_DURATION})`],
+      fields: [TRANSACTION_EVENT_COUNT],
+      aggregates: [TRANSACTION_EVENT_COUNT],
       columns: [],
       fieldAliases: [],
       conditions: TTID_CONDITION,
-      orderby: `count(${SpanFields.SPAN_DURATION})`,
+      orderby: TRANSACTION_EVENT_COUNT,
     },
   ],
   layout: {
