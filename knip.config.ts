@@ -22,7 +22,8 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
-  // TODO: Remove when used by organizationRepositoriesV2
+  // TODO: Remove when used
+  'static/app/views/settings/organizationRepositories/connectProviderDropdown.tsx',
   'static/app/views/settings/organizationRepositories/noIntegrationsEmptyState.tsx',
 ];
 
