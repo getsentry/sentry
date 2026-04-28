@@ -26,7 +26,23 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {
+  makeCloseButton,
+  makeClosableHeader,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+function makeRenderProps(closeModal: jest.Mock) {
+  return {
+    closeModal,
+    Body: ModalBody,
+    Footer: ModalFooter,
+    Header: makeClosableHeader(closeModal),
+    CloseButton: makeCloseButton(closeModal),
+  };
+}
 
 import {GlobalCommandPaletteActions} from './commandPaletteGlobalActions';
 
@@ -91,7 +107,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
-        <CommandPalette />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
         organization,
@@ -112,7 +128,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
-        <CommandPalette />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
         organization,
@@ -136,7 +152,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
-        <CommandPalette />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
         organization,
@@ -158,7 +174,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
-        <CommandPalette />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
         organization,
@@ -185,7 +201,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
-        <CommandPalette />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
         organization,
@@ -213,7 +229,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       <CommandPaletteProvider>
         <GlobalCommandPaletteActions />
         <SlotOutlets />
-        <CommandPalette />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
       </CommandPaletteProvider>,
       {
         organization,

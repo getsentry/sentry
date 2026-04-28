@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient, type InfiniteData} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -196,7 +196,7 @@ export function ScmIntegrationTree({search, repoFilter, providerFilter}: Props) 
       try {
         if (isConnected) {
           const connectedRepo = queryClient
-            .getQueryData<InfiniteData<{json: Repository[]}>>(reposQueryOptions.queryKey)
+            .getQueryData(reposQueryOptions.queryKey)
             ?.pages.flatMap(p => p.json)
             .find(r => r.name === repo.identifier);
           if (connectedRepo) {

@@ -25,6 +25,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
 from sentry.seer.explorer.client_models import SeerRunState
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -241,7 +242,18 @@ def collect_user_org_context(
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
     ).values("id", "slug")
-    all_org_projects = [{"id": p["id"], "slug": p["slug"]} for p in all_projects]
+
+    prefs_by_pid = bulk_read_preferences_from_sentry_db(
+        organization.id, [p["id"] for p in all_projects]
+    )
+    repos_by_pid = {
+        str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
+    }
+
+    all_org_projects = [
+        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+        for p in all_projects
+    ]
 
     if user is None or isinstance(user, AnonymousUser):
         return {
@@ -275,7 +287,10 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    user_projects = [{"id": p["id"], "slug": p["slug"]} for p in my_projects]
+    user_projects = [
+        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+        for p in my_projects
+    ]
 
     # Handle name attribute - SentryUser has name
     user_name: str | None = None

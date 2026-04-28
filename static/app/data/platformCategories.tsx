@@ -501,32 +501,6 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
 // List of platforms that do not have metrics support. We make use of this list in the product to not provide any Metrics
 export const withoutMetricsSupport = new Set<PlatformKey>(['dotnet-xamarin']);
 
-export const limitedMetricsSupportPrefixes = new Set<string>([
-  'android',
-  'apple',
-  'bun',
-  'dart',
-  'deno',
-  'dotnet',
-  'electron',
-  'go',
-  'godot',
-  'java',
-  'javascript',
-  'native',
-  'nintendo-switch',
-  'node',
-  'playstation',
-  'python',
-  'php',
-  'react-native',
-  'ruby',
-  'flutter',
-  'unity',
-  'unreal',
-  'xbox',
-]);
-
 export const profiling: PlatformKey[] = [
   'android',
   'apple',

@@ -974,6 +974,35 @@ describe('Results', () => {
       );
     });
 
+    it('does not fetch the homepage query when discover-query is disabled', async () => {
+      renderMockRequests();
+      const mockHomepageGet = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/homepage/',
+        method: 'GET',
+        statusCode: 404,
+      });
+
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'page-frame'],
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: generateFields(),
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
+      expect(mockHomepageGet).not.toHaveBeenCalled();
+    });
+
     it('Changes the Use as Discover button to a reset button for saved query', async () => {
       renderMockRequests();
 

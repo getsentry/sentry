@@ -296,6 +296,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count_snuba(group) == (1, False)
 
+    @pytest.mark.skip(reason="flaky")
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
         """

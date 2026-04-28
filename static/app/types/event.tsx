@@ -272,7 +272,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-export type EntryBreadcrumbs = {
+type EntryBreadcrumbs = {
   data: {
     values: RawCrumb[];
   };

@@ -92,11 +92,8 @@ function CustomStepButtons({
 export function SeerNotices({groupId, hasGithubIntegration, project}: SeerNoticesProps) {
   const organization = useOrganization();
   const {repos} = useAutofixRepos(groupId);
-  const {
-    preference,
-    isLoading: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isLoading: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
   const {mutate: updateProjectSeerPreferences} = useUpdateProjectSeerPreferences(project);
   const {mutateAsync: updateProjectAutomation} = useUpdateProject(project);
   const {data: codingAgentIntegrations} = useQuery(

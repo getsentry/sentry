@@ -1,15 +1,14 @@
-import {useCallback, useMemo, useRef} from 'react';
-import {useQueries} from '@tanstack/react-query';
+import {useMemo, useRef} from 'react';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/api';
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
@@ -54,8 +53,13 @@ export function useMobileAppSizeSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  // Check if organization has the async queue feature
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -91,70 +95,45 @@ export function useMobileAppSizeSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
+      return queryOptions({
+        ...apiOptions.as<MobileAppSizeSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-stats/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<MobileAppSizeSeriesResponse>> => {
+          if (queue) {
+            return new Promise((resolve, reject) => {
+              const fetchFnRef = {
+                current: () =>
+                  apiFetch<MobileAppSizeSeriesResponse>(context).then(resolve, reject),
+              };
+              queue.addItem({fetchDataRef: fetchFnRef});
+            });
+          }
+          return apiFetch<MobileAppSizeSeriesResponse>(context);
         },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [filteredWidget, organization, pageFilters, samplingMode, widgetInterval]);
-
-  const createQueryFn = useCallback(
-    () =>
-      async (context: any): Promise<ApiResult<MobileAppSizeSeriesResponse>> => {
-        // If queue is available, wrap the API call to go through the queue
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<MobileAppSizeSeriesResponse>(context).then(
-                  resolve,
-                  reject
-                ),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        return fetchDataQuery<MobileAppSizeSeriesResponse>(context);
-      },
-    [queue]
-  );
-
-  // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map(queryKey => ({
-      queryKey,
-      queryFn: createQueryFn(),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      // Retry on 429 status codes up to 10 times, unless queue handles it
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const error = queryResults.find(q => q?.error)?.error as any;
     const errorMessage = error?.responseJSON?.detail || error?.message;
 
@@ -173,11 +152,11 @@ export function useMobileAppSizeSeriesQuery(
     const rawData: MobileAppSizeSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data;
       rawData[requestIndex] = responseData;
 
       const transformedResult = MobileAppSizeConfig.transformSeries!(
