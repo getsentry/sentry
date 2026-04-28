@@ -269,7 +269,7 @@ export function ConversationSummary({
                 <StyledLink
                   to={getTraceUrl(organization.slug, trace.traceId, trace.spanId)}
                 >
-                  <Text size="sm" monospace>
+                  <Text size="sm" monospace variant="accent">
                     {trace.traceId.slice(0, 8)}
                   </Text>
                 </StyledLink>
