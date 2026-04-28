@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import dataclasses
-import enum
 import logging
 import time
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 import sentry_sdk
 
@@ -52,27 +51,31 @@ FEATURE_NAMES = [
 ]
 
 
-class NightShiftRunSource(enum.Enum):
-    CRON = "cron"
-    MANUAL = "manual"
+NightShiftRunSource = Literal["cron", "manual"]
 
 
-@dataclasses.dataclass(frozen=True)
-class SeerNightShiftRunOptions:
+class SeerNightShiftRunOptions(TypedDict):
+    """Fully-resolved options for a night shift run. Persisted directly onto
+    SeerNightShiftRun.extras["options"]. Construct via build_run_options."""
+
     source: NightShiftRunSource
     max_candidates: int
-    intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL
-    reasoning_effort: ReasoningEffort = DEFAULT_REASONING_EFFORT
-    extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS
+    dry_run: bool
+    intelligence_level: IntelligenceLevel
+    reasoning_effort: ReasoningEffort
+    extra_triage_instructions: str
 
-    def as_extras(self) -> dict[str, object]:
-        return {
-            "source": self.source.value,
-            "max_candidates": self.max_candidates,
-            "intelligence_level": self.intelligence_level,
-            "reasoning_effort": self.reasoning_effort,
-            "extra_triage_instructions": self.extra_triage_instructions,
-        }
+
+class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
+    """Caller-facing options dict — every field is optional. Missing fields
+    are filled in by build_run_options with shared defaults."""
+
+    source: NightShiftRunSource
+    max_candidates: int
+    dry_run: bool
+    intelligence_level: IntelligenceLevel
+    reasoning_effort: ReasoningEffort
+    extra_triage_instructions: str
 
 
 @instrumented_task(
@@ -122,172 +125,35 @@ def schedule_night_shift(**kwargs: Any) -> None:
 )
 def run_night_shift_for_org(
     organization_id: int,
-    dry_run: bool = False,
-    max_candidates: int | None = None,
-    intelligence_level: IntelligenceLevel | None = None,
-    reasoning_effort: ReasoningEffort | None = None,
-    extra_triage_instructions: str | None = None,
+    *,
+    options: SeerNightShiftRunOptionsPartial | None = None,
+    project_ids: list[int] | None = None,
+    triggering_user_id: int | None = None,
+    execute_in_task: bool = False,
     **kwargs: Any,
 ) -> int | None:
+    """Run night shift for one organization. `options` is a partial dict —
+    any missing fields are filled in by build_run_options. Cron dispatches
+    with no options (all defaults); manual triggers (project settings "Run
+    Now", admin endpoint) pass `{"source": "manual", ...}` and may scope the
+    run to specific projects.
+
+    When execute_in_task is True, the heavy execution phase (quota check,
+    eligibility, triage, autofix) is dispatched to a separate task so the
+    caller doesn't block on it. The run record is always created synchronously
+    so callers have a stable handle to the run."""
     organization = Organization.objects.filter(
         id=organization_id, status=OrganizationStatus.ACTIVE
     ).first()
     if organization is None:
         return None
 
-    log_extra: dict[str, object] = {
-        "organization_id": organization.id,
-        "organization_slug": organization.slug,
-    }
+    resolved_options = build_run_options(options)
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
 
-    return _execute_night_shift_run(
-        organization,
-        options=_build_run_options(
-            source=NightShiftRunSource.CRON,
-            max_candidates=max_candidates,
-            intelligence_level=intelligence_level,
-            reasoning_effort=reasoning_effort,
-            extra_triage_instructions=extra_triage_instructions,
-        ),
-        dry_run=dry_run,
-        log_extra=log_extra,
-    )
-
-
-@instrumented_task(
-    name="sentry.tasks.seer.night_shift.run_nightshift_for_projects",
-    namespace=seer_tasks,
-    processing_deadline_duration=5 * 60,
-)
-def run_nightshift_for_projects(
-    *,
-    project_ids: list[int],
-    dry_run: bool = False,
-    max_candidates: int | None = None,
-    intelligence_level: IntelligenceLevel | None = None,
-    reasoning_effort: ReasoningEffort | None = None,
-    extra_triage_instructions: str | None = None,
-    triggering_user_id: int | None = None,
-    **kwargs: Any,
-) -> int | None:
-    """One-off night shift run scoped to one or more projects, e.g. from the
-    project settings "Run Now" button. All project_ids must belong to the same
-    active organization."""
-    try:
-        projects = list(
-            Project.objects.filter(id__in=project_ids, status=ObjectStatus.ACTIVE).select_related(
-                "organization"
-            )
-        )
-        if not projects:
-            logger.info(
-                "night_shift.run_for_projects.no_active_projects",
-                extra={"project_ids": project_ids},
-            )
-            return None
-
-        organization_ids = {p.organization_id for p in projects}
-        if len(organization_ids) > 1:
-            logger.info(
-                "night_shift.run_for_projects.multiple_organizations",
-                extra={
-                    "project_ids": project_ids,
-                    "organization_ids": sorted(organization_ids),
-                },
-            )
-            return None
-
-        organization = projects[0].organization
-        if organization.status != OrganizationStatus.ACTIVE:
-            logger.info(
-                "night_shift.run_for_projects.organization_inactive",
-                extra={"project_ids": project_ids, "organization_id": organization.id},
-            )
-            return None
-
-        log_extra: dict[str, object] = {
-            "organization_id": organization.id,
-            "organization_slug": organization.slug,
-            "project_ids": [p.id for p in projects],
-        }
-        sentry_sdk.set_tags(
-            {
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            }
-        )
-
-        return _execute_night_shift_run(
-            organization,
-            options=_build_run_options(
-                source=NightShiftRunSource.MANUAL,
-                max_candidates=max_candidates,
-                intelligence_level=intelligence_level,
-                reasoning_effort=reasoning_effort,
-                extra_triage_instructions=extra_triage_instructions,
-            ),
-            project_ids=[p.id for p in projects],
-            dry_run=dry_run,
-            triggering_user_id=triggering_user_id,
-            log_extra=log_extra,
-        )
-    except Exception:
-        logger.exception(
-            "night_shift.run_for_projects.failed",
-            extra={"project_ids": project_ids},
-        )
-        return None
-
-
-def _build_run_options(
-    *,
-    source: NightShiftRunSource,
-    max_candidates: int | None,
-    intelligence_level: IntelligenceLevel | None,
-    reasoning_effort: ReasoningEffort | None,
-    extra_triage_instructions: str | None,
-) -> SeerNightShiftRunOptions:
-    """Build options, falling back to shared defaults when a caller didn't pass
-    an override (cron path)."""
-    return SeerNightShiftRunOptions(
-        source=source,
-        max_candidates=max_candidates if max_candidates is not None else default_max_candidates(),
-        intelligence_level=(
-            intelligence_level if intelligence_level is not None else DEFAULT_INTELLIGENCE_LEVEL
-        ),
-        reasoning_effort=(
-            reasoning_effort if reasoning_effort is not None else DEFAULT_REASONING_EFFORT
-        ),
-        extra_triage_instructions=(
-            extra_triage_instructions
-            if extra_triage_instructions is not None
-            else DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS
-        ),
-    )
-
-
-def _execute_night_shift_run(
-    organization: Organization,
-    *,
-    options: SeerNightShiftRunOptions,
-    project_ids: list[int] | None = None,
-    dry_run: bool,
-    triggering_user_id: int | None = None,
-    log_extra: dict[str, object],
-) -> int | None:
-    """Create a SeerNightShiftRun, run triage against eligible projects, and
-    optionally dispatch autofix. Shared between the org-wide scheduler and
-    per-project manual triggers."""
-    start_time = time.monotonic()
-    logger.info("night_shift.execute.start", extra=log_extra)
-
-    extras: dict[str, object] = {
-        "options": options.as_extras(),
-        "dry_run": dry_run,
-    }
+    extras: dict[str, object] = {"options": dict(resolved_options)}
     if project_ids is not None:
         extras["target_project_ids"] = project_ids
     if triggering_user_id is not None:
@@ -298,7 +164,54 @@ def _execute_night_shift_run(
         triage_strategy="agentic_triage",
         extras=extras,
     )
-    log_extra["run_id"] = run.id
+
+    task_kwargs: dict[str, Any] = {"options": dict(resolved_options)}
+    if project_ids is not None:
+        task_kwargs["project_ids"] = project_ids
+
+    if execute_in_task:
+        run_night_shift_execution.apply_async(args=[run.id], kwargs=task_kwargs)
+    else:
+        run_night_shift_execution(run.id, **task_kwargs)
+    return run.id
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.night_shift.run_night_shift_execution",
+    namespace=seer_tasks,
+    processing_deadline_duration=5 * 60,
+)
+def run_night_shift_execution(
+    run_id: int,
+    *,
+    options: SeerNightShiftRunOptionsPartial | None = None,
+    project_ids: list[int] | None = None,
+    **kwargs: Any,
+) -> None:
+    """Heavy phase of a night shift run: quota check, eligibility, triage, and
+    optional autofix dispatch. Single code path used by both sync invocation
+    (from run_night_shift_for_org) and async dispatch (apply_async)."""
+    run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
+    if run is None:
+        logger.info("night_shift.missing_run", extra={"run_id": run_id})
+        return None
+
+    organization = run.organization
+    resolved_options = _run_option_defaults(options or {})
+
+    log_extra: dict[str, object] = {
+        "organization_id": organization.id,
+        "organization_slug": organization.slug,
+        "run_id": run.id,
+    }
+    if project_ids is not None:
+        log_extra["project_ids"] = project_ids
+    sentry_sdk.set_tags(
+        {"organization_id": organization.id, "organization_slug": organization.slug}
+    )
+
+    start_time = time.monotonic()
+    logger.info("night_shift.execute.start", extra=log_extra)
 
     if not quotas.backend.check_seer_quota(
         org_id=organization.id,
@@ -309,7 +222,9 @@ def _execute_night_shift_run(
         return None
 
     try:
-        eligible = _get_eligible_projects(organization, options.source, project_ids=project_ids)
+        eligible = _get_eligible_projects(
+            organization, resolved_options["source"], project_ids=project_ids
+        )
     except Exception:
         _fail_run(
             run,
@@ -331,10 +246,10 @@ def _execute_night_shift_run(
         candidates, agent_run_id = agentic_triage_strategy(
             eligible_projects,
             organization,
-            options.max_candidates,
-            intelligence_level=options.intelligence_level,
-            reasoning_effort=options.reasoning_effort,
-            extra_triage_instructions=options.extra_triage_instructions,
+            resolved_options["max_candidates"],
+            intelligence_level=resolved_options["intelligence_level"],
+            reasoning_effort=resolved_options["reasoning_effort"],
+            extra_triage_instructions=resolved_options["extra_triage_instructions"],
         )
         if agent_run_id is not None:
             run.update(extras={**run.extras, "agent_run_id": agent_run_id})
@@ -356,7 +271,7 @@ def _execute_night_shift_run(
     sentry_sdk.metrics.distribution("night_shift.org_run_duration", time.monotonic() - start_time)
 
     seer_run_id_by_group: dict[int, str | None] = {}
-    if not dry_run:
+    if not resolved_options["dry_run"]:
         # Populate each candidate group's FK cache so trigger_autofix_explorer doesn't
         # re-fetch group.project on every call. Group.organization is a property that
         # delegates to self.project.organization, so caching the org on the project is
@@ -381,7 +296,7 @@ def _execute_night_shift_run(
             **log_extra,
             "num_eligible_projects": len(eligible_projects),
             "num_candidates": len(candidates),
-            "dry_run": dry_run,
+            "dry_run": resolved_options["dry_run"],
             "candidates": [
                 {
                     "group_id": c.group.id,
@@ -394,7 +309,31 @@ def _execute_night_shift_run(
         },
     )
 
-    return agent_run_id
+
+def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
+    """Fill in defaults for any missing fields. Accepts any mapping so it can
+    normalize both partial caller input and loosely-typed dicts read back from
+    run.extras (which may predate later schema additions)."""
+    max_candidates = data.get("max_candidates")
+    return SeerNightShiftRunOptions(
+        source=data.get("source", "cron"),
+        max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
+        dry_run=data.get("dry_run", False),
+        intelligence_level=data.get("intelligence_level", DEFAULT_INTELLIGENCE_LEVEL),
+        reasoning_effort=data.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
+        extra_triage_instructions=data.get(
+            "extra_triage_instructions", DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS
+        ),
+    )
+
+
+def build_run_options(
+    partial: SeerNightShiftRunOptionsPartial | None = None,
+) -> SeerNightShiftRunOptions:
+    """Resolve a partial options dict into a fully-populated one. Cron callers
+    pass nothing (all defaults); manual callers pass at least `source="manual"`
+    plus whichever tweaks they want to override."""
+    return _run_option_defaults(partial or {})
 
 
 def _get_eligible_orgs_from_batch(
@@ -469,7 +408,7 @@ def _get_eligible_projects(
     eligible = [
         EligibleProject(project=p, tweaks=get_night_shift_tweaks(p)) for p in with_automation
     ]
-    if source is NightShiftRunSource.CRON:
+    if source == "cron":
         eligible = [ep for ep in eligible if ep.tweaks.enabled]
     return eligible
 

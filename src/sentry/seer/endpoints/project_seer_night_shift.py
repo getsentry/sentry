@@ -12,7 +12,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.models.project import Project
-from sentry.tasks.seer.night_shift.cron import run_nightshift_for_projects
+from sentry.tasks.seer.night_shift.cron import (
+    SeerNightShiftRunOptionsPartial,
+    run_night_shift_for_org,
+)
 from sentry.tasks.seer.night_shift.tweaks import get_night_shift_tweaks
 
 logger = logging.getLogger("sentry.seer.endpoints.project_seer_night_shift")
@@ -49,13 +52,19 @@ class ProjectSeerNightShiftEndpoint(ProjectEndpoint):
             },
         )
 
-        agent_run_id = run_nightshift_for_projects(
+        options: SeerNightShiftRunOptionsPartial = {
+            "source": "manual",
+            "dry_run": dry_run,
+            "max_candidates": tweaks.max_candidates,
+            "intelligence_level": tweaks.intelligence_level,
+            "reasoning_effort": tweaks.reasoning_effort,
+            "extra_triage_instructions": tweaks.extra_triage_instructions,
+        }
+        agent_run_id = run_night_shift_for_org(
+            project.organization_id,
+            options=options,
             project_ids=[project.id],
-            dry_run=dry_run,
-            max_candidates=tweaks.max_candidates,
-            intelligence_level=tweaks.intelligence_level,
-            reasoning_effort=tweaks.reasoning_effort,
-            extra_triage_instructions=tweaks.extra_triage_instructions,
             triggering_user_id=triggering_user_id,
+            execute_in_task=True,
         )
         return Response({"agent_run_id": agent_run_id}, status=200)
