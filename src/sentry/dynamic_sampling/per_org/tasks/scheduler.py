@@ -84,19 +84,20 @@ def schedule_per_org_calculations_bucket(bucket_index: int) -> None:
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
         .annotate(_bucket=Mod(F("id"), BUCKET_COUNT))
         .filter(_bucket=bucket_index)
+        .values_list("id", flat=True)
     )
-    orgs = RangeQuerySetWrapper[Organization](
+    org_ids = RangeQuerySetWrapper[int](
         queryset,
         step=1000,
-        result_value_getter=lambda o: o.id,
+        result_value_getter=lambda org_id: org_id,
     )
 
-    for org in orgs:
-        if not is_org_in_rollout(org.id):
+    for org_id in org_ids:
+        if not is_org_in_rollout(org_id):
             skipped += 1
             continue
         run_calculations_per_org_task.apply_async(
-            args=(org.id,),
+            args=(org_id,),
             countdown=random.randint(0, JITTER_WINDOW_SECONDS),
         )
         dispatched += 1
