@@ -68,6 +68,7 @@ def instrumented(func: F) -> F:
 
     @functools.wraps(func)
     def wrapper(*args: object, **kwargs: object) -> object:
+        result: object
         with metrics.timer(duration_metric, sample_rate=metrics_sample_rate()):
             try:
                 if is_killswitch_engaged():
