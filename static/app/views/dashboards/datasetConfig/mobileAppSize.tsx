@@ -1,4 +1,5 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {MOBILE_BUILDS_DASHBOARD_ALLOWED_KEYS} from 'sentry/components/preprod/constants';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -181,6 +182,7 @@ function MobileAppSizeSearchBar({
       onSearch={onSearch}
       portalTarget={portalTarget}
       searchSource="dashboards"
+      allowedKeys={MOBILE_BUILDS_DASHBOARD_ALLOWED_KEYS}
       onChange={(query, state) => {
         onClose?.(query, {validSearch: state.queryIsValid});
       }}

@@ -28,3 +28,16 @@ export const MOBILE_BUILDS_ALLOWED_KEYS = [
   'is_approved',
   'platform_name',
 ];
+
+export const MOBILE_BUILDS_DASHBOARD_ALLOWED_KEYS = [
+  'app_id',
+  'app_name',
+  'artifact_type',
+  'build_number',
+  'git_base_ref',
+  'git_base_sha',
+  'git_head_ref',
+  'git_head_sha',
+  'git_pr_number',
+  'platform_name',
+];

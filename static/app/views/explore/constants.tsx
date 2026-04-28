@@ -143,6 +143,7 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'metrics_artifact_type',
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
+  'tags[git_pr_number,number]',
   ...PREPROD_IMAGE_FIELDS,
   'is_approved',
 ];
