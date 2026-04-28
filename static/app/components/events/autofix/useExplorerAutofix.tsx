@@ -553,25 +553,22 @@ export function useExplorerAutofix(
 
   const runState = apiData?.autofix ?? null;
 
-  /**
-   * Start or continue an autofix step.
-   *
-   * @param step - The step to run (root_cause, solution, code_changes, etc.)
-   * @param runId - Optional run ID to continue an existing run
-   */
   const startStep = useCallback(
-    async (step: AutofixExplorerStep, runId?: number, userContext?: string) => {
+    async (
+      step: AutofixExplorerStep,
+      startStepOptions?: {runId?: number; userContext?: string}
+    ) => {
       setWaitingForResponse(true);
 
       try {
         const data: Record<string, any> = {step};
 
-        if (defined(runId)) {
-          data.run_id = runId;
+        if (defined(startStepOptions?.runId)) {
+          data.run_id = startStepOptions.runId;
         }
 
-        if (userContext) {
-          data.user_context = userContext;
+        if (startStepOptions?.userContext) {
+          data.user_context = startStepOptions.userContext;
         }
 
         const response = await api.requestPromise(

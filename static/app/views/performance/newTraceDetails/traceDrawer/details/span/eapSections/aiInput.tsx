@@ -9,9 +9,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {AIMessage} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
+import {normalizeToMessages} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getIsAiNode,
   getTraceNodeAttribute,
@@ -20,363 +21,99 @@ import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  parseJsonWithFix,
-  tryParseJsonRecursive,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {SpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/spanNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-interface AIMessage {
-  content: React.ReactNode;
-  role: string;
-}
-
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
-const FILE_CONTENT_PARTS = ['blob', 'uri', 'file'] as const;
-const SUPPORTED_CONTENT_PARTS = ['text', ...FILE_CONTENT_PARTS] as const;
 
-function extractTextFromContentParts(parts: any[]): string {
-  return parts
-    .filter((part: any) => part?.type && SUPPORTED_CONTENT_PARTS.includes(part.type))
-    .map((part: any) => {
-      if (FILE_CONTENT_PARTS.includes(part.type)) {
-        return `\n\n[redacted content of type "${part.mime_type ?? 'unknown'}"]\n\n`;
-      }
-      // Handle both part.text and part.content (some SDKs use content instead of text)
-      const text = part.text ?? part.content;
-      return typeof text === 'string' ? text.trim() : text;
-    })
-    .join('\n');
-}
+const INPUT_ATTRIBUTES = [
+  'gen_ai.input.messages',
+  'gen_ai.request.messages',
+  'ai.input_messages',
+  'ai.prompt',
+] as const;
 
-function renderTextMessages(content: any): any {
-  if (Array.isArray(content)) {
-    return extractTextFromContentParts(content);
-  }
-  return content;
-}
+const INPUT_PRESENCE_ATTRIBUTES = [
+  ...INPUT_ATTRIBUTES,
+  'gen_ai.system_instructions',
+  'gen_ai.tool.call.arguments',
+  'gen_ai.tool.input',
+  'gen_ai.embeddings.input',
+] as const;
 
-function renderToolMessage(content: any) {
-  return content;
-}
+export function AIInputSection({
+  node,
+  attributes,
+  event,
+  initialCollapse,
+}: {
+  node: EapSpanNode | SpanNode | TransactionNode;
+  attributes?: TraceItemResponseAttribute[];
+  event?: EventTransaction;
+  initialCollapse?: boolean;
+}) {
+  const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
 
-/**
- * Extracts the messages array from potentially nested structures.
- *
- * This is a temporary solution. OpenRouter should send the data in the correct
- * format (direct array). We plan to contact them or contribute a fix upstream.
- *
- * Currently handles formats like:
- * - Direct array: [{role, content}, ...]
- * - Wrapped object: {messages: [{role, content}, ...]}
- * - Stringified wrapper: {messages: "[{role, content}, ...]"}
- */
-function extractMessagesArray(value: any): any[] | null {
-  if (Array.isArray(value)) {
-    return value;
-  }
+  const {messages, fixedInvalidJson} = shouldRender
+    ? getAIInputMessages(node, attributes, event)
+    : {messages: null, fixedInvalidJson: false};
 
-  if (value && typeof value === 'object' && value.messages) {
-    const inner = value.messages;
-    if (Array.isArray(inner)) {
-      return inner;
-    }
-    if (typeof inner === 'string') {
-      const parsed = JSON.parse(inner);
-      return extractMessagesArray(parsed);
-    }
-  }
-
-  return null;
-}
-
-function parseAIMessages(messages: string): AIMessage[] | string {
-  try {
-    const parsed = Array.isArray(messages) ? messages : JSON.parse(messages);
-    const messagesArray = extractMessagesArray(parsed);
-
-    if (!messagesArray) {
-      return messages;
-    }
-
-    return messagesArray
-      .map((message: any) => {
-        if (!message.role || !message.content) {
-          return null;
-        }
-        const parsedContent = tryParseJsonRecursive(message.content);
-        return {
-          role: message.role,
-          content:
-            message.role === 'tool'
-              ? renderToolMessage(parsedContent)
-              : renderTextMessages(parsedContent),
-        };
-      })
-      .filter(
-        (message): message is Exclude<typeof message, null> =>
-          message !== null && Boolean(message.content)
-      );
-  } catch {
-    return messages;
-  }
-}
-
-function transformInputMessages(inputMessages: string): {
-  fixedInvalidJson: boolean;
-  result: string | undefined;
-} {
-  try {
-    const {parsed: json, fixedInvalidJson} = parseJsonWithFix(inputMessages);
-    if (json === null) {
-      return {result: undefined, fixedInvalidJson};
-    }
-    const result = [];
-    const {system, prompt} = json;
-    if (system) {
-      result.push({
-        role: 'system',
-        content: system,
-      });
-    }
-    if (prompt) {
-      result.push({
-        role: 'user',
-        content: [{type: 'text', text: prompt}],
-      });
-    }
-    return {
-      result: JSON.stringify(result),
-      fixedInvalidJson,
-    };
-  } catch {
-    return {
-      result: undefined,
-      fixedInvalidJson: false,
-    };
-  }
-}
-
-function transformPrompt(prompt: string): {
-  fixedInvalidJson: boolean;
-  result: string | undefined;
-} {
-  try {
-    const {parsed: json, fixedInvalidJson} = parseJsonWithFix(prompt);
-    if (json === null) {
-      return {result: undefined, fixedInvalidJson};
-    }
-    const result = [];
-    const {system, messages} = json;
-    if (system) {
-      result.push({
-        role: 'system',
-        content: system,
-      });
-    }
-    const parsedMessages = parseAIMessages(messages);
-    if (parsedMessages) {
-      result.push(...parsedMessages);
-    }
-    return {
-      result: JSON.stringify(result),
-      fixedInvalidJson,
-    };
-  } catch {
-    return {
-      result: undefined,
-      fixedInvalidJson: false,
-    };
-  }
-}
-
-/**
- * Transforms messages from the new parts-based format to the standard content format.
- * The new format uses a `parts` array with typed objects instead of a `content` field.
- *
- * Exported for testing purposes only.
- */
-export function transformPartsMessages(messages: string): {
-  fixedInvalidJson: boolean;
-  result: string | undefined;
-} {
-  try {
-    const {parsed, fixedInvalidJson} = parseJsonWithFix(messages);
-
-    if (!Array.isArray(parsed)) {
-      return {
-        result: undefined,
-        fixedInvalidJson,
-      };
-    }
-
-    const transformed = parsed.map((msg: any) => {
-      if (!msg.parts || !Array.isArray(msg.parts)) {
-        return msg; // Already in old format
-      }
-
-      // Concatenate all text parts
-      const textContent = msg.parts
-        .filter((p: any) => p.type === 'text')
-        .map((p: any) => p.content || p.text)
-        .filter(Boolean)
-        .join('\n');
-
-      // Handle different part types
-      const toolCalls = msg.parts.filter((p: any) => p.type === 'tool_call');
-      const toolResponses = msg.parts.filter((p: any) => p.type === 'tool_call_response');
-      const objectParts = msg.parts.filter((p: any) => p.type === 'object');
-
-      // Determine content: prefer text, then structured objects, then tool calls, then tool responses
-      let content: any = textContent || undefined;
-      if (!content && objectParts.length > 0) {
-        // Structured output - keep as object for JSON rendering
-        content = objectParts.length === 1 ? objectParts[0] : objectParts;
-      } else if (!content && toolCalls.length > 0) {
-        content = toolCalls;
-      } else if (!content && toolResponses.length > 0) {
-        content = toolResponses.map((r: any) => r.result).join('\n');
-      }
-
-      return {role: msg.role, content};
-    });
-
-    return {
-      result: JSON.stringify(transformed),
-      fixedInvalidJson,
-    };
-  } catch {
-    return {
-      result: undefined,
-      fixedInvalidJson: false,
-    };
-  }
-}
-
-/**
- * Gets AI input messages, checking attributes in priority order.
- * Priority: gen_ai.input.messages > gen_ai.request.messages > ai.input_messages > ai.prompt
- * Also handles gen_ai.system_instructions by prepending as a system message.
- */
-function getAIInputMessages(
-  node: EapSpanNode | SpanNode | TransactionNode,
-  attributes?: TraceItemResponseAttribute[],
-  event?: EventTransaction
-): {fixedInvalidJson: boolean; messages: string | null} {
-  const systemInstructions = getTraceNodeAttribute(
-    'gen_ai.system_instructions',
+  const toolArgs = getAIToolInput(node, attributes, event);
+  const embeddingsInput = getTraceNodeAttribute(
+    'gen_ai.embeddings.input',
+    node,
+    event,
+    attributes
+  );
+  const originalMessagesLength = getTraceNodeAttribute(
+    'gen_ai.request.messages.original_length',
     node,
     event,
     attributes
   );
 
-  const inputMessages = getTraceNodeAttribute(
-    'gen_ai.input.messages',
-    node,
-    event,
-    attributes
+  const roles = messages?.map(m => m.role) ?? [];
+  useInvalidRoleDetection(roles);
+
+  if ((!messages || messages.length === 0) && !toolArgs) {
+    return null;
+  }
+
+  return (
+    <FoldSection
+      key={node.id}
+      sectionKey={SectionKey.AI_INPUT}
+      title={t('Input')}
+      disableCollapsePersistence
+      initialCollapse={initialCollapse}
+    >
+      {messages && messages.length > 0 ? (
+        <MessagesArrayRenderer
+          key={node.id}
+          messages={messages}
+          originalLength={
+            originalMessagesLength === undefined || originalMessagesLength === null
+              ? undefined
+              : Number(originalMessagesLength)
+          }
+          fixedInvalidJson={fixedInvalidJson}
+        />
+      ) : null}
+      {toolArgs ? (
+        <TraceDrawerComponents.MultilineJSON
+          key={node.id}
+          value={toolArgs}
+          maxDefaultDepth={1}
+        />
+      ) : null}
+      {embeddingsInput ? (
+        <TraceDrawerComponents.MultilineText key={node.id}>
+          {embeddingsInput.toString()}
+        </TraceDrawerComponents.MultilineText>
+      ) : null}
+    </FoldSection>
   );
-  if (inputMessages) {
-    const {result: transformed, fixedInvalidJson} = transformPartsMessages(
-      inputMessages.toString()
-    );
-    return {
-      messages: prependSystemInstructions(
-        transformed ?? inputMessages.toString(),
-        systemInstructions?.toString()
-      ),
-      fixedInvalidJson,
-    };
-  }
-
-  const requestMessages = getTraceNodeAttribute(
-    'gen_ai.request.messages',
-    node,
-    event,
-    attributes
-  );
-
-  if (requestMessages) {
-    const {result: transformed, fixedInvalidJson} = transformPartsMessages(
-      requestMessages.toString()
-    );
-    return {
-      messages: prependSystemInstructions(
-        transformed ?? requestMessages.toString(),
-        systemInstructions?.toString()
-      ),
-      fixedInvalidJson,
-    };
-  }
-
-  const legacyInputMessages = getTraceNodeAttribute(
-    'ai.input_messages',
-    node,
-    event,
-    attributes
-  );
-  if (legacyInputMessages) {
-    const {result: transformed, fixedInvalidJson} = transformInputMessages(
-      legacyInputMessages.toString()
-    );
-    if (transformed) {
-      return {
-        messages: prependSystemInstructions(transformed, systemInstructions?.toString()),
-        fixedInvalidJson,
-      };
-    }
-  }
-
-  const prompt = getTraceNodeAttribute('ai.prompt', node, event, attributes);
-  if (prompt) {
-    const {result: transformed, fixedInvalidJson} = transformPrompt(prompt.toString());
-    if (transformed) {
-      return {
-        messages: prependSystemInstructions(transformed, systemInstructions?.toString()),
-        fixedInvalidJson,
-      };
-    }
-  }
-
-  if (systemInstructions) {
-    return {
-      messages: JSON.stringify([
-        {role: 'system', content: systemInstructions.toString()},
-      ]),
-      fixedInvalidJson: false,
-    };
-  }
-
-  return {messages: null, fixedInvalidJson: false};
-}
-
-/**
- * Prepends system instructions as a system role message to the messages array.
- */
-function prependSystemInstructions(
-  messagesJson: string,
-  systemInstructions?: string
-): string {
-  if (!systemInstructions) {
-    return messagesJson;
-  }
-
-  try {
-    const messages = JSON.parse(messagesJson);
-    if (!Array.isArray(messages)) {
-      return messagesJson;
-    }
-
-    if (messages.length > 0 && messages[0].role === 'system') {
-      return messagesJson;
-    }
-
-    return JSON.stringify([{role: 'system', content: systemInstructions}, ...messages]);
-  } catch {
-    return messagesJson;
-  }
 }
 
 export function hasAIInputAttribute(
@@ -384,36 +121,79 @@ export function hasAIInputAttribute(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
-  return (
-    getTraceNodeAttribute('gen_ai.input.messages', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.system_instructions', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.request.messages', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.tool.call.arguments', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes) ||
-    getTraceNodeAttribute('gen_ai.embeddings.input', node, event, attributes) ||
-    getTraceNodeAttribute('ai.input_messages', node, event, attributes) ||
-    getTraceNodeAttribute('ai.prompt', node, event, attributes)
+  return INPUT_PRESENCE_ATTRIBUTES.some(key =>
+    getTraceNodeAttribute(key, node, event, attributes)
   );
 }
 
 /**
- * Gets AI tool input, checking gen_ai.tool.call.arguments first, falling back to gen_ai.tool.input.
+ * Gets AI input messages, checking attributes in priority order:
+ * `gen_ai.input.messages` > `gen_ai.request.messages` > `ai.input_messages` > `ai.prompt`.
+ *
+ * Every attribute runs through the same normalizer, so any supported shape
+ * (parts, content, {system, prompt}, {messages: ...}, plain string) works on
+ * any attribute. System instructions are prepended to the resulting array.
  */
+function getAIInputMessages(
+  node: EapSpanNode | SpanNode | TransactionNode,
+  attributes?: TraceItemResponseAttribute[],
+  event?: EventTransaction
+): {fixedInvalidJson: boolean; messages: AIMessage[] | null} {
+  const systemInstructions = getTraceNodeAttribute(
+    'gen_ai.system_instructions',
+    node,
+    event,
+    attributes
+  );
+
+  for (const key of INPUT_ATTRIBUTES) {
+    const raw = getTraceNodeAttribute(key, node, event, attributes);
+    if (!raw) {
+      continue;
+    }
+    const {messages, fixedInvalidJson} = normalizeToMessages(raw.toString(), {
+      defaultRole: 'user',
+    });
+    if (messages && messages.length > 0) {
+      return {
+        messages: prependSystemInstructions(messages, systemInstructions?.toString()),
+        fixedInvalidJson,
+      };
+    }
+  }
+
+  if (systemInstructions) {
+    return {
+      messages: [{role: 'system', content: systemInstructions.toString()}],
+      fixedInvalidJson: false,
+    };
+  }
+
+  return {messages: null, fixedInvalidJson: false};
+}
+
+function prependSystemInstructions(
+  messages: AIMessage[],
+  systemInstructions: string | undefined
+): AIMessage[] {
+  if (!systemInstructions) {
+    return messages;
+  }
+  if (messages.length > 0 && messages[0]!.role === 'system') {
+    return messages;
+  }
+  return [{role: 'system', content: systemInstructions}, ...messages];
+}
+
 function getAIToolInput(
   node: EapSpanNode | SpanNode | TransactionNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ) {
-  const toolCallArgs = getTraceNodeAttribute(
-    'gen_ai.tool.call.arguments',
-    node,
-    event,
-    attributes
+  return (
+    getTraceNodeAttribute('gen_ai.tool.call.arguments', node, event, attributes) ??
+    getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes)
   );
-  if (toolCallArgs) {
-    return toolCallArgs;
-  }
-  return getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 }
 
 function useInvalidRoleDetection(roles: string[]) {
@@ -441,121 +221,10 @@ function useInvalidRoleDetection(roles: string[]) {
   }, [hasInvalidRoles]);
 }
 
-export function AIInputSection({
-  node,
-  attributes,
-  event,
-  initialCollapse,
-}: {
-  node: EapSpanNode | SpanNode | TransactionNode;
-  attributes?: TraceItemResponseAttribute[];
-  event?: EventTransaction;
-  initialCollapse?: boolean;
-}) {
-  const shouldRender = getIsAiNode(node) && hasAIInputAttribute(node, attributes, event);
-  const originalMessagesLength = getTraceNodeAttribute(
-    'gen_ai.request.messages.original_length',
-    node,
-    event,
-    attributes
-  );
-
-  const {messages: promptMessages, fixedInvalidJson} = shouldRender
-    ? getAIInputMessages(node, attributes, event)
-    : {messages: null, fixedInvalidJson: false};
-
-  const messages = defined(promptMessages) && parseAIMessages(promptMessages);
-
-  const toolArgs = getAIToolInput(node, attributes, event);
-  const embeddingsInput = getTraceNodeAttribute(
-    'gen_ai.embeddings.input',
-    node,
-    event,
-    attributes
-  );
-
-  const roles = Array.isArray(messages) ? messages.map(m => m.role) : [];
-  useInvalidRoleDetection(roles);
-
-  if ((!messages || messages.length === 0) && !toolArgs) {
-    return null;
-  }
-
-  return (
-    <FoldSection
-      key={node.id}
-      sectionKey={SectionKey.AI_INPUT}
-      title={t('Input')}
-      disableCollapsePersistence
-      initialCollapse={initialCollapse}
-    >
-      {typeof messages === 'string' ? (
-        <AIContentRenderer key={node.id} text={messages} />
-      ) : null}
-      {Array.isArray(messages) ? (
-        <MessagesArrayRenderer
-          key={node.id}
-          messages={messages}
-          originalLength={
-            defined(originalMessagesLength) ? Number(originalMessagesLength) : undefined
-          }
-          fixedInvalidJson={fixedInvalidJson}
-        />
-      ) : null}
-      {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={node.id}
-          value={toolArgs}
-          maxDefaultDepth={1}
-        />
-      ) : null}
-      {embeddingsInput ? (
-        <TraceDrawerComponents.MultilineText key={node.id}>
-          {embeddingsInput.toString()}
-        </TraceDrawerComponents.MultilineText>
-      ) : null}
-    </FoldSection>
-  );
-}
-
 const MAX_MESSAGES_AT_START = 2;
 const MAX_MESSAGES_AT_END = 1;
 const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
 
-function TruncationAlert({
-  areOldMessagesTruncated,
-  fixedInvalidJson,
-}: {
-  areOldMessagesTruncated: boolean;
-  fixedInvalidJson: boolean;
-}) {
-  if (!areOldMessagesTruncated && !fixedInvalidJson) {
-    return null;
-  }
-
-  const link = (
-    <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
-  );
-
-  return (
-    <Container paddingBottom="lg">
-      <Alert variant="muted">
-        {areOldMessagesTruncated
-          ? tct(
-              'Due to [link:size limitations], the oldest messages got dropped from the history.',
-              {link}
-            )
-          : tct('Due to [link:size limitations], the content was truncated.', {link})}
-        {fixedInvalidJson ? ` ${t('Truncated parts are marked with (~~).')}` : null}
-      </Alert>
-    </Container>
-  );
-}
-
-/**
- * As the whole message history takes up too much space we only show the first two (as those often contain the system and initial user prompt)
- * and the last messages with the option to expand
- */
 function MessagesArrayRenderer({
   messages,
   originalLength,
@@ -569,7 +238,6 @@ function MessagesArrayRenderer({
   const truncatedMessages = originalLength ? originalLength - messages.length : 0;
   const isTruncated = truncatedMessages > 0;
 
-  // Reset the expanded state when the messages length changes
   const previousMessagesLength = usePrevious(messages.length);
   useLayoutEffect(() => {
     if (previousMessagesLength !== messages.length) {
@@ -619,6 +287,36 @@ function MessagesArrayRenderer({
       </ButtonDivider>
       {messages.slice(-MAX_MESSAGES_AT_END).map(renderMessage)}
     </Fragment>
+  );
+}
+
+function TruncationAlert({
+  areOldMessagesTruncated,
+  fixedInvalidJson,
+}: {
+  areOldMessagesTruncated: boolean;
+  fixedInvalidJson: boolean;
+}) {
+  if (!areOldMessagesTruncated && !fixedInvalidJson) {
+    return null;
+  }
+
+  const link = (
+    <ExternalLink href="https://develop.sentry.dev/sdk/expected-features/data-handling/#variable-size" />
+  );
+
+  return (
+    <Container paddingBottom="lg">
+      <Alert variant="muted">
+        {areOldMessagesTruncated
+          ? tct(
+              'Due to [link:size limitations], the oldest messages got dropped from the history.',
+              {link}
+            )
+          : tct('Due to [link:size limitations], the content was truncated.', {link})}
+        {fixedInvalidJson ? ` ${t('Truncated parts are marked with (~~).')}` : null}
+      </Alert>
+    </Container>
   );
 }
 

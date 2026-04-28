@@ -2,7 +2,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
+import {
+  isSeerExplorerEnabled,
+  makeSeerExplorerQueryKey,
+} from 'sentry/views/seerExplorer/utils';
 
 const POLL_INTERVAL = 500; // Poll every 500ms
 /** Checks if session is in a terminal state where the agent is done processing. */
@@ -52,7 +55,7 @@ export const useSeerExplorerPolling = ({
     {
       staleTime: 0,
       retry: false,
-      enabled: !!runId && !!orgSlug,
+      enabled: !!runId && !!orgSlug && isSeerExplorerEnabled(organization),
       refetchInterval: query => {
         if (isPolling(runId, query.state.data?.[0]?.session, isMutatePending)) {
           return POLL_INTERVAL;

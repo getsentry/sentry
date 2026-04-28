@@ -37,7 +37,7 @@ export type CommandPaletteState = {
 
 export type CommandPaletteDispatch = React.Dispatch<CommandPaletteAction>;
 
-export type CommandPaletteAction =
+type CommandPaletteAction =
   | {type: 'toggle modal'}
   | {type: 'reset'}
   | {query: string; type: 'set query'}
