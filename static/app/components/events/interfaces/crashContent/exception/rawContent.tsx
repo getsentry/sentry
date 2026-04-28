@@ -13,11 +13,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   eventId: Event['id'];
+  platform: PlatformKey | undefined;
   projectSlug: Project['slug'];
+  threadId: number | undefined;
   type: 'original' | 'minified';
   values: ExceptionType['values'];
-  platform?: PlatformKey;
-  threadId?: number;
 }
 
 export function RawContent({
