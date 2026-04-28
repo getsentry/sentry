@@ -25,10 +25,7 @@ export interface UseExperimentOptions {
    * Whether to report that the user has been exposed to this experiment.
    * Defaults to false: the FE is the source of truth for exposure, so each
    * call site must opt in at the point where the user is actually rendered
-   * one of the experiment variants. The hook is often consumed by shared
-   * components whose surrounding flow may render something other than the
-   * control or active variant; in those cases the user has not seen the
-   * experiment and exposure should not be reported.
+   * one of the experiment variants.
    *
    * This option is reactive: changing it from false to true will report
    * exposure at that point.
