@@ -30,6 +30,11 @@ class MockCommitContextIntegration(CommitContextIntegration):
     def __init__(self) -> None:
         self.client = Mock()
         self.client.base_url = "https://example.com"
+        self._org_integration = Mock(config={})
+
+    @property
+    def org_integration(self) -> Any:
+        return self._org_integration
 
     def get_client(self) -> CommitContextClient:
         return self.client

@@ -1,7 +1,6 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
@@ -42,19 +41,9 @@ function SeerProjectDetails() {
 
   return (
     <AnalyticsArea name="project-details">
-      <SentryDocumentTitle title={t('Autofix for %s', project.slug)} />
+      <SentryDocumentTitle title={t('Seer for %s', project.slug)} />
       <SettingsPageHeader
-        title={
-          <Flex align="baseline" gap="md">
-            {tct('Autofix for [projectName]', {
-              projectName: (
-                <Text as="span" monospace>
-                  {project.slug}
-                </Text>
-              ),
-            })}
-          </Flex>
-        }
+        title={t('Seer')}
         subtitle={tct(
           'Connect repositories to projects, and choose which Agent should automatically process issues. [docs:Read the docs] to learn what Seer can do.',
           {

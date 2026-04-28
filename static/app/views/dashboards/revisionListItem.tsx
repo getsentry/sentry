@@ -11,11 +11,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
+import type {TagVariant} from 'sentry/utils/theme';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
-import {typeIcons} from './widgetBuilder/components/typeSelector';
+import {DISPLAY_TYPE_ICONS} from './widgetBuilder/components/typeSelector';
 import type {WidgetChange} from './dashboardRevisionsDiff';
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import type {DashboardDetails} from './types';
@@ -87,6 +88,7 @@ export function RevisionListItem({
   const isAnyLoading = isSnapshotLoading || isBaseLoading;
   const isBaseError =
     !baseSnapshotOverride && baseRevisionId !== null && isBaseFetchError;
+  const isError = (!snapshotOverride && isSnapshotError) || isBaseError;
 
   const userForAvatar = createdBy
     ? ({
@@ -133,30 +135,54 @@ export function RevisionListItem({
             </Flex>
           </Flex>
 
-          {isAnyLoading ? (
-            <LoadingIndicator />
-          ) : (!snapshotOverride && isSnapshotError) || isBaseError ? (
-            <Text size="sm" variant="muted">
-              {t('Failed to load revision preview.')}
-            </Text>
-          ) : snapshot && baseRevisionId === null ? (
-            <Text size="sm" variant="muted">
-              {t('This is the oldest revision — no previous state to compare against.')}
-            </Text>
-          ) : snapshot ? (
-            <Flex direction="column" gap="xl">
-              <FilterDiffSection
-                base={baseSnapshot ?? EMPTY_SNAPSHOT}
-                snapshot={snapshot}
-              />
-              <WidgetDiffSection
-                widgetChanges={diffWidgets(baseSnapshot ?? EMPTY_SNAPSHOT, snapshot)}
-              />
-            </Flex>
-          ) : null}
+          <RevisionDiffBody
+            isLoading={isAnyLoading}
+            isError={isError}
+            snapshot={snapshot}
+            baseRevisionId={baseRevisionId}
+            baseSnapshot={baseSnapshot}
+          />
         </Flex>
       </Flex>
     </RevisionItem>
+  );
+}
+
+export function RevisionDiffBody({
+  isLoading,
+  isError,
+  snapshot,
+  baseRevisionId,
+  baseSnapshot,
+}: {
+  baseRevisionId: string | null;
+  baseSnapshot: DashboardDetails | undefined;
+  isError: boolean;
+  isLoading: boolean;
+  snapshot: DashboardDetails | undefined;
+}) {
+  if (isLoading) return <LoadingIndicator />;
+  if (isError) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('Failed to load revision preview.')}
+      </Text>
+    );
+  }
+  if (!snapshot) return null;
+  if (baseRevisionId === null) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('This is the oldest revision — no previous state to compare against.')}
+      </Text>
+    );
+  }
+  const base = baseSnapshot ?? EMPTY_SNAPSHOT;
+  return (
+    <Flex direction="column" gap="xl">
+      <FilterDiffSection base={base} snapshot={snapshot} />
+      <WidgetDiffSection widgetChanges={diffWidgets(base, snapshot)} />
+    </Flex>
   );
 }
 
@@ -230,15 +256,14 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
   const fields = status === 'modified' ? change.fields : undefined;
   const layoutChanged = status === 'modified' ? change.layoutChanged : false;
 
-  let statusLabel: string;
-  if (status === 'added') statusLabel = t('Added');
-  else if (status === 'removed') statusLabel = t('Removed');
-  else statusLabel = t('Modified');
+  const STATUS_MAP: Record<WidgetChange['status'], {label: string; variant: TagVariant}> =
+    {
+      added: {label: t('Added'), variant: 'success'},
+      removed: {label: t('Removed'), variant: 'danger'},
+      modified: {label: t('Modified'), variant: 'warning'},
+    };
 
-  let tagVariant: 'success' | 'danger' | 'warning';
-  if (status === 'added') tagVariant = 'success';
-  else if (status === 'removed') tagVariant = 'danger';
-  else tagVariant = 'warning';
+  const {label: statusLabel, variant: tagVariant} = STATUS_MAP[status];
 
   return (
     <Flex direction="column" gap="sm" border="secondary" radius="sm" padding="md">
@@ -249,7 +274,7 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
             flexShrink={0}
             style={{color: theme.tokens.content.secondary}}
           >
-            {typeIcons[widget.displayType] ?? <IconGraph />}
+            {DISPLAY_TYPE_ICONS[widget.displayType] ?? <IconGraph />}
           </Flex>
           <Text
             bold

@@ -710,13 +710,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     )
                 )
 
-        if self._has_autofix and not self.is_unfurl:
-            autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
-            # We have to coerce this since we're not using the proper SlackSDK client to emit this
-            # notification yet, it just takes JSON.
-            actions.append(autofix_button.to_dict())
-
         if actions:
+            if self._has_autofix and not self.is_unfurl:
+                autofix_button = SeerSlackRenderer.render_autofix_button(group=self.group)
+                # We have to coerce this since we're not using the proper SlackSDK client to emit this
+                # notification yet, it just takes JSON.
+                actions.append(autofix_button.to_dict())
             action_block = {"type": "actions", "elements": [action for action in actions]}
             blocks.append(action_block)
 
