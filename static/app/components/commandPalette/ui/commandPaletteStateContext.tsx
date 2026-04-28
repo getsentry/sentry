@@ -2,10 +2,7 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
-import {
-  openCommandPaletteDeprecated,
-  toggleCommandPalette,
-} from 'sentry/actionCreators/modal';
+import {toggleCommandPalette} from 'sentry/actionCreators/modal';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -190,20 +187,16 @@ export function CommandPaletteHotkeys() {
       match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
       includeInputs: true,
       callback: () => {
-        if (organization?.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette(
-            {},
-            organization,
-            state,
-            dispatch,
-            'keyboard',
-            organization && isSeerExplorerEnabled(organization)
-              ? openSeerExplorer
-              : undefined
-          );
-        } else {
-          openCommandPaletteDeprecated();
-        }
+        toggleCommandPalette(
+          {},
+          organization,
+          state,
+          dispatch,
+          'keyboard',
+          organization && isSeerExplorerEnabled(organization)
+            ? openSeerExplorer
+            : undefined
+        );
       },
     },
   ]);
