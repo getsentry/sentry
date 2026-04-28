@@ -367,7 +367,10 @@ class FeatureManager(RegisteredFeatureManager):
                         proj_results = results[f"project:{project.id}"] = {}
                         for feature_name in project_features:
                             proj_results[feature_name] = self.has(
-                                feature_name, project, actor=actor
+                                feature_name,
+                                project,
+                                actor=actor,
+                                skip_experiment_exposure=skip_experiment_exposure,
                             )
                     return results
 
@@ -376,7 +379,10 @@ class FeatureManager(RegisteredFeatureManager):
                     org_results: dict[str, bool | None] = {}
                     for feature_name in org_features:
                         org_results[feature_name] = self.has(
-                            feature_name, organization, actor=actor
+                            feature_name,
+                            organization,
+                            actor=actor,
+                            skip_experiment_exposure=skip_experiment_exposure,
                         )
                     return {f"organization:{organization.id}": org_results}
 
@@ -388,7 +394,11 @@ class FeatureManager(RegisteredFeatureManager):
                 if unscoped_features:
                     unscoped_results: dict[str, bool | None] = {}
                     for feature_name in unscoped_features:
-                        unscoped_results[feature_name] = self.has(feature_name, actor=actor)
+                        unscoped_results[feature_name] = self.has(
+                            feature_name,
+                            actor=actor,
+                            skip_experiment_exposure=skip_experiment_exposure,
+                        )
                     return {"unscoped": unscoped_results}
                 return None
         except Exception as e:
