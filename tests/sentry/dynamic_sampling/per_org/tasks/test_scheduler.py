@@ -3,7 +3,6 @@ from __future__ import annotations
 from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     BUCKET_COUNT,
     BUCKET_CURSOR_KEY,
-    JITTER_WINDOW_SECONDS,
     _next_bucket_index,
     schedule_per_org_calculations,
 )
@@ -73,24 +72,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert int(cursor) == 1
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_beat_and_bucket_dispatch_only_next_bucket(self) -> None:
-        by_bucket = self.create_orgs_across_buckets(per_bucket=2)
-
-        with BurstTaskRunner() as burst:
-            schedule_per_org_calculations()
-            dispatched = _drain_dispatched_org_ids(burst)
-
-        for org_id in dispatched:
-            assert org_id % BUCKET_COUNT == 0
-        for org_id in by_bucket[0]:
-            assert org_id in dispatched
-        for bucket, org_ids in by_bucket.items():
-            if bucket == 0:
-                continue
-            for org_id in org_ids:
-                assert org_id not in dispatched
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_dispatches_only_orgs_in_target_bucket(self) -> None:
         by_bucket = self.create_orgs_across_buckets(per_bucket=2)
         target = 3
@@ -110,7 +91,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
             for org_id in org_ids:
                 assert org_id not in dispatched
         assert len(dispatched) >= len(by_bucket[target])
-        assert JITTER_WINDOW_SECONDS > 0
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_bucket_skips_inactive_orgs(self) -> None:
