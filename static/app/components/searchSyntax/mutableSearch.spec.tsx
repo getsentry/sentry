@@ -11,9 +11,9 @@ describe('MutableSearch', () => {
       [{'span.description': '*hello*'}, 'span.description:*hello*'],
       [{'span.duration': ['>0', '<100']}, 'span.duration:>0 span.duration:<100'],
       [{transaction: '(empty)'}, '!has:transaction'],
-      [{'span.op': '\uf00dContains\uf00dtest'}, 'span.op:\uf00dContains\uf00dtest'],
-      [{'span.op': '\uf00dStartsWith\uf00dtest'}, 'span.op:\uf00dStartsWith\uf00dtest'],
-      [{'span.op': '\uf00dEndsWith\uf00dtest'}, 'span.op:\uf00dEndsWith\uf00dtest'],
+      [{'span.op': '\uF00DContains\uF00Dtest'}, 'span.op:\uF00DContains\uF00Dtest'],
+      [{'span.op': '\uF00DStartsWith\uF00Dtest'}, 'span.op:\uF00DStartsWith\uF00Dtest'],
+      [{'span.op': '\uF00DEndsWith\uF00Dtest'}, 'span.op:\uF00DEndsWith\uF00Dtest'],
     ])('converts %s to search string', (query, result) => {
       expect(MutableSearch.fromQueryObject(query).formatString()).toEqual(result);
     });
@@ -49,9 +49,9 @@ describe('MutableSearch', () => {
       ['a:"\\"a\\""', 'a:"\\"a\\""'],
       ['a:"i \\" quote" b:"b\\"bb" c:"cc"', 'a:"i \\" quote" b:"b\\"bb" c:"cc"'],
       ['tags["foo:bar",string]:asdf', 'tags["foo:bar",string]:asdf'],
-      ['span.op:\uf00dContains\uf00dtest', 'span.op:\uf00dContains\uf00dtest'],
-      ['span.op:\uf00dStartsWith\uf00dtest', 'span.op:\uf00dStartsWith\uf00dtest'],
-      ['span.op:\uf00dEndsWith\uf00dtest', 'span.op:\uf00dEndsWith\uf00dtest'],
+      ['span.op:\uF00DContains\uF00Dtest', 'span.op:\uF00DContains\uF00Dtest'],
+      ['span.op:\uF00DStartsWith\uF00Dtest', 'span.op:\uF00DStartsWith\uF00Dtest'],
+      ['span.op:\uF00DEndsWith\uF00Dtest', 'span.op:\uF00DEndsWith\uF00Dtest'],
     ])('normalizes %s -> %s', (input, expected) => {
       expect(new MutableSearch(input).formatString()).toEqual(expected);
     });
@@ -79,48 +79,48 @@ describe('MutableSearch', () => {
       results.addStringFilter('d:d2');
       expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2');
 
-      results.addStringFilter('f:\uf00dContains\uf00dtest');
+      results.addStringFilter('f:\uF00DContains\uF00Dtest');
       expect(results.formatString()).toBe(
-        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest'
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uF00DContains\uF00Dtest'
       );
 
-      results.addStringFilter('g:\uf00dStartsWith\uf00dtest1');
+      results.addStringFilter('g:\uF00DStartsWith\uF00Dtest1');
       expect(results.formatString()).toBe(
-        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest g:\uf00dStartsWith\uf00dtest1'
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uF00DContains\uF00Dtest g:\uF00DStartsWith\uF00Dtest1'
       );
 
-      results.addStringFilter('h:\uf00dEndsWith\uf00dtest2');
+      results.addStringFilter('h:\uF00DEndsWith\uF00Dtest2');
       expect(results.formatString()).toBe(
-        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uf00dContains\uf00dtest g:\uf00dStartsWith\uf00dtest1 h:\uf00dEndsWith\uf00dtest2'
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2 f:\uF00DContains\uF00Dtest g:\uF00DStartsWith\uF00Dtest1 h:\uF00DEndsWith\uF00Dtest2'
       );
 
       results = new MutableSearch('');
       results.addContainsFilterValue('f', 'test');
-      expect(results.formatString()).toBe('f:\uf00dContains\uf00dtest');
+      expect(results.formatString()).toBe('f:\uF00DContains\uF00Dtest');
 
       results.addContainsFilterValues('g', ['test1', 'test2']);
       expect(results.formatString()).toBe(
-        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2'
+        'f:\uF00DContains\uF00Dtest g:\uF00DContains\uF00Dtest1 g:\uF00DContains\uF00Dtest2'
       );
 
       results.addStartsWithFilterValue('h', 'test');
       expect(results.formatString()).toBe(
-        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest'
+        'f:\uF00DContains\uF00Dtest g:\uF00DContains\uF00Dtest1 g:\uF00DContains\uF00Dtest2 h:\uF00DStartsWith\uF00Dtest'
       );
 
       results.addStartsWithFilterValues('i', ['test1', 'test2']);
       expect(results.formatString()).toBe(
-        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest i:\uf00dStartsWith\uf00dtest1 i:\uf00dStartsWith\uf00dtest2'
+        'f:\uF00DContains\uF00Dtest g:\uF00DContains\uF00Dtest1 g:\uF00DContains\uF00Dtest2 h:\uF00DStartsWith\uF00Dtest i:\uF00DStartsWith\uF00Dtest1 i:\uF00DStartsWith\uF00Dtest2'
       );
 
       results.addEndsWithFilterValue('j', 'test');
       expect(results.formatString()).toBe(
-        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest i:\uf00dStartsWith\uf00dtest1 i:\uf00dStartsWith\uf00dtest2 j:\uf00dEndsWith\uf00dtest'
+        'f:\uF00DContains\uF00Dtest g:\uF00DContains\uF00Dtest1 g:\uF00DContains\uF00Dtest2 h:\uF00DStartsWith\uF00Dtest i:\uF00DStartsWith\uF00Dtest1 i:\uF00DStartsWith\uF00Dtest2 j:\uF00DEndsWith\uF00Dtest'
       );
 
       results.addEndsWithFilterValues('k', ['test1', 'test2']);
       expect(results.formatString()).toBe(
-        'f:\uf00dContains\uf00dtest g:\uf00dContains\uf00dtest1 g:\uf00dContains\uf00dtest2 h:\uf00dStartsWith\uf00dtest i:\uf00dStartsWith\uf00dtest1 i:\uf00dStartsWith\uf00dtest2 j:\uf00dEndsWith\uf00dtest k:\uf00dEndsWith\uf00dtest1 k:\uf00dEndsWith\uf00dtest2'
+        'f:\uF00DContains\uF00Dtest g:\uF00DContains\uF00Dtest1 g:\uF00DContains\uF00Dtest2 h:\uF00DStartsWith\uF00Dtest i:\uF00DStartsWith\uF00Dtest1 i:\uF00DStartsWith\uF00Dtest2 j:\uF00DEndsWith\uF00Dtest k:\uF00DEndsWith\uF00Dtest1 k:\uF00DEndsWith\uF00Dtest2'
       );
     });
 
@@ -541,18 +541,18 @@ describe('MutableSearch', () => {
       },
       {
         name: 'handles contains filter',
-        object: new MutableSearch(['message:\uf00dContains\uf00d"test value"']),
-        string: 'message:\uf00dContains\uf00d"test value"',
+        object: new MutableSearch(['message:\uF00DContains\uF00D"test value"']),
+        string: 'message:\uF00DContains\uF00D"test value"',
       },
       {
         name: 'handles starts with filter',
-        object: new MutableSearch(['message:\uf00dStartsWith\uf00d"test value"']),
-        string: 'message:\uf00dStartsWith\uf00d"test value"',
+        object: new MutableSearch(['message:\uF00DStartsWith\uF00D"test value"']),
+        string: 'message:\uF00DStartsWith\uF00D"test value"',
       },
       {
         name: 'handles ends with filter',
-        object: new MutableSearch(['message:\uf00dEndsWith\uf00d"test value"']),
-        string: 'message:\uf00dEndsWith\uf00d"test value"',
+        object: new MutableSearch(['message:\uF00DEndsWith\uF00D"test value"']),
+        string: 'message:\uF00DEndsWith\uF00D"test value"',
       },
     ];
 

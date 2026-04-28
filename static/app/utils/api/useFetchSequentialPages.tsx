@@ -1,8 +1,9 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
 import {parseLinkHeader, type ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {fetchDataQuery, useQueryClient, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchDataQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   /**

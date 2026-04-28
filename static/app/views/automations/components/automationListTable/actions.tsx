@@ -102,15 +102,15 @@ export function AutomationsTableActions({
   const getDeleteConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
       return tct(
-        'Are you sure you want to delete all [queryCount] automations that match the search?',
+        'Are you sure you want to delete all [queryCount] alerts that match the search?',
         {
           queryCount,
         }
       );
     }
     return tn(
-      'Are you sure you want to delete this %s automation?',
-      'Are you sure you want to delete these %s automations?',
+      'Are you sure you want to delete this %s alert?',
+      'Are you sure you want to delete these %s alerts?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);

@@ -297,7 +297,8 @@ function HeaderActions({group}: {group: Group}) {
 
 const Header = styled('header')`
   background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xl']};
+  padding: ${p => p.theme.space.md}
+    var(--issue-details-inset, ${p => p.theme.space['2xl']});
 `;
 
 const HeaderGrid = styled('div')`
@@ -350,7 +351,8 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
   flex-wrap: wrap;
-  padding: ${p => p.theme.space.md} 24px;
+  padding: ${p => p.theme.space.md}
+    var(--issue-details-inset, ${p => p.theme.space['2xl']});
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   position: relative;
   transition: background 0.3s ease-in-out;
@@ -371,7 +373,7 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     position: absolute;
     top: 0;
     right: 0;
-    left: 24px;
+    left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
     bottom: unset;
     height: 1px;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */

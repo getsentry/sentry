@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -12,7 +13,7 @@ import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';

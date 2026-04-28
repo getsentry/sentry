@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 
@@ -27,21 +27,38 @@ export default function ErrorsContent() {
 
   return (
     <SentryDocumentTitle title={t('Errors')} orgSlug={organization?.slug}>
-      <ErrorsPageMain width="full">
-        <ErrorsHeader />
-        <PageFiltersContainer>
-          <ExploreBodySearch>
-            <ErrorsFilterSection />
-          </ExploreBodySearch>
-        </PageFiltersContainer>
-        <ErrorsBody />
-      </ErrorsPageMain>
+      <ErrorsHeader />
+      <PageFiltersContainer>
+        <ExploreBodySearch>
+          <ErrorsFilterSection />
+        </ExploreBodySearch>
+      </PageFiltersContainer>
+      <ErrorsBody />
     </SentryDocumentTitle>
   );
 }
 
 function ErrorsHeader() {
   const hasPageFrameFeature = useHasPageFrameFeature();
+
+  if (hasPageFrameFeature) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="title">
+          {t('Errors')} <FeatureBadge type="alpha" />
+        </TopBar.Slot>
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
     <Layout.Header unified>
       <Layout.HeaderContent unified>
@@ -50,18 +67,7 @@ function ErrorsHeader() {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        ) : (
-          <FeedbackButton />
-        )}
+        <FeedbackButton />
       </Layout.HeaderActions>
     </Layout.Header>
   );
@@ -84,9 +90,3 @@ export function ErrorsBody() {
     </ExploreBodyContent>
   );
 }
-
-const ErrorsPageMain = styled(Layout.Main)`
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-`;

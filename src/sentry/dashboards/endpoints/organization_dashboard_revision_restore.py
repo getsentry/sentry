@@ -18,7 +18,7 @@ from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardBase,
     _take_dashboard_snapshot,
 )
-from sentry.models.dashboard import Dashboard, DashboardRevision, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.models.organization import Organization
 
 
@@ -96,7 +96,7 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
             return Response(serializer.errors, status=400)
 
         try:
-            with transaction.atomic(router.db_for_write(DashboardTombstone)):
+            with transaction.atomic(router.db_for_write(DashboardRevision)):
                 if snapshot is not None:
                     DashboardRevision.create_for_dashboard(
                         dashboard, request.user, snapshot, source="pre-restore"

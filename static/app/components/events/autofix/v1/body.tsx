@@ -2,9 +2,10 @@ import {useCallback, useEffect, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
+import {DrawerBody} from '@sentry/scraps/drawer';
+
 import {AutofixStepType} from 'sentry/components/events/autofix/types';
 import {type useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
-import {DrawerBody} from 'sentry/components/globalDrawer/components';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

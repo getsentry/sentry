@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -6,7 +7,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';

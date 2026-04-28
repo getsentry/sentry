@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -17,7 +18,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';

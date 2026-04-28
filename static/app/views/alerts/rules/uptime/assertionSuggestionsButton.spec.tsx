@@ -2,14 +2,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import * as indicators from 'sentry/actionCreators/indicator';
-import {useDrawer} from 'sentry/components/globalDrawer';
 import {AssertionSuggestionsButton} from 'sentry/views/alerts/rules/uptime/assertionSuggestionsButton';
 
 // Only mock the useDrawer hook, keep GlobalDrawer real
 // since the test render wrapper uses it to render children.
-jest.mock('sentry/components/globalDrawer', () => {
-  const actual = jest.requireActual('sentry/components/globalDrawer');
+jest.mock('@sentry/scraps/drawer', () => {
+  const actual = jest.requireActual('@sentry/scraps/drawer');
   return {
     ...actual,
     useDrawer: jest.fn(),
@@ -43,6 +44,7 @@ describe('AssertionSuggestionsButton', () => {
       openDrawer: mockOpenDrawer,
       closeDrawer: mockCloseDrawer,
       isDrawerOpen: false,
+      isAnyDrawerOpen: false,
       panelRef: {current: null},
     });
   });
@@ -99,6 +101,7 @@ describe('AssertionSuggestionsButton', () => {
       openDrawer: mockOpenDrawer,
       closeDrawer: mockCloseDrawer,
       isDrawerOpen: true,
+      isAnyDrawerOpen: true,
       panelRef: {current: null},
     });
 

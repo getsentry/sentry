@@ -32,6 +32,11 @@ export interface AddIntegrationParams {
       | 'test_analytics_org_selector';
   };
   modalParams?: Record<string, string>;
+  /**
+   * When true, the "%s added" success toast is not shown on install.
+   * Use when the surrounding UI already communicates the connected state.
+   */
+  suppressSuccessMessage?: boolean;
   urlParams?: Record<string, string>;
 }
 
@@ -107,6 +112,7 @@ export function useAddIntegration() {
   const organizationRef = useRef<Organization | null>(null);
   const onInstallRef = useRef<((data: IntegrationWithConfig) => void) | null>(null);
   const analyticsParamsRef = useRef<AddIntegrationParams['analyticsParams']>(undefined);
+  const suppressSuccessMessageRef = useRef<boolean>(false);
 
   useEffect(() => {
     function handleMessage(message: MessageEvent) {
@@ -141,7 +147,9 @@ export function useAddIntegration() {
           organization: organizationRef.current,
           ...analyticsParamsRef.current,
         });
-        addSuccessMessage(t('%s added', activeProviderRef.current.name));
+        if (!suppressSuccessMessageRef.current) {
+          addSuccessMessage(t('%s added', activeProviderRef.current.name));
+        }
       }
       onInstallRef.current?.(data);
     }
@@ -161,6 +169,7 @@ export function useAddIntegration() {
       account,
       analyticsParams,
       modalParams,
+      suppressSuccessMessage,
       urlParams,
     } = params;
 
@@ -169,6 +178,7 @@ export function useAddIntegration() {
     organizationRef.current = organization;
     onInstallRef.current = onInstall;
     analyticsParamsRef.current = analyticsParams;
+    suppressSuccessMessageRef.current = !!suppressSuccessMessage;
 
     const pipelineProvider = getApiPipelineProvider(organization, provider.key);
 
@@ -194,7 +204,9 @@ export function useAddIntegration() {
             organization,
             ...analyticsParams,
           });
-          addSuccessMessage(t('%s added', provider.name));
+          if (!suppressSuccessMessage) {
+            addSuccessMessage(t('%s added', provider.name));
+          }
           onInstall(data);
         },
       });

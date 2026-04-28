@@ -19,11 +19,11 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApi} from 'sentry/utils/useApi';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
-} from 'sentry/views/releases/utils/sessionTerm';
+} from 'sentry/views/explore/releases/utils/sessionTerm';
+import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';
 
 type Props = {
   isProjectStabilized: boolean;

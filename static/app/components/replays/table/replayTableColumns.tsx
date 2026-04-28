@@ -36,11 +36,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
-} from 'sentry/views/replays/types';
+} from 'sentry/views/explore/replays/types';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 

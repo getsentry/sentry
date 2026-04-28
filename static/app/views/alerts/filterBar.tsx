@@ -5,10 +5,15 @@ import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar} from 'sentry/components/searchBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {TeamFilter} from './list/rules/teamFilter';
 import {CombinedAlertType} from './types';
@@ -33,6 +38,9 @@ export function FilterBar({
   hasStatusFilters,
   hasTypeFilter,
 }: Props) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
   const selectedAlertTypes = getQueryAlertType(location.query.alertType);
@@ -106,11 +114,31 @@ export function FilterBar({
           />
         )}
       </FilterButtons>
-      <SearchBar
-        placeholder={t('Search by name')}
-        query={location.query?.name}
-        onSearch={onChangeSearch}
-      />
+      <Grid minWidth={0} width="100%" gap="md" align="center" columns="1fr min-content">
+        <Flex minWidth={0} width="100%">
+          <FullWidthSearchBar
+            placeholder={t('Search by name')}
+            query={location.query?.name}
+            onSearch={onChangeSearch}
+            width="100%"
+          />
+        </Flex>
+        {hasPageFrameFeature ? (
+          <CreateAlertButton
+            organization={organization}
+            iconProps={{size: 'sm'}}
+            priority="primary"
+            referrer="alert_stream"
+            projectSlug={
+              selection.projects.length === 1
+                ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+                : undefined
+            }
+          >
+            {t('Create Alert')}
+          </CreateAlertButton>
+        ) : null}
+      </Grid>
     </Wrapper>
   );
 }
@@ -138,5 +166,13 @@ const FilterButtons = styled((props: GridProps) => (
   @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-auto-columns: max-content;
+  }
+`;
+
+const FullWidthSearchBar = styled(SearchBar)`
+  width: 100%;
+
+  form {
+    width: 100%;
   }
 `;
