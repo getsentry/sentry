@@ -15,6 +15,9 @@ type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
 };
 
+const DISPLAY_OPTIONS_STORAGE_KEY =
+  'issue-details-stracktrace-display-org-slug-project-slug';
+
 function makeStackTraceData(): {
   event: ReturnType<typeof EventFixture>;
   stacktrace: StacktraceWithFrames;
@@ -122,7 +125,6 @@ describe('IssueStackTrace', () => {
         function: frame.rawFunction ?? `raw_fn_${index}`,
       })),
     };
-    const storageKey = 'issue-details-stracktrace-display-org-slug-project-slug';
 
     const {unmount} = render(
       <IssueStackTrace
@@ -148,7 +150,7 @@ describe('IssueStackTrace', () => {
     await userEvent.keyboard('{Escape}');
 
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(storageKey)!);
+      const stored = JSON.parse(localStorage.getItem(DISPLAY_OPTIONS_STORAGE_KEY)!);
       expect(stored).toEqual(expect.arrayContaining(['raw-stack-trace', 'minified']));
     });
 
@@ -177,8 +179,7 @@ describe('IssueStackTrace', () => {
 
   it('preserves minified preference when current event has no raw stacktrace', async () => {
     const {event, stacktrace} = makeStackTraceData();
-    const storageKey = 'issue-details-stracktrace-display-org-slug-project-slug';
-    localStorage.setItem(storageKey, JSON.stringify(['minified']));
+    localStorage.setItem(DISPLAY_OPTIONS_STORAGE_KEY, JSON.stringify(['minified']));
 
     render(
       <IssueStackTrace
@@ -199,7 +200,9 @@ describe('IssueStackTrace', () => {
     );
 
     await waitFor(() => {
-      expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual(['minified']);
+      expect(JSON.parse(localStorage.getItem(DISPLAY_OPTIONS_STORAGE_KEY)!)).toEqual([
+        'minified',
+      ]);
     });
   });
 

@@ -139,10 +139,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
         defaultIsMinified={!!projectSlug && persistedOptions.includes('minified')}
       >
         {projectSlug && (
-          <PersistDisplayOptions
-            hasMinifiedStacktrace={hasMinifiedStacktrace}
-            setPersistedOptions={setPersistedOptions}
-          />
+          <PersistDisplayOptions setPersistedOptions={setPersistedOptions} />
         )}
         <IssueStackTraceContent
           event={event}
@@ -157,13 +154,11 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
 }
 
 function PersistDisplayOptions({
-  hasMinifiedStacktrace,
   setPersistedOptions,
 }: {
-  hasMinifiedStacktrace: boolean;
   setPersistedOptions: Dispatch<SetStateAction<PersistedDisplayOption[]>>;
 }) {
-  const {view, isMinified} = useStackTraceViewState();
+  const {view, isMinified, hasMinifiedStacktrace} = useStackTraceViewState();
   useEffect(() => {
     setPersistedOptions(previousOptions => {
       const next: PersistedDisplayOption[] = [];
