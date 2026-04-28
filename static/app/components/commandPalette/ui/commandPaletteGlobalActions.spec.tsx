@@ -321,18 +321,18 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   it.each([
     {
       body: {
+        group: {
+          id: '42',
+          metadata: {},
+          project: {id: project.id, slug: project.slug},
+          status: 'unresolved',
+        },
         groupId: '42',
         organizationSlug: organization.slug,
         projectSlug: project.slug,
         shortId: 'WEB-HZX',
       },
       expectedOption: /Issue WEB-HZX/,
-      groupBody: {
-        id: '42',
-        metadata: {},
-        project: {id: project.id, slug: project.slug},
-        status: 'unresolved',
-      },
       query: 'WEB-HZX',
       lookupUrl: `/organizations/${organization.slug}/shortids/WEB-HZX/`,
     },
@@ -345,12 +345,6 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         projectSlug: project.slug,
       },
       expectedOption: /Event 954df831ab094388ac98eee198584479/,
-      groupBody: {
-        id: '42',
-        metadata: {},
-        project: {id: project.id, slug: project.slug},
-        status: 'unresolved',
-      },
       query: '954df831ab094388ac98eee198584479',
       lookupUrl: `/organizations/${organization.slug}/eventids/954df831ab094388ac98eee198584479/`,
     },
@@ -363,25 +357,15 @@ describe('GlobalCommandPaletteActions - search recall', () => {
         projectSlug: project.slug,
       },
       expectedOption: /Event 954df831-ab09-4388-ac98-eee198584479/,
-      groupBody: {
-        id: '42',
-        metadata: {},
-        project: {id: project.id, slug: project.slug},
-        status: 'unresolved',
-      },
       query: '954df831-ab09-4388-ac98-eee198584479',
       lookupUrl: `/organizations/${organization.slug}/eventids/954df831-ab09-4388-ac98-eee198584479/`,
     },
   ])(
     'resolves pasted identifiers for %s',
-    async ({query, lookupUrl, body, groupBody, expectedOption}) => {
+    async ({query, lookupUrl, body, expectedOption}) => {
       MockApiClient.addMockResponse({
         url: lookupUrl,
         body,
-      });
-      MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/42/`,
-        body: groupBody,
       });
 
       renderPalette();

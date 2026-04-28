@@ -53,8 +53,7 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -83,7 +82,6 @@ import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/sett
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MCP_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mcp/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -133,40 +131,31 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
   return null;
 }
 
+type ResolvedIdentifier =
+  | (ShortIdResponse & {
+      kind: 'issue';
+      project: AvatarProject;
+      details?: string;
+    })
+  | (EventIdResponse & {
+      kind: 'event';
+      project: AvatarProject;
+      details?: string;
+    });
+
 function ResolvedIdentifierCommandPaletteAction() {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {query} = useCommandPaletteState();
-  const environments = useEnvironmentsFromUrl();
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 
-  const {data} = useQuery<
-    | {
-        event: EventIdResponse['event'];
-        eventUrl: string;
-        group: Group;
-        groupUrl: string;
-        kind: 'event';
-        label: string;
-        project: Project;
-      }
-    | {
-        event: null;
-        group: Group;
-        groupUrl: string;
-        kind: 'issue';
-        label: string;
-        project: Project;
-      }
-    | null
-  >({
+  const {data} = useQuery<ResolvedIdentifier | null>({
     queryKey: [
       'command-palette-identifier-lookup',
       organization.slug,
       query,
       isShortId,
-      environments,
       projects,
     ],
     queryFn: async () => {
@@ -177,30 +166,14 @@ function ResolvedIdentifierCommandPaletteAction() {
               path: {organizationIdOrSlug: organization.slug, issueId: query},
             })
           );
-          const group: Group = await QUERY_API_CLIENT.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: shortIdLookup.groupId,
-              },
-            }),
-            {
-              query: {
-                ...(environments.length > 0 ? {environment: environments} : {}),
-                expand: ['inbox', 'owners'],
-                collapse: ['release', 'tags', 'stats'],
-              },
-            }
-          );
           const project =
-            projects.find(p => p.slug === shortIdLookup.projectSlug) ?? group.project;
+            projects.find(p => p.slug === shortIdLookup.projectSlug) ??
+            shortIdLookup.group.project;
           return {
-            event: null,
-            group,
-            groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
+            details: shortIdLookup.group.metadata?.value,
             kind: 'issue' as const,
-            label: t('Issue %s', shortIdLookup.shortId),
             project,
+            ...shortIdLookup,
           };
         }
 
@@ -209,31 +182,14 @@ function ResolvedIdentifierCommandPaletteAction() {
             path: {organizationIdOrSlug: organization.slug, eventId: query},
           })
         );
-        const group: Group = await QUERY_API_CLIENT.requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              issueId: eventIdLookup.groupId,
-            },
-          }),
-          {
-            query: {
-              ...(environments.length > 0 ? {environment: environments} : {}),
-              expand: ['inbox', 'owners'],
-              collapse: ['release', 'tags', 'stats'],
-            },
-          }
-        );
         const project =
-          projects.find(p => p.slug === eventIdLookup.projectSlug) ?? group.project;
+          projects.find(p => p.slug === eventIdLookup.projectSlug) ??
+          ({slug: eventIdLookup.projectSlug} as Project);
         return {
-          event: eventIdLookup.event,
-          eventUrl: `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdLookup.eventId}/`,
-          group,
-          groupUrl: `/organizations/${organization.slug}/issues/${group.id}/`,
+          details: eventIdLookup.event.metadata?.value,
           kind: 'event' as const,
-          label: t('Event %s', eventIdLookup.eventId),
           project,
+          ...eventIdLookup,
         };
       } catch {
         return null;
@@ -251,15 +207,24 @@ function ResolvedIdentifierCommandPaletteAction() {
   return (
     <CMDKAction
       display={{
-        label: data.label,
-        details: data.group.metadata?.value,
+        label:
+          data.kind === 'event'
+            ? t('Event %s', data.eventId)
+            : t('Issue %s', data.shortId),
+        details: data.details,
         icon: <ProjectAvatar project={data.project} size={16} />,
       }}
     >
       {data.kind === 'event' && (
-        <CMDKAction display={{label: t('Go to event')}} to={data.eventUrl} />
+        <CMDKAction
+          display={{label: t('Go to event')}}
+          to={`/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`}
+        />
       )}
-      <CMDKAction display={{label: t('Go to issue')}} to={data.groupUrl} />
+      <CMDKAction
+        display={{label: t('Go to issue')}}
+        to={`/organizations/${organization.slug}/issues/${data.groupId}/`}
+      />
     </CMDKAction>
   );
 }
