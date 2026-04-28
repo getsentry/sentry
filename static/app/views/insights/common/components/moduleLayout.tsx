@@ -6,10 +6,6 @@ export const Layout = styled('div')`
   gap: ${p => p.theme.space.xl};
 `;
 
-export const Third = styled('div')`
-  grid-column: span 4;
-`;
-
 export const Half = styled('div')`
   grid-column: span 12;
 
