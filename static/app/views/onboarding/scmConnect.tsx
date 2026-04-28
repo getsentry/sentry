@@ -2,16 +2,16 @@ import {useCallback, useEffect} from 'react';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 
 import {ScmProviderPills} from './components/scmProviderPills';
 import {ScmRepoSelector} from './components/scmRepoSelector';
@@ -60,9 +60,9 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
   return (
     <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
       <ScmStepHeader
-        heading={t('Connect a repo')}
+        heading={t('Connect your code')}
         subtitle={t(
-          'Connect a repo to auto-detect your platform and unlock stack trace linking, suspect commits, suggested assignees, and Seer.'
+          'Linking a repo auto-detects your platform and unlocks stack trace linking, suspect commits, suggested assignees, and Seer.'
         )}
       />
 
@@ -104,9 +104,80 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
             <ScmProviderPills providers={scmProviders} onInstall={handleInstall} />
           </MotionStack>
         )}
+        <Flex gap="sm" align="center" width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+          <IconLock size="sm" variant="secondary" locked />
+          <Text variant="secondary" size="md" density="comfortable">
+            {t('Your code stays yours. We don’t share, sell, or train on it.')}
+          </Text>
+        </Flex>
+
+        <Grid
+          columns={{xs: '1fr', md: '1fr 1fr'}}
+          width="100%"
+          maxWidth={SCM_STEP_CONTENT_WIDTH}
+          background="secondary"
+          radius="lg"
+          border="secondary"
+        >
+          <Stack gap="xl" padding="2xl">
+            <Text bold size="sm" density="comfortable" variant="success" uppercase>
+              {t('What we use it for')}
+            </Text>
+            <Stack gap="lg">
+              <Grid columns="max-content 1fr" gap="sm">
+                <IconCheckmark size="sm" variant="success" />
+                <Text variant="secondary" size="md" density="comfortable">
+                  {t('Stack trace context: shows lines around the error')}
+                </Text>
+              </Grid>
+              <Grid columns="max-content 1fr" gap="sm">
+                <IconCheckmark size="sm" variant="success" />
+                <Text variant="secondary" size="md" density="comfortable">
+                  {t('Suspect commits: git blame on stack trace files')}
+                </Text>
+              </Grid>
+              <Grid columns="max-content 1fr" gap="sm">
+                <IconCheckmark size="sm" variant="success" />
+                <Text variant="secondary" size="md" density="comfortable">
+                  {t('CODEOWNERS: for routing and assigning issues')}
+                </Text>
+              </Grid>
+            </Stack>
+          </Stack>
+          <Stack gap="xl" padding="2xl">
+            <Text bold size="sm" density="comfortable" variant="danger" uppercase>
+              {t('What we don’t do')}
+            </Text>
+            <Stack gap="lg">
+              <Grid columns="max-content 1fr" gap="sm">
+                <IconClose size="sm" variant="danger" />
+                <Text variant="secondary" size="md" density="comfortable">
+                  {t('Train AI on your code')}
+                </Text>
+              </Grid>
+              <Grid columns="max-content 1fr" gap="sm">
+                <IconClose size="sm" variant="danger" />
+                <Text variant="secondary" size="md" density="comfortable">
+                  {t('Read unrelated code: only what’s tied to you issues')}
+                </Text>
+              </Grid>
+              <Grid columns="max-content 1fr" gap="sm">
+                <IconClose size="sm" variant="danger" />
+                <Text variant="secondary" size="md" density="comfortable">
+                  {t('Push code without your permission')}
+                </Text>
+              </Grid>
+            </Stack>
+          </Stack>
+        </Grid>
       </LayoutGroup>
 
-      <GenericFooter gap="3xl" padding="0 3xl">
+      <Flex
+        justify="between"
+        width="100%"
+        maxWidth={SCM_STEP_CONTENT_WIDTH}
+        paddingTop="3xl"
+      >
         <Flex align="center">{genBackButton?.()}</Flex>
         <Flex align="center" gap="md">
           {!selectedRepository && (
@@ -117,6 +188,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
                 has_integration: !!effectiveIntegration,
               }}
               onClick={() => onComplete()}
+              priority="transparent"
             >
               {t('Continue without a repo')}
             </Button>
@@ -141,7 +213,7 @@ export function ScmConnect({onComplete, genBackButton}: StepProps) {
             {t('Continue')}
           </Button>
         </Flex>
-      </GenericFooter>
+      </Flex>
     </Flex>
   );
 }

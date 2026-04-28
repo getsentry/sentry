@@ -779,7 +779,7 @@ describe('Onboarding', () => {
     it('skip for now advances to next step without skipping onboarding', async () => {
       const {router} = renderOnboarding('scm-connect');
 
-      expect(await screen.findByText('Connect a repo')).toBeInTheDocument();
+      expect(await screen.findByText('Connect your code')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Skip for now'}));
 
@@ -793,7 +793,7 @@ describe('Onboarding', () => {
     it('header skip button fires scm-connect analytics', async () => {
       renderOnboarding('scm-connect');
 
-      await screen.findByText('Connect a repo');
+      await screen.findByText('Connect your code');
 
       const buttons = screen.getAllByRole('button', {name: 'Skip setup'});
       expect(buttons).toHaveLength(1);
@@ -1150,7 +1150,7 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('scm-connect');
 
       // Wait for the step to render
-      await screen.findByText('Connect a repo');
+      await screen.findByText('Connect your code');
 
       await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
