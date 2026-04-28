@@ -363,9 +363,6 @@ class SeerExplorerClient:
         has_org_project_context: bool | None,
     ) -> None:
         """Trigger explorer indexing for the org if Seer reports missing indexes."""
-        if has_explorer_index is not False and has_org_project_context is not False:
-            return
-
         if not options.get("seer.explorer_index.enable"):
             return
 
@@ -373,7 +370,7 @@ class SeerExplorerClient:
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
-        if not has_explorer_index:
+        if has_explorer_index is not None and not has_explorer_index:
             projects = list(
                 Project.objects.filter(
                     organization_id=self.organization.id,
@@ -391,7 +388,11 @@ class SeerExplorerClient:
                 ):
                     pass
 
-        if not has_org_project_context and options.get("explorer.context_engine_indexing.enable"):
+        if (
+            has_org_project_context is not None
+            and not has_org_project_context
+            and options.get("explorer.context_engine_indexing.enable")
+        ):
             index_org_project_knowledge.apply_async(args=[self.organization.id])
             build_service_map.apply_async(args=[self.organization.id])
 
