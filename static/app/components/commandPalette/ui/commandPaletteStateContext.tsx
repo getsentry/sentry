@@ -9,6 +9,8 @@ import {
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 /**
  * A stack entry for navigating into a CMDK group. Stores the group's
@@ -170,6 +172,7 @@ export function CommandPaletteHotkeys() {
   const state = useCommandPaletteState();
   const dispatch = useCommandPaletteDispatch();
   const location = useLocation();
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   // When the route pathname changes, mark state for reset on the next open.
   // Skip the initial render — only react to actual route changes.
@@ -188,7 +191,16 @@ export function CommandPaletteHotkeys() {
       includeInputs: true,
       callback: () => {
         if (organization?.features.includes('cmd-k-supercharged')) {
-          toggleCommandPalette({}, organization, state, dispatch, 'keyboard');
+          toggleCommandPalette(
+            {},
+            organization,
+            state,
+            dispatch,
+            'keyboard',
+            organization && isSeerExplorerEnabled(organization)
+              ? openSeerExplorer
+              : undefined
+          );
         } else {
           openCommandPaletteDeprecated();
         }
