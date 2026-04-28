@@ -450,6 +450,13 @@ export function CommandPalette({Body, closeModal}: ModalRenderProps) {
                           e.preventDefault();
                           return;
                         }
+                        if (state.action) {
+                          animatePop();
+                          dispatch({type: 'pop action'});
+                          e.preventDefault();
+                          e.stopPropagation();
+                          return;
+                        }
                       }
 
                       if (e.key === 'Enter') {
