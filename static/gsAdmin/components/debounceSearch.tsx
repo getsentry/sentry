@@ -8,7 +8,7 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {useApi} from 'sentry/utils/useApi';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 
-type Props = {
+interface Props {
   onSelectResult: (value: string) => void;
   path: string;
   placeholder: string;
@@ -17,7 +17,7 @@ type Props = {
   host?: string;
   onSearch?: (value: string) => void;
   queryParam?: string;
-};
+}
 
 export function DebounceSearch({
   createSuggestionPath,

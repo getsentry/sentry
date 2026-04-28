@@ -28,14 +28,14 @@ import {ResultTable} from 'admin/components/resultTable';
 
 type Option = [key: string, label: string];
 
-type FilterProps = {
+interface FilterProps {
   name: string;
   options: Option[];
   queryKey: string;
   value: string;
   location?: Location;
   path?: string;
-};
+}
 
 function Filter({name, queryKey, options, path, location, value}: FilterProps) {
   const {query, pathname} = location ?? {};
@@ -69,13 +69,13 @@ function Filter({name, queryKey, options, path, location, value}: FilterProps) {
 
 type SortFn = (value: string, path: string, query: Location['query']) => void;
 
-type SortByProps = {
+interface SortByProps {
   options: Option[];
   path: string;
   value: string;
   location?: Location;
   onSort?: SortFn;
-};
+}
 
 const defaultOnSort: SortFn = (value, path, query) => {
   const newQuery = {
@@ -106,10 +106,10 @@ function SortBy({options, path, location, value, onSort = defaultOnSort}: SortBy
   );
 }
 
-type FilterDescriptor = {
+interface FilterDescriptor {
   name: string;
   options: Option[];
-};
+}
 
 interface ResultGridProps extends WithRouterProps {
   api: Client;
@@ -213,7 +213,7 @@ interface ResultGridProps extends WithRouterProps {
   useQueryString?: boolean;
 }
 
-export type State = {
+export interface State {
   cursor: string;
   error: boolean;
   filters: Location['query'];
@@ -223,7 +223,7 @@ export type State = {
   region: Region | undefined;
   rows: any[];
   sortBy: string;
-};
+}
 
 const extractQuery = (query: Location['query'][string], defaultVal = '') =>
   (Array.isArray(query) ? query[0] : query) ?? defaultVal;

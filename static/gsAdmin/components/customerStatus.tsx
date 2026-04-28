@@ -6,9 +6,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import type {Subscription} from 'getsentry/types';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
-type Props = {
+interface Props {
   customer: Subscription;
-};
+}
 
 const getLabel = (item: Subscription) => {
   if (item.isEnterpriseTrial) {

@@ -11,7 +11,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
-type CategoryInfo = {
+interface CategoryInfo {
   api_name: string;
   billed_category: number;
   display_name: string;
@@ -20,18 +20,18 @@ type CategoryInfo = {
   product_name: string;
   singular: string;
   tally_type: number;
-};
+}
 
-type BillingConfig = {
+interface BillingConfig {
   category_info: Record<string, CategoryInfo>;
   outcomes: Record<string, string>;
   reason_codes: Record<string, string>;
-};
+}
 
-type Props = {
+interface Props {
   onSuccess: () => void;
   organization: Organization;
-};
+}
 
 type ModalProps = Props & ModalRenderProps;
 

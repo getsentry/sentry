@@ -9,10 +9,10 @@ export const isBillingAdmin = () => {
   return !!user?.permissions?.has('billing.admin');
 };
 
-type QueryConditions = {
+interface QueryConditions {
   organizationId?: string;
   projectId?: string;
-};
+}
 
 export function getLogQuery(type: string, conditions: QueryConditions) {
   let query = '';

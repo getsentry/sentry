@@ -12,22 +12,22 @@ import type {User} from 'sentry/types/user';
 import {ResultTable} from 'admin/components/resultTable';
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
-type Props = {
+interface Props {
   /**
    * This component needs to render some additional actions within the
    * SelectableContainer panel, so it must be injected as a property.
    */
   Panel: SelectableContainerPanel;
   user: User;
-};
+}
 
-type State = {
+interface State {
   activeEmail: string;
   error: boolean;
   hideButton: boolean;
   loading: boolean | null;
   results: any[];
-};
+}
 
 export class UserEmailLog extends Component<Props, State> {
   state: State = {

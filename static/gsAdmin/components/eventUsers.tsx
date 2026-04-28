@@ -5,11 +5,11 @@ import {Button} from '@sentry/scraps/button';
 import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
 import ResultGrid from 'admin/components/resultGrid';
 
-type Props = {
+interface Props {
   onRemoveEmail: (hash: string) => void;
   orgId: string;
   projectId: string;
-};
+}
 
 export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
   const getRow = (row: any) => {

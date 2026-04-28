@@ -22,13 +22,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
-type Props = {
+interface Props {
   dataType: DataCategoryExact;
   onChange: (dataType: DataCategoryExact) => void;
   organization: Organization;
   onDemandPeriodEnd?: string;
   onDemandPeriodStart?: string;
-};
+}
 
 export function CustomerStatsFilters({
   dataType,

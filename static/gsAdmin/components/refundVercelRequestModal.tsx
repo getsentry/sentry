@@ -9,15 +9,15 @@ import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
+interface Props {
   onSuccess: () => void;
   subscription: Subscription;
-};
+}
 
-type RefundVercelApiRequest = {
+interface RefundVercelApiRequest {
   guid: string;
   reason: string;
-};
+}
 
 type ModalProps = Props & ModalRenderProps;
 

@@ -8,10 +8,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
-type Props = {
+interface Props {
   onUpdate: (data: Record<string, any>, version: PolicyRevision['version']) => void;
   policy: Policy;
-};
+}
 
 type RowProps = Props & {row: PolicyRevision};
 

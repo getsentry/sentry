@@ -13,10 +13,10 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
 
 type Status = 'complete' | 'pending' | 'skipped';
 
-type StatusTag = {
+interface StatusTag {
   icon: React.ReactNode;
   tagType: TagProps['variant'];
-};
+}
 
 const tagPriority: Record<Status, StatusTag> = {
   pending: {icon: <IconClock size="xs" />, tagType: 'muted'},

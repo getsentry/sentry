@@ -10,9 +10,9 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {DetailsPage} from 'admin/components/detailsPage';
 
-type RelocationData = {
+interface RelocationData {
   contents: string;
-};
+}
 
 export function RelocationArtifactDetails() {
   const {artifactKind, fileName, regionName, relocationUuid} = useParams<{

@@ -20,7 +20,7 @@ import {PageHeader} from 'admin/components/pageHeader';
 
 import {ConfirmClientDeleteModal} from './components/confirmClientDeleteModal';
 
-type ClientDetails = {
+interface ClientDetails {
   allowedOrigins: string | null;
   clientID: string | null;
   createdAt: string | null;
@@ -30,7 +30,7 @@ type ClientDetails = {
   privacyUrl: string | null;
   redirectUris: string | null;
   termsUrl: string | null;
-};
+}
 
 const fieldProps = {
   stacked: true,

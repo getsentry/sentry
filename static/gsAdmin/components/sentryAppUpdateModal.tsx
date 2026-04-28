@@ -25,11 +25,11 @@ type Props = ModalRenderProps & {
   sentryAppData: any;
 };
 
-type SubmitQueryVariables = {
+interface SubmitQueryVariables {
   data: Record<string, any>;
   onSubmitError: (error: any) => void;
   onSubmitSuccess: (response: Record<string, any>) => void;
-};
+}
 
 type SubmitQueryResponse = Record<string, any>;
 

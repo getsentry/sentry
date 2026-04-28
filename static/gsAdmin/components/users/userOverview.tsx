@@ -17,14 +17,14 @@ import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {prettyDate} from 'admin/utils';
 
-type Props = {
+interface Props {
   identities: UserIdentityConfig[];
   onAuthenticatorRemove: (auth: NonNullable<User['authenticators']>[number]) => void;
   onIdentityDisconnect: (identity: UserIdentityConfig) => void;
   revokeToken: (token: InternalAppApiToken) => void;
   tokens: InternalAppApiToken[];
   user: User;
-};
+}
 
 function identityLabel(identity: UserIdentityConfig) {
   if (identity.category === UserIdentityCategory.ORG_IDENTITY) {

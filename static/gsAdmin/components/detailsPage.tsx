@@ -13,7 +13,7 @@ import type {openAdminConfirmModal} from 'admin/components/adminConfirmationModa
 import {DropdownActions} from 'admin/components/dropdownActions';
 import {PageHeader} from 'admin/components/pageHeader';
 
-export type ActionItem = {
+export interface ActionItem {
   key: string;
   /**
    * Name of the action
@@ -51,9 +51,9 @@ export type ActionItem = {
    * If set to false will hide the item from the menu
    */
   visible?: boolean;
-};
+}
 
-export type BadgeItem = {
+export interface BadgeItem {
   name: string;
   /**
    * A tooltip rendered on the badge
@@ -67,9 +67,9 @@ export type BadgeItem = {
    * If set to false will hide the badge
    */
   visible?: boolean;
-};
+}
 
-type SectionItem = {
+interface SectionItem {
   content: React.ReactElement;
   /**
    * Adds a heading to the panel. Does nothing when noPanel is set.
@@ -90,9 +90,9 @@ type SectionItem = {
    * If set to false will hide the section
    */
   visible?: boolean;
-};
+}
 
-type Props = {
+interface Props {
   /**
    * The name of the specific item we're looking at details of.
    */
@@ -118,7 +118,7 @@ type Props = {
    * List of sections to show. This is the primary content of the page
    */
   sections?: SectionItem[];
-};
+}
 
 export function DetailsPage({
   rootName,

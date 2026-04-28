@@ -27,24 +27,24 @@ import {useApi} from 'sentry/utils/useApi';
 
 import {SearchInput} from 'admin/components/resultGrid';
 
-type Props = {
+interface Props {
   organization?: Organization;
   projectId?: string;
-};
+}
 
-type ProjectConfig = {
+interface ProjectConfig {
   configs: Record<string, DSNConfig | null>;
-};
+}
 
-type DSNConfig = {
+interface DSNConfig {
   config?: {
     sampling?: {
       rules: RuleV2[];
     };
   };
-};
+}
 
-type RuleV2 = {
+interface RuleV2 {
   condition: {
     inner: InnerElement[] | InnerElement;
   };
@@ -59,11 +59,11 @@ type RuleV2 = {
     end: string;
     start: string;
   };
-};
+}
 
-type InnerElement = {
+interface InnerElement {
   value: unknown;
-};
+}
 
 enum RuleType {
   BOOST_LOW_VOLUME_PROJECTS = 'Boost Low Volume Projects',
@@ -315,11 +315,11 @@ function DynamicSamplingPanelBody({config: dsnConfig}: {config: DSNConfig | null
   );
 }
 
-type DynamicSamplingRulesTableProps = {
+interface DynamicSamplingRulesTableProps {
   baseSampleRate: number;
   searchQuery: string;
   rules?: RuleV2[];
-};
+}
 
 function DynamicSamplingRulesTable({
   baseSampleRate,

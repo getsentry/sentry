@@ -18,8 +18,14 @@ import {PageHeader} from 'admin/components/pageHeader';
 const SECOND_TO_MILLISECOND = 1000;
 const MILLISECOND_TO_DAY = SECOND_TO_MILLISECOND * 60 * 60 * 24;
 
-type IssueOwnerMatch = {rule: string; source: string};
-type Forecast = {data: number[]; date_added: number};
+interface IssueOwnerMatch {
+  rule: string;
+  source: string;
+}
+interface Forecast {
+  data: number[];
+  date_added: number;
+}
 type IssueDetailsResponse = Group & {forecast: Forecast};
 
 function IssueOwnerDebbuging() {
