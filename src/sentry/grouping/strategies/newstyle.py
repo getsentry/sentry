@@ -975,22 +975,16 @@ def _is_diagnostic_wrapper(exception: SingleException) -> bool:
 def _walk_to_non_wrapper_parent(
     exception: SingleException, exceptions_by_id: dict[int, SingleException]
 ) -> int | None:
-    """Walk up the mechanism parent chain skipping diagnostic wrappers, and return
-    the id of the first non-wrapper ancestor, or None if no non-wrapper ancestor
-    is reachable."""
-    seen: set[int] = set()
-    if exception.mechanism and exception.mechanism.exception_id is not None:
-        seen.add(exception.mechanism.exception_id)
-
+    # Bounded by the number of known exceptions to guard against malformed cycles.
     current = exception
-    while (
-        current.mechanism
-        and current.mechanism.parent_id is not None
-        and current.mechanism.parent_id in exceptions_by_id
-        and current.mechanism.parent_id not in seen
-    ):
+    for _ in range(len(exceptions_by_id)):
+        if not (
+            current.mechanism
+            and current.mechanism.parent_id is not None
+            and current.mechanism.parent_id in exceptions_by_id
+        ):
+            return None
         parent_id = current.mechanism.parent_id
-        seen.add(parent_id)
         parent = exceptions_by_id[parent_id]
         if not _is_diagnostic_wrapper(parent):
             return parent_id
@@ -1033,7 +1027,7 @@ def kotlin_diagnostic_wrapper_exceptions(exceptions: list[SingleException]) -> i
     present in the chain, walk past any chained wrappers and return the first non-wrapper
     ancestor as the main exception.
     """
-    if len(exceptions) < 2:
+    if len(exceptions) < 2 or not any(_is_diagnostic_wrapper(exc) for exc in exceptions):
         return None
 
     exceptions_by_id = {

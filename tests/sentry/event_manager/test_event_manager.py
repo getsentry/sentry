@@ -548,7 +548,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     "values": [
                         {
                             "type": "IllegalStateException",
-                            "value": "Issue #1065 sample crash from Compose at issue-1065/leaf",
+                            "value": "boom",
                             "module": "java.lang",
                             "mechanism": {
                                 "type": "UncaughtExceptionHandler",
@@ -581,14 +581,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         event = manager.save(self.project.id)
         assert event.data["metadata"]["type"] == "IllegalStateException"
-        assert (
-            event.data["metadata"]["value"]
-            == "Issue #1065 sample crash from Compose at issue-1065/leaf"
-        )
+        assert event.data["metadata"]["value"] == "boom"
         assert event.group is not None
-        assert event.group.title == (
-            "IllegalStateException: Issue #1065 sample crash from Compose at issue-1065/leaf"
-        )
+        assert event.group.title == "IllegalStateException: boom"
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_auto_resolved_group(self, send_robust: mock.MagicMock) -> None:
