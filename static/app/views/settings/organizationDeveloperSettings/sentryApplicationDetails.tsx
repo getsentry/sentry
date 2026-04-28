@@ -271,7 +271,6 @@ export default function SentryApplicationDetails() {
       refetch();
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
-      setApiQueryData(queryClient, makeSentryAppQueryKey(data.slug), data);
     }
     navigate(normalizeUrl(url));
   };
