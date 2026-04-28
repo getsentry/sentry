@@ -34,11 +34,13 @@ BUCKET_CURSOR_KEY = "ds::per_org:bucket_cursor"
 def _next_bucket_index() -> int:
     redis_client = get_redis_client_for_ds()
     try:
-        next_value = redis_client.incr(BUCKET_CURSOR_KEY)
+        current_value = redis_client.get(BUCKET_CURSOR_KEY) or 0
+        bucket_index = int(current_value) % BUCKET_COUNT
+        redis_client.set(BUCKET_CURSOR_KEY, (bucket_index + 1) % BUCKET_COUNT)
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
         return datetime.now(tz=timezone.utc).minute % BUCKET_COUNT
-    return (int(next_value) - 1) % BUCKET_COUNT
+    return bucket_index
 
 
 @instrumented_task(

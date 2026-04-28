@@ -160,9 +160,14 @@ class NextBucketIndexTest(TestCase):
         redis.delete(BUCKET_CURSOR_KEY)
         self.addCleanup(redis.delete, BUCKET_CURSOR_KEY)
 
-        observed = [_next_bucket_index() for _ in range(BUCKET_COUNT + 2)]
-        cursor = redis.get(BUCKET_CURSOR_KEY)
+        first_cycle = [_next_bucket_index() for _ in range(BUCKET_COUNT)]
+        cursor_after_cycle = redis.get(BUCKET_CURSOR_KEY)
+        next_cycle = [_next_bucket_index() for _ in range(2)]
+        cursor_after_next_cycle = redis.get(BUCKET_CURSOR_KEY)
 
-        assert observed == [index % BUCKET_COUNT for index in range(BUCKET_COUNT + 2)]
-        assert cursor is not None
-        assert int(cursor) == BUCKET_COUNT + 2
+        assert first_cycle == list(range(BUCKET_COUNT))
+        assert cursor_after_cycle is not None
+        assert int(cursor_after_cycle) == 0
+        assert next_cycle == [0, 1]
+        assert cursor_after_next_cycle is not None
+        assert int(cursor_after_next_cycle) == 2
