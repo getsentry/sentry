@@ -7,8 +7,7 @@ import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export type TransactionResult = ReturnType<typeof useTransactionAsSpans>;
-export type TransactionData = TransactionResult['data'];
-export type TransactionSpan = NonNullable<TransactionData['transactionSpan']>;
+export type TransactionSpan = NonNullable<TransactionResult['data']['transactionSpan']>;
 
 type UseTransactionProps = {
   projectIds: number[];
