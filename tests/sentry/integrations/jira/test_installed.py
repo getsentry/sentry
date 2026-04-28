@@ -255,6 +255,26 @@ class JiraInstalledTest(APITestCase):
         assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @responses.activate
+    def test_rejects_when_jira_external_id_is_empty(self, mock_record_event: MagicMock) -> None:
+        self.add_response()
+
+        # state["jira"] is truthy but its external_id is empty. build_integration
+        # branches on state["jira"]'s truthiness, so it would persist
+        # external_id="" — the binding must reject this rather than silently
+        # fall back to clientKey for the comparison.
+        body = dict(self.body())
+        body["jira"] = {"metadata": {}, "external_id": ""}
+        self.get_error_response(
+            **body,
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        assert not Integration.objects.filter(provider="jira", external_id="").exists()
+        assert_halt_metric(mock_record_event, "JWT iss does not match clientKey")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_without_key_id(self, mock_record_event: MagicMock) -> None:
         self.get_error_response(
             **self.body(),

@@ -91,18 +91,15 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                     {"detail": "Could not decode JWT token"}, status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Bind the JWT issuer to whichever value will actually be persisted
-            # as Integration.external_id. Per Atlassian Connect, the `iss`
-            # claim on a lifecycle JWT is the tenant's clientKey
-            # (https://developer.atlassian.com/cloud/jira/platform/understanding-jwt-for-connect-apps/),
-            # so requiring iss == external_id ensures the tenant that signed
-            # the request is the same tenant whose Integration row we are
-            # about to write. JiraIntegrationProvider.build_integration
-            # prefers `state["jira"]["external_id"]` when present; otherwise
-            # it falls back to `state["clientKey"]`.
-            expected_external_id = state.get(IntegrationProviderSlug.JIRA.value, {}).get(
-                "external_id"
-            ) or state.get("clientKey")
+            # Bind iss to whichever value build_integration will persist as
+            # Integration.external_id. Branch on state["jira"] (the parent
+            # dict) to match build_integration exactly — branching on the
+            # inner external_id's truthiness diverges when it's empty.
+            jira_state = state.get(IntegrationProviderSlug.JIRA.value)
+            if jira_state:
+                expected_external_id = jira_state.get("external_id")
+            else:
+                expected_external_id = state.get("clientKey")
             if decoded_claims.get("iss") != expected_external_id:
                 lifecycle.record_halt(halt_reason="JWT iss does not match clientKey")
                 return self.respond(
