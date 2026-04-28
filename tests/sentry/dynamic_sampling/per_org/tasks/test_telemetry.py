@@ -8,8 +8,16 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     TelemetryStatus,
     instrumented,
 )
+from sentry.testutils.helpers.options import override_options
+
+_GATE_OPTIONS = {
+    "dynamic-sampling.per_org.killswitch": False,
+    "dynamic-sampling.per_org.metrics-sample-rate": 1.0,
+    "dynamic-sampling.per_org.rollout-rate": 1.0,
+}
 
 
+@override_options(_GATE_OPTIONS)
 def test_records_duration_and_reraises_with_failed_status_on_exception() -> None:
     @instrumented
     def boom() -> None:
@@ -19,6 +27,7 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
         boom()
 
 
+@override_options(_GATE_OPTIONS)
 def test_passes_result_through_and_emits_completed_on_success() -> None:
     @instrumented
     def add(x: int, y: int) -> int:
@@ -36,6 +45,7 @@ def test_passes_result_through_and_emits_completed_on_success() -> None:
     sdk.capture_exception.assert_not_called()
 
 
+@override_options(_GATE_OPTIONS)
 def test_emits_returned_terminal_status_without_completed_status() -> None:
     @instrumented
     def skipped() -> TelemetryStatus:
