@@ -230,15 +230,16 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
   const fields = status === 'modified' ? change.fields : undefined;
   const layoutChanged = status === 'modified' ? change.layoutChanged : false;
 
-  let statusLabel: string;
-  if (status === 'added') statusLabel = t('Added');
-  else if (status === 'removed') statusLabel = t('Removed');
-  else statusLabel = t('Modified');
+  const STATUS_MAP: Record<
+    WidgetChange['status'],
+    {label: string; variant: 'success' | 'danger' | 'warning'}
+  > = {
+    added: {label: t('Added'), variant: 'success'},
+    removed: {label: t('Removed'), variant: 'danger'},
+    modified: {label: t('Modified'), variant: 'warning'},
+  };
 
-  let tagVariant: 'success' | 'danger' | 'warning';
-  if (status === 'added') tagVariant = 'success';
-  else if (status === 'removed') tagVariant = 'danger';
-  else tagVariant = 'warning';
+  const {label: statusLabel, variant: tagVariant} = STATUS_MAP[status];
 
   return (
     <Flex direction="column" gap="sm" border="secondary" radius="sm" padding="md">
