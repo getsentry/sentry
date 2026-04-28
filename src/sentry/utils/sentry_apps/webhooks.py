@@ -115,6 +115,7 @@ def _notify_webhook_disabled(
     client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
     dedup_key = f"sentry-app.webhook.circuit-breaker.notified.{sentry_app.slug}"
     if not client.set(dedup_key, "1", ex=dedup_ttl, nx=True):
+        client.expire(dedup_key, dedup_ttl)
         return
 
     if options.get("sentry-apps.webhook.circuit-breaker.dry-run"):
