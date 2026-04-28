@@ -23,7 +23,7 @@ import type {DashboardDetails} from './types';
 
 interface RevisionListItemProps {
   baseRevisionId: string | null;
-  createdBy: {email: string; id: string; name: string} | null;
+  createdBy: {email: string; id: string; name: string; avatarUrl?: string | null} | null;
   dashboardId: string;
   dateCreated: string | null;
   isSelected: boolean;
@@ -97,6 +97,9 @@ export function RevisionListItem({
         email: createdBy.email,
         ip_address: '',
         username: createdBy.email,
+        avatar: createdBy.avatarUrl
+          ? {avatarType: 'upload', avatarUrl: createdBy.avatarUrl, avatarUuid: null}
+          : undefined,
       } as User)
     : null;
 
