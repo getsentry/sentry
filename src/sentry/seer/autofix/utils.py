@@ -197,17 +197,8 @@ autofix_connection_pool = connection_from_url(
 )
 
 
-class GetProjectPreferenceRequest(TypedDict):
-    project_id: int
-
-
 class SetProjectPreferenceRequest(TypedDict):
     preference: dict[str, Any]
-
-
-class BulkGetProjectPreferencesRequest(TypedDict):
-    organization_id: int
-    project_ids: list[int]
 
 
 class BulkSetProjectPreferencesRequest(TypedDict):
