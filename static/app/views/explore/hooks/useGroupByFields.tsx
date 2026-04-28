@@ -38,7 +38,7 @@ export function useGroupByFields({
       stringTags: filterDisallowed(stringTags),
       booleanTags: filterDisallowed(booleanTags),
       traceItemType,
-      extraColumns: groupBys,
+      extraColumns: groupBys.filter(column => !DISALLOWED_GROUP_BY_FIELDS.has(column)),
       extraColumnKind: FieldKind.TAG,
     })
       .filter(option => {
