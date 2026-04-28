@@ -35,6 +35,6 @@ export const cardAnimationProps: MotionNodeAnimationOptions = {
  */
 export const StyledMarkedText = styled(MarkedText)`
   code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
+    ${p => inlineCodeStyles(p.theme, {variant: 'neutral'})};
   }
 `;

@@ -16,8 +16,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -238,7 +237,7 @@ function getGroupEventDetailsQueryData({
   return params;
 }
 
-export function getGroupEventQueryKey({
+export function groupEventApiOptions<T = Event>({
   orgSlug,
   groupId,
   eventId,
@@ -256,16 +255,15 @@ export function getGroupEventQueryKey({
   query?: string;
   start?: string;
   statsPeriod?: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/', {
+}) {
+  return apiOptions.as<T>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
+    {
       path: {
         organizationIdOrSlug: orgSlug,
         issueId: groupId,
         eventId,
       },
-    }),
-    {
       query: getGroupEventDetailsQueryData({
         environments,
         query,
@@ -273,8 +271,9 @@ export function getGroupEventQueryKey({
         end,
         statsPeriod,
       }),
-    },
-  ];
+      staleTime: 30_000,
+    }
+  );
 }
 
 export function useIsSampleEvent(): boolean {

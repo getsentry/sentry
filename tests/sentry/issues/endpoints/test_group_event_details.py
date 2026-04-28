@@ -220,33 +220,32 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
             url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/events/{event_id}/"
             return self.client.get(url, {"query": query}, format="json")
 
-        with self.options({"eventstore.adjacent_event_ids_apply_query_conditions": True}):
-            # Middle matching event: prev/next hop past the non-matching
-            # neighbors on both sides.
-            middle = fetch(m2.event_id)
-            assert middle.status_code == 200, middle.content
-            assert middle.data["previousEventID"] == str(m1.event_id)
-            assert middle.data["nextEventID"] == str(m3.event_id)
+        # Middle matching event: prev/next hop past the non-matching
+        # neighbors on both sides.
+        middle = fetch(m2.event_id)
+        assert middle.status_code == 200, middle.content
+        assert middle.data["previousEventID"] == str(m1.event_id)
+        assert middle.data["nextEventID"] == str(m3.event_id)
 
-            # Oldest matching event: boundary on the prev side.
-            oldest = fetch(m1.event_id)
-            assert oldest.status_code == 200, oldest.content
-            assert oldest.data["previousEventID"] is None
-            assert oldest.data["nextEventID"] == str(m2.event_id)
+        # Oldest matching event: boundary on the prev side.
+        oldest = fetch(m1.event_id)
+        assert oldest.status_code == 200, oldest.content
+        assert oldest.data["previousEventID"] is None
+        assert oldest.data["nextEventID"] == str(m2.event_id)
 
-            # Newest matching event: boundary on the next side.
-            newest = fetch(m3.event_id)
-            assert newest.status_code == 200, newest.content
-            assert newest.data["previousEventID"] == str(m2.event_id)
-            assert newest.data["nextEventID"] is None
+        # Newest matching event: boundary on the next side.
+        newest = fetch(m3.event_id)
+        assert newest.status_code == 200, newest.content
+        assert newest.data["previousEventID"] == str(m2.event_id)
+        assert newest.data["nextEventID"] is None
 
-            # Landing on a non-matching event directly (e.g. via a stale
-            # URL) still returns it, but its adjacent IDs are filtered
-            # so the user can walk back into the matching set.
-            between = fetch(n1.event_id)
-            assert between.status_code == 200, between.content
-            assert between.data["previousEventID"] == str(m1.event_id)
-            assert between.data["nextEventID"] == str(m2.event_id)
+        # Landing on a non-matching event directly (e.g. via a stale
+        # URL) still returns it, but its adjacent IDs are filtered
+        # so the user can walk back into the matching set.
+        between = fetch(n1.event_id)
+        assert between.status_code == 200, between.content
+        assert between.data["previousEventID"] == str(m1.event_id)
+        assert between.data["nextEventID"] == str(m2.event_id)
 
     def test_next_prev_respects_or_query_filter_for_allowlisted_org(self) -> None:
         red = self.store_event(
@@ -278,8 +277,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{blue.group.id}/events/{blue.event_id}/"
-        with self.options({"eventstore.adjacent_event_ids_apply_query_conditions": True}):
-            response = self.client.get(url, {"query": "color:[red, blue]"}, format="json")
+        response = self.client.get(url, {"query": "color:[red, blue]"}, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["previousEventID"] == str(red.event_id)
