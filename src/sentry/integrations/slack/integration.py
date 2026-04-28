@@ -371,7 +371,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     # Stage new scopes here to test them via SlackStagingIntegrationProvider
     # (which unions these into its install scopes) before promoting to
     # identity_oauth_scopes. Empty in steady state.
-    extended_oauth_scopes: frozenset[str] = frozenset()
+    staging_oauth_scopes: frozenset[str] = frozenset()
     user_scopes = frozenset(
         [
             "links:read",
