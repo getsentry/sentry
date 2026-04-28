@@ -161,13 +161,13 @@ export function GDPRPanel({subscription}: GDPRPanelProps) {
       : false;
     const contactDetails =
       hasInformation && subscription.gdprDetails ? (
-        <Stack gap="0">
-          <Text>
+        <Stack>
+          <Text size="sm">
             <Text bold>{subscription.gdprDetails[`${prefix}Name`]}</Text> (
             {subscription.gdprDetails[`${prefix}Email`]})
           </Text>
-          <Text>{subscription.gdprDetails[`${prefix}Address`]}</Text>
-          <Text>{subscription.gdprDetails[`${prefix}Phone`]}</Text>
+          <Text size="sm">{subscription.gdprDetails[`${prefix}Address`]}</Text>
+          <Text size="sm">{subscription.gdprDetails[`${prefix}Phone`]}</Text>
         </Stack>
       ) : (
         <Text>{t('There is no information on file for this contact.')}</Text>
