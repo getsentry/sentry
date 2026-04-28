@@ -79,7 +79,7 @@ export function useReplayCount({
             staleTime: 0,
           }
         ),
-      [dataSource, fieldName, organization, _statsPeriod, start, end]
+      [dataSource, fieldName, organization.slug, _statsPeriod, start, end]
     ),
     responseReducer: useCallback((prevState, response, aggregates) => {
       const defaults = Object.fromEntries(aggregates.map(id => [id, 0]));
