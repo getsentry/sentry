@@ -411,12 +411,10 @@ export function BlockComponent({
                                 <ToolCallLinkIcon size="xs" />
                               </ToolCallLinkIconWrapper>
                             </ToolCallLink>
-                          ) : isLoading ? (
-                            <ToolCallPlainRow>{toolCallText}</ToolCallPlainRow>
                           ) : (
                             <ToolCallPlainRow>
                               {toolCallText}
-                              <ToolCallBrokenLinkIconWrapper>
+                              <ToolCallBrokenLinkIconWrapper isLoading={isLoading}>
                                 <ToolCallBrokenLinkIcon size="xs" />
                               </ToolCallBrokenLinkIconWrapper>
                             </ToolCallPlainRow>
@@ -455,6 +453,12 @@ export function BlockComponent({
 }
 
 BlockComponent.displayName = 'BlockComponent';
+
+const Block = styled('div')`
+  width: 100%;
+  position: relative;
+  flex-shrink: 0; /* Prevent blocks from shrinking */
+`;
 
 function BlockStatusIndicator({status}: {status: ReturnType<typeof getToolStatus>}) {
   if (status === 'loading' || status === 'pending') {
@@ -683,17 +687,16 @@ const ToolCallPlainRow = styled('span')`
   max-width: 100%;
 `;
 
-const ToolCallBrokenLinkIconWrapper = styled('span')`
+const ToolCallBrokenLinkIconWrapper = styled('span')<{isLoading?: boolean}>`
   display: inline-flex;
   flex-shrink: 0;
   visibility: hidden;
 
   ${ToolCallPlainRow}:hover & {
-    visibility: visible;
+    visibility: ${p => (p.isLoading ? 'hidden' : 'visible')};
   }
 `;
 
-// Hidden by default, shown when Block div is hovered
 const ActionButtonBar = styled(Flex)`
   position: absolute;
   bottom: ${p => p.theme.space['2xs']};
@@ -702,6 +705,10 @@ const ActionButtonBar = styled(Flex)`
   font-size: ${p => p.theme.font.size.sm};
   background: ${p => p.theme.tokens.background.primary};
   visibility: hidden;
+
+  ${Block}:hover & {
+    visibility: visible;
+  }
 `;
 
 const TodoListContent = styled(MarkedText)`
@@ -710,16 +717,4 @@ const TodoListContent = styled(MarkedText)`
   font-size: ${p => p.theme.font.size.xs};
   font-family: ${p => p.theme.font.family.mono};
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Block = styled('div')`
-  width: 100%;
-  position: relative;
-  flex-shrink: 0; /* Prevent blocks from shrinking */
-
-  &:hover {
-    ${ActionButtonBar} {
-      visibility: visible;
-    }
-  }
 `;
