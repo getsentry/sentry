@@ -32,10 +32,10 @@ from sentry.ratelimits.config import RateLimitConfig
 @cell_silo_endpoint
 class ObjectstoreEndpoint(Endpoint):
     """
-    Transparent proxy to Objectstore.
+    Transparent proxy to the Objectstore service (https://github.com/getsentry/objectstore).
 
     This endpoint is unauthenticated at the Django level, as authentication is performed by Objectstore via the `Authorization` or the `X-Os-Auth` header.
-    The `organization_id_or_slug` parameter in the view path and URL kwarg is needed by the API Gateway for cell routing, even though this endpoint does not validate it.
+    The `organization_id_or_slug` parameter in the view path and URL kwarg is needed by the API Gateway for cell routing, even though this endpoint does not validate nor use it.
     """
 
     publish_status = {
