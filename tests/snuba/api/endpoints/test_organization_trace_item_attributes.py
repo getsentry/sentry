@@ -799,8 +799,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "attributeSource": {"source_type": "user"},
                 },
                 {
-                    "key": "measurements.fcp",
-                    "name": "measurements.fcp",
+                    "key": "browser.web_vital.fcp.value",
+                    "name": "browser.web_vital.fcp.value",
                     "attributeType": "number",
                     "attributeSource": {"source_type": "sentry"},
                 },
@@ -829,8 +829,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                     "attributeSource": {"source_type": "sentry"},
                 },
                 {
-                    "key": "measurements.lcp",
-                    "name": "measurements.lcp",
+                    "key": "browser.web_vital.lcp.value",
+                    "name": "browser.web_vital.lcp.value",
                     "attributeType": "number",
                     "attributeSource": {"source_type": "sentry"},
                 },
