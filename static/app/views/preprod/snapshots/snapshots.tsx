@@ -283,12 +283,14 @@ export default function SnapshotsPage() {
   // Ref so the keydown handler reads current state without re-registering
   const stateRef = useRef({
     filteredItems,
+    selectedItemKey,
     currentItemKey,
     safeVariantIndex,
     variantCount,
   });
   stateRef.current = {
     filteredItems,
+    selectedItemKey,
     currentItemKey,
     safeVariantIndex,
     variantCount,
@@ -321,16 +323,17 @@ export default function SnapshotsPage() {
         return;
       }
 
-      const currentIndex = state.filteredItems.findIndex(
-        i => i.key === state.currentItemKey
-      );
+      const currentIndex =
+        state.selectedItemKey === null
+          ? -1
+          : state.filteredItems.findIndex(i => i.key === state.currentItemKey);
       const nextIndex =
         e.key === 'ArrowDown'
           ? Math.min(currentIndex + 1, state.filteredItems.length - 1)
-          : Math.max(currentIndex - 1, 0);
+          : Math.max(currentIndex - 1, -1);
 
-      if (nextIndex !== currentIndex && state.filteredItems[nextIndex]) {
-        setSelectedItemKey(state.filteredItems[nextIndex].key);
+      if (nextIndex !== currentIndex) {
+        setSelectedItemKey(state.filteredItems[nextIndex]?.key ?? null);
         setVariantIndex(0);
       }
     }
