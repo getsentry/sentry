@@ -41,6 +41,13 @@ const helpComponents = {feedbackLink: <FeedbackLink />};
 
 function getTraceErrorMessage(status: number | undefined) {
   switch (status) {
+    case 400:
+    case 500:
+      return tct(
+        'The request was invalid. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
+        helpComponents
+      );
+
     case 404:
       return tct(
         "Couldn't find this trace. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]",
@@ -51,12 +58,6 @@ function getTraceErrorMessage(status: number | undefined) {
     case 504:
       return tct(
         "Query timed out. This might be a really large trace - we're working on handling these too. Seeing this often? [feedbackLink]",
-        helpComponents
-      );
-
-    case 500:
-      return tct(
-        'The request was invalid. This could be an issue on our end or caused by a truncated/malformed URL. Seeing this often? [feedbackLink]',
         helpComponents
       );
 

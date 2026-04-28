@@ -65,20 +65,23 @@ describe('TraceWaterfallState', () => {
   });
 
   describe('Error', () => {
+    it.each([400, 500])(
+      'shows invalid-request copy when the error status is %s',
+      status => {
+        const trace = createTraceResult({error: {status} as RequestError});
+
+        render(<TraceWaterfallState.Error trace={trace} />);
+
+        expect(screen.getByText(/The request was invalid/i)).toBeInTheDocument();
+      }
+    );
+
     it('shows not-found copy when the error status is 404', () => {
       const trace = createTraceResult({error: {status: 404} as RequestError});
 
       render(<TraceWaterfallState.Error trace={trace} />);
 
       expect(screen.getByText(/Couldn't find this trace/i)).toBeInTheDocument();
-    });
-
-    it('shows invalid-request copy when the error status is 500', () => {
-      const trace = createTraceResult({error: {status: 500} as RequestError});
-
-      render(<TraceWaterfallState.Error trace={trace} />);
-
-      expect(screen.getByText(/The request was invalid/i)).toBeInTheDocument();
     });
 
     it.each([429, 504])('shows timeout copy when the error status is %s', status => {
