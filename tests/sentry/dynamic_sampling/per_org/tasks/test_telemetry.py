@@ -14,16 +14,19 @@ from sentry.dynamic_sampling.per_org.tasks.telemetry import (
 
 @pytest.fixture(autouse=True)
 def _stub_metrics_sample_rate() -> Iterator[None]:
-    """Keep these unit tests DB-free.
-
-    The decorator's timer path calls ``metrics_sample_rate()``, which
-    reads an option out of the DB. Stubbing it here means tests that don't
-    explicitly patch ``metrics.timer`` still never hit the DB.
-    """
-
-    with patch(
-        "sentry.dynamic_sampling.per_org.tasks.telemetry.metrics_sample_rate",
-        return_value=1.0,
+    with (
+        patch(
+            "sentry.dynamic_sampling.per_org.tasks.telemetry.metrics_sample_rate",
+            return_value=1.0,
+        ),
+        patch(
+            "sentry.dynamic_sampling.per_org.tasks.telemetry.is_killswitch_engaged",
+            return_value=False,
+        ),
+        patch(
+            "sentry.dynamic_sampling.per_org.tasks.telemetry.is_rollout_enabled",
+            return_value=True,
+        ),
     ):
         yield
 
@@ -100,3 +103,50 @@ def test_emits_returned_terminal_status_without_completed_status() -> None:
     timer.assert_called_once_with("dynamic_sampling.skipped.duration", sample_rate=1.0)
     emit.assert_called_once_with("dynamic_sampling.skipped.status", TelemetryStatus.NOT_IN_ROLLOUT)
     sdk.capture_exception.assert_not_called()
+
+
+def test_killswitch_short_circuits_function() -> None:
+    called = False
+
+    @instrumented
+    def skipped() -> None:
+        nonlocal called
+        called = True
+
+    with (
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer") as timer,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit,
+        patch(
+            "sentry.dynamic_sampling.per_org.tasks.telemetry.is_killswitch_engaged",
+            return_value=True,
+        ),
+    ):
+        assert skipped() == TelemetryStatus.KILLSWITCHED
+
+    assert not called
+    timer.assert_called_once_with("dynamic_sampling.skipped.duration", sample_rate=1.0)
+    emit.assert_called_once_with("dynamic_sampling.skipped.status", TelemetryStatus.KILLSWITCHED)
+
+
+def test_rollout_disabled_short_circuits_function() -> None:
+    called = False
+
+    @instrumented
+    def skipped() -> None:
+        nonlocal called
+        called = True
+
+    with (
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.metrics.timer") as timer,
+        patch("sentry.dynamic_sampling.per_org.tasks.telemetry.emit_status") as emit,
+        patch(
+            "sentry.dynamic_sampling.per_org.tasks.telemetry.is_rollout_enabled", return_value=False
+        ),
+    ):
+        assert skipped() == TelemetryStatus.ROLLOUT_DISABLED
+
+    assert not called
+    timer.assert_called_once_with("dynamic_sampling.skipped.duration", sample_rate=1.0)
+    emit.assert_called_once_with(
+        "dynamic_sampling.skipped.status", TelemetryStatus.ROLLOUT_DISABLED
+    )

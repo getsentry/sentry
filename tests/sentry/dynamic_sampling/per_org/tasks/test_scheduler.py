@@ -6,7 +6,6 @@ from sentry.dynamic_sampling.per_org.tasks.scheduler import (
     JITTER_WINDOW_SECONDS,
     _next_bucket_index,
     schedule_per_org_calculations,
-    schedule_per_org_calculations_bucket,
 )
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.models.organization import OrganizationStatus
@@ -14,34 +13,11 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 
-_BUCKET_TASK_NAME = "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket"
-
 
 def _drain_dispatched_org_ids(burst) -> list[int]:
     ids = [args[0] for _task, args, _kwargs in burst.queue]
     burst.queue.clear()
     return ids
-
-
-def _is_bucket_task(task) -> bool:
-    return getattr(task, "name", None) == _BUCKET_TASK_NAME
-
-
-def _run_queued_bucket_tasks(burst) -> int:
-    ran = 0
-    remaining = []
-    pending = list(burst.queue)
-    burst.queue.clear()
-
-    for task, args, kwargs in pending:
-        if _is_bucket_task(task):
-            schedule_per_org_calculations_bucket(*args, **kwargs)
-            ran += 1
-            continue
-        remaining.append((task, args, kwargs))
-
-    burst.queue[:0] = remaining
-    return ran
 
 
 class SchedulePerOrgCalculationsTest(TestCase):
@@ -87,15 +63,11 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert self.redis.get(BUCKET_CURSOR_KEY) is None
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_queues_next_bucket(self) -> None:
+    def test_advances_bucket_cursor(self) -> None:
         with BurstTaskRunner() as burst:
             schedule_per_org_calculations()
 
-        assert len(burst.queue) == 1
-        task, args, kwargs = burst.queue[0]
-        assert _is_bucket_task(task)
-        assert args == (0,)
-        assert kwargs == {}
+        assert burst.queue == []
         cursor = self.redis.get(BUCKET_CURSOR_KEY)
         assert cursor is not None
         assert int(cursor) == 1
@@ -106,7 +78,6 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with BurstTaskRunner() as burst:
             schedule_per_org_calculations()
-            assert _run_queued_bucket_tasks(burst) == 1
             dispatched = _drain_dispatched_org_ids(burst)
 
         for org_id in dispatched:
@@ -120,12 +91,13 @@ class SchedulePerOrgCalculationsTest(TestCase):
                 assert org_id not in dispatched
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_bucket_dispatches_only_orgs_in_target_bucket(self) -> None:
+    def test_dispatches_only_orgs_in_target_bucket(self) -> None:
         by_bucket = self.create_orgs_across_buckets(per_bucket=2)
         target = 3
+        self.redis.set(BUCKET_CURSOR_KEY, target)
 
         with BurstTaskRunner() as burst:
-            schedule_per_org_calculations_bucket(target)
+            schedule_per_org_calculations()
             dispatched = _drain_dispatched_org_ids(burst)
 
         for org_id in dispatched:
@@ -149,7 +121,8 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         with BurstTaskRunner() as burst:
             for bucket in range(BUCKET_COUNT):
-                schedule_per_org_calculations_bucket(bucket)
+                self.redis.set(BUCKET_CURSOR_KEY, bucket)
+                schedule_per_org_calculations()
             dispatched = _drain_dispatched_org_ids(burst)
 
         assert active.id in dispatched

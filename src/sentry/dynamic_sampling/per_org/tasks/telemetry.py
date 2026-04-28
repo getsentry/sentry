@@ -7,7 +7,11 @@ from typing import TypeVar
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.per_org.tasks.gate import metrics_sample_rate
+from sentry.dynamic_sampling.per_org.tasks.gate import (
+    is_killswitch_engaged,
+    is_rollout_enabled,
+    metrics_sample_rate,
+)
 from sentry.utils import metrics
 
 F = TypeVar("F", bound=Callable[..., object])
@@ -66,7 +70,12 @@ def instrumented(func: F) -> F:
     def wrapper(*args: object, **kwargs: object) -> object:
         with metrics.timer(duration_metric, sample_rate=metrics_sample_rate()):
             try:
-                result = func(*args, **kwargs)
+                if is_killswitch_engaged():
+                    result = TelemetryStatus.KILLSWITCHED
+                elif not is_rollout_enabled():
+                    result = TelemetryStatus.ROLLOUT_DISABLED
+                else:
+                    result = func(*args, **kwargs)
             except Exception as exc:
                 sentry_sdk.capture_exception(exc)
                 emit_status(status_metric, TelemetryStatus.FAILED)

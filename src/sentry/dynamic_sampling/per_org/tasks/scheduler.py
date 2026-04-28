@@ -8,11 +8,7 @@ from django.db.models import F
 from django.db.models.functions import Mod
 from taskbroker_client.retry import Retry
 
-from sentry.dynamic_sampling.per_org.tasks.gate import (
-    is_killswitch_engaged,
-    is_org_in_rollout,
-    is_rollout_enabled,
-)
+from sentry.dynamic_sampling.per_org.tasks.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     TelemetryStatus,
@@ -51,34 +47,9 @@ def _next_bucket_index() -> int:
     silo_mode=SiloMode.CELL,
 )
 @instrumented
-def schedule_per_org_calculations() -> TelemetryStatus | None:
-    if is_killswitch_engaged():
-        return TelemetryStatus.KILLSWITCHED
-    if not is_rollout_enabled():
-        return TelemetryStatus.ROLLOUT_DISABLED
-
+def schedule_per_org_calculations() -> None:
     bucket_index = _next_bucket_index()
-    schedule_per_org_calculations_bucket.apply_async(args=(bucket_index,))
-    return None
-
-
-@instrumented_task(
-    name="sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket",
-    namespace=telemetry_experience_tasks,
-    processing_deadline_duration=5 * 60,
-    retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.CELL,
-)
-@instrumented
-def schedule_per_org_calculations_bucket(bucket_index: int) -> TelemetryStatus | None:
-    bucket_index = bucket_index % BUCKET_COUNT
     bucket_tag = {"bucket_index": str(bucket_index)}
-
-    if is_killswitch_engaged():
-        return TelemetryStatus.KILLSWITCHED
-    if not is_rollout_enabled():
-        return TelemetryStatus.ROLLOUT_DISABLED
-
     dispatched = 0
     skipped = 0
     queryset = (
