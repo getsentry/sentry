@@ -81,10 +81,6 @@ const modifierPredicates: Record<string, (event: KeyboardEvent) => boolean> = {
 
 export const MODIFIER_KEYS = ['command', 'shift', 'control', 'alt'] as const;
 
-export function isModifierKey(name: string): boolean {
-  return canonicalize(name) in modifierPredicates;
-}
-
 function codeForChar(ch: string): string | undefined {
   if (ch >= 'a' && ch <= 'z') {
     return `Key${ch.toUpperCase()}`;
