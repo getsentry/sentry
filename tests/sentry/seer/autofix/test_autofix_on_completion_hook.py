@@ -509,13 +509,13 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", integration_id)
-        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", False)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
         return SeerAutomationHandoffConfiguration(
             handoff_point=handoff_point,
             target="cursor_background_agent",
             integration_id=integration_id,
-            auto_create_pr=False,
+            auto_create_pr=True,
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.read_preference_from_sentry_db")
@@ -602,6 +602,7 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_coding_agent_handoff")
     def test_trigger_coding_agent_handoff_calls_function(self, mock_trigger):

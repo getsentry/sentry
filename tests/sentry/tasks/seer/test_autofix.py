@@ -216,8 +216,10 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # Existing stopping point and handoff preserved instead of being backfilled from org defaults.
         assert project.get_option("sentry:seer_automated_run_stopping_point") == "code_changes"
+        assert project.get_option("sentry:seer_automation_handoff_point") == "root_cause"
         assert project.get_option("sentry:seer_automation_handoff_target") == "claude_code_agent"
         assert project.get_option("sentry:seer_automation_handoff_integration_id") == 99
+        assert project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     def test_project_with_valid_stopping_point_gets_handoff_from_org_defaults(self) -> None:
         """Project with valid stopping point but no handoff gets org default handoff applied.
