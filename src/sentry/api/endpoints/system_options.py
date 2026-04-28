@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from django.conf import settings
 from django.db import router, transaction
@@ -12,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.options.store import Key
 from sentry.utils.email import is_smtp_enabled
 
 logger = logging.getLogger("sentry")
@@ -20,6 +20,13 @@ SYSTEM_OPTIONS_ALLOWLIST = (
     # Used during setup before the superadmin role with the options.admin permission is authed
     "system.admin-email"
 )
+
+
+def _is_secret(k: Key) -> bool:
+    keywords = ["secret", "private", "token"]
+    return ((k.flags & options.FLAG_CREDENTIAL) != 0) or any(
+        [keyword in k.name for keyword in keywords]
+    )
 
 
 @all_silo_endpoint
@@ -56,7 +63,7 @@ class SystemOptionsEndpoint(Endpoint):
 
             # TODO(mattrobenolt): help, placeholder, title, type
             results[k.name] = {
-                "value": options.get(k.name) if not self.__is_secret(k) else "[redacted]",
+                "value": options.get(k.name) if not _is_secret(k) else "[redacted]",
                 "field": {
                     "default": k.default(),
                     "required": bool(k.flags & options.FLAG_REQUIRED),
@@ -68,12 +75,6 @@ class SystemOptionsEndpoint(Endpoint):
             }
 
         return Response(results)
-
-    def __is_secret(self, k: Any) -> bool:
-        keywords = ["secret", "private", "token"]
-        return (k.flags & options.FLAG_CREDENTIAL) or any(
-            [keyword in k.name for keyword in keywords]
-        )
 
     def has_permission(self, request: Request) -> bool:
         if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
@@ -113,7 +114,7 @@ class SystemOptionsEndpoint(Endpoint):
                             "ip_address": request.META["REMOTE_ADDR"],
                             "user_id": request.user.id,
                             "option_key": k,
-                            "option_value": v,
+                            "option_value": "[redacted]" if _is_secret(option) else v,
                         },
                     )
             except (TypeError, AssertionError) as e:
