@@ -34,15 +34,23 @@ import {
   isExternalLocation,
 } from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconArrow, IconClose, IconLink, IconOpen, IconSearch} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClose,
+  IconLink,
+  IconMegaphone,
+  IconOpen,
+  IconSearch,
+  IconSeer,
+} from 'sentry/icons';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
 import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
@@ -515,7 +523,11 @@ export function CommandPalette({
 
       {treeState.collection.size === 0 ? (
         isEmptyPromptQuery || isLoading ? null : (
-          <CommandPaletteNoResults />
+          <CommandPaletteNoResults
+            query={state.query}
+            openSeerExplorer={openSeerExplorer}
+            closeModal={closeModal}
+          />
         )
       ) : (
         <ResultsList
@@ -1039,7 +1051,69 @@ function CommandPaletteHints() {
   );
 }
 
-function CommandPaletteNoResults() {
+function CommandPaletteNoResults({
+  query,
+  openSeerExplorer,
+  closeModal,
+}: {
+  query: string;
+  closeModal?: () => void;
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void;
+}) {
+  const openForm = useFeedbackForm();
+
+  if (openSeerExplorer) {
+    return (
+      <Flex direction="column" paddingTop="xs">
+        <Flex padding="sm md">
+          <Text size="sm" variant="muted">
+            {t('No results for "%s"', query)}
+          </Text>
+        </Flex>
+        <NoResultsAction
+          onClick={() => {
+            closeModal?.();
+            openSeerExplorer({initialQuery: query.trim() || undefined});
+          }}
+        >
+          <Flex
+            height="100%"
+            align="start"
+            justify="center"
+            width="14px"
+            paddingTop="2xs"
+          >
+            <IconDefaultsProvider size="sm">
+              <IconSeer />
+            </IconDefaultsProvider>
+          </Flex>
+          <Text size="sm">{t('Ask Seer')}</Text>
+        </NoResultsAction>
+        {openForm && (
+          <NoResultsAction
+            onClick={() => {
+              closeModal?.();
+              openForm({tags: {['feedback.source']: 'command_palette'}});
+            }}
+          >
+            <Flex
+              height="100%"
+              align="start"
+              justify="center"
+              width="14px"
+              paddingTop="2xs"
+            >
+              <IconDefaultsProvider size="sm">
+                <IconMegaphone />
+              </IconDefaultsProvider>
+            </Flex>
+            <Text size="sm">{t('Give Feedback')}</Text>
+          </NoResultsAction>
+        )}
+      </Flex>
+    );
+  }
+
   return (
     <Flex
       direction="column"
@@ -1061,20 +1135,30 @@ function CommandPaletteNoResults() {
             </Text>
           </Stack>
         </Container>
-        <Container paddingTop="xl">
-          <FeedbackButton
-            priority="primary"
-            feedbackOptions={{
-              tags: {
-                ['feedback.source']: 'command_palette',
-              },
-            }}
-          />
-        </Container>
       </Stack>
     </Flex>
   );
 }
+
+const NoResultsAction = styled('button')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  width: 100%;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: ${p => p.theme.radius.md};
+  color: ${p => p.theme.tokens.content.primary};
+
+  &:hover,
+  &:focus-visible {
+    background: ${p => p.theme.tokens.background.secondary};
+    outline: none;
+  }
+`;
 
 const StyledInputLeadingItems = styled(InputGroup.LeadingItems)`
   left: ${p => p.theme.space.lg};
