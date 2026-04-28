@@ -392,6 +392,21 @@ class OrganizationIndexEndpoint(Endpoint):
         result = serializer.validated_data
 
         analytics_in_rpc = options.get("provision_organization_in_cell.record_analytics")
+
+        getsentry_options = None
+        if analytics_in_rpc:
+            getsentry_options = {
+                # Define a self-serve free account for saas. Historically
+                # these were not trial accounts.
+                # See getsentry/utils/provisioning.py
+                "subscription": {
+                    "channel": 0,
+                    "type": 0,
+                },
+                "ip_address": request.META["REMOTE_ADDR"],
+                "provisioning_user_id": request.user.id,
+            }
+
         try:
             create_default_team = bool(result.get("defaultTeam"))
             rpc_user = serialize_generic_user(request.user)
@@ -409,17 +424,7 @@ class OrganizationIndexEndpoint(Endpoint):
                     agree_terms=result.get("agreeTerms"),
                 ),
                 post_provision_options=PostProvisionOptions(
-                    getsentry_options={
-                        # Define a self-serve free account for saas. Historically
-                        # these were not trial accounts.
-                        # See getsentry/utils/provisioning.py
-                        "subscription": {
-                            "channel": 0,
-                            "type": 0,
-                        },
-                        "ip_address": request.META["REMOTE_ADDR"],
-                        "provisioning_user_id": request.user.id,
-                    },
+                    getsentry_options=getsentry_options,
                     sentry_options=None,
                 ),
             )
