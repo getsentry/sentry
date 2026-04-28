@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import orjson
 
 from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils.cases import APITestCase
 
 
@@ -85,3 +86,108 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
 
         body = mock_seer.call_args.args[0]
         assert body["rca_source"] == "LIGHTWEIGHT"
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_assignee_summary(self, mock_seer):
+        user_a = self.create_user(email="a@example.com")
+        user_b = self.create_user(email="b@example.com")
+        team = self.create_team(organization=self.organization, slug="backend")
+
+        g1 = self.create_group(project=self.project)
+        g2 = self.create_group(project=self.project)
+        g3 = self.create_group(project=self.project)
+        g_unassigned = self.create_group(project=self.project)
+
+        GroupAssignee.objects.assign(g1, user_a)
+        GroupAssignee.objects.assign(g2, user_b)
+        GroupAssignee.objects.assign(g3, team)
+
+        mock_seer.return_value = mock_seer_response(
+            {
+                "data": [
+                    {
+                        "id": 1,
+                        "group_ids": [g1.id, g2.id, g3.id, g_unassigned.id],
+                        "title": "sg",
+                    }
+                ]
+            }
+        )
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[g1.id],
+            )
+
+        sg = response.data["data"][0]
+        assignees = {(a["type"], a["id"]) for a in sg["assignees"]}
+        assert assignees == {
+            ("user", str(user_a.id)),
+            ("user", str(user_b.id)),
+            ("team", str(team.id)),
+        }
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_assignee_summary_empty(self, mock_seer):
+        unassigned = self.create_group(project=self.project)
+        mock_seer.return_value = mock_seer_response(
+            {"data": [{"id": 1, "group_ids": [unassigned.id], "title": "sg"}]}
+        )
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[unassigned.id],
+            )
+
+        sg = response.data["data"][0]
+        assert sg["assignees"] == []
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_assignee_summary_ignores_cross_org_groups(self, mock_seer):
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_user = self.create_user(email="other@example.com")
+        other_group = self.create_group(project=other_project)
+        GroupAssignee.objects.assign(other_group, other_user)
+
+        mock_seer.return_value = mock_seer_response(
+            {
+                "data": [
+                    {
+                        "id": 1,
+                        "group_ids": [self.unresolved_group.id, other_group.id],
+                        "title": "sg",
+                    }
+                ]
+            }
+        )
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[self.unresolved_group.id],
+            )
+
+        sg = response.data["data"][0]
+        assert sg["assignees"] == []
+
+    @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
+    def test_assignee_summary_tolerates_missing_actor(self, mock_seer):
+        # GroupAssignee row references a user_id that `user_service.get_many_by_id` no longer returns
+        assigned = self.create_group(project=self.project)
+        GroupAssignee.objects.create(group=assigned, project=self.project, user_id=999_999)
+
+        mock_seer.return_value = mock_seer_response(
+            {"data": [{"id": 1, "group_ids": [assigned.id], "title": "sg"}]}
+        )
+
+        with self.feature("organizations:top-issues-ui"):
+            response = self.get_success_response(
+                self.organization.slug,
+                group_id=[assigned.id],
+            )
+
+        sg = response.data["data"][0]
+        assert sg["assignees"] == []
