@@ -24,9 +24,11 @@ export interface UseExperimentOptions {
   /**
    * Whether to report that the user has been exposed to this experiment.
    * Defaults to false: the FE is the source of truth for exposure, so each
-   * call site must opt in at the point that represents the user actually
-   * seeing the experiment. Reading the assignment for conditional logic or
-   * analytics tagging should leave this off so exposure isn't double-counted.
+   * call site must opt in at the point where the user is actually rendered
+   * one of the experiment variants. The hook is often consumed by shared
+   * components whose surrounding flow may render something other than the
+   * control or active variant; in those cases the user has not seen the
+   * experiment and exposure should not be reported.
    *
    * This option is reactive: changing it from false to true will report
    * exposure at that point.
@@ -56,9 +58,10 @@ function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
  * @param options.feature - The experiment key, matching the flagpole flag name
  *   without the "organizations:" prefix (e.g. "my-experiment").
  * @param options.reportExposure - Whether to log an exposure event. Defaults
- *   to false. Set to true at the call site that represents the user actually
- *   seeing the experiment; leave off when reading the assignment for
- *   conditional logic so exposure isn't double-counted.
+ *   to false. Set to true at the call site where the user is actually
+ *   rendered one of the experiment variants. Leave off when the consuming
+ *   component may render something other than the control or active variant,
+ *   since the user has not seen the experiment in that case.
  *
  * @example
  * ```tsx
