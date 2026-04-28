@@ -184,7 +184,8 @@ function ProjectPreferenceLoader({
   ) => void;
   project: Project;
 }) {
-  const {preference, isPending, codeMappingRepos} = useProjectSeerPreferences(project);
+  const {data, isPending} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   useEffect(() => {
     onUpdate(project, preference, isPending, codeMappingRepos);

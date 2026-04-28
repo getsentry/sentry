@@ -208,7 +208,9 @@ describe('LogsInfiniteTable', () => {
   };
 
   it('should render the table component', async () => {
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -216,7 +218,9 @@ describe('LogsInfiniteTable', () => {
   });
 
   it('should render with loading state initially', async () => {
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     const loadingIndicator = await screen.findByTestId('loading-indicator');
     expect(loadingIndicator).toBeInTheDocument();
@@ -240,7 +244,9 @@ describe('LogsInfiniteTable', () => {
         })
       );
     }
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -272,7 +278,12 @@ describe('LogsInfiniteTable', () => {
   });
 
   it('should not be interactable on embedded views', async () => {
-    renderWithProviders(<LogsInfiniteTable embedded />);
+    renderWithProviders(
+      <LogsInfiniteTable
+        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+        embedded
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId('logs-table')).toBeInTheDocument();
@@ -305,7 +316,9 @@ describe('LogsInfiniteTable', () => {
       },
     });
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(emptyApiMock).toHaveBeenCalled();
@@ -320,7 +333,9 @@ describe('LogsInfiniteTable', () => {
       statusCode: 500,
     });
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     await waitFor(() => {
       expect(mockResponse).toHaveBeenCalled();
@@ -411,7 +426,9 @@ describe('LogsInfiniteTable', () => {
       })
     );
 
-    renderWithProviders(<LogsInfiniteTable />);
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
 
     expect(eventsMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/events/`,

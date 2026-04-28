@@ -143,6 +143,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
                 {t('No logs recorded')}
               </NoRowRenderer>
             )}
+            analyticsPageSource={LogsAnalyticsPageSource.REPLAY_DETAILS}
           />
         )}
       </LogsItemContainer>
