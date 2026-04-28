@@ -47,3 +47,21 @@ class DsnLookupEndpointTest(APITestCase):
     def test_feature_flag_disabled_returns_404(self) -> None:
         response = self.get_response(self.org.slug, qs_params={"dsn": self.dsn})
         assert response.status_code == 404
+
+    def test_user_without_project_access_returns_404(self) -> None:
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(organization=org, teams=[team])
+        key = project.key_set.first()
+        assert key is not None
+
+        user_without_access = self.create_user()
+        self.create_member(user=user_without_access, organization=org, role="member", teams=[])
+        self.login_as(user_without_access)
+
+        with self.feature("organizations:cmd-k-dsn-lookup"):
+            response = self.get_response(org.slug, qs_params={"dsn": key.dsn_public})
+        assert response.status_code == 404
