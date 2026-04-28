@@ -1,18 +1,27 @@
 import logging
 from typing import Any
 
+from taskbroker_client.retry import Retry
+from urllib3.exceptions import HTTPError
+
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
 
 logger = logging.getLogger(__name__)
 
+_MAX_RETRIES = 3
+_RETRY_DELAY_S = 30
+# make_seer_request raises HTTPError for retryable (5xx, 429) errors and ClientError for permanent 4xx errors.
+_RETRY_ON = (HTTPError,)
+
 
 @instrumented_task(
     name="sentry.deletions.seer_notify_repository_deleted",
     namespace=deletion_tasks,
-    max_retries=3,
-    default_retry_delay=60,
+    retry=Retry(times=_MAX_RETRIES, delay=_RETRY_DELAY_S, on=_RETRY_ON),
+    silo_mode=SiloMode.CELL,
 )
 def notify_seer_repository_deleted(
     organization_id: int,
