@@ -83,30 +83,39 @@ export function TraceAiConversations({
     [conversationIds]
   );
 
-  const conversationUrl = activeConversationId
+  const linkConversationId = activeConversationId ?? conversationIds[0] ?? null;
+  const conversationUrl = linkConversationId
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${activeConversationId}/${selectedSpanId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
+        `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${linkConversationId}/${selectedSpanId && activeConversationId ? `?spanId=${encodeURIComponent(selectedSpanId)}` : ''}`
       )
     : null;
 
   return (
     <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
       <Flex direction="column" height="100%">
-        {activeConversationId && conversationUrl && (
+        {activeConversationId && (
           <TraceConversationHeader
             conversationId={activeConversationId}
-            conversationUrl={conversationUrl}
             nodes={traceNodes}
             isLoading={isLoading}
           />
         )}
         <StyledTabs value={activeSubTab} onChange={handleTabChange}>
           <Container borderBottom="primary">
-            <TabList>
-              {tabItems.map(item => (
-                <TabList.Item key={item.key}>{item.label}</TabList.Item>
-              ))}
-            </TabList>
+            <Flex align="center" justify="between" gap="md">
+              <TabList>
+                {tabItems.map(item => (
+                  <TabList.Item key={item.key}>{item.label}</TabList.Item>
+                ))}
+              </TabList>
+              {conversationUrl && (
+                <Flex flexShrink={0} padding="0 lg">
+                  <LinkButton size="xs" to={conversationUrl}>
+                    {t('Show full conversation')}
+                  </LinkButton>
+                </Flex>
+              )}
+            </Flex>
           </Container>
           <FullHeightTabPanels>
             {tabItems.map(item =>
@@ -137,29 +146,20 @@ export function TraceAiConversations({
 
 function TraceConversationHeader({
   conversationId,
-  conversationUrl,
   nodes,
   isLoading,
 }: {
   conversationId: string;
-  conversationUrl: string;
   isLoading: boolean;
   nodes: AITraceSpanNode[];
 }) {
   return (
     <Container padding="md lg" borderBottom="primary">
-      <Flex align="center" justify="between" gap="md">
-        <ConversationAggregatesBar
-          nodes={nodes}
-          conversationId={conversationId}
-          isLoading={isLoading}
-        />
-        <Flex flexShrink={0}>
-          <LinkButton size="xs" to={conversationUrl}>
-            {t('Show full conversation')}
-          </LinkButton>
-        </Flex>
-      </Flex>
+      <ConversationAggregatesBar
+        nodes={nodes}
+        conversationId={conversationId}
+        isLoading={isLoading}
+      />
     </Container>
   );
 }
