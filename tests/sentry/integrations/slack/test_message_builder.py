@@ -1152,6 +1152,19 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         blocks = SlackIssuesMessageBuilder(group, is_unfurl=True).build()
         assert not self._has_autofix_button(blocks)
 
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @with_feature(
+        {
+            "organizations:gen-ai-features": True,
+            "organizations:seer-slack-workflows": True,
+        }
+    )
+    def test_autofix_button_hidden_when_no_other_actions(self, mock_quota: MagicMock) -> None:
+        self.organization.update_option("sentry:enable_seer_enhanced_alerts", True)
+        group = self.create_group(project=self.project)
+        blocks = SlackIssuesMessageBuilder(group, issue_details=True).build()
+        assert not self._has_autofix_button(blocks)
+
 
 class BuildGroupAttachmentReplaysTest(TestCase):
     @patch("sentry.models.group.Group.has_replays")
