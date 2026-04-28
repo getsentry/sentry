@@ -12,9 +12,9 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 export type AssignedBy = 'suggested_assignee' | 'assignee_selector';
@@ -88,14 +88,14 @@ export function useAssignIssueMutation(
     },
     onSuccess: (response, variables, onMutateResult, context) => {
       // Update react query cache so that useGroup() reflects the new assignee
-      setApiQueryData<Group>(
-        queryClient,
-        makeFetchGroupQueryKey({
+      queryClient.setQueryData(
+        groupApiOptions({
           organizationSlug: variables.orgSlug,
           groupId: variables.groupId,
           environments,
-        }),
-        prev => (prev ? {...prev, assignedTo: response.assignedTo} : prev)
+        }).queryKey,
+        prev =>
+          prev ? {...prev, json: {...prev.json, assignedTo: response.assignedTo}} : prev
       );
       // Dual-write to GroupStore
       // TODO: Remove this when we no longer rely on GroupStore for updates

@@ -1225,6 +1225,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_snapshot_pr_comments_enabled": self.get_value_with_default(
                 attrs, "sentry:preprod_snapshot_pr_comments_enabled"
             ),
+            "sentry:preprod_snapshot_pr_comments_only_if_diff": self.get_value_with_default(
+                attrs, "sentry:preprod_snapshot_pr_comments_only_if_diff"
+            ),
         }
 
     def get_value_with_default(self, attrs, key):
