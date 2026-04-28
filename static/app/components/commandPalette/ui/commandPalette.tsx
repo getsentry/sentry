@@ -300,6 +300,17 @@ export function CommandPalette({
     return undefined;
   }, [treeState.collection, sectionKeys]);
 
+  const lastFocusableKey = useMemo(() => {
+    const items = [...treeState.collection];
+    for (let index = items.length - 1; index >= 0; index--) {
+      const item = items[index];
+      if (item && !sectionKeys.has(String(item.key))) {
+        return item;
+      }
+    }
+    return undefined;
+  }, [treeState.collection, sectionKeys]);
+
   useLayoutEffect(() => {
     if (treeState.selectionManager.focusedKey !== null) {
       return;
@@ -310,14 +321,16 @@ export function CommandPalette({
     }
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
+  const resultsListRef = useRef<HTMLDivElement>(null);
+
   const delegate = useMemo(
     () =>
       new ListKeyboardDelegate({
         collection: treeState.collection,
         disabledKeys: treeState.selectionManager.disabledKeys,
-        ref: state.input,
+        ref: resultsListRef,
       }),
-    [treeState.collection, treeState.selectionManager.disabledKeys, state.input]
+    [treeState.collection, treeState.selectionManager.disabledKeys]
   );
 
   const {collectionProps} = useSelectableCollection({
@@ -325,12 +338,18 @@ export function CommandPalette({
     keyboardDelegate: delegate,
     shouldFocusWrap: true,
     ref: state.input,
+    isVirtualized: true,
     // Type-ahead is designed for navigating list items by typing — it intercepts
     // Space (via onKeyDownCapture) when there is already a search term, which
     // prevents the space from being inserted into the text input. Disable it
     // here because filtering is handled by the input's own onChange instead.
     disallowTypeAhead: true,
   });
+  const collectionKeyDown = collectionProps.onKeyDown;
+  const mergedCollectionProps = {
+    ...collectionProps,
+    onKeyDown: undefined,
+  };
 
   const onActionSelection = useCallback(
     (
@@ -423,7 +442,6 @@ export function CommandPalette({
     };
   }, [dispatch]);
 
-  const resultsListRef = useRef<HTMLDivElement>(null);
   const modifierKeysRef = useRef({shiftKey: false});
 
   useEffect(() => {
@@ -504,7 +522,7 @@ export function CommandPalette({
                       ? t('Search inside %s...', state.action.value.label)
                       : t('Search for commands...'))
                   }
-                  {...mergeProps(collectionProps, {
+                  {...mergeProps(mergedCollectionProps, {
                     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                       dispatch({type: 'set query', query: e.target.value});
                       treeState.selectionManager.setFocusedKey(null);
@@ -513,6 +531,22 @@ export function CommandPalette({
                       }
                     },
                     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (
+                        treeState.selectionManager.focusedKey === null &&
+                        (e.key === 'ArrowDown' || e.key === 'ArrowUp')
+                      ) {
+                        const anchorItem =
+                          e.key === 'ArrowDown' ? firstFocusableKey : lastFocusableKey;
+                        if (anchorItem) {
+                          treeState.selectionManager.setFocused(true);
+                          treeState.selectionManager.setFocusedKey(anchorItem.key);
+                          e.preventDefault();
+                          return;
+                        }
+                      }
+
+                      collectionKeyDown?.(e);
+
                       if (e.key === 'Tab' && !e.shiftKey && seerExplorerEnabled) {
                         e.preventDefault();
                         dispatch({type: 'trigger action'});
