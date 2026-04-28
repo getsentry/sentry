@@ -124,22 +124,17 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       ? []
       : [
           {
-            // Layout coverage for the `/` character:
-            // - `command+/` / `ctrl+/`: US/UK QWERTY (unshifted Slash)
-            // - `command+.` / `ctrl+.`: Mac-idiomatic alternative
-            // - `command+shift+7` / `ctrl+shift+7`: German QWERTZ, Nordic,
-            //   Italian, Spanish, Polish, Czech, etc. (shift+7 → `/`)
-            // - `command+shift+.` / `ctrl+shift+.`: French/Belgian AZERTY
-            //   (`/` lives on shift+`:`, which is the Period physical key)
             match: [
-              'command+/',
+              'command+/', // QWERTY (US, UK, most CJK, RTL scripts)
               'ctrl+/',
-              'command+.',
+              'command+.', // macOS-friendly alternative
               'ctrl+.',
-              'command+shift+7',
+              'command+shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
               'ctrl+shift+7',
-              'command+shift+.',
+              'command+shift+.', // AZERTY (French, Belgian): / === Shift+.
               'ctrl+shift+.',
+              'command+shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
+              'ctrl+shift+-',
             ],
             callback: () => {
               toggleSeerExplorerDrawer();
