@@ -27,7 +27,7 @@ from sentry.db.models import (
     LegacyTextJSONField,
     Model,
     UUIDField,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -210,7 +210,7 @@ class ScheduleType:
         return dict(cls.as_choices())[value]
 
 
-@region_silo_model
+@cell_silo_model
 class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -471,7 +471,7 @@ def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
         check_organization_monitor_limit(instance.organization_id)
 
 
-@region_silo_model
+@cell_silo_model
 class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -647,7 +647,7 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         return monitor_env
 
 
-@region_silo_model
+@cell_silo_model
 class MonitorEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -753,7 +753,7 @@ def default_grouphash():
     return uuid.uuid4().hex
 
 
-@region_silo_model
+@cell_silo_model
 class MonitorIncident(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -805,7 +805,7 @@ class MonitorIncident(Model):
         ]
 
 
-@region_silo_model
+@cell_silo_model
 class MonitorEnvBrokenDetection(Model):
     """
     Records an instance where we have detected a monitor environment to be

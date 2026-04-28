@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import {
   isWebVitalsEvent,
   TRACE_WATERFALL_PREFERENCES_KEY,
@@ -14,7 +15,7 @@ import {type Event} from 'sentry/types/event';
 import {type Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
@@ -33,7 +34,7 @@ import {
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import useTraceStateAnalytics from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
@@ -180,7 +181,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       type={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}
@@ -189,7 +190,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
           >
             {t('View Full Trace')}
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       }
     >
       <OneOtherIssueEvent event={event} />

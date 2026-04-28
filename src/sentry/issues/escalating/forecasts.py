@@ -78,7 +78,7 @@ def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
 @instrumented_task(
     name="sentry.tasks.weekly_escalating_forecast.generate_and_save_missing_forecasts",
     namespace=issues_tasks,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def generate_and_save_missing_forecasts(group_id: int) -> None:
     """

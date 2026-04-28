@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Tag} from 'sentry/components/core/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {ImageStatus} from 'sentry/types/debugImage';
 
@@ -9,7 +10,7 @@ type Props = {
   status: ImageStatus;
 };
 
-function Status({status}: Props) {
+export function Status({status}: Props) {
   switch (status) {
     case ImageStatus.OTHER:
     case ImageStatus.FETCHING_FAILED:
@@ -38,8 +39,6 @@ function Status({status}: Props) {
     }
   }
 }
-
-export default Status;
 
 const StyledTag = styled(Tag)`
   max-width: 100%;

@@ -1,4 +1,5 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -11,7 +12,7 @@ type Props = {
  * Renders an Alert box of type "error". Renders a "Retry" button only if a
  * `onRetry` callback is defined.
  */
-function LoadingError({
+export function LoadingError({
   className,
   onRetry,
   message = t('There was an error loading data.'),
@@ -35,5 +36,3 @@ function LoadingError({
     </Alert.Container>
   );
 }
-
-export default LoadingError;

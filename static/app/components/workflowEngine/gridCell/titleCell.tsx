@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconSentry, IconWarning} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import type {StatusWarning} from 'sentry/types/workflowEngine/automations';
 import {defined} from 'sentry/utils';
 
@@ -104,7 +104,7 @@ const Name = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const NameText = styled('span')`
@@ -123,7 +123,7 @@ const CreatedBySentryIcon = styled(IconSentry)`
 const TitleBase = styled('div')<{noHover?: boolean}>`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   flex: 1;
   overflow: hidden;
   min-height: 20px;
@@ -145,7 +145,7 @@ const TitleWrapperAnchor = TitleBase.withComponent(ExternalLink);
 const DetailsWrapper = styled('div')`
   display: inline-grid;
   grid-auto-flow: column dense;
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
   justify-content: start;
   align-items: center;
   color: ${p => p.theme.tokens.content.secondary};

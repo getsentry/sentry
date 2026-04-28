@@ -7,7 +7,7 @@ import screenfull from 'screenfull';
  * This hook converts `screenfull.isFullscreen` into a stateful value you can use
  * as part of your component render method.
  */
-export default function useIsFullscreen() {
+export function useIsFullscreen() {
   const [isFullscreen, setIsFullscreen] = useState(screenfull.isFullscreen);
 
   useEffect(() => {

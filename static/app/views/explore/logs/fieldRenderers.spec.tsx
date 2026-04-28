@@ -6,7 +6,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TimezoneProvider} from 'sentry/components/timezoneProvider';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
@@ -42,6 +42,7 @@ describe('Logs Field Renderers', () => {
       theme: ThemeFixture(),
       attributeTypes: {},
       attributes,
+      caseSensitiveHighlighting: false,
       highlightTerms: [],
       logColors: {
         text: '#000',

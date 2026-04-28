@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import DataSecrecy from 'sentry/views/settings/components/dataSecrecy';
+import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy';
 
 jest.mock('sentry/actionCreators/indicator');
 

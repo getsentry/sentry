@@ -1,5 +1,5 @@
 import type {FieldObject} from 'sentry/components/forms/types';
-import slugify from 'sentry/utils/slugify';
+import {slugify} from 'sentry/utils/slugify';
 
 export const PolicySchema: FieldObject[] = [
   {

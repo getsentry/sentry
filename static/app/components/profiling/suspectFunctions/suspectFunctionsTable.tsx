@@ -2,13 +2,12 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -17,7 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
@@ -25,7 +24,7 @@ import {isSampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   Table,
   TableBody,
@@ -36,7 +35,7 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
-import {getProfileTargetId} from 'sentry/views/profiling/utils';
+import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
 const MAX_EXAMPLES_PER_FRAME = 5;
 
@@ -119,11 +118,10 @@ export function SuspectFunctionsTable({
   const organization = useOrganization();
 
   const flamegraphQuery = useAggregateFlamegraphQuery({
-    // User query is only permitted when using transactions.
-    // If this is to be reused for strictly continuous profiling,
-    // it'll need to be swapped to use the `profiles` data source
-    // with no user query.
-    dataSource: 'transactions',
+    // Note: the 'profiles' data source does not support user queries.
+    // If reusing this for continuous profiling, remove the query param
+    // and switch to dataSource: 'profiles'.
+    dataSource: 'spans',
     query: eventView.query,
     metrics: true,
   });
@@ -133,9 +131,9 @@ export function SuspectFunctionsTable({
     const frameInfos = flamegraphQuery.data?.shared?.frame_infos ?? [];
     const profileExamples = flamegraphQuery.data?.shared?.profiles ?? [];
 
-    const examples: Array<Array<Exclude<Profiling.ProfileReference, string>>> = new Array(
-      frames.length
-    );
+    const examples = Array.from<
+      Array<Profiling.ContinuousProfileReference | Profiling.TransactionProfileReference>
+    >({length: frames.length});
 
     for (const profile of flamegraphQuery.data?.profiles ?? []) {
       if (isSampledProfile(profile)) {
@@ -180,9 +178,7 @@ export function SuspectFunctionsTable({
         continue;
       }
 
-      const frameExamples:
-        | Array<Exclude<Profiling.ProfileReference, string>>
-        | undefined = examples[i];
+      const frameExamples = examples[i];
       if (!frameExamples?.length) {
         continue;
       }
@@ -227,7 +223,7 @@ export function SuspectFunctionsTable({
     <Fragment>
       <Flex justify="between" marginBottom="md">
         <SectionHeading>{t('Suspect Functions')}</SectionHeading>
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" />}
             aria-label={t('Previous')}
@@ -271,7 +267,7 @@ export function SuspectFunctionsTable({
             <TableStatus>
               <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
             </TableStatus>
-          ) : flamegraphQuery.isFetched ? (
+          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
                 key={i}

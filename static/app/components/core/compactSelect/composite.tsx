@@ -4,11 +4,12 @@ import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 import type {DistributedOmit} from 'type-fest';
 
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {type ButtonProps} from '@sentry/scraps/button';
 
+import {t} from 'sentry/locale';
+
+import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
-import {Control} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
 import {EmptyMessage} from './styles';
@@ -60,8 +61,10 @@ type CompositeSelectChild =
   | null
   | undefined;
 
-export interface CompositeSelectProps
-  extends Omit<ControlProps, 'clearable' | 'triggerProps' | 'trigger'> {
+export interface CompositeSelectProps extends Omit<
+  ControlProps,
+  'clearable' | 'triggerProps' | 'trigger'
+> {
   /**
    * The "regions" inside this composite selector. Each region functions as a separated,
    * self-contained selectable list (each renders as a `ul` with its own list state)
@@ -117,6 +120,16 @@ CompositeSelect.Region = function <Value extends SelectKey>(
   return null;
 };
 
+CompositeSelect.ClearButton = function CompositeSelectClearButton(
+  props: DistributedOmit<ButtonProps, 'priority' | 'size' | 'children'>
+) {
+  return (
+    <ClearButton size="zero" priority="transparent" {...props}>
+      {t('Clear')}
+    </ClearButton>
+  );
+};
+
 export {CompositeSelect};
 
 type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
@@ -154,18 +167,18 @@ function Region<Value extends SelectKey>({
 const RegionsWrap = styled('div')`
   min-height: 0;
   overflow: auto;
-  padding: ${space(0.5)} 0;
+  padding: ${p => p.theme.space.xs} 0;
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
   [data-menu-has-header='true'] > div > & {
-    padding-top: calc(${space(0.5)} + 1px);
+    padding-top: calc(${p => p.theme.space.xs} + 1px);
   }
 
   /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
   shadow border */
   [data-menu-has-footer='true'] > div > & {
-    padding-bottom: calc(${space(0.5)} + 1px);
+    padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   }
 
   /* Remove padding inside lists */

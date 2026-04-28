@@ -61,7 +61,7 @@ class BindOrgContextFromIntegrationTest(TestCase):
 
         bind_org_context_from_integration(integration.id)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             mock_bind_org_context.assert_called_with(serialize_rpc_organization(org))
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")

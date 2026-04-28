@@ -1,22 +1,24 @@
 import {Fragment, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import RepositoryRow from 'sentry/components/repositoryRow';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {RepositoryRow} from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import RepositoryStore from 'sentry/stores/repositoryStore';
+import {RepositoryStore} from 'sentry/stores/repositoryStore';
 import type {Integration, Repository} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';
 
@@ -24,7 +26,7 @@ type Props = {
   integration: Integration;
 };
 
-function IntegrationRepos(props: Props) {
+export function IntegrationRepos(props: Props) {
   const [integrationReposErrorStatus, setIntegrationReposeErrorStatus] = useState<
     number | null | undefined
   >(null);
@@ -32,29 +34,24 @@ function IntegrationRepos(props: Props) {
   const {integration} = props;
   const organization = useOrganization();
   const location = useLocation();
-  const ENDPOINT = `/organizations/${organization.slug}/repos/`;
 
   const {
-    data: fetchedItemList,
+    data: reposResponse,
     isPending,
     isError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<Repository[]>(
-    [
-      ENDPOINT,
-      {
-        query: {
-          status: 'active',
-          integration_id: integration.id,
-          cursor: location.query.cursor,
-        },
+  } = useQuery({
+    ...apiOptions.as<Repository[]>()('/organizations/$organizationIdOrSlug/repos/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        status: 'active',
+        integration_id: integration.id,
+        cursor: location.query.cursor,
       },
-    ],
-    {
       staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
   const [itemListState, setItemList] = useState<Repository[]>([]);
 
   if (isPending) {
@@ -65,6 +62,7 @@ function IntegrationRepos(props: Props) {
     return <LoadingError onRetry={refetch} />;
   }
 
+  const fetchedItemList = reposResponse?.json ?? [];
   const itemList = itemListState.length ? itemListState : fetchedItemList;
 
   // Called by row to signal repository change.
@@ -87,7 +85,7 @@ function IntegrationRepos(props: Props) {
     setItemList([...itemList, repo]);
   };
 
-  const itemListPageLinks = getResponseHeader?.('Link') ?? undefined;
+  const itemListPageLinks = reposResponse?.headers.Link;
 
   return (
     <Fragment>
@@ -141,5 +139,3 @@ function IntegrationRepos(props: Props) {
     </Fragment>
   );
 }
-
-export default IntegrationRepos;

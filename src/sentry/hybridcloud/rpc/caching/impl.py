@@ -6,10 +6,10 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT
 
 from sentry.hybridcloud.models.cacheversion import (
     CacheVersionBase,
+    CellCacheVersion,
     ControlCacheVersion,
-    RegionCacheVersion,
 )
-from sentry.hybridcloud.rpc.caching.service import ControlCachingService, RegionCachingService
+from sentry.hybridcloud.rpc.caching.service import CellCachingService, ControlCachingService
 from sentry.silo.base import SiloMode
 
 _V = TypeVar("_V")
@@ -41,8 +41,8 @@ def _versioned_key(key: str, version: int) -> str:
 
 
 def _version_model(mode: SiloMode) -> type[CacheVersionBase]:
-    if mode == SiloMode.REGION:
-        return RegionCacheVersion
+    if mode == SiloMode.CELL:
+        return CellCacheVersion
     if mode == SiloMode.CONTROL:
         return ControlCacheVersion
     raise ValueError
@@ -81,9 +81,14 @@ class CacheBackend:
     set_cache = staticmethod(_set_cache)
 
 
-class LocalRegionCachingService(RegionCachingService):
-    def clear_key(self, *, region_name: str, key: str) -> int:
-        return _consume_generator(_delete_cache(key, SiloMode.REGION))
+class LocalCellCachingService(CellCachingService):
+    def clear_key(
+        self,
+        *,
+        cell_name: str,
+        key: str,
+    ) -> int:
+        return _consume_generator(_delete_cache(key, SiloMode.CELL))
 
 
 class LocalControlCachingService(ControlCachingService):

@@ -1,16 +1,15 @@
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import Content from './content';
+import {Content} from './content';
 import {NativeContent} from './nativeContent';
-import rawStacktraceContent from './rawContent';
+import {displayRawContent as rawStacktraceContent} from './rawContent';
 
 type Props = {
   event: Event;
@@ -39,7 +38,6 @@ export function StackTraceContent({
   threadId,
   lockAddress,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   if (stackView === StackView.RAW) {
     return (
       <ErrorBoundary mini>
@@ -62,7 +60,6 @@ export function StackTraceContent({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           inlined={inlined}
-          hideIcon={inlined || hasStreamlinedUI}
           maxDepth={maxDepth}
         />
       </ErrorBoundary>
@@ -79,7 +76,6 @@ export function StackTraceContent({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
-        hideIcon={inlined || hasStreamlinedUI}
         inlined={inlined}
         maxDepth={maxDepth}
         threadId={threadId}

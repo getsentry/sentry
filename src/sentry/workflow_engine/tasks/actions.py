@@ -1,18 +1,21 @@
 from dataclasses import asdict
 
 from django.db.models import Value
+from taskbroker_client.retry import Retry
 
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import namespaces
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 from sentry.utils.exceptions import timeout_grouping_context
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.utils import (
+    ProjectNotActiveError,
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
@@ -56,7 +59,7 @@ def build_trigger_action_task_params(
         "group_id": event_data.event.group_id,
         "occurrence_id": occurrence_id,
         "group_state": event_data.group_state,
-        "has_reappeared": event_data.has_reappeared,
+        "has_reappeared": False,  # TODO: remove when deployed trigger_action task doesn't expect it
         "has_escalated": event_data.has_escalated,
     }
 
@@ -72,9 +75,14 @@ def build_trigger_action_task_params(
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=30,
     retry=Retry(times=3, delay=5),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
-@retry(timeouts=True, raise_on_no_retries=False, ignore_and_capture=Action.DoesNotExist)
+@retry(
+    timeouts=True,
+    raise_on_no_retries=False,
+    ignore_and_capture=(Action.DoesNotExist, Group.DoesNotExist),
+    ignore=(Project.DoesNotExist, ProjectNotActiveError),
+)
 def trigger_action(
     action_id: int,
     workflow_id: int,
@@ -83,10 +91,10 @@ def trigger_action(
     group_id: int,
     occurrence_id: str | None,
     group_state: GroupState,
-    has_reappeared: bool,
     has_escalated: bool,
     detector_id: int | None = None,  # TODO: remove
     notification_uuid: str | None = None,
+    **kwargs: dict[str, object],
 ) -> None:
     import uuid
 
@@ -114,7 +122,6 @@ def trigger_action(
             workflow_id=workflow_id,
             occurrence_id=occurrence_id,
             group_state=group_state,
-            has_reappeared=has_reappeared,
             has_escalated=has_escalated,
         )
     elif activity_id is not None:

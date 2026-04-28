@@ -98,7 +98,8 @@ SAVED_QUERIES = [
         "query": "span.op:cache.get",
         "fields": [
             "span.op",
-            "span.duration" "timestamp",
+            "span.duration",
+            "timestamp",
         ],
         "range": "24h",
         "orderby": "-timestamp",

@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import orjson
-import requests
 from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
@@ -13,38 +11,37 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import (
+    SearchAgentStateRequest,
+    SeerViewerContext,
+    make_search_agent_state_request,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_search_agent_state(run_id: int, organization_id: int) -> dict[str, Any]:
+def fetch_search_agent_state(
+    run_id: int, organization_id: int, viewer_context: SeerViewerContext | None = None
+) -> dict[str, Any]:
     """
     Fetch the current state of a search agent run from Seer.
 
     Calls POST /v1/assisted-query/state with the run_id and organization_id.
     """
-    body = orjson.dumps({"run_id": run_id, "organization_id": organization_id})
-
-    response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/assisted-query/state",
-        data=body,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(body),
-        },
-        timeout=10,
-    )
-    response.raise_for_status()
+    body = SearchAgentStateRequest(run_id=run_id, organization_id=organization_id)
+    response = make_search_agent_state_request(body, timeout=10, viewer_context=viewer_context)
+    if response.status >= 400:
+        raise SeerApiError("Seer request failed", response.status)
     return response.json()
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class SearchAgentStateEndpoint(OrganizationEndpoint):
     """
     Endpoint to poll for search agent state by run_id.
@@ -84,9 +81,12 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 }
             }
         """
-        if not features.has(
+        has_feature = features.has(
             "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        ):
+        ) or features.has(
+            "organizations:gen-ai-explore-metrics-search", organization, actor=request.user
+        )
+        if not has_feature:
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -114,13 +114,18 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
             )
 
         try:
-            data = fetch_search_agent_state(run_id_int, organization.id)
+            viewer_context = SeerViewerContext(
+                organization_id=organization.id, user_id=request.user.id
+            )
+            data = fetch_search_agent_state(
+                run_id_int, organization.id, viewer_context=viewer_context
+            )
 
             # Return the session data directly from Seer
             return Response(data)
 
-        except requests.HTTPError as e:
-            if e.response is not None and e.response.status_code == 404:
+        except SeerApiError as e:
+            if e.status == 404:
                 logger.warning(
                     "search_agent.state_not_found",
                     extra={"run_id": run_id_int},
@@ -131,7 +136,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 )
             logger.exception(
                 "search_agent.state_error",
-                extra={"run_id": run_id_int},
+                extra={"run_id": run_id_int, "status_code": e.status},
             )
             return Response(
                 {"detail": "Failed to fetch run state"},

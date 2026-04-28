@@ -12,7 +12,7 @@ from sentry import features
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -77,7 +77,7 @@ class OrganizationMemberInviteResponse(TypedDict):
     teams: list[dict]
 
 
-@region_silo_model
+@cell_silo_model
 class OrganizationMemberInvite(DefaultFieldsModel):
     """
     Identifies relationships between organizations and their invited users.

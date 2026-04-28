@@ -3,7 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import MemberBadge from 'sentry/components/idBadge/memberBadge';
+import {MemberBadge} from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', () => {
   let member!: ReturnType<typeof MemberFixture>;

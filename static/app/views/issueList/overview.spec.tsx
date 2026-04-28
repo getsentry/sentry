@@ -18,11 +18,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import TagStore from 'sentry/stores/tagStore';
-import localStorageWrapper from 'sentry/utils/localStorage';
-import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TagStore} from 'sentry/stores/tagStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
@@ -68,7 +68,7 @@ describe('IssueList', () => {
   const group = GroupFixture({project});
   const groupStats = GroupStatsFixture();
   let fetchMembersRequest: jest.Mock;
-  const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
+  const parseLinkHeaderSpy = jest.spyOn(parseLinkHeaderModule, 'parseLinkHeader');
 
   beforeEach(() => {
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
@@ -231,7 +231,9 @@ describe('IssueList', () => {
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
-        body: [...new Array(25)].map((_, i) => GroupFixture({id: `${i}`, project})),
+        body: [...Array.from({length: 25})].map((_, i) =>
+          GroupFixture({id: `${i}`, project})
+        ),
         headers: {
           Link: DEFAULT_LINKS_HEADER,
           'X-Hits': '500',
@@ -804,7 +806,9 @@ describe('IssueList', () => {
   it('displays a count that represents the current page', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
-      body: [...new Array(25)].map((_, i) => GroupFixture({id: `${i}`, project})),
+      body: [...Array.from({length: 25})].map((_, i) =>
+        GroupFixture({id: `${i}`, project})
+      ),
       headers: {
         Link: DEFAULT_LINKS_HEADER,
         'X-Hits': '500',

@@ -33,15 +33,15 @@ class ViewSiloLimitTest(APITestCase):
                     view_class_func(request)
 
     def test_with_active_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
+        self._test_active_on(SiloMode.CELL, SiloMode.CELL, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
     def test_with_inactive_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
-        self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
+        self._test_active_on(SiloMode.CELL, SiloMode.CONTROL, False)
+        self._test_active_on(SiloMode.CONTROL, SiloMode.CELL, False)
 
     def test_with_monolith_mode(self) -> None:
-        self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
+        self._test_active_on(SiloMode.CELL, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
     def test_sets_silo_limit_on_function(self) -> None:
@@ -54,12 +54,12 @@ class ViewSiloLimitTest(APITestCase):
         assert not view_func.silo_limit.internal, "Not internal by default"
 
     def test_internal_attribute(self) -> None:
-        @ViewSiloLimit([SiloMode.REGION], internal=True)
+        @ViewSiloLimit([SiloMode.CELL], internal=True)
         def view_func(request):
             pass
 
         assert view_func.silo_limit, "Should have silo_limit set"
         assert view_func.silo_limit.modes, "Should have silo_limit.modes set"
         assert len(view_func.silo_limit.modes) == 1
-        assert SiloMode.REGION in view_func.silo_limit.modes
+        assert SiloMode.CELL in view_func.silo_limit.modes
         assert view_func.silo_limit.internal, "Should be marked as internal"

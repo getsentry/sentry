@@ -1,7 +1,10 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT
+from sentry.constants import (
+    AUTOFIX_AUTOMATION_TUNING_DEFAULT,
+    SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
+)
 from sentry.projectoptions import register
-from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 
 # This controls what sentry:option-epoch value is given to a project when it is created
 # The epoch of a project will determine what options are valid options for that specific project
@@ -103,6 +106,7 @@ DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "function_duration_regression_detection_enabled": True,
     "db_query_injection_detection_enabled": False,
     "web_vitals_detection_enabled": True,
+    "ai_issue_detection_enabled": True,
 }
 
 DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS = {
@@ -178,13 +182,54 @@ register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 register(key="sentry:tempest_fetch_screenshots", default=False)
 
 # Should autofix run automatically on new issues
-register(key="sentry:autofix_automation_tuning", default=AutofixAutomationTuningSettings.OFF)
+register(key="sentry:autofix_automation_tuning", default=AUTOFIX_AUTOMATION_TUNING_DEFAULT)
 
 # Should seer scanner run automatically on new issues
 register(key="sentry:seer_scanner_automation", default=True)
 
+# Per-project JSON blob of Seer Night Shift tweaks. Prototyping only — not a
+# stable API; the shape of the blob is expected to change.
+register(key="sentry:seer_nightshift_tweaks", default=None)
+
+# Seer project preferences
+register(
+    key="sentry:seer_automated_run_stopping_point",
+    default=SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
+)
+register(key="sentry:seer_automation_handoff_point", default=None)
+register(key="sentry:seer_automation_handoff_target", default=None)
+register(key="sentry:seer_automation_handoff_integration_id", default=None)
+register(key="sentry:seer_automation_handoff_auto_create_pr", default=False)
+
+SEER_PROJECT_PREFERENCE_OPTION_KEYS = [
+    "sentry:seer_automated_run_stopping_point",
+    "sentry:seer_automation_handoff_point",
+    "sentry:seer_automation_handoff_target",
+    "sentry:seer_automation_handoff_integration_id",
+    "sentry:seer_automation_handoff_auto_create_pr",
+    "sentry:autofix_automation_tuning",
+]
+
+# Boolean to enable/disable preprod size analysis for this project.
+register(key="sentry:preprod_size_enabled_by_customer", default=True)
+
 # Structured search filter to determine which preprod builds get size analysis.
 register(key="sentry:preprod_size_enabled_query", default="")
 
+# Boolean to enable/disable preprod build distribution for this project.
+register(key="sentry:preprod_distribution_enabled_by_customer", default=True)
+
 # Structured search filter to determine which preprod builds get build distribution.
 register(key="sentry:preprod_distribution_enabled_query", default="")
+
+# Boolean to enable/disable build distribution PR comments for this project.
+register(key="sentry:preprod_distribution_pr_comments_enabled_by_customer", default=True)
+
+# Boolean to enable/disable snapshot PR comments for this project.
+register(key="sentry:preprod_snapshot_pr_comments_enabled", default=False)
+
+# When True, only post snapshot PR comments if the comparison reports any diffs.
+register(key="sentry:preprod_snapshot_pr_comments_only_if_diff", default=False)
+
+# Whether to enable on-demand source context fetching from SCM integrations
+register(key="sentry:scm_source_context_enabled", default=False)

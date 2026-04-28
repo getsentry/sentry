@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
@@ -9,8 +11,7 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -48,7 +49,9 @@ const rightAlignColumns = new Set([
 export function McpPromptsTable() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const query = useCombinedQuery(`span.op:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`);
+  const query = useCombinedQuery(
+    `span.name:mcp.server has:${SpanFields.MCP_PROMPT_NAME}`
+  );
   const {tableSort} = useTableSort();
   const tableDataRequest = useSpanTableData({
     query,
@@ -154,7 +157,7 @@ function McpPromptCell({prompt}: {prompt: string}) {
   const {selection} = usePageFilters();
 
   const search = new MutableSearch('');
-  search.addFilterValue(SpanFields.SPAN_OP, 'mcp.server');
+  search.addFilterValue(SpanFields.NAME, 'mcp.server');
   search.addFilterValue(SpanFields.MCP_PROMPT_NAME, prompt);
 
   const link = getExploreUrl({
@@ -168,14 +171,14 @@ function McpPromptCell({prompt}: {prompt: string}) {
       },
     ],
     field: [
-      'span.description',
+      'span.name',
       'span.status',
       'mcp.prompt.result.message_content',
       'span.duration',
       'timestamp',
     ],
     query: search.formatString(),
-    sort: `-count(span.duration)`,
+    sort: '-count(span.duration)',
   });
   return <Link to={link}>{prompt}</Link>;
 }

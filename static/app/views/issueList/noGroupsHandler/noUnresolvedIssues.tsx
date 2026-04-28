@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 
 import zeroInboxIssuesImg from 'sentry-images/spot/zero-inbox-issues.svg';
 
-import {space} from 'sentry/styles/space';
-
 function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.ReactNode}) {
   return (
     <Fragment>
@@ -19,7 +17,7 @@ type Props = {
   title: React.ReactNode;
 };
 
-function NoUnresolvedIssues({title, subtitle}: Props) {
+export function NoUnresolvedIssues({title, subtitle}: Props) {
   return (
     <Wrapper>
       <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
@@ -30,7 +28,7 @@ function NoUnresolvedIssues({title, subtitle}: Props) {
 
 const Wrapper = styled('div')`
   display: flex;
-  padding: ${space(4)} ${space(4)};
+  padding: ${p => p.theme.space['3xl']} ${p => p.theme.space['3xl']};
   flex-direction: column;
   align-items: center;
   text-align: center;
@@ -48,5 +46,3 @@ const EmptyMessage = styled('div')`
     font-size: ${p => p.theme.font.size.xl};
   }
 `;
-
-export default NoUnresolvedIssues;

@@ -25,7 +25,7 @@ from sentry.notifications.notification_action.types import (
     BaseIssueAlertHandler,
     TicketingIssueAlertHandler,
 )
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import TEST_NOTIFICATION_ID, ActionTargetType, FallthroughChoiceType
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -42,7 +42,6 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
     EmailActionHelper,
-    SentryAppIdentifier,
     TicketingActionDataBlobHelper,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -169,7 +168,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.detector.name
+        assert rule.label == self.workflow.name
         assert rule.data == {
             "actions": [
                 {
@@ -183,6 +182,51 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
+
+    def test_create_rule_instance_from_action_deleted_workflow_falls_back_to_detector_name(
+        self,
+    ) -> None:
+        """Test that label falls back to detector.name when the workflow no longer exists"""
+        workflow_id = self.workflow.id
+        self.workflow.delete()
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
+
+        assert isinstance(rule, Rule)
+        assert rule.label == self.detector.name
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "workflow_id": workflow_id,
+                }
+            ]
+        }
+
+    def test_create_rule_instance_from_action_with_test_notification_id(self) -> None:
+        """Test that Workflow lookup is skipped for test notifications, falling back to detector name"""
+        self.action.workflow_id = TEST_NOTIFICATION_ID
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
+
+        assert isinstance(rule, Rule)
+        assert rule.label == self.detector.name
+        assert rule.data == {
+            "actions": [
+                {
+                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                    "server": "1234567890",
+                    "channel_id": "channel456",
+                    "tags": "environment,user,my_tag",
+                    "legacy_rule_id": TEST_NOTIFICATION_ID,
+                }
+            ],
+        }
 
     def test_create_rule_instance_from_action_no_environment(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
@@ -237,7 +281,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.event_data.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY,
+            self.event_data.event,
+            "12345678-1234-5678-1234-567812345678",  # Rule instance
         )
 
         # Verify callback execution
@@ -665,7 +711,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             data={"settings": data_blob},
             config={
                 "target_identifier": target_id,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -686,55 +731,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             },
             config={
                 "target_identifier": target_id,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
-                "target_type": ActionTarget.SENTRY_APP.value,
-            },
-        )
-        blob = self.handler.build_rule_action_blob(action, self.org2.id)
-
-        assert blob == {
-            "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": cleaned_data_blob,
-            "sentryAppInstallationUuid": self.sentry_app_installation2.uuid,
-        }
-
-        action_2_uuid = blob["sentryAppInstallationUuid"]
-
-        # Both orgs should have different sentry app installations
-        assert action_1_uuid != action_2_uuid
-
-    def test_build_rule_action_blob_sentry_app_sentry_app_installation_uuid(self) -> None:
-        data_blob = self.build_sentry_app_form_config_data_blob()
-        cleaned_data_blob = self.build_sentry_app_form_config_data_blob(include_null_label=False)
-
-        # sentry app with settings
-        action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            data={"settings": data_blob},
-            config={
-                "target_identifier": self.sentry_app_installation.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
-                "target_type": ActionTarget.SENTRY_APP.value,
-            },
-        )
-        blob = self.handler.build_rule_action_blob(action, self.organization.id)
-
-        assert blob == {
-            "id": ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["id"],
-            "settings": cleaned_data_blob,
-            "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
-        }
-
-        action_1_uuid = blob["sentryAppInstallationUuid"]
-
-        action = self.create_action(
-            type=Action.Type.SENTRY_APP,
-            data={
-                "settings": data_blob,
-            },
-            config={
-                "target_identifier": self.sentry_app_installation2.uuid,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
@@ -759,7 +755,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
 
@@ -778,7 +773,6 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "target_type": ActionTarget.SENTRY_APP.value,
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
@@ -806,14 +800,14 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
         self.mock_callback = mock.Mock()
         self.mock_futures = [mock.Mock()]
 
-    def test_happy_path(self):
+    def test_happy_path(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
 
         invoke_future_with_error_handling(self.event_data, self.mock_callback, self.mock_futures)
 
         self.mock_callback.assert_called_once_with(self.group_event, self.mock_futures)
 
-    def test_invalid_event_data(self):
+    def test_invalid_event_data(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.workflow_engine.types import WorkflowEventData
 
@@ -828,7 +822,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         assert "Expected a GroupEvent" in str(excinfo.value)
 
-    def test_ignores_integration_form_error(self):
+    def test_ignores_integration_form_error(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import IntegrationFormError
 
@@ -840,7 +834,7 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.assert_called_once()
 
-    def test_ignores_integration_configuration_error(self):
+    def test_ignores_integration_configuration_error(self) -> None:
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
@@ -850,9 +844,10 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.assert_called_once()
 
-    def test_reraises_processing_deadline_exceeded(self):
+    def test_reraises_processing_deadline_exceeded(self) -> None:
+        from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
+
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
-        from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 
         self.mock_callback.side_effect = ProcessingDeadlineExceeded("Deadline exceeded")
 
@@ -863,10 +858,11 @@ class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
 
         self.mock_callback.assert_called_once()
 
-    def test_raises_retry_error_for_api_error(self):
+    def test_raises_retry_error_for_api_error(self) -> None:
+        from taskbroker_client.retry import RetryTaskError
+
         from sentry.notifications.notification_action.types import invoke_future_with_error_handling
         from sentry.shared_integrations.exceptions import ApiError
-        from sentry.taskworker.retry import RetryTaskError
 
         self.mock_callback.side_effect = ApiError("API error", 500)
 

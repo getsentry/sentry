@@ -9,7 +9,6 @@ type FeatureFlagConfiguration = {
   integrationName: string;
   makeConfigureCode: (dsn: string) => string;
   makeVerifyCode: () => string;
-  packageName: string;
 };
 
 const FEATURE_FLAG_CONFIGURATION_MAP: Record<
@@ -17,8 +16,7 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
   FeatureFlagConfiguration
 > = {
   [FeatureFlagProviderEnum.GENERIC]: {
-    integrationName: ``,
-    packageName: 'sentry-sdk',
+    integrationName: '',
     makeConfigureCode: (dsn: string) => `sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
@@ -36,8 +34,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.LAUNCHDARKLY]: {
-    integrationName: `LaunchDarklyIntegration`,
-    packageName: "'sentry-sdk[launchdarkly]'",
+    integrationName: 'LaunchDarklyIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.launchdarkly import LaunchDarklyIntegration
 import ldclient
@@ -57,8 +54,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.OPENFEATURE]: {
-    integrationName: `OpenFeatureIntegration`,
-    packageName: "'sentry-sdk[openfeature]'",
+    integrationName: 'OpenFeatureIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.openfeature import OpenFeatureIntegration
 from openfeature import api
@@ -78,8 +74,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.STATSIG]: {
-    integrationName: `StatsigIntegration`,
-    packageName: "'sentry-sdk[statsig]'",
+    integrationName: 'StatsigIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.statsig import StatsigIntegration
 from statsig.statsig_user import StatsigUser
@@ -102,8 +97,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
   },
 
   [FeatureFlagProviderEnum.UNLEASH]: {
-    integrationName: `UnleashIntegration`,
-    packageName: "'sentry-sdk[unleash]'",
+    integrationName: 'UnleashIntegration',
     makeConfigureCode: (dsn: string) => `import sentry_sdk
 from sentry_sdk.integrations.unleash import UnleashIntegration
 from UnleashClient import UnleashClient
@@ -127,7 +121,7 @@ sentry_sdk.capture_exception(Exception("Something went wrong!"))`,
 export const featureFlag: OnboardingConfig = {
   install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => {
-    const {integrationName, packageName, makeConfigureCode, makeVerifyCode} =
+    const {integrationName, makeConfigureCode, makeVerifyCode} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
       ];
@@ -138,12 +132,9 @@ export const featureFlag: OnboardingConfig = {
         content: [
           {
             type: 'text',
-            text:
-              featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-                ? t('Install the Sentry SDK.')
-                : t('Install the Sentry SDK with an extra.'),
+            text: t('Install the Sentry SDK.'),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock(),
         ],
       },
       {
@@ -153,9 +144,9 @@ export const featureFlag: OnboardingConfig = {
             type: 'text',
             text:
               featureFlagOptions.integration === FeatureFlagProviderEnum.GENERIC
-                ? `You don't need an integration for a generic usecase. Simply use this API after initializing Sentry.`
+                ? "You don't need an integration for a generic usecase. Simply use this API after initializing Sentry."
                 : tct('Add [name] to your integrations list.', {
-                    name: <code>{`${integrationName}`}</code>,
+                    name: <code>{integrationName}</code>,
                   }),
           },
           {

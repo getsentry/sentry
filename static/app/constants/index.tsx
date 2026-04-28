@@ -43,6 +43,7 @@ export const API_ACCESS_SCOPES = [
   'member:read',
   'member:write',
   'org:admin',
+  'org:ci',
   'org:integrations',
   'org:read',
   'org:write',
@@ -68,6 +69,7 @@ export const ALLOWED_SCOPES = [
   'member:write',
   'org:admin',
   'org:billing',
+  'org:ci',
   'org:integrations',
   'org:read',
   'org:superuser', // not an assignable API access scope
@@ -137,7 +139,36 @@ export type PermissionObj = {
   label?: string;
 };
 
+export type SpecialPermissionObj = {
+  fieldName: string;
+  help: string;
+  label: string;
+  scope: Scope;
+  summary: string;
+};
+
 export const RELEASE_ADOPTION_STAGES = ['low_adoption', 'adopted', 'replaced'];
+
+export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'Distribution',
+  help: 'Pre-release app distribution for trusted testers.',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['project:distribution']},
+  },
+};
+
+export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
+  fieldName: 'ContinuousIntegration--permission',
+  label: 'Continuous Integration (CI)',
+  help: 'Allows CI and deployment tools to upload source maps, create releases, and manage code mappings for this organization.',
+  summary: 'Source map upload, release creation, and code mappings.',
+  scope: 'org:ci',
+};
+
+export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [
+  CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
+];
 
 // We expose permissions for Sentry Apps in a more resource-centric way.
 // All of the API_ACCESS_SCOPES from above should be represented in a more
@@ -171,14 +202,7 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       admin: {label: 'Admin', scopes: ['project:releases']},
     },
   },
-  {
-    resource: 'Distribution',
-    help: 'Pre-release app distribution for trusted testers.',
-    choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['project:distribution']},
-    },
-  },
+  DISTRIBUTION_SENTRY_APP_PERMISSION,
   {
     resource: 'Event',
     label: 'Issue & Event',
@@ -631,10 +655,10 @@ export const DATA_CATEGORY_INFO = {
   [DataCategoryExact.TRACE_METRIC]: {
     name: DataCategoryExact.TRACE_METRIC,
     plural: DataCategory.TRACE_METRICS,
-    singular: 'metric',
-    displayName: 'metric',
-    titleName: t('Metrics'),
-    productName: t('Metrics'),
+    singular: 'applicationMetric',
+    displayName: 'application metric',
+    titleName: t('Application Metric Counts'), // Only currently visible internally, this name should change if we expose this to users.
+    productName: t('Application Metrics'),
     uid: 33,
     isBilledCategory: false,
     statsInfo: {
@@ -642,6 +666,22 @@ export const DATA_CATEGORY_INFO = {
       showExternalStats: true,
     },
     formatting: DEFAULT_COUNT_FORMATTING,
+  },
+  [DataCategoryExact.TRACE_METRIC_BYTE]: {
+    name: DataCategoryExact.TRACE_METRIC_BYTE,
+    plural: DataCategory.TRACE_METRIC_BYTE,
+    singular: 'applicationMetricByte',
+    displayName: 'application metric byte',
+    titleName: t('Application Metrics'),
+    productName: t('Application Metrics'),
+    uid: 37,
+    isBilledCategory: true,
+    statsInfo: {
+      ...DEFAULT_STATS_INFO,
+      showExternalStats: true,
+      yAxisMinInterval: 1 * KILOBYTE,
+    },
+    formatting: BYTES_FORMATTING,
   },
   [DataCategoryExact.SEER_USER]: {
     name: DataCategoryExact.SEER_USER,
@@ -668,7 +708,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Size Analysis Builds'),
     productName: t('Size Analysis Build'),
     uid: 35,
-    isBilledCategory: false,
+    isBilledCategory: true,
     statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
@@ -729,7 +769,7 @@ export const NODE_ENV = process.env.NODE_ENV;
 export const SPA_DSN = process.env.SPA_DSN;
 export const SENTRY_RELEASE_VERSION = process.env.SENTRY_RELEASE_VERSION;
 export const UI_DEV_ENABLE_PROFILING = process.env.UI_DEV_ENABLE_PROFILING;
-export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
+export const USE_TANSTACK_DEVTOOL = process.env.USE_TANSTACK_DEVTOOL;
 
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),

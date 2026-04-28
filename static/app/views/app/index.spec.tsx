@@ -3,12 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AlertStore from 'sentry/stores/alertStore';
-import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
+import {AlertStore} from 'sentry/stores/alertStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {HookStore} from 'sentry/stores/hookStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import App from 'sentry/views/app';
+import {App} from 'sentry/views/app';
 
 function HookWrapper(props: any) {
   return (
@@ -71,8 +71,9 @@ describe('App', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/internal/options/?query=is:required',
+      url: '/internal/options/',
       body: InstallWizardFixture(),
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
     });
   });
 

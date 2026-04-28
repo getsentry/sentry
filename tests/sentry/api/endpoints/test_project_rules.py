@@ -13,18 +13,29 @@ from slack_sdk.web import SlackResponse
 
 from sentry.api.endpoints.project_rules import get_max_alerts
 from sentry.constants import ObjectStatus
+from sentry.incidents.endpoints.serializers.utils import (
+    get_fake_id_from_object_id,
+)
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers.serializer_parity import assert_serializer_parity
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
+from sentry.workflow_engine.models import (
+    Condition,
+    Workflow,
+)
+from tests.sentry.api.endpoints.test_project_rule_details import assert_serializer_results_match
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class ProjectRuleBaseTestCase(APITestCase):
+class ProjectRuleBaseTestCase(APITestCase, BaseWorkflowTest):
     endpoint = "sentry-api-0-project-rules"
 
     def setUp(self) -> None:
@@ -64,11 +75,38 @@ class ProjectRuleBaseTestCase(APITestCase):
             {
                 "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
                 "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                "workspace": str(self.slack_integration.id),
+                "workspace": self.slack_integration.id,
                 "channel": "#team-team-team",
-                "input_channel_id": self.channel_id,
+                "channel_id": self.channel_id,
             }
         ]
+        # create single written workflow
+        self.detector = self.create_detector(project=self.project)
+        self.workflow_triggers = self.create_data_condition_group()
+        self.workflow = self.create_workflow(
+            when_condition_group=self.workflow_triggers,
+            organization=self.detector.project.organization,
+        )
+        self.detector_workflow = self.create_detector_workflow(
+            detector=self.detector, workflow=self.workflow
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=self.workflow_triggers,
+            type=Condition.EVENT_FREQUENCY_COUNT,
+            comparison={"interval": "1d", "value": 100},
+            condition_result=True,
+        )
+        self.workflow_filters = self.create_data_condition_group()
+        self.workflow_dcg = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=self.workflow_filters
+        )
+        self.create_data_condition(  # filter condition
+            condition_group=self.workflow_filters,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
 
 
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
@@ -79,6 +117,202 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_200_OK,
         )
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        is_rule_resp = False
+        workflow_resp_1 = response.data[0]
+        workflow_resp_2 = response.data[1]
+
+        if workflow_resp_1["id"] == str(self.rule.id):
+            is_rule_resp = True
+
+        if not is_rule_resp:
+            assert workflow_resp_1["id"] == str(get_fake_id_from_object_id(self.workflow.id))
+            assert workflow_resp_2["id"] == str(self.rule.id)
+        else:
+            assert workflow_resp_2["id"] == str(get_fake_id_from_object_id(self.workflow.id))
+            assert workflow_resp_1["id"] == str(self.rule.id)
+
+    @with_feature("organizations:workflow-engine-issue-alert-endpoints-get")
+    def test_workflow_engine_granular_flag(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        returned_ids = {item["id"] for item in response.data}
+        assert str(self.rule.id) in returned_ids
+        assert str(get_fake_id_from_object_id(self.workflow.id)) in returned_ids
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_unsupported_condition(self) -> None:
+        """Test with an unsupported condition e.g. IssueResolvedTriggerCondition
+        we should return what we can - the supported ones, and skip over the unsupported ones
+        """
+        detector = self.create_detector(project=self.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=detector.project.organization,
+            name="Issue resolved trigger workflow",
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.ISSUE_RESOLVED_TRIGGER,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+            comparison=True,
+            condition_result=True,
+        )
+        action_group, _ = self.create_workflow_action(workflow)
+        self.create_data_condition(  # filter condition
+            condition_group=action_group,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        assert (
+            len(response.data)
+            == Workflow.objects.filter(organization=self.project.organization).count()
+        )
+        issue_resolved_trigger_resp = None
+
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                issue_resolved_trigger_resp = resp
+
+        assert issue_resolved_trigger_resp
+        # assert we skipped over Condition.ISSUE_RESOLVED_TRIGGER and only have Condition.EXISTING_HIGH_PRIORITY_ISSUE
+        assert len(issue_resolved_trigger_resp["conditions"]) == 1
+        assert (
+            issue_resolved_trigger_resp["conditions"][0]["id"]
+            == ExistingHighPriorityIssueCondition.id
+        )
+        assert len(issue_resolved_trigger_resp["filters"]) == 1
+        assert (
+            issue_resolved_trigger_resp["errors"][0]["detail"]
+            == f"Condition not supported: {Condition.ISSUE_RESOLVED_TRIGGER}"
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_multiple_action_filters(self) -> None:
+        """
+        Test that if a workflow has multiple action filters (uses an if/then block) we only render 1 in the old UI and add to the error response
+        """
+
+        detector = self.create_detector(project=self.project)
+        workflow_triggers = self.create_data_condition_group()
+        workflow = self.create_workflow(
+            when_condition_group=workflow_triggers,
+            organization=detector.project.organization,
+            name="Issue resolved trigger workflow",
+        )
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.ISSUE_RESOLVED_TRIGGER,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_data_condition(  # trigger condition
+            condition_group=workflow_triggers,
+            type=Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+            comparison=True,
+            condition_result=True,
+        )
+        # First if/then block: action DCG with filter condition + action
+        action_group1, _ = self.create_workflow_action(workflow)
+        self.create_data_condition(
+            condition_group=action_group1,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "python"},
+            condition_result=True,
+        )
+        # Second if/then block: action DCG with filter condition + action
+        action_group2, _ = self.create_workflow_action(workflow)
+        dc2 = self.create_data_condition(
+            condition_group=action_group2,
+            type=Condition.EVENT_ATTRIBUTE,
+            comparison={"attribute": "platform", "match": "eq", "value": "java"},
+            condition_result=True,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+        )
+
+        # remove the 2nd data condition so the if/then is just an action - this should still show the error
+        dc2.delete()
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        multiple_action_filter_resp = None
+        for resp in response.data:
+            if resp["name"] == workflow.name:
+                multiple_action_filter_resp = resp
+
+        assert multiple_action_filter_resp
+        # only the first if/then block's filter is rendered
+        assert len(multiple_action_filter_resp["filters"]) == 1
+        assert (
+            multiple_action_filter_resp["errors"][0]["detail"]
+            == "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+        )
+
+    @with_feature("organizations:workflow-engine-rule-serializers")
+    def test_workflow_engine_only_fetch_workflows_in_project(self) -> None:
+        another_rule = self.create_project_rule(
+            project=self.create_project(), name="other project rule"
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+        for resp in response.data:
+            assert not resp["name"] == another_rule.label
 
 
 class GetMaxAlertsTest(ProjectRuleBaseTestCase):
@@ -232,6 +466,24 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 )
 
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.CREATED.value).exists()
+
+        # Mark the rule as non-active so the duplicate check doesn't block the second creation.
+        Rule.objects.filter(id=rule.id).update(status=ObjectStatus.PENDING_DELETION)
+
+        # Verify that the workflow engine serializer returns the same response shape.
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            workflow_response = self.get_success_response(
+                self.project.organization.slug,
+                self.project.slug,
+                name=name,
+                owner=owner,
+                actionMatch=action_match,
+                frequency=frequency,
+                status_code=status.HTTP_201_CREATED,
+                **query_args,
+            )
+        assert_serializer_results_match(response.data, workflow_response.data)
+
         return response
 
     def test_simple(self) -> None:
@@ -544,8 +796,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert rule.owner_user_id is None
 
     def test_team_owner_not_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
         team = self.create_team(organization=self.organization)
-        # Create a non-privileged member user (without team:admin scope)
         member_user = self.create_user()
         self.create_member(
             user=member_user,
@@ -567,10 +821,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert "owner" in response.data
-        assert (
-            str(response.data["owner"][0])
-            == "You must be a member of a team to assign it as the rule owner."
-        )
+        assert str(response.data["owner"][0]) == "You can only assign teams you are a member of"
 
     def test_team_owner_not_member_with_team_admin_scope(self) -> None:
         """Test that users with team:admin scope can assign a team they're not a member of as the owner"""
@@ -846,6 +1097,28 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
         assert call_args == kwargs
 
+    def test_condition_with_zero_value(self) -> None:
+        condition = {
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "interval": "1h",
+            "value": 0,
+        }
+        actions: list[dict[str, object]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction", "uuid": str(uuid4())}
+        ]
+        self.run_test(
+            actions=actions,
+            conditions=[condition],
+            expected_conditions=[
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 0,
+                    "comparisonType": "count",
+                }
+            ],
+        )
+
     def test_comparison_condition(self) -> None:
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -1101,3 +1374,113 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         clean_rule = Rule.objects.get(id=response.data.get("id"))
         assert not clean_rule.data.get("comparisonInterval")
+
+
+class GetProjectRulesDeltaTest(APITestCase):
+    """Verify legacy and workflow engine serializers produce identical output for dual-written rules."""
+
+    endpoint = "sentry-api-0-project-rules"
+
+    def test_dual_written_rule_parity(self) -> None:
+        self.login_as(user=self.user)
+        env = self.create_environment(project=self.project, name="production")
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Production alert",
+            action_match="any",
+            frequency=60,
+            environment_id=env.id,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+                {
+                    "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                    "interval": "1h",
+                    "value": 50,
+                    "comparisonType": "count",
+                    "name": "The issue is seen more than 50 times in 1h",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+
+        legacy_response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_200_OK,
+            )
+
+        assert len(legacy_response.data) == 1
+        assert len(we_response.data) == 1
+        legacy_rule = legacy_response.data[0]
+        we_rule = we_response.data[0]
+        assert legacy_rule["id"] == str(rule.id)
+
+        assert_serializer_parity(old=legacy_rule, new=we_rule)
+
+    def test_snoozed_rule_for_everyone_parity(self) -> None:
+        self.login_as(user=self.user)
+        rule = self.create_project_rule(
+            project=self.project,
+            name="Snoozed for everyone alert",
+            action_match="any",
+            frequency=60,
+            condition_data=[
+                {
+                    "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+                    "name": "A new issue is created",
+                },
+            ],
+            action_data=[
+                {
+                    "targetType": "IssueOwners",
+                    "fallthroughType": "ActiveMembers",
+                    "id": "sentry.mail.actions.NotifyEmailAction",
+                    "targetIdentifier": "",
+                    "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                }
+            ],
+        )
+        self.snooze_rule(owner_id=self.user.id, rule=rule)
+
+        legacy_response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
+        )
+
+        with self.feature("organizations:workflow-engine-rule-serializers"):
+            we_response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_200_OK,
+            )
+
+        assert len(legacy_response.data) == 1
+        assert len(we_response.data) == 1
+        legacy_rule = legacy_response.data[0]
+        we_rule = we_response.data[0]
+        assert legacy_rule["id"] == str(rule.id)
+        assert legacy_rule["snooze"]
+        assert_serializer_parity(
+            old=legacy_rule,
+            new=we_rule,
+            known_differences={"snoozeCreatedBy"},
+        )

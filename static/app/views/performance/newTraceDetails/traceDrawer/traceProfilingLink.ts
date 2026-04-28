@@ -59,10 +59,8 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  let start: Date | null = getDateFromTimestamp(transaction.space[0]);
-  let end: Date | null = getDateFromTimestamp(
-    transaction.space[0] + transaction.space[1]
-  );
+  let start = getDateFromTimestamp(transaction.space[0]);
+  let end = getDateFromTimestamp(transaction.space[0] + transaction.space[1]);
 
   // End timestamp is required to generate a link
   if (end === null || typeof profilerId !== 'string' || profilerId === '') {

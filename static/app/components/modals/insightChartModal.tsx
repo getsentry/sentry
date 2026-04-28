@@ -4,7 +4,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {space} from 'sentry/styles/space';
 import {ChartRenderingContext} from 'sentry/views/insights/common/components/chart';
 
 export type InsightChartModalOptions = {
@@ -48,7 +47,7 @@ const Container = styled('div')<{fullscreen?: boolean; height?: number | null}>`
   height: ${p =>
     p.fullscreen ? 'calc(100vh - 80px)' : p.height ? `${p.height}px` : 'auto'};
   position: relative;
-  padding-bottom: ${space(3)};
+  padding-bottom: ${p => p.theme.space['2xl']};
   z-index: 1000;
   display: flex;
   flex-direction: column;

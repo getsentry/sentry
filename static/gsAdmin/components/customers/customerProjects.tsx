@@ -1,10 +1,10 @@
 import moment from 'moment-timezone';
 import {PlatformIcon} from 'platformicons';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
 import {IconProject} from 'sentry/icons';
 
 import ResultGrid from 'admin/components/resultGrid';
@@ -13,7 +13,7 @@ type Props = {
   orgId: string;
 };
 
-function CustomerProjects({orgId}: Props) {
+export function CustomerProjects({orgId}: Props) {
   return (
     <ResultGrid
       inPanel
@@ -44,7 +44,7 @@ function CustomerProjects({orgId}: Props) {
               priority="link"
               href={`/${orgId}/${row.slug}/`}
               icon={<IconProject size="xs" />}
-              title="View in Sentry"
+              tooltipProps={{title: 'View in Sentry'}}
               aria-label="View in Sentry"
             />
             <Link to={`/_admin/customers/${orgId}/projects/${row.slug}/`}>
@@ -65,5 +65,3 @@ function CustomerProjects({orgId}: Props) {
     />
   );
 }
-
-export default CustomerProjects;

@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
@@ -50,7 +50,7 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
     return integration
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class JiraServerIssueUpdatedWebhook(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

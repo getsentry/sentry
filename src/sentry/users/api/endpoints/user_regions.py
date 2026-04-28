@@ -12,7 +12,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.types.region import get_region_by_name
+from sentry.types.cell import get_global_directory
 from sentry.users.api.bases.user import UserEndpoint, UserPermission
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -40,6 +40,8 @@ class UserRegionEndpointPermissions(UserPermission):
         return False
 
 
+# TODO(cells): Deprecate once organization listing is moved to control and the frontend
+# no longer needs locality URLs for client-side fan-out.
 @control_silo_endpoint
 class UserRegionsEndpoint(UserEndpoint):
     owner = ApiOwner.HYBRID_CLOUD
@@ -60,13 +62,22 @@ class UserRegionsEndpoint(UserEndpoint):
         organization_ids = OrganizationMemberMapping.objects.filter(user_id=user.id).values_list(
             "organization_id", flat=True
         )
-        org_mappings = (
+        cell_names = (
             OrganizationMapping.objects.filter(organization_id__in=organization_ids)
-            .distinct("region_name")
-            .order_by("region_name")
-            .values_list("region_name", flat=True)
+            .distinct("cell_name")
+            .order_by("cell_name")
+            .values_list("cell_name", flat=True)
         )
-        regions = [get_region_by_name(region_name).api_serialize() for region_name in org_mappings]
+        directory = get_global_directory()
+        localities = sorted(
+            {
+                loc
+                for name in cell_names
+                if (loc := directory.get_locality_for_cell(name)) is not None
+            },
+            key=lambda loc: loc.name,
+        )
+        regions = [loc.api_serialize() for loc in localities]
         payload = {
             "regions": regions,
         }

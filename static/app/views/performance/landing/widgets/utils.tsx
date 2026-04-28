@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -27,7 +27,10 @@ export const eventsRequestQueryProps = [
 ] as const;
 
 function setWidgetStorageObject(localObject: Record<string, string>) {
-  localStorage.setItem(getContainerLocalStorageObjectKey, JSON.stringify(localObject));
+  localStorageWrapper.setItem(
+    getContainerLocalStorageObjectKey,
+    JSON.stringify(localObject)
+  );
 }
 
 const mepQueryParamBase: Record<string, string> = {};
@@ -86,7 +89,7 @@ const getContainerKey = (
 
 function getWidgetStorageObject() {
   const localObject = JSON.parse(
-    localStorage.getItem(getContainerLocalStorageObjectKey) || '{}'
+    localStorageWrapper.getItem(getContainerLocalStorageObjectKey) || '{}'
   );
   return localObject;
 }
@@ -109,7 +112,7 @@ export const getChartSetting = (
     value &&
     Object.values(PerformanceWidgetSetting).includes(value as PerformanceWidgetSetting)
   ) {
-    const _value: PerformanceWidgetSetting = value as PerformanceWidgetSetting;
+    const _value = value as PerformanceWidgetSetting;
     return _value;
   }
   return defaultType;

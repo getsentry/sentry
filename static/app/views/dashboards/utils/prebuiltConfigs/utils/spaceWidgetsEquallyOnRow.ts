@@ -1,4 +1,4 @@
-import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/dashboard';
+import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 import type {Widget, WidgetLayout} from 'sentry/views/dashboards/types';
 
 export function spaceWidgetsEquallyOnRow(

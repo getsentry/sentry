@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -13,8 +14,11 @@ from sentry.integrations.services.integration.serial import serialize_integratio
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_params
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
+from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
@@ -37,28 +41,22 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ("http://invalid_link", (None, None)),
         (
             "https://sentry.io/organizations/org1/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://org1.sentry.io/issues/12345/",
-            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+            (LinkType.ISSUES, {"org_slug": "org1", "issue_id": 12345, "event_id": None}),
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
-            (
-                LinkType.METRIC_ALERT,
-                {
-                    "alert_rule_id": 12345,
-                    "incident_id": None,
-                    "org_slug": "org1",
-                    "period": None,
-                    "start": None,
-                    "end": None,
-                },
-            ),
+            (None, None),
         ),
         (
             "https://org1.sentry.io/alerts/rules/details/12345/",
+            (None, None),
+        ),
+        (
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -72,7 +70,21 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?alert=1337",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/?alert=1337",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -86,7 +98,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://org1.sentry.io/alerts/rules/details/12345/?alert=1337",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/?alert=1337",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -100,7 +112,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?period=14d",
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/?period=14d",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -114,7 +126,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://org1.sentry.io/alerts/rules/details/12345/?period=14d",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/?period=14d",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -128,7 +140,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
+            "https://sentry.io/organizations/org1/issues/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -142,7 +154,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
-            "https://org1.sentry.io/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
+            "https://org1.sentry.io/issues/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -182,6 +194,110 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
                 LinkType.DISCOVER,
                 {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
             ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project=1&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=avg(span.duration)&project=1&statsPeriod=24h"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.SPANS,
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=count(span.duration)&statsPeriod=24h"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.SPANS,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22sum(payload_size)%22%5D%7D&project=1&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=sum(payload_size)&project=1&statsPeriod=24h"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.LOGS,
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(payload_size)%22%5D%7D&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=count(payload_size)&statsPeriod=24h"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.LOGS,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/metrics/?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value)%22%5D%7D%5D%7D&project=1&statsPeriod=7d",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=sum(value)&project=1&statsPeriod=7d"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/explore/metrics/?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22avg(value)%22%5D%7D%5D%7D&statsPeriod=24h",
+            (
+                LinkType.EXPLORE,
+                {
+                    "org_slug": "org1",
+                    "query": QueryDict("yAxis=avg(value)&statsPeriod=24h"),
+                    "chart_type": None,
+                    "dataset": SupportedTraceItemType.TRACEMETRICS,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/traces/trace/trace_id_123/?project=1&statsPeriod=24h",
+            (None, None),
+        ),
+        (
+            "https://org1.sentry.io/explore/traces/trace/trace_id_123/?project=1&statsPeriod=24h",
+            (None, None),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/traces/other/?project=1",
+            (None, None),
+        ),
+        (
+            "https://org1.sentry.io/explore/traces/other/?project=1",
+            (None, None),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/logs/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
+        (
+            "https://org1.sentry.io/explore/logs/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
+        (
+            "https://sentry.io/organizations/org1/explore/metrics/trace/trace_id_123/?project=1",
+            (None, None),
+        ),
+        (
+            "https://org1.sentry.io/explore/metrics/trace/trace_id_123/?project=1",
+            (None, None),
         ),
     ],
 )
@@ -295,7 +411,7 @@ class UnfurlTest(TestCase):
 
         links = [
             UnfurlableUrl(
-                url=f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}",
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}",
                 args={
                     "org_slug": self.organization.slug,
                     "alert_rule_id": incident.alert_rule.id,
@@ -309,7 +425,7 @@ class UnfurlTest(TestCase):
         unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.integration, links)
         assert (
             links[0].url
-            == f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
+            == f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{incident.alert_rule.id}/?alert={incident.identifier}"
         )
         assert (
             unfurls[links[0].url]
@@ -332,7 +448,7 @@ class UnfurlTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -384,7 +500,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -442,7 +558,7 @@ class UnfurlTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -502,7 +618,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -551,7 +667,7 @@ class UnfurlTest(TestCase):
             date_started=timezone.now() - timedelta(minutes=2),
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -590,7 +706,7 @@ class UnfurlTest(TestCase):
             threshold_period=1,
         )
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/issues/alerts/rules/details/{alert_rule.id}/"
         links = [
             UnfurlableUrl(
                 url=url,
@@ -1422,3 +1538,1140 @@ class UnfurlTest(TestCase):
         assert len(mock_get_event_stats_data.mock_calls) == 1
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == discover
+
+    def _build_mock_timeseries_response(self, y_axis="avg(span.duration)"):
+        return {
+            "timeSeries": [
+                {
+                    "yAxis": y_axis,
+                    "meta": {
+                        "valueType": "duration",
+                        "valueUnit": "millisecond",
+                        "interval": INTERVAL_COUNT * 1000,
+                    },
+                    "values": [
+                        {"timestamp": i * INTERVAL_COUNT * 1000, "value": 0, "incomplete": False}
+                        for i in range(INTERVALS_PER_DAY)
+                    ],
+                }
+            ],
+        }
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Traces - avg(span.duration)", chart_url="chart-url"
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert "timeSeries" in chart_data
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_no_feature_flag(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        assert len(unfurls) == 0
+        assert len(mock_generate_chart.mock_calls) == 0
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_with_groupby(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22span.op%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
+
+        # Verify sort is passed to the timeseries API for correct top events
+        api_params = mock_client_get.call_args[1]["params"]
+        assert api_params.getlist("sort") == ["-avg(span.duration)"]
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_with_groupby_explicit_sort(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22groupBy%22%3A%22span.op%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&aggregateSort=span.op&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+
+        # Verify explicit aggregateSort from the URL is used instead of the default
+        api_params = mock_client_get.call_args[1]["params"]
+        assert api_params.getlist("sort") == ["span.op"]
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_default_yaxis(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)")
+        )
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert "timeSeries" in chart_data
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_malformed_aggregate_field(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)")
+        )
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=not-valid-json&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        # Should still unfurl with default yAxis
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert "timeSeries" in chart_data
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_end_to_end(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        """
+        End-to-end test: URL → match → handler → verify API call args → verify chartcuterie input
+        """
+        mock_client_get.return_value = MagicMock(
+            data=self._build_mock_timeseries_response(y_axis="avg(span.duration)")
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h&query=span.op%3Ahttp"
+
+        # Step 1: URL matching
+        link_type, args = match_link(url)
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["org_slug"] == self.organization.slug
+        assert args["query"]["yAxis"] == "avg(span.duration)"
+        assert args["query"]["project"] == str(self.project.id)
+        assert args["query"]["statsPeriod"] == "24h"
+        assert args["query"]["query"] == "span.op:http"
+
+        # Step 2: Run handler
+        links = [UnfurlableUrl(url=url, args=args)]
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        # Step 3: Verify events-timeseries was called with correct args
+        assert mock_client_get.call_count == 1
+        call_kwargs = mock_client_get.call_args[1]
+        assert "/events-timeseries/" in call_kwargs["path"]
+        api_params = call_kwargs["params"]
+        assert api_params["yAxis"] == "avg(span.duration)"
+        assert api_params["dataset"] == "spans"
+        assert api_params["referrer"] == "explore.slack.unfurl"
+        assert api_params.get("query") == "span.op:http"
+
+        # Step 4: Verify chartcuterie received correct data
+        assert mock_generate_chart.call_count == 1
+        chart_type = mock_generate_chart.call_args[0][0]
+        chart_data = mock_generate_chart.call_args[0][1]
+
+        assert chart_type == ChartType.SLACK_TIMESERIES
+        # timeSeries should be passed through directly from the API response
+        time_series = chart_data["timeSeries"]
+        assert isinstance(time_series, list)
+        assert len(time_series) > 0
+        first_series = time_series[0]
+        assert first_series["yAxis"] == "avg(span.duration)"
+        assert len(first_series["values"]) == INTERVALS_PER_DAY
+        # Each data point has timestamp (ms) and value directly
+        first_point = first_series["values"][0]
+        assert "timestamp" in first_point
+        assert "value" in first_point
+
+        # Step 5: Verify the unfurl result
+        assert len(unfurls) == 1
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Traces - avg(span.duration)", chart_url="chart-url"
+            ).build()
+        )
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_with_visualize_chart_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # visualize param with chartType=0 (bar)
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?visualize=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%2C%22chartType%22%3A0%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "bar"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_without_chart_type_defaults_to_line(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # avg() is not a bar aggregate, so should default to line
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "line"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_without_chart_type_count_defaults_to_bar(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(
+            data=self._build_mock_timeseries_response(y_axis="count(span.duration)")
+        )
+        # count() should default to bar
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "bar"
+
+    def test_unfurl_explore_non_dict_aggregate_field(self) -> None:
+        # aggregateField that parses to a non-dict (int, list, string, null)
+        # must not crash the arg mapper; it should fall back to defaults.
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=42&aggregateField=%5B%5D&aggregateField=null"
+            "&project=1&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+
+    def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
+        # Two charts: count with chartType=2 (area, first) and avg (second).
+        # The unfurl must render only the first chart and not merge avg's
+        # yAxis into the request.
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A2%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D"
+            "&aggregateSort=-http.status_code&project=1&query=span.category:http&statsPeriod=24h"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["chart_type"] == 2
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_with_interval(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?aggregateField=%7B%22yAxes%22%3A%5B%22avg(span.duration)%22%5D%7D&project={self.project.id}&statsPeriod=24h&interval=1h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        call_kwargs = mock_client_get.call_args[1]
+        api_params = call_kwargs["params"]
+        assert api_params["interval"] == "1h"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_logs(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        # aggregateField includes chartType:0 (bar) to verify chart_type is passed through
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22sum(payload_size)%22%5D%2C%22chartType%22%3A0%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == "logs"
+        assert args["chart_type"] == 0
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Logs - sum(payload_size)", chart_url="chart-url"
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "bar"
+        call_kwargs = mock_client_get.call_args[1]
+        api_params = call_kwargs["params"]
+        assert api_params["dataset"] == "logs"
+        assert api_params["yAxis"] == "sum(payload_size)"
+
+    def test_map_explore_query_args_logs_query_and_sort(self) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(message)%22%5D%7D&logsQuery=severity%3Aerror&logsSortBys=-timestamp&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == SupportedTraceItemType.LOGS
+        assert args["query"]["query"] == "severity:error"
+        assert args["query"]["sort"] == "-timestamp"
+        assert args["query"]["yAxis"] == "count(message)"
+
+    def test_map_explore_query_args_spans_query_and_sort(self) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/traces/?visualize=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%7D&query=span.op%3Ahttp&aggregateSort=-count(span.duration)&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == SupportedTraceItemType.SPANS
+        assert args["query"]["query"] == "span.op:http"
+        assert args["query"]["sort"] == "-count(span.duration)"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_logs_customer_domain(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://{self.organization.slug}.sentry.io/explore/logs/?aggregateField=%7B%22yAxes%22%3A%5B%22count(payload_size)%22%5D%7D&project={self.project.id}&statsPeriod=24h"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == "logs"
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        call_kwargs = mock_client_get.call_args[1]
+        assert call_kwargs["params"]["dataset"] == "logs"
+
+    @patch(
+        "sentry.integrations.slack.unfurl.explore.client.get",
+    )
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_explore_metrics(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        url = f"https://sentry.io/organizations/{self.organization.slug}/explore/metrics/?metric=%7B%22aggregateFields%22%3A%5B%7B%22yAxes%22%3A%5B%22sum(value%2Cmy.metric%2Cdistribution%2Cmillisecond)%22%5D%7D%5D%7D&project={self.project.id}&statsPeriod=7d"
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        assert link_type == LinkType.EXPLORE
+        assert args["dataset"] == SupportedTraceItemType.TRACEMETRICS
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:data-browsing-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(
+                title="Explore Metrics - sum(value,my.metric,distribution,millisecond)",
+                chart_url="chart-url",
+            ).build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        call_kwargs = mock_client_get.call_args[1]
+        api_params = call_kwargs["params"]
+        assert api_params["dataset"] == "tracemetrics"
+        assert api_params["yAxis"] == "sum(value,my.metric,distribution,millisecond)"
+
+    def _create_spans_widget(
+        self,
+        display_type: int = DashboardWidgetDisplayTypes.LINE_CHART,
+        aggregates: list[str] | None = None,
+        columns: list[str] | None = None,
+        conditions: str = "",
+        orderby: str = "",
+        title: str = "My Spans Widget",
+    ):
+        dashboard = self.create_dashboard(organization=self.organization)
+        widget = self.create_dashboard_widget(
+            dashboard=dashboard,
+            title=title,
+            display_type=display_type,
+            widget_type=DashboardWidgetTypes.SPANS,
+            order=0,
+        )
+        self.create_dashboard_widget_query(
+            widget=widget,
+            order=0,
+            fields=aggregates or ["count(span.duration)"],
+            aggregates=aggregates or ["count(span.duration)"],
+            columns=columns or [],
+            conditions=conditions,
+            orderby=orderby,
+        )
+        return dashboard, widget
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_spans_widget(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard, widget = self._create_spans_widget(
+            aggregates=["avg(span.duration)"],
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.DASHBOARDS
+        assert args is not None
+        assert args["org_slug"] == self.organization.slug
+        assert args["dashboard_id"] == dashboard.id
+        assert args["widget_index"] == 0
+
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(title=widget.title, chart_url="chart-url").build()
+        )
+        assert mock_generate_chart.call_count == 1
+        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_TIMESERIES
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "line"
+        assert "timeSeries" in chart_data
+
+        api_params = mock_client_get.call_args[1]["params"]
+        assert "/events-timeseries/" in mock_client_get.call_args[1]["path"]
+        assert api_params["yAxis"] == ["avg(span.duration)"]
+        assert api_params["dataset"] == "spans"
+        assert api_params["referrer"] == "dashboards.slack.unfurl"
+        assert api_params["statsPeriod"] == "7d"
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_customer_domain(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard, _ = self._create_spans_widget()
+
+        url = (
+            f"https://{self.organization.slug}.sentry.io"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.DASHBOARDS
+        assert args is not None
+
+        links = [UnfurlableUrl(url=url, args=args)]
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert mock_generate_chart.call_count == 1
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_no_feature_flag(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard, _ = self._create_spans_widget()
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.DASHBOARDS
+        assert args is not None
+
+        links = [UnfurlableUrl(url=url, args=args)]
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 0
+        assert mock_generate_chart.call_count == 0
+        assert mock_client_get.call_count == 0
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_unsupported_widget_type_is_skipped(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard = self.create_dashboard(organization=self.organization)
+        widget = self.create_dashboard_widget(
+            dashboard=dashboard,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.RELEASE_HEALTH,
+            order=0,
+        )
+        self.create_dashboard_widget_query(
+            widget=widget,
+            order=0,
+            fields=["count()"],
+            aggregates=["count()"],
+            columns=[],
+            conditions="",
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 0
+        assert mock_client_get.call_count == 0
+        assert mock_generate_chart.call_count == 0
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_unsupported_display_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard, _ = self._create_spans_widget(
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 0
+        assert mock_client_get.call_count == 0
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_widget_not_found(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        dashboard = self.create_dashboard(organization=self.organization)
+
+        # widget index 0 does not exist — dashboard has no widgets
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 0
+        assert mock_client_get.call_count == 0
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_multiple_queries_are_joined(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        # Each call to the timeseries endpoint returns a single series.
+        # With two widget queries, we expect two calls and the unfurl
+        # should combine both timeSeries into a single chart.
+        mock_client_get.side_effect = [
+            MagicMock(data=self._build_mock_timeseries_response(y_axis="avg(span.duration)")),
+            MagicMock(data=self._build_mock_timeseries_response(y_axis="p75(span.duration)")),
+        ]
+
+        dashboard = self.create_dashboard(organization=self.organization)
+        widget = self.create_dashboard_widget(
+            dashboard=dashboard,
+            title="Spans Widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.SPANS,
+            order=0,
+        )
+        self.create_dashboard_widget_query(
+            widget=widget,
+            order=0,
+            fields=["avg(span.duration)"],
+            aggregates=["avg(span.duration)"],
+            columns=[],
+            conditions="",
+        )
+        self.create_dashboard_widget_query(
+            widget=widget,
+            order=1,
+            fields=["p75(span.duration)"],
+            aggregates=["p75(span.duration)"],
+            columns=[],
+            conditions="",
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        assert mock_client_get.call_count == 2
+        chart_data = mock_generate_chart.call_args[0][1]
+        y_axes = [series["yAxis"] for series in chart_data["timeSeries"]]
+        assert y_axes == ["avg(span.duration)", "p75(span.duration)"]
+
+    @patch("sentry.integrations.slack.unfurl.dashboards.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_dashboards_bar_display_type(
+        self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
+    ) -> None:
+        mock_client_get.return_value = MagicMock(data=self._build_mock_timeseries_response())
+        dashboard, _ = self._create_spans_widget(
+            display_type=DashboardWidgetDisplayTypes.BAR_CHART,
+        )
+
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}"
+            f"/dashboard/{dashboard.id}/widget/0/?statsPeriod=7d"
+        )
+        link_type, args = match_link(url)
+        assert link_type is not None and args is not None
+        links = [UnfurlableUrl(url=url, args=args)]
+
+        with self.feature(["organizations:dashboards-widget-unfurl"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(unfurls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["type"] == "bar"
+
+    def test_match_link_dashboards(self) -> None:
+        # Primary domain
+        link_type, args = match_link(
+            "https://sentry.io/organizations/org1/dashboard/1013/widget/1/?statsPeriod=7d"
+        )
+        assert link_type == LinkType.DASHBOARDS
+        assert args is not None
+        assert args["org_slug"] == "org1"
+        assert args["dashboard_id"] == 1013
+        assert args["widget_index"] == 1
+
+        # Customer domain
+        link_type, args = match_link(
+            "https://org1.sentry.io/dashboard/1013/widget/1/?statsPeriod=7d"
+        )
+        assert link_type == LinkType.DASHBOARDS
+        assert args is not None
+        assert args["org_slug"] == "org1"
+        assert args["dashboard_id"] == 1013
+        assert args["widget_index"] == 1
+
+    def test_match_link_dashboards_widget_builder_is_not_matched(self) -> None:
+        # The widget builder route includes /widget-builder/ between /dashboard/
+        # and /widget/, which must not be unfurled as a chart.
+        link_type, _ = match_link(
+            "https://sentry.io/organizations/org1/dashboard/1013/widget-builder/widget/1/edit/"
+        )
+        assert link_type is None
+
+
+class BuildWidgetTimeseriesParamsTest(TestCase):
+    def _make_widget(
+        self,
+        widget_type: int = DashboardWidgetTypes.SPANS,
+        queries: list[dict[str, Any]] | None = None,
+    ):
+        dashboard = self.create_dashboard(organization=self.organization)
+        widget = self.create_dashboard_widget(
+            dashboard=dashboard,
+            widget_type=widget_type,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            order=0,
+        )
+        for i, query in enumerate(queries or [{}]):
+            aggregates = query.get("aggregates", ["count(span.duration)"])
+            self.create_dashboard_widget_query(
+                widget=widget,
+                order=i,
+                fields=aggregates,
+                aggregates=aggregates,
+                columns=query.get("columns", []),
+                conditions=query.get("conditions", ""),
+                orderby=query.get("orderby", ""),
+            )
+        return widget
+
+    def test_spans_widget(self) -> None:
+        widget = self._make_widget(queries=[{"aggregates": ["avg(span.duration)"]}])
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "spans"
+        assert all_params[0]["yAxis"] == ["avg(span.duration)"]
+        assert all_params[0]["referrer"] == "dashboards.slack.unfurl"
+        assert all_params[0]["statsPeriod"] == "7d"
+
+    def test_logs_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.LOGS,
+            queries=[{"aggregates": ["count(message)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "logs"
+        assert all_params[0]["yAxis"] == ["count(message)"]
+
+    def test_tracemetrics_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.TRACEMETRICS,
+            queries=[{"aggregates": ["sum(value)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "tracemetrics"
+        assert all_params[0]["yAxis"] == ["sum(value)"]
+
+    def test_errors_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ERROR_EVENTS,
+            queries=[{"aggregates": ["count()"], "conditions": "level:error"}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "errors"
+        assert all_params[0]["yAxis"] == ["count()"]
+        assert all_params[0]["query"] == "level:error"
+
+    def test_preprod_app_size_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.PREPROD_APP_SIZE,
+            queries=[{"aggregates": ["max(install_size)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        assert all_params[0]["dataset"] == "preprodSize"
+        assert all_params[0]["yAxis"] == ["max(install_size)"]
+
+    def test_issue_widget(self) -> None:
+        widget = self._make_widget(
+            widget_type=DashboardWidgetTypes.ISSUE,
+            queries=[{"aggregates": ["count(new_issues)"]}],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert len(all_params) == 1
+        # issues-timeseries uses `category` instead of `dataset`
+        assert all_params[0]["category"] == "issue"
+        assert "dataset" not in all_params[0]
+        assert all_params[0]["yAxis"] == ["count(new_issues)"]
+        assert all_params[0]["referrer"] == "dashboards.slack.unfurl"
+        assert all_params[0]["statsPeriod"] == "7d"
+
+    def test_multiple_queries_returns_one_dict_each_in_order(self) -> None:
+        widget = self._make_widget(
+            queries=[
+                {"aggregates": ["avg(span.duration)"]},
+                {"aggregates": ["p75(span.duration)"]},
+            ],
+        )
+
+        all_params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))
+
+        assert [p["yAxis"] for p in all_params] == [
+            ["avg(span.duration)"],
+            ["p75(span.duration)"],
+        ]
+
+    def test_groupby_sets_top_events_and_default_sort(self) -> None:
+        widget = self._make_widget(
+            queries=[{"aggregates": ["avg(span.duration)"], "columns": ["span.op"]}],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["groupBy"] == ["span.op"]
+        assert params["topEvents"] == "5"
+        # Default descending by the first yAxis when grouping without an explicit sort
+        assert params["sort"] == "-avg(span.duration)"
+
+    def test_explicit_orderby_wins_over_default(self) -> None:
+        widget = self._make_widget(
+            queries=[
+                {
+                    "aggregates": ["avg(span.duration)"],
+                    "columns": ["span.op"],
+                    "orderby": "span.op",
+                }
+            ],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["sort"] == "span.op"
+
+    def test_conditions_become_query(self) -> None:
+        widget = self._make_widget(
+            queries=[{"aggregates": ["avg(span.duration)"], "conditions": "span.op:http"}],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["query"] == "span.op:http"
+
+    def test_multi_valued_aggregates_and_columns_preserved_as_lists(self) -> None:
+        # client.get uses isinstance(value, list) to call setlist — the helper
+        # must return lists (not a QueryDict, not scalar strings) for
+        # multi-valued params.
+        widget = self._make_widget(
+            queries=[
+                {
+                    "aggregates": ["avg(span.duration)", "p75(span.duration)"],
+                    "columns": ["span.op", "span.category"],
+                }
+            ],
+        )
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["yAxis"] == ["avg(span.duration)", "p75(span.duration)"]
+        assert params["groupBy"] == ["span.op", "span.category"]
+
+    def test_url_params_forwarded(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(
+            widget, QueryDict("statsPeriod=24h&project=1&project=2&environment=prod")
+        )[0]
+
+        assert params["statsPeriod"] == "24h"
+        assert params["project"] == ["1", "2"]
+        assert params["environment"] == "prod"
+
+    def test_default_stats_period_when_absent(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        # Matches DEFAULT_STATS_PERIOD in static/app/views/dashboards/data.tsx
+        assert params["statsPeriod"] == "24h"
+
+    def test_url_start_end_supersedes_default_stats_period(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(
+            widget, QueryDict("start=2026-01-01T00:00:00&end=2026-01-02T00:00:00")
+        )[0]
+
+        assert "statsPeriod" not in params
+        assert params["start"] == "2026-01-01T00:00:00"
+        assert params["end"] == "2026-01-02T00:00:00"
+
+    def test_defaults_to_all_projects_when_no_url_or_dashboard_project(self) -> None:
+        widget = self._make_widget()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        # ALL_ACCESS_PROJECT_ID (-1) so an unconfigured dashboard still renders
+        # data rather than an empty chart.
+        assert params["project"] == "-1"
+
+    def test_dashboard_projects_used_when_url_missing(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        project_b = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a, project_b])
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert sorted(params["project"]) == sorted([str(project_a.id), str(project_b.id)])
+
+    def test_dashboard_all_projects_flag_maps_to_sentinel(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"all_projects": True}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["project"] == "-1"
+
+    def test_url_project_overrides_dashboard_projects(self) -> None:
+        project_a = self.create_project(organization=self.organization)
+        widget = self._make_widget()
+        widget.dashboard.projects.set([project_a])
+
+        params = build_widget_timeseries_params(widget, QueryDict("project=99"))[0]
+
+        assert params["project"] == "99"
+
+    def test_dashboard_environment_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod", "staging"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["environment"] == ["prod", "staging"]
+
+    def test_url_environment_overrides_dashboard_environment(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"environment": ["prod"]}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("environment=dev"))[0]
+
+        assert params["environment"] == "dev"
+
+    def test_dashboard_period_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {"period": "7d"}
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert params["statsPeriod"] == "7d"
+
+    def test_dashboard_start_end_used_when_url_missing(self) -> None:
+        widget = self._make_widget()
+        widget.dashboard.filters = {
+            "start": "2026-01-01T00:00:00",
+            "end": "2026-01-02T00:00:00",
+            "utc": True,
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict())[0]
+
+        assert "statsPeriod" not in params
+        assert params["start"] == "2026-01-01T00:00:00"
+        assert params["end"] == "2026-01-02T00:00:00"
+        # utc is intentionally dropped - not consumed by events-timeseries and
+        # irrelevant for a cross-timezone Slack audience.
+        assert "utc" not in params
+
+    def test_url_period_supersedes_dashboard_start_end(self) -> None:
+        # When the URL carries any date info, the dashboard's date range is
+        # ignored entirely so we don't mix URL statsPeriod with a saved range.
+        widget = self._make_widget()
+        widget.dashboard.filters = {
+            "start": "2026-01-01T00:00:00",
+            "end": "2026-01-02T00:00:00",
+        }
+        widget.dashboard.save()
+
+        params = build_widget_timeseries_params(widget, QueryDict("statsPeriod=7d"))[0]
+
+        assert params["statsPeriod"] == "7d"
+        assert "start" not in params
+        assert "end" not in params

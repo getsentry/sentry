@@ -360,16 +360,16 @@ class BackfillGroupOpenPeriodsTest(TestMigrations):
         for description, group, starts, ends, activities in self.test_cases:
             group.refresh_from_db()
             open_periods = GroupOpenPeriod.objects.filter(group=group).order_by("date_started")
-            assert len(open_periods) == len(
-                starts
-            ), f"{description}: Expected {len(starts)} open periods, got {len(open_periods)}"
+            assert len(open_periods) == len(starts), (
+                f"{description}: Expected {len(starts)} open periods, got {len(open_periods)}"
+            )
             for i, open_period in enumerate(open_periods):
-                assert (
-                    open_period.date_started == starts[i]
-                ), f"{description}: Expected open period start date {starts[i]}, got {open_period.date_started}"
-                assert (
-                    open_period.date_ended == ends[i]
-                ), f"{description}: Expected open period end date {ends[i]}, got {open_period.date_ended}"
-                assert (
-                    open_period.resolution_activity == activities[i]
-                ), f"{description}: Expected resolution activity {activities[i]}, got {open_period.resolution_activity}"
+                assert open_period.date_started == starts[i], (
+                    f"{description}: Expected open period start date {starts[i]}, got {open_period.date_started}"
+                )
+                assert open_period.date_ended == ends[i], (
+                    f"{description}: Expected open period end date {ends[i]}, got {open_period.date_ended}"
+                )
+                assert open_period.resolution_activity == activities[i], (
+                    f"{description}: Expected resolution activity {activities[i]}, got {open_period.resolution_activity}"
+                )

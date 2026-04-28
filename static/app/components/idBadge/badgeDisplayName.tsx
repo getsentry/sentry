@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
+export const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
   ${p =>
     p.hideOverflow &&
     css`
@@ -16,5 +16,3 @@ const BadgeDisplayName = styled('span')<{hideOverflow?: string | boolean}>`
           '240px'};
     `};
 `;
-
-export default BadgeDisplayName;

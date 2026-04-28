@@ -25,10 +25,10 @@ variants:
     hint: ignored because custom server fingerprint takes precedence
     key: app_chained_exception_stacktrace
     type: component
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: function:"symbolicator::actors::symcaches::*" app:"true" -> "symcache-error"
     type: custom_fingerprint
     values:

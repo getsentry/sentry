@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type RecordType = {
   offsetMs: number;
@@ -45,7 +45,7 @@ function getNodeIdAndLabel(record: RecordType) {
   return undefined;
 }
 
-function useCrumbHandlers() {
+export function useCrumbHandlers() {
   const replay = useReplayReader();
   const {clearAllHighlights, addHighlight, removeHighlight, setCurrentTime} =
     useReplayContext();
@@ -123,5 +123,3 @@ function useCrumbHandlers() {
     onClickTimestamp,
   };
 }
-
-export default useCrumbHandlers;

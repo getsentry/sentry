@@ -14,7 +14,7 @@ type Props = {
  * Render nothing by default if `count` is falsy.
  */
 
-function QueryCount({count, max, hideIfEmpty = true, hideParens = false}: Props) {
+export function QueryCount({count, max, hideIfEmpty = true, hideParens = false}: Props) {
   const countOrMax = defined(count) && defined(max) && count >= max ? `${max}+` : count;
 
   if (hideIfEmpty && !count) {
@@ -29,5 +29,3 @@ function QueryCount({count, max, hideIfEmpty = true, hideParens = false}: Props)
     </span>
   );
 }
-
-export default QueryCount;

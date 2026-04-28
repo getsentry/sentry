@@ -212,7 +212,7 @@ class StandardAuthentication(QuietBasicAuthentication):
         return self.authenticate_token(request, force_str(auth[1]))
 
 
-@AuthenticationSiloLimit(SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CELL)
 class RelayAuthentication(BasicAuthentication):
     def authenticate(self, request: Request):
         relay_id = get_header_relay_id(request)
@@ -251,7 +251,7 @@ class RelayAuthentication(BasicAuthentication):
         return (AnonymousUser(), None)
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
 
@@ -264,7 +264,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
             return None
 
         key: ApiKeyReplica | ApiKey
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             key_replica = ApiKeyReplica.objects.filter(key=userid).last()
             if key_replica is None:
                 raise AuthenticationFailed("API key is not valid")
@@ -282,7 +282,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         return self.transform_auth(None, key, "api_key")
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class SessionNoAuthTokenAuthentication(SessionAuthentication):
     """
     Authentication that only allows session-based authentication.
@@ -426,7 +426,7 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
 
-@AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
+@AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
@@ -441,13 +441,13 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         5. If found, update the token's hashed value and return the token.
         6. If not found via hash or plaintext value, raise AuthenticationFailed
 
-        Returns `ApiTokenReplica` if running in REGION silo or
+        Returns `ApiTokenReplica` if running in CELL silo or
         `ApiToken` if running in CONTROL silo.
         """
 
         hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             try:
                 # Try to find the token by its hashed value first
                 return ApiTokenReplica.objects.get(hashed_token=hashed_token)
@@ -503,7 +503,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         if not token:
             token = self._find_or_update_token_by_hash(token_str)
-            if isinstance(token, ApiTokenReplica):  # we're running as a REGION silo
+            if isinstance(token, ApiTokenReplica):  # we're running as a CELL silo
                 user = user_service.get_user(user_id=token.user_id)
                 application_is_inactive = not token.application_is_active
             else:  # the token returned is an ApiToken from the CONTROL silo
@@ -563,7 +563,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         )
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class OrgAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
 
@@ -578,7 +578,7 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         token_hashed = hash_token(token_str)
 
         token: OrgAuthTokenReplica | OrgAuthToken
-        if SiloMode.get_current_mode() == SiloMode.REGION:
+        if SiloMode.get_current_mode() == SiloMode.CELL:
             try:
                 token = OrgAuthTokenReplica.objects.get(
                     token_hashed=token_hashed,
@@ -603,7 +603,7 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         )
 
 
-@AuthenticationSiloLimit(SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CELL)
 class DSNAuthentication(StandardAuthentication):
     token_name = b"dsn"
 
@@ -623,7 +623,7 @@ class DSNAuthentication(StandardAuthentication):
         return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
 
-@AuthenticationSiloLimit(SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CELL)
 class SignedRequestAuthentication(BaseAuthentication):
     def authenticate(self, request: Request) -> tuple[Any, Any]:
         user = process_signature(request)
@@ -634,7 +634,7 @@ class SignedRequestAuthentication(BaseAuthentication):
         return (user, None)
 
 
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
 class RpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for cross-region RPC requests.
@@ -774,3 +774,67 @@ class HmacSignatureAuthentication(StandardAuthentication):
         sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)
+
+
+class ViewerContextAuthentication(BaseAuthentication):
+    """Authenticate requests using X-Viewer-Context headers.
+
+    Accepts JWT (HS256) ``X-Viewer-Context`` headers.
+    Used by trusted services (e.g., Seer) that echo back the viewer context
+    originally signed by Sentry.
+
+    The user is resolved via user_service.get_user() (RPC-backed, cached).
+    Sets request.auth = None so that determine_access derives permissions
+    from the user's OrganizationMember role — identical to session auth.
+    """
+
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
+        from sentry.viewer_context import _get_verification_keys, viewer_context_from_header
+
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        if not header:
+            return None
+
+        verification_keys = _get_verification_keys()
+        vc = viewer_context_from_header(header)
+
+        if vc is None or vc.user_id is None:
+            # TODO(jstanley): Temporary logging for debugging non-public prod 401s
+            # during X-Viewer-Context propagation (Seer code mode callbacks).
+            # Remove once the auth issue is resolved.
+            logger.warning(
+                "viewer_context_auth.failed",
+                extra={
+                    "reason": "vc_not_resolved" if vc is None else "no_user_id",
+                    "header_length": len(header),
+                    "header_is_jwt": "." in header and header.count(".") == 2,
+                    "verification_key_count": len(verification_keys),
+                    "path": request.path,
+                },
+            )
+            return None
+
+        user = user_service.get_user(user_id=vc.user_id)
+        if user is None or not user.is_active:
+            # TODO(jstanley): Temporary logging for debugging non-public prod 401s
+            # during X-Viewer-Context propagation (Seer code mode callbacks).
+            # Remove once the auth issue is resolved.
+            logger.warning(
+                "viewer_context_auth.failed",
+                extra={
+                    "reason": "user_not_found" if user is None else "user_inactive",
+                    "vc_user_id": vc.user_id,
+                    "path": request.path,
+                },
+            )
+            return None
+
+        sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+        # Viewer context comes from a trusted first-party service. Keep auth
+        # session-like for permission derivation, but mark it so org access can
+        # avoid requiring browser-session SSO state on service callbacks.
+        setattr(request, "user_from_viewer_context", True)
+
+        # Return None for auth to match session behavior —
+        # determine_access will derive scopes from org membership role.
+        return (user, None)

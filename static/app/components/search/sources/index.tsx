@@ -23,7 +23,7 @@ type SourceResult = {
   results: Result[];
 };
 
-function SearchSources(props: Props) {
+export function SearchSources(props: Props) {
   const {children, sources} = props;
 
   // `allSources` will be an array of all result objects from each source
@@ -61,7 +61,5 @@ function SearchSources(props: Props) {
     [props, renderResults, sources]
   );
 
-  return renderSources(new Array(sources.length), 0);
+  return renderSources(Array.from({length: sources.length}), 0);
 }
-
-export default SearchSources;

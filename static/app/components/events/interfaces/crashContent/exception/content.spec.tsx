@@ -17,7 +17,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import {LineCoverageProvider} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import {StackType, StackView} from 'sentry/types/stacktrace';

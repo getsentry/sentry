@@ -2,7 +2,7 @@ import isEqual from 'lodash/isEqual';
 
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import type {
   OnDemandBudgets,
@@ -18,8 +18,8 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 export function parseOnDemandBudgetsFromSubscription(
   subscription: Subscription

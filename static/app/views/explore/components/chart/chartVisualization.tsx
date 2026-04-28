@@ -3,12 +3,14 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {Container} from '@sentry/scraps/layout';
+
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -24,12 +26,14 @@ interface ChartVisualizationProps {
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   hidden?: boolean;
+  notMerge?: boolean;
 }
 
 export function ChartVisualization({
   chartXRangeSelection,
   chartInfo,
   chartRef,
+  notMerge,
 }: ChartVisualizationProps) {
   const theme = useTheme();
 
@@ -88,20 +92,29 @@ export function ChartVisualization({
           ref={chartRef}
           plottables={previousPlottables}
           chartXRangeSelection={chartXRangeSelection}
+          notMerge={notMerge}
         />
       </StyledTransparentLoadingMask>
     );
   }
 
   if (chartInfo.timeseriesResult.error) {
-    return <Widget.WidgetError error={chartInfo.timeseriesResult.error} />;
+    return (
+      <Container position="absolute" inset={0}>
+        <Widget.WidgetError error={chartInfo.timeseriesResult.error} />
+      </Container>
+    );
   }
 
   if (plottables.length === 0) {
     // This happens when the `/events-stats/` endpoint returns a blank
     // response. This is a rare error condition that happens when
     // proxying to RPC. Adding explicit handling with a "better" message
-    return <Widget.WidgetError error={t('No data')} />;
+    return (
+      <Container position="absolute" inset={0}>
+        <Widget.WidgetError error={t('No data')} />
+      </Container>
+    );
   }
 
   return (
@@ -109,6 +122,7 @@ export function ChartVisualization({
       ref={chartRef}
       plottables={plottables}
       chartXRangeSelection={chartXRangeSelection}
+      notMerge={notMerge}
     />
   );
 }

@@ -45,6 +45,7 @@ class SentryAppsStatsTest(APITestCase):
             "avatars": [serialize(self.app_one_avatar)],
         } in orjson.loads(response.content)
 
+    @override_options({"staff.ga-rollout": False})
     def test_superuser_has_access(self) -> None:
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status_code=200)
@@ -57,12 +58,15 @@ class SentryAppsStatsTest(APITestCase):
         response = self.get_success_response(status_code=200)
         self._check_response(response)
 
+    @override_options({"staff.ga-rollout": True})
     def test_nonsuperusers_have_no_access(self) -> None:
         self.login_as(user=self.user)
         self.get_error_response(status_code=403)
 
+    @override_options({"staff.ga-rollout": True})
     def test_per_page(self) -> None:
-        self.login_as(user=self.superuser, superuser=True)
+        staff_user = self.create_user(is_staff=True)
+        self.login_as(user=staff_user, staff=True)
 
         self.create_sentry_app_installation(
             slug=self.app_one.slug, organization=self.create_organization()

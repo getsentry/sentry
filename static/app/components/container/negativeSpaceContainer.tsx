@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const NegativeSpaceContainer = styled('div')`
+export const NegativeSpaceContainer = styled('div')`
   width: 100%;
   display: flex;
   flex-grow: 1;
@@ -26,5 +26,3 @@ const NegativeSpaceContainer = styled('div')`
       ${p => p.theme.colors.gray100} 16px
     );
 `;
-
-export default NegativeSpaceContainer;

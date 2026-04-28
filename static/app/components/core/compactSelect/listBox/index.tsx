@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -6,15 +6,15 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren, Node} from '@react-types/shared';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {
   ListLabel,
   ListSeparator,
   ListWrap,
   SizeLimitMessage,
-} from 'sentry/components/core/compactSelect/styles';
-import type {SelectKey, SelectSection} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
+import type {SelectKey, SelectSection} from '@sentry/scraps/compactSelect';
+import {Container} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -26,7 +26,8 @@ import {ListBoxSection} from './section';
 type ObjectLike = object;
 
 interface ListBoxProps<T extends ObjectLike>
-  extends Omit<
+  extends
+    Omit<
       React.HTMLAttributes<HTMLUListElement>,
       'onBlur' | 'onFocus' | 'autoFocus' | 'children'
     >,
@@ -82,6 +83,15 @@ interface ListBoxProps<T extends ObjectLike>
   overlayIsOpen?: boolean;
   ref?: React.Ref<HTMLUListElement>;
   /**
+   * Ref forwarded to the inner scroll container div (the element the virtualizer
+   * uses as its scroll element). Useful for callers that need to reset scrollTop.
+   */
+  scrollContainerRef?: React.Ref<HTMLDivElement>;
+  /**
+   * Whether the select has a search input field.
+   */
+  searchable?: boolean;
+  /**
    * When false, hides option details.
    */
   showDetails?: boolean;
@@ -128,16 +138,18 @@ export function ListBox<T extends ObjectLike>({
   keyDownHandler = DEFAULT_KEY_DOWN_HANDLER,
   label,
   hiddenOptions = EMPTY_SET,
-  hasSearch,
+  searchable,
   overlayIsOpen,
   showSectionHeaders = true,
   showDetails = true,
   onAction,
   virtualized,
+  scrollContainerRef,
   className,
   ...props
 }: ListBoxProps<T>) {
   const listElementRef = useRef<HTMLUListElement>(null);
+  const [hasEverOverflowed, setHasEverOverflowed] = useState(false);
 
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -181,15 +193,27 @@ export function ListBox<T extends ObjectLike>({
 
   const virtualizer = useVirtualizedItems({listItems, virtualized, size});
 
+  const refs = useMemo(() => {
+    const overflowTracker = (scrollContainer: HTMLDivElement | null) => {
+      if (hasEverOverflowed || listItems.length === 0 || !scrollContainer) {
+        return;
+      }
+
+      setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
+    };
+    return mergeRefs(overflowTracker, virtualizer.scrollElementRef, scrollContainerRef);
+  }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
+
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <Container
-        ref={virtualizer.scrollElementRef}
+        ref={refs}
         height="100%"
         overflowY="auto"
         className={className}
+        style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
       >
         <Container {...virtualizer.wrapperProps}>
           <ListWrap
@@ -233,7 +257,7 @@ export function ListBox<T extends ObjectLike>({
                 );
               })}
 
-            {!hasSearch && hiddenOptions.size > 0 && (
+            {!searchable && hiddenOptions.size > 0 && (
               <SizeLimitMessage>
                 {sizeLimitMessage ?? t('Use search to find more options…')}
               </SizeLimitMessage>
@@ -250,6 +274,13 @@ const heightEstimations = {
   md: {regular: 36, large: 53},
   xs: {regular: 25, large: 42},
 } as const satisfies Record<FormSize, {large: number; regular: number}>;
+
+/**
+ * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
+ * Passed to the virtualizer's wrapper to account for the padding,
+ * preventing a tiny scrollbar when few items remain after filtering.
+ */
+const listPaddingVertical = 4;
 
 function useVirtualizedItems<T extends ObjectLike>({
   listItems,
@@ -288,7 +319,7 @@ function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize(),
+          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
           width: '100%',
           position: 'relative',
         },

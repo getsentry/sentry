@@ -1,36 +1,28 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
-import Legend from 'sentry/components/charts/components/legend';
+import {Legend} from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
-import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {Flex, Grid, type FlexProps} from 'sentry/components/core/layout';
 import {useFlagSeries} from 'sentry/components/featureFlags/hooks/useFlagSeries';
 import {useFlagsInEvent} from 'sentry/components/featureFlags/hooks/useFlagsInEvent';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import type EventView from 'sentry/utils/discover/eventView';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -38,9 +30,12 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/streamline/eventGraphWidget';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
@@ -51,9 +46,6 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {useReleasesDrawer} from 'sentry/views/releases/drawer/useReleasesDrawer';
-import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
-import {makeReleaseDrawerPathname} from 'sentry/views/releases/utils/pathnames';
 
 enum EventGraphSeries {
   EVENT = 'event',
@@ -83,7 +75,8 @@ interface EventGraphProps {
    * Enable/disables showing the event and user summary
    */
   showSummary?: boolean;
-  style?: CSSProperties;
+
+  style?: React.CSSProperties;
 }
 
 function createSeriesAndCount(stats: EventsStats) {
@@ -333,7 +326,7 @@ export function EventGraph({
     alignInMiddle: true,
     legendSelected: legendSelected.Releases,
     desiredBuckets: eventSeries.length,
-    minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
+    minTime: eventSeries.length && eventSeries.at(0)?.name,
     maxTime:
       lastEventSeriesTimestamp && eventSeriesInterval
         ? lastEventSeriesTimestamp + eventSeriesInterval
@@ -368,7 +361,7 @@ export function EventGraph({
           itemStyle: {
             borderRadius: [2, 2, 0, 0],
             borderColor: theme.tokens.border.transparent.neutral.muted,
-            color: theme.tokens.dataviz.semantic.neutral,
+            color: theme.tokens.dataviz.semantic.other,
           },
           barGap: '-100%', // Makes bars overlap completely
           data: unfilteredUserSeries,
@@ -411,7 +404,7 @@ export function EventGraph({
           borderColor: theme.tokens.border.transparent.neutral.muted,
           color: isUnfilteredStatsEnabled
             ? theme.tokens.dataviz.semantic.accent
-            : theme.tokens.dataviz.semantic.neutral,
+            : theme.tokens.dataviz.semantic.other,
         },
         data: eventSeries,
         animation: false,
@@ -475,9 +468,9 @@ export function EventGraph({
 
   if (error) {
     return (
-      <GraphAlert variant="danger" {...styleProps}>
+      <Alert variant="danger" {...styleProps}>
         {tct('Graph Query Error: [message]', {message: error.message})}
-      </GraphAlert>
+      </Alert>
     );
   }
 
@@ -619,7 +612,7 @@ function SummaryContainer(props: FlexProps) {
 
 const CalloutButton = styled(Button)`
   height: unset;
-  padding: ${space(0.5)} ${space(1.5)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 `;
 
 const ChartContainer = styled('div')`
@@ -630,11 +623,4 @@ const ChartContainer = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints.xl}) {
     padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
-`;
-
-export const GraphAlert = styled(Alert)`
-  padding-left: ${p => p.theme.space['2xl']};
-  margin: 0 0 0 -${p => p.theme.space['2xl']};
-  border: 0;
-  border-radius: 0;
 `;

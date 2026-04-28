@@ -1,12 +1,14 @@
 import {useContext} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
+import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
 
 type Props = {
   /**
@@ -23,7 +25,7 @@ type Props = {
   externalInstallText?: string;
 };
 
-function IntegrationButton({
+export function IntegrationButton({
   userHasAccess,
   onAddIntegration,
   onExternalClick,
@@ -31,8 +33,14 @@ function IntegrationButton({
   buttonProps,
 }: Props) {
   const organization = useOrganization();
-  const {provider, type, installStatus, analyticsParams, modalParams} =
-    useContext(IntegrationContext) ?? {};
+  const {
+    provider,
+    type,
+    installStatus,
+    analyticsParams,
+    modalParams,
+    suppressSuccessMessage,
+  } = useContext(IntegrationContext) ?? {};
   if (!provider || !type) {
     return null;
   }
@@ -43,6 +51,15 @@ function IntegrationButton({
       <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
   }
+  if (metadata.aspects.directEnable) {
+    return provider.canAdd ? (
+      <DirectEnableButton
+        providerSlug={provider.slug}
+        buttonProps={buttonProps}
+        userHasAccess={userHasAccess}
+      />
+    ) : null;
+  }
   if (provider.canAdd) {
     return (
       <AddIntegrationButton
@@ -51,6 +68,7 @@ function IntegrationButton({
         installStatus={installStatus}
         analyticsParams={analyticsParams}
         modalParams={modalParams}
+        suppressSuccessMessage={suppressSuccessMessage}
         {...buttonProps}
         organization={organization}
       />
@@ -73,5 +91,3 @@ function IntegrationButton({
   }
   return null;
 }
-
-export default IntegrationButton;

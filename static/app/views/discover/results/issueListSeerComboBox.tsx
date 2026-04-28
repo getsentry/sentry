@@ -1,21 +1,22 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface IssuesAskSeerTranslateResponse {
@@ -42,6 +43,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -81,10 +83,6 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     initialSeerQuery =
       initialSeerQuery === '' ? inputValue : `${initialSeerQuery} ${inputValue}`;
   }
-
-  const usePollingEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
 
   // Get selected project IDs for the polling variant
   const selectedProjectIds = useMemo(() => {
@@ -239,6 +237,11 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
         organization,
         query: queryToUse,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+      });
 
       // Apply the search query
       onSearch(queryToUse);
@@ -286,6 +289,7 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
       );
     },
     [
+      analyticsArea,
       askSeerSuggestedQueryRef,
       location,
       navigate,
@@ -295,37 +299,19 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
     ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
-  if (!areAiFeaturesAllowed) {
+  if (!enableAISearch) {
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<AskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Errors"
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        analyticsSource="errors"
-        feedbackSource="errors_ai_query"
-        fallbackMutationOptions={issueListAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerComboBox
+    <AskSeerPollingComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={issueListAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Errors"
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
       analyticsSource="errors"
-      feedbackSource="errors_ai_query"
+      fallbackMutationOptions={issueListAskSeerMutationOptions}
     />
   );
 }

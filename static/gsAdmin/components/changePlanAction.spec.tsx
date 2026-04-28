@@ -15,19 +15,19 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 
-import triggerChangePlanAction from 'admin/components/changePlanAction';
+import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import {PlanTier} from 'getsentry/types';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
-  const subscription: Subscription = SubscriptionFixture({
+  const subscription = SubscriptionFixture({
     organization: mockOrg,
     planTier: PlanTier.AM3,
     plan: 'am3_business',
@@ -91,13 +91,14 @@ describe('ChangePlanAction', () => {
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: subscription,
     });
 
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+      url: `/customers/${mockOrg.slug}/billing-config/`,
       body: BILLING_CONFIG,
+      match: [MockApiClient.matchQuery({tier: 'all'})],
     });
   });
 
@@ -125,7 +126,7 @@ describe('ChangePlanAction', () => {
     // Verify the tabs are rendered
     expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'AM2'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'MM2'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'MM2'})).not.toBeInTheDocument();
 
     // Verify at least one plan option is displayed
     expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
@@ -156,7 +157,7 @@ describe('ChangePlanAction', () => {
 
     // Verify tab change changes categories displayed
     expect(screen.getAllByRole('textbox')).toHaveLength(
-      PlanDetailsLookupFixture('am2_business')!.checkoutCategories.length + 2 // +2 for audit fields
+      PlanDetailsLookupFixture('am2_business').checkoutCategories.length + 2 // +2 for audit fields
     );
     expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
@@ -184,7 +185,7 @@ describe('ChangePlanAction', () => {
     });
     SubscriptionStore.set(mockOrg.slug, ntSubscription);
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
+      url: `/customers/${mockOrg.slug}/`,
       body: ntSubscription,
     });
 
@@ -323,16 +324,6 @@ describe('ChangePlanAction', () => {
       const radios = document.querySelectorAll('input[type="radio"]');
       expect(radios.length).toBeGreaterThan(0);
     });
-
-    // Switch to MM2 tier
-    const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
-    await userEvent.click(mm2Tab);
-
-    // Again, verify we have plan options
-    await waitFor(() => {
-      const radios = document.querySelectorAll('input[type="radio"]');
-      expect(radios.length).toBeGreaterThan(0);
-    });
   });
 
   it('shows only test plans when using TEST tier', async () => {
@@ -413,13 +404,14 @@ describe('ChangePlanAction', () => {
 
       // Set up default subscription response
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscription,
       });
 
       MockApiClient.addMockResponse({
-        url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+        url: `/customers/${mockOrg.slug}/billing-config/`,
         body: BILLING_CONFIG,
+        match: [MockApiClient.matchQuery({tier: 'all'})],
       });
     });
 
@@ -446,25 +438,6 @@ describe('ChangePlanAction', () => {
       expect(screen.getByText('Seer')).toBeInTheDocument();
     });
 
-    it('hides Seer budget checkbox for MM2 tier', async () => {
-      openAndLoadModal();
-
-      await waitFor(() => {
-        expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-      });
-
-      const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
-      await userEvent.click(mm2Tab);
-
-      await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
-
-      expect(
-        screen.queryByRole('checkbox', {
-          name: 'Seer',
-        })
-      ).not.toBeInTheDocument();
-    });
-
     it('initializes Seer budget checkbox based on current subscription', async () => {
       // Create subscription with Seer budget
       const subscriptionWithSeer = SubscriptionWithLegacySeerFixture({
@@ -475,7 +448,7 @@ describe('ChangePlanAction', () => {
 
       SubscriptionStore.set(mockOrg.slug, subscriptionWithSeer);
       MockApiClient.addMockResponse({
-        url: `/subscriptions/${mockOrg.slug}/`,
+        url: `/customers/${mockOrg.slug}/`,
         body: subscriptionWithSeer,
       });
 

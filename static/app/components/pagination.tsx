@@ -2,15 +2,14 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseCursor} from 'sentry/utils/cursor';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -39,7 +38,7 @@ type Props = {
   to?: string;
 };
 
-function Pagination({
+export function Pagination({
   to,
   className,
   onCursor,
@@ -77,7 +76,7 @@ function Pagination({
       data-test-id="pagination"
     >
       {caption && <PaginationCaption>{caption}</PaginationCaption>}
-      <ButtonBar merged gap="0">
+      <ButtonBar>
         <Button
           icon={<IconChevron direction="left" />}
           aria-label={t('Previous')}
@@ -103,10 +102,38 @@ function Pagination({
   );
 }
 
+/**
+ * Returns a formatted pagination caption like "1-25 of 100"
+ */
+export function getPaginationCaption({
+  cursor,
+  limit,
+  pageLength,
+  total,
+}: {
+  cursor: string | string[] | undefined | null;
+  limit: number;
+  pageLength: number;
+  total: number;
+}): React.ReactNode {
+  if (pageLength === 0) {
+    return '';
+  }
+
+  const currentCursor = parseCursor(cursor);
+  const offset = currentCursor?.offset ?? 0;
+  const start = offset * limit + 1;
+  const end = start + pageLength - 1;
+
+  return tct('[start]-[end] of [total]', {
+    start: start.toLocaleString(),
+    end: end.toLocaleString(),
+    total: total.toLocaleString(),
+  });
+}
+
 const PaginationCaption = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
-  margin-right: ${space(2)};
+  margin-right: ${p => p.theme.space.xl};
 `;
-
-export default Pagination;

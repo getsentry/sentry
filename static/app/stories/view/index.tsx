@@ -2,10 +2,11 @@ import {Fragment, type PropsWithChildren} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
-import {Alert} from 'sentry/components/core/alert';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';
 import {
   StoryTreeNode,
@@ -14,7 +15,7 @@ import {
 } from 'sentry/stories/view/storyTree';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
-import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import {RouteAnalyticsContextProvider} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {StoryLanding} from './landing';
 import {StoryExports} from './storyExports';
@@ -142,15 +143,17 @@ function StoriesLayout(props: PropsWithChildren) {
     <Fragment>
       <GlobalStoryStyles key="global-story-styles" />
       <RouteAnalyticsContextProvider>
-        <OrganizationContainer>
-          <Layout>
-            <HeaderContainer>
-              <StoryHeader />
-            </HeaderContainer>
-            <StorySidebar />
-            {props.children}
-          </Layout>
-        </OrganizationContainer>
+        <GlobalDrawer>
+          <OrganizationContainer>
+            <Layout>
+              <HeaderContainer>
+                <StoryHeader />
+              </HeaderContainer>
+              <StorySidebar />
+              {props.children}
+            </Layout>
+          </OrganizationContainer>
+        </GlobalDrawer>
       </RouteAnalyticsContextProvider>
     </Fragment>
   );

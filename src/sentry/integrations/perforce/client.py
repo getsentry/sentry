@@ -1,10 +1,19 @@
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any, TypedDict
+
+# Tell P4 to look for a ".p4config" file when resolving per-connection
+# settings like P4TRUST and P4TICKETS. Each _connect() call creates a temp
+# directory with its own .p4config and sets p4.cwd to that directory.
+# P4 walks upward from cwd to find the config file, so each P4 instance
+# reads its own isolated config — no global state, no locks needed.
+os.environ.setdefault("P4CONFIG", ".p4config")
 
 from P4 import P4, P4Exception
 
@@ -132,6 +141,15 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         Context manager for P4 connections with automatic cleanup.
 
         Yields a connected P4 instance and ensures disconnection on exit.
+        Creates a temporary directory with a P4CONFIG file to isolate
+        P4TRUST and P4TICKETS per connection. This prevents lock contention
+        when multiple tenants connect concurrently.
+
+        P4Python's set_env("P4TRUST", ...) only works on Windows/macOS — on
+        Linux it raises and does NOT set the value. Instead we use the
+        P4CONFIG mechanism: a per-directory config file that P4 discovers
+        via p4.cwd. Each connection gets its own temp dir with its own
+        .p4config, so no global state or locks are needed.
 
         Uses P4Python API:
         - p4.connect(): https://www.perforce.com/manuals/p4python/Content/P4Python/python.programming.html#python.programming.connecting
@@ -142,84 +160,96 @@ class PerforceClient(RepositoryClient, CommitContextClient):
             with self._connect() as p4:
                 result = p4.run("info")
         """
-        p4 = P4()
-        p4.port = self.p4port
-        p4.user = self.user
-        p4.password = self.password
+        with tempfile.TemporaryDirectory(prefix="sentry-p4-") as p4_home:
+            trust_path = f"{p4_home}/.p4trust"
+            ticket_path = f"{p4_home}/.p4tickets"
 
-        if self.client_name:
-            p4.client = self.client_name
+            # Write a per-connection P4CONFIG file so P4 resolves P4TRUST
+            # and P4TICKETS to this temp directory. P4 finds the config by
+            # walking upward from p4.cwd looking for a file named by the
+            # P4CONFIG env var (set to ".p4config" at module level).
+            # Use the actual P4CONFIG value as the filename in case it was
+            # already set before our module loaded (setdefault preserves it).
+            config_filename = os.environ.get("P4CONFIG", ".p4config")
+            with open(f"{p4_home}/{config_filename}", "w") as f:
+                f.write(f"P4TRUST={trust_path}\n")
+                f.write(f"P4TICKETS={ticket_path}\n")
 
-        p4.exception_level = 1  # Only errors raise exceptions
+            p4 = P4()
+            p4.cwd = p4_home
+            p4.port = self.p4port
+            p4.user = self.user
+            p4.password = self.password
+            p4.ticket_file = ticket_path
 
-        # Connect to Perforce server
-        try:
-            p4.connect()
-        except P4Exception as e:
-            error_msg = str(e)
-            # Provide helpful error message for connection failures
-            if "SSL" in error_msg or "trust" in error_msg.lower():
-                raise ApiError(
-                    f"Failed to connect to Perforce (SSL issue): {error_msg}. "
-                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                )
-            raise ApiError(f"Failed to connect to Perforce: {error_msg}")
+            if self.client_name:
+                p4.client = self.client_name
 
-        # Assert SSL trust after connection (if needed)
-        # This must be done after p4.connect() but before p4.run_login()
-        if self.ssl_fingerprint and self.p4port.startswith("ssl"):
+            p4.exception_level = 1  # Only errors raise exceptions
+
+            # Connect to Perforce server
             try:
-                p4.run_trust("-i", self.ssl_fingerprint)
-            except P4Exception as trust_error:
-                try:
-                    p4.disconnect()
-                except Exception:
-                    pass
-                raise ApiError(
-                    f"Failed to establish SSL trust: {trust_error}. "
-                    f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
-                )
-
-        # Authenticate based on auth_type
-        # - password: Requires run_login() to exchange password for session ticket
-        # - ticket: Already authenticated via p4.password, no login needed
-        if self.password and self.auth_type == "password":
-            try:
-                p4.run_login()
-            except P4Exception as login_error:
-                try:
-                    p4.disconnect()
-                except Exception:
-                    pass
-                raise ApiUnauthorized(
-                    f"Failed to authenticate with Perforce: {login_error}. "
-                    "Verify your password is correct."
-                )
-        elif self.password and self.auth_type == "ticket":
-            # Ticket authentication: p4.password is already set to the ticket
-            # Verify ticket works by running a test command
-            try:
-                p4.run("info")
+                p4.connect()
             except P4Exception as e:
-                try:
-                    p4.disconnect()
-                except Exception:
-                    pass
-                raise ApiUnauthorized(
-                    f"Failed to authenticate with Perforce ticket: {e}. "
-                    "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
-                )
+                error_msg = str(e)
+                if "SSL" in error_msg or "trust" in error_msg.lower():
+                    raise ApiError(
+                        f"Failed to connect to Perforce (SSL issue): {error_msg}. "
+                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                    )
+                raise ApiError(f"Failed to connect to Perforce: {error_msg}")
 
-        try:
-            yield p4
-        finally:
-            # Ensure cleanup
+            # Assert SSL trust after connection (if needed)
+            # This must be done after p4.connect() but before p4.run_login()
+            if self.ssl_fingerprint and self.p4port.startswith("ssl"):
+                try:
+                    p4.run_trust("-i", self.ssl_fingerprint)
+                except P4Exception as trust_error:
+                    try:
+                        p4.disconnect()
+                    except Exception:
+                        pass
+                    raise ApiError(
+                        f"Failed to establish SSL trust: {trust_error}. "
+                        f"Ensure ssl_fingerprint is correct. Obtain with: p4 -p {self.p4port} trust -y"
+                    )
+
+            # Authenticate based on auth_type
+            # - password: Requires run_login() to exchange password for session ticket
+            # - ticket: Already authenticated via p4.password, no login needed
+            if self.password and self.auth_type == "password":
+                try:
+                    p4.run_login()
+                except P4Exception as login_error:
+                    try:
+                        p4.disconnect()
+                    except Exception:
+                        pass
+                    raise ApiUnauthorized(
+                        f"Failed to authenticate with Perforce: {login_error}. "
+                        "Verify your password is correct."
+                    )
+            elif self.password and self.auth_type == "ticket":
+                try:
+                    p4.run("info")
+                except P4Exception as e:
+                    try:
+                        p4.disconnect()
+                    except Exception:
+                        pass
+                    raise ApiUnauthorized(
+                        f"Failed to authenticate with Perforce ticket: {e}. "
+                        "Verify your P4 ticket is valid. Obtain a new ticket with: p4 login -p"
+                    )
+
             try:
-                if p4.connected():
-                    p4.disconnect()
-            except Exception as e:
-                # Log disconnect failures as they may indicate connection leaks
-                logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
+                yield p4
+            finally:
+                try:
+                    if p4.connected():
+                        p4.disconnect()
+                except Exception as e:
+                    logger.warning("Failed to disconnect from Perforce: %s", e, exc_info=True)
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """
@@ -578,10 +608,61 @@ class PerforceClient(RepositoryClient, CommitContextClient):
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
         """
-        Get file contents from Perforce depot.
-        Required by abstract base class but not used (CODEOWNERS).
+        Get file contents from Perforce depot using ``p4 print``.
+
+        API docs: https://www.perforce.com/manuals/cmdref/Content/CmdRef/p4_print.html
+
+        Perforce supports two revision specifiers:
+        - ``@N`` — changelist number (global point-in-time snapshot)
+        - ``#N`` — file revision (per-file version counter)
+
+        Args:
+            repo: Repository object containing depot path config
+            path: File path relative to depot root
+            ref: Revision specifier. Accepts:
+                 - ``"#3"`` → file revision 3
+                 - ``"@42"`` → changelist 42
+                 - ``"42"`` → treated as changelist (``@42``)
+                 - ``None`` → head revision
+            codeowners: Not used for Perforce
+
+        Returns:
+            File contents as a UTF-8 string
+
+        Raises:
+            ApiError(404): File not found in depot
+            ApiError(500): Perforce connection or command error
         """
-        raise NotImplementedError("get_file is not supported for Perforce")
+        with self._connect() as p4:
+            depot_path = self.build_depot_path(repo, path)
+
+            if ref and "#" not in depot_path and "@" not in depot_path:
+                if ref.startswith("#") or ref.startswith("@"):
+                    depot_path = f"{depot_path}{ref}"
+                else:
+                    depot_path = f"{depot_path}@{ref}"
+
+            try:
+                result = p4.run("print", depot_path)
+            except P4Exception as e:
+                error_msg = str(e)
+                if "no such file" in error_msg.lower() or "not in client view" in error_msg.lower():
+                    raise ApiError(error_msg, code=404)
+                raise ApiError(error_msg, code=500)
+
+            # p4 print returns a list: first element is file metadata dict,
+            # remaining elements are file content strings/bytes
+            if not result or not isinstance(result[0], dict):
+                raise ApiError(f"File not found: {depot_path}", code=404)
+
+            content_parts = result[1:]
+            if not content_parts:
+                return ""
+
+            return "".join(
+                part.decode("utf-8", errors="replace") if isinstance(part, bytes) else part
+                for part in content_parts
+            )
 
     def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> Any:
         """Create comment. Not applicable for Perforce."""

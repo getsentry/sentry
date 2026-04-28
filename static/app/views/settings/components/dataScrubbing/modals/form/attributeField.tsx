@@ -1,57 +1,97 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
-import {Input} from 'sentry/components/core/input';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import TextOverflow from 'sentry/components/textOverflow';
+import {Input} from '@sentry/scraps/input';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   elideTagBasedAttributes,
-  useTraceItemAttributeKeys,
-} from 'sentry/views/explore/hooks/useTraceItemAttributeKeys';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+  selectTraceItemTagCollection,
+  traceItemAttributeKeysOptions,
+} from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {
   AllowedDataScrubbingDatasets,
   type AttributeSuggestion,
 } from 'sentry/views/settings/components/dataScrubbing/types';
 import {TraceItemFieldSelector} from 'sentry/views/settings/components/dataScrubbing/utils';
 
+const datasetToTraceItemType: Record<
+  Exclude<AllowedDataScrubbingDatasets, AllowedDataScrubbingDatasets.DEFAULT>,
+  TraceItemDataset
+> = {
+  [AllowedDataScrubbingDatasets.LOGS]: TraceItemDataset.LOGS,
+  [AllowedDataScrubbingDatasets.METRICS]: TraceItemDataset.TRACEMETRICS,
+};
+
+const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
+  Record<AllowedDataScrubbingDatasets, Set<string>>
+> = {
+  [AllowedDataScrubbingDatasets.METRICS]: new Set([
+    'metric.name',
+    'metric.type',
+    'metric.unit',
+  ]),
+};
+
+type FieldProps = {
+  'aria-describedby': string;
+  'aria-invalid': boolean;
+  disabled: boolean;
+  id: string;
+  name: string;
+  onBlur: () => void;
+};
+
 type Props = {
   dataset: AllowedDataScrubbingDatasets;
+  fieldProps: FieldProps;
   onChange: (value: string) => void;
   value: string;
-  error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
   projectId?: Project['id'];
 };
 
-export default function AttributeField({
+export function AttributeField({
   dataset,
+  fieldProps,
   onChange,
   value,
-  error,
   onBlur,
   projectId,
 }: Props) {
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const organization = useOrganization();
   const project = projects.find(p => p.id === projectId);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
 
-  const traceItemAttributeStringsResult = useTraceItemAttributeKeys({
-    enabled: true,
-    type: 'string',
-    traceItemType: TraceItemDataset.LOGS,
-    projects: project ? [project] : undefined,
+  const traceItemType =
+    dataset === AllowedDataScrubbingDatasets.DEFAULT
+      ? TraceItemDataset.LOGS
+      : datasetToTraceItemType[dataset];
+  const traceItemAttributeResult = useQuery({
+    ...traceItemAttributeKeysOptions({
+      organization,
+      selection,
+      traceItemType,
+      type: 'string',
+      projects: project ? [project] : undefined,
+    }),
+    select: selectTraceItemTagCollection('string'),
   });
   const [suggestedAttributeValues, setSuggestedAttributeValues] = useLocalStorageState(
-    `advanced-data-scrubbing.suggested-attribute-values:v2:${projectId ? projectId : 'all'}`,
+    `advanced-data-scrubbing.suggested-attribute-values:v3:${projectId ? projectId : 'all'}`,
     {} as TagCollection
   );
 
@@ -60,25 +100,23 @@ export default function AttributeField({
 
   useEffect(() => {
     if (
-      traceItemAttributeStringsResult.attributes &&
-      !traceItemAttributeStringsResult.isLoading &&
-      !traceItemAttributeStringsResult.error
+      traceItemAttributeResult.data &&
+      !traceItemAttributeResult.isLoading &&
+      !traceItemAttributeResult.error
     ) {
       // This limits the attributes you can see when selecting for pii scrubbing, but we have to currently as tags[] syntax is strictly invalid.
       // We should address this ultimately via fixing the trace item keys endpoint to emit the stored/relay-esque syntax at some point, instead of frontend hacks.
-      setSuggestedAttributeValues(
-        elideTagBasedAttributes(traceItemAttributeStringsResult.attributes)
-      );
+      setSuggestedAttributeValues(elideTagBasedAttributes(traceItemAttributeResult.data));
     }
   }, [
     onChange,
-    traceItemAttributeStringsResult.attributes,
-    traceItemAttributeStringsResult.isLoading,
-    traceItemAttributeStringsResult.error,
+    traceItemAttributeResult.data,
+    traceItemAttributeResult.isLoading,
+    traceItemAttributeResult.error,
     setSuggestedAttributeValues,
   ]);
 
-  const suggestions: AttributeSuggestion[] = useMemo(() => {
+  const suggestions = useMemo((): AttributeSuggestion[] => {
     if (!suggestedAttributeValues) {
       return [];
     }
@@ -92,16 +130,21 @@ export default function AttributeField({
       return [];
     }
 
+    const hidden = HIDDEN_SCRUBBING_ATTRIBUTES[dataset];
+
     return [
       ...TraceItemFieldSelector.getAllStaticFields(dataset).map(staticField => ({
         value: staticField.fieldName,
         label: staticField.fieldName,
       })),
-      ...traceItemFields.map(field => ({
-        value: field.label,
-        label:
-          TraceItemFieldSelector.fromField(dataset, field.key)?.toLabel() ?? field.label,
-      })),
+      ...traceItemFields
+        .filter(field => !hidden?.has(field.key))
+        .map(field => ({
+          value: field.label,
+          label:
+            TraceItemFieldSelector.fromField(dataset, field.key)?.toLabel() ??
+            field.label,
+        })),
     ];
   }, [dataset, suggestedAttributeValues]);
 
@@ -133,8 +176,9 @@ export default function AttributeField({
         setShowSuggestions(false);
       }, 150);
       onBlur?.(event.target.value, event);
+      fieldProps.onBlur();
     },
-    [onBlur]
+    [onBlur, fieldProps]
   );
 
   const handleClickSuggestion = useCallback(
@@ -172,56 +216,45 @@ export default function AttributeField({
         case 'Escape':
           setShowSuggestions(false);
           break;
-        default:
-          break;
       }
     },
     [showSuggestions, filteredSuggestions, activeSuggestion, handleClickSuggestion]
   );
 
   return (
-    <FieldGroup
-      label={t('Attribute')}
-      help={t('The attribute to scrub')}
-      inline={false}
-      flexibleControlStateSize
-      stacked
-      required
-      showHelpInTooltip
-    >
-      <Wrapper>
-        {traceItemAttributeStringsResult.isLoading &&
-        !Object.keys(suggestedAttributeValues).length ? (
-          <LoadingIndicator style={{margin: '0 auto'}} size={20} />
-        ) : (
-          <Fragment>
-            <StyledInput
-              type="text"
-              placeholder={t('Select or type attribute')}
-              value={_field}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              error={!!error}
-            />
-            {showSuggestions && filteredSuggestions.length > 0 && (
-              <Suggestions>
-                {filteredSuggestions.slice(0, 50).map((suggestion, index) => (
-                  <Suggestion
-                    key={suggestion.value}
-                    active={index === activeSuggestion}
-                    onClick={() => handleClickSuggestion(suggestion)}
-                  >
-                    <TextOverflow>{suggestion.value}</TextOverflow>
-                  </Suggestion>
-                ))}
-              </Suggestions>
-            )}
-          </Fragment>
-        )}
-      </Wrapper>
-    </FieldGroup>
+    <Wrapper>
+      {traceItemAttributeResult.isLoading &&
+      !Object.keys(suggestedAttributeValues).length ? (
+        <LoadingIndicator style={{margin: '0 auto'}} size={20} />
+      ) : (
+        <Fragment>
+          <StyledInput
+            {...fieldProps}
+            type="text"
+            aria-label={t('Attribute')}
+            placeholder={t('Select or type attribute')}
+            value={_field}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+          />
+          {showSuggestions && filteredSuggestions.length > 0 && (
+            <Suggestions>
+              {filteredSuggestions.slice(0, 50).map((suggestion, index) => (
+                <Suggestion
+                  key={suggestion.value}
+                  active={index === activeSuggestion}
+                  onClick={() => handleClickSuggestion(suggestion)}
+                >
+                  <TextOverflow>{suggestion.value}</TextOverflow>
+                </Suggestion>
+              ))}
+            </Suggestions>
+          )}
+        </Fragment>
+      )}
+    </Wrapper>
   );
 }
 
@@ -230,7 +263,7 @@ const Wrapper = styled('div')`
   width: 100%;
 `;
 
-const StyledInput = styled(Input)<{error: boolean}>`
+const StyledInput = styled(Input)`
   width: 100%;
 `;
 
@@ -242,9 +275,9 @@ const Suggestions = styled('ul')`
   margin-bottom: 0;
   box-shadow: 0 2px 0 rgba(37, 11, 54, 0.04);
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 0 0 ${space(0.5)} ${space(0.5)};
+  border-radius: ${p => p.theme.space.xs};
   background: ${p => p.theme.tokens.background.primary};
-  top: 100%;
+  top: calc(100% + ${p => p.theme.space.xs});
   left: 0;
   z-index: 1002;
   overflow: hidden;
@@ -255,9 +288,9 @@ const Suggestions = styled('ul')`
 const Suggestion = styled('li')<{active: boolean}>`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   cursor: pointer;
   background: ${p =>

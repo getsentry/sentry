@@ -3,7 +3,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+
 import {IconHide} from 'sentry/icons/iconHide';
 import {EQUATION_PREFIX, parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -19,17 +20,16 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
+import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   isVisualizeEquation,
-  isVisualizeFunction,
   MAX_VISUALIZES,
   Visualize,
   VisualizeEquation,
@@ -63,33 +63,27 @@ export function ToolbarVisualize({
     setVisualizes(newVisualizes);
   }, [setVisualizes, visualizes]);
 
-  const replaceOverlay = useCallback(
-    (group: number, newVisualize: Visualize) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          return newVisualize.serialize();
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const replaceOverlay = (group: number, newVisualize: Visualize) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        return newVisualize.serialize();
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
-  const toggleVisibility = useCallback(
-    (group: number) => {
-      const newVisualizes = visualizes.map((visualize, i) => {
-        if (i === group) {
-          visualize = visualize.replace({visible: !visualize.visible});
-        }
-        return visualize.serialize();
-      });
-      setVisualizes(newVisualizes);
-    },
-    [setVisualizes, visualizes]
-  );
+  const toggleVisibility = (group: number) => {
+    const newVisualizes = visualizes.map((visualize, i) => {
+      if (i === group) {
+        visualize = visualize.replace({visible: !visualize.visible});
+      }
+      return visualize.serialize();
+    });
+    setVisualizes(newVisualizes);
+  };
 
-  const onDelete = useCallback(
+  const handleOnDelete = useCallback(
     (group: number) => {
       const newVisualizes = visualizes
         .toSpliced(group, 1)
@@ -99,69 +93,83 @@ export function ToolbarVisualize({
     [setVisualizes, visualizes]
   );
 
-  const canDelete = visualizes.filter(isVisualizeFunction).length > 1;
+  const setVisualizesWithOp = useCallback(
+    (columns: Visualize[]) => {
+      setVisualizes(columns.map(v => v.serialize()));
+    },
+    [setVisualizes]
+  );
 
   return (
-    <ToolbarSection data-test-id="section-visualizes">
-      <ToolbarVisualizeHeader />
-      {visualizes.map((visualize, group) => {
-        const label = (
-          <VisualizeLabel
-            index={group}
-            visualize={visualize}
-            onClick={() => toggleVisibility(group)}
-          />
-        );
+    <DragNDropContext columns={[...visualizes]} setColumns={setVisualizesWithOp}>
+      {({editableColumns}) => (
+        <ToolbarSection data-test-id="section-visualizes">
+          <ToolbarVisualizeHeader />
+          {editableColumns.map((column, i) => {
+            const visualize = column.column;
+            const dragColumnId = editableColumns.length > 1 ? column.id : undefined;
+            const label = (
+              <VisualizeLabel
+                index={i}
+                visualize={visualize}
+                onClick={() => toggleVisibility(i)}
+              />
+            );
+            const onDelete =
+              editableColumns.length > 1 ? () => handleOnDelete(i) : undefined;
 
-        if (isVisualizeEquation(visualize)) {
-          return (
-            <VisualizeEquationInput
-              key={group}
-              onDelete={() => onDelete(group)}
-              onReplace={newVisualize => replaceOverlay(group, newVisualize)}
-              visualize={visualize}
-              label={label}
+            if (isVisualizeEquation(visualize)) {
+              return (
+                <VisualizeEquationInput
+                  key={column.id}
+                  dragColumnId={dragColumnId}
+                  onDelete={onDelete}
+                  onReplace={newVisualize => replaceOverlay(i, newVisualize)}
+                  visualize={visualize}
+                  label={label}
+                />
+              );
+            }
+
+            return (
+              <ToolbarVisualizeItem
+                key={column.id}
+                dragColumnId={dragColumnId}
+                onDelete={onDelete}
+                onReplace={newVisualize => replaceOverlay(i, newVisualize)}
+                visualize={visualize}
+                label={label}
+              />
+            );
+          })}
+          <ToolbarFooter>
+            <ToolbarVisualizeAddChart
+              add={addChart}
+              disabled={visualizes.length >= MAX_VISUALIZES}
             />
-          );
-        }
-
-        return (
-          <ToolbarVisualizeItem
-            key={group}
-            canDelete={canDelete}
-            onDelete={() => onDelete(group)}
-            onReplace={newVisualize => replaceOverlay(group, newVisualize)}
-            visualize={visualize}
-            label={label}
-          />
-        );
-      })}
-      <ToolbarFooter>
-        <ToolbarVisualizeAddChart
-          add={addChart}
-          disabled={visualizes.length >= MAX_VISUALIZES}
-        />
-        {allowEquations && (
-          <ToolbarVisualizeAddEquation
-            add={addEquation}
-            disabled={visualizes.length >= MAX_VISUALIZES}
-          />
-        )}
-      </ToolbarFooter>
-    </ToolbarSection>
+            {allowEquations && (
+              <ToolbarVisualizeAddEquation
+                add={addEquation}
+                disabled={visualizes.length >= MAX_VISUALIZES}
+              />
+            )}
+          </ToolbarFooter>
+        </ToolbarSection>
+      )}
+    </DragNDropContext>
   );
 }
 
 interface VisualizeDropdownProps {
-  canDelete: boolean;
   label: ReactNode;
-  onDelete: () => void;
   onReplace: (visualize: Visualize) => void;
   visualize: Visualize;
+  dragColumnId?: number;
+  onDelete?: () => void;
 }
 
 function ToolbarVisualizeItem({
-  canDelete,
+  dragColumnId,
   label,
   onDelete,
   onReplace,
@@ -169,36 +177,19 @@ function ToolbarVisualizeItem({
 }: VisualizeDropdownProps) {
   const [search, setSearch] = useState<string | undefined>(undefined);
   const debouncedSearch = useDebouncedValue(search, 200);
-  return (
-    <TraceItemAttributeProvider
-      enabled
-      traceItemType={TraceItemDataset.SPANS}
-      search={debouncedSearch}
-    >
-      <VisualizeDropdown
-        canDelete={canDelete}
-        onDelete={onDelete}
-        onReplace={onReplace}
-        visualize={visualize}
-        label={label}
-        onSearch={setSearch}
-        onClose={() => setSearch(undefined)}
-      />
-    </TraceItemAttributeProvider>
-  );
-}
 
-function VisualizeDropdown({
-  canDelete,
-  onDelete,
-  onReplace,
-  visualize,
-  label,
-  onSearch,
-  onClose,
-}: VisualizeDropdownProps & {onClose: () => void; onSearch: (search: string) => void}) {
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
+  const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
+    'string'
+  );
+  const {attributes: numberTags, isLoading: numberTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
+    'number'
+  );
+  const {attributes: booleanTags, isLoading: booleanTagsLoading} = useSpanItemAttributes(
+    {search: debouncedSearch},
+    'boolean'
+  );
 
   const aggregateOptions = useMemo(
     () =>
@@ -214,9 +205,10 @@ function VisualizeDropdown({
 
   const parsedFunction = useMemo(() => parseFunction(visualize.yAxis), [visualize.yAxis]);
 
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+  const fieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
+    booleanTags,
     parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
@@ -253,17 +245,17 @@ function VisualizeDropdown({
 
   return (
     <ToolbarVisualizeDropdown
+      dragColumnId={dragColumnId}
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
-      canDelete={canDelete}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}
       parsedFunction={parsedFunction}
       label={label}
-      loading={numberTagsLoading || stringTagsLoading}
-      onSearch={onSearch}
-      onClose={onClose}
+      loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
+      onSearch={setSearch}
+      onClose={() => setSearch(undefined)}
     />
   );
 }
@@ -274,12 +266,20 @@ interface VisualizeLabelProps {
   visualize: Visualize;
 }
 
-export function getVisualizeLabel(index: number) {
+export function getFunctionLabel(index: number) {
   return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
-function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
-  const label = visualize.visible ? getVisualizeLabel(index) : <IconHide />;
+function getEquationLabel(index: number) {
+  return `ƒ${index}`;
+}
+
+export function getVisualizeLabel(labelIndex: number, isEquation: boolean): string {
+  return isEquation ? getEquationLabel(labelIndex) : getFunctionLabel(labelIndex);
+}
+
+export function VisualizeLabel({index, onClick, visualize}: VisualizeLabelProps) {
+  const label = visualize.visible ? getFunctionLabel(index) : <IconHide />;
 
   return <Label onClick={onClick}>{label}</Label>;
 }

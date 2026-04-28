@@ -17,7 +17,7 @@ from sentry.lang.native.processing import (
     get_frames_for_symbolication,
     process_native_stacktraces,
 )
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
@@ -95,14 +95,14 @@ def test_merge_symbolicator_image_remove_unknown_arch() -> None:
 @pytest.mark.parametrize(
     "code_file,error",
     [
-        ("/var/containers/Bundle/Application/asdf/foo", EventError.NATIVE_MISSING_DSYM),
+        ("/var/containers/Bundle/Application/asdf/foo", EventErrorType.NATIVE_MISSING_DSYM.value),
         (
             "/var/containers/Bundle/Application/asdf/Frameworks/foo",
-            EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+            EventErrorType.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM.value,
         ),
     ],
 )
-def test_merge_symbolicator_image_errors(code_file: str, error: EventError) -> None:
+def test_merge_symbolicator_image_errors(code_file: str, error: EventErrorType) -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo", "code_file": code_file}
     sdk_info = {"sdk_name": "macos"}
     complete_image = {
@@ -133,7 +133,6 @@ def test_merge_symbolicator_image_errors(code_file: str, error: EventError) -> N
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_cocoa_function_name(mock_symbolicator, default_project) -> None:
-
     data = {
         "platform": "cocoa",
         "project": default_project.id,
@@ -164,7 +163,6 @@ def test_cocoa_function_name(mock_symbolicator, default_project) -> None:
 
 
 def test_filter_frames() -> None:
-
     frames = [
         {
             "instruction_addr": None,
@@ -272,7 +270,6 @@ def test_rewrite_electron_debug_file() -> None:
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
-
     data = {
         "event_id": "c87700da71534177b92bd912f21a062f",
         "timestamp": "2022-06-15T10:13:46.963575+00:00",

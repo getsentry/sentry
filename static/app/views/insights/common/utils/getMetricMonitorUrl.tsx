@@ -17,6 +17,13 @@ type Params = {
   referrer?: string;
 };
 
+const DEFAULT_EAP_EVENT_TYPES = [EventTypes.TRACE_ITEM_SPAN];
+
+function getEapEventTypesFromQuery(query: string): EventTypes[] {
+  const parsed = parseEventTypesFromQuery(query, DEFAULT_EAP_EVENT_TYPES);
+  return parsed.eventTypes;
+}
+
 export function getMetricMonitorUrl({
   aggregate,
   dataset,
@@ -26,15 +33,12 @@ export function getMetricMonitorUrl({
   environment,
   query,
   referrer,
-  eventTypes,
+  eventTypes: incomingEventTypes,
 }: Params) {
   let detectorDataset = getDetectorDataset(dataset, []);
   if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
-    const defaultTypes: EventTypes[] = [EventTypes.TRACE_ITEM_SPAN];
-    const parsed = parseEventTypesFromQuery(query ?? '', defaultTypes);
-    const typesToUse =
-      eventTypes && eventTypes.length > 0 ? eventTypes : parsed.eventTypes;
-    detectorDataset = getDetectorDataset(dataset, typesToUse);
+    const eventTypes = incomingEventTypes ?? getEapEventTypesFromQuery(query ?? '');
+    detectorDataset = getDetectorDataset(dataset, eventTypes);
   }
   const queryParams = {
     detectorType: 'metric_issue',

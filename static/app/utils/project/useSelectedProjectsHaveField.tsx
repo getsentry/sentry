@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
 export function getSelectedProjectList(
   selectedProjects: PageFilters['projects'],
@@ -23,7 +23,7 @@ export function getSelectedProjectList(
     .filter((project): project is Project => !!project);
 }
 
-export default function useSelectedProjectsHaveField(field: keyof Project) {
+export function useSelectedProjectsHaveField(field: keyof Project) {
   const {projects, fetching} = useProjects();
   const {selection} = usePageFilters();
 

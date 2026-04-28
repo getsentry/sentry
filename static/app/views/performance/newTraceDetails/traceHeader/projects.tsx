@@ -20,7 +20,7 @@ type Props = {
   tree: TraceTree;
 };
 
-function Projects({projects, logs, tree}: Props) {
+export function Projects({projects, logs, tree}: Props) {
   const dispatch = useTraceStateDispatch();
 
   const onProjectClick = useCallback(
@@ -30,7 +30,7 @@ function Projects({projects, logs, tree}: Props) {
     [dispatch]
   );
 
-  const projectSlugs: string[] = useMemo(() => {
+  const projectSlugs = useMemo(() => {
     if (logs && logs.length > 0 && tree.shape === TraceShape.EMPTY_TRACE) {
       // Get unique project slugs in a single pass
       const projectIdToSlug = new Map(projects.map(p => [p.id, p.slug]));
@@ -71,5 +71,3 @@ const ProjectsRendererWrapper = styled('div')`
     cursor: pointer;
   }
 `;
-
-export default Projects;

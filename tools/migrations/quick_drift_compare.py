@@ -25,7 +25,7 @@ def main() -> NoReturn:
 
     with open("schema-before", "wb") as f:
         _run(
-            *("docker", "exec", "sentry-postgres-1"),
+            *("docker", "exec", "postgres-postgres-1"),
             *("pg_dumpall", "-U", "postgres", "-s"),
             stdout=f,
         )
@@ -36,7 +36,7 @@ def main() -> NoReturn:
 
     with open("schema-after", "wb") as f:
         _run(
-            *("docker", "exec", "sentry-postgres-1"),
+            *("docker", "exec", "postgres-postgres-1"),
             *("pg_dumpall", "-U", "postgres", "-s"),
             stdout=f,
         )

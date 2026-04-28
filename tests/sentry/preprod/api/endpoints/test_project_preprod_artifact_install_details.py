@@ -19,7 +19,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
 
     def _get_url(self, artifact_id=None):
         artifact_id = artifact_id or self.preprod_artifact.id
-        return f"/api/0/projects/{self.organization.slug}/{self.project.slug}/preprodartifacts/{artifact_id}/install-details/"
+        return f"/api/0/organizations/{self.organization.slug}/preprodartifacts/{artifact_id}/private-install-details/"
 
     def _create_ios_artifact(self, **kwargs):
         """Helper to create an iOS artifact with default valid extras"""
@@ -32,6 +32,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
             "artifact_type": PreprodArtifact.ArtifactType.XCARCHIVE,
             "installable_app_file_id": self.file.id,
             "build_version": "1.2.3",
+            "build_number": 1,
             "extras": {
                 "is_code_signature_valid": True,
                 "profile_name": "Test Profile",
@@ -52,6 +53,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
             "artifact_type": PreprodArtifact.ArtifactType.AAB,
             "installable_app_file_id": self.file.id,
             "build_version": "1.2.3",
+            "build_number": 1,
         }
         defaults.update(kwargs)
         return self.create_preprod_artifact(**defaults)

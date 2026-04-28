@@ -13,7 +13,7 @@ app:
         value (ignored because stacktrace takes precedence)
           "pq: cannot cast jsonb null to type integer"
         stacktrace*
-          frame (marked out of app by built-in stack trace rule (path:**/go/pkg/mod/** -app))
+          frame (marked out of app by built-in stacktrace rule (path:**/go/pkg/mod/** -app))
             module*
               "github.com/robfig/cron/v3"
             filename (ignored because module takes precedence)

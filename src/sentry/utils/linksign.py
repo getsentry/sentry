@@ -10,7 +10,7 @@ from sentry_sdk.api import capture_exception
 
 from sentry import features, options
 from sentry.models.organization import Organization
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_locality
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.numbers import base36_decode, base36_encode
@@ -36,8 +36,7 @@ def generate_signed_link(
     path = reverse(viewname, args=args, kwargs=kwargs)
     item = "{}|{}|{}".format(options.get("system.url-prefix"), path, base36_encode(user_id))
     signature = ":".join(get_signer().sign(item).rsplit(":", 2)[1:])
-    region = get_local_region()
-    signed_link = f"{region.to_url(path)}?_={base36_encode(user_id)}:{signature}"
+    signed_link = f"{get_local_locality().to_url(path)}?_={base36_encode(user_id)}:{signature}"
     if referrer:
         signed_link = signed_link + "&" + urlencode({"referrer": referrer})
     return signed_link

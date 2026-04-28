@@ -9,14 +9,14 @@ import type {
 } from 'echarts';
 import moment from 'moment-timezone';
 
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import AreaSeries from 'sentry/components/charts/series/areaSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {UsageChartProps} from 'sentry/views/organizationStats/usageChart';
-import UsageChart, {ChartDataTransform} from 'sentry/views/organizationStats/usageChart';
+import {ChartDataTransform, UsageChart} from 'sentry/views/organizationStats/usageChart';
 import {getDateFromMoment} from 'sentry/views/organizationStats/usageChart/utils';
 
 import type {SpikeDetails, SpikeThresholds} from 'getsentry/views/spikeProtection/types';

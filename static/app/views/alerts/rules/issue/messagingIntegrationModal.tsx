@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
-import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import {AddIntegrationRow} from 'sentry/views/alerts/rules/issue/addIntegrationRow';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
@@ -17,7 +17,7 @@ type Props = ModalRenderProps & {
   onAddIntegration?: () => void;
 };
 
-function MessagingIntegrationModal({
+export function MessagingIntegrationModal({
   closeModal,
   Header,
   Body,
@@ -35,7 +35,7 @@ function MessagingIntegrationModal({
       </Header>
       <Body>
         <p>{bodyContent}</p>
-        <IntegrationsWrapper>
+        <Stack gap="xl">
           {providers.map(provider => {
             return (
               <IntegrationContext
@@ -56,16 +56,8 @@ function MessagingIntegrationModal({
               </IntegrationContext>
             );
           })}
-        </IntegrationsWrapper>
+        </Stack>
       </Body>
     </Fragment>
   );
 }
-
-const IntegrationsWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
-`;
-
-export default MessagingIntegrationModal;

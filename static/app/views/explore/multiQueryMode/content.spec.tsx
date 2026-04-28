@@ -1,4 +1,3 @@
-import {type ReactNode} from 'react';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -11,25 +10,13 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
-
-function Wrapper() {
-  return function ({children}: {children: ReactNode}) {
-    return (
-      <TraceItemAttributeProvider traceItemType={TraceItemDataset.SPANS} enabled>
-        {children}
-      </TraceItemAttributeProvider>
-    );
-  };
-}
 
 describe('MultiQueryModeContent', () => {
   const {organization, project} = initializeOrg();
@@ -53,26 +40,17 @@ describe('MultiQueryModeContent', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
-      body: AutofixSetupFixture({
-        setupAcknowledgement: {
-          orgHasAcknowledged: true,
-          userHasAcknowledged: true,
-        },
-      }),
+      body: AutofixSetupFixture({}),
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
-      body: [{key: 'span.op', name: 'span.op'}],
-      match: [MockApiClient.matchQuery({attributeType: 'string'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [{key: 'span.duration', name: 'span.duration'}],
-      match: [MockApiClient.matchQuery({attributeType: 'number'})],
+      body: [
+        {attributeType: 'string', key: 'span.op', name: 'span.op'},
+        {attributeType: 'number', key: 'span.duration', name: 'span.duration'},
+        {attributeType: 'number', key: 'span.self_time', name: 'span.self_time'},
+      ],
     });
 
     eventsRequest = MockApiClient.addMockResponse({
@@ -108,9 +86,14 @@ describe('MultiQueryModeContent', () => {
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
+      method: 'POST',
+      body: {attributes: {}},
     });
   });
 
@@ -119,7 +102,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
@@ -132,7 +115,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -195,7 +178,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -210,7 +193,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -275,7 +258,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -338,7 +321,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
@@ -353,7 +336,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     const section = await screen.findByTestId('section-visualize-0');
 
@@ -436,7 +419,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(await screen.findByRole('button', {name: 'Bar'})).toBeInTheDocument();
 
@@ -484,7 +467,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bar'}));
     await userEvent.click(screen.getByRole('option', {name: 'Area'}));
@@ -520,7 +503,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -562,7 +545,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -604,7 +587,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -649,7 +632,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -691,7 +674,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -745,7 +728,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -806,7 +789,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -910,7 +893,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -937,7 +920,6 @@ describe('MultiQueryModeContent', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'spans',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -951,7 +933,6 @@ describe('MultiQueryModeContent', () => {
             sampling: 'NORMAL',
             sort: '-timestamp',
             statsPeriod: '7d',
-            topEvents: undefined,
             yAxis: ['count(span.duration)'],
           }),
         })
@@ -991,7 +972,6 @@ describe('MultiQueryModeContent', () => {
         `/organizations/${organization.slug}/events-timeseries/`,
         expect.objectContaining({
           query: expect.objectContaining({
-            caseInsensitive: undefined,
             dataset: 'spans',
             disableAggregateExtrapolation: '0',
             environment: [],
@@ -1061,7 +1041,7 @@ describe('MultiQueryModeContent', () => {
       return <MultiQueryModeContent />;
     }
 
-    render(<Component />, {additionalWrapper: Wrapper()});
+    render(<Component />);
 
     expect(queries).toEqual([
       {
@@ -1105,7 +1085,6 @@ describe('MultiQueryModeContent', () => {
   it('sets interval correctly', async () => {
     const {router} = render(<MultiQueryModeContent />, {
       organization,
-      additionalWrapper: Wrapper(),
       initialRouterConfig: {
         location: {
           pathname: '/traces/compare',
@@ -1136,11 +1115,10 @@ describe('MultiQueryModeContent', () => {
   it('renders a save query button', async () => {
     render(<MultiQueryModeContent />, {
       organization,
-      additionalWrapper: Wrapper(),
     });
     expect(await screen.findByLabelText('Save')).toBeInTheDocument();
     await userEvent.click(screen.getByLabelText('Save'));
-    expect(await screen.findByText('A New Query')).toBeInTheDocument();
+    expect(await screen.findByText('New Query')).toBeInTheDocument();
   });
 
   it('highlights save button when query has changes', async () => {
@@ -1168,6 +1146,10 @@ describe('MultiQueryModeContent', () => {
         environment: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: AutofixSetupFixture({}),
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/explore/saved/123/visit/`,
@@ -1176,7 +1158,6 @@ describe('MultiQueryModeContent', () => {
 
     render(<MultiQueryModeContent />, {
       organization,
-      additionalWrapper: Wrapper(),
       initialRouterConfig: {
         location: {
           pathname: '/traces/compare',

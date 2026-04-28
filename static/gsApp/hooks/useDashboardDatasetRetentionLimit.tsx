@@ -1,6 +1,6 @@
 import {WidgetType} from 'sentry/views/dashboards/types';
 
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {isBizPlanFamily} from 'getsentry/utils/billing';
 
 const THIRTY_DAYS = 30;

@@ -915,9 +915,3 @@ metricConditionalTagging:
   - d:transactions/measurements.fcp@millisecond
   - d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
-transactionMetrics:
-  acceptTransactionNames: clientBased
-  customMeasurements:
-    limit: 10
-  extractCustomTags: []
-  version: 3

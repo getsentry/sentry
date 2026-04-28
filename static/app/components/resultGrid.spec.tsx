@@ -1,6 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ResultGrid from 'sentry/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
 
 describe('ResultGrid', () => {
   const endpoint = '/test-endpoint/';

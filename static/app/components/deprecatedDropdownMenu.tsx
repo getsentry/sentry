@@ -112,7 +112,7 @@ export interface DeprecatedDropdownMenuProps {
  *
  * @deprecated
  */
-function DropdownMenu({
+export function DropdownMenu({
   closeOnEscape = true,
   children,
   alwaysRenderMenu,
@@ -130,7 +130,7 @@ function DropdownMenu({
   const mouseEnterTimeout = useRef<number | undefined>(undefined);
 
   const isOpen = useMemo(() => {
-    const isControlled = typeof isOpenProp !== 'undefined';
+    const isControlled = isOpenProp !== undefined;
     if (isControlled) {
       return isOpenProp;
     }
@@ -141,7 +141,7 @@ function DropdownMenu({
   // Closes dropdown menu
   const handleClose = useCallback(
     (e?: React.KeyboardEvent<Element> | React.MouseEvent<Element>) => {
-      const isControlled = typeof isOpenProp !== 'undefined';
+      const isControlled = isOpenProp !== undefined;
 
       if (!isControlled) {
         setIsOpenState(false);
@@ -213,7 +213,7 @@ function DropdownMenu({
   // Opens dropdown menu
   const handleOpen = useCallback(
     (e?: React.MouseEvent<Element>) => {
-      const isControlled = typeof isOpenProp !== 'undefined';
+      const isControlled = isOpenProp !== undefined;
       if (!isControlled) {
         setIsOpenState(true);
       }
@@ -405,5 +405,3 @@ function DropdownMenu({
     },
   });
 }
-
-export default DropdownMenu;

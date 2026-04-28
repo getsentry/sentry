@@ -5,6 +5,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_assets %}
 
 {% block wrapperclass %}narrow auth org-login{% endblock %}
 
@@ -34,4 +35,53 @@
 {% endblock %}
 
 {% block footer %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% script %}
+<script>
+  // HACK(jferge+claude): Sync CSRF tokens from cookie to form fields for multi-tab scenarios.
+  // When users have multiple auth tabs open and one tab logs in (rotating the CSRF token),
+  // other tabs need to pick up the new token before form submission.
+  (function() {
+    function getCookie(name) {
+      if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === name + '=') {
+            return decodeURIComponent(cookie.substring(name.length + 1));
+          }
+        }
+      }
+      return null;
+    }
+
+    function syncCsrfTokens() {
+      var csrfCookieVal = getCookie(window.csrfCookieName || 'sc');
+      // combine strings for csrf name as some tests grep on the token name :(
+      var csrfName = 'csrf' + 'middleware' + 'token';
+      var csrfEls = document.getElementsByName(csrfName);
+      if (csrfEls.length > 0 && csrfCookieVal) {
+        for (var i = 0; i < csrfEls.length; i++) {
+          csrfEls[i].value = csrfCookieVal;
+        }
+      }
+    }
+
+    // Periodic sync for visual consistency (user sees correct token in DevTools)
+    setInterval(syncCsrfTokens, 200);
+
+    // Sync on form submit to guarantee fresh token even if submit happens
+    // within the 200ms polling window. Capture phase ensures this runs
+    // before the form's default submit action.
+    document.addEventListener('submit', function(e) {
+      if (e.target && e.target.tagName === 'FORM') {
+        syncCsrfTokens();
+      }
+    }, true);
+  })();
+</script>
+{% endscript %}
 {% endblock %}

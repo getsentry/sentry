@@ -15,11 +15,10 @@ from django.db.models.enums import TextChoices
 from django.utils import timezone
 from snuba_sdk import Op
 
-from sentry import features, release_health, tsdb
+from sentry import release_health, tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import DEFAULT_TYPE_ID, Group
-from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
 from sentry.rules.match import MatchType
@@ -184,7 +183,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
         _, duration = self.intervals[interval]
-        current_value = self.get_rate(duration=duration, comparison_interval=comparison_interval, event=event, environment_id=self.rule.environment_id, comparison_type=comparison_type)  # type: ignore[union-attr]
+        current_value = self.get_rate(
+            duration=duration,
+            comparison_interval=comparison_interval,
+            event=event,
+            environment_id=self.rule.environment_id,  # type: ignore[union-attr]
+            comparison_type=comparison_type,
+        )
 
         logging.info("event_frequency_rule current: %s, threshold: %s", current_value, value)
         return current_value > value
@@ -596,13 +601,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
         environment_id: int,
     ) -> int:
         assert self.rule
-        if not features.has(
-            "organizations:event-unique-user-frequency-condition-with-conditions",
-            Project.objects.get(id=self.rule.project_id).organization,
-        ):
-            raise NotImplementedError(
-                "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
-            )
         if self.rule.data["filter_match"] == "any":
             raise NotImplementedError(
                 "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"
@@ -653,14 +651,6 @@ class EventUniqueUserFrequencyConditionWithConditions(EventUniqueUserFrequencyCo
             },
         )
         assert self.rule
-        if not features.has(
-            "organizations:event-unique-user-frequency-condition-with-conditions",
-            self.rule.project.organization,
-        ):
-            raise NotImplementedError(
-                "EventUniqueUserFrequencyConditionWithConditions is not enabled for this organization"
-            )
-
         if self.rule.data["filter_match"] == "any":
             raise NotImplementedError(
                 "EventUniqueUserFrequencyConditionWithConditions does not support filter_match == any"

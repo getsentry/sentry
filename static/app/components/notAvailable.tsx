@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 type Props = {
   className?: string;
   tooltip?: React.ReactNode;
 };
 
-function NotAvailable({tooltip, className}: Props) {
+export function NotAvailable({tooltip, className}: Props) {
   return (
     <Tooltip title={tooltip} skipWrapper disabled={tooltip === undefined}>
       <Wrapper className={className}>{'\u2014'}</Wrapper>
@@ -18,5 +18,3 @@ function NotAvailable({tooltip, className}: Props) {
 const Wrapper = styled('div')`
   color: ${p => p.theme.colors.gray200};
 `;
-
-export default NotAvailable;

@@ -21,98 +21,12 @@ import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   getSingularCategoryName,
-  hasCategoryFeature,
   isByteCategory,
+  isEmergeCategory,
   listDisplayNames,
   sortCategories,
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
-
-describe('hasCategoryFeature', () => {
-  const organization = OrganizationFixture();
-  const subscription = SubscriptionFixture({organization, plan: 'mm2_b_100k'});
-
-  it('returns am1 plan categories', () => {
-    const sub = SubscriptionFixture({organization, plan: 'am1_team'});
-    expect(hasCategoryFeature(DataCategory.ERRORS, sub, organization)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.TRANSACTIONS, sub, organization)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, sub, organization)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, sub, organization)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, sub, organization)).toBe(true);
-  });
-
-  it('returns mm2 plan categories', () => {
-    expect(hasCategoryFeature(DataCategory.ERRORS, subscription, organization)).toBe(
-      true
-    );
-    expect(
-      hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, organization)
-    ).toBe(false);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, subscription, organization)).toBe(
-      false
-    );
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, organization)).toBe(
-      false
-    );
-    expect(
-      hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, organization)
-    ).toBe(false);
-  });
-
-  it('returns mm1 plan categories', () => {
-    const sub = SubscriptionFixture({organization, plan: 's1'});
-    expect(hasCategoryFeature(DataCategory.ERRORS, sub, organization)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.TRANSACTIONS, sub, organization)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, sub, organization)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, organization)).toBe(
-      false
-    );
-    expect(
-      hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, organization)
-    ).toBe(false);
-  });
-
-  it('returns org has transactions feature', () => {
-    const org = {...organization, features: ['performance-view']};
-    expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, org)).toBe(false);
-  });
-
-  it('returns org has attachments feature', () => {
-    const org = {...organization, features: ['event-attachments']};
-    expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, org)).toBe(false);
-  });
-
-  it('returns org has replays feature', () => {
-    const org = {...organization, features: ['session-replay']};
-    expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.MONITOR_SEATS, subscription, org)).toBe(false);
-  });
-
-  it('returns org has transactions and attachments features', () => {
-    const org = {...organization, features: ['performance-view', 'event-attachments']};
-    expect(hasCategoryFeature(DataCategory.ERRORS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.TRANSACTIONS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.ATTACHMENTS, subscription, org)).toBe(true);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, org)).toBe(false);
-    expect(hasCategoryFeature(DataCategory.REPLAYS, subscription, org)).toBe(false);
-  });
-
-  it('returns org does not have unknown feature', () => {
-    const org = {...organization, features: []};
-    expect(hasCategoryFeature('unknown' as DataCategory, subscription, org)).toBe(false);
-  });
-});
 
 describe('sortCategories', () => {
   const organization = OrganizationFixture();
@@ -463,7 +377,7 @@ describe('listDisplayNames', () => {
   it('should list categories in order given', () => {
     expect(
       listDisplayNames({
-        plan: plan!,
+        plan,
         categories: [
           DataCategory.SPANS,
           DataCategory.TRANSACTIONS,
@@ -479,8 +393,8 @@ describe('listDisplayNames', () => {
   it('should hide stored spans for no DS', () => {
     expect(
       listDisplayNames({
-        plan: plan!,
-        categories: plan!.checkoutCategories,
+        plan,
+        categories: plan.checkoutCategories,
         hadCustomDynamicSampling: false,
       })
     ).toBe(
@@ -491,8 +405,8 @@ describe('listDisplayNames', () => {
   it('should include stored spans and use accepted spans for DS', () => {
     expect(
       listDisplayNames({
-        plan: plan!,
-        categories: plan!.checkoutCategories,
+        plan,
+        categories: plan.checkoutCategories,
         hadCustomDynamicSampling: true,
       })
     ).toBe(
@@ -502,11 +416,26 @@ describe('listDisplayNames', () => {
 });
 
 describe('isByteCategory', () => {
-  it('verifies isByteCategory function handles both ATTACHMENTS and LOG_BYTE', () => {
+  it('verifies isByteCategory function handles ATTACHMENTS, LOG_BYTE, and TRACE_METRIC_BYTE', () => {
     expect(isByteCategory(DataCategory.ATTACHMENTS)).toBe(true);
     expect(isByteCategory(DataCategory.LOG_BYTE)).toBe(true);
+    expect(isByteCategory(DataCategory.TRACE_METRIC_BYTE)).toBe(true);
     expect(isByteCategory(DataCategory.ERRORS)).toBe(false);
     expect(isByteCategory(DataCategory.TRANSACTIONS)).toBe(false);
+  });
+});
+
+describe('isEmergeCategory', () => {
+  it('returns true for SIZE_ANALYSIS and INSTALLABLE_BUILD', () => {
+    expect(isEmergeCategory(DataCategory.SIZE_ANALYSIS)).toBe(true);
+    expect(isEmergeCategory(DataCategory.INSTALLABLE_BUILD)).toBe(true);
+  });
+
+  it('returns false for other categories', () => {
+    expect(isEmergeCategory(DataCategory.ERRORS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.TRANSACTIONS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.ATTACHMENTS)).toBe(false);
+    expect(isEmergeCategory(DataCategory.REPLAYS)).toBe(false);
   });
 });
 

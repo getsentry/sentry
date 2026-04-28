@@ -1,26 +1,25 @@
-import {useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import HeroImg from 'getsentry-images/features/replay-modal-hero.jpg';
 
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, Subscription} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import type {Reservations} from './types';
-import useLogUpgradeNowViewed from './useLogUpgradeNowViewed';
+import {useLogUpgradeNowViewed} from './useLogUpgradeNowViewed';
 import {redirectToManage} from './utils';
 
 type Props = ModalRenderProps & {
@@ -44,7 +43,7 @@ function UpgradeNowModal({
 
   const api = useApi();
 
-  const onUpdatePlan = useCallback(async () => {
+  const onUpdatePlan = async () => {
     try {
       await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
         method: 'PUT',
@@ -82,7 +81,7 @@ function UpgradeNowModal({
         )
       );
     }
-  }, [api, organization, subscription, plan, reservations, onComplete, surface]);
+  };
 
   return (
     <UpsellContent>
@@ -90,7 +89,7 @@ function UpgradeNowModal({
       <Header>{t('Get to the root cause of an error faster')}</Header>
       <p>
         {t(
-          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occured.'
+          'Enable video-like reproduction of your user sessions so you can see what happened before, during and after an error or performance issue occurred.'
         )}
       </p>
       <CTAPanel>
@@ -131,14 +130,14 @@ const Subheader = styled('h2')`
   color: ${p => p.theme.tokens.content.accent};
   font-size: ${p => p.theme.font.size.sm};
   font-weight: bold;
-  margin-bottom: ${space(1.5)};
+  margin-bottom: ${p => p.theme.space.lg};
   text-transform: uppercase;
 `;
 
 const Header = styled('h1')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
-  margin: ${space(1.5)} 0;
+  margin: ${p => p.theme.space.lg} 0;
 `;
 
 const CTAPanel = styled('div')`
@@ -146,8 +145,8 @@ const CTAPanel = styled('div')`
   border-radius: ${p => p.theme.radius.md};
   display: flex;
   justify-content: space-between;
-  padding: ${space(2)};
-  margin-block: ${space(2)};
+  padding: ${p => p.theme.space.xl};
+  margin-block: ${p => p.theme.space.xl};
 `;
 
 const CTAPrimary = styled('div')`
@@ -162,7 +161,7 @@ const Note = styled('p')`
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.xs};
-  margin-block: ${space(4)};
+  margin-block: ${p => p.theme.space['3xl']};
 `;
 
 export const modalCss = css`

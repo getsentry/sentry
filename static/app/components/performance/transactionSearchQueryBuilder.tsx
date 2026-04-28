@@ -6,7 +6,8 @@ import {
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
 } from 'sentry/components/events/searchBarFieldConstants';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -19,13 +20,12 @@ import {
   isAggregateField,
   isMeasurement,
 } from 'sentry/utils/discover/fields';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {getHasTag} from 'sentry/utils/tag';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useTags from 'sentry/utils/useTags';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 
 interface TransactionSearchQueryBuilderProps {
   initialQuery: string;
@@ -78,9 +78,17 @@ export function TransactionSearchQueryBuilder({
       ...tags,
     };
 
+    if (organization.features.includes('performance-transaction-summary-eap')) {
+      combinedTags['request.method'] = {
+        key: 'request.method',
+        name: 'request.method',
+        kind: FieldKind.FIELD,
+      };
+    }
+
     combinedTags.has = getHasTag(combinedTags);
     return combinedTags;
-  }, [tags]);
+  }, [organization.features, tags]);
 
   const filterKeySections = useMemo(
     () => [
@@ -96,7 +104,7 @@ export function TransactionSearchQueryBuilder({
 
   // This is adapted from the `getEventFieldValues` function in `events/searchBar.tsx`
   const getTransactionFilterTagValues = useCallback<GetTagValues>(
-    async (tag, queryString) => {
+    async ({tag, searchQuery}) => {
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -114,7 +122,7 @@ export function TransactionSearchQueryBuilder({
           api,
           orgSlug: organization.slug,
           tagKey: tag.key,
-          search: queryString,
+          search: searchQuery,
           projectIds: projects?.map(String) ?? selection.projects?.map(String),
           includeTransactions: true,
           sort: '-count',

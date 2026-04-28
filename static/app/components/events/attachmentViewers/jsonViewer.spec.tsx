@@ -5,7 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
+import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
 
 describe('JsonViewer', () => {
   const organization = OrganizationFixture();
@@ -15,9 +15,10 @@ describe('JsonViewer', () => {
 
   it('Renders error if fetch is not successful', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`,
+      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/`,
       status: 500,
       statusCode: 500,
+      match: [MockApiClient.matchQuery({download: true})],
     });
 
     render(
@@ -34,8 +35,9 @@ describe('JsonViewer', () => {
 
   it('Renders JSON content if fetch is successful', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`,
+      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/`,
       body: '{"key":"value"}',
+      match: [MockApiClient.matchQuery({download: true})],
     });
 
     render(
@@ -53,10 +55,11 @@ describe('JsonViewer', () => {
 
   it('renders JSON sucessfully parsed by the api client', async () => {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/?download`,
+      url: `/projects/${organization.id}/${project.slug}/events/${event.id}/attachments/${attachment.id}/`,
       headers: {'content-type': 'application/json'},
       // Not a string, the mock api client will just return this object
       body: {key: 'value'},
+      match: [MockApiClient.matchQuery({download: true})],
     });
 
     render(

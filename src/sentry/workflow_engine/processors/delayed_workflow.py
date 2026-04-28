@@ -5,13 +5,15 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Any, TypeAlias
+from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
+from taskbroker_client.retry import retry_task
+from taskbroker_client.state import current_task
 
-from sentry import features, nodestore, options
+from sentry import features, nodestore
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -19,8 +21,6 @@ from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.taskworker.retry import retry_task
-from sentry.taskworker.state import current_task
 from sentry.utils import metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
@@ -50,17 +50,19 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.types import ConditionError, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DataConditionGroupId,
+    GroupId,
+    WorkflowEventData,
+    WorkflowId,
+)
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger("sentry.workflow_engine.processors.delayed_workflow")
 
 EVENT_LIMIT = 100
 COMPARISON_INTERVALS_VALUES = {k: v[1] for k, v in COMPARISON_INTERVALS.items()}
-
-GroupId: TypeAlias = int
-DataConditionGroupId: TypeAlias = int
-WorkflowId: TypeAlias = int
 
 
 class EventInstance(BaseModel):
@@ -722,17 +724,6 @@ def fire_actions_for_groups(
         },
     )
 
-    # Feature check caching to keep us within the trace budget.
-    single_processing_ff = features.has(
-        "organizations:workflow-engine-single-process-workflows", organization
-    )
-    ga_type_ids = options.get("workflow_engine.issue_alert.group.type_id.ga")
-    rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
-
-    should_trigger_actions = lambda type_id: (
-        type_id in ga_type_ids or (type_id in rollout_type_ids and single_processing_ff)
-    )
-
     total_actions = 0
     with track_batch_performance(
         "workflow_engine.delayed_workflow.fire_actions_for_groups.loop",
@@ -758,7 +749,6 @@ def fire_actions_for_groups(
                 workflow_fire_histories = create_workflow_fire_histories(
                     filtered_actions,
                     workflow_event_data,
-                    should_trigger_actions(group_event.group.type),
                     is_delayed=True,
                     start_timestamp=start_timestamp,
                 )

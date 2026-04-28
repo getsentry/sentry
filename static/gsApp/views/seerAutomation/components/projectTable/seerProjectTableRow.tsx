@@ -1,63 +1,74 @@
 import styled from '@emotion/styled';
+import type {UseQueryResult} from '@tanstack/react-query';
 
-import {Checkbox} from '@sentry/scraps/checkbox/checkbox';
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Link} from '@sentry/scraps/link/link';
-import {Switch} from '@sentry/scraps/switch/switch';
-import {Text} from '@sentry/scraps/text/text';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import type {
-  AutofixAutomationSettings,
-  useUpdateBulkAutofixAutomationSettings,
-} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {AutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {t} from 'sentry/locale';
+import {IconWarning} from 'sentry/icons/iconWarning';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {PreferredAgent} from 'sentry/utils/seer/preferredAgent';
+import {
+  getProjectStoppingPointValueFromSettings,
+  type MutateStoppingPoint,
+  PROJECT_STOPPING_POINT_OPTIONS,
+} from 'sentry/utils/seer/stoppingPoint';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  useMutateSelectedAgent,
+  useSelectedAgentFromBulkSettings,
+} from 'sentry/views/settings/seer/seerAgentHooks';
 
-import useCanWriteSettings from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
+import {useCanWriteSettings} from 'getsentry/views/seerAutomation/components/useCanWriteSettings';
 
 interface Props {
-  autofixSettings: AutofixAutomationSettings;
-  isFetchingSettings: boolean;
+  agentOptions: UseQueryResult<Array<{label: string; value: PreferredAgent}>, Error>;
+  autofixSettings: undefined | AutofixAutomationSettings;
+  integrations: CodingAgentIntegration[];
+  isPendingIntegrations: boolean;
+  mutateStoppingPoint: MutateStoppingPoint;
   project: Project;
-  updateBulkAutofixAutomationSettings: ReturnType<
-    typeof useUpdateBulkAutofixAutomationSettings
-  >['mutate'];
 }
 
-export default function SeerProjectTableRow({
+export function SeerProjectTableRow({
+  agentOptions,
   autofixSettings,
-  isFetchingSettings,
-  updateBulkAutofixAutomationSettings,
+  integrations,
+  isPendingIntegrations,
+  mutateStoppingPoint,
   project,
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
   const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
-  // We used to support multiple sensitivity values for Auto-Fix. Now we only support 'off' and 'medium'.
-  // If any other value is set, we treat it as 'medium'.
-  const isAutoFixEnabled = Boolean(
-    autofixSettings.autofixAutomationTuning &&
-      autofixSettings.autofixAutomationTuning !== 'off'
-  );
+  const autofixAgent = useSelectedAgentFromBulkSettings({
+    autofixSettings: autofixSettings ?? {
+      autofixAutomationTuning: 'off',
+      automatedRunStoppingPoint: 'code_changes',
+      automationHandoff: undefined,
+      projectId: project.id,
+      reposCount: 0,
+    },
+    integrations: integrations ?? [],
+  });
 
-  // We used to have multiple stopping points for PR Creation.
-  // `code_changes` means seer will output code changes, and you can copy and paste them into a new branch.
-  // `open_pr` means seer will take those changes and push a PR for you.
-  // All other values are treated as `code_changes`. Which means both checkboxes will be unchecked.
-  const isCreatePrEnabled = autofixSettings.automatedRunStoppingPoint !== 'code_changes';
-  const isBackgroundAgentEnabled = Boolean(autofixSettings.automationHandoff);
+  const mutateSelectedAgent = useMutateSelectedAgent({project});
+
+  const stoppingPointValue = autofixSettings
+    ? getProjectStoppingPointValueFromSettings(autofixSettings)
+    : 'off';
 
   return (
     <SimpleTable.Row key={project.id}>
@@ -77,86 +88,87 @@ export default function SeerProjectTableRow({
         </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end">
-        {isFetchingSettings ? (
-          <Placeholder height="20px" width="36px" />
+        {autofixSettings ? (
+          autofixSettings.reposCount === 0 ? (
+            <Tooltip
+              title={t('Seer works best on projects with at least one connected repo.')}
+            >
+              <Flex align="center" gap="sm">
+                <IconWarning variant="warning" />
+                <Text tabular>{0}</Text>
+              </Flex>
+            </Tooltip>
+          ) : (
+            <Text tabular>{autofixSettings.reposCount}</Text>
+          )
         ) : (
-          <Switch
-            disabled={!canWrite}
-            checked={isAutoFixEnabled}
-            onChange={e => {
-              addLoadingMessage(t('Updating Auto-Fix for %s', project.name));
-              updateBulkAutofixAutomationSettings(
-                {
-                  projectIds: [project.id],
-                  autofixAutomationTuning: e.target.checked ? 'medium' : 'off',
-                },
-                {
-                  onError: () =>
-                    addErrorMessage(t('Problem updating Auto-Fix for %s', project.name)),
-                  onSuccess: () =>
-                    addSuccessMessage(t('Auto-Fix updated for %s', project.name)),
-                }
-              );
-            }}
-          />
+          <Placeholder height="28px" width="36px" />
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        {isBackgroundAgentEnabled ? (
-          <Flex align="center" gap="sm">
-            {'n/a'}
-            <QuestionTooltip
-              title={t('This setting does not apply to background agents.')}
-              size="xs"
-            />
-          </Flex>
-        ) : isFetchingSettings ? (
-          <Placeholder height="20px" width="36px" />
+      <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
+        {!autofixSettings || isPendingIntegrations ? (
+          <Placeholder height="28px" width="100%" />
         ) : (
-          <Switch
-            disabled={!canWrite || !isAutoFixEnabled}
-            checked={isCreatePrEnabled}
-            onChange={e => {
-              const automatedRunStoppingPoint = e.target.checked
-                ? 'open_pr'
-                : 'code_changes';
-              addLoadingMessage(t('Updating PR Creation for %s', project.name));
-              updateBulkAutofixAutomationSettings(
-                {projectIds: [project.id], automatedRunStoppingPoint},
-                {
+          <Stack align="stretch" flex="1">
+            <Select
+              size="xs"
+              disabled={!canWrite}
+              name="autofixAgent"
+              options={agentOptions.data ?? []}
+              value={autofixAgent ?? 'seer'}
+              onChange={option => {
+                mutateSelectedAgent(option.value, {
+                  onSuccess: () => {
+                    addSuccessMessage(
+                      tct('Selected [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
+                    );
+                  },
                   onError: () =>
                     addErrorMessage(
-                      t('Problem updating PR Creation for %s', project.name)
+                      tct('Failed to set [name] for [project]', {
+                        name: <strong>{option.label}</strong>,
+                        project: project.name,
+                      })
                     ),
-                  onSuccess: () =>
-                    addSuccessMessage(t('PR Creation updated for %s', project.name)),
-                }
-              );
-            }}
-          />
-        )}
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        {isFetchingSettings ? (
-          <Placeholder height="20px" width="36px" />
-        ) : (
-          <Flex align="center" gap="sm">
-            <Switch
-              disabled
-              checked={isBackgroundAgentEnabled}
-              onChange={() => {
-                // This preference has complicated configuration, and thus cannot be
-                // turned off or on from here.
+                });
               }}
             />
-          </Flex>
+          </Stack>
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        {isFetchingSettings ? (
-          <Placeholder height="20px" width="36px" />
+      <SimpleTable.RowCell justify="end" align="stretch" overflow="visible">
+        {autofixSettings ? (
+          <Stack align="stretch" flex="1">
+            <Select
+              size="xs"
+              disabled={!canWrite}
+              name="stoppingPoint"
+              options={PROJECT_STOPPING_POINT_OPTIONS}
+              value={stoppingPointValue}
+              onChange={option => {
+                mutateStoppingPoint(
+                  {stoppingPoint: option.value, project},
+                  {
+                    onSuccess: () =>
+                      addSuccessMessage(
+                        tct('Updated automation steps for [project]', {
+                          project: project.name,
+                        })
+                      ),
+                    onError: () =>
+                      addErrorMessage(
+                        t('Failed to update automation steps for %s', project.name)
+                      ),
+                  }
+                );
+              }}
+            />
+          </Stack>
         ) : (
-          <Text tabular>{autofixSettings.reposCount || 0}</Text>
+          <Placeholder height="28px" width="100%" />
         )}
       </SimpleTable.RowCell>
     </SimpleTable.Row>

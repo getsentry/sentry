@@ -12,9 +12,9 @@ class MiddlewareOperationType(StrEnum):
     ENSURE_CONTROL_SILO = "ensure_control_silo"
 
     GET_CONTROL_RESPONSE = "get_control_response"
-    GET_REGION_RESPONSE = "get_region_response"
-    GET_RESPONSE_FROM_FIRST_REGION = "get_response_from_first_region"
-    GET_RESPONSE_FROM_ALL_REGIONS = "get_response_from_all_regions"
+    GET_CELL_RESPONSE = "get_region_response"
+    GET_RESPONSE_FROM_FIRST_CELL = "get_response_from_first_region"
+    GET_RESPONSE_FROM_ALL_CELLS = "get_response_from_all_regions"
 
     GET_ORGS_FROM_INTEGRATION = "get_orgs_from_integration"
 
@@ -25,13 +25,13 @@ class MiddlewareOperationEvent(EventLifecycleMetric):
 
     operation_type: MiddlewareOperationType
     integration_name: str | None = None
-    region: str | None = None
+    cell: str | None = None
 
     def get_integration_name(self) -> str:
         return self.integration_name or ""
 
-    def get_region(self) -> str:
-        return self.region or ""
+    def get_cell(self) -> str:
+        return self.cell or ""
 
     def get_metric_key(self, outcome: EventLifecycleOutcome) -> str:
         tokens = ("integration", "middleware", str(outcome))
@@ -41,7 +41,7 @@ class MiddlewareOperationEvent(EventLifecycleMetric):
         return {
             "operation_type": self.operation_type,
             "integration_name": self.get_integration_name(),
-            "region": self.get_region(),
+            "region": self.get_cell(),
         }
 
 

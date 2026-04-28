@@ -1,9 +1,9 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 
-import {replaceFreeTextTokens} from './useQueryBuilderState';
+import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
@@ -115,7 +115,7 @@ describe('replaceFreeTextTokens', () => {
           currentQuery: 'test test',
         },
         expected: {
-          query: `span.description:"*test*test*"`,
+          query: 'span.description:"*test*test*"',
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -157,10 +157,10 @@ describe('replaceFreeTextTokens', () => {
           'when there is already a replace token present with a different operator',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `span.description:test other value`,
+          currentQuery: 'span.description:test other value',
         },
         expected: {
-          query: `span.description:test span.description:"*other*value*"`,
+          query: 'span.description:test span.description:"*other*value*"',
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -168,10 +168,10 @@ describe('replaceFreeTextTokens', () => {
         description: 'when the value contains an asterisks, it sets to is',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `span.description:test te*st`,
+          currentQuery: 'span.description:test te*st',
         },
         expected: {
-          query: `span.description:test span.description:te*st`,
+          query: 'span.description:test span.description:te*st',
           focusOverride: {itemKey: 'freeText:2'},
         },
       },
@@ -179,10 +179,10 @@ describe('replaceFreeTextTokens', () => {
         description: 'when the value contains a space and asterisks, it sets to is',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `te*st test`,
+          currentQuery: 'te*st test',
         },
         expected: {
-          query: `span.description:"te*st test"`,
+          query: 'span.description:"te*st test"',
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -191,10 +191,10 @@ describe('replaceFreeTextTokens', () => {
           'when the value contains multiple spaces, it removes them and will replace them with a single space, and apply fuzzy matching',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `test  test`,
+          currentQuery: 'test  test',
         },
         expected: {
-          query: `span.description:"*test*test*"`,
+          query: 'span.description:"*test*test*"',
           focusOverride: {itemKey: 'freeText:1'},
         },
       },
@@ -202,7 +202,7 @@ describe('replaceFreeTextTokens', () => {
         description: 'when the value is an aggregate filter token, it ignores it',
         input: {
           rawSearchReplacement: ['span.description'],
-          currentQuery: `p75(span.duration):>300ms test`,
+          currentQuery: 'p75(span.duration):>300ms test',
         },
         expected: {
           query: `p75(span.duration):>300ms span.description:${WildcardOperators.CONTAINS}test`,
@@ -244,5 +244,53 @@ describe('replaceFreeTextTokens', () => {
       expect(result?.newQuery).toBe(expected.query);
       expect(result?.focusOverride).toStrictEqual(expected.focusOverride);
     });
+  });
+});
+
+describe('multiSelectTokenValue', () => {
+  const filterKeys = {
+    'browser.name': {
+      key: 'browser.name',
+      name: 'browser.name',
+      kind: FieldKind.FIELD,
+    },
+  };
+
+  function runToggle(query: string, value: string) {
+    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
+    const token = parsed?.find(t => t.type === Token.FILTER);
+    if (!token) {
+      throw new Error(`No filter token found in query: ${query}`);
+    }
+
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+    return multiSelectTokenValue(state, {type: 'TOGGLE_FILTER_VALUE', token, value});
+  }
+
+  it('removes a manually-typed wildcard value when toggled off with its escaped form (list)', () => {
+    // User typed `browser.name:[test*,foo]` (wildcard). Suggestion checkbox
+    // dispatches the escaped `test\*` to toggle off.
+    const result = runToggle('browser.name:[test*,foo]', 'test\\*');
+    expect(result.query).toBe('browser.name:foo');
+  });
+
+  it('removes a manually-typed wildcard single value when toggled off with its escaped form', () => {
+    const result = runToggle('browser.name:test*', 'test\\*');
+    expect(result.query).toBe('browser.name:""');
+  });
+
+  it('appends a new value that does not match the existing raw value', () => {
+    const result = runToggle('browser.name:[test*,foo]', 'bar');
+    expect(result.query).toBe('browser.name:[test*,foo,bar]');
+  });
+
+  it('removes an already-escaped list value when toggled off with the same escaped form', () => {
+    const result = runToggle('browser.name:[test\\*,foo]', 'test\\*');
+    expect(result.query).toBe('browser.name:foo');
   });
 });

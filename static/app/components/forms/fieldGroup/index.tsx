@@ -1,4 +1,4 @@
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 
 import {ControlState} from './controlState';
 import {ControlWrapper} from './controlWrapper';
@@ -16,7 +16,7 @@ import type {FieldGroupProps} from './types';
  *
  * This is unconnected to any Form state
  */
-function FieldGroup({
+export function FieldGroup({
   className,
   disabled = false,
   inline = true,
@@ -120,5 +120,3 @@ function FieldGroup({
     </FieldWrapper>
   );
 }
-
-export default FieldGroup;

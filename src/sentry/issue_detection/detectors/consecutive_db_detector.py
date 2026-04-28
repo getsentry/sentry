@@ -60,7 +60,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     def __init__(
         self,
-        settings: dict[DetectorType, Any],
+        settings: dict[str, Any],
         event: dict[str, Any],
         organization: Organization | None = None,
         detector_id: int | None = None,
@@ -85,15 +85,15 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         if not len(self.independent_db_spans):
             return
 
-        exceeds_count_threshold = len(self.consecutive_db_spans) >= self.settings.get(
-            "consecutive_count_threshold"
+        exceeds_count_threshold = (
+            len(self.consecutive_db_spans) >= self.settings["consecutive_count_threshold"]
         )
         if not exceeds_count_threshold:
             return
 
         exceeds_span_duration_threshold = all(
             get_span_duration(span).total_seconds() * 1000
-            > self.settings.get("span_duration_threshold")
+            > self.settings["span_duration_threshold"]
             for span in self.independent_db_spans
         )
         if not exceeds_span_duration_threshold:
@@ -101,14 +101,14 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         time_saved = self._calculate_time_saved(self.independent_db_spans)
         total_time = get_total_span_duration(self.consecutive_db_spans)
-        exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
+        exceeds_time_saved_threshold = time_saved >= self.settings["min_time_saved"]
         if not exceeds_time_saved_threshold:
             return
 
         exceeds_time_saved_threshold_ratio = False
         if total_time > 0:
-            exceeds_time_saved_threshold_ratio = time_saved / total_time >= self.settings.get(
-                "min_time_saved_ratio"
+            exceeds_time_saved_threshold_ratio = (
+                time_saved / total_time >= self.settings["min_time_saved_ratio"]
             )
         if not exceeds_time_saved_threshold_ratio:
             return

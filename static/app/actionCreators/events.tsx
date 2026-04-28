@@ -1,3 +1,5 @@
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import type {UseMutationOptions} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
@@ -12,26 +14,16 @@ import type {
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {
-  ApiQueryKey,
-  UseApiQueryOptions,
-  UseMutationOptions,
-} from 'sentry/utils/queryClient';
-import {
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type Options = {
@@ -139,7 +131,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       dataset,
       sampling,
       extrapolationMode,
-    }).filter(([, value]) => typeof value !== 'undefined')
+    }).filter(([, value]) => value !== undefined)
   );
 
   // Doubling period for absolute dates is not accurate unless starting and
@@ -317,7 +309,7 @@ export const useDeleteEventAttachmentOptimistic = (
         {method: 'DELETE'}
       );
     },
-    onMutate: async variables => {
+    onMutate: async (variables, context) => {
       await queryClient.cancelQueries({
         queryKey: makeFetchEventAttachmentsQueryKey(variables),
       });
@@ -339,22 +331,22 @@ export const useDeleteEventAttachmentOptimistic = (
         }
       );
 
-      incomingOptions.onMutate?.(variables);
+      incomingOptions.onMutate?.(variables, context);
 
       return {previous};
     },
-    onError: (error, variables, context) => {
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(t('An error occurred while deleting the attachment'));
 
-      if (context) {
+      if (onMutateResult) {
         setApiQueryData(
           queryClient,
           makeFetchEventAttachmentsQueryKey(variables),
-          context.previous
+          onMutateResult.previous
         );
       }
 
-      incomingOptions.onError?.(error, variables, context);
+      incomingOptions.onError?.(error, variables, onMutateResult, context);
     },
   };
 

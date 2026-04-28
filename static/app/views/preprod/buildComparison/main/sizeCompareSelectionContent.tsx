@@ -1,18 +1,18 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
-import {Stack} from '@sentry/scraps/layout';
-import {Flex} from '@sentry/scraps/layout/flex';
+import {InputGroup} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import TimeSince from 'sentry/components/timeSince';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCalendar,
   IconCode,
@@ -24,25 +24,26 @@ import {
 } from 'sentry/icons';
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import parseApiError from 'sentry/utils/parseApiError';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {useApiQuery, useMutation, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {parseApiError} from 'sentry/utils/parseApiError';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   BuildDetailsState,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
-import type {ListBuildsApiResponse} from 'sentry/views/preprod/types/listBuildsTypes';
-import {getCompareBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
+import {
+  getCompareApiUrl,
+  getCompareBuildPath,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
   formattedPrimaryMetricInstallSize,
@@ -64,44 +65,44 @@ export function SizeCompareSelectionContent({
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {project: projectId, cursor} = useLocationQuery({
+  const {cursor} = useLocationQuery({
     fields: {
-      project: decodeScalar,
       cursor: decodeScalar,
     },
   });
-  const project = ProjectsStore.getBySlug(projectId);
-  const projectType = project?.platform ?? null;
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
     BuildDetailsApiResponse | undefined
   >(baseBuildDetails);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const queryParams: Record<string, any> = {
-    per_page: 25,
-    state: BuildDetailsState.PROCESSED,
-    app_id: headBuildDetails.app_info?.app_id,
-    build_configuration: headBuildDetails.app_info?.build_configuration,
-    ...(cursor && {cursor}),
-    ...(searchQuery && {query: searchQuery}),
-    ...(projectId && {project: projectId}),
-  };
-
-  const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
-    useApiQuery<ListBuildsApiResponse>(
-      [
-        getApiUrl(`/organizations/$organizationIdOrSlug/preprodartifacts/list-builds/`, {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: queryParams},
-      ],
-      {
-        staleTime: 0,
-        enabled: !!projectId,
-      }
+  const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];
+  if (headBuildDetails.app_info?.app_id) {
+    searchFilters.push(`app_id:"${headBuildDetails.app_info.app_id}"`);
+  }
+  if (headBuildDetails.app_info?.build_configuration) {
+    searchFilters.push(
+      `build_configuration_name:"${headBuildDetails.app_info.build_configuration}"`
     );
+  }
+  if (searchQuery) {
+    searchFilters.push(searchQuery);
+  }
+  const fullQuery = searchFilters.join(' ');
 
-  const pageLinks = buildsQuery.getResponseHeader?.('Link') || null;
+  const buildsQuery = useQuery({
+    ...buildDetailsApiOptions({
+      organization,
+      queryParams: {
+        per_page: 25,
+        project: headBuildDetails.project_id,
+        query: fullQuery,
+        ...(cursor && {cursor}),
+      },
+    }),
+    select: selectJsonWithHeaders,
+  });
+
+  const pageLinks = buildsQuery.data?.headers.Link || null;
 
   const parsedLinks = pageLinks ? parseLinkHeader(pageLinks) : {};
   const hasPagination =
@@ -114,17 +115,18 @@ export function SizeCompareSelectionContent({
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/size-analysis/compare/${headArtifactId}/${baseArtifactId}/`,
-        {
-          method: 'POST',
-        }
+        getCompareApiUrl({
+          organizationSlug: organization.slug,
+          headArtifactId,
+          baseArtifactId,
+        }),
+        {method: 'POST'}
       );
     },
     onSuccess: () => {
       navigate(
         getCompareBuildPath({
           organizationSlug: organization.slug,
-          projectId,
           headArtifactId: headBuildDetails.id,
           baseArtifactId: selectedBaseBuild?.id,
         })
@@ -174,7 +176,6 @@ export function SizeCompareSelectionContent({
               navigate(
                 getCompareBuildPath({
                   organizationSlug: organization.slug,
-                  projectId,
                   headArtifactId: headBuildDetails.id,
                 }),
                 {replace: true}
@@ -188,9 +189,9 @@ export function SizeCompareSelectionContent({
       {buildsQuery.isError && (
         <Alert variant="danger">{buildsQuery.error?.message}</Alert>
       )}
-      {buildsQuery.data && (
+      {buildsQuery.data?.json && (
         <Stack gap="md">
-          {buildsQuery.data.builds.map(build => {
+          {buildsQuery.data.json.map(build => {
             if (build.id === headBuildDetails.id) {
               return null;
             }
@@ -205,12 +206,10 @@ export function SizeCompareSelectionContent({
                   trackAnalytics('preprod.builds.compare.select_base_build', {
                     organization,
                     build_id: build.id,
-                    project_slug: projectId,
                     platform:
                       build.app_info?.platform ??
                       headBuildDetails.app_info?.platform ??
                       null,
-                    project_type: projectType,
                   });
                 }}
               />

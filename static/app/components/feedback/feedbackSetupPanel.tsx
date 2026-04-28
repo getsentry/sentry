@@ -3,15 +3,15 @@ import styled from '@emotion/styled';
 
 import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
-import {Button} from 'sentry/components/core/button';
-import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {Button} from '@sentry/scraps/button';
 
-export default function FeedbackSetupPanel() {
+import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
+import {Panel} from 'sentry/components/panels/panel';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function FeedbackSetupPanel() {
   const organization = useOrganization();
   const {activateSidebar} = useFeedbackOnboardingSidebarPanel();
 
@@ -57,7 +57,7 @@ const NoMarginPanel = styled(Panel)`
 `;
 
 const Container = styled('div')`
-  padding: ${space(3)};
+  padding: ${p => p.theme.space['2xl']};
   position: relative;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
@@ -90,11 +90,11 @@ const IlloBox = styled(StyledBox)`
   min-height: 100px;
   max-width: 300px;
   min-width: 150px;
-  margin: ${space(2)} auto;
+  margin: ${p => p.theme.space.xl} auto;
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     flex: 1;
-    margin: ${space(3)};
+    margin: ${p => p.theme.space['2xl']};
     max-width: auto;
   }
 `;

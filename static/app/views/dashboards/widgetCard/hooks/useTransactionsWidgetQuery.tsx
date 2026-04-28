@@ -1,4 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
@@ -9,6 +10,9 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
@@ -20,63 +24,27 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueries} from 'sentry/utils/queryClient';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  dashboardFiltersToString,
-  eventViewFromWidget,
-} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  cleanWidgetForRequest,
+  applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TransactionsSeriesResponse =
   | EventsStats
   | MultiSeriesEventsStats
   | GroupedMultiSeriesEventsStats;
 type TransactionsTableResponse = TableData | EventsTableData;
-
-/**
- * Helper to apply dashboard filters and clean widget for API request
- */
-function applyDashboardFilters(
-  widget: Widget,
-  dashboardFilters?: DashboardFilters,
-  skipParens?: boolean
-): Widget {
-  let processedWidget = widget;
-
-  // Apply dashboard filters if provided
-  if (dashboardFilters) {
-    const filtered = cloneDeep(widget);
-    const dashboardFilterConditions = dashboardFiltersToString(
-      dashboardFilters,
-      filtered.widgetType
-    );
-
-    filtered.queries.forEach(query => {
-      if (dashboardFilterConditions) {
-        // If there is no base query, there's no need to add parens
-        if (query.conditions && !skipParens) {
-          query.conditions = `(${query.conditions})`;
-        }
-        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
-      }
-    });
-
-    processedWidget = filtered;
-  }
-
-  // Clean widget to remove empty/invalid fields before API request
-  return cleanWidgetForRequest(processedWidget);
-}
 
 // Stable empty array to prevent infinite rerenders
 const EMPTY_ARRAY: any[] = [];
@@ -98,6 +66,7 @@ export function useTransactionsSeriesQuery(
     skipDashboardFilterParens,
     mepSetting,
     onDemandControlContext,
+    widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -105,7 +74,8 @@ export function useTransactionsSeriesQuery(
 
   // Apply dashboard filters
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -116,16 +86,21 @@ export function useTransactionsSeriesQuery(
     onDemandControlContext
   );
 
-  // Build query keys for all widget queries
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  // Check if organization has the async queue feature
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
         organization,
         pageFilters,
         isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.TRANSACTIONS,
-        getReferrer(filteredWidget.displayType)
+        getReferrer(filteredWidget.displayType),
+        widgetInterval
       );
 
       // Handle on-demand metrics
@@ -158,104 +133,94 @@ export function useTransactionsSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for events-stats endpoint
-      return [
-        `/organizations/${organization.slug}/events-stats/`,
-        {
-          method: 'GET' as const,
-          query: queryParams,
-        },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [filteredWidget, organization, pageFilters, isMEPEnabled, useOnDemandMetrics]);
+      return queryOptions({
+        ...apiOptions.as<TransactionsSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-stats/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<TransactionsSeriesResponse>> => {
+          // For on-demand metrics, we need to use a special request function
+          if (useOnDemandMetrics) {
+            const onDemandRequestData = getSeriesRequestData(
+              filteredWidget,
+              queryIndex,
+              organization,
+              pageFilters,
+              DiscoverDatasets.METRICS_ENHANCED,
+              getReferrer(filteredWidget.displayType),
+              widgetInterval
+            );
 
-  // Create stable queryFn that uses queue
-  const createQueryFn = useCallback(
-    (queryIndex: number) =>
-      async (context: any): Promise<ApiResult<TransactionsSeriesResponse>> => {
-        // For on-demand metrics, we need to use a special request function
-        if (useOnDemandMetrics) {
-          const requestData = getSeriesRequestData(
-            filteredWidget,
-            queryIndex,
-            organization,
-            pageFilters,
-            DiscoverDatasets.METRICS_ENHANCED,
-            getReferrer(filteredWidget.displayType)
-          );
+            onDemandRequestData.queryExtras = {
+              ...onDemandRequestData.queryExtras,
+              dataset: DiscoverDatasets.METRICS_ENHANCED,
+            };
 
-          requestData.queryExtras = {
-            ...requestData.queryExtras,
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
-          };
+            const toApiResponse = (
+              result: ApiResult<TransactionsSeriesResponse>
+            ): ApiResponse<TransactionsSeriesResponse> => ({
+              json: result[0],
+              headers: {},
+            });
 
+            if (queue) {
+              return new Promise((resolve, reject) => {
+                const fetchFnRef = {
+                  current: () =>
+                    doOnDemandMetricsRequest(
+                      context.meta?.api,
+                      onDemandRequestData,
+                      filteredWidget.widgetType
+                    )
+                      .then(toApiResponse)
+                      .then(resolve, reject),
+                };
+                queue.addItem({fetchDataRef: fetchFnRef});
+              });
+            }
+
+            return doOnDemandMetricsRequest(
+              context.meta?.api,
+              onDemandRequestData,
+              filteredWidget.widgetType
+            ).then(toApiResponse);
+          }
+
+          // Standard request flow
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  doOnDemandMetricsRequest(
-                    context.meta?.api,
-                    requestData,
-                    filteredWidget.widgetType
-                  ).then(resolve, reject),
+                  apiFetch<TransactionsSeriesResponse>(context).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
 
-          return doOnDemandMetricsRequest(
-            context.meta?.api,
-            requestData,
-            filteredWidget.widgetType
-          );
-        }
-
-        // Standard request flow
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<TransactionsSeriesResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        // Fallback: call directly if queue not available
-        return fetchDataQuery<TransactionsSeriesResponse>(context);
-      },
-    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue]
-  );
-
-  // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map((queryKey, queryIndex) => ({
-      queryKey,
-      queryFn: createQueryFn(queryIndex),
-      staleTime: 0,
-      enabled,
-      // Retry on 429 status codes up to 10 times, unless queue handles it
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+          return apiFetch<TransactionsSeriesResponse>(context);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -271,11 +236,11 @@ export function useTransactionsSeriesQuery(
     const rawData: TransactionsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data;
       rawData[requestIndex] = responseData;
 
       const transformedResult = TransactionsConfig.transformSeries!(
@@ -292,7 +257,7 @@ export function useTransactionsSeriesQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;
@@ -340,7 +305,8 @@ export function useTransactionsTableQuery(
   const prevRawDataRef = useRef<TransactionsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
-    () => applyDashboardFilters(widget, dashboardFilters, skipDashboardFilterParens),
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
@@ -402,7 +368,9 @@ export function useTransactionsTableQuery(
       };
 
       const baseQueryKey: ApiQueryKey = [
-        `/organizations/${organization.slug}/events/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'GET' as const,
           query: queryParams,
@@ -447,7 +415,7 @@ export function useTransactionsTableQuery(
     queries: queryKeys.map(queryKey => ({
       queryKey,
       queryFn: createQueryFnTable(),
-      staleTime: 0,
+      staleTime: getWidgetStaleTime(pageFilters),
       enabled,
       // Retry on 429 status codes up to 10 times, unless queue handles it
       retry: hasQueueFeature
@@ -459,6 +427,7 @@ export function useTransactionsTableQuery(
             }
             return false;
           },
+      retryDelay: getRetryDelay,
     })),
   });
 
@@ -507,7 +476,7 @@ export function useTransactionsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
-    if (prevRawDataRef.current && prevRawDataRef.current.length === rawData.length) {
+    if (prevRawDataRef.current?.length === rawData.length) {
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
         finalRawData = prevRawDataRef.current;

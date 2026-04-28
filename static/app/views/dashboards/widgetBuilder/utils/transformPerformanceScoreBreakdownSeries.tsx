@@ -1,13 +1,19 @@
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
-import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/types';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 
 export function transformPerformanceScoreBreakdownSeries(
   multiSeries: MultiSeriesEventsStats
 ): MultiSeriesEventsStats {
+  const isEquationFormat = Object.keys(multiSeries).some(key =>
+    key.startsWith('equation|')
+  );
+
   const webVitalsThatHaveData: WebVitals[] = ORDER.filter(webVital => {
-    const key = `performance_score(measurements.score.${webVital})`;
+    const key = isEquationFormat
+      ? `equation|performance_score(measurements.score.${webVital})`
+      : `performance_score(measurements.score.${webVital})`;
     const series = multiSeries[key];
 
     if (!series?.data) return false;
@@ -22,7 +28,9 @@ export function transformPerformanceScoreBreakdownSeries(
   const result: MultiSeriesEventsStats = {};
 
   ORDER.forEach(webVital => {
-    const key = `performance_score(measurements.score.${webVital})`;
+    const key = isEquationFormat
+      ? `equation|performance_score(measurements.score.${webVital})`
+      : `performance_score(measurements.score.${webVital})`;
     const series = multiSeries[key];
 
     if (!series?.data) {

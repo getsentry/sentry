@@ -7,8 +7,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     Model,
+    cell_silo_model,
     control_silo_model,
-    region_silo_model,
     sane_repr,
 )
 from sentry.silo.base import SiloMode
@@ -17,11 +17,11 @@ from sentry.silo.base import SiloMode
 class TombstoneBase(Model):
     """
     Records a hard deletion so that the delete action can be propagated
-    between regions. Subclasses provide specialized table names for each
+    between cells. Subclasses provide specialized table names for each
     direction data needs to flow in.
 
     Tombstones are generally created by outbox receievers. Once
-    created, tombstones are propagated between regions with RPC (coming soon)
+    created, tombstones are propagated between cells with RPC (coming soon)
     """
 
     class Meta:
@@ -35,8 +35,8 @@ class TombstoneBase(Model):
 
     @staticmethod
     def class_for_silo_mode(silo_mode: SiloMode) -> type[TombstoneBase] | None:
-        if silo_mode == SiloMode.REGION:
-            return RegionTombstone
+        if silo_mode == SiloMode.CELL:
+            return CellTombstone
         if silo_mode == SiloMode.CONTROL:
             return ControlTombstone
         return None
@@ -50,8 +50,8 @@ class TombstoneBase(Model):
             pass
 
 
-@region_silo_model
-class RegionTombstone(TombstoneBase):
+@cell_silo_model
+class CellTombstone(TombstoneBase):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_regiontombstone"

@@ -16,11 +16,9 @@ const smallerBorderRadii = {
  * Nested theme provider that automatically adjusts the styles of descendants
  * of panel-like elements. See `panel.tsx` for usage example.
  */
-function PanelProvider({children}: {children: React.ReactNode}) {
+export function PanelProvider({children}: {children: React.ReactNode}) {
   const theme = useTheme();
   const modifiedTheme = useMemo(() => ({...theme, ...smallerBorderRadii}), [theme]);
 
   return <ThemeProvider theme={modifiedTheme}>{children}</ThemeProvider>;
 }
-
-export default PanelProvider;

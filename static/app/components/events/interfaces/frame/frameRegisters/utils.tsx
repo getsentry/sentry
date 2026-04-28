@@ -46,18 +46,24 @@ export function getSortedRegisters(
   deviceArch?: string
 ) {
   const entries = Object.entries(registers);
+  const registerMap = deviceArch ? getRegisterMap(deviceArch) : undefined;
 
-  if (!deviceArch) {
-    return entries;
-  }
+  return entries.sort((a, b) => {
+    if (registerMap) {
+      const indexA = getRegisterIndex(a[0], registerMap);
+      const indexB = getRegisterIndex(b[0], registerMap);
 
-  const registerMap = getRegisterMap(deviceArch);
+      // If both registers are in the map, sort by index
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
 
-  if (!registerMap) {
-    return entries;
-  }
+      // Mapped registers come before unmapped ones
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+    }
 
-  return entries.sort(
-    (a, b) => getRegisterIndex(a[0], registerMap) - getRegisterIndex(b[0], registerMap)
-  );
+    // Fallback: natural sort (handles numeric suffixes correctly)
+    return a[0].localeCompare(b[0], undefined, {numeric: true});
+  });
 }

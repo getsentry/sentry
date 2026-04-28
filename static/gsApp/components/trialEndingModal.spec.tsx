@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import TrialEndingModal from 'getsentry/components/trialEndingModal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('TrialEndingModal', () => {
   beforeEach(() => {
@@ -14,7 +14,7 @@ describe('TrialEndingModal', () => {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [
         MemberFixture({

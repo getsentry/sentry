@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
@@ -19,7 +19,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 
 
 @extend_schema(tags=["Integration"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupExternalIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {

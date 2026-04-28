@@ -1,7 +1,7 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import FormContext from 'sentry/components/forms/formContext';
-import FormModel from 'sentry/components/forms/model';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {FormModel} from 'sentry/components/forms/model';
 
 import {useFormField} from './useFormField';
 

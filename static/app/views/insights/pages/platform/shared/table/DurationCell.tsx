@@ -1,4 +1,4 @@
-import Duration from 'sentry/components/duration';
+import {Duration} from 'sentry/components/duration';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {CellThreshold} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
 import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';

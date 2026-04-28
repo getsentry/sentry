@@ -13,7 +13,7 @@ from sentry.data_export.processors.issues_by_tag import (
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.web.frontend.base import ProjectView, region_silo_view
+from sentry.web.frontend.base import ProjectView, cell_silo_view
 from sentry.web.frontend.csv import CsvResponder
 
 
@@ -30,7 +30,7 @@ class GroupTagCsvResponder(CsvResponder[GroupTagValueAndEventUser]):
         return tuple(item_dict[field] for field in fields)
 
 
-@region_silo_view
+@cell_silo_view
 class GroupTagExportView(ProjectView):
     required_scope = "event:read"
 

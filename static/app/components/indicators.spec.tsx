@@ -8,7 +8,7 @@ import {
   type Indicator,
 } from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
-import IndicatorStore from 'sentry/stores/indicatorStore';
+import {IndicatorStore} from 'sentry/stores/indicatorStore';
 
 // Make sure we use `duration: null` to test add/remove
 

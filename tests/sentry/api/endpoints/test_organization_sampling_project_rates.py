@@ -27,10 +27,13 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == [
-            {"id": project1.id, "sampleRate": 1.0},
-            {"id": project2.id, "sampleRate": 0.2},
-        ]
+        assert sorted(response.data, key=lambda x: x["id"]) == sorted(
+            [
+                {"id": project1.id, "sampleRate": 1.0},
+                {"id": project2.id, "sampleRate": 0.2},
+            ],
+            key=lambda x: x["id"],
+        )
 
     def test_put(self) -> None:
         project1 = self.create_project(teams=[self.team])
@@ -51,10 +54,13 @@ class OrganizationSamplingProjectRatesTest(APITestCase):
                 self.organization.slug, method="put", raw_data=data
             )
 
-        assert response.data == [
-            {"id": project2.id, "sampleRate": 0.5},
-            {"id": project3.id, "sampleRate": 0.1235},
-        ]
+        assert sorted(response.data, key=lambda x: x["id"]) == sorted(
+            [
+                {"id": project2.id, "sampleRate": 0.5},
+                {"id": project3.id, "sampleRate": 0.1235},
+            ],
+            key=lambda x: x["id"],
+        )
 
         assert project1.get_option("sentry:target_sample_rate") == 0.2
         assert project2.get_option("sentry:target_sample_rate") == 0.5

@@ -7,15 +7,19 @@ from sentry import analytics, audit_log
 from sentry.analytics.events.rule_reenable import RuleReenableExplicit
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRuleEnableEndpoint(ProjectEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.EXPERIMENTAL,
@@ -23,7 +27,11 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     permission_classes = (ProjectAlertRulePermission,)
 
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-enable")
     def put(self, request: Request, project, rule_id) -> Response:
+        # Mark that we're using legacy Rule models (before query to track failures too)
+        report_used_legacy_models()
+
         try:
             rule = Rule.objects.get(id=rule_id, project=project)
         except Rule.DoesNotExist:

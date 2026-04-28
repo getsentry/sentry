@@ -1,6 +1,7 @@
+import {skipToken} from '@tanstack/react-query';
 import {expectTypeOf} from 'expect-type';
 
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 describe('getApiUrl', () => {
   it('should replace path parameters with their values', () => {
@@ -30,6 +31,14 @@ describe('getApiUrl', () => {
     });
 
     expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
+  });
+
+  it('should return the original path, without replacements, if skipToken is provided', () => {
+    const url = getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
+      path: skipToken,
+    });
+
+    expect(url).toBe('/organizations/$organizationIdOrSlug/releases/$version/');
   });
 
   it('should stringify number path params', () => {

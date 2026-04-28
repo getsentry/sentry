@@ -66,7 +66,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 apply_update(orm_mapping)
                 return serialize_org_member_mapping(orm_mapping)
         except IntegrityError as e:
-            # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
+            # Stale user id, which will happen if a cascading deletion on the user has not reached the cell.
             # This is "safe" since the upsert here should be a no-op.
             if "fk_auth_user" in str(e):
                 if "inviter_id" in str(e):

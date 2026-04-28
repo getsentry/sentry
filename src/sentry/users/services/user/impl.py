@@ -29,6 +29,7 @@ from sentry.users.api.serializers.user import (
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
 from sentry.users.services.user import (
     RpcAvatar,
     RpcUser,
@@ -61,7 +62,9 @@ class DatabaseBackedUserService(UserService):
         auth_context: AuthenticationContext | None = None,
         serializer: UserSerializeType | None = None,
     ) -> list[OpaqueSerializedResponse]:
-        return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
+        return self._FQ.serialize_many(
+            filter, as_user, auth_context, serializer, select_related=False
+        )
 
     def get_many(self, *, filter: UserFilterArgs) -> list[RpcUser]:
         return self._FQ.get_many(filter)
@@ -150,16 +153,16 @@ class DatabaseBackedUserService(UserService):
             org_query = org_query.filter(status=OrganizationStatus.ACTIVE)
         return [serialize_organization_mapping(o) for o in org_query]
 
-    def get_member_region_names(self, *, user_id: int) -> list[str]:
+    def get_member_cell_names(self, *, user_id: int) -> list[str]:
         org_ids = OrganizationMemberMapping.objects.filter(user_id=user_id).values_list(
             "organization_id", flat=True
         )
-        region_query = (
+        cell_query = (
             OrganizationMapping.objects.filter(organization_id__in=org_ids)
-            .values_list("region_name", flat=True)
+            .values_list("cell_name", flat=True)
             .distinct()
         )
-        return list(region_query)
+        return list(cell_query)
 
     def flush_nonce(self, *, user_id: int) -> None:
         user = User.objects.filter(id=user_id).first()
@@ -298,6 +301,24 @@ class DatabaseBackedUserService(UserService):
             return None
 
         return serialize_user_avatar(avatar=possible_avatar)
+
+    def add_permission(self, *, user_id: int, permission: str) -> bool:
+        """Add a permission to a user. Returns True if added, False if already existed."""
+        with transaction.atomic(using=router.db_for_write(UserPermission)):
+            _, created = UserPermission.objects.get_or_create(
+                user_id=user_id,
+                permission=permission,
+            )
+            return created
+
+    def remove_permission(self, *, user_id: int, permission: str) -> bool:
+        """Remove a permission from a user. Returns True if removed, False if didn't exist."""
+        with transaction.atomic(using=router.db_for_write(UserPermission)):
+            deleted_count, _ = UserPermission.objects.filter(
+                user_id=user_id,
+                permission=permission,
+            ).delete()
+            return deleted_count > 0
 
     class _UserFilterQuery(
         FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType],

@@ -2,20 +2,20 @@ import {memo, useCallback, useDeferredValue, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import Access from 'sentry/components/acl/access';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {Access} from 'sentry/components/acl/access';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
-import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
@@ -62,7 +62,7 @@ export function RepositorySelector() {
   const allUnselected = selected.length === 0;
 
   // This is gonna lag if we have a lot of repositories, as we need to re-render all rows
-  const handleToggleAll = useCallback(() => {
+  const handleToggleAll = () => {
     if (allSelected) {
       setCodeReviewRepositories(
         Object.fromEntries(filteredRepositories.map(repo => [repo.id, false]))
@@ -73,7 +73,7 @@ export function RepositorySelector() {
     setCodeReviewRepositories(
       Object.fromEntries(filteredRepositories.map(repo => [repo.id, true]))
     );
-  }, [allSelected, filteredRepositories, setCodeReviewRepositories]);
+  };
 
   const handleToggleRepository = useCallback(
     (repositoryId: string, newValue: boolean) => {
@@ -146,7 +146,7 @@ export function RepositorySelector() {
               hasAccess ? (
                 <Text density="comfortable">
                   {tct(
-                    `Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.`,
+                    "Can't find a repository? [link:Manage your GitHub integration] and ensure you have granted access to the correct repositories.",
                     {
                       link: (
                         <IntegrationButton

@@ -1,8 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-import GenerateSpikeProjectionsForBatch from 'admin/views/generateSpikeProjectionsForBatch';
+import {GenerateSpikeProjectionsForBatch} from 'admin/views/generateSpikeProjectionsForBatch';
 
 describe('GenerateSpikeProjectionsForBatch', () => {
   beforeEach(() => {

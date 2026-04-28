@@ -4,14 +4,14 @@ import {SessionStatusCountByProjectInPeriodFixture} from 'sentry-fixture/session
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
+import {TeamStability} from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
   let sessionsApi: jest.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionsApi = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: SessionStatusCountByProjectInPeriodFixture(),
     });
   });

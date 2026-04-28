@@ -5,9 +5,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import HookStore from 'sentry/stores/hookStore';
-import SetupMessagingIntegrationButton, {
+import {HookStore} from 'sentry/stores/hookStore';
+import {
   MessagingIntegrationAnalyticsView,
+  SetupMessagingIntegrationButton,
 } from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 jest.mock('sentry/actionCreators/modal');
@@ -35,8 +36,9 @@ describe('SetupAlertIntegrationButton', () => {
     providerKeys.forEach(providerKey => {
       mockResponses.push(
         MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/config/integrations/?provider_key=${providerKey}`,
+          url: `/organizations/${organization.slug}/config/integrations/`,
           body: {providers: providers(providerKey)},
+          match: [MockApiClient.matchQuery({provider_key: providerKey})],
         })
       );
     });
@@ -45,8 +47,9 @@ describe('SetupAlertIntegrationButton', () => {
   it('renders when no integration is installed', async () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        url: `/organizations/${organization.slug}/integrations/`,
         body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       })
     );
     render(getComponent(), {organization});
@@ -59,8 +62,9 @@ describe('SetupAlertIntegrationButton', () => {
   it('does not render button if alert integration installed', () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        url: `/organizations/${organization.slug}/integrations/`,
         body: [{status: 'active'}, {status: 'disabled'}, {status: 'disabled'}],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       })
     );
     render(getComponent(), {organization});
@@ -73,8 +77,9 @@ describe('SetupAlertIntegrationButton', () => {
   it('opens modal when clicked', async () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        url: `/organizations/${organization.slug}/integrations/`,
         body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       })
     );
     render(getComponent(), {organization});
@@ -89,9 +94,10 @@ describe('SetupAlertIntegrationButton', () => {
   it('does not render button if API errors', () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        url: `/organizations/${organization.slug}/integrations/`,
         statusCode: 400,
         body: {error: 'internal error'},
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       })
     );
     render(getComponent(), {organization});
@@ -101,8 +107,9 @@ describe('SetupAlertIntegrationButton', () => {
   it('disables button if user does not have integration feature', async () => {
     mockResponses.push(
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        url: `/organizations/${organization.slug}/integrations/`,
         body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       })
     );
 

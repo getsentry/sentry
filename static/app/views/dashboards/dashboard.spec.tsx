@@ -6,15 +6,30 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import Dashboard from 'sentry/views/dashboards/dashboard';
-import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import {useLocation} from 'sentry/utils/useLocation';
+import {Dashboard} from 'sentry/views/dashboards/dashboard';
+import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
+import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
+import type {
+  DashboardDetails,
+  DashboardFilters,
+  Widget,
+} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
-import WidgetLegendSelectionState from './widgetLegendSelectionState';
+import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -80,12 +95,12 @@ describe('Dashboards > Dashboard', () => {
   beforeEach(() => {
     initialData = initializeOrg({organization, projects: []});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/dashboards/widgets/`,
+      url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/stats/`,
+      url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -134,6 +149,10 @@ describe('Dashboards > Dashboard', () => {
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TagsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
     });
   });
 
@@ -248,20 +267,19 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <OrganizationContext value={initialData.organization}>
-        <MEPSettingProvider forceTransactions={false}>
-          <Dashboard
-            dashboard={dashboardWithOneWidget}
-            isEditingDashboard={false}
-            onUpdate={mockOnUpdate}
-            handleUpdateWidgetList={mockHandleUpdateWidgetList}
-            handleAddCustomWidget={() => undefined}
-            widgetLimitReached={false}
-            onSetNewWidget={() => undefined}
-            widgetLegendState={widgetLegendState}
-          />
-        </MEPSettingProvider>
-      </OrganizationContext>
+      <MEPSettingProvider forceTransactions={false}>
+        <Dashboard
+          dashboard={dashboardWithOneWidget}
+          isEditingDashboard={false}
+          onUpdate={mockOnUpdate}
+          handleUpdateWidgetList={mockHandleUpdateWidgetList}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          onSetNewWidget={() => undefined}
+          widgetLegendState={widgetLegendState}
+        />
+      </MEPSettingProvider>,
+      {organization: initialData.organization}
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -308,20 +326,19 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <OrganizationContext value={initialData.organization}>
-        <MEPSettingProvider forceTransactions={false}>
-          <Dashboard
-            dashboard={dashboardWithOneWidget}
-            isEditingDashboard={false}
-            onUpdate={() => undefined}
-            handleUpdateWidgetList={() => undefined}
-            handleAddCustomWidget={() => undefined}
-            widgetLimitReached={false}
-            isEmbedded
-            widgetLegendState={widgetLegendState}
-          />
-        </MEPSettingProvider>
-      </OrganizationContext>
+      <MEPSettingProvider forceTransactions={false}>
+        <Dashboard
+          dashboard={dashboardWithOneWidget}
+          isEditingDashboard={false}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          isEmbedded
+          widgetLegendState={widgetLegendState}
+        />
+      </MEPSettingProvider>,
+      {organization: initialData.organization}
     );
 
     await screen.findByText('Test Widget');
@@ -331,23 +348,40 @@ describe('Dashboards > Dashboard', () => {
   describe('Issue Widgets', () => {
     beforeEach(() => {
       MemberListStore.init();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/',
+        method: 'GET',
+        body: {
+          annotations: [],
+          id: '1',
+          title: 'Error: Failed',
+          project: {
+            id: '3',
+          },
+          assignedTo: {
+            email: 'test@sentry.io',
+            type: 'user',
+            id: '1',
+            name: 'Test User',
+          },
+        },
+      });
     });
 
     const mount = (dashboard: DashboardDetails) => {
       render(
-        <OrganizationContext value={initialData.organization}>
-          <MEPSettingProvider forceTransactions={false}>
-            <Dashboard
-              dashboard={dashboard}
-              isEditingDashboard={false}
-              onUpdate={() => undefined}
-              handleUpdateWidgetList={() => undefined}
-              handleAddCustomWidget={() => undefined}
-              widgetLimitReached={false}
-              widgetLegendState={widgetLegendState}
-            />
-          </MEPSettingProvider>
-        </OrganizationContext>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            dashboard={dashboard}
+            isEditingDashboard={false}
+            onUpdate={() => undefined}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>,
+        {organization: initialData.organization}
       );
     };
 
@@ -378,7 +412,303 @@ describe('Dashboards > Dashboard', () => {
         widgets: [{...issueWidget}],
       };
       mount(mockDashboardWithIssueWidget);
-      expect(await screen.findByTitle('Test User')).toBeInTheDocument();
+      // Widget should render with assignee column
+      expect(await screen.findByText('assignee')).toBeInTheDocument();
+    });
+  });
+
+  describe('Interval selection', () => {
+    // Use a SPANS widget with LINE display: both are required by
+    // widgetCanUseTimeSeriesVisualization, which gates widgetInterval propagation.
+    const org = OrganizationFixture();
+    const spansWidget: Widget = {
+      id: '3',
+      title: 'Test Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    // session.status in columns forces useSessionAPI=true → /sessions/ endpoint,
+    // matching the endpoint that surfaces the "intervals too granular" error.
+    const releasesWidget: Widget = {
+      id: '4',
+      title: 'Test Releases Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.RELEASE,
+      interval: '',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count_unique(user)'],
+          aggregates: ['count_unique(user)'],
+          columns: ['session.status'],
+          orderby: '-count_unique(user)',
+        },
+      ],
+    };
+    // The dashboard carries a saved 24h time range — this is the source of the
+    // time range, not the URL or PageFiltersStore.
+    const dashboardWithWidget = {
+      ...mockDashboard,
+      widgets: [spansWidget],
+      period: '24h',
+    };
+
+    // 30d variants used by the "URL interval not valid" tests.
+    const thirtyDayDashboard: DashboardDetails = {
+      ...mockDashboard,
+      widgets: [spansWidget],
+      period: '30d',
+    };
+    const thirtyDayReleaseDashboard: DashboardDetails = {
+      ...mockDashboard,
+      widgets: [releasesWidget],
+      period: '30d',
+    };
+
+    // Minimal valid SessionApiResponse — enough for the releases hook to
+    // consider the query complete without trying to render chart data.
+    const emptySessionsBody = {
+      start: '2021-08-07T00:00:00Z',
+      end: '2021-09-06T00:00:00Z',
+      query: '',
+      intervals: [],
+      groups: [],
+    };
+
+    // Mirrors DashboardDetailWithInjectedProps: useChartInterval always provides
+    // the validated interval for the current period, keeping the FiltersBar
+    // dropdown and widget requests in sync.
+    // Accepts an optional dashboard prop so tests can supply a different period.
+    function DashboardWithIntervalSelector({
+      dashboard = dashboardWithWidget,
+    }: {
+      dashboard?: DashboardDetails;
+    } = {}) {
+      const location = useLocation();
+      const [widgetInterval] = useDashboardChartInterval();
+      return (
+        <MEPSettingProvider forceTransactions={false}>
+          <FiltersBar
+            dashboard={dashboard}
+            filters={{}}
+            hasUnsavedChanges={false}
+            isEditingDashboard={false}
+            isPreview={false}
+            location={location}
+            onDashboardFilterChange={() => undefined}
+          />
+          <Dashboard
+            dashboard={dashboard}
+            isEditingDashboard={false}
+            onUpdate={() => undefined}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+            widgetInterval={widgetInterval}
+          />
+        </MEPSettingProvider>
+      );
+    }
+
+    beforeEach(() => {
+      // Reset the saved page filters.
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        getSavedFiltersAsPageFilters(dashboardWithWidget)
+      );
+      // FiltersBar's global filter search and releases filter trigger these
+      // endpoints whenever FiltersBar mounts, even in interval-selector tests.
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/measurements-meta/',
+        body: {},
+      });
+    });
+
+    describe('no interval set in URL', () => {
+      it('defaults to the second-biggest valid interval for the dashboard period', async () => {
+        const tenMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '10m'})],
+        });
+        const thirtyMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '30m'})],
+        });
+
+        // No interval in the URL — the 10m default (second-biggest of [5m, 10m, 30m])
+        // is derived from the dashboard's saved 24h period via useDashboardChartInterval.
+        const {router} = render(<DashboardWithIntervalSelector />, {
+          organization: org,
+          initialRouterConfig: {location: {pathname: '/'}},
+        });
+
+        await screen.findByText('Test Spans Widget');
+        await waitFor(() => expect(tenMinuteMock).toHaveBeenCalled());
+        expect(thirtyMinuteMock).not.toHaveBeenCalled();
+
+        // Click the interval selector and choose '30 minutes'. FiltersBar writes
+        // interval=30m to the URL, DashboardWithIntervalSelector re-renders with
+        // the new widgetInterval, and the widget re-fetches with the new interval.
+        await userEvent.click(screen.getByRole('button', {name: '10 minutes'}));
+        await userEvent.click(screen.getByRole('option', {name: '30 minutes'}));
+
+        await waitFor(() => expect(thirtyMinuteMock).toHaveBeenCalled());
+        expect(router.location.query.interval).toBe('30m');
+      });
+    });
+
+    describe('interval set in URL', () => {
+      it('uses the URL interval as the selector default and queries with that interval', async () => {
+        const thirtyMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '30m'})],
+        });
+        const fiveMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '5m'})],
+        });
+
+        const tenMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '10m'})],
+        });
+
+        const {router} = render(<DashboardWithIntervalSelector />, {
+          organization: org,
+          initialRouterConfig: {location: {pathname: '/', query: {interval: '30m'}}},
+        });
+
+        await screen.findByText('Test Spans Widget');
+
+        // The selector reflects the URL interval, not the period-derived default.
+        expect(screen.getByRole('button', {name: '30 minutes'})).toBeInTheDocument();
+
+        // The widget queries use the URL interval.
+        await waitFor(() => expect(thirtyMinuteMock).toHaveBeenCalled());
+        expect(fiveMinuteMock).not.toHaveBeenCalled();
+
+        // Selecting a new interval updates the URL and triggers a re-fetch.
+        await userEvent.click(screen.getByRole('button', {name: '30 minutes'}));
+        await userEvent.click(screen.getByRole('option', {name: '10 minutes'}));
+
+        await waitFor(() => expect(tenMinuteMock).toHaveBeenCalled());
+        expect(router.location.query.interval).toBe('10m');
+      });
+    });
+
+    describe('URL interval not valid for the dashboard period', () => {
+      beforeEach(() => {
+        // Override the outer 24h store setup — valid intervals for 30d are 3h, 6h, 12h.
+        PageFiltersStore.init();
+        PageFiltersStore.onInitializeUrlState(
+          getSavedFiltersAsPageFilters(thirtyDayDashboard)
+        );
+      });
+
+      it('ignores the URL interval and falls back to the period default', async () => {
+        const sixHourMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '6h'})],
+        });
+        const fiveMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events-stats/',
+          method: 'GET',
+          body: [],
+          match: [MockApiClient.matchQuery({interval: '5m'})],
+        });
+
+        // 5m is in the URL but is not a valid interval for a 30d window.
+        render(<DashboardWithIntervalSelector dashboard={thirtyDayDashboard} />, {
+          organization: org,
+          initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
+        });
+
+        await screen.findByText('Test Spans Widget');
+
+        // The selector should show the period-derived default (6h = second-biggest
+        // of [3h, 6h, 12h]), not the invalid URL value (5m).
+        expect(screen.getByRole('button', {name: '6 hours'})).toBeInTheDocument();
+
+        // The widget should query with the valid default interval, not the URL value.
+        await waitFor(() => expect(sixHourMock).toHaveBeenCalled());
+        expect(fiveMinuteMock).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('URL interval not valid for the dashboard period (releases widget)', () => {
+      beforeEach(() => {
+        // Mirror the spans describe's 30d override but for the releases widget.
+        PageFiltersStore.init();
+        PageFiltersStore.onInitializeUrlState(
+          getSavedFiltersAsPageFilters(thirtyDayReleaseDashboard)
+        );
+        // Use a date well past METRICS_BACKED_SESSIONS_START_DATE (2022-07-12) so
+        // a 30d period doesn't trigger the "data only available from Jul 12" error.
+        setMockDate(new Date('2024-01-15'));
+      });
+
+      afterEach(() => {
+        resetMockDate();
+      });
+
+      it('ignores the URL interval and falls back to the period default', async () => {
+        // Uses the /sessions/ endpoint (session.status in columns → useSessionAPI=true),
+        // which surfaces the "intervals too granular" error in production.
+        const sixHourMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/sessions/',
+          method: 'GET',
+          body: emptySessionsBody,
+          match: [MockApiClient.matchQuery({interval: '6h'})],
+        });
+        const fiveMinuteMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/sessions/',
+          method: 'GET',
+          body: emptySessionsBody,
+          match: [MockApiClient.matchQuery({interval: '5m'})],
+        });
+
+        render(<DashboardWithIntervalSelector dashboard={thirtyDayReleaseDashboard} />, {
+          organization: org,
+          initialRouterConfig: {location: {pathname: '/', query: {interval: '5m'}}},
+        });
+
+        await screen.findByText('Test Releases Widget');
+
+        // The selector should show the period-derived default (6h = second-biggest
+        // of [3h, 6h, 12h]), not the invalid URL value (5m).
+        expect(screen.getByRole('button', {name: '6 hours'})).toBeInTheDocument();
+
+        // The widget should query the sessions endpoint with the valid default
+        // interval, not the 5m value from the URL.
+        await waitFor(() => expect(sixHourMock).toHaveBeenCalled());
+        expect(fiveMinuteMock).not.toHaveBeenCalled();
+      });
     });
   });
 
@@ -386,25 +716,25 @@ describe('Dashboards > Dashboard', () => {
     let widgets: Widget[];
     const mount = ({dashboard, isPreview = false, onEditWidget = jest.fn()}: any) => {
       const getDashboardComponent = () => (
-        <OrganizationContext value={initialData.organization}>
-          <MEPSettingProvider forceTransactions={false}>
-            <Dashboard
-              dashboard={dashboard}
-              isEditingDashboard
-              onUpdate={newWidgets => {
-                widgets.splice(0, widgets.length, ...newWidgets);
-              }}
-              handleUpdateWidgetList={() => undefined}
-              handleAddCustomWidget={() => undefined}
-              widgetLimitReached={false}
-              isPreview={isPreview}
-              onEditWidget={onEditWidget}
-              widgetLegendState={widgetLegendState}
-            />
-          </MEPSettingProvider>
-        </OrganizationContext>
+        <MEPSettingProvider forceTransactions={false}>
+          <Dashboard
+            dashboard={dashboard}
+            isEditingDashboard
+            onUpdate={newWidgets => {
+              widgets.splice(0, widgets.length, ...newWidgets);
+            }}
+            handleUpdateWidgetList={() => undefined}
+            handleAddCustomWidget={() => undefined}
+            widgetLimitReached={false}
+            isPreview={isPreview}
+            onEditWidget={onEditWidget}
+            widgetLegendState={widgetLegendState}
+          />
+        </MEPSettingProvider>
       );
-      const {rerender} = render(getDashboardComponent());
+      const {rerender} = render(getDashboardComponent(), {
+        organization: initialData.organization,
+      });
       return {rerender: () => rerender(getDashboardComponent())};
     };
 
@@ -477,6 +807,112 @@ describe('Dashboards > Dashboard', () => {
       await screen.findByText('Test Discover Widget');
 
       expect(screen.queryByRole('button', {name: /add widget/i})).not.toBeInTheDocument();
+    });
+  });
+
+  it('includes saved global filters in widget data requests when URL has release param', async () => {
+    const savedGlobalFilters: DashboardFilters = {
+      [DashboardFilterKeys.GLOBAL_FILTER]: [
+        {
+          dataset: WidgetType.SPANS,
+          tag: {key: 'span.op', name: 'span.op'},
+          value: 'span.op:db',
+        },
+      ],
+    };
+    const spansWidget: Widget = {
+      id: '10',
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: 'span.description:test',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    };
+    const dashboardWithGlobalFilters: DashboardDetails = {
+      ...mockDashboard,
+      filters: savedGlobalFilters,
+      widgets: [spansWidget],
+    };
+
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: [],
+    });
+
+    // URL has release= but no globalFilter — saved global filters must still
+    // be applied to the widget data request.
+    render(
+      <MEPSettingProvider forceTransactions={false}>
+        <Dashboard
+          dashboard={dashboardWithGlobalFilters}
+          isEditingDashboard={false}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      </MEPSettingProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {release: '', statsPeriod: '90d', project: '11276'},
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(eventsStatsMock).toHaveBeenCalled());
+    const requestQuery = eventsStatsMock.mock.calls[0]![1]!.query!.query as string;
+    expect(requestQuery).toContain('span.op:db');
+  });
+
+  it('registers dashboard node with metadata in LLM context snapshot', async () => {
+    const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+    function SnapshotCapture() {
+      const {getLLMContext} = useLLMContext();
+      snapshotRef.current = getLLMContext;
+      return null;
+    }
+
+    render(
+      <div>
+        <Dashboard
+          dashboard={{...mockDashboard, title: 'LLM Test Dashboard'}}
+          onUpdate={() => undefined}
+          handleUpdateWidgetList={() => undefined}
+          handleAddCustomWidget={() => undefined}
+          widgetLimitReached={false}
+          isEditingDashboard={false}
+          widgetLegendState={widgetLegendState}
+        />
+        <SnapshotCapture />
+      </div>
+    );
+
+    await waitFor(() => {
+      const snapshot = snapshotRef.current!();
+      expect(snapshot.nodes).toHaveLength(1);
+      expect(snapshot.nodes[0]!.nodeType).toBe('dashboard');
+      expect(snapshot.nodes[0]!.data).toEqual(
+        expect.objectContaining({
+          title: 'LLM Test Dashboard',
+          widgetCount: 0,
+        })
+      );
     });
   });
 });

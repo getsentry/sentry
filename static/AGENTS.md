@@ -17,7 +17,7 @@
 - `package.json`: Node.js dependencies and scripts
 - `rspack.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
-- `eslint.config.mjs`: ESLint configuration
+- `eslint.config.ts`: ESLint configuration
 - `stylelint.config.js`: CSS/styling linting
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
@@ -35,17 +35,56 @@
 
 ### Frontend API Calls
 
-```typescript
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+Prefer `apiOptions` with `useQuery` from TanStack Query for type-safe, consistent API calls:
 
-const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<ResponseType>(
-  [`/projects/${organization.slug}/pull-requests/size-analysis/${selectedBuildId}/`],
-  {
-    staleTime: <int>, // Optional, amount of time before data is considered stale (in ms)
-    enabled: <enabled criteria>, // Optional, whether the query is enabled
-  }
+```typescript
+import {skipToken, useQuery} from '@tanstack/react-query';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+// Basic usage
+const query = useQuery(
+  apiOptions.as<ResponseType>()('/organizations/$organizationIdOrSlug/endpoint/', {
+    path: {organizationIdOrSlug: organization.slug},
+    staleTime: 30_000,
+  })
+);
+
+// Conditional fetching — pass skipToken as path to disable the query
+const query = useQuery(
+  apiOptions.as<ResponseType>()('/organizations/$organizationIdOrSlug/items/$itemId/', {
+    path: itemId ? {organizationIdOrSlug: organization.slug, itemId} : skipToken,
+    staleTime: 30_000,
+  })
 );
 ```
+
+Existing code might use `useApiQuery` from `sentry/utils/queryClient` — prefer `apiOptions` for new code.
+
+#### Accessing response headers (pagination, hit counts)
+
+By default, `apiOptions` selects only the JSON body from the response. If you need response headers (e.g., `Link` for pagination or `X-Hits` / `X-Max-Hits` for total counts), override `select` with `selectJsonWithHeaders`:
+
+```typescript
+import {useQuery} from '@tanstack/react-query';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+
+const {data} = useQuery({
+  ...apiOptions.as<Item[]>()('/organizations/$organizationIdOrSlug/items/', {
+    path: {organizationIdOrSlug: organization.slug},
+    query: {cursor, per_page: 25},
+    staleTime: 0,
+  }),
+  select: selectJsonWithHeaders,
+});
+
+// data is ApiResponse<Item[]> — an object with `json` and `headers`
+const items = data?.json ?? [];
+const pageLinks = data?.headers.Link; // string | undefined
+const totalHits = data?.headers['X-Hits']; // number | undefined
+const maxHits = data?.headers['X-Max-Hits']; // number | undefined
+```
+
+Note that `X-Hits` and `X-Max-Hits` are already parsed to `number | undefined` — no `parseInt` needed.
 
 ## General Frontend Rules
 
@@ -56,7 +95,9 @@ const appSizeQuery: UseApiQueryResult<ResponseType, RequestError> = useApiQuery<
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
-## Design system
+## UI Patterns
+
+- When implementing advanced copy to clipboard functionality like markdown or JSON, avoid using separate buttons to copy different formats and prefer using sentry/components/copyAsDropdown and provide the different format options.
 
 ### General practices
 
@@ -523,6 +564,14 @@ jest.mocked(usePageFilters)
 PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({ projects: [1]}),
 )
+
+// ❌ Don't recreate the basic context providers
+renderHook(useNavigate, {
+  wrapper: (children) => (<AllTheProviders>{children}</AllTheProviders>),
+})
+
+// ✅ Use the provided helpers that mock everything
+renderHookWithProviders(useNavigate)
 ```
 
 #### Use fixtures

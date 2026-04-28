@@ -54,8 +54,6 @@ export function getPlatformContextIcon({
     case PlatformContextKeys.SPRING:
       platformIconName = 'java-spring';
       break;
-    default:
-      break;
   }
 
   if (platformIconName.length === 0) {

@@ -1,15 +1,14 @@
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Link} from 'sentry/components/core/link';
 import {
   KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
   formatBuildName,
@@ -24,10 +23,9 @@ import {
 
 interface BuildVcsInfoProps {
   buildDetailsData: BuildDetailsApiResponse;
-  projectId: string | null;
 }
 
-export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
+export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
   const organization = useOrganization();
   const vcsInfo = buildDetailsData.vcs_info;
   const hasVcsInfo = [
@@ -85,17 +83,15 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
                   buildDetailsData.base_build_info.version,
                   buildDetailsData.base_build_info.build_number
                 );
-                const baseBuildUrl =
-                  buildDetailsData.base_artifact_id && projectId
-                    ? getBaseBuildPath(
-                        {
-                          baseArtifactId: buildDetailsData.base_artifact_id,
-                          organizationSlug: organization.slug,
-                          projectId,
-                        },
-                        'size'
-                      )
-                    : null;
+                const baseBuildUrl = buildDetailsData.base_artifact_id
+                  ? getBaseBuildPath(
+                      {
+                        baseArtifactId: buildDetailsData.base_artifact_id,
+                        organizationSlug: organization.slug,
+                      },
+                      'size'
+                    )
+                  : null;
                 if (!baseBuildUrl || !buildName) {
                   return '-';
                 }
@@ -162,7 +158,13 @@ export function BuildVcsInfo({buildDetailsData, projectId}: BuildVcsInfoProps) {
   return hasVcsInfo ? (
     <KeyValueData.Card title="Build Metadata" contentItems={vcsInfoContentItems} />
   ) : (
-    <Container border="primary" radius="md" padding="md" width="100%">
+    <Container
+      border="primary"
+      radius="md"
+      padding="md"
+      width="100%"
+      marginBottom={{xs: 'lg', lg: '0'}}
+    >
       <Flex direction="column" gap="sm">
         <Text bold>{t('Missing Git metadata')}</Text>
         <Text variant="muted" size="sm">

@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-function ShortId({shortId, avatar, className}: Props) {
+export function ShortId({shortId, avatar, className}: Props) {
   return (
     <Wrapper className={className}>
       <AvatarWrapper>{avatar}</AvatarWrapper>
@@ -19,8 +19,6 @@ function ShortId({shortId, avatar, className}: Props) {
     </Wrapper>
   );
 }
-
-export default ShortId;
 
 const Wrapper = styled('div')`
   display: flex;

@@ -92,7 +92,6 @@ def get_superuser_scopes(
     user: User,
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> set[str]:
-
     if not should_allow_superuser_access(organization_context):
         raise DataSecrecyError()
 

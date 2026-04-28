@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# When a new worktree is created (git worktree add), run devenv sync to create
+# a virtualenv in the new worktree. Git calls this hook with three arguments:
+#   $1 = previous HEAD ref,  $2 = new HEAD ref,  $3 = 1 (branch) or 0 (file checkout).
+# For a new worktree there is no "previous" commit, so Git passes 40 zeros as $1.
+# We only run our logic when $1 is all zeros (new worktree or initial clone).
+# Git invokes this hook automatically after checkout (e.g. git clone, checkout, switch, worktree add);
+# the hook runs with the worktree root as the current directory.
+set -eu
+
+# Only act when $1 is all zeros (no previous HEAD): that happens for worktree add
+# and for clone. We only want to run for worktree add; after clone, CI or the
+# user runs devenv sync explicitly. In a clone .git is a dir; in a worktree .git
+# is a file. So skip unless we're in a worktree to avoid affecting clone/CI.
+if [ "$1" != "0000000000000000000000000000000000000000" ]; then
+    exit 0
+fi
+WORKTREE_ROOT="${GIT_WORK_TREE:-$PWD}"
+# .git is a file in an added worktree, a directory in the main clone; skip if main clone
+if [ ! -f "$WORKTREE_ROOT/.git" ]; then
+    exit 0
+fi
+
+# Only run in worktrees that have our devenv setup (sync.py); skip when .venv already exists
+if [ ! -d "$WORKTREE_ROOT/.venv" ] && [ -f "$WORKTREE_ROOT/devenv/sync.py" ]; then
+    if command -v devenv >/dev/null 2>&1; then
+        echo "New worktree detected. Running devenv sync to create virtualenv..."
+        if ! (cd "$WORKTREE_ROOT" && devenv sync); then
+            echo "Warning: devenv sync failed. Run 'cd $WORKTREE_ROOT && devenv sync' manually."
+        fi
+    else
+        echo "New worktree detected. Install devenv and run: cd $WORKTREE_ROOT && devenv sync"
+    fi
+fi

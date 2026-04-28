@@ -1,4 +1,4 @@
-import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
 describe('stripURLOrigin', () => {
   it('should preserve the url path, query, and hash', () => {

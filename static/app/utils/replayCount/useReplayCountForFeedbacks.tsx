@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 
-import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Query results for whether a Feedback has replays associated.
  */
-export default function useReplayCountForFeedbacks() {
+export function useReplayCountForFeedbacks() {
   const organization = useOrganization();
   const {hasOne, hasMany} = useReplayCount({
     bufferLimit: 25,

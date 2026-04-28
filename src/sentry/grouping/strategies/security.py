@@ -14,13 +14,13 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.strategies.base import (
     ComponentsByVariant,
-    GroupingContext,
     produces_variants,
     strategy,
 )
 from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
 
 if TYPE_CHECKING:
+    from sentry.grouping.context import GroupingContext
     from sentry.services.eventstore.models import Event
 
 

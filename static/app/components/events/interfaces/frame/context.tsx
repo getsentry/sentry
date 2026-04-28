@@ -2,12 +2,12 @@ import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import ClippedBox from 'sentry/components/clippedBox';
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {useLineCoverageContext} from 'sentry/components/events/interfaces/crashContent/exception/lineCoverageContext';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   LineCoverage,
@@ -19,16 +19,18 @@ import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
 import {Assembly} from './assembly';
-import ContextLineNumber from './contextLineNumber';
+import {ContextLineNumber} from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
 import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
+import {useSourceContext} from './useSourceContext';
 import {useStacktraceCoverage} from './useStacktraceCoverage';
+import {hasPotentialSourceContext} from './utils';
 
 type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
@@ -42,6 +44,7 @@ type Props = {
   hasContextRegisters?: boolean;
   hasContextSource?: boolean;
   hasContextVars?: boolean;
+  hasScmSourceContext?: boolean;
   isExpanded?: boolean;
   isFirst?: boolean;
   platform?: PlatformKey;
@@ -63,13 +66,14 @@ export function getLineCoverage(
   return [lineCoverage, hasCoverage];
 }
 
-function Context({
+export function Context({
   hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
   isExpanded = false,
   hasAssembly = false,
   emptySourceNotation = false,
+  hasScmSourceContext = false,
   registers,
   frame,
   event,
@@ -89,6 +93,34 @@ function Context({
     () => projects.find(p => p.id === event.projectID),
     [projects, event]
   );
+
+  const shouldFetchSourceContext =
+    hasScmSourceContext &&
+    defined(project) &&
+    !hasContextSource &&
+    isExpanded &&
+    hasPotentialSourceContext(frame);
+
+  const {data: sourceContextData, isPending: isLoadingSourceContext} = useSourceContext(
+    {
+      event,
+      frame,
+      orgSlug: organization?.slug || '',
+      projectSlug: project?.slug,
+    },
+    {enabled: shouldFetchSourceContext}
+  );
+
+  const scmContext: Frame['context'] | undefined = useMemo(() => {
+    if (!sourceContextData?.context?.length) {
+      return undefined;
+    }
+    return sourceContextData.context;
+  }, [sourceContextData]);
+
+  // Use SCM-fetched context when the frame has no embedded context
+  const effectiveContext = hasContextSource ? frame?.context : scmContext;
+  const effectiveHasContextSource = hasContextSource || !!scmContext?.length;
 
   const {data: coverage, isPending: isLoadingCoverage} = useStacktraceCoverage(
     {
@@ -111,8 +143,8 @@ function Context({
    */
   const activeLineNumber = frame.lineNo;
   const contextLines = isExpanded
-    ? frame?.context
-    : frame?.context?.filter(l => l[0] === activeLineNumber);
+    ? effectiveContext
+    : effectiveContext?.filter(l => l[0] === activeLineNumber);
 
   const hasCoverageData =
     !isLoadingCoverage && coverage?.status === CodecovStatusCode.COVERAGE_EXISTS;
@@ -136,14 +168,22 @@ function Context({
       : {}
   );
 
-  const fileExtension = getFileExtension(frame.filename || '') ?? '';
+  const fileExtension = getFileExtension(frame.filename || frame.absPath || '') ?? '';
   const lines = usePrismTokensSourceContext({
     contextLines,
     lineNo: frame.lineNo,
     fileExtension,
   });
 
-  if (!hasContextSource && !hasContextVars && !hasContextRegisters && !hasAssembly) {
+  const isLoadingScmContext = shouldFetchSourceContext && isLoadingSourceContext;
+
+  if (
+    !isLoadingScmContext &&
+    !effectiveHasContextSource &&
+    !hasContextVars &&
+    !hasContextRegisters &&
+    !hasAssembly
+  ) {
     return emptySourceNotation ? (
       <EmptyContext>
         <StyledIconFlag size="xs" />
@@ -152,7 +192,7 @@ function Context({
     ) : null;
   }
 
-  const startLineNo = hasContextSource ? frame.context[0]![0] : 0;
+  const startLineNo = effectiveHasContextSource ? (effectiveContext?.[0]?.[0] ?? 0) : 0;
 
   const prismClassName = fileExtension ? `language-${fileExtension}` : '';
 
@@ -163,12 +203,17 @@ function Context({
       className={`${className} context ${isExpanded ? 'expanded' : ''}`}
       data-test-id="frame-context"
     >
-      {frame.context && lines.length > 0 ? (
+      {isLoadingScmContext ? (
+        <EmptyContext>
+          <LoadingIndicator mini size={16} />
+          {t('Loading source context…')}
+        </EmptyContext>
+      ) : effectiveContext && lines.length > 0 ? (
         <CodeWrapper className={prismClassName}>
           <pre className={prismClassName}>
             <code className={prismClassName}>
               {lines.map((line, i) => {
-                const contextLine = contextLines[i]!;
+                const contextLine = contextLines![i]!;
                 const isActive = activeLineNumber === contextLine[0];
 
                 return (
@@ -214,14 +259,12 @@ function Context({
   );
 }
 
-export default Context;
-
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;
 `;
 
 const StyledIconFlag = styled(IconFlag)`
-  margin-right: ${space(1)};
+  margin-right: ${p => p.theme.space.md};
 `;
 
 const Wrapper = styled('ol')<{startLineNo: number}>`
@@ -251,7 +294,7 @@ const CodeWrapper = styled('div')`
 const EmptyContext = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   padding: 20px;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
@@ -260,10 +303,10 @@ const EmptyContext = styled('div')`
 const ContextLineWrapper = styled('div')<{isActive: boolean}>`
   display: grid;
   grid-template-columns: 58px 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   background: ${p =>
     p.isActive ? 'var(--prism-highlight-background)' : p.theme.tokens.background.primary};
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
 `;
 
 const ContextLineCode = styled('div')`

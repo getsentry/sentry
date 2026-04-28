@@ -14,7 +14,7 @@ jest.mock('sentry/views/explore/logs/logsExportCsv');
 
 describe('LogsExportButton', () => {
   const {organization, setupPageFilters} = initializeLogsTest({
-    organization: {features: ['ourlogs-enabled', 'ourlogs-export', 'discover-query']},
+    organization: {features: ['ourlogs-enabled', 'discover-query']},
   });
   const initialRouterConfig = {
     location: {
@@ -83,7 +83,9 @@ describe('LogsExportButton', () => {
   });
 
   it('should send correct payload for async export with all LogsQueryInfo parameters', async () => {
-    const largeTableData = new Array(QUERY_PAGE_LIMIT).fill(mockTableData[0]);
+    const largeTableData = Array.from<(typeof mockTableData)[number]>({
+      length: QUERY_PAGE_LIMIT,
+    }).fill(mockTableData[0]!);
 
     const exportMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/data-export/`,

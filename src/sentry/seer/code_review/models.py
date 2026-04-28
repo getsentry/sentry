@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime
 from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field
-
-from sentry.seer.models import SeerRepoDefinition
 
 # =============================================================================
 # Code Review Models (ported from Seer)
@@ -34,20 +33,16 @@ class SeerCodeReviewTrigger(StrEnum):
         return cls.UNKNOWN
 
 
-class SeerCodeReviewRequestType(StrEnum):
-    """Request type for Seer code review requests."""
-
-    PR_REVIEW = "pr-review"
-    PR_CLOSED = "pr-closed"
-
-
 class SeerCodeReviewConfig(BaseModel):
     features: dict[SeerCodeReviewFeature, bool] = Field(default_factory=lambda: {})
+    github_rate_limit_sensitive: bool = False
     trigger: SeerCodeReviewTrigger
     trigger_comment_id: int | None = None
     trigger_comment_type: Literal["issue_comment"] | None = None
     trigger_user: str | None = None
     trigger_user_id: int | None = None
+    trigger_at: datetime | None = None  # When the trigger event occurred on GitHub
+    sentry_received_trigger_at: datetime | None = None  # When Sentry received the webhook
 
     def is_feature_enabled(self, feature: SeerCodeReviewFeature) -> bool:
         return self.features.get(feature, False)
@@ -84,6 +79,7 @@ class SeerCodeReviewRepoDefinition(BaseModel):
     # Optional in base, overridden in subclasses based on request type
     organization_id: int | None = None
     integration_id: str | None = None
+    is_private: bool | None = None
 
 
 class SeerCodeReviewRepoForPrReview(SeerCodeReviewRepoDefinition):
@@ -114,17 +110,6 @@ class SeerCodeReviewRepoForPrClosed(SeerCodeReviewRepoDefinition):
 # =============================================================================
 
 
-class SeerCodeReviewBaseRequest(BaseModel):
-    repo: SeerRepoDefinition
-    pr_id: int
-    more_readable_repos: list[SeerRepoDefinition] = Field(default_factory=list)
-
-
-class SeerCodeReviewRequest(SeerCodeReviewBaseRequest):
-    bug_prediction_specific_information: BugPredictionSpecificInformation
-    config: SeerCodeReviewConfig | None = None
-
-
 class SeerCodeReviewRequestForPrReview(BaseModel):
     """Request model for PR review with optional organization_id and integration_id."""
 
@@ -133,6 +118,7 @@ class SeerCodeReviewRequestForPrReview(BaseModel):
     more_readable_repos: list[SeerCodeReviewRepoForPrReview] = Field(default_factory=list)
     bug_prediction_specific_information: BugPredictionSpecificInformation
     config: SeerCodeReviewConfig | None = None
+    experiment_enabled: bool = False
 
 
 class SeerCodeReviewRequestForPrClosed(BaseModel):
@@ -145,18 +131,11 @@ class SeerCodeReviewRequestForPrClosed(BaseModel):
     config: SeerCodeReviewConfig | None = None
 
 
-class SeerCodeReviewTaskRequest(BaseModel):
-    data: SeerCodeReviewRequest
-    external_owner_id: str
-    request_type: SeerCodeReviewRequestType
-
-
 class SeerCodeReviewTaskRequestForPrReview(BaseModel):
     """Task request wrapper for PR review."""
 
     data: SeerCodeReviewRequestForPrReview
     external_owner_id: str
-    request_type: SeerCodeReviewRequestType
 
 
 class SeerCodeReviewTaskRequestForPrClosed(BaseModel):
@@ -164,4 +143,3 @@ class SeerCodeReviewTaskRequestForPrClosed(BaseModel):
 
     data: SeerCodeReviewRequestForPrClosed
     external_owner_id: str
-    request_type: SeerCodeReviewRequestType

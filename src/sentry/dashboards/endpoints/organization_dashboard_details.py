@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import logging
 from typing import Any
 
 import sentry_sdk
@@ -11,7 +14,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -30,6 +33,7 @@ from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
     DashboardLastVisited,
+    DashboardRevision,
     DashboardTombstone,
 )
 from sentry.models.organization import Organization
@@ -37,6 +41,32 @@ from sentry.models.organizationmember import OrganizationMember
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
+REVISIONS_FEATURE = "organizations:dashboards-revisions"
+
+logger = logging.getLogger(__name__)
+
+
+def _take_dashboard_snapshot(
+    dashboard: Dashboard,
+    user: Any,
+) -> dict[str, Any] | None:
+    """
+    Serialize the current dashboard state as a snapshot, or return None if
+    serialization fails.
+
+    Must be called outside any transaction.atomic block because the serializer
+    makes hybrid-cloud RPC calls (user_service.serialize_many) that cannot run
+    inside a transaction.
+    """
+    try:
+        return serialize(dashboard, user)
+    except Exception:
+        # Snapshot failures must not block the dashboard save. Log and skip.
+        logger.exception(
+            "Failed to serialize dashboard snapshot; proceeding without creating revision",
+            extra={"dashboard_id": dashboard.id},
+        )
+        return None
 
 
 class OrganizationDashboardBase(OrganizationEndpoint):
@@ -71,7 +101,7 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 
 @extend_schema(tags=["Dashboards"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -128,7 +158,7 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
 
         if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
-            return self.respond({"Cannot delete prebuilt Dashboards."}, status=409)
+            return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
         if isinstance(dashboard, dict):
             if num_dashboards > 0:
@@ -136,11 +166,11 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                     organization=organization, slug=dashboard["id"]
                 )
             else:
-                return self.respond({"Cannot delete last Dashboard."}, status=409)
+                return self.respond({"detail": "Cannot delete last Dashboard."}, status=409)
         elif (num_dashboards > 1) or (num_tombstones == 0):
             dashboard.delete()
         else:
-            return self.respond({"Cannot delete last Dashboard."}, status=409)
+            return self.respond({"detail": "Cannot delete last Dashboard."}, status=409)
 
         return self.respond(status=204)
 
@@ -173,8 +203,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         self.check_object_permissions(request, dashboard)
 
-        if isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None:
-            return self.respond({"Cannot edit prebuilt Dashboards."}, status=409)
+        is_prebuilt = isinstance(dashboard, Dashboard) and dashboard.prebuilt_id is not None
+        prebuilt_title = dashboard.title if isinstance(dashboard, Dashboard) else None
 
         tombstone = None
         if isinstance(dashboard, dict):
@@ -194,20 +224,48 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+        if is_prebuilt:
+            if "widgets" in serializer.validated_data:
+                return self.respond(
+                    {"detail": "Cannot edit widgets on prebuilt Dashboards."}, status=409
+                )
+            if (
+                "title" in serializer.validated_data
+                and serializer.validated_data["title"] != prebuilt_title
+            ):
+                return self.respond(
+                    {"detail": "Cannot change the title of prebuilt Dashboards."}, status=409
+                )
+
+        snapshot = None
+        if isinstance(dashboard, Dashboard) and features.has(
+            REVISIONS_FEATURE, organization, actor=request.user
+        ):
+            snapshot = _take_dashboard_snapshot(dashboard, request.user)
+
+        revision_source = request.data.get("revisionSource", "edit")
+        if revision_source not in ("edit", "edit-with-agent"):
+            revision_source = "edit"
+
         try:
             with transaction.atomic(router.db_for_write(DashboardTombstone)):
+                if snapshot is not None and isinstance(dashboard, Dashboard):
+                    DashboardRevision.create_for_dashboard(
+                        dashboard, request.user, snapshot, source=revision_source
+                    )
                 serializer.save()
                 if tombstone:
                     DashboardTombstone.objects.get_or_create(
                         organization=organization, slug=tombstone
                     )
         except IntegrityError:
-            return self.respond({"Dashboard with that title already exists."}, status=409)
+            return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
         return self.respond(serialize(serializer.instance, request.user), status=200)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -235,16 +293,16 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         if not org_member:
             return Response(status=403)
 
-        DashboardLastVisited.objects.create_or_update(
+        DashboardLastVisited.objects.update_or_create(
             dashboard=dashboard,
             member=org_member,
-            values={"last_visited": timezone.now()},
+            defaults={"last_visited": timezone.now()},
         )
 
         return Response(status=204)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
     """
     Endpoint for managing the favorite status of dashboards for users
@@ -282,7 +340,7 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
                     dashboard=dashboard,
                 )
             else:
-                DashboardFavoriteUser.objects.delete_favorite_dashboard(
+                DashboardFavoriteUser.objects.unfavorite_dashboard(
                     organization=organization,
                     user_id=request.user.id,
                     dashboard=dashboard,

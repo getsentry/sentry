@@ -4,6 +4,7 @@ import pytest
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
@@ -36,6 +37,14 @@ class ProjectUptimeAlertDetailsGetEndpointTest(ProjectUptimeAlertDetailsBaseEndp
             self.organization.slug, onboarding_detector.project.slug, onboarding_detector.id
         )
         assert resp.status_code == 404
+
+    def test_disabled_detector_accessible(self) -> None:
+        """Disabled detectors should still be accessible via the endpoint."""
+        detector = self.create_uptime_detector()
+        detector.update(status=ObjectStatus.DISABLED, enabled=False)
+
+        resp = self.get_success_response(self.organization.slug, detector.project.slug, detector.id)
+        assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
 
 
 class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndpointTest):
@@ -229,6 +238,54 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
         detector.refresh_from_db()
         assert resp.data == serialize(detector, self.user, UptimeDetectorSerializer())
         assert detector.enabled is True
+
+    def test_response_capture_enabled(self) -> None:
+        detector = self.create_uptime_detector()
+        uptime_sub = get_uptime_subscription(detector)
+        assert uptime_sub.response_capture_enabled
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            detector.project.slug,
+            detector.id,
+            name="test",
+            response_capture_enabled=False,
+        )
+        uptime_sub.refresh_from_db()
+        response_capture_enabled: bool = uptime_sub.response_capture_enabled
+        assert not resp.data["responseCaptureEnabled"]
+        assert not response_capture_enabled
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            detector.project.slug,
+            detector.id,
+            name="test",
+            response_capture_enabled=True,
+        )
+        uptime_sub.refresh_from_db()
+        assert resp.data["responseCaptureEnabled"]
+        assert uptime_sub.response_capture_enabled
+
+    def test_disabling_response_capture_also_disables_system_flag(self) -> None:
+        """Disabling response_capture_enabled should also disable capture_response_on_failure."""
+        detector = self.create_uptime_detector()
+        uptime_sub = get_uptime_subscription(detector)
+        assert uptime_sub.response_capture_enabled
+        assert uptime_sub.capture_response_on_failure
+
+        self.get_success_response(
+            self.organization.slug,
+            detector.project.slug,
+            detector.id,
+            name="test",
+            response_capture_enabled=False,
+        )
+        uptime_sub.refresh_from_db()
+        response_capture_enabled: bool = uptime_sub.response_capture_enabled
+        capture_response_on_failure: bool = uptime_sub.capture_response_on_failure
+        assert not response_capture_enabled
+        assert not capture_response_on_failure
 
     @mock.patch(
         "sentry.quotas.backend.assign_seat",

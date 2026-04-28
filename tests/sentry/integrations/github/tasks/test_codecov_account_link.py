@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class CodecovAccountLinkTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -61,7 +61,7 @@ class CodecovAccountLinkTestCase(IntegrationTestCase):
         )
         mock_response.raise_for_status.assert_called_once()
 
-    def test_codecov_account_link_missing_integration(self):
+    def test_codecov_account_link_missing_integration(self) -> None:
         with patch("sentry.integrations.github.tasks.codecov_account_link.logger") as mock_logger:
             codecov_account_link(
                 integration_id=99999,  # Non-existent integration
@@ -72,7 +72,7 @@ class CodecovAccountLinkTestCase(IntegrationTestCase):
                 "codecov.account_link.missing_integration", extra={"integration_id": 99999}
             )
 
-    def test_codecov_account_link_missing_organization(self):
+    def test_codecov_account_link_missing_organization(self) -> None:
         with patch("sentry.integrations.github.tasks.codecov_account_link.logger") as mock_logger:
             codecov_account_link(
                 integration_id=self.integration.id,
@@ -152,7 +152,7 @@ class CodecovAccountLinkTestCase(IntegrationTestCase):
                 },
             )
 
-    def test_codecov_account_link_inactive_integration(self):
+    def test_codecov_account_link_inactive_integration(self) -> None:
         self.integration.update(status=ObjectStatus.DISABLED)
 
         with patch("sentry.integrations.github.tasks.codecov_account_link.logger") as mock_logger:

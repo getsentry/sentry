@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, control_silo_model, region_silo_model, sane_repr
+from sentry.db.models import Model, cell_silo_model, control_silo_model, sane_repr
 from sentry.options.manager import UpdateChannel
 
 
@@ -53,7 +53,7 @@ class BaseOption(OverwritableConfigMixin, Model):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class Option(BaseOption):
     __relocation_scope__ = RelocationScope.Config
 

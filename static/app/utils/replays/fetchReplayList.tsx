@@ -2,13 +2,16 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import type {ReplayListQueryReferrer, ReplayListRecord} from 'sentry/views/replays/types';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import type {
+  ReplayListQueryReferrer,
+  ReplayListRecord,
+} from 'sentry/views/explore/replays/types';
 
 type State = {
   fetchError: undefined | RequestError;
@@ -28,7 +31,7 @@ type Props = {
   queryReferrer?: ReplayListQueryReferrer;
 };
 
-async function fetchReplayList({
+export async function fetchReplayList({
   api,
   organization,
   location,
@@ -92,5 +95,3 @@ async function fetchReplayList({
     };
   }
 }
-
-export default fetchReplayList;

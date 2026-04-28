@@ -32,6 +32,7 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB_ENTERPRISE,
     ExternalProviders.GITLAB,
     ExternalProviders.SLACK,
+    ExternalProviders.SLACK_STAGING,
     ExternalProviders.MSTEAMS,
     ExternalProviders.JIRA_SERVER,
     ExternalProviders.PERFORCE,

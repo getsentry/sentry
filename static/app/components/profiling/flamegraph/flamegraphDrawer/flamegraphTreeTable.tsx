@@ -2,7 +2,8 @@ import type React from 'react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
 import {
   CALL_TREE_FRAME_WEIGHT_CELL_WIDTH_PX,
   CallTreeDynamicColumnsContainer,
@@ -18,7 +19,7 @@ import {
   makeCallTreeTableSortFunction,
   syncCallTreeTableScroll,
 } from 'sentry/components/profiling/flamegraph/callTreeTable';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -227,9 +228,7 @@ export function FlamegraphTreeTable({
     );
 
   const scrollContainers = useMemo(() => {
-    return [scrollContainerRef, dynamicScrollContainerRef].filter(
-      c => !!c
-    ) as HTMLElement[];
+    return [scrollContainerRef, dynamicScrollContainerRef].filter(c => !!c);
   }, [dynamicScrollContainerRef, scrollContainerRef]);
 
   const {
@@ -255,19 +254,16 @@ export function FlamegraphTreeTable({
     tree,
   });
 
-  const onSortChange = useCallback(
-    (newSort: 'total weight' | 'self weight' | 'name') => {
-      const newDirection =
-        newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
+  const onSortChange = (newSort: 'total weight' | 'self weight' | 'name') => {
+    const newDirection =
+      newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
 
-      setDirection(newDirection);
-      setSort(newSort);
+    setDirection(newDirection);
+    setSort(newSort);
 
-      const sortFn = makeCallTreeTableSortFunction(newSort, newDirection);
-      handleSortingChange(sortFn);
-    },
-    [sort, direction, handleSortingChange]
-  );
+    const sortFn = makeCallTreeTableSortFunction(newSort, newDirection);
+    handleSortingChange(sortFn);
+  };
 
   useEffect(() => {
     function onShowInTableView(frame: FlamegraphFrame) {

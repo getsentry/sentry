@@ -11,6 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
+import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 // eslint-disable-next-line no-restricted-imports
 import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
@@ -18,9 +19,11 @@ import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/ligh
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
+import {makeSwatch, type Swatch} from './swatch';
 import type {MotionDuration, MotionEasing} from './types';
 
-type Tokens = typeof baseLightTheme.tokens | typeof baseDarkTheme.tokens;
+type BaseTheme = typeof baseLightTheme | typeof baseDarkTheme;
+type Tokens = BaseTheme['tokens'];
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -40,6 +43,14 @@ const motionCurves: Record<
   exit: [0.64, 0, 0.8, 0],
 };
 
+// Disable transitions in acceptance tests or node testing environments.
+const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+const EMPTY_TRANSITION: Transition = {
+  duration: 0,
+  staggerChildren: 0,
+  type: false,
+};
+
 const motionCurveWithDuration = (
   durations: Record<MotionDuration, number>,
   easing: [number, number, number, number]
@@ -51,18 +62,24 @@ const motionCurveWithDuration = (
   };
 
   const framerMotion: Record<MotionDuration, Transition> = {
-    fast: {
-      duration: durations.fast / 1000,
-      ease: easing,
-    },
-    moderate: {
-      duration: durations.moderate / 1000,
-      ease: easing,
-    },
-    slow: {
-      duration: durations.slow / 1000,
-      ease: easing,
-    },
+    fast: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.fast / 1000,
+          ease: easing,
+        },
+    moderate: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.moderate / 1000,
+          ease: easing,
+        },
+    slow: IS_ACCEPTANCE_OR_TESTING
+      ? EMPTY_TRANSITION
+      : {
+          duration: durations.slow / 1000,
+          ease: easing,
+        },
   };
 
   return [motion, framerMotion];
@@ -206,15 +223,15 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
-    // needs to be below sidebar
-    // @TODO(jonasbadalic) why does it need to be below sidebar?
+    // dashboard widget builder backdrop sits behind the sidebar
+    // because it renders on the right next to the sidebar
+    // @TODO(design-engineering): resolve this inconsistency
     widgetBuilderDrawer: 1016,
 
     settingsSidebarNavMask: 1017,
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
-    orgAndUserMenu: 1030,
 
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
@@ -282,11 +299,14 @@ const commonTheme = {
   ...typography,
 };
 
-export interface SentryTheme
-  extends Omit<typeof lightThemeDefinition, 'chart' | 'tokens'> {
+export interface SentryTheme extends Omit<
+  typeof lightThemeDefinition,
+  'chart' | 'tokens'
+> {
   chart: {
     getColorPalette: ReturnType<typeof makeChartColorPalette>;
   };
+  swatch: Swatch;
   tokens: Tokens;
 }
 
@@ -669,12 +689,12 @@ function makeChartColorPalette<T extends ChartColorPalette>(
     length: Length | number | 'all'
   ): T[Length] {
     if (length === 'all') {
-      return palette.at(-1) as T[Length];
+      return palette.at(-1) as unknown as T[Length];
     }
     // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
     // the palette is not sparse, but we should probably add a runtime check here as well.
     const index = Math.max(0, Math.min(palette.length - 1, length));
-    return palette[index] as T[Length];
+    return palette[index] as unknown as T[Length];
   };
 }
 
@@ -816,28 +836,11 @@ const darkColors: Colors = {
   },
 };
 
-// @TODO(jonasbadalic): are these final?
-const lightShadows = {
-  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
-  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
-  dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(43, 34, 51, 0.12)',
-};
-
-// @TODO(jonasbadalic): are these final?
-const darkShadows = {
-  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
-  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
-  dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
-  dropShadowHeavyTop: '0 -4px 24px rgba(10, 8, 12, 0.36)',
-};
-
 const lightThemeDefinition = {
   type: 'light' as 'light' | 'dark',
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseLightTheme,
-  ...lightShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseLightTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseLightTheme.tokens.focus.default}`,
@@ -856,6 +859,11 @@ const lightThemeDefinition = {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
   },
 
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.light),
+    baseLightTheme.tokens.content.onVibrant
+  ),
+
   colors: lightColors,
 };
 
@@ -872,7 +880,6 @@ export const darkTheme: SentryTheme = {
   // @TODO: color theme contains some colors (like chart color palette, diff, tag and level)
   ...commonTheme,
   ...baseDarkTheme,
-  ...darkShadows,
   focusRing: (baseShadow = `0 0 0 0 ${baseDarkTheme.tokens.background.primary}`) => ({
     outline: 'none',
     boxShadow: `${baseShadow}, 0 0 0 2px ${baseDarkTheme.tokens.focus.default}`,
@@ -890,6 +897,11 @@ export const darkTheme: SentryTheme = {
   chart: {
     getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
   },
+
+  swatch: makeSwatch(
+    (({lime: _lime, ...rest}) => rest)(color.categorical.dark),
+    baseDarkTheme.tokens.content.onVibrant
+  ),
 
   colors: darkColors,
 };

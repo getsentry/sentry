@@ -1,27 +1,30 @@
 import {useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {DrawerHeader} from '@sentry/scraps/drawer';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import getDuration from 'sentry/utils/duration/getDuration';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
-import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
+import {useReplayExists} from 'sentry/utils/replayCount/useReplayExists';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import type {DashboardFilters} from 'sentry/views/dashboards/types';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
@@ -34,8 +37,8 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
+import {decode as decodeBrowserTypes} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useProfileExists} from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
@@ -74,36 +77,52 @@ const sort: GridColumnSortBy<keyof TransactionSampleRowWithScore> = {
 
 export function PageOverviewWebVitalsDetailPanel({
   webVital,
+  dashboardFilters,
 }: {
   webVital: WebVitals | null;
+  dashboardFilters?: DashboardFilters;
 }) {
   const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const routes = useRoutes();
+  const matches = useMatches();
   const {replayExists} = useReplayExists();
   const domainViewFilters = useDomainViewFilters();
 
   const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
   const subregions = location.query[SpanFields.USER_GEO_SUBREGION] as SubregionCode[];
   const isSpansWebVital = defined(webVital) && ['inp', 'cls', 'lcp'].includes(webVital);
-  const isInp = webVital === 'inp';
-  const useSpansWebVitals = organization.features.includes(
-    'performance-vitals-standalone-cls-lcp'
-  );
 
-  const replayLinkGenerator = generateReplayLink(routes);
+  const replayLinkGenerator = generateReplayLink(matches);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
     [projects, location.query.project]
   );
 
-  const transaction = location.query.transaction
-    ? Array.isArray(location.query.transaction)
-      ? location.query.transaction[0]
-      : location.query.transaction
-    : undefined;
+  const transactionFromDashboard = useMemo(() => {
+    if (!dashboardFilters?.globalFilter) {
+      return undefined;
+    }
+    const transactionFilter = dashboardFilters.globalFilter.find(
+      filter => filter.tag.key === 'transaction'
+    );
+    if (transactionFilter) {
+      const search = new MutableSearch(transactionFilter.value);
+      const values = search.getFilterValues('transaction');
+      return values?.[0];
+    }
+    return undefined;
+  }, [dashboardFilters]);
+
+  // Transaction filter can come from dashboard filters or URL (for insights module)
+  const transaction = transactionFromDashboard
+    ? transactionFromDashboard
+    : location.query.transaction
+      ? Array.isArray(location.query.transaction)
+        ? location.query.transaction[0]
+        : location.query.transaction
+      : undefined;
 
   const {data: projectData} = useProjectRawWebVitalsQuery({
     transaction,
@@ -323,33 +342,18 @@ export function PageOverviewWebVitalsDetailPanel({
           )}
         </ChartContainer>
         <TableContainer>
-          {isInp ? (
-            <GridEditable
-              data={spansTableData}
-              isLoading={isSpansLoading}
-              columnOrder={SPANS_SAMPLES_COLUMN_ORDER}
-              columnSortBy={[sort]}
-              grid={{
-                renderHeadCell,
-                renderBodyCell: renderSpansBodyCell,
-              }}
-            />
-          ) : (
-            <GridEditable
-              data={spansTableData}
-              isLoading={isSpansLoading}
-              columnOrder={
-                isSpansWebVital && useSpansWebVitals
-                  ? SPANS_SAMPLES_COLUMN_ORDER
-                  : PAGELOADS_COLUMN_ORDER
-              }
-              columnSortBy={[sort]}
-              grid={{
-                renderHeadCell,
-                renderBodyCell: renderSpansBodyCell,
-              }}
-            />
-          )}
+          <GridEditable
+            data={spansTableData}
+            isLoading={isSpansLoading}
+            columnOrder={
+              isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
+            }
+            columnSortBy={[sort]}
+            grid={{
+              renderHeadCell,
+              renderBodyCell: renderSpansBodyCell,
+            }}
+          />
         </TableContainer>
         <PageAlert />
       </SampleDrawerBody>

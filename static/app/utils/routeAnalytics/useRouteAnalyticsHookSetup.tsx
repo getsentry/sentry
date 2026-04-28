@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 /**
@@ -8,7 +8,7 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
  * Only needs to be used once for the entire app just
  * below the Organization context.
  */
-export default function useRouteAnalyticsHookSetup() {
+export function useRouteAnalyticsHookSetup() {
   const {setOrganization} = useContext(RouteAnalyticsContext);
   HookStore.persistCallback(
     'react-hook:route-activated',

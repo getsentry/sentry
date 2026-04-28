@@ -1,4 +1,5 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconSubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -17,7 +18,7 @@ type Props = {
   size?: 'xs' | 'sm';
 };
 
-function SubscribeAction({
+export function SubscribeAction({
   className,
   disabled,
   group,
@@ -32,8 +33,7 @@ function SubscribeAction({
     <Button
       className={className}
       disabled={disabled || disabledNotifications}
-      title={getSubscriptionReason(group)}
-      tooltipProps={{delay: 300}}
+      tooltipProps={{title: getSubscriptionReason(group), delay: 300}}
       priority={!disablePriority && group.isSubscribed ? 'primary' : 'default'}
       size={size}
       aria-label={t('Subscribe')}
@@ -42,5 +42,3 @@ function SubscribeAction({
     />
   );
 }
-
-export default SubscribeAction;

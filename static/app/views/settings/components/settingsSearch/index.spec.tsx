@@ -8,8 +8,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {setSearchMap} from 'sentry/components/search/sources/formSource';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {SettingsSearch} from 'sentry/views/settings/components/settingsSearch';
 
 jest.mock('sentry/actionCreators/navigation');
 
@@ -71,6 +71,10 @@ describe('SettingsSearch', () => {
     await userEvent.type(screen.getByPlaceholderText('Search'), 'test');
     await userEvent.click(await screen.findByText(textWithMarkupMatcher('test-1')));
 
-    expect(navigateTo).toHaveBeenCalledWith('/test-1/', expect.anything(), undefined);
+    expect(navigateTo).toHaveBeenCalledWith(
+      '/test-1/',
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

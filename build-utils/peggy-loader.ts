@@ -6,7 +6,7 @@ const peggyLoader: LoaderDefinitionFunction = source => {
   const peggyOptions: peggy.OutputFormatAmdCommonjsEs = {
     cache: false,
     dependencies: {},
-    format: 'commonjs',
+    format: 'es',
     optimize: 'speed',
     trace: false,
     output: 'source',

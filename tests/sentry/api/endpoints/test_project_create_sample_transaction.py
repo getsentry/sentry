@@ -90,7 +90,6 @@ class ProjectCreateSampleTransactionTest(APITestCase):
         assert response.data["title"] == "/productstore"
 
     def test_path_traversal_attempt(self) -> None:
-
         project = self.create_project(teams=[self.team], name="foo", platform="../../../etc/passwd")
 
         url = reverse(

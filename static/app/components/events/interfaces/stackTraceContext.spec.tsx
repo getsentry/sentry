@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import localStorageWrapper from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 

@@ -23,6 +23,8 @@ SLACK_SDK_ERROR_CATEGORIES = (
     RESTRICTED_ACTION := SlackSdkErrorCategory("restricted_action"),
     MESSAGE_LIMIT_EXCEEDED := SlackSdkErrorCategory("message_limit_exceeded"),
     ORG_LOGIN_REQUIRED := SlackSdkErrorCategory("org_login_required"),
+    ALREADY_REACTED := SlackSdkErrorCategory("already_reacted"),
+    NO_REACTION := SlackSdkErrorCategory("no_reaction"),
 )
 
 """

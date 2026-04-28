@@ -27,6 +27,7 @@ const IDENTITY_ICONS = {
   bitbucket,
   bitbucket_server: bitbucketserver,
   github,
+  github_copilot: github,
   github_enterprise: githubEnterprise,
   gitlab,
   google,
@@ -38,6 +39,7 @@ const IDENTITY_ICONS = {
   rippling,
   saml2,
   slack,
+  slack_staging: slack,
   visualstudio,
   vsts,
 } satisfies Record<string, string>;

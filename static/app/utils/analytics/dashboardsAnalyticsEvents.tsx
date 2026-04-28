@@ -95,20 +95,14 @@ export type DashboardsEventParameters = {
   'dashboards_manage.create.start': Record<string, unknown>;
   'dashboards_manage.delete': {dashboard_id: number; view_type: DashboardsLayout};
   'dashboards_manage.duplicate': {dashboard_id: number; view_type: DashboardsLayout};
+  'dashboards_manage.generate.start': Record<string, unknown>;
   'dashboards_manage.paginate': Record<string, unknown>;
   'dashboards_manage.search': Record<string, unknown>;
-  'dashboards_manage.templates.add': {
-    dashboard_id: string;
-    dashboard_title: string;
-    was_previewed: boolean;
-  };
-  'dashboards_manage.templates.preview': {
-    dashboard_id: string;
-  };
-  'dashboards_manage.templates.toggle': {
-    show_templates: boolean;
-  };
   'dashboards_manage.toggle_favorite': {dashboard_id: string; favorited: boolean};
+  'dashboards_views.insights_redirect': {
+    dashboard_id: string;
+    prebuilt_id: number;
+  };
   'dashboards_views.open_in_discover.opened': {
     widget_type: string;
   };
@@ -196,12 +190,11 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards_manage.change_sort': 'Dashboards Manager: Sort By Changed',
   'dashboards_manage.change_view_type': 'Dashboards Manager: View Type Toggled',
   'dashboards_manage.create.start': 'Dashboards Manager: Dashboard Create Started',
+  'dashboards_manage.generate.start':
+    'Dashboards Manager: Dashboard Seer Generate Started',
   'dashboards_manage.delete': 'Dashboards Manager: Dashboard Deleted',
   'dashboards_manage.duplicate': 'Dashboards Manager: Dashboard Duplicated',
   'dashboards_manage.paginate': 'Dashboards Manager: Paginate',
-  'dashboards_manage.templates.toggle': 'Dashboards Manager: Template Toggle Changed',
-  'dashboards_manage.templates.add': 'Dashboards Manager: Template Added',
-  'dashboards_manage.templates.preview': 'Dashboards Manager: Template Previewed',
   'dashboards_manage.toggle_favorite': 'Dashboards Manager: Dashboard Favorite Toggled',
   'dashboards_views.widget_viewer.edit': 'Widget Viewer: Edit Widget Modal Opened',
   'dashboards_views.widget_viewer.open': 'Widget Viewer: Opened',
@@ -216,5 +209,6 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.edit_access.save': 'Dashboards2: Edit Access Dropdown Selection Saved',
   'dashboards2.span_migration.results_check':
     'Dashboards2: Check Widget Results From Span Migration',
+  'dashboards_views.insights_redirect': 'Insights: Redirected to Dashboard',
   ...dashboardsEventMapWidgetBuilder,
 };

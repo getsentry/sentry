@@ -184,7 +184,9 @@ describe('searchSyntax/parser', () => {
     });
 
   Object.entries(testData).map(([name, cases]) =>
-    describe(`${name}`, () => {
+    // https://github.com/jest-community/eslint-plugin-jest/issues/1940
+    // eslint-disable-next-line jest/valid-title
+    describe(name, () => {
       cases.map(c => registerTestCase(c, {parse: true}));
     })
   );

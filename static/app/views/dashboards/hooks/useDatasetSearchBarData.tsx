@@ -1,8 +1,9 @@
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   getDatasetConfig,
   type SearchBarData,
 } from 'sentry/views/dashboards/datasetConfig/base';
+import {useGlobalFilterTraceMetricsSearchBarDataProvider} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBarData {
@@ -28,6 +29,10 @@ export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBar
     pageFilters: selection,
   });
 
+  const traceMetricsData = useGlobalFilterTraceMetricsSearchBarDataProvider({
+    pageFilters: selection,
+  });
+
   const getSearchBarData = (widgetType: WidgetType): SearchBarData => {
     switch (widgetType) {
       case WidgetType.ERRORS:
@@ -40,6 +45,8 @@ export function useDatasetSearchBarData(): (widgetType: WidgetType) => SearchBar
         return issuesData;
       case WidgetType.RELEASE:
         return releasesData;
+      case WidgetType.TRACEMETRICS:
+        return traceMetricsData;
       default:
         return {
           getFilterKeySections: () => [],

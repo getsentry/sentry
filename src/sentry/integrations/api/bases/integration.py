@@ -54,9 +54,9 @@ class IntegrationEndpoint(ControlSiloOrganizationEndpoint):
         )
 
 
-class RegionIntegrationEndpoint(OrganizationEndpoint):
+class CellIntegrationEndpoint(OrganizationEndpoint):
     """
-    Baseclass for integration endpoints in region silo that need integration exception handling
+    Baseclass for integration endpoints in cell silo that need integration exception handling
     """
 
     def handle_exception_with_details(

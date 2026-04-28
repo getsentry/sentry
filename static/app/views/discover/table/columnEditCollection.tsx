@@ -3,16 +3,17 @@ import {createPortal} from 'react-dom';
 import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
+import {IconAdd, IconDelete, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -484,13 +485,9 @@ class ColumnEditCollection extends Component<Props, State> {
           className={isGhost ? '' : DRAG_CLASS}
         >
           {canDrag ? (
-            <DragAndReorderButton
-              aria-label={t('Drag to reorder')}
+            <StyledDragReorderButton
               onMouseDown={event => this.startDrag(event, i)}
               onTouchStart={event => this.startDrag(event, i)}
-              icon={<IconGrabbable size="xs" />}
-              size="zero"
-              borderless
             />
           ) : singleColumn && showAliasField ? null : (
             <span />
@@ -530,10 +527,10 @@ class ColumnEditCollection extends Component<Props, State> {
               <RemoveButton
                 data-test-id={`remove-column-${i}`}
                 aria-label={t('Remove column')}
-                title={t('Remove column')}
+                tooltipProps={{title: t('Remove column')}}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             ) : (
               <RemoveButton
@@ -541,7 +538,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 aria-label={t('Remove column')}
                 onClick={() => this.removeColumn(i)}
                 icon={<IconDelete />}
-                borderless
+                priority="transparent"
               />
             )
           ) : singleColumn && showAliasField ? null : (
@@ -565,7 +562,7 @@ class ColumnEditCollection extends Component<Props, State> {
     const title = canAdd
       ? undefined
       : t(
-          `Sorry, you've reached the maximum number of columns (%d). Delete columns to add more.`,
+          "Sorry, you've reached the maximum number of columns (%d). Delete columns to add more.",
           MAX_COL_COUNT
         );
 
@@ -643,7 +640,7 @@ class ColumnEditCollection extends Component<Props, State> {
               size="sm"
               aria-label={t('Add a Column')}
               onClick={this.handleAddColumn}
-              title={title}
+              tooltipProps={{title}}
               disabled={!canAdd}
               icon={<IconAdd />}
             >
@@ -654,7 +651,7 @@ class ColumnEditCollection extends Component<Props, State> {
                 size="sm"
                 aria-label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
-                title={title}
+                tooltipProps={{title}}
                 disabled={!canAdd}
                 icon={<IconAdd />}
               >
@@ -674,7 +671,7 @@ function OnDemandEquationsWarning() {
       <Tooltip
         containerDisplayMode="inline-flex"
         title={t(
-          `This is using indexed data because we don't routinely collect metrics for equations.`
+          "This is using indexed data because we don't routinely collect metrics for equations."
         )}
       >
         <IconWarning variant="warning" />
@@ -683,7 +680,9 @@ function OnDemandEquationsWarning() {
   );
 }
 
-const Actions = styled(ButtonBar)<{showAliasField?: boolean}>`
+const Actions = styled((props: GridProps & {showAliasField?: boolean}) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))<{showAliasField?: boolean}>`
   grid-column: ${p => (p.showAliasField ? '1/-1' : ' 2/3')};
   justify-content: flex-start;
 `;
@@ -693,23 +692,25 @@ const RowContainer = styled('div')<{
   showAliasField?: boolean;
 }>`
   display: grid;
-  grid-template-columns: ${space(3)} 1fr 40px 40px;
+  grid-template-columns: ${p => p.theme.space['2xl']} 1fr 40px 40px;
   justify-content: center;
   align-items: center;
   width: 100%;
   touch-action: none;
-  padding-bottom: ${space(1)};
+  padding-bottom: ${p => p.theme.space.md};
 
   ${p =>
     p.showAliasField &&
     css`
       align-items: flex-start;
-      grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px 40px`};
+      grid-template-columns: ${p.singleColumn
+        ? '1fr'
+        : `${p.theme.space['2xl']} 1fr 40px 40px`};
 
       @media (min-width: ${p.theme.breakpoints.sm}) {
         grid-template-columns: ${p.singleColumn
-          ? `1fr calc(200px + ${space(1)})`
-          : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
+          ? `1fr calc(200px + ${p.theme.space.md})`
+          : `${p.theme.space['2xl']} 1fr calc(200px + ${p.theme.space.md}) 40px 40px`};
       }
     `};
 `;
@@ -724,7 +725,7 @@ const Ghost = styled('div')`
   width: 710px;
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
+  padding-right: ${p => p.theme.space.xl};
 
   & > ${RowContainer} {
     padding-bottom: 0;
@@ -743,7 +744,8 @@ const OnDemandContainer = styled('div')`
 `;
 
 const DragPlaceholder = styled('div')`
-  margin: 0 ${space(3)} ${space(1)} ${space(3)};
+  margin: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space.md}
+    ${p => p.theme.space['2xl']};
   border: 2px dashed ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   height: ${p => p.theme.form.md.height};
@@ -755,7 +757,7 @@ const Heading = styled('div')<{gridColumns: number}>`
   /* Emulate the grid used in the column editor rows */
   display: grid;
   grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
-  grid-column-gap: ${space(1)};
+  grid-column-gap: ${p => p.theme.space.md};
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
@@ -767,10 +769,10 @@ const AliasInput = styled(Input)`
 `;
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: 0;
-    margin-left: ${space(1)};
+    margin-left: ${p => p.theme.space.md};
   }
 
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -780,11 +782,11 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 `;
 
 const RemoveButton = styled(Button)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
   height: ${p => p.theme.form.md.height};
 `;
 
-const DragAndReorderButton = styled(Button)`
+const StyledDragReorderButton = styled(DragReorderButton)`
   height: ${p => p.theme.form.md.height};
 `;
 

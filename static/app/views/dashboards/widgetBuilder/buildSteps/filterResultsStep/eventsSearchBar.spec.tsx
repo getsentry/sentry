@@ -1,11 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {FieldKind} from 'sentry/utils/fields';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 
 import {EventsSearchBar} from './eventsSearchBar';
 
@@ -17,17 +24,24 @@ describe('EventsSearchBar', () => {
     organization = OrganizationFixture();
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/recent-searches/`,
+      url: '/organizations/org-slug/recent-searches/',
       body: [],
       method: 'POST',
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [
+        {key: 'environment', name: 'environment', kind: FieldKind.FIELD},
+        {key: 'transaction', name: 'transaction', kind: FieldKind.FIELD},
+      ],
+    });
   });
 
-  it('does not show function tags in has: dropdown', async () => {
+  it.isKnownFlake('does not show function tags in has: dropdown', async () => {
     render(
       <EventsSearchBar
         onClose={jest.fn()}
@@ -51,14 +65,23 @@ describe('EventsSearchBar', () => {
       }
     );
 
-    // Focus the input and type "has:p" to simulate a search for p50
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-    await userEvent.type(input, 'has:p');
+    await userEvent.click(input, {delay: null});
+    await userEvent.paste('has:p', {delay: null});
 
-    // Check that "p50" (a function tag) is NOT in the dropdown
-    expect(
-      within(screen.getByRole('listbox')).queryByText('p50')
-    ).not.toBeInTheDocument();
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Edit value for filter: has'})
+    );
+
+    // Assert we actually have has: dropdown options before checking exclusions.
+    expect(await screen.findByRole('option', {name: 'environment'})).toBeInTheDocument();
+
+    // p50 is a function and should not be suggested as a has: tag.
+    expect(screen.queryByRole('option', {name: 'p50'})).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 
   it('shows the selected aggregate in the dropdown', async () => {
@@ -86,12 +109,16 @@ describe('EventsSearchBar', () => {
     );
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
-
-    await userEvent.type(input, 'count_uni');
+    await userEvent.click(input);
+    await userEvent.paste('count_uni', {delay: null});
 
     expect(
-      await within(screen.getByRole('listbox')).findByText('count_unique(...)')
+      await within(await screen.findByRole('listbox')).findByText('count_unique(...)')
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 
   it('shows normal tags, e.g. transaction, in the dropdown', async () => {
@@ -120,12 +147,17 @@ describe('EventsSearchBar', () => {
 
     const input = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.clear(input);
-    await userEvent.type(input, 'transact');
+    await userEvent.click(input, {delay: null});
+    await userEvent.paste('transact', {delay: null});
 
     expect(
-      await within(screen.getByRole('listbox')).findByRole('option', {
+      await within(await screen.findByRole('listbox')).findByRole('option', {
         name: 'transaction',
       })
     ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
   });
 });

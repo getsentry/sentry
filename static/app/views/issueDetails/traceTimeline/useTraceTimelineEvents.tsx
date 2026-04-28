@@ -2,10 +2,11 @@ import {useMemo} from 'react';
 
 import {getTraceTimeRangeFromEvent} from 'sentry/components/quickTrace/utils';
 import type {Event} from 'sentry/types/event';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {HIDDEN_OCCURRENCE_TYPE_IDS} from 'sentry/types/group';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
   culprit: string; // Used for default events & subtitles
@@ -82,7 +83,9 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'event.type', // This is useful for typing TimelineEvent
           ],
           per_page: 100,
-          query: `trace:${traceId}`,
+          query: HIDDEN_OCCURRENCE_TYPE_IDS.length
+            ? `trace:${traceId} !occurrence_type_id:[${HIDDEN_OCCURRENCE_TYPE_IDS.join(',')}]`
+            : `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
           sort: '-timestamp',
           start,

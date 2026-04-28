@@ -484,7 +484,7 @@ def cli_import_then_export(
 ) -> None:
     with TemporaryDirectory() as tmp_dir:
         tmp_in_findings = Path(tmp_dir).joinpath(
-            f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+            f"{''.join(choice(ascii_letters) for _ in range(6))}.json"
         )
         rv = CliRunner().invoke(
             import_,
@@ -504,7 +504,7 @@ def cli_import_then_export(
             assert len(findings) == 0
 
         tmp_out_findings = Path(tmp_dir).joinpath(
-            f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+            f"{''.join(choice(ascii_letters) for _ in range(6))}.json"
         )
         tmp_out_path = Path(tmp_dir).joinpath("good.json")
         rv = CliRunner().invoke(
@@ -566,7 +566,7 @@ class GoodImportExportCommandTests(TransactionTestCase):
 
         with TemporaryDirectory() as tmp_dir:
             tmp_findings_file_path = Path(tmp_dir).joinpath(
-                f"{''.join(choice(ascii_letters)for _ in range(6))}.txt"
+                f"{''.join(choice(ascii_letters) for _ in range(6))}.txt"
             )
             with open(tmp_findings_file_path, "w") as f:
                 f.write(
@@ -741,7 +741,7 @@ class GoodGlobalImportConfirmDialogTests(TransactionTestCase):
     ) -> str:
         with TemporaryDirectory() as tmp_dir:
             tmp_in_findings = Path(tmp_dir).joinpath(
-                f"{''.join(choice(ascii_letters)for _ in range(6))}.json"
+                f"{''.join(choice(ascii_letters) for _ in range(6))}.json"
             )
             rv = CliRunner().invoke(
                 import_,
@@ -809,7 +809,7 @@ class BadImportExportCommandTests(TestCase):
                 export, ["global", NONEXISTENT_FILE_PATH, "--no-prompt"], catch_exceptions=False
             )
         (msg,) = excinfo.value.args
-        assert msg == "Exports must be run in REGION or MONOLITH instances only"
+        assert msg == "Exports must be run in CELL or MONOLITH instances only"
 
     def test_export_invalid_public_key(self) -> None:
         with TemporaryDirectory() as tmp_dir:
@@ -870,7 +870,7 @@ class BadImportExportCommandTests(TestCase):
                 import_, ["global", GOOD_FILE_PATH, "--no-prompt"], catch_exceptions=False
             )
         (msg,) = excinfo.value.args
-        assert msg == "Imports must be run in REGION or MONOLITH instances only"
+        assert msg == "Imports must be run in CELL or MONOLITH instances only"
 
     def test_import_invalid_public_key(self) -> None:
         with TemporaryDirectory() as tmp_dir:
@@ -891,8 +891,8 @@ class BadImportExportCommandTests(TestCase):
                     ],
                     catch_exceptions=False,
                 )
-            (msg, _) = excinfo.value.args
-            assert msg.startswith("Could not deserialize")
+            (msg,) = excinfo.value.args
+            assert msg.startswith("Unable to load PEM file")
 
     def test_import_unreadable_gcp_kms_config(self) -> None:
         with TemporaryDirectory() as tmp_dir:

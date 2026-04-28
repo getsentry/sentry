@@ -2,17 +2,18 @@ import * as Sentry from '@sentry/react';
 import invariant from 'invariant';
 
 import {defined} from 'sentry/utils';
-import toArray from 'sentry/utils/array/toArray';
-import isValidDate from 'sentry/utils/date/isValidDate';
+import {toArray} from 'sentry/utils/array/toArray';
+import {parseEventTimestampMs} from 'sentry/utils/date/eventTimestampMs';
+import {isValidDate} from 'sentry/utils/date/isValidDate';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
   RawReplayError,
 } from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
-export default function hydrateErrors(
+export function hydrateErrors(
   replayRecord: HydratedReplayRecord,
   errors: RawReplayError[],
   feedbackEvents?: FeedbackEvent[]
@@ -26,7 +27,7 @@ export default function hydrateErrors(
     try {
       // Feedback frame
       if (e.title.includes('User Feedback')) {
-        const time = new Date(e.timestamp);
+        const time = parseEventTimestampMs(e.timestamp_ms);
         invariant(isValidDate(time), 'feedbackFrame.timestamp is invalid');
 
         feedbackFrames.push({
@@ -53,7 +54,7 @@ export default function hydrateErrors(
         return;
       }
       // Error frame
-      const time = new Date(e.timestamp);
+      const time = parseEventTimestampMs(e.timestamp_ms);
       invariant(isValidDate(time), 'errorFrame.timestamp is invalid');
 
       errorFrames.push({

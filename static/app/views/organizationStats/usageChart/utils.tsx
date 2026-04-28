@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
+import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -97,13 +97,13 @@ const MAX_NUMBER_OF_LABELS = 10;
 export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[]) {
   if (dataPeriod <= 24) {
     return {
-      xAxisLabelVisibility: new Array(intervals.length).fill(false),
+      xAxisLabelVisibility: Array.from<boolean>({length: intervals.length}).fill(false),
     };
   }
 
-  const uniqueLabels: Set<string> = new Set();
-  const labelToPositionMap: Map<string, number> = new Map();
-  const labelVisibility: boolean[] = new Array(intervals.length).fill(false);
+  const uniqueLabels = new Set<string>();
+  const labelToPositionMap = new Map<string, number>();
+  const labelVisibility = Array.from<boolean>({length: intervals.length}).fill(false);
 
   // Collect unique labels and their positions
   intervals.forEach((label, index) => {

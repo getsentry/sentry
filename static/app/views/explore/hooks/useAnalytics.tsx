@@ -2,6 +2,7 @@ import {useEffect, useEffectEvent, useMemo, useRef, type RefObject} from 'react'
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -9,8 +10,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useChartSelection} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
@@ -39,7 +39,11 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualizeEquation,
+  isVisualizeFunction,
+  Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {
   combineConfidenceForSeries,
@@ -98,15 +102,14 @@ function useTrackAnalytics({
     queryType === 'aggregate'
       ? (aggregatesTableResult.result.error?.message ?? '')
       : queryType === 'traces'
-        ? (tracesTableResult?.result.error?.message ?? '')
+        ? (tracesTableResult?.error?.message ?? '')
         : (spansTableResult.result.error?.message ?? '');
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
 
-  const {setupAcknowledgement: seerSetup, isLoading: isLoadingSeerSetup} =
-    useOrganizationSeerSetup({
-      enabled: !organization.hideAiFeatures,
-    });
+  const {isLoading: isLoadingSeerSetup} = useOrganizationSeerSetup({
+    enabled: !organization.hideAiFeatures,
+  });
 
   useEffect(() => {
     if (
@@ -123,9 +126,7 @@ function useTrackAnalytics({
     const columns = aggregatesTableResult.eventView.getColumns() as unknown as string[];
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const dataScanned = aggregatesTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
@@ -201,7 +202,6 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -222,9 +222,7 @@ function useTrackAnalytics({
     const search = new MutableSearch(query);
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const dataScanned = spansTableResult.result.meta?.dataScanned ?? '';
     const yAxes = visualizes.map(visualize => visualize.yAxis);
@@ -295,7 +293,6 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
     spansTableResult.result.meta?.dataScanned,
@@ -318,9 +315,7 @@ function useTrackAnalytics({
     const search = new MutableSearch(query);
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
 
@@ -389,7 +384,6 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -420,13 +414,11 @@ function useTrackAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.json?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup?.orgHasAcknowledged
-        ? 'given'
-        : 'not_given';
+      : 'given';
 
     const yAxes = visualizes.map(visualize => visualize.yAxis);
 
@@ -438,7 +430,7 @@ function useTrackAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      result_length: tracesTableResult.result.data?.data?.length || 0,
+      result_length: tracesTableResult.result.data?.json?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -472,12 +464,11 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
-    tracesTableResult?.result.data?.data,
-    tracesTableResult?.result.isPending,
+    tracesTableResult?.result.data?.json?.data,
+    tracesTableResult?.result?.isPending,
     tracesTableResultDefined,
     visualizes,
   ]);
@@ -865,7 +856,13 @@ export function useMetricsPanelAnalytics({
   const query = useQueryParamsQuery();
   const groupBys = useQueryParamsGroupBys();
   const visualize = useMetricVisualize();
-  const aggregateFunctionBox = useBox(visualize.parsedFunction?.name ?? '');
+  const aggregateFunctionBox = useBox(
+    isVisualizeFunction(visualize)
+      ? (visualize.parsedFunction?.name ?? '')
+      : isVisualizeEquation(visualize)
+        ? visualize.expression.text
+        : ''
+  );
 
   const tableError =
     mode === Mode.AGGREGATE

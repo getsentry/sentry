@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import get_date_range_from_params
@@ -24,7 +24,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSamplingProjectSpanCountsEndpoint(OrganizationEndpoint):
     """Endpoint for retrieving project span counts in all orgs."""
 

@@ -19,7 +19,6 @@ from sentry.preprod.tasks import create_preprod_artifact
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import AssembleTask, ChunkFileState, set_assemble_status
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.features import Feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -316,19 +315,18 @@ class ValidateVcsParametersTest(TestCase):
         assert "Missing parameters" in error
         assert "provider" in error
 
-    def test_missing_head_ref(self) -> None:
-        """Test that validation fails when head_ref is missing."""
+    def test_head_ref_optional(self) -> None:
+        """Test that head_ref is optional when other VCS params are provided."""
         data = {
             "checksum": "a" * 40,
             "chunks": [],
             "head_sha": "e" * 40,
             "head_repo_name": "owner/repo",
             "provider": "github",
+            # head_ref is intentionally omitted
         }
         error = validate_vcs_parameters(data)
-        assert error is not None
-        assert "Missing parameters" in error
-        assert "head_ref" in error
+        assert error is None
 
     def test_missing_multiple_params(self) -> None:
         """Test that validation fails and reports all missing params."""
@@ -338,7 +336,6 @@ class ValidateVcsParametersTest(TestCase):
         assert "Missing parameters" in error
         assert "head_repo_name" in error
         assert "provider" in error
-        assert "head_ref" in error
 
 
 class ProjectPreprodArtifactAssembleTest(APITestCase):
@@ -354,34 +351,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             "sentry-api-0-assemble-preprod-artifact-files",
             args=[self.organization.slug, self.project.slug],
         )
-
-        self.feature_context = Feature("organizations:preprod-frontend-routes")
-        self.feature_context.__enter__()
-
-    def tearDown(self) -> None:
-        self.feature_context.__exit__(None, None, None)
-        super().tearDown()
-
-    def test_feature_flag_disabled_returns_403(self) -> None:
-        """Test that endpoint returns 404 when feature flag is disabled."""
-        self.feature_context.__exit__(None, None, None)
-
-        try:
-            content = b"test content"
-            total_checksum = sha1(content).hexdigest()
-
-            response = self.client.post(
-                self.url,
-                data={
-                    "checksum": total_checksum,
-                    "chunks": [],
-                },
-                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-            )
-            assert response.status_code == 403
-        finally:
-            self.feature_context = Feature("organizations:preprod-frontend-routes")
-            self.feature_context.__enter__()
 
     def test_assemble_json_schema_integration(self) -> None:
         """Integration test for schema validation through the endpoint."""
@@ -551,7 +520,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.slug}"
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -626,7 +595,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}?project={self.project.slug}"
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -655,6 +624,67 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "artifact_id": artifact_id,
                 "build_configuration": "release",
             }
+        )
+
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.assemble_preprod_artifact"
+    )
+    @patch(
+        "sentry.preprod.api.endpoints.organization_preprod_artifact_assemble.create_preprod_artifact"
+    )
+    def test_assemble_with_vcs_params_without_head_ref(
+        self, mock_create_preprod_artifact: MagicMock, mock_assemble_preprod_artifact: MagicMock
+    ) -> None:
+        """Test that artifacts can be created with VCS params but without head_ref."""
+        content = b"test preprod artifact without head_ref"
+        total_checksum = sha1(content).hexdigest()
+        artifact = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+        )
+        assert artifact is not None
+        artifact_id = artifact.id
+
+        mock_create_preprod_artifact.return_value = artifact
+
+        blob = FileBlob.from_file(ContentFile(content))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
+
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob.checksum],
+                "head_sha": "e" * 40,
+                "base_sha": "f" * 40,
+                "provider": "github",
+                "head_repo_name": "owner/repo",
+                # head_ref is intentionally omitted
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
+        assert set(response.data["missingChunks"]) == set()
+        expected_url = f"/organizations/{self.organization.slug}/preprod/size/{artifact_id}"
+        assert expected_url in response.data["artifactUrl"]
+
+        mock_create_preprod_artifact.assert_called_once_with(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration_name=None,
+            release_notes=None,
+            install_groups=None,
+            head_sha="e" * 40,
+            base_sha="f" * 40,
+            provider="github",
+            head_repo_name="owner/repo",
+            base_repo_name=None,
+            head_ref=None,
+            base_ref=None,
+            pr_number=None,
         )
 
     def test_assemble_with_missing_chunks(self) -> None:
@@ -941,22 +971,21 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         blob = FileBlob.from_file(ContentFile(content))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob)
 
-        # Test missing head_ref
+        # Test missing provider
         response = self.client.post(
             self.url,
             data={
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
                 "head_sha": "e" * 40,
-                "provider": "github",
                 "head_repo_name": "owner/repo",
-                # Missing head_ref
+                # Missing provider
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 400, response.content
         assert "error" in response.data
-        assert "Missing parameters: head_ref" in response.data["error"]
+        assert "Missing parameters: provider" in response.data["error"]
 
         # Test missing multiple parameters
         response = self.client.post(
@@ -965,7 +994,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
                 "checksum": total_checksum,
                 "chunks": [blob.checksum],
                 "head_sha": "e" * 40,
-                # Missing provider, head_repo_name, head_ref
+                # Missing provider, head_repo_name
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
@@ -974,7 +1003,6 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert "Missing parameters:" in response.data["error"]
         assert "head_repo_name" in response.data["error"]
         assert "provider" in response.data["error"]
-        assert "head_ref" in response.data["error"]
 
     def test_assemble_same_head_and_base_sha(self) -> None:
         """Test that providing the same value for head_sha and base_sha returns a 400 error."""

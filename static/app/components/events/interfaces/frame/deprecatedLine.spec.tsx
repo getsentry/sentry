@@ -1,5 +1,4 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -166,7 +165,6 @@ describe('Frame - Line', () => {
 
   describe('ANR suspect frame', () => {
     it('should render suspect frame', () => {
-      const org = {...OrganizationFixture(), features: ['anr-analyze-frames']};
       const eventWithThreads = EventFixture({
         entries: [
           {
@@ -214,8 +212,7 @@ describe('Frame - Line', () => {
           threadId={13920}
           isANR
           isExpanded
-        />,
-        {organization: org}
+        />
       );
       expect(screen.getByText('Suspect Frame')).toBeInTheDocument();
     });

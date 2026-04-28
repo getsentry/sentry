@@ -57,7 +57,7 @@ export function markRowAsHovered(
   }
 ) {
   for (const row of renderedItems) {
-    if (row.ref && row.ref.dataset.hovered === 'true') {
+    if (row.ref?.dataset.hovered === 'true') {
       delete row.ref.dataset.hovered;
     }
   }

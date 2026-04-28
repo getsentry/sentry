@@ -1,5 +1,5 @@
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, is_monitor_muted
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -156,12 +156,12 @@ class BaseDeleteMonitorTest(MonitorTestCase):
 
         monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.PENDING_DELETION
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor_environment.id, model_name="MonitorEnvironment"
         ).exists()
 
         monitor_environment_2 = MonitorEnvironment.objects.get(id=monitor_environment_2.id)
         assert monitor_environment_2.status == MonitorStatus.ACTIVE
-        assert not RegionScheduledDeletion.objects.filter(
+        assert not CellScheduledDeletion.objects.filter(
             object_id=monitor_environment_2.id, model_name="MonitorEnvironment"
         ).exists()

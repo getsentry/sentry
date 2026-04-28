@@ -1,13 +1,14 @@
 from datetime import timedelta
 from time import time
 
+from taskbroker_client.retry import Retry
+
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_control_tasks
-from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(

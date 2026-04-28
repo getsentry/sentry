@@ -2,14 +2,14 @@ import {Activity, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import GroupingComponentChildren from './groupingComponentChildren';
-import GroupingComponentStacktrace from './groupingComponentStacktrace';
+import {GroupingComponentChildren} from './groupingComponentChildren';
+import {GroupingComponentStacktrace} from './groupingComponentStacktrace';
 import {shouldInlineComponentValue} from './utils';
 
 type Props = {
@@ -17,7 +17,7 @@ type Props = {
   showNonContributing: boolean;
 };
 
-function GroupingComponent({component, showNonContributing}: Props) {
+export function GroupingComponent({component, showNonContributing}: Props) {
   const shouldInlineValue = shouldInlineComponentValue(component);
   const GroupingComponentListItems =
     component.id === 'stacktrace'
@@ -59,11 +59,9 @@ function GroupingComponent({component, showNonContributing}: Props) {
   );
 }
 
-const CHEVRON_COL = space(1.5);
-
 const CollapseButtonWrapper = styled('div')`
   display: grid;
-  grid-template-columns: ${CHEVRON_COL} minmax(auto, max-content);
+  grid-template-columns: ${p => p.theme.space.lg} minmax(auto, max-content);
   align-items: baseline;
 `;
 
@@ -109,5 +107,3 @@ const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}
       border-left: 1px solid ${p.theme.tokens.border.secondary};
     `}
 `;
-
-export default GroupingComponent;

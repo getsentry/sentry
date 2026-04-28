@@ -1,15 +1,16 @@
+import {queryOptions, useQuery} from '@tanstack/react-query';
+
 import type {GroupOpenPeriod} from 'sentry/types/group';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {QueryParamValue} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type CommonParams = {
-  cursor?: string;
+  cursor?: QueryParamValue;
   end?: string | null;
+  eventId?: string;
   limit?: number;
   start?: string | null;
   statsPeriod?: string | null;
@@ -23,32 +24,48 @@ type UseOpenPeriodsParams =
       groupId: string;
     } & CommonParams);
 
-function makeOpenPeriodsQueryKey({
-  orgSlug,
+export function openPeriodsApiOptions({
+  organization,
+  limit,
   ...params
-}: UseOpenPeriodsParams & {orgSlug: string}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/open-periods/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-    {
-      query: params,
-    },
-  ];
+}: UseOpenPeriodsParams & {organization: Organization}) {
+  return queryOptions({
+    ...apiOptions.as<GroupOpenPeriod[]>()(
+      '/organizations/$organizationIdOrSlug/open-periods/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          ...params,
+          per_page: limit,
+        },
+        staleTime: 0,
+      }
+    ),
+    retry: false,
+  });
 }
 
 export function useOpenPeriods(
   params: UseOpenPeriodsParams,
-  options: Partial<UseApiQueryOptions<GroupOpenPeriod[]>> = {}
+  options: {enabled?: boolean} = {}
 ) {
   const organization = useOrganization();
 
-  return useApiQuery<GroupOpenPeriod[]>(
-    makeOpenPeriodsQueryKey({orgSlug: organization.slug, ...params}),
-    {
-      staleTime: 0,
-      retry: false,
-      ...options,
-    }
-  );
+  return useQuery({
+    ...openPeriodsApiOptions({organization, ...params}),
+    ...options,
+  });
+}
+
+export function useEventOpenPeriod(params: {
+  eventId: string | undefined;
+  groupId: string;
+}) {
+  const organization = useOrganization();
+
+  return useQuery({
+    ...openPeriodsApiOptions({organization, limit: 1, ...params}),
+    enabled: defined(params.eventId) && defined(params.groupId),
+    select: ({json}) => json[0] ?? null,
+  });
 }

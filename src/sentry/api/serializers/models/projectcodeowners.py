@@ -73,6 +73,9 @@ class ProjectCodeOwnersSerializer(Serializer):
             for rule in schema["rules"]:
                 for rule_owner in rule["owners"]:
                     rule_owner["name"] = rule_owner.pop("identifier")
+                    # Stringify owner IDs for API response (stored as int in DB)
+                    if "id" in rule_owner:
+                        rule_owner["id"] = str(rule_owner["id"])
 
     def serialize(self, obj, attrs, user, **kwargs):
         from sentry.api.validators.project_codeowners import build_codeowners_associations
@@ -103,6 +106,11 @@ class ProjectCodeOwnersSerializer(Serializer):
             self.rename_schema_identifier_for_parsing(obj.schema)
 
         if "hasTargetingContext" in self.expand:
+            if obj.schema and obj.schema.get("rules"):
+                for rule in obj.schema["rules"]:
+                    for rule_owner in rule["owners"]:
+                        if "id" in rule_owner:
+                            rule_owner["id"] = str(rule_owner["id"])
             data["schema"] = obj.schema
             data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
 

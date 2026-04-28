@@ -48,7 +48,7 @@ def impl_by_outbox() -> OrgAuthTokenService:
 # updates of tokens for future processing.
 orgauthtoken_service: OrgAuthTokenService = silo_mode_delegation(
     {
-        SiloMode.REGION: impl_by_outbox,
+        SiloMode.CELL: impl_by_outbox,
         SiloMode.CONTROL: impl_by_db,
         SiloMode.MONOLITH: impl_by_db,
     }

@@ -15,7 +15,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -170,7 +170,7 @@ class GroupHistoryManager(BaseManager["GroupHistory"]):
         )
 
 
-@region_silo_model
+@cell_silo_model
 class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,

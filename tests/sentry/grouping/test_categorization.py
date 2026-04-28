@@ -147,9 +147,9 @@ def test_categorization(
 
 
 @pytest.fixture(scope="session", autouse=True)
-def track_enhancers_coverage() -> (
-    Generator[Callable[[CategorizationInput], _GeneratorContextManager[None]]]
-):
+def track_enhancers_coverage() -> Generator[
+    Callable[[CategorizationInput], _GeneratorContextManager[None]]
+]:
     ran_tests = {}
 
     @contextmanager

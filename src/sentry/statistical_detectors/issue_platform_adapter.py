@@ -45,7 +45,7 @@ def send_regression_to_platform(regression: BreakpointData):
         evidence_display=[
             IssueEvidence(
                 name="Regression",
-                value=f'{regression["transaction"]} duration increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)',
+                value=f"{regression['transaction']} duration increased from {displayed_old_baseline}ms to {displayed_new_baseline}ms (P95)",
                 important=True,
             ),
             IssueEvidence(

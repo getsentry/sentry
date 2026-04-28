@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {t} from 'sentry/locale';
 
-export default function DynamicAlertsFeedbackButton() {
+export function DynamicAlertsFeedbackButton() {
   const {feedback} = useFeedbackSDKIntegration();
 
   if (!feedback) {

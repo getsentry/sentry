@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from rest_framework.test import APIRequestFactory
 
+from sentry.integrations.github.client import GitHubApiRequestType
 from sentry.models.repository import Repository
 from sentry.preprod.api.endpoints.pull_request.organization_pullrequest_comments import (
     OrganizationPrCommentsEndpoint,
@@ -12,7 +13,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 class OrganizationPrCommentsEndpointTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.factory = APIRequestFactory()
 
@@ -258,7 +259,7 @@ class OrganizationPrCommentsEndpointTest(TestCase):
     def test_successful_pr_comments_fetch(self, mock_get):
         """Test successful fetch of both general and review comments."""
 
-        def mock_get_side_effect(url):
+        def mock_get_side_effect(url, **kwargs):
             if "issues" in url:
                 return self.mock_general_comments
             elif "pulls" in url:
@@ -272,8 +273,14 @@ class OrganizationPrCommentsEndpointTest(TestCase):
 
         # Verify both API calls were made
         assert mock_get.call_count == 2
-        mock_get.assert_any_call("/repos/getsentry/sentry/issues/100/comments")
-        mock_get.assert_any_call("/repos/getsentry/sentry/pulls/100/comments")
+        mock_get.assert_any_call(
+            "/repos/getsentry/sentry/issues/100/comments",
+            api_request_type=GitHubApiRequestType.GET_ISSUE_COMMENTS,
+        )
+        mock_get.assert_any_call(
+            "/repos/getsentry/sentry/pulls/100/comments",
+            api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_COMMENTS,
+        )
 
         # Verify response structure
         assert "general_comments" in response.data
@@ -303,7 +310,7 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert helper_comments[0]["body"] == "This could be simplified"
 
     @with_feature("organizations:pr-page")
-    def test_no_github_client(self):
+    def test_no_github_client(self) -> None:
         """Test when no GitHub client is available (no integration set up)."""
         Repository.objects.create(
             organization_id=self.organization.id,
@@ -332,7 +339,7 @@ class OrganizationPrCommentsEndpointTest(TestCase):
         assert "Failed to fetch pull request comments from GitHub" in response.data["message"]
 
     @with_feature("organizations:pr-page")
-    def test_repository_not_found(self):
+    def test_repository_not_found(self) -> None:
         """Test when repository doesn't exist in the database."""
         response = self._make_request(repo_name="does-not/exist")
 

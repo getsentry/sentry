@@ -4,7 +4,7 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import KeyValueList from './interfaces/keyValueList';
+import {KeyValueList} from './interfaces/keyValueList';
 import {AnnotatedText} from './meta/annotatedText';
 
 type Props = {

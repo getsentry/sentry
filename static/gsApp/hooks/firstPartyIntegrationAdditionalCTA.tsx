@@ -2,13 +2,13 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {Integration} from 'sentry/types/integrations';
 
-import UpsellButton from 'getsentry/components/upsellButton';
+import {UpsellButton} from 'getsentry/components/upsellButton';
 
 type Props = {
   integrations: Integration[];
 };
 
-function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
+export function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
   // only render this upsell CTA when we have disabled integrations or one on grace perioid
   const disabledOrGracePeriodIntegrations = integrations.filter(
     i => i.organizationIntegrationStatus === 'disabled' || !!i.gracePeriodEnd
@@ -36,4 +36,3 @@ function FirstPartyIntegrationAdditionalCTA({integrations}: Props) {
     </Flex>
   );
 }
-export default FirstPartyIntegrationAdditionalCTA;

@@ -12,7 +12,7 @@ interface Props<Col extends GridColumnOrder<unknown>> {
   paramName?: string;
 }
 
-export default function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>({
+export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>({
   columns,
   paramName = 'width',
 }: Props<Col>) {

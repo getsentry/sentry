@@ -1,16 +1,16 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import NoEvents from './noEvents';
+import {NoEvents} from './noEvents';
 
 type BaseChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -129,7 +129,7 @@ export function ProjectChart({
     tooltip: {
       trigger: 'axis' as const,
     },
-    xAxes: Array.from(new Array(series.length)).map((_i, index) => ({
+    xAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
       axisLine: {
         show: false,
@@ -150,7 +150,7 @@ export function ProjectChart({
         },
       },
     })),
-    yAxes: Array.from(new Array(series.length)).map((_i, index) => ({
+    yAxes: Array.from(Array.from({length: series.length})).map((_i, index) => ({
       gridIndex: index,
       interval: Infinity,
       max(value: {max: number}) {

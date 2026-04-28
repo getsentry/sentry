@@ -1,6 +1,6 @@
 import memoize from 'lodash/memoize';
 
-const getModalPortal = memoize(() => {
+export const getModalPortal = memoize(() => {
   let portal = document.getElementById('modal-portal') as HTMLDivElement;
   if (!portal) {
     portal = document.createElement('div');
@@ -10,5 +10,3 @@ const getModalPortal = memoize(() => {
 
   return portal;
 });
-
-export default getModalPortal;

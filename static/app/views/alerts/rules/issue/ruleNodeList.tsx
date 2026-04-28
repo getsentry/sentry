@@ -2,18 +2,16 @@ import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Select} from 'sentry/components/core/select';
+import {Select} from '@sentry/scraps/select';
+
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
-  IssueAlertGenericConditionConfig,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   IssueAlertRuleCondition,
-  IssueAlertRuleConditionTemplate,
 } from 'sentry/types/alerts';
-import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
+import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
@@ -24,7 +22,7 @@ import {
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
 
-import RuleNode from './ruleNode';
+import {isSchemaFormConfig, RuleNode} from './ruleNode';
 
 type Props = {
   disabled: boolean;
@@ -37,9 +35,7 @@ type Props = {
    * All available actions or conditions
    */
   nodes: IssueAlertConfiguration[keyof IssueAlertConfiguration] | null;
-  onAddRow: (
-    value: IssueAlertRuleActionTemplate | IssueAlertRuleConditionTemplate
-  ) => void;
+  onAddRow: (value: IssueAlertRuleActionTemplate) => void;
   onDeleteRow: (ruleIndex: number) => void;
   onPropertyChange: (ruleIndex: number, prop: string, val: string) => void;
   onResetRow: (ruleIndex: number, name: string, value: string) => void;
@@ -77,14 +73,6 @@ const createSelectOptions = (
       };
     }
 
-    if (node.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-      const label = t('The issue changes state from archived to escalating');
-      return {
-        value: node,
-        label,
-      };
-    }
-
     return {
       value: node,
       label: node.prompt ?? node.label,
@@ -105,10 +93,7 @@ const groupLabels = {
  */
 const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
   const grouped = actions.reduce<
-    Record<
-      keyof typeof groupLabels,
-      IssueAlertRuleActionTemplate[] | IssueAlertRuleConditionTemplate[]
-    >
+    Record<keyof typeof groupLabels, IssueAlertRuleActionTemplate[]>
   >(
     (acc, curr) => {
       if (curr.actionType === 'ticket') {
@@ -149,7 +134,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     });
 };
 
-class RuleNodeList extends Component<Props> {
+export class RuleNodeList extends Component<Props> {
   componentWillUnmount() {
     window.clearTimeout(this.propertyChangeTimeout);
   }
@@ -159,7 +144,7 @@ class RuleNodeList extends Component<Props> {
   getNode = (
     template: IssueAlertRuleAction | IssueAlertRuleCondition,
     itemIdx: number
-  ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
+  ): IssueAlertRuleActionTemplate | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
     const node = nodes?.find((n: any) => {
       if ('sentryAppInstallationUuid' in n) {
@@ -186,11 +171,14 @@ class RuleNodeList extends Component<Props> {
 
     const item = items[itemIdx]!;
 
-    let changeAlertNode: IssueAlertGenericConditionConfig = {
-      ...(node as IssueAlertGenericConditionConfig),
+    const nodeFormFields =
+      node.formFields && !isSchemaFormConfig(node.formFields) ? node.formFields : {};
+
+    let changeAlertNode: IssueAlertRuleActionTemplate = {
+      ...node,
       label: node.label.replace('...', ' {comparisonType}'),
       formFields: {
-        ...(node.formFields as IssueAlertGenericConditionConfig['formFields']),
+        ...nodeFormFields,
         comparisonType: {
           type: 'choice',
           choices: COMPARISON_TYPE_CHOICES,
@@ -322,16 +310,14 @@ class RuleNodeList extends Component<Props> {
   }
 }
 
-export default RuleNodeList;
-
 const StyledSelectControl = styled(Select)`
   width: 100%;
 `;
 
 const RuleNodes = styled('div')`
   display: grid;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
+  gap: ${p => p.theme.space.md};
 
   @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-auto-flow: row;

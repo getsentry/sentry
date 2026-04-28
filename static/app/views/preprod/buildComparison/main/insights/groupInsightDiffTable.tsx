@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 
-import {Tag} from '@sentry/scraps/badge/tag';
+import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -215,7 +215,7 @@ export function GroupInsightItemDiffTable({
                         <Flex align="start" gap="xs">
                           <Text monospace>{groupDiffItem.path}</Text>
                           <CopyToClipboardButton
-                            borderless
+                            priority="transparent"
                             size="zero"
                             text={groupDiffItem.path}
                             style={{flexShrink: 0}}
@@ -250,11 +250,9 @@ export function GroupInsightItemDiffTable({
                       </Tag>
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell justify="start" style={{minWidth: 0}}>
-                      <Text variant="muted">{diffItem.path ?? ''}</Text>
+                      <Text variant="muted">└ {diffItem.path ?? ''}</Text>
                     </SimpleTable.RowCell>
-                    <DiffTableChangeAmountCell changeType={diffItem.type}>
-                      {formattedSizeDiff(diffItem.size_diff)}
-                    </DiffTableChangeAmountCell>
+                    <SimpleTable.RowCell>{null}</SimpleTable.RowCell>
                   </SimpleTable.Row>
                 );
               })}
@@ -267,7 +265,7 @@ export function GroupInsightItemDiffTable({
           <Text size="sm" variant="muted">
             {t('Page %s of %s', safeCurrentPage + 1, totalPages)}
           </Text>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               size="xs"
               icon={<IconChevron direction="left" />}

@@ -1,14 +1,13 @@
 import {Alert} from '@sentry/scraps/alert';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
-import {Heading} from '@sentry/scraps/text/heading';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {CodeBlockWrapper} from 'sentry/views/preprod/buildDetails/main/insights/insightInfoModal';
 
-const STRIP_SINGLE_BINARY = `strip -rSTx AppBinary -o AppBinaryStripped`;
+const STRIP_SINGLE_BINARY = 'strip -rSTx AppBinary -o AppBinaryStripped';
 
 const STRIP_BUILD_SCRIPT = `#!/bin/bash
 set -e

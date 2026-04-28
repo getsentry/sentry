@@ -18,10 +18,10 @@ from sentry.organizations.services.organization import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import all_silo_test, create_test_regions
+from sentry.testutils.silo import all_silo_test, create_test_cells
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 class ShouldAllowSuperuserAccessTest(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
@@ -65,7 +65,7 @@ class ShouldAllowSuperuserAccessTest(TestCase):
                 assert should_allow_superuser_access(self.rpc_context) is False
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 class ShouldAllowSuperuserAccessV2Test(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
@@ -126,7 +126,7 @@ class ShouldAllowSuperuserAccessV2Test(TestCase):
                 mock_grant_exists.assert_called_with(self.organization.id)
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 @freeze_time("2025-01-01 12:00:00")
 class DataAccessGrantExistsTest(TestCase):
     def setUp(self) -> None:
@@ -273,7 +273,7 @@ class DataAccessGrantExistsTest(TestCase):
         assert grant_status.cache_status == GrantCacheStatus.NEGATIVE_CACHE
 
 
-@all_silo_test(regions=create_test_regions("us"))
+@all_silo_test(cells=create_test_cells("us"))
 @freeze_time("2025-01-01 12:00:00")
 class DataSecrecyE2ETest(TestCase):
     def setUp(self) -> None:

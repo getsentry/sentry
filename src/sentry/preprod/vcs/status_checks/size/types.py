@@ -1,6 +1,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
+
+
+class RuleArtifactType(StrEnum):
+    MAIN_ARTIFACT = "main_artifact"
+    WATCH_ARTIFACT = "watch_artifact"
+    ANDROID_DYNAMIC_FEATURE_ARTIFACT = "android_dynamic_feature_artifact"
+    APP_CLIP_ARTIFACT = "app_clip_artifact"
+    ALL_ARTIFACTS = "all_artifacts"
+
+    @classmethod
+    def from_raw(cls, raw: object) -> RuleArtifactType | None:
+        if isinstance(raw, cls):
+            return raw
+        if isinstance(raw, str):
+            try:
+                return cls(raw)
+            except ValueError:
+                return None
+        return None
 
 
 @dataclass
@@ -46,6 +66,10 @@ class StatusCheckRule:
     measurement: str
     value: float
     filter_query: str = ""
+    artifact_type: RuleArtifactType | None = None
+
+    def __post_init__(self) -> None:
+        self.artifact_type = RuleArtifactType.from_raw(self.artifact_type)
 
 
 @dataclass
@@ -60,3 +84,6 @@ class TriggeredRule:
     artifact_id: int
     app_id: str | None
     platform: str | None
+    metrics_artifact_type: int | None = None
+    identifier: str | None = None
+    build_configuration_name: str | None = None

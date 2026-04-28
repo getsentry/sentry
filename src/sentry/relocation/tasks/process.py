@@ -20,6 +20,8 @@ from django.utils import timezone
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
 from sentry_sdk import capture_exception
+from taskbroker_client.retry import LastAction, Retry
+from taskbroker_client.task import Task
 
 from sentry import analytics
 from sentry.analytics.events.relocation_organization_imported import (
@@ -78,9 +80,7 @@ from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import relocation_tasks
-from sentry.taskworker.retry import LastAction, Retry
-from sentry.taskworker.task import Task
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_cell
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
@@ -121,7 +121,7 @@ RELOCATION_FILES_TO_BE_VALIDATED = [
 # Various error strings that we want to surface to users, grouped by step.
 ERR_UPLOADING_FAILED = "Internal error during file upload."
 ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG = "SAAS->SAAS relocations must specify an org slug."
-ERR_UPLOADING_CROSS_REGION_TIMEOUT = Template(
+ERR_UPLOADING_CROSS_CELL_TIMEOUT = Template(
     "Cross-region relocation export request timed out after $delta."
 )
 
@@ -164,16 +164,16 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
 )
-def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str | None) -> None:
+def uploading_start(uuid: str, replying_cell_name: str | None, org_slug: str | None) -> None:
     """
     The very first action in the relocation pipeline. In the case of a `SAAS_TO_SAAS` relocation, it
-    will trigger the export of the requested organization from the region it currently live in. If
+    will trigger the export of the requested organization from the cell it currently lives in. If
     this is a `SELF_HOSTED` relocation, this task is a no-op that merely auto-triggers the next step
     in the chain, `upload_complete`.
 
     In the case of a `SAAS_TO_SAAS` relocation, we'll need to export an organization from the
-    exporting region (ER) back to the requesting region (RR - where this method is running). Because
-    region-to-region messaging is forbidden, all of this messaging will need to be proxied via the
+    exporting cell (EC) back to the requesting cell (RC - where this method is running). Because
+    cell-to-cell messaging is forbidden, all of this messaging will need to be proxied via the
     control silo (CS). Thus, to accomplish this export-and-copy operation, we'll need to use
     sequenced RPC calls to fault-tolerantly execute code in these three siloed locations.
 
@@ -184,7 +184,7 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
 
 
         | Requesting |            |   Control  |            | Exporting  |
-        |    (RR)    |            |    (CS)    |            |    (ER)    |
+        |    (RC)    |            |    (CS)    |            |    (EC)    |
         |============|            |============|            |============|
         |            |            |            |            |            |
         |     01     |            |            |            |            |
@@ -203,46 +203,46 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
         |            |            |            |            |            |
 
 
-    01. (RR) ./tasks/process.py::uploading_start: This first function grabs this (aka the
-        "requesting" region) region's public key, then sends an RPC call to the control silo,
-        requesting an export of some `org_slug` from the `replying_region_name` in which is lives.
+    01. (RC) ./tasks/process.py::uploading_start: This first function grabs this (aka the
+        "requesting" cell) cell's public key, then sends an RPC call to the control silo,
+        requesting an export of some `org_slug` from the `replying_cell_name` in which is lives.
     02. The `ProxyingRelocationExportService::request_new_export` call is sent over the wire from
-        the requesting region to the control silo.
+        the requesting cell to the control silo.
     03. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::request_new_export: The
         request RPC call is received, and is immediately packaged into a `ControlRelocationTransfer`,
-        so that we may robustly forward it to the exporting region. This task successfully completing causes
+        so that we may robustly forward it to the exporting cell. This task successfully completing causes
         the RPC to successfully return to the sender, allowing the calling `uploading_start`
         task to finish successfully as well.
     04. (CS) ./tasks/transfer.py::process_relocation_transfer_control: Whenever an outbox draining attempt
-        occurs, this code will be called to forward the proxied call into the exporting region.
+        occurs, this code will be called to forward the proxied call into the exporting cell.
     05. The `DBBackedExportService::request_new_export` call is sent over the wire from the control
-        silo to the exporting region.
-    06. (ER) .../relocation_export/impl.py::DBBackedRelocationExportService::request_new_export: The
+        silo to the exporting cell.
+    06. (EC) .../relocation_export/impl.py::DBBackedRelocationExportService::request_new_export: The
         request RPC call is received, and immediately schedules the
         `fulfill_cross_region_export_request` task, which uses an exponential backoff
         algorithm to try and create an encrypted tarball containing an export of the requested org
         slug.
-    07. (ER) ./tasks/process.py::fulfill_cross_region_export_request: This task performs
-        the actual export operation locally in the exporting region. This data is written as a file
-        to this region's relocation-specific GCS bucket, and the response is immediately packaged
+    07. (EC) ./tasks/process.py::fulfill_cross_region_export_request: This task performs
+        the actual export operation locally in the exporting cell. This data is written as a file
+        to this cell's relocation-specific GCS bucket, and the response is immediately packaged
         into a `RegionRelocationTransfer`, so that we may robustly attempt to send it to control silo
-        and the requesting region.
-    08. (ER) ./tasks/transfer.py::process_relocation_transfer_region: This code will be called to read
+        and the requesting cell.
+    08. (EC) ./tasks/transfer.py::process_relocation_transfer_region: This code will be called to read
         the saved export data from the local GCS bucket, package it into an RPC call, and send
         it back to the proxy (control silo).
     09. The `ProxyingRelocationExportService::reply_with_export` call is sent over the wire from the
-        exporting region back to the control silo.
+        exporting cell back to the control silo.
     10. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::reply_with_export: The
         request RPC call is received, and is immediately packaged into a `ControlRelocationTransfer`,
-        so that we may robustly forward it back to the requesting region. To ensure robustness,
+        so that we may robustly forward it back to the requesting cell. To ensure robustness,
         the export data is saved to a local file, so that transfer attempts can read it locally
         without needing to make their own nested RPC calls.
     11. (CS) ../tasks/transfer.py::process_relocation_transfer_control: This code will be called to read
         the export data from the local relocation-specific GCS bucket, then forward it into
-        the requesting region.
+        the requesting cell.
     12. The `DBBackedExportService::reply_with_export` call is sent over the wire from the control
-        silo back to the requesting region.
-    13. (RR) .../relocation_export/impl.py::DBBackedRelocationExportService::reply_with_export:
+        silo back to the requesting cell.
+    13. (RC) .../relocation_export/impl.py::DBBackedRelocationExportService::reply_with_export:
         We've made it all the way back! The export data gets saved to a `RelocationFile` associated
         with the `Relocation` that originally triggered `uploading_start`, and the next task in the
         sequence (`uploading_complete`) is scheduled.
@@ -266,11 +266,11 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
         attempts_left,
         ERR_UPLOADING_FAILED,
     ):
-        # If SAAS->SAAS, kick off an export on the source region. In this case, we will not schedule
-        # an `uploading_complete` task - this region's `RelocationExportService.reply_with_export`
+        # If SAAS->SAAS, kick off an export on the source cell. In this case, we will not schedule
+        # an `uploading_complete` task - this cell's `RelocationExportService.reply_with_export`
         # method will wait for a reply from the work we've scheduled here, which will be in charge
         # of writing the `RelocationFile` from the exported data and kicking off
-        # `uploading_complete` with the export data from the source region.
+        # `uploading_complete` with the export data from the source cell.
         if relocation.provenance == Relocation.Provenance.SAAS_TO_SAAS:
             if not org_slug:
                 return fail_relocation(
@@ -279,22 +279,22 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
                     ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG,
                 )
 
-            # We want to encrypt this organization from the other region using this region's public
+            # We want to encrypt this organization from the other cell using this cell's public
             # key.
             public_key_pem = GCPKMSEncryptor.from_crypto_key_version(
                 get_default_crypto_key_version()
             ).get_public_key_pem()
 
-            # Send out the cross-region request.
+            # Send out the cross-cell request.
             control_relocation_export_service.request_new_export(
                 relocation_uuid=str(uuid),
-                requesting_region_name=get_local_region().name,
-                replying_region_name=replying_region_name,
+                requesting_region_name=get_local_cell().name,
+                replying_region_name=replying_cell_name,
                 org_slug=org_slug,
                 encrypt_with_public_key=public_key_pem,
             )
 
-            # Make sure we're not waiting forever for our cross-region check to come back. After a
+            # Make sure we're not waiting forever for our cross-cell check to come back. After a
             # reasonable amount of time, go ahead and fail the relocation.
             cross_region_export_timeout_check.apply_async(
                 args=[uuid],
@@ -313,12 +313,12 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
     namespace=relocation_tasks,
     processing_deadline_duration=60 * 10,
     retry=Retry(times=4, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def fulfill_cross_region_export_request(
     uuid_str: str,
-    requesting_region_name: str,
-    replying_region_name: str,
+    requesting_cell_name: str,
+    replying_cell_name: str,
     org_slug: str,
     encrypt_with_public_key: str,
     # Unix timestamp, in seconds.
@@ -327,9 +327,9 @@ def fulfill_cross_region_export_request(
     """
     Unlike most other tasks in this file, this one is not an `OrderedTask` intended to be
     sequentially executed as part of the relocation pipeline. Instead, its job is to export an
-    already existing organization from an adjacent region. That means it is triggered (via RPC - the
-    `relocation_export` service for more) on that region from the `uploading_start` task, which then
-    waits for the exporting region to issue an RPC call back with the data. Once that replying RPC
+    already existing organization from an adjacent cell. That means it is triggered (via RPC - the
+    `relocation_export` service for more) on that cell from the `uploading_start` task, which then
+    waits for the exporting cell to issue an RPC call back with the data. Once that replying RPC
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
@@ -338,8 +338,8 @@ def fulfill_cross_region_export_request(
     logger_data = {
         "uuid": uuid_str,
         "task": "fulfill_cross_region_export_request",
-        "requesting_region_name": requesting_region_name,
-        "replying_region_name": replying_region_name,
+        "requesting_cell_name": requesting_cell_name,
+        "replying_cell_name": replying_cell_name,
         "org_slug": org_slug,
         "encrypted_public_key_size": len(encrypt_with_public_key_bytes),
         "scheduled_at": scheduled_at,
@@ -403,8 +403,8 @@ def fulfill_cross_region_export_request(
     # Save a transfer record to move the export to control silo
     transfer = RegionRelocationTransfer.objects.create(
         relocation_uuid=uuid_str,
-        requesting_region=requesting_region_name,
-        exporting_region=replying_region_name,
+        requesting_cell=requesting_cell_name,
+        exporting_cell=replying_cell_name,
         org_slug=org_slug,
         state=RelocationTransferState.Reply,
         # Set next runtime in the future to reduce races with scheduled tasks
@@ -422,11 +422,11 @@ def fulfill_cross_region_export_request(
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def cross_region_export_timeout_check(uuid: str) -> None:
     """
-    Not part of the primary `OrderedTask` queue. This task is only used to ensure that cross-region
+    Not part of the primary `OrderedTask` queue. This task is only used to ensure that cross-cell
     export requests don't hang indefinitely.
     """
     uuid = str(uuid)
@@ -443,7 +443,7 @@ def cross_region_export_timeout_check(uuid: str) -> None:
         extra=logger_data,
     )
 
-    # We've moved past the `UPLOADING_START` step, so the cross-region response was received, one
+    # We've moved past the `UPLOADING_START` step, so the cross-cell response was received, one
     # way or another.
     if relocation.latest_task != OrderedTask.UPLOADING_START.name:
         logger.info(
@@ -461,7 +461,7 @@ def cross_region_export_timeout_check(uuid: str) -> None:
         )
         return
 
-    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
+    reason = ERR_UPLOADING_CROSS_CELL_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
     logger_data["reason"] = reason
     logger.error(
         "cross_region_export_timeout_check: timeout detected",
@@ -519,7 +519,7 @@ def uploading_complete(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_scan(uuid: str) -> None:
     """
@@ -613,7 +613,9 @@ def preprocessing_scan(uuid: str) -> None:
                         # `JSONField` from ballooning on bad input.
             except KeyError:
                 return fail_relocation(
-                    relocation, OrderedTask.PREPROCESSING_SCAN, ERR_PREPROCESSING_INVALID_JSON
+                    relocation,
+                    OrderedTask.PREPROCESSING_SCAN,
+                    ERR_PREPROCESSING_INVALID_JSON,
                 )
 
             # Discard `found_org_slugs` that were not explicitly requested by the user.
@@ -690,7 +692,7 @@ def preprocessing_scan(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_transfer(uuid: str) -> None:
     """
@@ -759,7 +761,7 @@ def preprocessing_transfer(uuid: str) -> None:
             raise FileNotFoundError("User-supplied relocation data not found.")
 
         file: File = raw_relocation_file.file
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
 
         # Copy all of the files from Django's abstract filestore into an isolated,
         # backend-specific filestore for relocation operations only.
@@ -775,7 +777,7 @@ def preprocessing_transfer(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_baseline_config(uuid: str) -> None:
     """
@@ -799,7 +801,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         kind = RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
         relocation_storage = get_relocation_storage()
 
         # TODO(getsentry/team-ospo#216): A very nice optimization here is to only pull this down
@@ -823,7 +825,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_colliding_users(uuid: str) -> None:
     """
@@ -848,7 +850,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
         ERR_PREPROCESSING_INTERNAL,
     ):
         kind = RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA
-        path = f'runs/{uuid}/in/{kind.to_filename("tar")}'
+        path = f"runs/{uuid}/in/{kind.to_filename('tar')}"
         relocation_storage = get_relocation_storage()
         fp = BytesIO()
         log_gcp_credentials_details(logger)
@@ -869,7 +871,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=MEDIUM_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def preprocessing_complete(uuid: str) -> None:
     """
@@ -910,7 +912,10 @@ def preprocessing_complete(uuid: str) -> None:
                 raise FileNotFoundError(f"Could not locate `{filename}` in relocation bucket.")
 
         with atomic_transaction(
-            using=(router.db_for_write(Relocation), router.db_for_write(RelocationValidation))
+            using=(
+                router.db_for_write(Relocation),
+                router.db_for_write(RelocationValidation),
+            )
         ):
             relocation.step = Relocation.Step.VALIDATING.value
             relocation.save()
@@ -941,7 +946,9 @@ def _get_relocation_validation_attempt(
 ) -> RelocationValidationAttempt | None:
     try:
         return RelocationValidationAttempt.objects.get(
-            relocation=relocation, relocation_validation=relocation_validation, build_id=build_id
+            relocation=relocation,
+            relocation_validation=relocation_validation,
+            build_id=build_id,
         )
     except RelocationValidationAttempt.DoesNotExist:
         fail_relocation(
@@ -1036,7 +1043,9 @@ def _update_relocation_validation_attempt(
 
             transaction.on_commit(
                 lambda: fail_relocation(
-                    relocation, task, "Validation could not be completed. Please contact support."
+                    relocation,
+                    task,
+                    "Validation could not be completed. Please contact support.",
                 ),
                 using=router.db_for_write(Relocation),
             )
@@ -1083,7 +1092,7 @@ def _update_relocation_validation_attempt(
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def validating_start(uuid: str) -> None:
     """
@@ -1119,6 +1128,30 @@ def validating_start(uuid: str) -> None:
 
         cb_yaml = create_cloudbuild_yaml(relocation)
         cb_conf = yaml.safe_load(cb_yaml)
+
+        def _parse_duration(value: Any) -> timedelta | Any:
+            """Convert protobuf-style duration strings (e.g. '4800s') to timedelta."""
+            if isinstance(value, str) and value.endswith("s"):
+                try:
+                    return timedelta(seconds=int(value[:-1]))
+                except ValueError:
+                    return value
+            return value
+
+        def _convert_durations(obj: Any) -> Any:
+            """Recursively convert duration strings in nested dicts/lists."""
+            if isinstance(obj, list):
+                return [_convert_durations(item) for item in obj]
+            if isinstance(obj, dict):
+                return {
+                    k: _convert_durations(v) if k != "timeout" else _parse_duration(v)
+                    for k, v in obj.items()
+                }
+            return obj
+
+        steps = _convert_durations(
+            convert_dict_key_case(cb_conf["steps"], camel_to_snake_keep_underscores)
+        )
         build = Build(
             source={
                 "storage_source": {
@@ -1126,12 +1159,12 @@ def validating_start(uuid: str) -> None:
                     "object_": f"runs/{uuid}/conf/cloudbuild.zip",
                 }
             },
-            steps=convert_dict_key_case(cb_conf["steps"], camel_to_snake_keep_underscores),
+            steps=steps,
             artifacts=convert_dict_key_case(cb_conf["artifacts"], camel_to_snake_keep_underscores),
-            timeout=convert_dict_key_case(cb_conf["timeout"], camel_to_snake_keep_underscores),
+            timeout=_parse_duration(cb_conf["timeout"]),
             options=convert_dict_key_case(cb_conf["options"], camel_to_snake_keep_underscores),
             tags=[
-                f"relocation-into-{get_local_region().name}",
+                f"relocation-into-{get_local_cell().name}",
                 f"relocation-id-{uuid}",
             ],
         )
@@ -1159,7 +1192,7 @@ def validating_start(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_VALIDATION_POLLS, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def validating_poll(uuid: str, build_id: str) -> None:
     """
@@ -1254,7 +1287,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def validating_complete(uuid: str, build_id: str) -> None:
     """
@@ -1334,7 +1367,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     # The main reason to have this at all is to guard against transient errors, especially with RPC
     # or task timeouts.
     retry=Retry(times=MAX_SLOW_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def importing(uuid: str) -> None:
     """
@@ -1393,7 +1426,7 @@ def importing(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def postprocessing(uuid: str) -> None:
     """
@@ -1482,7 +1515,7 @@ def postprocessing(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notifying_unhide(uuid: str) -> None:
     """
@@ -1525,7 +1558,7 @@ def notifying_unhide(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notifying_users(uuid: str) -> None:
     """
@@ -1595,7 +1628,7 @@ def notifying_users(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def notifying_owner(uuid: str) -> None:
     """
@@ -1639,7 +1672,7 @@ def notifying_owner(uuid: str) -> None:
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
     retry=Retry(times=MAX_FAST_TASK_RETRIES, on=(Exception,), times_exceeded=LastAction.Discard),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def completed(uuid: str) -> None:
     """
@@ -1668,7 +1701,7 @@ def completed(uuid: str) -> None:
     name="sentry.relocation.noop",
     namespace=relocation_tasks,
     processing_deadline_duration=FAST_TIME_LIMIT,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def noop():
     pass

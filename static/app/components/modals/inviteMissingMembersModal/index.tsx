@@ -1,28 +1,27 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
 import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
-import PanelItem from 'sentry/components/panels/panelItem';
+import {PanelItem} from 'sentry/components/panels/panelItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
 
 export interface InviteMissingMembersModalProps extends ModalRenderProps {
@@ -63,44 +62,35 @@ export function InviteMissingMembersModal({
     [allowedRoles]
   );
 
-  const setRole = useCallback(
-    (role: string, index: number) => {
-      setMemberInvites(prevInvites => {
-        const invites = prevInvites.map(i => ({...i}));
-        invites[index]!.role = role;
-        if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
-          invites[index]!.teamSlugs = new Set([]);
-        }
-        return invites;
-      });
-    },
-    [allowedRolesMap]
-  );
+  const setRole = (role: string, index: number) => {
+    setMemberInvites(prevInvites => {
+      const invites = prevInvites.map(i => ({...i}));
+      invites[index]!.role = role;
+      if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
+        invites[index]!.teamSlugs = new Set();
+      }
+      return invites;
+    });
+  };
 
-  const setTeams = useCallback((teamSlugs: string[], index: number) => {
+  const setTeams = (teamSlugs: string[], index: number) => {
     setMemberInvites(prevInvites => {
       const invites = prevInvites.map(i => ({...i}));
       invites[index]!.teamSlugs = new Set(teamSlugs);
       return invites;
     });
-  }, []);
+  };
 
-  const selectAll = useCallback(
-    (checked: boolean) => {
-      const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
-      setMemberInvites(selectedMembers);
-    },
-    [memberInvites]
-  );
+  const selectAll = (checked: boolean) => {
+    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
+    setMemberInvites(selectedMembers);
+  };
 
-  const toggleCheckbox = useCallback(
-    (checked: boolean, index: number) => {
-      const selectedMembers = [...memberInvites];
-      selectedMembers[index]!.selected = checked;
-      setMemberInvites(selectedMembers);
-    },
-    [memberInvites]
-  );
+  const toggleCheckbox = (checked: boolean, index: number) => {
+    const selectedMembers = [...memberInvites];
+    selectedMembers[index]!.selected = checked;
+    setMemberInvites(selectedMembers);
+  };
 
   if (memberInvites.length === 0 || !organization.access.includes('org:write')) {
     return null;
@@ -271,7 +261,6 @@ export function InviteMissingMembersModal({
                 isInsideModal
               />
               <TeamSelector
-                organization={organization}
                 aria-label={t('Add to Team')}
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}
@@ -290,7 +279,7 @@ export function InviteMissingMembersModal({
       </StyledPanelTable>
       <Flex justify="between">
         <div>{renderStatusMessage()}</div>
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             size="sm"
             onClick={() => {
@@ -314,7 +303,7 @@ export function InviteMissingMembersModal({
           >
             {inviteButtonLabel()}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Flex>
     </Fragment>
   );
@@ -344,7 +333,7 @@ const ContentRow = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.font.size.md};
-  gap: ${space(0.75)};
+  gap: ${p => p.theme.space.sm};
 `;
 
 const MemberEmail = styled('div')`

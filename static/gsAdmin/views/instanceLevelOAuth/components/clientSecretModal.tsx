@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 
 interface ClientDetails {
   clientID: string;
   clientSecret: string;
 }
 
-function ClientSecretModal({
+export function ClientSecretModal({
   Body,
   Header,
   clientSecret,
@@ -29,5 +30,3 @@ function ClientSecretModal({
     </Fragment>
   );
 }
-
-export default ClientSecretModal;

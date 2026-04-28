@@ -1,6 +1,8 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {keepPreviousData} from '@tanstack/react-query';
+
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 interface FetchIssueCountsParameters {
   environment: string[];
@@ -18,7 +20,7 @@ const makeFetchIssueCounts = ({
   orgSlug,
   ...requestParams
 }: FetchIssueCountsParameters): ApiQueryKey => [
-  getApiUrl(`/organizations/$organizationIdOrSlug/issues-count/`, {
+  getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
     path: {organizationIdOrSlug: orgSlug},
   }),
   {

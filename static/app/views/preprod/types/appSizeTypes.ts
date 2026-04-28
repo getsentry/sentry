@@ -61,12 +61,18 @@ interface TreemapElementMisc {
   scale?: number;
 }
 
+export interface FlaggedInsight {
+  key: string;
+  savings: number;
+}
+
 export interface TreemapElement {
   children: TreemapElement[];
   is_dir: boolean;
   name: string;
   size: number;
   type: TreemapType;
+  flagged_insights?: Array<string | FlaggedInsight>;
   misc?: TreemapElementMisc;
   path?: string;
 }
@@ -242,6 +248,7 @@ export enum MetricsArtifactType {
   MAIN_ARTIFACT = 0,
   WATCH_ARTIFACT = 1,
   ANDROID_DYNAMIC_FEATURE = 2,
+  APP_CLIP_ARTIFACT = 3,
 }
 
 interface SizeMetricDiffItem {

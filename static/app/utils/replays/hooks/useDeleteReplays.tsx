@@ -1,19 +1,13 @@
 import {useCallback} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {
-  getUtcValue,
-  normalizeDateTimeParams,
-} from 'sentry/components/organizations/pageFilters/parse';
+import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
-import {
-  fetchMutation,
-  useMutation,
-  type QueryKeyEndpointOptions,
-} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import {fetchMutation, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
 interface Props {
   projectSlug: string;
@@ -28,7 +22,7 @@ export type ReplayBulkDeletePayload = {
 
 type Vars = [ReplayBulkDeletePayload];
 
-export default function useDeleteReplays({projectSlug}: Props) {
+export function useDeleteReplays({projectSlug}: Props) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug});
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});

@@ -1,13 +1,13 @@
 import type {FeatureFlagAdapter} from '@sentry/toolbar';
 import {useSentryToolbar} from '@sentry/toolbar';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
-import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
-export default function useInitSentryToolbar(organization: null | Organization) {
+export function useInitSentryToolbar(organization: null | Organization) {
   const isEnvEnabled = !!process.env.ENABLE_SENTRY_TOOLBAR;
   const showDevToolbar =
     !!organization && !!organization.features.includes('init-sentry-toolbar');
@@ -16,7 +16,7 @@ export default function useInitSentryToolbar(organization: null | Organization) 
 
   useSentryToolbar({
     enabled: showDevToolbar && isEmployee && isEnvEnabled,
-    version: '1.0.0-beta.22',
+    version: '1.0.0-beta.23',
     initProps: {
       organizationSlug: organization?.slug ?? 'sentry',
       projectIdOrSlug: 'javascript',

@@ -2,7 +2,7 @@ import {lazy} from 'react';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import LazyLoad from 'sentry/components/lazyLoad';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 
 type TestProps = {
   testProp?: boolean;

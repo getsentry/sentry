@@ -1,18 +1,20 @@
-import {Fragment, useState} from 'react';
+import {useState, Fragment} from 'react';
+
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
+import {useRouter} from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 
 import {CronRulesEdit} from './rules/crons/edit';
@@ -61,7 +63,7 @@ export default function ProjectAlertsEditor() {
   const {teams, isLoading: teamsLoading} = useUserTeams();
 
   return (
-    <Fragment>
+    <Stack flex={1}>
       <SentryDocumentTitle
         title={title}
         orgSlug={organization.slug}
@@ -133,6 +135,6 @@ export default function ProjectAlertsEditor() {
           </Fragment>
         )}
       </Layout.Body>
-    </Fragment>
+    </Stack>
   );
 }

@@ -12,7 +12,7 @@ from sentry.testutils.cases import APITestCase
 class BaseRerunAnalysisTest(APITestCase):
     """Base class with shared test logic for rerun analysis endpoints"""
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
@@ -77,18 +77,18 @@ class BaseRerunAnalysisTest(APITestCase):
         assert artifact.state == PreprodArtifact.ArtifactState.UPLOADED
         assert artifact.error_code is None
         assert artifact.error_message is None
+        assert artifact.installable_app_error_code is None
+        assert artifact.installable_app_error_message is None
 
 
 class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
-    endpoint = "sentry-api-0-preprod-artifact-rerun-analysis"
+    endpoint = "sentry-api-0-organization-preprod-artifact-rerun-analysis"
     method = "post"
 
-    def test_rerun_analysis_cleans_up_metrics_and_comparisons(self):
+    def test_rerun_analysis_cleans_up_metrics_and_comparisons(self) -> None:
         artifact, main_file, analysis_files, comparison = self.create_artifact_with_metrics()
 
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
+        response = self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
         assert response.data["success"] is True
         assert response.data["artifact_id"] == str(artifact.id)
@@ -98,7 +98,7 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
         assert File.objects.filter(id=main_file.id).exists()
 
-    def test_rerun_analysis_with_no_metrics(self):
+    def test_rerun_analysis_with_no_metrics(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
@@ -110,15 +110,13 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             error_message="Test error",
         )
 
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
+        response = self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
         assert response.data["success"] is True
         assert PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact).count() == 1
         self.assert_artifact_reset(artifact)
 
-    def test_rerun_analysis_cleans_up_base_comparisons(self):
+    def test_rerun_analysis_cleans_up_base_comparisons(self) -> None:
         artifact1 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
@@ -148,19 +146,29 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             organization=self.organization,
         )
 
-        self.get_success_response(
-            self.organization.slug, self.project.slug, artifact1.id, status_code=200
-        )
+        self.get_success_response(self.organization.slug, artifact1.id, status_code=200)
 
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         assert PreprodArtifactSizeMetrics.objects.filter(id=size_metric_2.id).exists()
 
-    @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
-    )
-    def test_rerun_analysis_filters_size_analysis_by_query(self, mock_produce_to_kafka):
-        """Test that rerun analysis filters SIZE_ANALYSIS based on project query setting"""
-        from sentry.preprod.producer import PreprodFeature
+    def test_rerun_analysis_clears_distribution_error_fields(self) -> None:
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            app_name="test_artifact",
+            app_id="com.test.app",
+            build_version="1.0.0",
+            build_number=1,
+            state=PreprodArtifact.ArtifactState.PROCESSED,
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+            installable_app_error_message="Distribution quota exceeded",
+        )
+
+        self.get_success_response(self.organization.slug, artifact.id, status_code=200)
+
+        self.assert_artifact_reset(artifact)
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
+    def test_rerun_analysis_skips_cleanup_when_size_query_excludes_artifact(self, mock_cleanup):
         from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
 
         artifact = self.create_preprod_artifact(
@@ -172,24 +180,14 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        # Set up a query filter that should NOT match the artifact
         self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.other.app")
 
-        self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
+        self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
-        # Verify produce_preprod_artifact_to_kafka was called without SIZE_ANALYSIS
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.SIZE_ANALYSIS not in call_kwargs["requested_features"]
+        mock_cleanup.assert_not_called()
 
-    @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
-    )
-    def test_rerun_analysis_includes_size_analysis_when_query_matches(self, mock_produce_to_kafka):
-        """Test that rerun analysis includes SIZE_ANALYSIS when query matches"""
-        from sentry.preprod.producer import PreprodFeature
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
+    def test_rerun_analysis_runs_cleanup_when_size_query_matches(self, mock_cleanup):
         from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
 
         artifact = self.create_preprod_artifact(
@@ -201,26 +199,14 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        # Set up a query filter that SHOULD match the artifact
         self.project.update_option(SIZE_ENABLED_QUERY_KEY, "app_id:com.my.app")
 
-        self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
+        self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
-        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+        mock_cleanup.assert_called_once()
 
-    @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
-    )
-    def test_rerun_analysis_filters_distribution_by_query(self, mock_produce_to_kafka):
-        """Test that rerun analysis filters BUILD_DISTRIBUTION based on project query setting"""
-        from sentry.preprod.producer import PreprodFeature
-        from sentry.preprod.quotas import DISTRIBUTION_ENABLED_QUERY_KEY
-
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
+    def test_rerun_analysis_runs_cleanup_when_no_query_set(self, mock_cleanup):
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="MyApp",
@@ -230,52 +216,12 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        # Set up a query filter that should NOT match the artifact
-        self.project.update_option(DISTRIBUTION_ENABLED_QUERY_KEY, "app_id:com.other.app")
+        self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
-        self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
+        mock_cleanup.assert_called_once()
 
-        # Verify produce_preprod_artifact_to_kafka was called without BUILD_DISTRIBUTION
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.BUILD_DISTRIBUTION not in call_kwargs["requested_features"]
-
-    @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
-    )
-    def test_rerun_analysis_includes_all_features_when_no_query(self, mock_produce_to_kafka):
-        """Test that rerun analysis includes all features when no query is set"""
-        from sentry.preprod.producer import PreprodFeature
-
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            app_name="MyApp",
-            app_id="com.my.app",
-            build_version="1.0.0",
-            build_number=1,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-        )
-
-        # Don't set any query filters - should include all features
-
-        self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
-
-        # Verify produce_preprod_artifact_to_kafka was called with both features
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
-        assert PreprodFeature.BUILD_DISTRIBUTION in call_kwargs["requested_features"]
-
-    @patch(
-        "sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.produce_preprod_artifact_to_kafka"
-    )
-    def test_rerun_analysis_includes_feature_on_invalid_query(self, mock_produce_to_kafka):
-        """Test that rerun analysis includes features when query is invalid"""
-        from sentry.preprod.producer import PreprodFeature
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_rerun_analysis.cleanup_old_metrics")
+    def test_rerun_analysis_runs_cleanup_on_invalid_query(self, mock_cleanup):
         from sentry.preprod.quotas import SIZE_ENABLED_QUERY_KEY
 
         artifact = self.create_preprod_artifact(
@@ -287,25 +233,18 @@ class PreprodArtifactRerunAnalysisTest(BaseRerunAnalysisTest):
             state=PreprodArtifact.ArtifactState.PROCESSED,
         )
 
-        # Set up an invalid query filter
         self.project.update_option(SIZE_ENABLED_QUERY_KEY, "invalid_field:value")
 
-        self.get_success_response(
-            self.organization.slug, self.project.slug, artifact.id, status_code=200
-        )
+        self.get_success_response(self.organization.slug, artifact.id, status_code=200)
 
-        # Verify produce_preprod_artifact_to_kafka was called with SIZE_ANALYSIS
-        # (invalid query should be skipped, allowing the feature)
-        mock_produce_to_kafka.assert_called_once()
-        call_kwargs = mock_produce_to_kafka.call_args[1]
-        assert PreprodFeature.SIZE_ANALYSIS in call_kwargs["requested_features"]
+        mock_cleanup.assert_called_once()
 
 
 class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
     endpoint = "sentry-admin-preprod-artifact-rerun-analysis"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True)
         self.organization = self.create_organization(owner=self.user)
@@ -316,7 +255,7 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
-    def test_rerun_analysis_cleans_up_metrics_and_comparisons(self):
+    def test_rerun_analysis_cleans_up_metrics_and_comparisons(self) -> None:
         artifact, main_file, analysis_files, comparison = self.create_artifact_with_metrics()
 
         response = self.get_success_response(preprod_artifact_id=artifact.id, status_code=200)
@@ -331,7 +270,7 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         self.assert_artifact_reset(artifact)
         assert File.objects.filter(id=main_file.id).exists()
 
-    def test_rerun_analysis_with_no_metrics(self):
+    def test_rerun_analysis_with_no_metrics(self) -> None:
         artifact = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
@@ -352,7 +291,7 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         assert PreprodArtifactSizeMetrics.objects.filter(preprod_artifact=artifact).count() == 1
         self.assert_artifact_reset(artifact)
 
-    def test_rerun_analysis_cleans_up_base_comparisons(self):
+    def test_rerun_analysis_cleans_up_base_comparisons(self) -> None:
         artifact1 = self.create_preprod_artifact(
             project=self.project,
             app_name="test_artifact",
@@ -388,12 +327,12 @@ class PreprodArtifactAdminRerunAnalysisTest(BaseRerunAnalysisTest):
         assert not PreprodArtifactSizeComparison.objects.filter(id=comparison.id).exists()
         assert PreprodArtifactSizeMetrics.objects.filter(id=size_metric_2.id).exists()
 
-    def test_rerun_analysis_not_found(self):
+    def test_rerun_analysis_not_found(self) -> None:
         response = self.get_error_response(preprod_artifact_id=999999, status_code=404)
-        assert "not found" in response.data["error"]
+        assert "not found" in response.data["detail"]
 
-    def test_rerun_analysis_invalid_id(self):
+    def test_rerun_analysis_invalid_id(self) -> None:
         response = self.get_error_response(preprod_artifact_id="invalid", status_code=400)
         assert (
-            "preprod_artifact_id is required and must be a valid integer" in response.data["error"]
+            "preprod_artifact_id is required and must be a valid integer" in response.data["detail"]
         )

@@ -54,7 +54,6 @@ Unit = Duration
 
 @dataclass(frozen=True)
 class Column:
-
     # the internal name in snuba
     column: str
     # data type associated with this column
@@ -627,7 +626,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
             "arrayElement",
             [
                 Function(
-                    f'quantilesMerge({fixed_percentile if fixed_percentile is not None else args["percentile"]})',
+                    f"quantilesMerge({fixed_percentile if fixed_percentile is not None else args['percentile']})",
                     [args["column"]],
                 ),
                 1,
@@ -640,9 +639,9 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
-        assert (
-            self.builder.params.end is not None and self.builder.params.start is not None
-        ), f"params.end: {self.builder.params.end} - params.start: {self.builder.params.start}"
+        assert self.builder.params.end is not None and self.builder.params.start is not None, (
+            f"params.end: {self.builder.params.end} - params.start: {self.builder.params.start}"
+        )
         interval = (self.builder.params.end - self.builder.params.start).total_seconds()
 
         return Function(
@@ -719,7 +718,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
             "arrayElement",
             [
                 Function(
-                    f'quantilesMergeIf({args["percentile"]})',
+                    f"quantilesMergeIf({args['percentile']})",
                     [
                         args["column"],
                         Function(

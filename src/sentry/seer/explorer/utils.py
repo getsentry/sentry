@@ -50,7 +50,9 @@ def normalize_description(description: str) -> str:
     return description
 
 
-def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], str | None]:
+def _convert_profile_to_execution_tree(
+    profile_data: dict, max_depth: int = 200
+) -> tuple[list[dict], str | None]:
     """
     Converts profile data into a hierarchical representation of code execution.
     Selects the thread with the most in_app frames. Returns empty list if no
@@ -65,7 +67,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         "profile"
     )  # transaction profiles are formatted as {"profile": {"frames": [], "samples": [], "stacks": []}}
     if not profile:
-        profile = profile_data.get("chunk", {}).get(
+        profile = profile_data.get(
+            "chunk", {}
+        ).get(
             "profile"
         )  # continuous profiles are wrapped as {"chunk": {"profile": {"frames": [], "samples": [], "stacks": []}}}
         if not profile:
@@ -254,7 +258,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> tuple[list[dict], 
         current = root
         current_path = root["node_id"]
 
-        for frame in stack_frames[1:]:
+        for frame in stack_frames[1:max_depth]:
             current = find_or_create_child(current, frame)
 
             if current["node_id"] is None:

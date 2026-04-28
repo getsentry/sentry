@@ -8,7 +8,7 @@ app:
   root_component:
     app (ignored because system stacktrace takes precedence)
       stacktrace (ignored because it contains no in-app frames)
-        frame (marked out of app by built-in stack trace rule (category:framework -app))
+        frame (marked out of app by built-in stacktrace rule (category:framework -app))
           module* (removed codegen marker)
             "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*

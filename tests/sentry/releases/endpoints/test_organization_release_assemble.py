@@ -26,6 +26,39 @@ class OrganizationReleaseAssembleTest(APITestCase):
             args=[self.organization.slug, self.release.version],
         )
 
+    def test_no_access_to_all_projects(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = self.create_release(
+            version="restricted-release.1",
+            project=project1,
+            additional_projects=[project2],
+        )
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-assemble",
+            args=[org.slug, release.version],
+        )
+
+        checksum = sha1(b"1").hexdigest()
+        response = self.client.post(
+            url,
+            data={"checksum": checksum, "chunks": [checksum]},
+        )
+
+        assert response.status_code == 404
+
     def test_assemble_json_schema(self) -> None:
         response = self.client.post(
             self.url, data={"lol": "test"}, HTTP_AUTHORIZATION=f"Bearer {self.token.token}"
@@ -231,9 +264,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
             artifact_bundle=artifact_bundle
         ).values_list("project_id", flat=True)
 
-        assert (
-            unauthorized_project.id not in project_associations
-        ), "IDOR vulnerability: unauthorized project was associated with artifact bundle"
+        assert unauthorized_project.id not in project_associations, (
+            "IDOR vulnerability: unauthorized project was associated with artifact bundle"
+        )
 
         # Verify the authorized projects ARE still associated (the fix doesn't break normal flow)
         # Since the manifest project was unauthorized, it should fall back to all authorized projects
@@ -285,6 +318,6 @@ class OrganizationReleaseAssembleTest(APITestCase):
             )
         )
 
-        assert project_associations == [
-            project_b.id
-        ], f"Expected only project_b to be associated, got {project_associations}"
+        assert project_associations == [project_b.id], (
+            f"Expected only project_b to be associated, got {project_associations}"
+        )

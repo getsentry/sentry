@@ -1,4 +1,9 @@
 import {Fragment, useState} from 'react';
+import {useQuery, useMutation} from '@tanstack/react-query';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {
   addErrorMessage,
@@ -6,61 +11,57 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import KeyRow from './keyRow';
+import {KeyRow} from './keyRow';
 
 export default function ProjectKeys() {
   const params = useParams<{projectId: string}>();
   const location = useLocation();
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
+  const hasPageFrame = useHasPageFrameFeature();
   const api = useApi({persistInFlight: true});
   const routes = useRoutes();
 
   const [keyListState, setKeyListState] = useState<ProjectKey[] | undefined>(undefined);
 
   const {
-    data: fetchedKeyList,
+    data: keyListResponse,
     isPending,
     isError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<ProjectKey[]>(
-    [
-      `/projects/${organization.slug}/${project.slug}/keys/`,
-      {
-        query: {
-          cursor: decodeScalar(location.query.cursor),
-          per_page: 5,
-        },
+  } = useQuery({
+    ...projectKeysApiOptions({
+      orgSlug: organization.slug,
+      projSlug: project.slug,
+      query: {
+        cursor: decodeScalar(location.query.cursor),
+        per_page: 5,
       },
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   /**
    * Optimistically remove key
@@ -97,7 +98,7 @@ export default function ProjectKeys() {
         }
       );
     },
-    onMutate: ({data}: {data: ProjectKey}) => {
+    onMutate: ({data}) => {
       addLoadingMessage(t('Saving changes\u2026'));
       setKeyListState(
         keyList.map(key => {
@@ -144,7 +145,7 @@ export default function ProjectKeys() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const keyList = keyListState ? keyListState : fetchedKeyList;
+  const keyList = keyListState ? keyListState : keyListResponse.json;
 
   const renderEmpty = () => {
     return (
@@ -178,7 +179,7 @@ export default function ProjectKeys() {
             params={params}
           />
         ))}
-        <Pagination pageLinks={getResponseHeader?.('Link')} />
+        <Pagination pageLinks={keyListResponse.headers.Link} />
       </Fragment>
     );
   };
@@ -191,33 +192,62 @@ export default function ProjectKeys() {
       <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
       <SettingsPageHeader
         title={t('Client Keys')}
-        action={
-          <Button
-            onClick={() => handleCreateKeyMutation.mutate()}
-            size="sm"
-            priority="primary"
-            icon={<IconAdd />}
-            disabled={!hasAccess}
-          >
-            {t('Generate New Key')}
-          </Button>
-        }
-      />
-
-      <TextBlock>
-        {tct(
-          `To send data to Sentry you will need to configure an SDK with a client key
+        subtitle={
+          hasPageFrame ? (
+            <Flex justify="between" align="center" gap="md">
+              <span>
+                {tct(
+                  `To send data to Sentry you will need to configure an SDK with a client key
           (usually referred to as the [code:SENTRY_DSN] value). For more
           information on integrating Sentry with your application take a look at our
           [link:documentation].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
-            ),
-            code: <code />,
-          }
-        )}
-      </TextBlock>
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
+                    ),
+                    code: <code />,
+                  }
+                )}
+              </span>
+              <Button
+                onClick={() => handleCreateKeyMutation.mutate()}
+                size="md"
+                priority="primary"
+                icon={<IconAdd />}
+                disabled={!hasAccess}
+              >
+                {t('Generate New Key')}
+              </Button>
+            </Flex>
+          ) : (
+            tct(
+              `To send data to Sentry you will need to configure an SDK with a client key
+          (usually referred to as the [code:SENTRY_DSN] value). For more
+          information on integrating Sentry with your application take a look at our
+          [link:documentation].`,
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=/configuration/options/" />
+                ),
+                code: <code />,
+              }
+            )
+          )
+        }
+        action={
+          hasPageFrame ? undefined : (
+            <Button
+              onClick={() => handleCreateKeyMutation.mutate()}
+              size="sm"
+              priority="primary"
+              icon={<IconAdd />}
+              disabled={!hasAccess}
+            >
+              {t('Generate New Key')}
+            </Button>
+          )
+        }
+      />
 
       <ProjectPermissionAlert project={project} />
 

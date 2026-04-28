@@ -1,11 +1,12 @@
-import EditableText from 'sentry/components/editableText';
+import {EditableText} from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import EventView from 'sentry/utils/discover/eventView';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
@@ -23,8 +24,10 @@ const HOMEPAGE_DEFAULT = t('New Query');
  * Allows user to edit the name of the query.
  * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
  */
-function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
+export function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
   const api = useApi();
+  const navigate = useNavigate();
+  const hasPageFrameFeature = useHasPageFrameFeature();
 
   function handleChange(nextQueryName: string) {
     // Do not update automatically if
@@ -48,14 +51,28 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
         const renamedEventView = eventView.clone();
         renamedEventView.name = nextQueryName;
 
-        browserHistory.push(
-          normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization))
-        );
+        navigate(normalizeUrl(renamedEventView.getResultsViewUrlTarget(organization)));
       }
     );
   }
 
   const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
+
+  if (hasPageFrameFeature) {
+    return (
+      <div data-test-id={`discover2-query-name-${value}`}>
+        <EditableText
+          value={value}
+          onChange={handleChange}
+          errorMessage={t('Please set a name for this query')}
+          isDisabled={!eventView.id || isHomepage}
+          aria-label={t('Edit query name')}
+          maxLength={255}
+          variant="compact"
+        />
+      </div>
+    );
+  }
 
   return (
     <Layout.Title data-test-id={`discover2-query-name-${value}`}>
@@ -68,5 +85,3 @@ function EventInputName({organization, eventView, savedQuery, isHomepage}: Props
     </Layout.Title>
   );
 }
-
-export default EventInputName;

@@ -1,19 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import TimeSince from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
@@ -24,7 +25,7 @@ import {
 } from 'getsentry/types';
 import {normalizeMetricHistory} from 'getsentry/utils/billing';
 
-function BilledSeats({
+export function BilledSeats({
   selectedProduct,
   subscription,
   organization,
@@ -39,19 +40,24 @@ function BilledSeats({
   );
   const shouldShowBilledSeats =
     selectedProduct === AddOnCategory.SEER && defined(billedCategory) && isEnabled;
-  const billedSeatsQueryKey = [
-    `/customers/${organization.slug}/billing-seats/current/?billingMetric=${billedCategory}`,
-  ] as const;
   const {
-    data: billedSeats,
+    data,
     isPending: seatsLoading,
     error: seatsError,
     refetch,
-    getResponseHeader,
-  } = useApiQuery<BillingSeatAssignment[]>(billedSeatsQueryKey, {
-    staleTime: 0,
+  } = useQuery({
+    ...apiOptions.as<BillingSeatAssignment[]>()(
+      '/customers/$organizationIdOrSlug/billing-seats/current/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {billingMetric: billedCategory},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
     enabled: shouldShowBilledSeats,
   });
+  const billedSeats = data?.json;
 
   if (!shouldShowBilledSeats) {
     // eventually we should expand this to support other seat-based products
@@ -110,14 +116,12 @@ function BilledSeats({
       </Table>
       {billedSeats && billedSeats.length > 0 && (
         <Container padding="0 lg lg" borderTop="primary">
-          <Pagination pageLinks={getResponseHeader?.('Link') ?? null} />
+          <Pagination pageLinks={data?.headers.Link ?? null} />
         </Container>
       )}
     </Fragment>
   );
 }
-
-export default BilledSeats;
 
 const Table = styled(SimpleTable)<{hasBorderTop: boolean}>`
   grid-template-columns: 1fr 1fr;

@@ -1,18 +1,15 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import {isLogsUnsupportedBySDK} from 'sentry/views/replays/detail/ourlogs/unsupportedReplays';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {isLogsUnsupportedBySDK} from 'sentry/views/explore/replays/detail/ourlogs/unsupportedReplays';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 export function hasLogsOnReplays(
   organization: Organization,
   project?: Project | null,
   replay?: ReplayRecord | null
 ): boolean {
-  const hasFeatureFlag =
-    isLogsEnabled(organization) && organization.features.includes('ourlogs-replay-ui');
-
-  if (!hasFeatureFlag) {
+  if (!isLogsEnabled(organization)) {
     return false;
   }
 

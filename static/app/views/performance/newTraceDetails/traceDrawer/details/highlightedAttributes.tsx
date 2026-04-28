@@ -1,12 +1,12 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {CaptureContext} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tn} from 'sentry/locale';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -14,25 +14,20 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
+import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import {SpanFields} from 'sentry/views/insights/types';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 
 type HighlightedAttribute = {
   name: string;
   value: React.ReactNode;
 };
-
-function tryParseJson(value: string) {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return value;
-  }
-}
 
 /**
  * Gets AI tool definitions, checking attributes in priority order.
@@ -43,7 +38,7 @@ function getAIToolDefinitions(
 ): any[] | null {
   const toolDefinitions = attributes['gen_ai.tool.definitions'];
   if (toolDefinitions) {
-    const parsed = tryParseJson(toolDefinitions.toString());
+    const parsed = tryParseJsonRecursive(toolDefinitions.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -51,7 +46,7 @@ function getAIToolDefinitions(
 
   const availableTools = attributes['gen_ai.request.available_tools'];
   if (availableTools) {
-    const parsed = tryParseJson(availableTools.toString());
+    const parsed = tryParseJsonRecursive(availableTools.toString());
     if (Array.isArray(parsed)) {
       return parsed;
     }
@@ -87,14 +82,14 @@ function ensureAttributeObject(
   attributes: Record<string, string> | TraceItemResponseAttribute[]
 ) {
   if (Array.isArray(attributes)) {
-    return attributes.reduce(
+    return attributes.reduce<Record<string, string | number | boolean>>(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
         // prettifyAttributeName normalizes those
         acc[prettifyAttributeName(attribute.name)] = attribute.value;
         return acc;
       },
-      {} as Record<string, string | number | boolean>
+      {}
     );
   }
 
@@ -112,7 +107,7 @@ function getAISpanAttributes({
 
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
-  const agentName = attributes['gen_ai.agent.name'] || attributes['gen_ai.function_id'];
+  const agentName = resolveAgentName(attributes);
   if (agentName) {
     highlightedAttributes.push({
       name: t('Agent Name'),
@@ -157,35 +152,19 @@ function getAISpanAttributes({
     });
   }
 
-  // Check for missing cost calculation and emit Sentry error
-  if (
-    model &&
-    (inputTokens || outputTokens) &&
-    (!totalCosts || Number(totalCosts) === 0)
-  ) {
-    const contextData: CaptureContext = {
-      level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        span_type: 'gen_ai',
-        has_model: 'true',
-        has_cost: 'false',
-        model: model.toString(),
-      },
-      extra: {
-        total_costs: totalCosts,
-        attributes,
-      },
-    };
-
-    // General issue for tracking overall missing cost calculations
-    Sentry.captureMessage('Gen AI span missing cost calculation', contextData);
-
-    // Model-specific issue for tracking cost calculation failures per model
-    Sentry.captureMessage(
-      `Gen AI cost data missing for model: ${model.toString()}`,
-      contextData
-    );
+  const contextUtilization = attributes[SpanFields.GEN_AI_CONTEXT_UTILIZATION];
+  if (contextUtilization && Number(contextUtilization) > 0) {
+    const windowSize = attributes[SpanFields.GEN_AI_CONTEXT_WINDOW_SIZE];
+    highlightedAttributes.push({
+      name: t('Context Utilization'),
+      value: (
+        <HighlightedContextUtilization
+          utilization={Number(contextUtilization)}
+          windowSize={windowSize ? Number(windowSize) : undefined}
+          totalTokens={totalTokens ? Number(totalTokens) : undefined}
+        />
+      ),
+    });
   }
 
   const toolName = attributes['gen_ai.tool.name'];
@@ -300,7 +279,7 @@ function HighlightedTools({
     Referrer.TRACE_DRAWER_TOOL_USAGE
   );
 
-  const usedTools: Map<string, number> = new Map();
+  const usedTools = new Map<string, number>();
   toolSpansQuery.data?.forEach(span => {
     const toolName = span[SpanFields.GEN_AI_TOOL_NAME];
     usedTools.set(toolName, (usedTools.get(toolName) ?? 0) + 1);
@@ -350,38 +329,111 @@ function HighlightedTokenAttributes({
   reasoningTokens: number;
   totalTokens: number;
 }) {
+  const breakdown = getTokenBreakdown({
+    inputTokens,
+    cachedTokens,
+    outputTokens,
+    reasoningTokens,
+    totalTokens,
+  });
+
+  const hasCached = breakdown.cached > 0;
+
   return (
     <Tooltip
       title={
         <TokensTooltipTitle>
           <span>{t('Input')}</span>
-          <span>{inputTokens.toString()}</span>
-          <SubTextCell>{t('Cached')}</SubTextCell>
-          <SubTextCell>{isNaN(cachedTokens) ? '0' : cachedTokens.toString()}</SubTextCell>
+          <span>{breakdown.netNewInput.toLocaleString()}</span>
+          {hasCached && (
+            <Fragment>
+              <span>{t('Cached')}</span>
+              <span>{breakdown.cached.toLocaleString()}</span>
+            </Fragment>
+          )}
           <span>{t('Output')}</span>
-          <span>{outputTokens.toString()}</span>
-          <SubTextCell>{t('Reasoning')}</SubTextCell>
-          <SubTextCell>
-            {isNaN(reasoningTokens) ? '0' : reasoningTokens.toString()}
-          </SubTextCell>
+          <span>{breakdown.output.toLocaleString()}</span>
           <span>{t('Total')}</span>
-          <span>{totalTokens.toString()}</span>
+          <span>{breakdown.total.toLocaleString()}</span>
         </TokensTooltipTitle>
       }
     >
       <TokensSpan>
-        <span>
-          <Count value={inputTokens.toString()} /> {t('in')}
-        </span>
-        <span>+</span>
-        <span>
-          <Count value={outputTokens.toString()} /> {t('out')}
-        </span>
-        <span>=</span>
-        <span>
-          <Count value={totalTokens.toString()} /> {t('total')}
-        </span>
+        <Container as="span" display="inline-block">
+          <Count value={breakdown.netNewInput} /> {t('in')}
+        </Container>
+        {hasCached && (
+          <Fragment>
+            {' '}
+            <Container as="span" display="inline-block">
+              {' + '}
+              <Count value={breakdown.cached} /> {t('cached')}
+            </Container>
+          </Fragment>
+        )}{' '}
+        <Container as="span" display="inline-block">
+          {' + '}
+          <Count value={breakdown.output} /> {t('out')}
+        </Container>{' '}
+        <Container as="span" display="inline-block">
+          {' = '}
+          <Count value={breakdown.total} /> {t('total')}
+        </Container>
       </TokensSpan>
+    </Tooltip>
+  );
+}
+
+function HighlightedContextUtilization({
+  utilization,
+  totalTokens,
+  windowSize,
+}: {
+  utilization: number;
+  totalTokens?: number;
+  windowSize?: number;
+}) {
+  const percentage = Math.round(utilization * 100);
+  const tokensUsed =
+    windowSize === undefined ? totalTokens : Math.round(utilization * windowSize);
+
+  const inlineValue = (
+    <Fragment>
+      {percentage}%
+      {tokensUsed !== undefined && windowSize !== undefined && (
+        <Fragment>
+          {' ('}
+          <Count value={tokensUsed} />
+          {' / '}
+          <Count value={windowSize} />
+          {')'}
+        </Fragment>
+      )}
+    </Fragment>
+  );
+
+  const tooltipContent = (
+    <TokensTooltipTitle>
+      {windowSize !== undefined && (
+        <Fragment>
+          <span>{t('Window Size')}</span>
+          <span>{windowSize.toLocaleString()}</span>
+        </Fragment>
+      )}
+      {tokensUsed !== undefined && (
+        <Fragment>
+          <span>{t('Tokens Used')}</span>
+          <span>{tokensUsed.toLocaleString()}</span>
+        </Fragment>
+      )}
+      <span>{t('Utilization')}</span>
+      <span>{percentage}%</span>
+    </TokensTooltipTitle>
+  );
+
+  return (
+    <Tooltip title={tooltipContent}>
+      <TokensSpan>{inlineValue}</TokensSpan>
     </Tooltip>
   );
 }
@@ -398,14 +450,8 @@ const TokensTooltipTitle = styled('div')`
   gap: ${p => p.theme.space.xs};
 `;
 
-const SubTextCell = styled('span')`
-  margin-left: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
 const TokensSpan = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
   border-bottom: 1px dashed ${p => p.theme.tokens.border.primary};
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 `;

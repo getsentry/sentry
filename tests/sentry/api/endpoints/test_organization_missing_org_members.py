@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 
@@ -263,6 +264,32 @@ class OrganizationMissingMembersTestCase(APITestCase):
         response = self.get_success_response(self.organization.slug)
         assert len(response.data) == 0
 
+    def test_oi_config_reads_flag_skips_non_nudge_integrations(self) -> None:
+        """With the flag on and no OI having nudge_invite, the endpoint returns []."""
+        from sentry.integrations.models.organization_integration import (
+            OrganizationIntegration,
+        )
+        from sentry.testutils.helpers.features import Feature
+
+        with Feature({"organizations:scm-config-oi-reads": True}):
+            response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 0
+
+        # Now turn the nudge_invite flag on for one of the two github OIs. The
+        # endpoint must still return missing members for the org.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            oi = OrganizationIntegration.objects.get(
+                integration_id=self.integration.id, organization_id=self.organization.id
+            )
+            oi.config = {"nudge_invite": True}
+            oi.save(update_fields=["config"])
+
+        with Feature({"organizations:scm-config-oi-reads": True}):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data[0]["integration"] == "github"
+        assert len(response.data[0]["users"]) > 0
+
     def test_nongithub_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
@@ -307,6 +334,21 @@ class OrganizationMissingMembersTestCase(APITestCase):
             {"email": "c@example.com", "externalId": "c", "commitCount": 2},
             {"email": "d@example.com", "externalId": "d", "commitCount": 1},
         ]
+
+    def test_shared_domain_sql_injection_safe(self) -> None:
+        """Verify that SQL metacharacters in the shared domain are safely parameterized."""
+        # Mock _get_shared_email_domain to return a domain with SQL injection payload.
+        # This ensures the raw SQL query path is exercised with metacharacters.
+        with patch(
+            "sentry.api.endpoints.organization_missing_org_members._get_shared_email_domain",
+            return_value="x' OR 1=1 --",
+        ):
+            # With the old f-string interpolation, this would cause a SQL syntax error.
+            # With parameterized queries, the single quote is properly escaped.
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["integration"] == "github"
+        assert response.data[0]["users"] == []
 
     def test_limit_50_missing_members(self) -> None:
         repo = self.create_repo(

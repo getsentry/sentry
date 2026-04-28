@@ -20,30 +20,25 @@ WORKFLOW_CONFIG_HELP_TEXT = """
 WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below.
         ```json
             "triggers": {
-                "id": "1234567",
                 "organizationId": "1",
                 "logicType": "any-short",
                 "conditions": [
                     {
-                        "id": "123",
                         "type": "first_seen_event",
                         "comparison": true,
                         "conditionResult": true
                     },
                     {
-                        "id": "456",
                         "type": "issue_resolved_trigger",
                         "comparison": true,
                         "conditionResult": true
                     },
                     {
-                        "id": "789",
                         "type": "reappeared_event",
                         "comparison": true,
                         "conditionResult": true
                     },
                     {
-                        "id": "321",
                         "type": "regression_event",
                         "comparison": true,
                         "conditionResult": true
@@ -56,12 +51,14 @@ WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger.
 
 ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and the action(s) to fire.
 
+        `logicType` can be one of `any-short`, `all`, or `none`.
+
         Below is a basic example. See below for all other options.
 
         ```json
             "actionFilters": [
                 {
-                    "logicType": "any-short",
+                    "logicType": "any",
                     "conditions": [
                         {
                             "type": "level",
@@ -111,10 +108,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Issue Assignment**
         - `targetType`: Who the issue is assigned to
-            - `NoOne`: Unassigned
+            - `Unassigned`: Unassigned
             - `Member`: Assigned to a user
             - `Team`: Assigned to a team
-        - `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `NoOne`.
+        - `targetIdentifier`: The ID of the user or team from the `targetType`. Enter "" if `targetType` is `Unassigned`.
         ```json
             {
                 "type": "assigned_to",
@@ -604,7 +601,26 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
                     "targetDisplay":""
                     },
                 "integrationId":"2345",
-                "data":{...},
+                "data":{
+                  "additional_fields": {
+                      "assignee": "",
+                      "integration": "2345",
+                      "labels": [],
+                      "repo": "example-repo",
+                  },
+                  "dynamic_form_fields": [
+                      {
+                        "choices": [["YourOrg/example-repo", "example-repo"]],
+                        "default": "YourOrg/example-repo",
+                        "label": "GitHub Repository",
+                        "name": "repo",
+                        "required": true
+                        "type": "select",
+                        "updatesForm": true,
+                        "url": "/extensions/github/search/example-repo/1234567/",
+                      },
+                  ],
+                },
                 "status":"active"
             }
         ```
@@ -614,6 +630,7 @@ DATA_SOURCES_HELP_TEXT = """
             The data sources for the monitor to use based on what you want to measure.
 
             **Number of Errors Metric Monitor**
+            - `eventTypes`: Any of `error` or `default`.
             ```json
                 [
                     {
@@ -629,6 +646,7 @@ DATA_SOURCES_HELP_TEXT = """
             ```
 
             **Users Experiencing Errors Metric Monitor**
+            - `eventTypes`: Any of `error` or `default`.
             ```json
                 [
                     {
@@ -693,6 +711,9 @@ DATA_SOURCES_HELP_TEXT = """
             ```
 
             **Largest Contentful Paint Metric Monitor**
+            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
+            - `aggregate`: Valid values are `avg(measurements.lcp)`, `p50(measurements.lcp)`, `p75(measurements.lcp)`, `p95(measurements.lcp)`, `p99(measurements.lcp)`, `p100(measurements.lcp)`, and `percentile(measurements.lcp,x)`, where `x` is your custom percentile.
+
             ```json
                 [
                     {
@@ -707,6 +728,29 @@ DATA_SOURCES_HELP_TEXT = """
                     },
                 ],
             ```
+
+            **Custom Metric Monitor**
+            - `dataset`: If a custom percentile is used, dataset is `transactions`. Otherwise, dataset is `events_analytics_platform`.
+            - `aggregate`: Valid values are:
+            `avg(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p50(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p75(x)`, where x is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p95(x)`, where x is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p99(x)`, where x is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `p100(x)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`.
+            `percentile(x,y)`, where `x` is `transaction.duration`, `measurements.cls`, `measurements.fcp`, `measurements.fid`, `measurements.fp`, `measurements.lcp`, `measurements.ttfb`, or `measurements.ttfb.requesttime`, and `y` is the custom percentile.
+            `failure_rate()`
+            `apdex(x)`, where `x` is the value of the Apdex score.
+            `count()`
+
+            ```json
+            [
+                {
+                    "aggregate": "p75(measurements.ttfb)"
+                    "dataset": "events_analytics_platform",
+                    "queryType": 1,
+                },
+            ],
 """
 
 DETECTOR_CONFIG_HELP_TEXT = """
@@ -828,20 +872,15 @@ CONDITION_GROUP_HELP_TEXT = """
         """
 
 OWNER_HELP_TEXT = """
-            The user or team who owns the monitor.
+            The ID user or team who owns the monitor or alert prefaced by the string 'user' or 'team'.
 
             **User**
             ```json
-                "type": "user",
-                "id": "12345",
-                "name": "Jane Doe",
-                "email": "jane.doe@sentry.io"
+                "user:123456"
             ```
 
             **Team**
             ```json
-                "type": "team",
-                "id": "123456789",
-                "name": "example-team"
+                "team:456789"
             ```
         """

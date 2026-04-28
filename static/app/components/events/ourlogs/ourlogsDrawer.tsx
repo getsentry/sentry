@@ -1,10 +1,10 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -19,14 +19,15 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
@@ -62,24 +63,27 @@ export function OurlogsDrawer({
   const logsSearch = useQueryParamsSearch();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string');
+    useLogItemAttributes({}, 'string');
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number');
+    useLogItemAttributes({}, 'number');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useLogItemAttributes({}, 'boolean');
 
   const tracesItemSearchQueryBuilderProps = {
     initialQuery: logsSearch.formatString(),
     searchSource: 'ourlogs',
     onSearch: (query: string) => setLogsQuery(query),
+    booleanAttributes,
     numberAttributes,
     stringAttributes,
     itemType: TraceItemDataset.LOGS,
+    booleanSecondaryAliases,
     numberSecondaryAliases,
     stringSecondaryAliases,
   };
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     tracesItemSearchQueryBuilderProps
   );
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const additionalData = useMemo(
     () => ({
@@ -152,13 +156,14 @@ export function OurlogsDrawer({
             )}
           </Flex>
         </EventNavigator>
-        <EventDrawerBody ref={containerRef}>
-          <Stack gap="xl">
+        <EventDrawerBody>
+          <Stack position="relative">
             <LogsInfiniteTable
               embedded
-              scrollContainer={containerRef}
               embeddedOptions={embeddedOptions}
+              expanded
               additionalData={additionalData}
+              analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
             />
           </Stack>
         </EventDrawerBody>

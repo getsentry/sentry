@@ -2,19 +2,19 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
@@ -123,8 +123,8 @@ export function IssueDetailsEventNavigation({
       <Navigation>
         <LinkButton
           aria-label={t('Previous Event')}
-          title={t('Previous Event')}
-          borderless
+          tooltipProps={{title: t('Previous Event')}}
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="left" />}
           disabled={!defined(event?.previousEventID)}
@@ -147,8 +147,8 @@ export function IssueDetailsEventNavigation({
         />
         <LinkButton
           aria-label={t('Next Event')}
-          title={t('Next Event')}
-          borderless
+          tooltipProps={{title: t('Next Event')}}
+          priority="transparent"
           size="xs"
           icon={<IconChevron direction="right" />}
           disabled={!defined(event?.nextEventID)}
@@ -201,6 +201,6 @@ export function IssueDetailsEventNavigation({
 
 const Navigation = styled('div')`
   display: flex;
-  padding-right: ${space(0.25)};
+  padding-right: ${p => p.theme.space['2xs']};
   border-right: 1px solid ${p => p.theme.colors.gray100};
 `;

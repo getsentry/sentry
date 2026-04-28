@@ -1,4 +1,4 @@
-import {useMemo, type ReactNode} from 'react';
+import {useCallback, useMemo, useState, type ReactNode} from 'react';
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
@@ -7,153 +7,62 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {
-  DEFAULT_YAXIS_BY_TYPE,
-  OPTIONS_BY_TYPE,
-} from 'sentry/views/explore/metrics/constants';
-import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type BaseMetricQuery,
-  type MetricQuery,
-  type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  useMetricQueriesController,
+  type MetricQueriesControllerValue,
+} from 'sentry/views/explore/metrics/useMetricQueriesController';
 
-interface MultiMetricsQueryParamsContextValue {
-  metricQueries: MetricQuery[];
+export const MAX_METRICS_ALLOWED = 8;
+
+function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
+  return metricQueries
+    .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
+    .filter(defined)
+    .filter(Boolean);
 }
 
 const [
   _MultiMetricsQueryParamsContextProvider,
   useMultiMetricsQueryParamsContext,
   MultiMetricsQueryParamsContext,
-] = createDefinedContext<MultiMetricsQueryParamsContextValue>({
+] = createDefinedContext<MetricQueriesControllerValue>({
   name: 'QueryParamsContext',
 });
 
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
   allowUpTo?: number;
+  hasEquations?: boolean;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
   allowUpTo,
+  hasEquations,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const value: MultiMetricsQueryParamsContextValue = useMemo(() => {
-    const metricQueries = getMultiMetricsQueryParamsFromLocation(location, allowUpTo);
+  const queries = useMemo(
+    () => getMultiMetricsQueryParamsFromLocation(location, allowUpTo),
+    [location, allowUpTo]
+  );
 
-    function setQueryParamsForIndex(i: number) {
-      return function (newQueryParams: ReadableQueryParams) {
-        const target = {...location, query: {...location.query}};
+  const setQueries = useCallback(
+    (nextQueries: BaseMetricQuery[]) => {
+      const target = {...location, query: {...location.query}};
+      target.query.metric = encodeMetricQueries(nextQueries);
+      navigate(target);
+    },
+    [location, navigate]
+  );
 
-        const newMetricQueries: string[] = metricQueries
-          .map((metricQuery: BaseMetricQuery, j: number) => {
-            if (i !== j) {
-              return metricQuery;
-            }
-            return {
-              metric: metricQuery.metric,
-              queryParams: newQueryParams,
-            };
-          })
-          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-          .filter(defined)
-          .filter(Boolean);
-        target.query.metric = newMetricQueries;
-
-        navigate(target);
-      };
-    }
-
-    function setTraceMetricForIndex(i: number) {
-      return function (newTraceMetric: TraceMetric) {
-        const target = {...location, query: {...location.query}};
-        target.query.metric = metricQueries
-          .map((metricQuery: BaseMetricQuery, j: number) => {
-            if (i !== j) {
-              return metricQuery;
-            }
-
-            // when changing trace metrics, we need to look at the currently selected
-            // aggregation and make necessary adjustments
-            const visualize = metricQuery.queryParams.visualizes[0];
-            let aggregateFields = undefined;
-            if (visualize && isVisualizeFunction(visualize)) {
-              const selectedAggregation = visualize.parsedFunction?.name;
-              const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
-
-              if (
-                selectedAggregation &&
-                allowedAggregations?.find(option => option.value === selectedAggregation)
-              ) {
-                // the currently selected aggregation changed types
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              } else {
-                // the currently selected aggregation isn't supported on the new metric
-                const defaultAggregation =
-                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'per_second';
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              }
-            }
-
-            return {
-              queryParams: metricQuery.queryParams.replace({aggregateFields}),
-              metric: newTraceMetric,
-            };
-          })
-          .map((metric: BaseMetricQuery) => encodeMetricQueryParams(metric))
-          .filter(defined)
-          .filter(Boolean);
-
-        navigate(target);
-      };
-    }
-
-    function removeMetricQueryForIndex(i: number) {
-      return function () {
-        // Don't allow removing the last metric query
-        if (metricQueries.length <= 1) {
-          return;
-        }
-
-        const target = {...location, query: {...location.query}};
-
-        const newMetricQueries: string[] = metricQueries
-          .filter((_, j) => i !== j)
-          .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-          .filter(defined)
-          .filter(Boolean);
-        target.query.metric = newMetricQueries;
-
-        navigate(target);
-      };
-    }
-
-    return {
-      metricQueries: metricQueries.map((metric: BaseMetricQuery, index: number) => {
-        return {
-          ...metric,
-          setQueryParams: setQueryParamsForIndex(index),
-          setTraceMetric: setTraceMetricForIndex(index),
-          removeMetric: removeMetricQueryForIndex(index),
-        };
-      }),
-    };
-  }, [location, navigate, allowUpTo]);
+  const value = useMetricQueriesController({queries, setQueries, hasEquations});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -168,11 +77,59 @@ function getMultiMetricsQueryParamsFromLocation(
 ): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
-  const metricQueries = rawQueryParams.map(decodeMetricsQueryParams).filter(defined);
+  const metricQueries = rawQueryParams
+    .map(value => decodeMetricsQueryParams(value))
+    .filter(defined);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
   return limit ? queries.slice(0, limit) : queries;
+}
+
+interface LocalMultiMetricsQueryParamsProviderProps {
+  children: ReactNode;
+  /**
+   * Initial metric queries to seed local state. Typically derived from a
+   * saved aggregate string via `parseAggregateExpression`. If empty, the
+   * provider falls back to a single default row (matching the URL-backed
+   * provider's behavior on an empty URL).
+   */
+  initialQueries: BaseMetricQuery[];
+  /**
+   * Gates insert-before-equation behavior in `addMetricQuery`.
+   */
+  hasEquations?: boolean;
+}
+
+/**
+ * Local-state counterpart to `MultiMetricsQueryParamsProvider`. Holds the
+ * metric queries in `useState` instead of URL params, so the same consumer
+ * hooks (`useMultiMetricsQueryParams`, `useAddMetricQuery`,
+ * `useReorderMetricQueries`) work unchanged for callers that need an
+ * in-memory editing surface (e.g. the tracemetric alert editor, where only
+ * the selected row is persisted on save and the rest is discarded on
+ * reopen).
+ *
+ * `initialQueries` seeds the initial state only once; changes to the prop
+ * after mount are ignored. Callers that need to re-hydrate from an external
+ * source should remount the provider (e.g. via a `key`).
+ */
+export function LocalMultiMetricsQueryParamsProvider({
+  children,
+  initialQueries,
+  hasEquations,
+}: LocalMultiMetricsQueryParamsProviderProps) {
+  const [queries, setQueries] = useState<BaseMetricQuery[]>(() =>
+    initialQueries.length > 0 ? initialQueries : [defaultMetricQuery()]
+  );
+
+  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+
+  return (
+    <MultiMetricsQueryParamsContext value={value}>
+      {children}
+    </MultiMetricsQueryParamsContext>
+  );
 }
 
 export function useMultiMetricsQueryParams() {
@@ -180,23 +137,14 @@ export function useMultiMetricsQueryParams() {
   return metricQueries;
 }
 
-export function useAddMetricQuery() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const {metricQueries} = useMultiMetricsQueryParamsContext();
+export function useAddMetricQuery({
+  type = 'aggregate',
+}: {type?: 'aggregate' | 'equation'} = {}) {
+  const {addMetricQuery} = useMultiMetricsQueryParamsContext();
+  return useCallback(() => addMetricQuery({type}), [addMetricQuery, type]);
+}
 
-  return function () {
-    const target = {...location, query: {...location.query}};
-
-    const newMetricQueries: string[] = [
-      ...metricQueries,
-      metricQueries[metricQueries.length - 1] ?? defaultMetricQuery(),
-    ]
-      .map((metricQuery: BaseMetricQuery) => encodeMetricQueryParams(metricQuery))
-      .filter(defined)
-      .filter(Boolean);
-    target.query.metric = newMetricQueries;
-
-    navigate(target);
-  };
+export function useReorderMetricQueries() {
+  const {reorderMetricQueries} = useMultiMetricsQueryParamsContext();
+  return reorderMetricQueries;
 }

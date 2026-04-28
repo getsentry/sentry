@@ -1,4 +1,4 @@
-function routeTitleGen(
+export function routeTitleGen(
   routeName: string,
   orgSlug: string,
   withSentry = true,
@@ -9,5 +9,3 @@ function routeTitleGen(
 
   return withSentry ? `${tmpl} - Sentry` : tmpl;
 }
-
-export default routeTitleGen;

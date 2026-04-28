@@ -288,7 +288,7 @@ app:
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
           stacktrace (ignored because it contains no in-app frames)
-            frame (marked out of app by built-in stack trace rule (category:framework -app))
+            frame (marked out of app by built-in stacktrace rule (category:framework -app))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -389,7 +389,7 @@ app:
           type*
             "LifecycleException"
           value* (stripped event-specific values)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
+            "Failed to start component [Connector[HTTP/<float>-<int>]]"
 --------------------------------------------------------------------------
 default:
   hash: null
@@ -398,7 +398,7 @@ default:
   root_component:
     default (ignored because system exception takes precedence)
       message (ignored because system exception takes precedence)
-        "Failed to start connector [Connector[HTTP/<float><int>]]"
+        "Failed to start connector [Connector[HTTP/<float>-<int>]]"
 --------------------------------------------------------------------------
 system:
   hash: "1959b227a7cf6acf7f3fd401b5d9f09b"
@@ -409,7 +409,7 @@ system:
       chained_exception*
         exception*
           stacktrace*
-            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stacktrace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -576,7 +576,7 @@ system:
             "Address already in use"
         exception*
           stacktrace*
-            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stacktrace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -687,7 +687,7 @@ system:
             "service.getName(): \"Tomcat\";  Protocol handler start failed"
         exception*
           stacktrace*
-            frame (ignored by built-in stack trace rule (module:io.sentry.* -group))
+            frame (ignored by built-in stacktrace rule (module:io.sentry.* -group))
               module*
                 "io.sentry.example.Application"
               filename (ignored because module takes precedence)
@@ -788,4 +788,4 @@ system:
           type*
             "LifecycleException"
           value (ignored because stacktrace takes precedence)
-            "Failed to start component [Connector[HTTP/<float><int>]]"
+            "Failed to start component [Connector[HTTP/<float>-<int>]]"

@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Separator} from 'sentry/components/core/separator';
+import {Separator} from '@sentry/scraps/separator';
 
 describe('Separator', () => {
   it('should render a horizontal Separator', () => {

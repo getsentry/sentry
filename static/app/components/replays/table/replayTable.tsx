@@ -2,21 +2,22 @@ import {useEffect, useRef, type RefObject} from 'react';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
-import {Alert} from 'sentry/components/core/alert';
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Alert} from '@sentry/scraps/alert';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
-import ReplayTableHeader from 'sentry/components/replays/table/replayTableHeader';
+import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 type SortProps =
   | {
@@ -27,7 +28,7 @@ type SortProps =
 
 type Props = SortProps & {
   columns: readonly ReplayTableColumn[];
-  error: RequestError | null | undefined;
+  error: Error | null | undefined;
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
@@ -38,7 +39,7 @@ type Props = SortProps & {
   stickyHeader?: boolean;
 };
 
-export default function ReplayTable({
+export function ReplayTable({
   pageLinks,
   query,
   columns,
@@ -197,18 +198,20 @@ const StyledPagination = styled(Pagination)`
   grid-column: 1 / -1;
 `;
 
-function getErrorMessage(fetchError: RequestError) {
+function getErrorMessage(fetchError: Error | string) {
   if (typeof fetchError === 'string') {
     return fetchError;
   }
-  if (typeof fetchError?.responseJSON?.detail === 'string') {
-    return fetchError.responseJSON.detail;
-  }
-  if (fetchError?.responseJSON?.detail?.message) {
-    return fetchError.responseJSON.detail.message;
-  }
-  if (fetchError.name === ERROR_MAP[500]) {
-    return t('There was an internal systems error.');
+  if (fetchError instanceof RequestError) {
+    if (typeof fetchError?.responseJSON?.detail === 'string') {
+      return fetchError.responseJSON.detail;
+    }
+    if (fetchError?.responseJSON?.detail?.message) {
+      return fetchError.responseJSON.detail.message;
+    }
+    if (fetchError.name === ERROR_MAP[500]) {
+      return t('There was an internal systems error.');
+    }
   }
   return t(
     'This could be due to invalid search parameters or an internal systems error.'

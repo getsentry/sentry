@@ -1,6 +1,6 @@
 import {mat3} from 'gl-matrix';
 
-import clamp from 'sentry/utils/number/clamp';
+import {clamp} from 'sentry/utils/number/clamp';
 
 // Computes the transformation matrix that is used to render scaled
 // elements to the DOM and draw the view.

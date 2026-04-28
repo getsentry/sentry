@@ -22,7 +22,7 @@ const commonFields = {
   availableReservedBudgetTypes: {},
 };
 
-const MM1_PLANS: Record<string, Plan> = {
+export const MM1_PLANS = {
   e1_ac: {
     ...commonFields,
     isTestPlan: false,
@@ -442,6 +442,4 @@ const MM1_PLANS: Record<string, Plan> = {
     dashboardLimit: 0,
     metricDetectorLimit: 0,
   },
-};
-
-export default MM1_PLANS;
+} as const satisfies Record<string, Plan>;

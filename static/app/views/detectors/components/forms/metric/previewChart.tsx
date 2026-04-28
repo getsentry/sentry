@@ -9,6 +9,7 @@ import {
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {percentThresholdDeltaToAbsolute} from 'sentry/views/detectors/utils/percentThreshold';
 
 interface MetricDetectorPreviewChartProps {
   detector?: MetricDetector;
@@ -64,13 +65,27 @@ export function MetricDetectorPreviewChart({
       return [];
     }
 
-    return createConditions({
+    const rawConditions = createConditions({
       conditionType,
       highThreshold,
       mediumThreshold,
       resolutionStrategy,
       resolutionValue,
     });
+
+    if (detectionType !== 'percent') {
+      return rawConditions;
+    }
+
+    // The shared threshold chart hook expects backend-style absolute percent comparisons
+    // (e.g. 110), while the form state stores user-facing deltas (e.g. 10% higher).
+    return rawConditions.map(condition => ({
+      ...condition,
+      comparison:
+        typeof condition.comparison === 'number'
+          ? percentThresholdDeltaToAbsolute(condition.comparison, condition.type)
+          : condition.comparison,
+    }));
   }, [
     conditionType,
     highThreshold,

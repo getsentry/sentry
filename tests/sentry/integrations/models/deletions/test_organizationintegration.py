@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions_control
@@ -21,13 +23,16 @@ from sentry.workflow_engine.models import Action
 
 @control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self) -> None:
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
+    )
+    def test_simple(self, mock_handoff: MagicMock) -> None:
         org = self.create_organization()
         integration, organization_integration = self.create_provider_integration_for(
             org, self.user, provider="example", name="Example"
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             external_issue = ExternalIssue.objects.create(
                 organization_id=org.id, integration_id=integration.id, key="ABC-123"
             )
@@ -40,7 +45,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # TODO: When external issue -> organization is a hybrid cloud foreign key, test this is deleted via that route.
             assert ExternalIssue.objects.filter(id=external_issue.id).exists()
 
@@ -57,7 +62,13 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-    def test_repository_and_identity(self) -> None:
+    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
+    )
+    def test_repository_and_identity(
+        self, mock_handoff: MagicMock, mock_repo_cleanup: MagicMock
+    ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -71,7 +82,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             project=project, name="testrepo", provider="gitlab", integration_id=integration.id
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             external_issue = ExternalIssue.objects.create(
                 organization_id=org.id, integration_id=integration.id, key="ABC-123"
             )
@@ -85,14 +96,18 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
         assert not Identity.objects.filter(id=identity.id).exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert Project.objects.filter(id=project.id).exists()
             # TODO: When external issue -> organization is a hybrid cloud foreign key, test this is deleted via that route.
             assert ExternalIssue.objects.filter(id=external_issue.id).exists()
             repo = Repository.objects.get(id=repository.id)
             assert repo.integration_id is None
 
-    def test_codeowner_links(self) -> None:
+    @patch("sentry.integrations.services.repository.impl.bulk_cleanup_seer_repository_preferences")
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
+    )
+    def test_codeowner_links(self, mock_handoff: MagicMock, mock_repo_cleanup: MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -114,13 +129,16 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             run_scheduled_deletions_control()
 
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # We expect to delete all associated Code Owners and Code Mappings
             assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
 
     @with_feature("organizations:update-action-status")
-    def test_actions_disabled_on_integration_delete(self) -> None:
+    @patch(
+        "sentry.integrations.services.repository.impl.cleanup_seer_automation_handoffs_for_integration"
+    )
+    def test_actions_disabled_on_integration_delete(self, mock_handoff: MagicMock) -> None:
         """Test that actions are actually disabled when organization integration is deleted."""
         org = self.create_organization()
         integration, organization_integration = self.create_provider_integration_for(
@@ -153,7 +171,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
         # Verify organization integration is deleted
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Verify action is also deleted
             action = Action.objects.get(id=action.id)
             assert action.status == ObjectStatus.DISABLED

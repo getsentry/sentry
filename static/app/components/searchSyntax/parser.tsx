@@ -10,7 +10,7 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 import {getKeyName} from './utils';
 
 type TextFn = () => string;
@@ -76,6 +76,8 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+  // NOTE: These wildcard operators are internal implementation details and
+  // should not be included in product docs. Users should use `*` instead.
   CONTAINS = '\uf00dContains\uf00d',
   DOES_NOT_CONTAIN = '\uf00dDoesNotContain\uf00d',
   STARTS_WITH = '\uf00dStartsWith\uf00d',
@@ -884,7 +886,7 @@ export class TokenConverter {
   /**
    * Checks a filter against some non-grammar validation rules
    */
-  checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
+  checkFilterWarning = (key: FilterMap[FilterType]['key']) => {
     if (
       ![
         Token.KEY_SIMPLE,
@@ -901,19 +903,7 @@ export class TokenConverter {
       return null;
     }
 
-    const keyName = getKeyName(
-      key as TokenResult<
-        | Token.KEY_SIMPLE
-        | Token.KEY_EXPLICIT_TAG
-        | Token.KEY_EXPLICIT_FLAG
-        | Token.KEY_AGGREGATE
-        | Token.KEY_EXPLICIT_BOOLEAN_TAG
-        | Token.KEY_EXPLICIT_NUMBER_TAG
-        | Token.KEY_EXPLICIT_NUMBER_FLAG
-        | Token.KEY_EXPLICIT_STRING_TAG
-        | Token.KEY_EXPLICIT_STRING_FLAG
-      >
-    );
+    const keyName = getKeyName(key);
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
 
@@ -1476,7 +1466,7 @@ export const defaultConfig: SearchConfig = {
     'team_key_transaction',
     'symbolicated_in_app',
   ]),
-  sizeKeys: new Set([]),
+  sizeKeys: new Set(),
   disallowedLogicalOperators: new Set(),
   disallowFreeText: false,
   disallowWildcard: false,
@@ -1511,12 +1501,9 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-function tryParseSearch<T extends {config: SearchConfig}>(
-  query: string,
-  config: T
-): ParseResult | null {
+function tryParseSearch(...args: Parameters<typeof parse>): ParseResult | null {
   try {
-    return grammar.parse(query, config);
+    return parse(...args);
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),

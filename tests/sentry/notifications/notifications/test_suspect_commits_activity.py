@@ -10,7 +10,6 @@ from sentry.notifications.notifications.activity.note import NoteActivityNotific
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -57,8 +56,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
             context={"commitId": commit.id},
         )
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_assigned_notification_includes_suspect_commits(self):
+    def test_assigned_notification_includes_suspect_commits(self) -> None:
         self._create_suspect_commit_owner(self.commit1)
 
         activity = Activity.objects.create(
@@ -83,8 +81,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert context["commits"][0]["shortId"] == "abc123d"
         assert context["commits"][0]["author"]["name"] == self.user.get_display_name()
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_unassigned_notification_includes_suspect_commits(self):
+    def test_unassigned_notification_includes_suspect_commits(self) -> None:
         # First assign, then unassign
         GroupAssignee.objects.create(
             group=self.group,
@@ -115,8 +112,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert len(context["commits"]) == 1
         assert context["commits"][0]["subject"] == "feat: Add new feature"
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_resolved_notification_includes_suspect_commits(self):
+    def test_resolved_notification_includes_suspect_commits(self) -> None:
         self._create_suspect_commit_owner(self.commit1)
 
         activity = Activity.objects.create(
@@ -134,8 +130,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert len(context["commits"]) == 1
         assert context["commits"][0]["subject"] == "feat: Add new feature"
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_note_notification_includes_suspect_commits(self):
+    def test_note_notification_includes_suspect_commits(self) -> None:
         self._create_suspect_commit_owner(self.commit1)
 
         activity = Activity.objects.create(
@@ -153,8 +148,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert len(context["commits"]) == 1
         assert context["commits"][0]["subject"] == "feat: Add new feature"
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_multiple_suspect_commits_in_notification(self):
+    def test_multiple_suspect_commits_in_notification(self) -> None:
         """Test that when multiple suspect commits exist, only the most recent one is returned."""
         # Create GroupOwner records for both commits
         self._create_suspect_commit_owner(self.commit1)
@@ -185,8 +179,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert commit["subject"] == "fix: Critical bug fix"
         assert commit["id"] == "def456ghi789"
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_notification_without_suspect_commits(self):
+    def test_notification_without_suspect_commits(self) -> None:
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
@@ -206,8 +199,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert "commits" in context
         assert context["commits"] == []
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_graceful_handling_of_invalid_commit_ids(self):
+    def test_graceful_handling_of_invalid_commit_ids(self) -> None:
         # Create GroupOwner with invalid commit ID
         GroupOwner.objects.create(
             group=self.group,
@@ -238,8 +230,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         assert "commits" in context
         assert context["commits"] == []
 
-    @with_feature("organizations:suspect-commits-in-emails")
-    def test_enhanced_privacy_hides_suspect_commits(self):
+    def test_enhanced_privacy_hides_suspect_commits(self) -> None:
         """Test that suspect commits are hidden when enhanced privacy is enabled."""
         self._create_suspect_commit_owner(self.commit1)
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))

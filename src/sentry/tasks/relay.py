@@ -2,8 +2,10 @@ import logging
 import time
 
 import sentry_sdk
-from django.db import router, transaction
+from django.db import connections, router, transaction
 
+from sentry import options
+from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -14,6 +16,16 @@ from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
+
+# Project options that don't trigger a project config invalidation.
+NON_INVALIDATING_PROJECT_OPTIONS = [
+    "sentry:_last_auto_resolve",
+    # This option is updated very often, but only keeps track of transaction clusterer internal metadata.
+    "sentry:transaction_name_cluster_meta",
+    # This project option is used in getsentry:
+    # https://github.com/getsentry/getsentry/blob/cb3a1a43999e920e4023f8ee7236e121960caea0/getsentry/consumers/outcomes_consumer.py#L399
+    *[f"quotas:{category.value}-spike-protection-currently-active" for category in DataCategory],
+]
 
 
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
@@ -197,7 +209,7 @@ def compute_projectkey_config(key):
     name="sentry.tasks.relay.invalidate_project_config",
     namespace=relay_tasks,
     processing_deadline_duration=25 * 60 + 5,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def invalidate_project_config(
     organization_id=None,
@@ -301,28 +313,42 @@ def schedule_invalidate_project_config(
 
     from sentry.models.project import Project
 
+    if (
+        trigger
+        in [
+            "projectoption.post_delete",
+            "projectoption.post_save",
+            "projectoption.set_value",
+            "projectoption.unset_value",
+        ]
+        and trigger_details in NON_INVALIDATING_PROJECT_OPTIONS
+    ):
+        return
+
     if transaction_db is None:
         transaction_db = router.db_for_write(Project)
+
+    def _do_schedule():
+        _schedule_invalidate_project_config(
+            trigger=trigger,
+            trigger_details=trigger_details,
+            organization_id=organization_id,
+            project_id=project_id,
+            public_key=public_key,
+            countdown=countdown,
+        )
 
     with sentry_sdk.start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
         span.set_tag("transaction_db", transaction_db)
-
-        # XXX(iker): updating a lot of organizations or projects in a single
-        # database transaction causes the `on_commit` list to grow considerably
-        # and may cause memory leaks.
-        transaction.on_commit(
-            lambda: _schedule_invalidate_project_config(
-                trigger=trigger,
-                trigger_details=trigger_details,
-                organization_id=organization_id,
-                project_id=project_id,
-                public_key=public_key,
-                countdown=countdown,
-            ),
-            using=transaction_db,
-        )
+        if (
+            options.get("relay.invalidation-direct-outside-atomic")
+            and not connections[transaction_db].in_atomic_block
+        ):
+            _do_schedule()
+        else:
+            transaction.on_commit(_do_schedule, using=transaction_db)
 
 
 def _schedule_invalidate_project_config(

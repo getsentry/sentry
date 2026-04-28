@@ -7,16 +7,14 @@ type Props = Omit<ViewerProps, 'attachment'> & {
   onLoad?: React.ReactEventHandler<HTMLImageElement>;
 };
 
-function ImageViewer({onLoad, onError, className, ...props}: Props) {
+export function ImageViewer({onLoad, onError, className, ...props}: Props) {
   return (
     <img
       className={className}
       data-test-id="image-viewer"
-      src={getAttachmentUrl(props, true)}
+      src={`/api/0${getAttachmentUrl(props)}?download`}
       onLoad={onLoad}
       onError={onError}
     />
   );
 }
-
-export default ImageViewer;

@@ -12,6 +12,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.conf.server import SENTRY_SCOPES
 from sentry.models.apikey import ApiKey
 from sentry.organizations.services.organization.model import RpcOrganization
 
@@ -20,6 +21,14 @@ class ApiKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = ApiKey
         fields = ("label", "scope_list", "allowed_origins")
+
+    def validate_scope_list(self, value):
+        invalid_scopes = set(value) - SENTRY_SCOPES
+        if invalid_scopes:
+            raise serializers.ValidationError(
+                f"Invalid scopes: {', '.join(sorted(invalid_scopes))}"
+            )
+        return value
 
 
 @control_silo_endpoint

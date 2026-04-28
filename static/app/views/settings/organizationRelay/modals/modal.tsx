@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
+import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -13,7 +14,7 @@ type Props = {
   btnSaveLabel?: string;
 } & ModalRenderProps;
 
-function Modal({
+export function Modal({
   title,
   onSave,
   content,
@@ -29,7 +30,7 @@ function Modal({
       <Header closeButton>{title}</Header>
       <Body>{content}</Body>
       <Footer>
-        <ButtonBar gap="lg">
+        <Grid flow="column" align="center" gap="lg">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button
             onClick={event => {
@@ -43,10 +44,8 @@ function Modal({
           >
             {btnSaveLabel}
           </Button>
-        </ButtonBar>
+        </Grid>
       </Footer>
     </Fragment>
   );
 }
-
-export default Modal;

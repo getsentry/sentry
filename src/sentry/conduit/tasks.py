@@ -33,7 +33,7 @@ TASK_PROCESSING_DEADLINE_SECONDS = 60 * 3  # 3 minutes
     name="sentry.conduit.tasks.stream_demo_data",
     namespace=conduit_tasks,
     processing_deadline_duration=TASK_PROCESSING_DEADLINE_SECONDS,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def stream_demo_data(org_id: int, channel_id: str) -> None:
     """Asynchronously stream data to Conduit."""

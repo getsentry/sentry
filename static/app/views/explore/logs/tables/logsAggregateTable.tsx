@@ -3,12 +3,12 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Pagination from 'sentry/components/pagination';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {Pagination} from 'sentry/components/pagination';
+import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -16,9 +16,9 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ALLOWED_CELL_ACTIONS} from 'sentry/views/explore/components/table';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
@@ -51,13 +51,12 @@ export function LogsAggregateTable({
   const {data, pageLinks, isLoading, error, eventView} = aggregatesTableResult;
 
   const columns = useMemo(() => {
-    return eventView?.getColumns()?.reduce(
-      (acc, col) => {
+    return eventView
+      ?.getColumns()
+      ?.reduce<Record<string, TableColumn<string>>>((acc, col) => {
         acc[col.key] = col;
         return acc;
-      },
-      {} as Record<string, TableColumn<string>>
-    );
+      }, {});
   }, [eventView]);
 
   const groupBys = useQueryParamsGroupBys();
@@ -111,7 +110,7 @@ export function LogsAggregateTable({
               title = prettifyTagKey(field);
             }
 
-            const direction: 'asc' | 'desc' | undefined =
+            const direction =
               aggregateSortBys?.[0]?.field === column.key
                 ? aggregateSortBys?.[0]?.kind
                 : undefined;
@@ -138,9 +137,7 @@ export function LogsAggregateTable({
           },
           renderBodyCell: (column, row) => {
             const value =
-              typeof row[column.key] === 'undefined'
-                ? null
-                : (row[column.key] as string | number);
+              row[column.key] === undefined ? null : (row[column.key] as string | number);
             const level = getLogSeverityLevel(
               typeof row?.[OurLogKnownFieldKey.SEVERITY_NUMBER] === 'number'
                 ? row?.[OurLogKnownFieldKey.SEVERITY_NUMBER]
@@ -152,6 +149,7 @@ export function LogsAggregateTable({
             const extra: RendererExtra = {
               attributes: row,
               attributeTypes: data?.meta?.fields ?? {},
+              caseSensitiveHighlighting: false,
               highlightTerms: [],
               logColors: getLogColors(level, theme),
               location,

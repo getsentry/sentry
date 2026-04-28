@@ -1,20 +1,19 @@
 import type {MouseEventHandler} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
 import {PROVIDER_TO_SETUP_WEBHOOK_URL} from 'sentry/components/events/featureFlags/utils';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-function NewSecretHandler({
+export function NewSecretHandler({
   secret,
   provider,
   onGoBack,
@@ -81,7 +80,7 @@ function NewSecretHandler({
 }
 
 const StyledFieldGroup = styled(FieldGroup)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
 `;
 
 const ButtonWrapper = styled('div')`
@@ -90,11 +89,9 @@ const ButtonWrapper = styled('div')`
   flex-direction: column;
   align-items: flex-end;
   font-size: ${p => p.theme.font.size.sm};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledPanelItem = styled(PanelItem)`
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
-
-export default NewSecretHandler;

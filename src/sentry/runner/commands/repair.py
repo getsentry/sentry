@@ -5,7 +5,7 @@ import click
 from django.db import transaction
 
 from sentry.runner.decorators import configuration
-from sentry.silo.base import SiloLimit, region_silo_function
+from sentry.silo.base import SiloLimit, cell_silo_function
 from sentry.types.activity import ActivityType
 
 
@@ -22,7 +22,7 @@ def catchable_atomic() -> Generator[None]:
         pass
 
 
-@region_silo_function
+@cell_silo_function
 def create_missing_dsns() -> None:
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
@@ -36,7 +36,7 @@ def create_missing_dsns() -> None:
             pass
 
 
-@region_silo_function
+@cell_silo_function
 def fix_group_counters() -> None:
     from django.db import connection
 

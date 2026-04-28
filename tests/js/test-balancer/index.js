@@ -1,7 +1,7 @@
 'use strict';
 
-const fs = require('node:fs');
-const path = require('node:path');
+import {writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 
 /**
  * Jest balance reporter that writes test timing data to a JSON file
@@ -10,7 +10,7 @@ const path = require('node:path');
  * @param {Array<{testFilePath: string, perfStats: {runtime: number}}>} results.testResults - Array of test result objects
  * @returns {Object} The original results object
  */
-function writeReport(results) {
+export default function writeReport(results) {
   if (!results.success) {
     throw new Error('Balance reporter requires all tests to succeed.');
   }
@@ -23,12 +23,10 @@ function writeReport(results) {
     testValues[test.testFilePath.replace(cwd, '')] = test.perfStats.runtime;
   }
 
-  fs.writeFileSync(
-    path.resolve(__dirname, 'jest-balance.json'),
+  writeFileSync(
+    resolve(import.meta.dirname, 'jest-balance.json'),
     JSON.stringify(testValues, null, '\t')
   );
 
   return results;
 }
-
-module.exports = writeReport;

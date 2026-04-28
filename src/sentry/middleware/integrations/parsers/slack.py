@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TypeGuard
 from urllib.parse import parse_qs
 
 import orjson
@@ -22,8 +22,10 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.message_builder.routing import SlackRoutingData, decode_action_id
-from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.requests.event import is_event_challenge
+from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.command import SlackCommandRequest
+from sentry.integrations.slack.requests.event import SlackEventRequest, is_event_challenge
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views import SALT
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
@@ -40,8 +42,11 @@ from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.middleware.integrations.tasks import convert_to_async_slack_response
-from sentry.types.region import Region
+from sentry.middleware.integrations.tasks import (
+    convert_to_async_slack_response,
+    route_slack_seer_event,
+)
+from sentry.types.cell import Cell
 from sentry.utils import json
 from sentry.utils.signing import unsign
 
@@ -55,18 +60,11 @@ class SlackRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.SLACK
     response_url: str | None = None
     action_option: str | None = None
+    slack_request: SlackRequest | None = None
 
     control_classes = [
         SlackLinkIdentityView,
         SlackUnlinkIdentityView,
-    ]
-
-    region_classes = [
-        SlackLinkTeamView,
-        SlackUnlinkTeamView,
-        SlackCommandsEndpoint,
-        SlackEventEndpoint,
-        SlackOptionsLoadEndpoint,
     ]
 
     webhook_endpoints = [
@@ -157,7 +155,7 @@ class SlackRequestParser(BaseRequestParser):
             }
             logger.info("slack.control.view.open.failure", extra=logger_params)
 
-    def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponseBase:
+    def get_async_cell_response(self, cells: Sequence[Cell]) -> HttpResponseBase:
         if self.response_url is None:
             return self.get_response_from_control_silo()
 
@@ -188,7 +186,7 @@ class SlackRequestParser(BaseRequestParser):
 
         convert_to_async_slack_response.apply_async(
             kwargs={
-                "region_names": [r.name for r in regions],
+                "cell_names": [r.name for r in cells],
                 "payload": create_async_request_payload(self.request),
                 "response_url": self.response_url,
             }
@@ -211,6 +209,7 @@ class SlackRequestParser(BaseRequestParser):
                     "slack.validation_error", extra={"path": self.request.path, "error": error}
                 )
                 return None
+            self.slack_request = slack_request
             self.response_url = slack_request.response_url
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
@@ -230,22 +229,26 @@ class SlackRequestParser(BaseRequestParser):
         as an additional argument. If not, we'll pick from all the organizations, which might fail.
         """
 
-        drf_request: Request
-        if self.view_class == SlackCommandsEndpoint:
-            drf_request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
-            cmd_input = slack_request.get_command_input()
+        if not self.slack_request:
+            return organizations
+
+        if self.view_class == SlackCommandsEndpoint and isinstance(
+            self.slack_request, SlackCommandRequest
+        ):
+            cmd_input = self.slack_request.get_command_input()
 
             # For both linking/unlinking teams, the organization slug is found in the same place
-            link_input = None
+            org_input = None
             if commands.LINK_TEAM.command_slug.does_match(cmd_input):
-                link_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
+                org_input = cmd_input.adjust(commands.LINK_TEAM.command_slug)
             elif commands.UNLINK_TEAM.command_slug.does_match(cmd_input):
-                link_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
-            if not link_input or not link_input.arg_values:
+                org_input = cmd_input.adjust(commands.UNLINK_TEAM.command_slug)
+            elif commands.SET_DEFAULT_ORG.command_slug.does_match(cmd_input):
+                org_input = cmd_input.adjust(commands.SET_DEFAULT_ORG.command_slug)
+            if not org_input or not org_input.arg_values:
                 return organizations
 
-            linking_organization_slug = link_input.arg_values[0]
+            linking_organization_slug = org_input.arg_values[0]
             linking_organization = next(
                 (org for org in organizations if org.slug == linking_organization_slug), None
             )
@@ -257,15 +260,13 @@ class SlackRequestParser(BaseRequestParser):
                 return [linking_organization]
 
         elif self.view_class in [SlackActionEndpoint, SlackOptionsLoadEndpoint]:
-            drf_request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
             if self.view_class == SlackActionEndpoint:
-                actions = slack_request.data.get("actions", [])
+                actions = self.slack_request.data.get("actions", [])
                 action_ids: list[str] = [
                     action["action_id"] for action in actions if action.get("action_id")
                 ]
             elif self.view_class == SlackOptionsLoadEndpoint:
-                action_ids = [slack_request.data.get("action_id", "")]
+                action_ids = [self.slack_request.data.get("action_id", "")]
 
             decoded_actions: list[SlackRoutingData] = [
                 decode_action_id(action_id) for action_id in action_ids
@@ -279,7 +280,7 @@ class SlackRequestParser(BaseRequestParser):
                 logger.info(
                     "slack.control.multiple_organizations",
                     extra={
-                        "integration_id": slack_request.integration.id,
+                        "integration_id": self.slack_request.integration.id,
                         "organization_ids": list(decoded_organization_ids),
                         "action_ids": action_ids,
                     },
@@ -295,11 +296,16 @@ class SlackRequestParser(BaseRequestParser):
                 )
                 return [action_organization]
 
-        logger.info(
-            "slack.control.could_not_route",
-            extra={"view_class": self.view_class},
-        )
         return organizations
+
+    def _is_seer_agent_request(
+        self, slack_request: SlackRequest | None
+    ) -> TypeGuard[SlackEventRequest]:
+        return (
+            self.view_class == SlackEventEndpoint
+            and isinstance(slack_request, SlackEventRequest)
+            and slack_request.is_seer_agent_request
+        )
 
     def get_response(self) -> HttpResponseBase:
         """
@@ -318,39 +324,61 @@ class SlackRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            regions = self.get_regions_from_organizations()
+            cells = self.get_cells_from_organizations()
         except Integration.DoesNotExist:
             # Alert, as there may be a misconfiguration issue
             sentry_sdk.capture_exception()
             return self.get_default_missing_integration_response()
 
-        if len(regions) == 0:
+        if len(cells) == 0:
             # Swallow this exception, as this is likely due to a user removing
             # their org's slack integration, and slack will continue to retry
             # this request until it succeeds.
             return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-        if self.view_class == SlackActionEndpoint:
-            drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
-            slack_request = self.view_class.slack_request_class(drf_request)
-            self.response_url = slack_request.response_url
-            self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
-                slack_request=slack_request
+        if self._is_seer_agent_request(self.slack_request):
+            route_slack_seer_event.apply_async(
+                kwargs={
+                    "payload": create_async_request_payload(self.request),
+                    "integration_id": self.slack_request.integration.id,
+                    "slack_user_id": self.slack_request.user_id,
+                    "channel_id": self.slack_request.channel_id,
+                    "thread_ts": self.slack_request.thread_ts,
+                    "message_ts": self.slack_request.dm_data.get("ts", ""),
+                    "event_type": self.slack_request.dm_data.get("type", ""),
+                    "message_text": self.slack_request.text,
+                }
             )
-            # All actions other than those below are sent to every region
+            logger.info(
+                "slack.control.seer_event.routing_scheduled",
+                extra={
+                    "integration_id": self.slack_request.integration.id,
+                    "event_type": self.slack_request.type,
+                },
+            )
+            return HttpResponse(status=status.HTTP_200_OK)
+
+        if self.view_class == SlackActionEndpoint and isinstance(
+            self.slack_request, SlackActionRequest
+        ):
+            self.response_url = self.slack_request.response_url
+            self.action_option, self.action_id = SlackActionEndpoint.get_action_option(
+                slack_request=self.slack_request
+            )
+            # All actions other than those below are sent to every cell
             if self.action_option not in ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS:
                 return (
-                    self.get_async_region_response(regions=regions)
+                    self.get_async_cell_response(cells=cells)
                     if self.response_url
-                    else self.get_response_from_all_regions()
+                    else self.get_response_from_all_cells()
                 )
 
         # Slack webhooks can only receive one synchronous call/response, as there are many
         # places where we post to slack on their webhook request. This would cause multiple
-        # calls back to slack for every region we forward to.
-        # By convention, we use the first integration organization/region
+        # calls back to slack for every cell we forward to.
+        # By convention, we use the first integration organization/cell
         return (
-            self.get_async_region_response(regions=[regions[0]])
+            self.get_async_cell_response(cells=[cells[0]])
             if self.response_url
-            else self.get_response_from_first_region()
+            else self.get_response_from_first_cell()
         )

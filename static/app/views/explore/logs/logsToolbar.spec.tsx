@@ -38,24 +38,31 @@ describe('LogsToolbar', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {key: 'bar', name: 'bar', attributeSource: {source_type: 'custom'}},
-        {key: 'foo', name: 'foo', attributeSource: {source_type: 'custom'}},
-      ],
-      match: [MockApiClient.matchQuery({attributeType: 'number', itemType: 'logs'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
-        {key: 'severity', name: 'severity', attributeSource: {source_type: 'custom'}},
         {
+          attributeType: 'number',
+          key: 'bar',
+          name: 'bar',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'number',
+          key: 'foo',
+          name: 'foo',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
+          key: 'severity',
+          name: 'severity',
+          attributeSource: {source_type: 'custom'},
+        },
+        {
+          attributeType: 'string',
           key: 'custom.string_tag',
           name: 'custom.string_tag',
           attributeSource: {source_type: 'custom'},
         },
       ],
-      match: [MockApiClient.matchQuery({attributeType: 'string', itemType: 'logs'})],
     });
   });
 
@@ -238,33 +245,49 @@ describe('LogsToolbar', () => {
         )
       );
     });
+
+    it('can clear the last selected group by', async () => {
+      let mode: Mode | undefined = undefined;
+
+      function Component() {
+        mode = useQueryParamsMode();
+        return <LogsToolbar />;
+      }
+      const {router} = render(<Component />, {organization, additionalWrapper: Wrapper});
+
+      const section = screen.getByTestId('section-group-by');
+      const editorColumn = screen.getAllByTestId('editor-column')[0]!;
+      await userEvent.click(within(editorColumn).getByRole('button', {name: '—'}));
+      await userEvent.click(screen.getByRole('option', {name: 'message'}));
+
+      expect(mode).toEqual(Mode.AGGREGATE);
+      expect(within(section).queryByLabelText('Remove Column')).not.toBeInTheDocument();
+
+      await userEvent.click(within(section).getByLabelText('Clear Group By'));
+      expect(router.location.query.aggregateField).toEqual(
+        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
+          JSON.stringify(aggregateField)
+        )
+      );
+
+      expect(mode).toEqual(Mode.SAMPLES);
+      expect(within(section).queryByLabelText('Clear Group By')).not.toBeInTheDocument();
+    });
   });
 
   it('re-fetches attributes on search', async () => {
-    const searchStringMock = MockApiClient.addMockResponse({
+    const searchAttributesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
         {
+          attributeType: 'string',
           key: 'custom.searched_tag',
           name: 'custom.searched_tag',
           attributeSource: {source_type: 'custom'},
         },
-      ],
-      match: [
-        MockApiClient.matchQuery({
-          attributeType: 'string',
-          itemType: 'logs',
-          substringMatch: 'searched',
-        }),
-      ],
-    });
-
-    const searchNumberMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
-      method: 'GET',
-      body: [
         {
+          attributeType: 'number',
           key: 'searched_number',
           name: 'searched_number',
           attributeSource: {source_type: 'custom'},
@@ -272,7 +295,7 @@ describe('LogsToolbar', () => {
       ],
       match: [
         MockApiClient.matchQuery({
-          attributeType: 'number',
+          attributeType: ['string', 'number', 'boolean'],
           itemType: 'logs',
           substringMatch: 'searched',
         }),
@@ -291,8 +314,7 @@ describe('LogsToolbar', () => {
     const searchInput = screen.getByRole('textbox');
     await userEvent.type(searchInput, 'searched');
 
-    await waitFor(() => expect(searchStringMock).toHaveBeenCalled());
-    await waitFor(() => expect(searchNumberMock).toHaveBeenCalled());
+    await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
     expect(
       await screen.findByRole('option', {name: 'custom.searched_tag'})

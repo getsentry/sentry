@@ -1,16 +1,16 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {AutofixStepFeedback} from 'sentry/components/events/autofix/autofixStepFeedback';
@@ -21,28 +21,24 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
   useAutofixRepos,
-  type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {formatSolutionWithEvent} from 'sentry/components/events/autofix/utils';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
-import AutofixHighlightPopup from './autofixHighlightPopup';
+import {AutofixHighlightPopup} from './autofixHighlightPopup';
 
 function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi();
@@ -70,20 +66,19 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
       );
     },
     onSuccess: (_, params) => {
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(orgSlug, groupId),
-        data => {
-          if (!data?.autofix) {
-            return data;
-          }
+      queryClient.setQueryData(autofixApiOptions(orgSlug, groupId).queryKey, prev => {
+        if (!prev?.json?.autofix) {
+          return prev;
+        }
 
-          return {
-            ...data,
+        return {
+          ...prev,
+          json: {
+            ...prev.json,
             autofix: {
-              ...data.autofix,
+              ...prev.json.autofix,
               status: AutofixStatus.PROCESSING,
-              steps: data.autofix.steps?.map(step => {
+              steps: prev.json.autofix.steps?.map(step => {
                 if (step.type !== AutofixStepType.SOLUTION) {
                   return step;
                 }
@@ -99,14 +94,14 @@ function useSelectSolution({groupId, runId}: {groupId: string; runId: string}) {
                 };
               }),
             },
-          };
-        }
-      );
-      queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+          },
+        };
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addLoadingMessage('On it.');
     },
@@ -136,7 +131,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
+  transition: {
     duration: 1.0,
     height: {
       type: 'spring',
@@ -150,7 +145,7 @@ const cardAnimationProps: MotionNodeAnimationOptions = {
       type: 'tween',
       ease: 'easeOut',
     },
-  }),
+  },
 };
 
 function SolutionDescription({
@@ -212,8 +207,8 @@ function SolutionDescription({
 
 const Description = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-  padding-bottom: ${space(2)};
-  margin-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 type SolutionEventListProps = {
@@ -305,11 +300,13 @@ export function formatSolutionText(
 
 function CopySolutionButton({
   solution,
+  groupId,
   customSolution,
   event,
   isEditing,
   rootCause,
 }: {
+  groupId: string;
   solution: AutofixSolutionTimelineEvent[];
   customSolution?: string;
   event?: Event;
@@ -326,10 +323,11 @@ function CopySolutionButton({
   return (
     <Button
       size="sm"
-      title="Copy plan as Markdown / LLM prompt"
+      tooltipProps={{title: 'Copy plan as Markdown / LLM prompt'}}
       onClick={() => copy(text, {successMessage: t('Solution copied to clipboard.')})}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
+      analyticsParams={{group_id: groupId}}
       icon={<IconCopy />}
     >
       {t('Copy')}
@@ -391,8 +389,7 @@ function AutofixSolutionDisplay({
 
   const hasNoRepos = repos.length === 0;
   const cantReadRepos = repos.every(repo => repo.is_readable === false);
-  const codingDisabled =
-    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
+  const enableSeerCoding = organization.enableSeerCoding !== false;
 
   const handleAddInstruction = () => {
     if (instructions.trim()) {
@@ -412,6 +409,7 @@ function AutofixSolutionDisplay({
 
       trackAnalytics('autofix.solution.add_step', {
         organization,
+        group_id: groupId,
         solution: solutionItems,
         newStep,
       });
@@ -429,11 +427,12 @@ function AutofixSolutionDisplay({
 
       trackAnalytics('autofix.solution.delete_step', {
         organization,
+        group_id: groupId,
         solution: solutionItems,
         deletedStep: solutionItems[index],
       });
     },
-    [organization, solutionItems]
+    [organization, groupId, solutionItems]
   );
 
   const handleToggleActive = useCallback(
@@ -448,11 +447,12 @@ function AutofixSolutionDisplay({
 
       trackAnalytics('autofix.solution.toggle_step', {
         organization,
+        group_id: groupId,
         solution: solutionItems,
         toggledStep: solutionItems[index],
       });
     },
-    [organization, solutionItems]
+    [organization, groupId, solutionItems]
   );
 
   const handleCodeItUp = () => {
@@ -477,6 +477,7 @@ function AutofixSolutionDisplay({
 
       trackAnalytics('autofix.solution.add_step', {
         organization,
+        group_id: groupId,
         solution: solutionItems,
         newStep,
       });
@@ -532,6 +533,7 @@ function AutofixSolutionDisplay({
             <div style={{flex: 1}} />
             <CopySolutionButton
               solution={solution}
+              groupId={groupId}
               customSolution={customSolution}
               event={event}
               rootCause={rootCause}
@@ -552,11 +554,12 @@ function AutofixSolutionDisplay({
           {t('Solution')}
           <Button
             size="zero"
-            borderless
-            title={t('Chat with Seer')}
+            priority="transparent"
+            tooltipProps={{title: t('Chat with Seer')}}
             onClick={handleSelectDescription}
             analyticsEventName="Autofix: Solution Chat"
             analyticsEventKey="autofix.solution.chat"
+            analyticsParams={{group_id: groupId}}
           >
             <IconChat />
           </Button>
@@ -610,7 +613,7 @@ function AutofixSolutionDisplay({
             <SubmitButton
               size="zero"
               type="submit"
-              borderless
+              priority="transparent"
               disabled={!instructions.trim()}
               aria-label={t('Add to solution')}
             >
@@ -618,16 +621,18 @@ function AutofixSolutionDisplay({
             </SubmitButton>
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
-        <ButtonBar>
-          <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
+        <Grid flow="column" align="center" gap="md">
+          <CopySolutionButton
+            solution={solution}
+            groupId={groupId}
+            event={event}
+            rootCause={rootCause}
+          />
           <Tooltip
             isHoverable
             title={
-              codingDisabled
-                ? t(
-                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
-                  )
-                : hasNoRepos
+              enableSeerCoding
+                ? hasNoRepos
                   ? tct(
                       'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
                       {
@@ -643,6 +648,16 @@ function AutofixSolutionDisplay({
                         "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
                       )
                     : undefined
+                : tct(
+                    '[settings:"Enable Code Generation"] must be enabled by an admin in settings.',
+                    {
+                      settings: (
+                        <Link
+                          to={`/settings/${organization.slug}/seer/advanced/#enableSeerCoding`}
+                        />
+                      ),
+                    }
+                  )
             }
           >
             <Button
@@ -653,19 +668,20 @@ function AutofixSolutionDisplay({
                   : 'default'
               }
               busy={isPending}
-              disabled={hasNoRepos || cantReadRepos || codingDisabled}
+              disabled={hasNoRepos || cantReadRepos || !enableSeerCoding}
               onClick={handleCodeItUp}
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
               analyticsParams={{
+                group_id: groupId,
                 instruction_provided: hasInstructions,
               }}
-              title={t('Implement this solution in code with Seer')}
+              tooltipProps={{title: t('Implement this solution in code with Seer')}}
             >
               {t('Code It Up')}
             </Button>
           </Tooltip>
-        </ButtonBar>
+        </Grid>
         {status === AutofixStatus.COMPLETED && (
           <AutofixStepFeedback stepType="solution" groupId={groupId} runId={runId} />
         )}
@@ -697,20 +713,20 @@ export function AutofixSolution(props: AutofixSolutionProps) {
 }
 
 const NoSolutionPadding = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 const SolutionContainer = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowMedium};
+  box-shadow: ${p => p.theme.shadow.medium};
   padding: ${p => p.theme.space.lg};
   background: ${p => p.theme.tokens.background.primary};
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0 0;
+  padding: ${p => p.theme.space.md} 0 0;
 `;
 
 const HeaderText = styled('div')`
@@ -718,12 +734,12 @@ const HeaderText = styled('div')`
   font-size: ${p => p.theme.font.size.lg};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SolutionDescriptionWrapper = styled('div')`
   font-size: ${p => p.theme.font.size.md};
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;
 
 const AnimationWrapper = styled(motion.div)`
@@ -731,7 +747,8 @@ const AnimationWrapper = styled(motion.div)`
 `;
 
 const CustomSolutionPadding = styled('div')`
-  padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['2xs']} ${p => p.theme.space.xl}
+    ${p => p.theme.space['2xs']};
 `;
 
 const InstructionsInputWrapper = styled('form')`
@@ -744,7 +761,7 @@ const InstructionsInputWrapper = styled('form')`
 
 const InstructionsInput = styled(Input)`
   flex-grow: 1;
-  padding-right: ${space(4)};
+  padding-right: ${p => p.theme.space['3xl']};
 
   &::placeholder {
     color: ${p => p.theme.tokens.content.secondary};
@@ -753,7 +770,7 @@ const InstructionsInput = styled(Input)`
 
 const SubmitButton = styled(Button)`
   position: absolute;
-  right: ${space(1)};
+  right: ${p => p.theme.space.md};
   top: 50%;
   transform: translateY(-50%);
   height: 24px;

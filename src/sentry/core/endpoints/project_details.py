@@ -13,7 +13,7 @@ from rest_framework.serializers import ListField
 
 from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import is_considered_sudo
 from sentry.api.exceptions import SudoRequired
@@ -33,7 +33,7 @@ from sentry.constants import (
     SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
@@ -57,7 +57,7 @@ from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.relay.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tasks.seer.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
@@ -106,11 +106,22 @@ class ProjectMemberSerializer(serializers.Serializer):
         required=False,
     )
     seerScannerAutomation = serializers.BooleanField(required=False)
+    seerNightshiftTweaks = serializers.JSONField(required=False, allow_null=True)
     preprodSizeStatusChecksEnabled = serializers.BooleanField(
         help_text="Enable preprod size status checks. Can be updated with **`project:read`** permission.",
         required=False,
     )
     preprodSizeStatusChecksRules = serializers.JSONField(required=False)
+    preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
+    preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
+    preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
+    preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsOnlyIfDiff = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -148,11 +159,20 @@ class ProjectMemberSerializer(serializers.Serializer):
         "tempestFetchScreenshots",
         "autofixAutomationTuning",
         "seerScannerAutomation",
+        "seerNightshiftTweaks",
         "debugFilesRole",
         "preprodSizeStatusChecksEnabled",
         "preprodSizeStatusChecksRules",
         "preprodSizeEnabledQuery",
         "preprodDistributionEnabledQuery",
+        "preprodSizeEnabledByCustomer",
+        "preprodDistributionEnabledByCustomer",
+        "preprodSnapshotStatusChecksEnabled",
+        "preprodSnapshotStatusChecksFailOnAdded",
+        "preprodSnapshotStatusChecksFailOnRemoved",
+        "preprodDistributionPrCommentsEnabledByCustomer",
+        "preprodSnapshotPrCommentsEnabled",
+        "preprodSnapshotPrCommentsOnlyIfDiff",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -213,7 +233,7 @@ E.g. `['release', 'environment']`""",
         r"^[-a-zA-Z0-9+/=\s]+$", max_length=255, allow_blank=True
     )
     securityTokenHeader = serializers.RegexField(
-        r"^[a-zA-Z0-9_\-]+$", max_length=20, allow_blank=True
+        r"^[a-zA-Z0-9_\-]+$", max_length=64, allow_blank=True
     )
     verifySSL = serializers.BooleanField(required=False)
 
@@ -243,6 +263,10 @@ E.g. `['release', 'environment']`""",
     targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     tempestFetchScreenshots = serializers.BooleanField(required=False)
+    scmSourceContextEnabled = serializers.BooleanField(
+        required=False,
+        help_text="Enable on-demand source context fetching from SCM integrations for stack traces.",
+    )
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -459,6 +483,15 @@ E.g. `['release', 'environment']`""",
             )
         return value
 
+    def validate_scmSourceContextEnabled(self, value):
+        if value:
+            organization = self.context["project"].organization
+            if not features.has("organizations:scm-source-context", organization):
+                raise serializers.ValidationError(
+                    "Organization does not have the SCM source context feature enabled."
+                )
+        return value
+
     def validate_debugFilesRole(self, value):
         if value is None:
             return value
@@ -485,7 +518,7 @@ class RelaxedProjectAndStaffPermission(StaffPermissionMixin, RelaxedProjectPermi
 
 
 @extend_schema(tags=["Projects"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
@@ -520,7 +553,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         Return details on an individual project.
         """
-        data = serialize(project, request.user, DetailedProjectSerializer())
+        collapse = request.GET.getlist("collapse", [])
+        data = serialize(project, request.user, DetailedProjectSerializer(collapse=collapse))
 
         # TODO: should switch to expand and move logic into the serializer
         include = set(filter(bool, request.GET.get("include", "").split(",")))
@@ -569,7 +603,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked`, `autofixAutomationTuning`, `seerScannerAutomation`,
         `preprodSizeStatusChecksEnabled`, `preprodSizeStatusChecksRules`,
-        `preprodSizeEnabledQuery`, and `preprodDistributionEnabledQuery`.
+        `preprodSizeEnabledQuery`, `preprodDistributionEnabledQuery`,
+        `preprodSizeEnabledByCustomer`, `preprodDistributionEnabledByCustomer`,
+        and `preprodDistributionPrCommentsEnabledByCustomer`.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -745,6 +781,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
                     "tempestFetchScreenshots"
                 ]
+        if result.get("scmSourceContextEnabled") is not None:
+            if project.update_option(
+                "sentry:scm_source_context_enabled", result["scmSourceContextEnabled"]
+            ):
+                changed_proj_settings["sentry:scm_source_context_enabled"] = result[
+                    "scmSourceContextEnabled"
+                ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
@@ -773,6 +816,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:seer_scanner_automation"] = result[
                     "seerScannerAutomation"
                 ]
+        if "seerNightshiftTweaks" in result:
+            if project.update_option(
+                "sentry:seer_nightshift_tweaks", result["seerNightshiftTweaks"]
+            ):
+                changed_proj_settings["sentry:seer_nightshift_tweaks"] = result[
+                    "seerNightshiftTweaks"
+                ]
         if result.get("preprodSizeStatusChecksEnabled") is not None:
             if project.update_option(
                 "sentry:preprod_size_status_checks_enabled",
@@ -789,6 +839,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_size_status_checks_rules"] = result[
                     "preprodSizeStatusChecksRules"
                 ]
+
+        if "preprodSizeEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_size_enabled_by_customer", result["preprodSizeEnabledByCustomer"]
+            ):
+                changed_proj_settings["sentry:preprod_size_enabled_by_customer"] = result[
+                    "preprodSizeEnabledByCustomer"
+                ]
         if "preprodSizeEnabledQuery" in result:
             if project.update_option(
                 "sentry:preprod_size_enabled_query",
@@ -797,6 +855,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_size_enabled_query"] = result[
                     "preprodSizeEnabledQuery"
                 ]
+        if "preprodDistributionEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_distribution_enabled_by_customer",
+                result["preprodDistributionEnabledByCustomer"],
+            ):
+                changed_proj_settings["sentry:preprod_distribution_enabled_by_customer"] = result[
+                    "preprodDistributionEnabledByCustomer"
+                ]
         if "preprodDistributionEnabledQuery" in result:
             if project.update_option(
                 "sentry:preprod_distribution_enabled_query",
@@ -804,6 +870,54 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_distribution_enabled_query"] = result[
                     "preprodDistributionEnabledQuery"
+                ]
+        if result.get("preprodSnapshotStatusChecksEnabled") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_enabled",
+                result["preprodSnapshotStatusChecksEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_enabled"] = result[
+                    "preprodSnapshotStatusChecksEnabled"
+                ]
+        if result.get("preprodSnapshotStatusChecksFailOnAdded") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_added",
+                result["preprodSnapshotStatusChecksFailOnAdded"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_added"] = (
+                    result["preprodSnapshotStatusChecksFailOnAdded"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRemoved") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_removed",
+                result["preprodSnapshotStatusChecksFailOnRemoved"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRemoved"]
+                )
+        if "preprodDistributionPrCommentsEnabledByCustomer" in result:
+            if project.update_option(
+                "sentry:preprod_distribution_pr_comments_enabled_by_customer",
+                result["preprodDistributionPrCommentsEnabledByCustomer"],
+            ):
+                changed_proj_settings[
+                    "sentry:preprod_distribution_pr_comments_enabled_by_customer"
+                ] = result["preprodDistributionPrCommentsEnabledByCustomer"]
+        if "preprodSnapshotPrCommentsEnabled" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_enabled",
+                result["preprodSnapshotPrCommentsEnabled"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
+                    "preprodSnapshotPrCommentsEnabled"
+                ]
+        if "preprodSnapshotPrCommentsOnlyIfDiff" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_only_if_diff",
+                result["preprodSnapshotPrCommentsOnlyIfDiff"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_only_if_diff"] = result[
+                    "preprodSnapshotPrCommentsOnlyIfDiff"
                 ]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:
@@ -1041,7 +1155,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             status=ObjectStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = RegionScheduledDeletion.schedule(project, days=0, actor=request.user)
+            scheduled = CellScheduledDeletion.schedule(project, days=0, actor=request.user)
 
             common_audit_data = {
                 "organization": project.organization,

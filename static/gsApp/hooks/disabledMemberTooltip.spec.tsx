@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('MemberListHeader', () => {
   const organization = OrganizationFixture();

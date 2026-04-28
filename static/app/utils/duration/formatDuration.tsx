@@ -62,7 +62,7 @@ const PRECISION_FACTORS: Record<Unit, number> = {
  *
  * A timespan is expressed a `number` and a `unit` pair -> [value, unit]
  */
-export default function formatDuration({
+export function formatDuration({
   precision,
   style,
   duration: [value, unit],

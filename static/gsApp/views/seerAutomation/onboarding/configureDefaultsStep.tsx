@@ -1,26 +1,27 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import defaultsImg from 'sentry-images/spot/seer-config-error.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Link} from 'sentry/components/core/link';
-import {Switch} from 'sentry/components/core/switch';
 import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUpdateOrganization} from 'sentry/utils/useUpdateOrganization';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {
   Field,
@@ -48,11 +49,11 @@ export function ConfigureDefaultsStep() {
   const {mutate: updateOrganization, isPending: isUpdateOrganizationPending} =
     useUpdateOrganization(organization);
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     updateOrganization(
       {
         defaultAutofixAutomationTuning: proposeFixesEnabled ? 'medium' : 'off',
@@ -72,21 +73,16 @@ export function ConfigureDefaultsStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(
+            new Error('Seer Onboarding: Unable to update defaults')
+          );
           addErrorMessage(
             t('Failed to update Seer default settings, reload and try again')
           );
         },
       }
     );
-  }, [
-    autoCreatePREnabled,
-    enableCodeReview,
-    proposeFixesEnabled,
-    updateOrganization,
-    currentStep,
-    setCurrentStep,
-    organization,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -97,7 +93,7 @@ export function ConfigureDefaultsStep() {
               <Flex direction="column" gap="md">
                 <Text density="comfortable">
                   {tct(
-                    `Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].`,
+                    'Create default settings for all future projects and repositories. If you don’t turn this defaults on now, you can always manage them from the [link:Seer Settings Page].',
                     {
                       link: <Link to={`/settings/${organization.slug}/seer/`} />,
                     }
@@ -105,7 +101,7 @@ export function ConfigureDefaultsStep() {
                 </Text>
                 <Text density="comfortable">
                   {t(
-                    `This will not effect the configuration of the repos and projects on the previous two steps.`
+                    'This will not effect the configuration of the repos and projects on the previous two steps.'
                   )}
                 </Text>
               </Flex>

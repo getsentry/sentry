@@ -20,7 +20,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
@@ -56,7 +56,7 @@ class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
-@region_silo_model
+@cell_silo_model
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.

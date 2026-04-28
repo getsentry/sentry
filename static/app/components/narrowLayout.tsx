@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {logout} from 'sentry/actionCreators/account';
 import {IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 type Props = {
   children: React.ReactNode;
@@ -12,7 +12,7 @@ type Props = {
   showLogout?: boolean;
 };
 
-function NarrowLayout({maxWidth, showLogout, children}: Props) {
+export function NarrowLayout({maxWidth, showLogout, children}: Props) {
   const api = useApi();
 
   useEffect(() => {
@@ -50,5 +50,3 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
 const Logout = styled('span')`
   font-size: ${p => p.theme.font.size.lg};
 `;
-
-export default NarrowLayout;

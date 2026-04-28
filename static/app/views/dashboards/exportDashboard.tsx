@@ -7,7 +7,7 @@ import type {DashboardDetails} from './types';
 
 type ExcludedProperties = 'createdBy' | 'dateCreated' | 'id' | 'dashboardId' | 'widgetId';
 
-async function exportDashboard() {
+export async function exportDashboard() {
   try {
     const structure = {
       base_url: null,
@@ -150,5 +150,3 @@ function cleanTitle(title: any) {
   const date = new Date();
   return `${formattedTitle}-${date.toISOString()}`;
 }
-
-export default exportDashboard;

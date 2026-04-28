@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import BreadcrumbDropdown from './breadcrumbDropdown';
+import {BreadcrumbDropdown} from './breadcrumbDropdown';
 
 describe('Settings Breadcrumb Dropdown', () => {
   const selectMock = jest.fn();

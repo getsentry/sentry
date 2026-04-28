@@ -1,13 +1,10 @@
 import {useEffect, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
-import {fetchMutation, useApiQuery, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {fetchMutation, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
-
-interface HookProps {
-  endpoint: string;
-}
 
 interface HookResult {
   error: string | undefined;
@@ -19,7 +16,7 @@ interface HookResult {
 /**
  * Get payment method setup intent data.
  */
-function useSetupIntentData({endpoint}: HookProps): HookResult {
+export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
   const [setupIntentData, setSetupIntentData] = useState<
     PaymentSetupCreateResponse | undefined
   >(undefined);
@@ -60,14 +57,14 @@ function useSetupIntentData({endpoint}: HookProps): HookResult {
 /**
  * Get payment intent data.
  */
-function usePaymentIntentData({endpoint}: HookProps): HookResult {
+export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookResult {
   const {
     isLoading,
     isPending,
     data: paymentIntentData,
     error,
     isError,
-  } = useApiQuery<PaymentCreateResponse>([endpoint], {
+  } = useApiQuery<PaymentCreateResponse>(queryKey, {
     staleTime: Infinity,
   });
 
@@ -83,5 +80,3 @@ function usePaymentIntentData({endpoint}: HookProps): HookResult {
     error: errorMessage,
   };
 }
-
-export {useSetupIntentData, usePaymentIntentData};

@@ -4,7 +4,7 @@ type Props = {
   anchorRef: React.Ref<SVGForeignObjectElement>;
 };
 
-function DeactivatedMember({anchorRef}: Props) {
+export function DeactivatedMember({anchorRef}: Props) {
   return (
     <StyledSvg
       xmlns="http://www.w3.org/2000/svg"
@@ -363,8 +363,6 @@ function DeactivatedMember({anchorRef}: Props) {
     </StyledSvg>
   );
 }
-
-export default DeactivatedMember;
 
 const StyledSvg = styled('svg')`
   max-width: 50%;

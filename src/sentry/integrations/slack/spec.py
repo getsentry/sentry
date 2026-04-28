@@ -58,7 +58,6 @@ class SlackMessagingSpec(MessagingIntegrationSpec):
         incident_serialized_response: DetailedIncidentSerializerResponse,
         notification_uuid: str | None = None,
     ) -> bool:
-
         from sentry.integrations.slack.utils.notifications import send_incident_alert_notification
 
         return send_incident_alert_notification(

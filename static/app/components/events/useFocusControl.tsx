@@ -5,7 +5,7 @@ import type {FlagControlOptions} from 'sentry/components/events/featureFlags/uti
 
 type FocusControlOption = BreadcrumbControlOptions | FlagControlOptions;
 
-export default function useFocusControl(initialFocusControl?: FocusControlOption) {
+export function useFocusControl(initialFocusControl?: FocusControlOption) {
   const [focusControl, setFocusControl] = useState(initialFocusControl);
   // If the focused control element is blurred, unset the state to remove styles
   // This will allow us to simulate :focus-visible on the button elements.

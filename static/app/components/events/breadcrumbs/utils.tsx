@@ -2,7 +2,8 @@ import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {
@@ -27,7 +28,6 @@ import {
   IconWifi,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {
   BreadcrumbLevelType,
   BreadcrumbType,
@@ -102,13 +102,12 @@ function getBreadcrumbTypeOptions(crumbs: EnhancedCrumb[], theme: Theme) {
 }
 
 function getBreadcrumbLevelOptions(crumbs: EnhancedCrumb[]) {
-  const crumbLevels = crumbs.reduce(
-    (crumbMap, ec) => {
-      crumbMap[ec.breadcrumb.level] = ec.levelComponent;
-      return crumbMap;
-    },
-    {} as Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>
-  );
+  const crumbLevels = crumbs.reduce<
+    Partial<Record<BreadcrumbLevelType, EnhancedCrumb['levelComponent']>>
+  >((crumbMap, ec) => {
+    crumbMap[ec.breadcrumb.level] = ec.levelComponent;
+    return crumbMap;
+  }, {});
 
   const levelOptions = Object.entries(crumbLevels).map<SelectOption<string>>(
     ([crumbLevel, levelComponent]) => {
@@ -393,7 +392,7 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
 }
 
 const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
-  margin: 0 ${space(1)};
+  margin: 0 ${p => p.theme.space.md};
   font-weight: normal;
   font-size: ${p => p.theme.font.size.sm};
   border: 0;

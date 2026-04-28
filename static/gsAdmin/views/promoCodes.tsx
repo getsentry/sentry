@@ -1,14 +1,15 @@
 import moment from 'moment-timezone';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
 
-import PageHeader from 'admin/components/pageHeader';
-import PromoCodeModal from 'admin/components/promoCodes/promoCodeModal';
+import {openModal} from 'sentry/actionCreators/modal';
+
+import {PageHeader} from 'admin/components/pageHeader';
+import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
 import ResultGrid from 'admin/components/resultGrid';
-import titleCase from 'getsentry/utils/titleCase';
+import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: any) => [
   <td key="code">
@@ -42,7 +43,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-export default function PromoCodes() {
+export function PromoCodes() {
   return (
     <div>
       <PageHeader title="Promo Codes">

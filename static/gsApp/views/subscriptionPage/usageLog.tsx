@@ -1,35 +1,36 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 
+import {Tag} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
+import {LoadingError} from 'sentry/components/loadingError';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Placeholder from 'sentry/components/placeholder';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Pagination} from 'sentry/components/pagination';
+import {Placeholder} from 'sentry/components/placeholder';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Timeline} from 'sentry/components/timeline';
 import {IconCircleFill} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getTimeFormat} from 'sentry/utils/dates';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
   if (logEntryUser?.isSuperuser) {
@@ -54,7 +55,7 @@ function LogUsername({logEntryUser}: {logEntryUser: User | undefined}) {
 }
 
 const formatEntryTitle = (name: string) => {
-  const spaceName = name.replace(/-|\./gm, ' ');
+  const spaceName = name.replace(/-|\./g, ' ');
   let capitalizeName = spaceName.replace(/(^\w)|([-\s]\w)/g, match =>
     match.toUpperCase()
   );
@@ -90,24 +91,18 @@ export default function UsageLog() {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
-  const {
-    data: auditLogs,
-    isPending,
-    isError,
-    getResponseHeader,
-    refetch,
-  } = useApiQuery<UsageLogs>(
-    [
-      `/customers/${organization.slug}/subscription/usage-logs/`,
+  const {data, isPending, isError, refetch} = useQuery({
+    ...apiOptions.as<UsageLogs>()(
+      '/customers/$organizationIdOrSlug/subscription/usage-logs/',
       {
-        method: 'GET',
-        query: {
-          ...location.query,
-        },
-      },
-    ],
-    {staleTime: 0}
-  );
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...location.query},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+  });
+  const auditLogs = data?.json;
 
   const eventNames = useMemoWithPrevious<string[] | null>(
     previous => auditLogs?.eventNames ?? previous,
@@ -152,7 +147,7 @@ export default function UsageLog() {
     <Fragment>
       <Grid gap="2xl" flow="row">
         <CompactSelect
-          searchable
+          search
           clearable
           menuTitle={t('Subscription Actions')}
           options={eventNameOptions}
@@ -223,7 +218,7 @@ export default function UsageLog() {
           </Timeline.Container>
         )}
       </Grid>
-      <Pagination pageLinks={getResponseHeader?.('Link')} onCursor={handleCursor} />
+      <Pagination pageLinks={data?.headers.Link} onCursor={handleCursor} />
     </Fragment>
   );
 

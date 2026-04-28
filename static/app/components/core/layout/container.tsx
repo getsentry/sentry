@@ -31,6 +31,7 @@ interface ContainerLayoutProps {
     | 'inline-flex'
     | 'grid'
     | 'inline-grid'
+    | 'contents'
     | 'none'
   >;
 
@@ -52,7 +53,13 @@ interface ContainerLayoutProps {
   overflowX?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
   overflowY?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
 
+  overscrollBehavior?: Responsive<'contain' | 'auto' | 'none'>;
+
   pointerEvents?: Responsive<React.CSSProperties['pointerEvents']>;
+
+  cursor?: Responsive<React.CSSProperties['cursor']>;
+
+  contain?: Responsive<React.CSSProperties['contain']>;
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
@@ -83,6 +90,13 @@ interface ContainerLayoutProps {
   flexBasis?: Responsive<React.CSSProperties['flexBasis']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
+
+  visibility?: Responsive<'visible' | 'hidden' | 'collapse'>;
+
+  // Text Wrapping
+  whiteSpace?: Responsive<
+    'break-spaces' | 'normal' | 'nowrap' | 'pre' | 'pre-line' | 'pre-wrap'
+  >;
 
   /**
    * Prefer using Flex or Grid gap as opposed to margin.
@@ -117,6 +131,7 @@ export type ContainerElement =
   | 'aside'
   | 'blockquote'
   | 'div'
+  | 'fieldset'
   | 'figure'
   | 'footer'
   | 'header'
@@ -183,6 +198,8 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderRight',
   'bottom',
   'column',
+  'contain',
+  'cursor',
   'display',
   'flex',
   'flexBasis',
@@ -205,6 +222,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'overflow',
   'overflowX',
   'overflowY',
+  'overscrollBehavior',
   'pointerEvents',
   'padding',
   'paddingTop',
@@ -216,7 +234,9 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'right',
   'row',
   'top',
+  'visibility',
   'width',
+  'whiteSpace',
 ]);
 
 export const Container = styled(
@@ -254,7 +274,12 @@ export const Container = styled(
   ${p => rc('overflow-x', p.overflowX, p.theme)};
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
+  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
+
   ${p => rc('pointer-events', p.pointerEvents, p.theme)};
+
+  ${p => rc('cursor', p.cursor, p.theme)};
+  ${p => rc('contain', p.contain, p.theme)};
 
   ${p => rc('padding', p.padding, p.theme, getSpacing)};
   ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
@@ -301,6 +326,9 @@ export const Container = styled(
   ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
   ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
   ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+
+  ${p => rc('visibility', p.visibility, p.theme)};
+  ${p => rc('white-space', p.whiteSpace, p.theme)};
 
   /**
    * This cast is required because styled-components does not preserve the generic signature of the wrapped component.

@@ -5,9 +5,8 @@ import debounce from 'lodash/debounce';
 import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import type {NoteType} from 'sentry/types/alerts';
-import localStorage from 'sentry/utils/localStorage';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
 
@@ -22,7 +21,7 @@ type Props = {
 } & InputProps;
 
 function fetchFromStorage(storageKey: string) {
-  const storage = localStorage.getItem(storageKey);
+  const storage = localStorageWrapper.getItem(storageKey);
   if (!storage) {
     return null;
   }
@@ -40,7 +39,7 @@ function fetchFromStorage(storageKey: string) {
 
 function saveToStorage(storageKey: string, obj: Record<string, any>) {
   try {
-    localStorage.setItem(storageKey, JSON.stringify(obj));
+    localStorageWrapper.setItem(storageKey, JSON.stringify(obj));
   } catch (err) {
     Sentry.captureException(err);
     Sentry.withScope(scope => {
@@ -61,7 +60,6 @@ function NoteInputWithStorage({
   source,
   ...props
 }: Props) {
-  const hasStreamlinedUi = useHasStreamlinedUI();
   const value = useMemo(() => {
     if (text) {
       return text;
@@ -137,7 +135,7 @@ function NoteInputWithStorage({
   );
 
   // Make sure `this.props` does not override `onChange` and `onCreate`
-  if (hasStreamlinedUi && source === 'issue-details') {
+  if (source === 'issue-details') {
     return (
       <StreamlinedNoteInput
         text={value}

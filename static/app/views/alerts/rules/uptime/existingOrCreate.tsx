@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {CombinedAlertType, type UptimeAlert} from 'sentry/views/alerts/types';
 
@@ -47,7 +47,7 @@ export default function ExistingOrCreate() {
     // Has multiple existing alert rules
     if (existingRules.length > 1) {
       const url = makeAlertsPathname({
-        path: `/rules/`,
+        path: '/rules/',
         organization,
       });
       navigate(
@@ -64,7 +64,7 @@ export default function ExistingOrCreate() {
 
     // No alert rules, create a new one
     const url = makeAlertsPathname({
-      path: `/new/uptime/`,
+      path: '/new/uptime/',
       organization,
     });
     navigate(url, {replace: true});

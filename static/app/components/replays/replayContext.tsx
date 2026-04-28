@@ -1,25 +1,34 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 import type {Mirror} from '@sentry-internal/rrweb-snapshot';
+import * as Sentry from '@sentry/react';
 
-import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
+import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import clamp from 'sentry/utils/number/clamp';
-import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
-import useTouchEventsCheck from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
+import {clamp} from 'sentry/utils/number/clamp';
+import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import type {Dimensions} from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useRAF from 'sentry/utils/useRAF';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useRAF} from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
 
-import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
+import {canvasReplayerPlugin} from './canvasReplayerPlugin';
 
 type RootElem = null | HTMLDivElement;
 
@@ -165,7 +174,7 @@ type Props = {
   /**
    * Time, in seconds, when the video should start
    */
-  initialTimeOffsetMs?: ReturnType<typeof useInitialOffsetMs>;
+  initialTimeOffsetMs?: ReturnType<typeof useInitialTimeOffsetMs>;
 
   /**
    * Override return fields for testing
@@ -357,7 +366,7 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.tokens.border.accent.moderate,
         },
-        plugins: [CanvasReplayerPlugin(events)],
+        plugins: [canvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
         speed: initialPrefsRef.current.playbackSpeed,
       });
@@ -476,6 +485,32 @@ export function Provider({
       replayer.setConfig({speed: prefs.playbackSpeed});
     }
   }, [getCurrentPlayerTime, isPlaying, prefs.playbackSpeed]);
+
+  const replayId = replay?.getReplay().id;
+  const projectId = replay?.getReplay().project_id;
+
+  const onLoadAllEvents = useEffectEvent(() => {
+    const attributes = {
+      projectId: String(projectId),
+      replayId,
+    };
+
+    Sentry.metrics.distribution('replay.eventCount', events?.length ?? 0, {
+      attributes,
+    });
+
+    Sentry.metrics.distribution('replay.videoEventCount', videoEvents?.length ?? 0, {
+      attributes,
+    });
+  });
+
+  useEffect(() => {
+    if (isFetching || !replayId) {
+      return;
+    }
+
+    onLoadAllEvents();
+  }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
     (play: boolean) => {

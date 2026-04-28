@@ -18,8 +18,12 @@ SEER_GROUPING_STABLE_VERSION = GroupingVersion.V1
 # Set to None to disable rollout entirely
 SEER_GROUPING_NEW_VERSION: GroupingVersion | None = GroupingVersion.V2
 
-# Feature flag name (version-agnostic)
+# Model version to migrate EA projects from new to next
+SEER_GROUPING_NEXT_VERSION: GroupingVersion | None = GroupingVersion.V2_1
+
+# Feature flag names
 SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-upgrade"
+SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE = "projects:similarity-grouping-model-next"
 
 
 def get_grouping_model_version(project: Project) -> GroupingVersion:
@@ -27,73 +31,40 @@ def get_grouping_model_version(project: Project) -> GroupingVersion:
     Get the model version to use for grouping decisions for this project.
 
     Returns:
+        - Next version if rollout is enabled for this project (for migrating EA projects from new to next)
         - New version if rollout is enabled for this project
         - Stable version otherwise
     """
-    # Early return if no new version configured
-    if SEER_GROUPING_NEW_VERSION is None:
-        return SEER_GROUPING_STABLE_VERSION
+    if SEER_GROUPING_NEXT_VERSION is not None and features.has(
+        SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE, project
+    ):
+        return SEER_GROUPING_NEXT_VERSION
 
-    # Type is narrowed to GroupingVersion here
-    if features.has(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE, project):
+    if SEER_GROUPING_NEW_VERSION is not None and features.has(
+        SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE, project
+    ):
         return SEER_GROUPING_NEW_VERSION
+
     return SEER_GROUPING_STABLE_VERSION
 
 
-def is_new_model_rolled_out(project: Project) -> bool:
-    """
-    Check if the new model version is rolled out for this project.
-
-    Returns False if:
-    - No new version is configured (rollout disabled globally)
-    - Feature flag is not enabled for this project
-    """
-    if SEER_GROUPING_NEW_VERSION is None:
-        return False
-
-    return features.has(SEER_GROUPING_NEW_MODEL_ROLLOUT_FEATURE, project)
-
-
-def get_new_model_version() -> GroupingVersion | None:
-    """
-    Get the new model version being rolled out, if any.
-    Returns None if no rollout is in progress.
-    """
-    return SEER_GROUPING_NEW_VERSION
-
-
-def should_send_new_model_embeddings(
+def should_send_to_seer_for_training(
     project: Project,
-    grouphash_seer_model: str | None,
+    grouphash_seer_latest_training_model: str | None,
 ) -> bool:
     """
-    Check if we should send training_mode=true request to build embeddings
-    for the new model version for an existing group.
+    Check if we should send a training_mode=true request to Seer for the
+    project's current model version.
 
     This is true when:
-    1. A new version is being rolled out
-    2. The project has the rollout feature enabled
-    3. The grouphash hasn't been sent to the new version yet
-
-    Args:
-        project: The project
-        grouphash_seer_model: The seer_model value from grouphash metadata
-
-    Returns:
-        True if we should send a training_mode=true request
+    1. The project is on a non-stable model version (via feature flags)
+    2. The grouphash hasn't already been sent to that version
     """
-    new_version = get_new_model_version()
-    if new_version is None:
-        # No rollout in progress
+    model_version = get_grouping_model_version(project)
+    if model_version == SEER_GROUPING_STABLE_VERSION:
         return False
 
-    if not is_new_model_rolled_out(project):
-        # Rollout not enabled for this project
+    if grouphash_seer_latest_training_model == model_version.value:
         return False
 
-    if grouphash_seer_model is None:
-        # Never sent to Seer at all
-        return True
-
-    # Check if it was sent to the new version
-    return grouphash_seer_model != new_version.value
+    return True

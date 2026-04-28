@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {AutofixSummary} from 'sentry/components/group/groupSummaryWithAutofix';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/components/events/autofix/useAutofix');

@@ -12,8 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
@@ -60,7 +60,7 @@ describe('MetricsSection', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/`,
+      url: '/projects/',
       body: [project],
     });
 
@@ -284,9 +284,9 @@ describe('MetricsSection', () => {
     expect(aside).toBeInTheDocument();
 
     // Check that the drawer contains the expected elements
-    expect(within(aside).getByText('Metrics')).toBeInTheDocument();
+    expect(within(aside).getByText('Application Metrics')).toBeInTheDocument();
     expect(
-      within(aside).getByPlaceholderText('Search metrics for this trace')
+      within(aside).getByPlaceholderText('Search application metrics for this trace')
     ).toBeInTheDocument();
   });
 

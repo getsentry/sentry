@@ -5,6 +5,12 @@ import {
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
+
 import {MetricDetectorDetailsDetect} from './detect';
 
 describe('MetricDetectorDetailsDetect', () => {
@@ -49,6 +55,26 @@ describe('MetricDetectorDetailsDetect', () => {
   it('renders percent change description with delta window', () => {
     const detector = MetricDetectorFixture({
       config: {detectionType: 'percent', comparisonDelta: 60},
+      // Percent thresholds are stored as absolute percentages internally:
+      // 108 = "8% higher" (108% of baseline), 92 for resolution = "8% lower" (100 - 92)
+      conditionGroup: {
+        conditions: [
+          {
+            id: '1',
+            type: DataConditionType.GREATER,
+            comparison: 108,
+            conditionResult: DetectorPriorityLevel.HIGH,
+          },
+          {
+            id: '2',
+            type: DataConditionType.LESS_OR_EQUAL,
+            comparison: 92,
+            conditionResult: DetectorPriorityLevel.OK,
+          },
+        ],
+        id: '1',
+        logicType: DataConditionGroupLogicType.ANY,
+      },
     });
 
     render(<MetricDetectorDetailsDetect detector={detector} />);
@@ -59,6 +85,37 @@ describe('MetricDetectorDetailsDetect', () => {
     expect(screen.getByText('Resolved')).toBeInTheDocument();
     expect(
       screen.getByText(/Below or equal to 8% lower than the previous 1 minute/)
+    ).toBeInTheDocument();
+  });
+
+  it('renders percent change description when resolution comparison matches alert', () => {
+    const detector = MetricDetectorFixture({
+      config: {detectionType: 'percent', comparisonDelta: 604800},
+      conditionGroup: {
+        conditions: [
+          {
+            id: '1',
+            type: DataConditionType.GREATER,
+            comparison: 110,
+            conditionResult: DetectorPriorityLevel.HIGH,
+          },
+          {
+            id: '2',
+            type: DataConditionType.LESS_OR_EQUAL,
+            comparison: 110,
+            conditionResult: DetectorPriorityLevel.OK,
+          },
+        ],
+        id: '1',
+        logicType: DataConditionGroupLogicType.ANY,
+      },
+    });
+
+    render(<MetricDetectorDetailsDetect detector={detector} />);
+
+    expect(screen.getByText('10% higher than the previous 1 week')).toBeInTheDocument();
+    expect(
+      screen.getByText('Below or equal to 10% higher than the previous 1 week')
     ).toBeInTheDocument();
   });
 

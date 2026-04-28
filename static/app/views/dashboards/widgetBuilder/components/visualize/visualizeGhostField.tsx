@@ -1,10 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {IconDelete, IconGrabbable} from 'sentry/icons';
+import {Button} from '@sentry/scraps/button';
+
+import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
+import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {
   generateFieldAsString,
@@ -30,12 +31,12 @@ type VisualizeGhostFieldProps = {
   aggregates: Array<SelectValue<FieldValue>>;
   fields: QueryFieldValue[];
   isBigNumberWidget: boolean;
-  isChartWidget: boolean;
+  isTimeSeriesWidget: boolean;
   stringFields: string[];
 };
 
-function VisualizeGhostField({
-  isChartWidget,
+export function VisualizeGhostField({
+  isTimeSeriesWidget,
   isBigNumberWidget,
   fields,
   activeId,
@@ -91,12 +92,7 @@ function VisualizeGhostField({
   return (
     <Ghost>
       <FieldRow>
-        <DragAndReorderButton
-          aria-label={t('Drag to reorder')}
-          icon={<IconGrabbable size="xs" />}
-          size="zero"
-          borderless
-        />
+        <StyledDragReorderButton />
         <FieldBar>
           {draggingField?.kind === FieldValueKind.EQUATION ? (
             <StyledArithmeticInput
@@ -193,8 +189,8 @@ function VisualizeGhostField({
             </Fragment>
           )}
         </FieldBar>
-        <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
-          {!isChartWidget && !isBigNumberWidget && (
+        <FieldExtras compact={isTimeSeriesWidget || isBigNumberWidget}>
+          {!isTimeSeriesWidget && !isBigNumberWidget && (
             <LegendAliasInput
               type="text"
               name="name"
@@ -204,7 +200,7 @@ function VisualizeGhostField({
             />
           )}
           <Button
-            borderless
+            priority="transparent"
             icon={<IconDelete />}
             size="zero"
             disabled
@@ -217,28 +213,22 @@ function VisualizeGhostField({
   );
 }
 
-export default VisualizeGhostField;
-
 const Ghost = styled('div')`
   position: absolute;
   background: ${p => p.theme.tokens.background.primary};
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.15);
   opacity: 0.8;
   cursor: grabbing;
-  padding-right: ${space(2)};
   width: 100%;
 
   button {
     cursor: grabbing;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 710px;
-  }
 `;
 
-const DragAndReorderButton = styled(Button)`
+const StyledDragReorderButton = styled(DragReorderButton)`
   height: ${p => p.theme.form.md.height};
+  cursor: grabbing;
 `;

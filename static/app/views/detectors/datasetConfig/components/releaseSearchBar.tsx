@@ -6,8 +6,8 @@ import {defaultConfig, InvalidReason} from 'sentry/components/searchSyntax/parse
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SESSION_STATUSES,
   SESSIONS_FILTER_TAGS,
@@ -43,7 +43,7 @@ export function ReleaseSearchBar({
   const organization = useOrganization();
   const api = useApi();
 
-  const getTagValues: GetTagValues = (tag, searchQuery) => {
+  const getTagValues: GetTagValues = ({tag, searchQuery}) => {
     if (tag.name === 'session.status') {
       return Promise.resolve(SESSION_STATUSES);
     }

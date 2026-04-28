@@ -1,15 +1,16 @@
 import styled from '@emotion/styled';
 
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {type MenuItemProps} from 'sentry/components/dropdownMenu';
-import TextOverflow from 'sentry/components/textOverflow';
-import TimeSince from 'sentry/components/timeSince';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {TimeSince} from 'sentry/components/timeSince';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetFrame} from 'sentry/views/dashboards/widgetCard/widgetFrame';
 import type {
   TabularColumn,

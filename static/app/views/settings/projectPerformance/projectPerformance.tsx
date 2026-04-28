@@ -1,48 +1,43 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
-import Form from 'sentry/components/forms/form';
+import {Form} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import {space} from 'sentry/styles/space';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 // These labels need to be exported so that they can be used in audit logs
@@ -92,6 +87,13 @@ enum DetectorConfigAdmin {
   FUNCTION_DURATION_REGRESSION_ENABLED = 'function_duration_regression_detection_enabled',
   DB_QUERY_INJECTION_ENABLED = 'db_query_injection_detection_enabled',
   WEB_VITALS_ENABLED = 'web_vitals_detection_enabled',
+  AI_ISSUE_DETECTION_ENABLED = 'ai_issue_detection_enabled',
+  AI_DETECTED_HTTP_ENABLED = 'ai_detected_http_enabled',
+  AI_DETECTED_DB_ENABLED = 'ai_detected_db_enabled',
+  AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED = 'ai_detected_runtime_performance_enabled',
+  AI_DETECTED_SECURITY_ENABLED = 'ai_detected_security_enabled',
+  AI_DETECTED_CODE_HEALTH_ENABLED = 'ai_detected_code_health_enabled',
+  AI_DETECTED_GENERAL_ENABLED = 'ai_detected_general_enabled',
 }
 
 export enum DetectorConfigCustomer {
@@ -158,15 +160,27 @@ const formFields: Field[] = [
 ];
 
 const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
-  `/projects/${orgSlug}/${projectSlug}/transaction-threshold/configure/`,
+  getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
 ];
 
 const getPerformanceIssueSettingsQueryKey = (
   orgSlug: string,
   projectSlug: string
-): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/performance-issues/configure/`];
+): ApiQueryKey => [
+  getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }
+  ),
+];
 
-function ProjectPerformance() {
+export function ProjectPerformance() {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {projectId: projectSlug} = useParams<{projectId: string}>();
@@ -181,6 +195,10 @@ function ProjectPerformance() {
   });
 
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
+  const hasAIIssueDetection =
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('ai-issue-detection') &&
+    !organization.hideAiFeatures;
 
   const {
     data: threshold,
@@ -209,7 +227,14 @@ function ProjectPerformance() {
     isPending: isPendingGeneral,
     isError: isErrorGeneral,
   } = useApiQuery<any>(
-    [`/projects/${organization.slug}/${projectSlug}/performance/configure/`],
+    [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
+        {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+        }
+      ),
+    ],
     {
       staleTime: 0,
     }
@@ -571,6 +596,24 @@ function ProjectPerformance() {
       },
       visible: hasWebVitalsSeerSuggestions,
     },
+    ['AI Detected']: {
+      name: DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED,
+      type: 'boolean',
+      label: t('AI Issue Detection'),
+      help: t('Controls whether or not Sentry runs AI issue detection on your traces.'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            ai_issue_detection_enabled: value,
+          })
+        );
+      },
+      visible: hasAIIssueDetection,
+    },
   };
 
   const performanceRegressionAdminFields: Field[] = [
@@ -785,9 +828,7 @@ function ProjectPerformance() {
               performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             disabledReason,
-            visible: organization.features.includes(
-              'large-http-payload-detector-improvements'
-            ),
+            visible: true,
           },
         ],
         initiallyCollapsed: issueType !== IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -1005,6 +1046,77 @@ function ProjectPerformance() {
         ],
         initiallyCollapsed: issueType !== IssueType.WEB_VITALS,
       },
+      {
+        title: 'AI Detected',
+        fields: [
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_HTTP_ENABLED,
+            type: 'boolean' as const,
+            label: t('HTTP Issues'),
+            help: t('Allow HTTP issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_DB_ENABLED,
+            type: 'boolean' as const,
+            label: t('Database Issues'),
+            help: t('Allow database issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_RUNTIME_PERFORMANCE_ENABLED,
+            type: 'boolean' as const,
+            label: t('Runtime Performance Issues'),
+            help: t('Allow runtime performance issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_SECURITY_ENABLED,
+            type: 'boolean' as const,
+            label: t('Security Issues'),
+            help: t('Allow security issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+          {
+            name: DetectorConfigAdmin.AI_DETECTED_CODE_HEALTH_ENABLED,
+            type: 'boolean' as const,
+            label: t('Code Health Issues'),
+            help: t('Allow code health issues to be created'),
+            defaultValue: true,
+            disabled: !(
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.AI_ISSUE_DETECTION_ENABLED]
+            ),
+            disabledReason,
+            visible: hasAIIssueDetection,
+          },
+        ],
+        initiallyCollapsed: issueType !== IssueType.AI_DETECTED_GENERAL,
+      },
     ];
 
     // If the organization can manage detectors, add the admin field to the existing settings
@@ -1017,10 +1129,10 @@ function ProjectPerformance() {
             ...fieldGroup,
             fields: [
               {
-                ...manageField,
                 help: t(
                   'Controls whether or not Sentry should detect this type of issue.'
                 ),
+                ...manageField,
                 disabled: !hasAccess,
                 disabledReason: t('You do not have permission to manage detectors.'),
               },
@@ -1264,7 +1376,7 @@ const StyledJsonForm = styled(JsonForm)`
     text-transform: none;
     margin-bottom: 0;
     background: none;
-    padding: ${space(3)} ${space(2)};
+    padding: ${p => p.theme.space['2xl']} ${p => p.theme.space.xl};
   }
 `;
 
@@ -1275,12 +1387,10 @@ const StyledPanelFooter = styled(PanelFooter)`
     calc(${p => p.theme.radius.md} - 1px);
 
   ${Actions} {
-    padding: ${space(1.5)};
+    padding: ${p => p.theme.space.lg};
   }
 `;
 
 const LoadingIndicatorContainer = styled('div')`
   margin: 18px 18px 0;
 `;
-
-export default ProjectPerformance;

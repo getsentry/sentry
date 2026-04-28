@@ -2,12 +2,12 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Input} from 'sentry/components/core/input';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
-import {space} from 'sentry/styles/space';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 type Props = {
   onChange: (value: string) => void;
@@ -29,9 +29,14 @@ type Props = {
    */
   placeholder?: string;
   successMessage?: React.ReactNode;
+  /**
+   * "compact" removes fixed heights so the component inherits font-size and
+   * line-height from its context (e.g. when rendered inside a breadcrumb row).
+   */
+  variant?: 'compact';
 };
 
-function EditableText({
+export function EditableText({
   value,
   onChange,
   name,
@@ -44,6 +49,7 @@ function EditableText({
   'aria-label': ariaLabel,
   placeholder,
   allowEmpty = false,
+  variant,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   // Immediately reflect the last committed value while we wait for the parent prop update
@@ -187,12 +193,15 @@ function EditableText({
     [handleCancel, handleCommit]
   );
 
+  const isCompact = variant === 'compact';
+
   return (
     <Wrapper isDisabled={isDisabled} isEditing={isEditing} className={className}>
       {isEditing ? (
         <InputWrapper
           ref={innerWrapperRef}
           isEmpty={isDraftEmpty}
+          isCompact={isCompact}
           data-test-id="editable-text-input"
         >
           <StyledInput
@@ -205,6 +214,7 @@ function EditableText({
             onFocus={event => autoSelect && event.target.select()}
             maxLength={maxLength}
             placeholder={placeholder}
+            isCompact={isCompact}
           />
           <InputLabel>{currentDraft}</InputLabel>
         </InputWrapper>
@@ -215,7 +225,7 @@ function EditableText({
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
-          <InnerLabel>{currentValue || placeholder}</InnerLabel>
+          <InnerLabel isCompact={isCompact}>{currentValue || placeholder}</InnerLabel>
           {!isDisabled && <IconEdit />}
         </Label>
       )}
@@ -223,38 +233,51 @@ function EditableText({
   );
 }
 
-export default EditableText;
-
 const Label = styled('div')<{isDisabled: boolean}>`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
 `;
 
-const InnerLabel = styled(TextOverflow)`
+const InnerLabel = styled(TextOverflow)<{isCompact: boolean}>`
   border-top: 1px solid transparent;
-  border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
-  line-height: 38px;
+  border-bottom: ${p =>
+    p.isCompact ? 'none' : `1px dotted ${p.theme.tokens.border.primary}`};
+  ${p =>
+    !p.isCompact &&
+    css`
+      line-height: 38px;
+    `}
 `;
 
-const InputWrapper = styled('div')<{isEmpty: boolean}>`
+const InputWrapper = styled('div')<{isCompact: boolean; isEmpty: boolean}>`
   display: inline-block;
   background: ${p => p.theme.tokens.background.tertiary};
   border-radius: ${p => p.theme.radius.md};
-  margin: -${space(0.5)} -${space(1)};
-  padding: ${space(0.5)} ${space(1)};
-  max-width: calc(100% + ${space(2)});
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+  max-width: calc(100% + ${p => p.theme.space.xl});
+  /* Mirror InnerLabel's transparent top border so the baseline stays put on edit. */
+  border-top: ${p => (p.isCompact ? '1px solid transparent' : 'none')};
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(Input)<{isCompact: boolean}>`
   border: none !important;
   background: transparent;
   height: auto;
-  min-height: 40px;
+  min-height: ${p => (p.isCompact ? 'auto' : '40px')};
   padding: 0;
   font-size: inherit;
+  ${p =>
+    p.isCompact &&
+    css`
+      /* Match TextOverflow's line-height so the baseline doesn't shift on edit. */
+      line-height: 1.2;
+      font-weight: inherit;
+      border-radius: 0 !important;
+    `}
   &,
   &:focus,
   &:active,
@@ -267,7 +290,7 @@ const InputLabel = styled('div')`
   height: 0;
   opacity: 0;
   white-space: pre;
-  padding: 0 ${space(1)};
+  padding: 0 ${p => p.theme.space.md};
 `;
 
 const Wrapper = styled('div')<{isDisabled: boolean; isEditing: boolean}>`

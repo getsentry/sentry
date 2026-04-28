@@ -4,16 +4,16 @@ import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
+import {GroupActivityItem} from 'sentry/views/issueDetails/groupActivityItem';
 
 type Props = {
   group: Group;
@@ -23,7 +23,7 @@ type Props = {
   placeholderText: string;
 };
 
-function ActivitySection(props: Props) {
+export function ActivitySection(props: Props) {
   const {group, placeholderText, onCreate, onDelete, onUpdate} = props;
   const organization = useOrganization();
 
@@ -119,5 +119,3 @@ function ActivitySection(props: Props) {
     </Fragment>
   );
 }
-
-export default ActivitySection;

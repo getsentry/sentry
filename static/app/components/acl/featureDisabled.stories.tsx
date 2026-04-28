@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('FeatureDisabled', story => {

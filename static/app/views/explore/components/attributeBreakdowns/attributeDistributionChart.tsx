@@ -1,14 +1,15 @@
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Button} from '@sentry/scraps/button/button';
-import {Tooltip} from '@sentry/scraps/tooltip/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
-import {Flex} from 'sentry/components/core/layout';
 import {IconExpand} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {TooltipActions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useAttributeBreakdownsTooltip} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
 import type {AttributeDistribution} from './attributeDistributionContent';
@@ -19,17 +20,20 @@ import {
   calculateAttributePopulationPercentage,
   distributionToSeriesData,
   percentageFormatter,
-  tooltipActionsHtmlRenderer,
 } from './utils';
 
 export function Chart({
   attributeDistribution,
   theme,
   cohortCount,
+  query,
+  actions,
 }: {
   attributeDistribution: AttributeDistribution[number];
   cohortCount: number;
+  query: string;
   theme: Theme;
+  actions?: TooltipActions | null;
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
@@ -55,17 +59,11 @@ export function Chart({
     [attributeDistribution.values, cohortCount]
   );
 
-  const actionsHtmlRenderer = useCallback(
-    (value: string) =>
-      tooltipActionsHtmlRenderer(value, attributeDistribution.attributeName, theme),
-    [attributeDistribution.attributeName, theme]
-  );
-
   const tooltipConfig = useAttributeBreakdownsTooltip({
     chartRef,
     formatter: formatSingleModeTooltip,
     chartWidth,
-    actionsHtmlRenderer,
+    actions,
   });
 
   useLayoutEffect(() => {
@@ -110,7 +108,7 @@ export function Chart({
           </AttributeBreakdownsComponent.PopulationIndicator>
           <Button
             size="zero"
-            borderless
+            priority="transparent"
             icon={<IconExpand size="xs" />}
             aria-label={t('Expand chart')}
             onClick={() =>
@@ -118,6 +116,7 @@ export function Chart({
                 mode: 'single',
                 attributeDistribution,
                 cohortCount,
+                query,
               })
             }
           />

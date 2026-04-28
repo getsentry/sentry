@@ -4,9 +4,9 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
+import {getCurrentUrl} from 'sentry/utils/replays/getCurrentUrl';
 import {replayInitBreadcrumb} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import type {SpanFrame} from 'sentry/utils/replays/types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');

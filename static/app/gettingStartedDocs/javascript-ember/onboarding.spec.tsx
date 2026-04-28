@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('javascript-ember onboarding docs', () => {
   it('renders onboarding docs correctly', () => {
@@ -187,7 +187,7 @@ describe('javascript-ember onboarding docs', () => {
     });
 
     expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
-    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Application Metrics')).toBeInTheDocument();
   });
 
   it('does not show Metrics in next steps when metrics is not selected', () => {
@@ -196,6 +196,6 @@ describe('javascript-ember onboarding docs', () => {
     });
 
     expect(screen.getByText('Configure Ember Options')).toBeInTheDocument();
-    expect(screen.queryByText('Metrics')).not.toBeInTheDocument();
+    expect(screen.queryByText('Application Metrics')).not.toBeInTheDocument();
   });
 });

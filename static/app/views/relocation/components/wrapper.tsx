@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-const Wrapper = styled('div')`
+export const Wrapper = styled('div')`
   max-width: 769px;
   margin-left: auto;
   margin-right: auto;
-  padding: ${space(4)};
+  padding: ${p => p.theme.space['3xl']};
   background-color: ${p => p.theme.tokens.background.primary};
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -15,27 +13,26 @@ const Wrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   mark {
     border-radius: 8px;
-    padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
+      ${p => p.theme.space['2xs']} ${p => p.theme.space.xs};
     background: ${p => p.theme.colors.gray100};
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
   h2 {
     color: ${p => p.theme.colors.gray800};
   }
   p {
-    margin: ${space(1)} ${space(0.5)};
+    margin: ${p => p.theme.space.md} ${p => p.theme.space.xs};
   }
   svg {
-    margin: ${space(0.5)};
+    margin: ${p => p.theme.space.xs};
   }
   .encrypt-help {
     color: ${p => p.theme.colors.gray800};
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
   }
   .encrypt-note {
     color: ${p => p.theme.tokens.content.secondary};
-    padding-top: ${space(1)};
+    padding-top: ${p => p.theme.space.md};
   }
 `;
-
-export default Wrapper;

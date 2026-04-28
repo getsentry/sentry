@@ -1,27 +1,29 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
 import {
   addErrorMessage,
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {withApi} from 'sentry/utils/withApi';
+import {withOrganization} from 'sentry/utils/withOrganization';
 
 type CreateSampleEventButtonProps = ButtonProps & {
   api: Client;
   organization: Organization;
   source: string;
+  hasScmOnboarding?: boolean;
   onClick?: () => void;
   onCreateSampleGroup?: () => void;
   project?: Project;
@@ -106,7 +108,8 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project, onCreateSampleGroup} = this.props;
+    const {api, organization, project, onCreateSampleGroup, hasScmOnboarding} =
+      this.props;
     let eventData: any;
 
     if (!project) {
@@ -115,6 +118,11 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
     if (onCreateSampleGroup) {
       onCreateSampleGroup();
+    } else if (hasScmOnboarding) {
+      trackAnalytics('onboarding.scm_view_sample_event_clicked', {
+        platform: project.platform,
+        organization,
+      });
     } else {
       trackAnalytics('growth.onboarding_view_sample_event', {
         platform: project.platform,
@@ -195,6 +203,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       organization: _organization,
       project: _project,
       source: _source,
+      hasScmOnboarding: _hasScmOnboarding,
       ...props
     } = this.props;
 

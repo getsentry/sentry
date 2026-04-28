@@ -66,6 +66,8 @@ class TestGetEventSeverity(TestCase):
             "message": "NopeError: Nopey McNopeface",
             "has_stacktrace": 0,
             "handled": True,
+            "org_id": self.project.organization_id,
+            "project_id": self.project.id,
         }
 
         mock_urlopen.assert_called_with(
@@ -84,16 +86,19 @@ class TestGetEventSeverity(TestCase):
             override_settings(SEER_API_SHARED_SECRET="some-secret"),
         ):
             _get_severity_score(event)
-            mock_urlopen.assert_called_with(
-                "POST",
-                "/v0/issues/severity-score",
-                body=orjson.dumps(payload),
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    "Authorization": "Rpcsignature rpc0:b14214093c3e7c633e68ac90b01087e710fe2f96c0544b232b9ec9bc6ca971f4",
-                },
-                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
-            )
+            call_kwargs = mock_urlopen.call_args
+            assert call_kwargs[0] == ("POST", "/v0/issues/severity-score")
+            assert call_kwargs[1]["body"] == orjson.dumps(payload)
+            headers = call_kwargs[1]["headers"]
+            assert headers["content-type"] == "application/json;charset=utf-8"
+            assert "Authorization" in headers
+            assert "X-Viewer-Context-Signature" not in headers
+            # ViewerContext is now a JWT
+            from sentry.viewer_context import decode_viewer_context
+
+            vc = decode_viewer_context(headers["X-Viewer-Context"], key="some-secret")
+            assert vc.organization_id == self.project.organization_id
+            assert vc.actor_type.value == "unknown"
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -118,6 +123,8 @@ class TestGetEventSeverity(TestCase):
                 "message": "Dogs are great!",
                 "has_stacktrace": 0,
                 "handled": None,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
             }
 
             mock_urlopen.assert_called_with(

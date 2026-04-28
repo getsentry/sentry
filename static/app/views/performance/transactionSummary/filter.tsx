@@ -2,11 +2,11 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,7 +50,7 @@ type Props = {
   organization: OrganizationSummary;
 };
 
-function Filter(props: Props) {
+export function Filter(props: Props) {
   const theme = useTheme();
   const {currentFilter, onChangeFilter} = props;
   const menuOptions = OPTIONS.map(operationName => ({
@@ -169,5 +169,3 @@ export function filterToLocationQuery(option: SpanOperationBreakdownFilter | und
     breakdown: option,
   };
 }
-
-export default Filter;

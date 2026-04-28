@@ -13,7 +13,7 @@ import {
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {OnDemandBudgetMode} from 'getsentry/types';
-import PaygCard from 'getsentry/views/subscriptionPage/headerCards/paygCard';
+import {PaygCard} from 'getsentry/views/subscriptionPage/headerCards/paygCard';
 
 describe('PaygCard', () => {
   const organization = OrganizationFixture({
@@ -134,7 +134,7 @@ describe('PaygCard', () => {
 
   it('can update using inline input', async () => {
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
     });
     const mockApiCall = MockApiClient.addMockResponse({

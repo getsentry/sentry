@@ -94,7 +94,7 @@ describe('useMetricDetectorAnomalies', () => {
       );
     });
 
-    expect(result.current.data).toEqual(mockAnomalies);
+    await waitFor(() => expect(result.current.data).toEqual(mockAnomalies));
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
   });

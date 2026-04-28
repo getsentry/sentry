@@ -1,8 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', () => {
   let configState: Config;
@@ -73,6 +73,11 @@ describe('normalizeUrl', () => {
       ['/settings/stats/', '/settings/stats/'],
       ['/settings/stats/issues/', '/settings/stats/issues/'],
       ['/settings/stats/health/', '/settings/stats/health/'],
+
+      // Seer org settings: strip org slug but keep /settings/seer/... paths
+      ['/settings/acme/seer/', '/settings/seer/'],
+      ['/settings/acme/seer/repos/', '/settings/seer/repos/'],
+      ['/settings/seer/repos/', '/settings/seer/repos/'],
 
       ['/join-request/acme', '/join-request/'],
       ['/join-request/acme/', '/join-request/'],
@@ -155,6 +160,9 @@ describe('normalizeUrl', () => {
 
     result = normalizeUrl({pathname: '/settings/sentry/members'}, location);
     expect(result.pathname).toBe('/settings/members');
+
+    result = normalizeUrl({pathname: '/settings/acme/seer/repos/'}, location);
+    expect(result.pathname).toBe('/settings/seer/repos/');
 
     result = normalizeUrl({pathname: '/organizations/albertos-apples/issues'}, location);
     expect(result.pathname).toBe('/issues');

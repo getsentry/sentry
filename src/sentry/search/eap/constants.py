@@ -19,7 +19,19 @@ SUPPORTED_TRACE_ITEM_TYPE_MAP = {
     SupportedTraceItemType.PROFILE_FUNCTIONS: TraceItemType.TRACE_ITEM_TYPE_PROFILE_FUNCTION,
     SupportedTraceItemType.PREPROD: TraceItemType.TRACE_ITEM_TYPE_PREPROD,
     SupportedTraceItemType.ATTACHMENTS: TraceItemType.TRACE_ITEM_TYPE_ATTACHMENT,
+    SupportedTraceItemType.PROCESSING_ERRORS: TraceItemType.TRACE_ITEM_TYPE_PROCESSING_ERROR,
+    SupportedTraceItemType.OCCURRENCES: TraceItemType.TRACE_ITEM_TYPE_OCCURRENCE,
 }
+
+
+PROTOBUF_TYPE_TO_SEARCH_TYPE: dict[str, Literal["string", "number", "boolean"]] = {
+    "string_value": "string",
+    "bytes_value": "string",
+    "bool_value": "boolean",
+    "int_value": "number",
+    "double_value": "number",
+}
+
 
 SUPPORTED_STATS_TYPES = {"attributeDistributions"}
 
@@ -135,6 +147,7 @@ VALID_GRANULARITIES = frozenset(
         2 * 3600,
         3 * 3600,
         4 * 3600,
+        6 * 3600,
         12 * 3600,
         24 * 3600,  # hours
     }

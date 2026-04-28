@@ -54,6 +54,21 @@ class GetPromptsActivityTest(PromptsActivityTestBase):
 class PutPromptsActivityTest(PromptsActivityTestBase):
     method = "put"
 
+    def test_regular_org_member_can_dismiss(self) -> None:
+        member_user = self.create_user()
+        self.create_member(user=member_user, organization=self.org, role="member")
+        self.login_as(user=member_user)
+
+        resp = self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "feature": "alert_stream",
+                "status": "dismissed",
+            },
+        )
+        assert resp.status_code == 201
+
     def test_organization_permissions(self) -> None:
         new_org = self.create_organization()
         self.path = reverse("sentry-api-0-organization-prompts-activity", args=[new_org.slug])

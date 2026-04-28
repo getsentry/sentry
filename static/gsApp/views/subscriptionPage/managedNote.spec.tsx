@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BillingType} from 'getsentry/types';
-import ManagedNote from 'getsentry/views/subscriptionPage/managedNote';
+import {ManagedNote} from 'getsentry/views/subscriptionPage/managedNote';
 
 describe('ManagedNote', () => {
   const organization = OrganizationFixture();

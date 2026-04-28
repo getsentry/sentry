@@ -4,6 +4,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {Button} from '@sentry/scraps/button';
+import {Input} from '@sentry/scraps/input';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+
 import {
   fetchDashboard,
   fetchDashboards,
@@ -15,25 +20,19 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Input} from 'sentry/components/core/input';
-import {Select} from 'sentry/components/core/select';
-import {pageFiltersToQueryParams} from 'sentry/components/organizations/pageFilters/parse';
+import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {t, tct, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import {
   assignDefaultLayout,
   assignTempId,
@@ -49,23 +48,29 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {
   DEFAULT_WIDGET_NAME,
+  DisplayType,
   MAX_WIDGETS,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
-  getDashboardFiltersFromURL,
+  getMergedDashboardFilters,
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
-  isChartDisplayType,
+  isWidgetEditable,
+  usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {
+  addWidgetBuilderSessionStorageParams,
+  NEW_DASHBOARD_ID,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
-import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
-import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
@@ -132,6 +137,12 @@ function AddToDashboardModal({
 
   // Check if we have multiple widgets to adjust UI accordingly
   const hasMultipleWidgets = widgets.length > 1;
+
+  // Check if the widget is a static widget from a widget template
+  const widgetTemplates = getTopNConvertedDefaultWidgets(organization);
+  const widgetTemplate = widgetTemplates.find(w => w.displayType === widget.displayType);
+  const shouldOpenWidgetLibrary =
+    !isWidgetEditable(widget.displayType) || widgetTemplate?.isCustomizable === false;
 
   const handleWidgetTableSort = (sort: Sort) => {
     const newOrderBy = `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
@@ -203,14 +214,27 @@ function AddToDashboardModal({
     const pathname =
       page === 'builder' ? `${dashboardsPath}${builderSuffix}` : dashboardsPath;
 
-    const widgetAsQueryParams = convertWidgetToBuilderStateParams(widget);
+    const widgetAsQueryParams = convertWidgetToQueryParams(widget);
+
+    if (page === 'builder') {
+      addWidgetBuilderSessionStorageParams(widget);
+    }
+
     navigate(
       normalizeUrl({
         pathname,
         query: {
-          ...widgetAsQueryParams,
-          title: newWidgetTitle,
-          sort: orderBy ?? widgetAsQueryParams.sort,
+          // Static widgets don't forward widget configuration to the widget builder, instead they open the widget library
+          ...(shouldOpenWidgetLibrary && widgetTemplate
+            ? {
+                openWidgetTemplates: 'true',
+                widgetTemplateId: widgetTemplate.id,
+              }
+            : {
+                ...widgetAsQueryParams,
+                title: newWidgetTitle,
+                sort: orderBy ?? widgetAsQueryParams.sort,
+              }),
           source,
           ...(selectedDashboard
             ? getSavedPageFilters(selectedDashboard)
@@ -224,8 +248,15 @@ function AddToDashboardModal({
 
   function normalizeWidgets(widgetsToNormalize: Widget[]): Widget[] {
     return widgetsToNormalize.map(w => {
+      if (w.displayType === DisplayType.TEXT) {
+        return {
+          ...w,
+          title: hasMultipleWidgets ? (w.title ?? DEFAULT_WIDGET_NAME) : newWidgetTitle,
+        };
+      }
+
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (!(isChartDisplayType(w.displayType) && w.queries[0]!.columns.length)) {
+      if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
         newOrderBy = ''; // Clear orderby if its not a top n visualization.
       }
       const queries = w.queries.map(query => ({
@@ -343,7 +374,7 @@ function AddToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -414,7 +445,7 @@ function AddToDashboardModal({
                 placeholder={t('Select Dashboard')}
                 value={selectedDashboardId}
                 options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                onChange={(option: SelectValue<string>) => {
+                onChange={option => {
                   if (option.disabled) {
                     return;
                   }
@@ -451,7 +482,16 @@ function AddToDashboardModal({
               organization={organization}
               eventView={eventViewFromWidget(
                 newWidgetTitle,
-                widget.queries[0]!,
+                widget.displayType === DisplayType.TEXT
+                  ? {
+                      name: '',
+                      fields: [],
+                      aggregates: [],
+                      columns: [],
+                      orderby: '',
+                      conditions: '',
+                    }
+                  : widget.queries[0]!,
                 selection
               )}
               location={location}
@@ -474,10 +514,10 @@ function AddToDashboardModal({
                             ? getSavedFiltersAsPageFilters(selectedDashboard)
                             : selection
                         }
-                        dashboardFilters={
-                          getDashboardFiltersFromURL(location) ??
-                          selectedDashboard?.filters
-                        }
+                        dashboardFilters={getMergedDashboardFilters(
+                          selectedDashboard?.filters,
+                          location
+                        )}
                         widget={{
                           ...widget,
                           title: newWidgetTitle,
@@ -498,7 +538,6 @@ function AddToDashboardModal({
                         disableTableActions
                       />
                     </WidgetCardWrapper>
-                    <IndexedEventsSelectionAlert widget={widget} />
                   </MEPSettingProvider>
                 </DashboardsMEPProvider>
               )}
@@ -513,7 +552,7 @@ function AddToDashboardModal({
             <Button
               onClick={handleAddAndStayOnCurrentPage}
               disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Add + Stay on this Page')}
             </Button>
@@ -523,7 +562,7 @@ function AddToDashboardModal({
               priority={hasMultipleWidgets ? 'primary' : 'default'}
               onClick={handleAddAndOpenDashboard}
               disabled={!canSubmit}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
               {t('Add + Open Dashboard')}
             </Button>
@@ -533,9 +572,11 @@ function AddToDashboardModal({
               priority="primary"
               onClick={() => goToDashboard('builder')}
               disabled={!canSubmit}
-              title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+              tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             >
-              {t('Open in Widget Builder')}
+              {shouldOpenWidgetLibrary
+                ? t('Open in Widget Library')
+                : t('Open in Widget Builder')}
             </Button>
           )}
         </StyledButtonBar>
@@ -547,13 +588,15 @@ function AddToDashboardModal({
 export default AddToDashboardModal;
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

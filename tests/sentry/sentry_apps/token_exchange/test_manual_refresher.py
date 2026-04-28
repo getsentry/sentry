@@ -314,6 +314,30 @@ class TestManualRefresher(TestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_race_condition_on_token_refresh(self, mock_record: MagicMock) -> None:
+        from sentry.locks import locks
+
+        lock = locks.get(
+            ApiToken.get_lock_key(self.token.id),
+            duration=10,
+            name="api_token_refresh",
+        )
+        lock.acquire()
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            self.refresher.run()
+
+        assert e.value.message == "Token refresh already in progress"
+        assert e.value.status_code == 409
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_handles_installation_with_no_existing_token(self, mock_record: MagicMock) -> None:
         # Delete the existing token from the installation
         self.install.update(api_token=None)

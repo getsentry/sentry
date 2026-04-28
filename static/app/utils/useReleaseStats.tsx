@@ -1,9 +1,9 @@
-import {useEffect} from 'react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface ReleaseMetaBasic {
   date: string;
@@ -28,52 +28,39 @@ interface UseReleaseStatsParams {
  */
 export function useReleaseStats(
   {datetime, environments, projects, maxPages = 10}: UseReleaseStatsParams,
-  queryOptions: {enabled?: boolean; staleTime?: number} = {
-    staleTime: Infinity,
-    enabled: true,
-  }
+  queryOptions?: {enabled?: boolean; staleTime?: number}
 ) {
   const organization = useOrganization();
 
-  const {
-    isLoading,
-    isFetching,
-    fetchNextPage,
-    hasNextPage,
-    isPending,
-    isError,
-    error,
-    data,
-  } = useInfiniteApiQuery<ReleaseMetaBasic[]>({
-    queryKey: [
-      'infinite' as const,
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const result = useInfiniteQuery(
+    apiOptions.asInfinite<ReleaseMetaBasic[]>()(
+      '/organizations/$organizationIdOrSlug/releases/stats/',
       {
+        path:
+          queryOptions?.enabled === false
+            ? skipToken
+            : {organizationIdOrSlug: organization.slug},
         query: {
           environment: environments,
           project: projects,
           ...normalizeDateTimeParams(datetime),
         },
-      },
-    ],
-    ...queryOptions,
-  });
+        staleTime: queryOptions?.staleTime ?? Infinity,
+      }
+    )
+  );
 
+  const {isLoading, isPending, isError, error, data} = result;
   const currentNumberPages = data?.pages.length ?? 0;
 
-  useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages + 1 < maxPages) {
-      fetchNextPage();
-    }
-  }, [isFetching, hasNextPage, fetchNextPage, maxPages, currentNumberPages]);
+  // Auto-fetch each page, one at a time
+  useFetchAllPages({result, enabled: currentNumberPages + 1 < maxPages});
 
   return {
     isLoading,
     isPending,
     isError,
     error,
-    releases: data?.pages.flatMap(([pageData]) => pageData),
+    releases: data?.pages.flatMap(page => page.json),
   };
 }

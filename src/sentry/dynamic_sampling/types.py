@@ -13,7 +13,13 @@ class DynamicSamplingMode(models.TextChoices):
 
 
 class SamplingMeasure(Enum):
-    """The type of data being measured for dynamic sampling rebalancing."""
+    """The type of data being measured for dynamic sampling rebalancing.
+
+    - SPANS: Span-based counting using SpanMRI WITHOUT is_segment filter.
+             Used for AM3/project mode where we count all spans.
+    - SEGMENTS: Span-based counting using SpanMRI WITH is_segment=true filter.
+                Default measure, counting only root spans (segments).
+    """
 
     SPANS = "spans"
-    TRANSACTIONS = "transactions"
+    SEGMENTS = "segments"

@@ -13,7 +13,7 @@ from sentry.workflow_engine.models import (
 @register(DataConditionGroup)
 class DataConditionGroupSerializer(Serializer):
     def get_attrs(
-        self, item_list: Sequence[DataConditionGroup], user, **kwargs
+        self, item_list: Sequence[DataConditionGroup], user: Any, **kwargs: Any
     ) -> MutableMapping[DataConditionGroup, dict[str, Any]]:
         attrs: MutableMapping[DataConditionGroup, dict[str, Any]] = defaultdict(dict)
         conditions = defaultdict(list)
@@ -40,7 +40,7 @@ class DataConditionGroupSerializer(Serializer):
         return attrs
 
     def serialize(
-        self, obj: DataConditionGroup, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: DataConditionGroup, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> dict[str, Any]:
         return {
             "id": str(obj.id),

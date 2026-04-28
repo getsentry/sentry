@@ -7,7 +7,7 @@ import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider'
  * @param eventKey The key used to identify the event
  * @param eventName The English string used as the event name
  */
-export default function useRouteAnalyticsEventNames(eventKey: string, eventName: string) {
+export function useRouteAnalyticsEventNames(eventKey: string, eventName: string) {
   const {setEventNames, previousUrl} = useContext(RouteAnalyticsContext);
   useEffect(() => {
     setEventNames(eventKey, eventName);

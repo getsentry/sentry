@@ -7,7 +7,6 @@ from sentry.testutils.cases import TestCase
 
 
 class ClientParameterHandlingTest(TestCase):
-
     @patch("sentry.api.client.resolve")
     def test_mixed_parameters_in_query_string(self, mock_resolve):
         mock_view = Mock(return_value=JsonResponse({"success": True}))

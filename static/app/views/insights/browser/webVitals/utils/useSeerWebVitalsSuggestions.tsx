@@ -1,10 +1,8 @@
-import {
-  makeAutofixQueryKey,
-  type AutofixResponse,
-} from 'sentry/components/events/autofix/useAutofix';
+import {queryOptions, useQueries} from '@tanstack/react-query';
+
+import {autofixApiOptions} from 'sentry/components/events/autofix/useAutofix';
 import {IssueType} from 'sentry/types/group';
-import {fetchDataQuery, useQueries, type UseQueryResult} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWebVitalsIssuesQuery} from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 
@@ -25,22 +23,19 @@ export function useSeerWebVitalsSuggestions({
     enabled: enabled && hasSeerWebVitalsSuggestions,
   });
 
-  const autofixQueries: Array<UseQueryResult<AutofixResponse[], Error>> = useQueries({
-    queries: (issues ?? []).map(issue => {
-      const queryKey = makeAutofixQueryKey(organization.slug, issue.id);
-      return {
-        queryKey,
-        queryFn: fetchDataQuery,
-        staleTime: Infinity,
+  const autofixQueries = useQueries({
+    queries: (issues ?? []).map(issue =>
+      queryOptions({
+        ...autofixApiOptions(organization.slug, issue.id),
         enabled: !isLoading && enabled && hasSeerWebVitalsSuggestions,
         retry: false,
-      };
-    }),
+      })
+    ),
   });
 
   const isLoadingAutofix = autofixQueries.some(query => query.isPending);
   const autofix = autofixQueries
-    .map(data => data.data?.[0]?.autofix ?? null)
+    .map(data => data.data?.autofix ?? null)
     .filter(data => data !== null);
 
   return {

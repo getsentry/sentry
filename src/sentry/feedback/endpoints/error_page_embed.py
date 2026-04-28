@@ -19,12 +19,12 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.signals import user_feedback_received
-from sentry.types.region import get_local_region
+from sentry.types.cell import get_local_locality
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import normalize_event_id
-from sentry.web.frontend.base import region_silo_view
+from sentry.web.frontend.base import cell_silo_view
 from sentry.web.helpers import render_to_response, render_to_string
 
 GENERIC_ERROR = _("An unknown error occurred while submitting your report. Please try again.")
@@ -76,7 +76,7 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-@region_silo_view
+@cell_silo_view
 class ErrorPageEmbedView(View):
     """
     View for the crash report modal.
@@ -219,8 +219,7 @@ class ErrorPageEmbedView(View):
         elif request.method == "POST":
             return self._smart_response(request, {"errors": dict(form.errors)}, status=400)
 
-        region = get_local_region()
-        endpoint = region.to_url(request.get_full_path())
+        endpoint = get_local_locality().to_url(request.get_full_path())
         show_branding = (
             ProjectOption.objects.get_value(
                 project=key.project, key="feedback:branding", default="1"

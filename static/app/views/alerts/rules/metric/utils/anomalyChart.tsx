@@ -3,7 +3,7 @@ import type {MarkAreaComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 
@@ -119,8 +119,8 @@ function createAnomalyMarkerSeries(
   const formatter = ({value}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
-      `<div class="tooltip-series"><div>`,
-      `</div>Anomaly Detected</div>`,
+      '<div class="tooltip-series"><div>',
+      '</div>Anomaly Detected</div>',
       `<div class="tooltip-footer">${time}</div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');

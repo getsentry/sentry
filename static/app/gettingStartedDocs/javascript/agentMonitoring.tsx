@@ -1,27 +1,67 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   ContentBlock,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {javascriptMetaFrameworks} from 'sentry/data/platformCategories';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {
   getAgentIntegration,
   getInstallStep,
   getManualConfigureStep,
+  mastraOnboarding,
+  MIN_REQUIRED_VERSION,
+  agentMonitoring as nodeAgentMonitoring,
 } from 'sentry/gettingStartedDocs/node/agentMonitoring';
 import {getImport} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
+import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+
+// Meta-frameworks currently have a technical limitation: our server-side integrations do not work,
+// even when added manually. Users must use Sentry’s helper functions or manually instrument their
+// code, for example with `Sentry.startSpan`.
+function getMetaFrameworkAlert({
+  params,
+  functionName,
+}: {
+  functionName: string;
+  params: DocsParams;
+}): ContentBlock[] {
+  const isMetaFramework = javascriptMetaFrameworks.includes(params.platformKey);
+
+  if (!isMetaFramework) {
+    return [];
+  }
+  return [
+    {
+      type: 'alert',
+      alertType: 'info',
+      text: tct(
+        'For [platformName] applications using all runtimes, you need to manually wrap your client instance with [functionName]. See instructions below.',
+        {
+          platformName:
+            platforms.find(p => p.id === params.platformKey)?.name ?? params.platformKey,
+          functionName: <code>{functionName}</code>,
+        }
+      ),
+    },
+  ];
+}
 
 function getClientSideConfig({
   integration,
   params,
   sentryImport,
+  configFileName,
 }: {
   integration: AgentIntegration;
   params: DocsParams;
   sentryImport: string;
+  configFileName?: string;
 }): ContentBlock[] {
   const initConfig: ContentBlock[] = [
     {
@@ -32,7 +72,7 @@ function getClientSideConfig({
       type: 'code',
       tabs: [
         {
-          label: 'JavaScript',
+          label: configFileName ?? 'JavaScript',
           language: 'javascript',
           code: `${sentryImport}
 
@@ -51,6 +91,10 @@ Sentry.init({
 
   if (integration === AgentIntegration.LANGGRAPH) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentLangGraph',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -71,17 +115,14 @@ Sentry.init({
             label: 'JavaScript',
             language: 'javascript',
             code: `${sentryImport}
-import { ChatOpenAI } from "@langchain/openai";
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+import { createAgent } from "langchain";
 
-const llm = new ChatOpenAI({
-  modelName: "gpt-4o",
-  // WARNING: Never expose API keys in browser code
-  apiKey: "OPENAI_API_KEY",
+// Setting the agent name helps Sentry identify and group agent activity
+const agent = createAgent({
+  model: "openai:gpt-5.4",
+  tools: [],
+  name: "joke_agent",
 });
-
-const agent = createReactAgent({ llm, tools: [] });
 
 Sentry.instrumentLangGraph(agent, {
   recordInputs: true,
@@ -90,8 +131,8 @@ Sentry.instrumentLangGraph(agent, {
 
 const result = await agent.invoke({
   messages: [
-    new SystemMessage("You are a helpful assistant."),
-    new HumanMessage("Tell me a joke")
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "Tell me a joke" },
   ],
 });
 
@@ -107,6 +148,10 @@ const text = lastMessage.content;
 
   if (integration === AgentIntegration.LANGCHAIN) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'createLangChainCallbackHandler',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -138,7 +183,7 @@ const callbackHandler = Sentry.createLangChainCallbackHandler({
 });
 
 const chatModel = new ChatOpenAI({
-  modelName: "gpt-4o",
+  modelName: "gpt-5.4",
   // WARNING: Never expose API keys in browser code
   apiKey: "OPENAI_API_KEY",
 });
@@ -161,6 +206,10 @@ const text = response.content;
 
   if (integration === AgentIntegration.GOOGLE_GENAI) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentGoogleGenAIClient',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -192,9 +241,10 @@ const client = Sentry.instrumentGoogleGenAIClient(genAI, {
 });
 
 const response = await client.models.generateContent({
-  model: 'gemini-2.5-flash-lite',
+  model: 'gemini-3-flash-preview',
   contents: 'Why is the sky blue?',
 });
+console.log(response.text);
             `,
           },
         ],
@@ -204,6 +254,10 @@ const response = await client.models.generateContent({
 
   if (integration === AgentIntegration.ANTHROPIC) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentAnthropicAiClient',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -235,7 +289,7 @@ const client = Sentry.instrumentAnthropicAiClient(anthropic, {
 });
 
 const msg = await client.messages.create({
- model: "claude-3-5-sonnet",
+ model: "claude-sonnet-4-6",
  messages: [{role: "user", content: "Tell me a joke"}],
 });
             `,
@@ -247,6 +301,10 @@ const msg = await client.messages.create({
 
   if (integration === AgentIntegration.OPENAI) {
     return [
+      ...getMetaFrameworkAlert({
+        params,
+        functionName: 'instrumentOpenAiClient',
+      }),
       ...initConfig,
       {
         type: 'text',
@@ -278,7 +336,7 @@ const client = Sentry.instrumentOpenAiClient(openai, {
 });
 
 const response = await client.responses.create({
-  model: "gpt-4o-mini",
+  model: "gpt-5.4",
   input: "Tell me a joke",
 });
             `,
@@ -292,21 +350,50 @@ const response = await client.responses.create({
 }
 
 /**
- * Browser-only agent monitoring configuration.
- * Use this for pure browser platforms like React, Vue, Angular, Svelte, etc.
+ * This function is primarily intended for browser-only instructions.
+ * However, due to current technical limitations under investigation,
+ * some meta frameworks also rely on it.
+ *
+ * Since these frameworks support Vercel AI / Mastra options,
+ * we return server-side instructions from the Node.js agent
+ * monitoring function as well.
  */
 export function agentMonitoring({
   packageName = '@sentry/browser',
+  clientConfigFileName,
+  serverConfigFileName,
+  minVersion = MIN_REQUIRED_VERSION,
 }: {
+  clientConfigFileName?: string;
+  minVersion?: string;
   packageName?: `@sentry/${string}`;
+  serverConfigFileName?: string;
 } = {}): OnboardingConfig {
   return {
+    introduction: params => (
+      <SdkUpdateAlert
+        projectId={params.project.id}
+        minVersion={minVersion}
+        packageName={packageName}
+      />
+    ),
     install: params =>
       getInstallStep(params, {
         packageName,
+        minVersion,
       }),
     configure: params => {
       const selected = getAgentIntegration(params);
+
+      // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
+      // Therefore, Node.js instructions is returned for this option.
+      // This option is only available in meta frameworks.
+      if (selected === AgentIntegration.VERCEL_AI) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).configure(params);
+      }
 
       const importMode = 'esm-only';
 
@@ -314,7 +401,12 @@ export function agentMonitoring({
         return getManualConfigureStep(params, {
           packageName,
           importMode,
+          configFileName: clientConfigFileName,
         });
+      }
+
+      if (selected === AgentIntegration.MASTRA) {
+        return mastraOnboarding.configure(params);
       }
 
       return [
@@ -324,20 +416,41 @@ export function agentMonitoring({
             integration: selected,
             sentryImport: getImport(packageName, importMode).join('\n'),
             params,
+            configFileName: clientConfigFileName,
           }),
         },
       ];
     },
-    verify: () => [
-      {
-        type: StepType.VERIFY,
-        content: [
-          {
-            type: 'text',
-            text: t('Verify that your instrumentation works by simply calling your LLM.'),
-          },
-        ],
-      },
-    ],
+    verify: params => {
+      const selected = getAgentIntegration(params);
+
+      // The Vercel AI SDK (generateText, streamText) is server-side only to prevent API key exposure.
+      // Therefore, Node.js instructions is returned for this option.
+      // This option is only available in meta frameworks.
+      if (selected === AgentIntegration.VERCEL_AI) {
+        return nodeAgentMonitoring({
+          packageName,
+          configFileName: serverConfigFileName,
+        }).verify(params);
+      }
+
+      if (selected === AgentIntegration.MASTRA) {
+        return mastraOnboarding.verify(params);
+      }
+
+      return [
+        {
+          type: StepType.VERIFY,
+          content: [
+            {
+              type: 'text',
+              text: t(
+                'Verify that your instrumentation works by simply calling your LLM.'
+              ),
+            },
+          ],
+        },
+      ];
+    },
   };
 }

@@ -1,10 +1,13 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {logsVerify} from 'sentry/gettingStartedDocs/dotnet/logs';
+import {metricsVerify} from 'sentry/gettingStartedDocs/dotnet/metrics';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -39,6 +42,12 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
               // of transactions for tracing.
               // We recommend adjusting this value in production
               o.TracesSampleRate = 1.0;`
+                  : ''
+              }${
+                params.isLogsSelected
+                  ? `
+              // Enable logs to be sent to Sentry
+              o.EnableLogs = true;`
                   : ''
               }
           });
@@ -146,6 +155,8 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
+        logsVerify(params),
+        metricsVerify(params),
       ],
     },
     ...(params.isPerformanceSelected

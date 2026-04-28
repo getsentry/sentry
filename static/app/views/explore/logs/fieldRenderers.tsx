@@ -1,18 +1,18 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration/duration';
-import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import Version from 'sentry/components/version';
+import {Duration} from 'sentry/components/duration/duration';
+import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -22,10 +22,10 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import {type ColumnValueType} from 'sentry/utils/discover/fields';
 import {VersionContainer} from 'sentry/utils/discover/styles';
-import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useRelease} from 'sentry/utils/useRelease';
+import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
@@ -36,7 +36,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
-import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
+import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
@@ -57,10 +57,10 @@ import {
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
-import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 const {fmt} = Sentry.logger;
 
@@ -72,6 +72,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
     TraceItemResponseAttribute['type'] | EventsMetaType['fields'][string]
   >;
   attributes: Record<string, string | number | boolean>;
+  caseSensitiveHighlighting: boolean;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
@@ -147,7 +148,7 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
   );
 }
 
-export function TimestampRenderer(props: LogFieldRendererProps) {
+function TimestampRenderer(props: LogFieldRendererProps) {
   const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
 
   const timestampToUse = preciseTimestamp
@@ -241,10 +242,12 @@ function CodePathRenderer(props: LogFieldRendererProps) {
       : undefined;
   const filename = props.item.value;
 
-  const {data: release} = useRelease({
-    orgSlug: props.extra.organization.slug,
-    projectSlug: props.extra.projectSlug ?? '',
-    releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+  const {data: release} = useQuery({
+    ...releaseApiOptions({
+      orgSlug: props.extra.organization.slug,
+      projectSlug: props.extra.projectSlug ?? '',
+      releaseVersion: typeof releaseVersion === 'string' ? releaseVersion : '',
+    }),
     enabled: shouldLoad,
   });
   const {data: codeLink} = useStacktraceLink(
@@ -354,7 +357,7 @@ function FilteredTooltip({
     return (
       <Tooltip
         title={tct(
-          `The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].`,
+          'The log message was entirely filtered by a data scrubbing rule, its template is also been shown to help identify what was filtered. If necessary, you can turn data scrubbing off in your [settings].',
           {
             settings: (
               <Link
@@ -452,7 +455,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight text={highlightTerm}>{stripAnsi(attribute_value)}</LogsHighlight>
+        <LogsHighlight
+          caseSensitive={props.extra.caseSensitiveHighlighting}
+          text={highlightTerm}
+        >
+          {stripAnsi(attribute_value)}
+        </LogsHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             original={attribute_value}
@@ -566,7 +574,7 @@ function FieldReplacementHelper(
  * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
  */
 function BasicDiscoverRenderer(props: LogFieldRendererProps) {
-  const logMeta: EventsMetaType =
+  const logMeta =
     Object.keys(props.meta ?? {}).length > 0 ? props.meta! : logFieldBasicMetas;
   const basicRenderer = getFieldRenderer(props.item.fieldKey, logMeta, false);
   const attributeType = props.extra.attributeTypes[props.item.fieldKey];
@@ -609,9 +617,7 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
 function ReplayIDRenderer(props: LogFieldRendererProps) {
   const replayId = props.item.value;
 
-  const hasFeature = props.extra.organization.features.includes('ourlogs-replay-ui');
-
-  if (typeof replayId !== 'string' || !replayId || !hasFeature) {
+  if (typeof replayId !== 'string' || !replayId) {
     return props.basicRendered;
   }
 
@@ -634,17 +640,19 @@ function ReplayIDRenderer(props: LogFieldRendererProps) {
   );
 }
 
+function TimeStampRenderer(props: LogFieldRendererProps) {
+  if (props.extra.timestampRelativeTo) {
+    // Check if we should use relative timestamps (eg. in replay)
+    return <RelativeTimestampRenderer {...props} />;
+  }
+  return <TimestampRenderer {...props} />;
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
 > = {
-  [OurLogKnownFieldKey.TIMESTAMP]: props => {
-    if (props.extra.timestampRelativeTo) {
-      // Check if we should use relative timestamps (eg. in replay)
-      return RelativeTimestampRenderer(props);
-    }
-    return TimestampRenderer(props);
-  },
+  [OurLogKnownFieldKey.TIMESTAMP]: TimeStampRenderer,
   [OurLogKnownFieldKey.INTERNAL_ONLY_INGESTED_AT]: InternalIngestedAtRenderer,
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
@@ -675,7 +683,7 @@ const ClickableTimestamp = styled('span')`
   display: flex;
   align-items: flex-start;
   align-self: baseline;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   font-variant-numeric: tabular-nums;
   line-height: 1em;
 `;

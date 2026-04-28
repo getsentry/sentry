@@ -6,13 +6,14 @@ import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import type {
   ProcessedSpanType,
@@ -37,11 +38,11 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
@@ -106,15 +107,13 @@ function ConsecutiveHTTPSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          makeRow(
-            'Offending Spans',
-            offendingSpans.map(span => span.description)
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(
+          'Offending Spans',
+          offendingSpans.map(span => span.description)
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -128,17 +127,15 @@ function LargeHTTPPayloadSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
-          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
-          makeRow(
-            t('Payload Size'),
-            getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
-              getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
-          ),
-        ].filter(Boolean) as KeyValueListData
-      }
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
+        makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
+        makeRow(
+          t('Payload Size'),
+          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
+        ),
+      ].filter(Boolean)}
     />
   );
 }
@@ -153,13 +150,11 @@ function HTTPOverheadSpanEvidence({
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
-      data={
-        [
-          makeTransactionNameRow(event, organization, location, projectSlug),
+      data={[
+        makeTransactionNameRow(event, organization, location, projectSlug),
 
-          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
-        ].filter(Boolean) as KeyValueListData
-      }
+        makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
+      ].filter(Boolean)}
     />
   );
 }
@@ -423,6 +418,13 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
   [IssueType.WEB_VITALS]: WebVitalsEvidence,
   [IssueType.LLM_DETECTED_EXPERIMENTAL]: AIDetectedSpanEvidence,
+  [IssueType.LLM_DETECTED_EXPERIMENTAL_V2]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_HTTP]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_DB]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_RUNTIME_PERFORMANCE]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_SECURITY]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_CODE_HEALTH]: AIDetectedSpanEvidence,
+  [IssueType.AI_DETECTED_GENERAL]: AIDetectedSpanEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -561,9 +563,7 @@ function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
     <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
   );
 
-  return (
-    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
-  );
+  return <PresortedKeyValueList data={[transactionRow].filter(Boolean)} />;
 }
 
 function DefaultSpanEvidence({

@@ -63,17 +63,13 @@ jobs:
       # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size (5 for backend changes, 10 for frontend-only)
       MATRIX_INSTANCE_TOTAL: ${{ needs.files-changed.outputs.backend_all == 'true' && '5' || '10' }}
       TEST_GROUP_STRATEGY: roundrobin
+      PYTHONHASHSEED: '0'
+      XDIST_PER_WORKER_SNUBA: '1'
+      XDIST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
-
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        id: setup-node
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
       - name: Step configurations
         id: config
@@ -87,22 +83,11 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rspack.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
-      - name: node_modules cache
-        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-        id: nodemodulescache
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
-
-      - name: Install Javascript Dependencies
-        if: steps.nodemodulescache.outputs.cache-hit != 'true'
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-node-pnpm
 
       - name: webpack
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          # should set value either as `true` or `false`
-          CODECOV_ENABLE_BA: ${{ needs.files-changed.outputs.frontend_all == 'true'}}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           pnpm run build-acceptance
@@ -117,8 +102,16 @@ jobs:
         with:
           mode: acceptance-ci
 
+      - name: Bootstrap per-worker Snuba instances
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: make run-acceptance
+        run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          timeout 1200 make run-acceptance || rc=$?
+          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+          exit "${rc:-0}"
 
       - name: Inspect failure
         if: failure()
@@ -127,9 +120,17 @@ jobs:
             devservices logs
           fi
 
+          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
+            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+              echo "--- snuba-gw${i} logs ---"
+              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
+            done
+          fi
+
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
         if: ${{ !cancelled() }}
+        continue-on-error: true
         with:
           artifact_path: .artifacts/pytest.acceptance.json
           gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}

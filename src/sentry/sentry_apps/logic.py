@@ -14,7 +14,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from sentry_sdk.api import isolation_scope
 
-from sentry import analytics, audit_log, features
+from sentry import analytics, audit_log
 from sentry.analytics.events.internal_integration_created import InternalIntegrationCreatedEvent
 from sentry.analytics.events.sentry_app_created import SentryAppCreatedEvent
 from sentry.analytics.events.sentry_app_updated import SentryAppUpdatedEvent
@@ -29,7 +29,6 @@ from sentry.models.apiapplication import ApiApplication
 from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.apitoken import ApiToken
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.organizations.services.organization.service import organization_service
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -47,13 +46,9 @@ from sentry.sentry_apps.models.sentry_app import (
 )
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.tasks.sentry_apps import create_or_update_service_hooks_for_sentry_app
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.sentry_apps.service_hook_manager import (
-    create_or_update_service_hooks_for_installation,
-)
 
 Schema = Mapping[str, Any]
 
@@ -215,26 +210,16 @@ class SentryAppUpdater:
             self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self) -> None:
-        organization_context = organization_service.get_organization_by_id(
-            id=self.sentry_app.owner_id
-        )
-        assert organization_context is not None, "Organization cannot be None for ff"
-        if features.has(
-            "organizations:service-hooks-outbox",
-            organization_context.organization,
-        ):
-            self._update_service_hooks_via_outbox()
-        else:
-            self._update_service_hooks_via_task()
+        self._update_service_hooks_via_outbox()
 
     def _update_service_hooks_via_outbox(self) -> None:
         if installations := SentryAppInstallation.objects.filter(sentry_app_id=self.sentry_app.id):
-            org_ids_and_region_names = OrganizationMapping.objects.filter(
+            org_ids_and_cell_names = OrganizationMapping.objects.filter(
                 organization_id__in=installations.values_list("organization_id", flat=True)
-            ).values_list("organization_id", "region_name")
+            ).values_list("organization_id", "cell_name")
 
-            installation_org_id_to_region_name = {
-                org_id: region_name for org_id, region_name in org_ids_and_region_names
+            installation_org_id_to_cell_name = {
+                org_id: cell_name for org_id, cell_name in org_ids_and_cell_names
             }
 
             with outbox_context(
@@ -242,18 +227,18 @@ class SentryAppUpdater:
             ):
                 for installation in installations:
                     assert (
-                        installation_org_id_to_region_name.get(installation.organization_id)
+                        installation_org_id_to_cell_name.get(installation.organization_id)
                         is not None
-                    ), f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+                    ), (
+                        f"OrganizationMapping must exist for installation {installation.id} and organization {installation.organization_id}"
+                    )
 
                     ControlOutbox(
                         shard_scope=OutboxScope.APP_SCOPE,
                         shard_identifier=self.sentry_app.id,
                         object_identifier=installation.id,
                         category=OutboxCategory.SERVICE_HOOK_UPDATE,
-                        region_name=installation_org_id_to_region_name[
-                            installation.organization_id
-                        ],
+                        cell_name=installation_org_id_to_cell_name[installation.organization_id],
                     ).save()
                     logger.info(
                         "_update_service_hooks_via_outbox.created_outbox_entry",
@@ -262,37 +247,11 @@ class SentryAppUpdater:
                             "sentry_app_id": self.sentry_app.id,
                             "events": self.sentry_app.events,
                             "application_id": self.sentry_app.application_id,
-                            "region_name": installation_org_id_to_region_name[
+                            "cell_name": installation_org_id_to_cell_name[
                                 installation.organization_id
                             ],
                         },
                     )
-
-    def _update_service_hooks_via_task(self) -> None:
-        if self.sentry_app.is_published:
-            # if it's a published integration, we need to do many updates so we have to do it in a task so we don't time out
-            # the client won't know it succeeds but there's not much we can do about that unfortunately
-            create_or_update_service_hooks_for_sentry_app.apply_async(
-                kwargs={
-                    "sentry_app_id": self.sentry_app.id,
-                    "webhook_url": self.sentry_app.webhook_url,
-                    "events": self.sentry_app.events,
-                }
-            )
-            return
-
-        # for unpublished integrations that aren't installed yet, we may not have an installation
-        # if we don't, then won't have any service hooks
-        try:
-            installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
-        except SentryAppInstallation.DoesNotExist:
-            return
-
-        create_or_update_service_hooks_for_installation(
-            installation=installation,
-            webhook_url=self.sentry_app.webhook_url,
-            events=self.sentry_app.events,
-        )
 
     def _update_webhook_url(self) -> None:
         if self.webhook_url is not None:
@@ -383,9 +342,9 @@ class SentryAppCreator:
 
     def __post_init__(self) -> None:
         if self.is_internal:
-            assert (
-                not self.verify_install
-            ), "Internal apps should not require installation verification"
+            assert not self.verify_install, (
+                "Internal apps should not require installation verification"
+            )
 
     def run(
         self,
@@ -394,7 +353,6 @@ class SentryAppCreator:
         request: HttpRequest | None = None,
         skip_default_auth_token: bool = False,
     ) -> SentryApp:
-
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.MANAGEMENT,
             event_type=SentryAppEventType.APP_CREATE,

@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {IconList, IconSubscribed, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import SubscriptionHeaderCard from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
+import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {hasSpendVisibilityNotificationsFeature} from 'getsentry/views/subscriptionPage/utils';
 
-function LinksCard({organization}: {organization: Organization}) {
+export function LinksCard({organization}: {organization: Organization}) {
   const hasBillingPerms = organization.access?.includes('org:billing');
   const hasSpendNotifications = hasSpendVisibilityNotificationsFeature(organization);
 
@@ -62,5 +63,3 @@ function LinksCard({organization}: {organization: Organization}) {
     />
   );
 }
-
-export default LinksCard;

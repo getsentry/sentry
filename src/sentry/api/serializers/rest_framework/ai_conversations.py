@@ -4,7 +4,6 @@ from rest_framework import serializers
 class OrganizationAIConversationsSerializer(serializers.Serializer):
     sort = serializers.CharField(required=False, default="-timestamp")
     query = serializers.CharField(required=False, allow_blank=True)
-    useOptimizedQuery = serializers.BooleanField(required=False, default=False)
     samplingMode = serializers.ChoiceField(
         choices=[
             "NORMAL",
@@ -31,6 +30,8 @@ class OrganizationAIConversationsSerializer(serializers.Serializer):
             "-totalTokens",
             "totalCost",
             "-totalCost",
+            "toolErrors",
+            "-toolErrors",
         }
         if value not in allowed_sorts:
             raise serializers.ValidationError(f"Invalid sort option: {value}")

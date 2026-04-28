@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GroupReactionTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         repo = self.create_repo(project=self.project)
         self.commit = self.create_commit(
@@ -15,7 +15,7 @@ class GroupReactionTest(TestCase):
             key="pretend this is a sha",
         )
 
-    def test_check_constraint_both_null_fails(self):
+    def test_check_constraint_both_null_fails(self) -> None:
         with pytest.raises(IntegrityError):
             GroupReaction.objects.create(
                 project=self.project,
@@ -26,7 +26,7 @@ class GroupReactionTest(TestCase):
                 source=GroupReactionType.USER_SUSPECT_COMMIT_REACTION.value,
             )
 
-    def test_unique_constraint_commit_group(self):
+    def test_unique_constraint_commit_group(self) -> None:
         GroupReaction.objects.create(
             project=self.project,
             commit=self.commit,
@@ -58,7 +58,7 @@ class GroupReactionTest(TestCase):
                 source=GroupReactionType.USER_SUSPECT_COMMIT_REACTION.value,
             )
 
-    def test_unique_constraint_project_wide_exclusion(self):
+    def test_unique_constraint_project_wide_exclusion(self) -> None:
         GroupReaction.objects.create(
             project=self.project,
             commit=self.commit,
@@ -78,7 +78,7 @@ class GroupReactionTest(TestCase):
                 source=GroupReactionType.USER_SUSPECT_COMMIT_REACTION.value,
             )
 
-    def test_unique_constraint_group_exclusion(self):
+    def test_unique_constraint_group_exclusion(self) -> None:
         GroupReaction.objects.create(
             project=self.project,
             commit=None,
@@ -98,7 +98,7 @@ class GroupReactionTest(TestCase):
                 source=GroupReactionType.USER_SUSPECT_COMMIT_REACTION.value,
             )
 
-    def test_user_can_react_to_different_commits_same_group(self):
+    def test_user_can_react_to_different_commits_same_group(self) -> None:
         repo = self.create_repo(project=self.project)
         commit2 = self.create_commit(
             repo=repo,
@@ -127,7 +127,7 @@ class GroupReactionTest(TestCase):
         assert reaction2.reaction is True
         assert GroupReaction.objects.count() == 2
 
-    def test_user_can_react_to_multiple_groups(self):
+    def test_user_can_react_to_multiple_groups(self) -> None:
         group2 = self.create_group(project=self.project)
 
         GroupReaction.objects.create(
@@ -151,7 +151,7 @@ class GroupReactionTest(TestCase):
         assert reaction2.group == group2
         assert GroupReaction.objects.count() == 2
 
-    def test_multiple_deleted_users_can_react(self):
+    def test_multiple_deleted_users_can_react(self) -> None:
         user2 = self.create_user()
 
         reaction1 = GroupReaction.objects.create(

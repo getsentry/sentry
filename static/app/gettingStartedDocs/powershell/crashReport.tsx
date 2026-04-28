@@ -1,4 +1,4 @@
-import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
+import {altCrashReportCallout} from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {

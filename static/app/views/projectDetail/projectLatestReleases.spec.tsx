@@ -9,7 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
+import {ProjectLatestReleases} from 'sentry/views/projectDetail/projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', () => {
   let endpointMock: jest.Mock;

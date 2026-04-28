@@ -5,8 +5,9 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {FilterKeyCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
@@ -18,7 +19,6 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 type FilterKeyProps = {
@@ -80,7 +80,7 @@ export function FilterKey({item, state, token, onActiveChange}: FilterKeyProps) 
 }
 
 const KeyButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.25)} 0 ${space(0.5)};
+  padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   color: ${p => p.theme.tokens.content.primary};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -95,7 +95,7 @@ const KeyButton = styled(UnstyledButton)`
 `;
 
 const KeyEditing = styled('div')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
   color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;

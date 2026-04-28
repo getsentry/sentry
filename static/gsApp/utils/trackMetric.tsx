@@ -1,6 +1,6 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-function trackMetric(
+export function trackMetric(
   _name: string,
   _value: number,
   _tags: Record<PropertyKey, unknown> | undefined = {}
@@ -14,5 +14,3 @@ function trackMetric(
   // however we've kept this function around in case we want to replace
   // frontend metric recording with something else.
 }
-
-export default trackMetric;

@@ -114,8 +114,6 @@ export function useSearchTokenCombobox<T>(
       case 'ArrowRight':
         state.selectionManager.setFocusedKey(null);
         break;
-      default:
-        break;
     }
   };
 

@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -36,7 +37,7 @@ export const profiling: OnboardingConfig = {
         {
           type: 'code',
           language: 'bash',
-          code: `composer require sentry/sentry-laravel`,
+          code: 'composer require sentry/sentry-laravel',
         },
         {
           type: 'text',

@@ -13,7 +13,7 @@ const pulse = keyframes`
   }
 `;
 
-const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
+export const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
   height: 8px;
   width: 8px;
   border-radius: 50%;
@@ -35,5 +35,3 @@ const pulsingIndicatorStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
   }
 `;
-
-export default pulsingIndicatorStyles;

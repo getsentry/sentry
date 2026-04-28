@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const dbQueryConfig: IssueCategoryConfigMapping = {
+export const dbQueryConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -100,5 +100,3 @@ const dbQueryConfig: IssueCategoryConfigMapping = {
     },
   },
 };
-
-export default dbQueryConfig;

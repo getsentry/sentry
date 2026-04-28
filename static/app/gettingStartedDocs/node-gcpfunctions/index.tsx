@@ -1,5 +1,6 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
+import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
 
 import {crashReport} from './crashReport';
 import {logs} from './logs';
@@ -8,10 +9,13 @@ import {metrics} from './metrics';
 import {onboarding} from './onboarding';
 import {profiling} from './profiling';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   crashReportOnboarding: crashReport,
   profilingOnboarding: profiling,
+  featureFlagOnboarding: featureFlag({
+    packageName: '@sentry/google-cloud-serverless',
+  }),
   logsOnboarding: logs,
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/google-cloud-serverless',
@@ -19,5 +23,3 @@ const docs: Docs = {
   mcpOnboarding: mcp,
   metricsOnboarding: metrics,
 };
-
-export default docs;

@@ -1,6 +1,6 @@
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
@@ -36,16 +36,17 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
     <CompactSelect
       multiple
       clearable
-      searchable
+      search={{
+        onChange: value => {
+          onMemberSearch(value);
+          onTeamSearch(value);
+        },
+      }}
       loading={fetching}
       disabled={isDemoModeActive()}
       menuTitle={t('Filter owners')}
       options={[{label: t('Suggested'), options: suggestedOptions}, ...options]}
       value={selectedOwners}
-      onSearch={value => {
-        onMemberSearch(value);
-        onTeamSearch(value);
-      }}
       onChange={opts => {
         // Compact select type inference does not work - onChange type is actually T | null.
         if (!opts) {

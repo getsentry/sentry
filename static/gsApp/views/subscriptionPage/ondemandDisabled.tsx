@@ -27,8 +27,9 @@
  */
 import {NavLink} from 'react-router-dom';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -40,7 +41,7 @@ interface Props {
   subscription: Subscription;
 }
 
-function OnDemandDisabled({organization, subscription}: Props) {
+export function OnDemandDisabled({organization, subscription}: Props) {
   // Only show the alert if billing is disabled and there's a spend limit configured
   if (!(subscription.onDemandDisabled && subscription.onDemandMaxSpend > 0)) {
     return null;
@@ -75,5 +76,3 @@ function OnDemandDisabled({organization, subscription}: Props) {
     </Alert>
   );
 }
-
-export default OnDemandDisabled;

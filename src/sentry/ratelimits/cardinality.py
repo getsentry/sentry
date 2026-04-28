@@ -1,11 +1,10 @@
 from collections.abc import Mapping, Sequence
 
 from sentry_redis_tools.cardinality_limiter import CardinalityLimiter as CardinalityLimiterBase
-from sentry_redis_tools.cardinality_limiter import GrantedQuota, Quota
+from sentry_redis_tools.cardinality_limiter import GrantedQuota, Quota, RequestedQuota
 from sentry_redis_tools.cardinality_limiter import (
     RedisCardinalityLimiter as RedisCardinalityLimiterImpl,
 )
-from sentry_redis_tools.cardinality_limiter import RequestedQuota
 from sentry_redis_tools.clients import BlasterClient, RedisCluster
 
 from sentry.utils import metrics, redis

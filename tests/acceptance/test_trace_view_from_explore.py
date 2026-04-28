@@ -17,7 +17,6 @@ class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase)
     FEATURES = [
         "organizations:visibility-explore-view",
         "organizations:performance-view",
-        "organizations:trace-spans-format",
     ]
 
     def setUp(self) -> None:

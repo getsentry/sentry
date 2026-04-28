@@ -30,7 +30,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.monitors.models import (
@@ -47,12 +46,16 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
     PreprodBuildConfiguration,
+    PreprodComparisonApproval,
+    PreprodSnapshotComparison,
+    PreprodSnapshotMetrics,
 )
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -105,7 +108,7 @@ class Fixtures:
         return self.create_organization(name="baz", slug="baz", owner=self.user)
 
     @cached_property
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def team(self):
         team = self.create_team(organization=self.organization, name="foo", slug="foo")
         # XXX: handle legacy team fixture
@@ -142,7 +145,7 @@ class Fixtures:
         )
 
     @cached_property
-    @assume_test_silo_mode(SiloMode.REGION)
+    @assume_test_silo_mode(SiloMode.CELL)
     def activity(self):
         return Activity.objects.create(
             group=self.group,
@@ -214,9 +217,6 @@ class Fixtures:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
-
-    def create_project_template(self, **kwargs) -> ProjectTemplate:
-        return Factories.create_project_template(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:
@@ -594,7 +594,7 @@ class Fixtures:
         **kwargs: Any,
     ):
         if user is None:
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 user = organization.get_default_owner()
 
         integration = Factories.create_slack_integration(
@@ -790,6 +790,7 @@ class Fixtures:
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
         region_slugs: list[str] | None = None,
+        assertion: Any | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
@@ -814,6 +815,7 @@ class Fixtures:
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
+            assertion=assertion,
         )
         for region_slug in region_slugs:
             self.create_uptime_subscription_region(subscription, region_slug)
@@ -953,6 +955,32 @@ class Fixtures:
             head_size_analysis=head_size_analysis,
             base_size_analysis=base_size_analysis,
             **kwargs,
+        )
+
+    def create_preprod_snapshot_metrics(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodSnapshotMetrics:
+        return Factories.create_preprod_snapshot_metrics(
+            preprod_artifact=preprod_artifact, **kwargs
+        )
+
+    def create_preprod_snapshot_comparison(
+        self,
+        head_snapshot_metrics: PreprodSnapshotMetrics,
+        base_snapshot_metrics: PreprodSnapshotMetrics,
+        **kwargs,
+    ) -> PreprodSnapshotComparison:
+        return Factories.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_snapshot_metrics,
+            base_snapshot_metrics=base_snapshot_metrics,
+            **kwargs,
+        )
+
+    def create_preprod_comparison_approval(
+        self, preprod_artifact: PreprodArtifact, **kwargs
+    ) -> PreprodComparisonApproval:
+        return Factories.create_preprod_comparison_approval(
+            preprod_artifact=preprod_artifact, **kwargs
         )
 
     def create_preprod_build_configuration(
@@ -1180,5 +1208,5 @@ class Fixtures:
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
     @pytest.fixture(autouse=True)
-    def _init_insta_snapshot(self, insta_snapshot):
+    def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot

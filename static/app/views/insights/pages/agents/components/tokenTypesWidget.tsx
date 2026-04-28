@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
-import Count from 'sentry/components/count';
+import {Count} from 'sentry/components/count';
 import {t, tct} from 'sentry/locale';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -38,7 +38,7 @@ const SERIES_NAME_MAP: Record<string, string> = {
   'sum(gen_ai.usage.input_tokens.cached)': 'Cached Tokens',
 };
 
-export default function TokenTypesWidget() {
+export function TokenTypesWidget() {
   const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
@@ -121,11 +121,11 @@ export default function TokenTypesWidget() {
 
     // Calculate total tokens for each time point to convert to percentages
     const dataLength = adjustedSeries[0]?.values.length || 0;
-    const totalsPerTimePoint = new Array(dataLength).fill(0);
+    const totalsPerTimePoint = Array.from<number>({length: dataLength}).fill(0);
 
     adjustedSeries.forEach(series => {
       series.values.forEach((point, index) => {
-        totalsPerTimePoint[index] += point.value || 0;
+        totalsPerTimePoint[index]! += point.value || 0;
       });
     });
 
@@ -140,8 +140,8 @@ export default function TokenTypesWidget() {
       values: series.values.map((point, index) => ({
         ...point,
         value:
-          totalsPerTimePoint[index] > 0
-            ? (point.value || 0) / totalsPerTimePoint[index]
+          totalsPerTimePoint[index]! > 0
+            ? (point.value || 0) / totalsPerTimePoint[index]!
             : 0,
       })),
     }));
@@ -249,7 +249,7 @@ export default function TokenTypesWidget() {
                 },
               ],
               query: fullQuery,
-              sort: `-sum(gen_ai.usage.input_tokens)`,
+              sort: '-sum(gen_ai.usage.input_tokens)',
               interval: pageFilterChartParams.interval,
             }}
             onOpenFullScreen={() => {

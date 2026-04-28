@@ -1,5 +1,5 @@
 import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'sentry/actionCreators/group';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 
 describe('group', () => {
   describe('paramsToQueryArgs()', () => {

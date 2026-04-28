@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {fetchDataQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 interface Props {
   /**
@@ -88,7 +89,7 @@ interface State<Data> {
  * - Responses will return out of order (in this case items 50 to 100 return
  *   before items 0 to 50) which could cause layout shift.
  */
-export default function useFetchParallelPages<Data>({
+export function useFetchParallelPages<Data>({
   enabled,
   hits,
   getQueryKey,
@@ -100,7 +101,9 @@ export default function useFetchParallelPages<Data>({
 
   const cursors = useMemo(
     () =>
-      new Array(Math.ceil(hits / perPage)).fill(0).map((_, i) => `0:${perPage * i}:0`),
+      Array.from({length: Math.ceil(hits / perPage)})
+        .fill(0)
+        .map((_, i) => `0:${perPage * i}:0`),
     [hits, perPage]
   );
 

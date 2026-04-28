@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 import type {Team} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
-import ProjectsStore from './projectsStore';
+import {ProjectsStore} from './projectsStore';
 import type {StrictStoreDefinition} from './types';
 
 type State = {
@@ -166,5 +166,4 @@ const teamStoreConfig: TeamStoreDefinition = {
   },
 };
 
-const TeamStore = createStore(teamStoreConfig);
-export default TeamStore;
+export const TeamStore = createStore(teamStoreConfig);

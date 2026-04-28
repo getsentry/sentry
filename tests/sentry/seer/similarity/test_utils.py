@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import BaseVariant, CustomFingerprintVariant
+from sentry.seer.similarity.types import GroupingVersion
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     IGNORED_FILENAMES,
@@ -325,7 +326,7 @@ class GetStacktraceStringTest(TestCase):
                                         "id": "frame",
                                         "name": None,
                                         "contributes": True,
-                                        "hint": "marked out of app by stack trace rule (function:dbx v-group -group v-app -app)",
+                                        "hint": "marked out of app by stacktrace rule (function:dbx v-group -group v-app -app)",
                                         "values": [
                                             {
                                                 "id": "module",
@@ -514,9 +515,9 @@ class GetStacktraceStringTest(TestCase):
 
     def test_non_contributing_frame(self) -> None:
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(1, False)
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] += (
+            self.create_frames(1, False)
+        )
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == self.EXPECTED_STACKTRACE_STRING
 
@@ -885,7 +886,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should pass because string length (50 chars) < max_token_count (10000)
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_blocks_when_token_count_exceeds_limit(self) -> None:
         """
@@ -901,7 +907,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should be blocked because token count will exceed 100
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is True
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is True
+            )
 
     def test_passes_when_string_long_but_tokens_under_limit(self) -> None:
         """
@@ -921,7 +932,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # Should pass because token count is under the limit despite long string
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_uses_cached_stacktrace_string(self) -> None:
         """
@@ -936,7 +952,9 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             with patch("sentry.seer.similarity.utils.get_stacktrace_string") as mock_get_stacktrace:
-                stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST)
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
                 # Should not call get_stacktrace_string since we have cached value
                 mock_get_stacktrace.assert_not_called()
 
@@ -954,7 +972,12 @@ class StacktraceExceedsLimitsTest(TestCase):
             variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
             # No cached stacktrace_string, so it should generate one
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
     def test_ignores_events_not_grouped_on_stacktrace(self) -> None:
         """
@@ -972,11 +995,17 @@ class StacktraceExceedsLimitsTest(TestCase):
             assert isinstance(contributing_variant, CustomFingerprintVariant)
 
             # Should return False because it's not grouped on stacktrace
-            assert stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+            assert (
+                stacktrace_exceeds_limits(
+                    self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                )
+                is False
+            )
 
-    def test_bypassed_platforms_always_pass(self) -> None:
+    def test_bypassed_platforms_always_pass_for_v1(self) -> None:
         """
-        Test that bypassed platforms (python, javascript, etc.) always pass regardless of length.
+        Test that bypassed platforms (python, javascript, etc.) always pass regardless of length
+        when using V1 model (or no model version specified).
         """
         for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
             self.event.data["platform"] = platform
@@ -987,10 +1016,37 @@ class StacktraceExceedsLimitsTest(TestCase):
             with self.options({"seer.similarity.max_token_count": 100}):
                 variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-                # Bypassed platforms should always pass, even with long stacktraces
+                # Bypassed platforms should always pass for V1
                 assert (
-                    stacktrace_exceeds_limits(self.event, variants, ReferrerOptions.INGEST) is False
+                    stacktrace_exceeds_limits(
+                        self.event, variants, ReferrerOptions.INGEST, GroupingVersion.V1
+                    )
+                    is False
                 )
+
+    def _assert_bypassed_platforms_are_checked(self, model_version: GroupingVersion) -> None:
+        for platform in ["python", "javascript", "node", "go", "php", "ruby"]:
+            self.event.data["platform"] = platform
+            # Create a stacktrace that will exceed the token limit (repetitive chars compress
+            # well in BPE, so we need varied content to generate enough tokens)
+            long_stacktrace = "VeryLongError: " + ("a" * 10000) + "\n" + ("  File 'x.py'\n" * 100)
+            self.event.data["stacktrace_string"] = long_stacktrace
+
+            with self.options({"seer.similarity.max_token_count": 100}):
+                variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+                assert (
+                    stacktrace_exceeds_limits(
+                        self.event, variants, ReferrerOptions.INGEST, model_version
+                    )
+                    is True
+                )
+
+    def test_bypassed_platforms_are_checked_for_v2(self) -> None:
+        self._assert_bypassed_platforms_are_checked(GroupingVersion.V2)
+
+    def test_bypassed_platforms_are_checked_for_v2_1(self) -> None:
+        self._assert_bypassed_platforms_are_checked(GroupingVersion.V2_1)
 
 
 class GetTokenCountTest(TestCase):
@@ -1033,7 +1089,6 @@ class GetTokenCountTest(TestCase):
         with patch(
             "sentry.seer.similarity.utils.get_stacktrace_string"
         ) as mock_get_stacktrace_string:
-
             # Use empty variants since we're testing cached behavior
             variants: dict[str, BaseVariant] = {}
             token_count = get_token_count(self.event, variants, "python")

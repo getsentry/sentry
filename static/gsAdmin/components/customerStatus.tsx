@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import {space} from 'sentry/styles/space';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Subscription} from 'getsentry/types';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = {
   customer: Subscription;
@@ -53,7 +52,7 @@ const getTooltip = ({planDetails, trialPlan}: Subscription) => (
 const StatusList = styled('dl')`
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: 0 ${space(1)};
+  gap: 0 ${p => p.theme.space.md};
 
   dt {
     text-align: right;
@@ -63,7 +62,7 @@ const StatusList = styled('dl')`
   }
 `;
 
-function CustomerStatus({customer}: Props) {
+export function CustomerStatus({customer}: Props) {
   const label = getLabel(customer);
 
   return (
@@ -76,5 +75,3 @@ function CustomerStatus({customer}: Props) {
     </Fragment>
   );
 }
-
-export default CustomerStatus;

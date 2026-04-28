@@ -1,10 +1,9 @@
 import type {ComponentProps} from 'react';
-import {useCallback} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import useMedia from 'sentry/utils/useMedia';
+import {useMedia} from 'sentry/utils/useMedia';
 
 interface GroupPreviewHovercardProps extends ComponentProps<typeof Hovercard> {
   hide?: boolean;
@@ -18,10 +17,7 @@ export function GroupPreviewHovercard({
   ...props
 }: GroupPreviewHovercardProps) {
   const theme = useTheme();
-  const handleStackTracePreviewClick = useCallback(
-    (e: React.MouseEvent) => e.stopPropagation(),
-    []
-  );
+  const handleStackTracePreviewClick = (e: React.MouseEvent) => e.stopPropagation();
 
   // No need to preview on hover for small devices
   const shouldNotPreview = useMedia(`(max-width: ${theme.breakpoints.lg})`);

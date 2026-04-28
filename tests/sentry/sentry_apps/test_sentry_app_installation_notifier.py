@@ -56,7 +56,11 @@ class TestInstallationNotifier(TestCase):
             "installation": {"uuid": self.install.uuid},
             "data": {
                 "installation": {
-                    "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
+                    "app": {
+                        "uuid": self.sentry_app.uuid,
+                        "slug": self.sentry_app.slug,
+                        "sentryAppId": self.sentry_app.id,
+                    },
                     "organization": {"slug": self.organization.slug, "id": self.organization.id},
                     "uuid": self.install.uuid,
                     "code": self.install.api_grant.code,
@@ -89,7 +93,11 @@ class TestInstallationNotifier(TestCase):
             "installation": {"uuid": self.install.uuid},
             "data": {
                 "installation": {
-                    "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
+                    "app": {
+                        "uuid": self.sentry_app.uuid,
+                        "slug": self.sentry_app.slug,
+                        "sentryAppId": self.sentry_app.id,
+                    },
                     "organization": {"slug": self.organization.slug, "id": self.organization.id},
                     "uuid": self.install.uuid,
                     "code": self.install.api_grant.code,

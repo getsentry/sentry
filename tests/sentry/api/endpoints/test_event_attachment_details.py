@@ -3,8 +3,7 @@ from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
-from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
-from sentry.objectstore import get_attachments_session
+from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
@@ -88,31 +87,6 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
 
     @with_feature("organizations:event-attachments")
     @requires_objectstore
-    def test_doublewrite_objectstore(self) -> None:
-        self.login_as(user=self.user)
-
-        with override_options({"objectstore.double_write.attachments": 1}):
-            attachment = self.create_attachment()
-
-            assert attachment.blob_path is not None
-            object_key = attachment.blob_path.removeprefix(V1_PREFIX + V2_PREFIX)
-            # the file should also be available in objectstore
-            os_response = get_attachments_session(self.organization.id, self.project.id).get(
-                object_key
-            )
-            assert os_response.payload.read() == ATTACHMENT_CONTENT
-
-            path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{attachment.id}/?download"
-            response = self.client.get(path1)
-
-            assert response.status_code == 200, response.content
-            assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
-            assert response.get("Content-Length") == str(attachment.size)
-            assert response.get("Content-Type") == "image/png"
-            assert close_streaming_response(response) == ATTACHMENT_CONTENT
-
-    @with_feature("organizations:event-attachments")
-    @requires_objectstore
     def test_download_objectstore(self) -> None:
         self.login_as(user=self.user)
 
@@ -130,6 +104,37 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
             assert response.get("Content-Length") == str(attachment.size)
             assert response.get("Content-Type") == "image/png"
             assert close_streaming_response(response) == ATTACHMENT_CONTENT
+
+    @with_feature("organizations:event-attachments")
+    @requires_objectstore
+    def test_download_objectstore_accept_encoding(self) -> None:
+        import zstandard
+
+        self.login_as(user=self.user)
+
+        with override_options({"objectstore.enable_for.attachments": 1}):
+            attachment = self.create_attachment()
+
+            assert attachment.blob_path is not None
+            assert attachment.blob_path.startswith("v2/")
+
+            path1 = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{attachment.id}/?download"
+            response = self.client.get(path1, HTTP_ACCEPT_ENCODING="zstd")
+
+            assert response.status_code == 200, response.content
+            assert response.get("Content-Disposition") == 'attachment; filename="hello.png"'
+            assert response.get("Content-Type") == "image/png"
+
+            body = close_streaming_response(response)
+            if response.get("Content-Encoding") == "zstd":
+                # Object was stored compressed; verify we got valid compressed bytes
+                dctx = zstandard.ZstdDecompressor()
+                with dctx.stream_reader(body) as reader:
+                    assert reader.read() == ATTACHMENT_CONTENT
+            else:
+                # Object was stored uncompressed; content-length should be present
+                assert response.get("Content-Length") == str(attachment.size)
+                assert body == ATTACHMENT_CONTENT
 
     @with_feature("organizations:event-attachments")
     def test_zero_sized_attachment(self) -> None:

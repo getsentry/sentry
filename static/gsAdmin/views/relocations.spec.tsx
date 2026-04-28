@@ -1,7 +1,7 @@
 // import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import Relocations from 'admin/views/relocations';
+import {Relocations} from 'admin/views/relocations';
 
 jest.mock('sentry/actionCreators/indicator');
 

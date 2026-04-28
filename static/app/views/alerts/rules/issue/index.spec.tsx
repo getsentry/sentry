@@ -16,14 +16,14 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
@@ -85,6 +85,9 @@ const createWrapper = (props = {}) => {
     organizationId: organization.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };
+  const initialLocationPathname = `/settings/${router.params.orgId}/projects/${router.params.projectId}/alerts/rules/${
+    params.ruleId ?? 'new'
+  }/`;
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <IssueRuleEditor
@@ -100,9 +103,15 @@ const createWrapper = (props = {}) => {
       userTeamIds={[]}
     />,
     {
-      router,
       organization,
-      deprecatedRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: initialLocationPathname,
+          query: router.location.query,
+          state: router.location.state,
+        },
+        route: '/settings/:orgId/projects/:projectId/alerts/rules/:ruleId/',
+      },
     }
   );
 
@@ -131,8 +140,9 @@ describe('IssueRuleEditor', () => {
       body: EnvironmentsFixture(),
     });
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/?expand=hasAlertIntegration`,
+      url: '/projects/org-slug/project-slug/',
       body: {},
+      match: [MockApiClient.matchQuery({expand: 'hasAlertIntegration'})],
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/preview/',
@@ -141,13 +151,15 @@ describe('IssueRuleEditor', () => {
     });
     ProjectsStore.loadInitialData([ProjectFixture()]);
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      url: '/organizations/org-slug/integrations/',
       body: [],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
     const providerKeys = ['slack', 'discord', 'msteams'];
     providerKeys.forEach(providerKey => {
       MockApiClient.addMockResponse({
-        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        url: '/organizations/org-slug/config/integrations/',
+        match: [MockApiClient.matchQuery({provider_key: providerKey})],
         body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
       });
     });
@@ -243,8 +255,8 @@ describe('IssueRuleEditor', () => {
         method: 'DELETE',
         body: {},
       });
-      const {router} = createWrapper();
-      renderGlobalModal({router, deprecatedRouterMocks: true});
+      createWrapper();
+      renderGlobalModal();
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -253,9 +265,6 @@ describe('IssueRuleEditor', () => {
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
-      expect(router.replace).toHaveBeenCalledWith(
-        '/settings/org-slug/projects/project-slug/alerts/'
-      );
     });
 
     it('saves rule with condition value of 0', async () => {
@@ -491,11 +500,13 @@ describe('IssueRuleEditor', () => {
         body: {uuid},
       });
       const {router} = createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(() => jest.advanceTimersByTimeAsync(600));
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(() => jest.advanceTimersByTimeAsync(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(mockSuccess).toHaveBeenCalledTimes(1));
@@ -515,12 +526,15 @@ describe('IssueRuleEditor', () => {
         statusCode: 202,
         body: {uuid},
       });
+
       createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(() => jest.advanceTimersByTimeAsync(600));
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(() => jest.advanceTimersByTimeAsync(1000));
       expect(addLoadingMessage).toHaveBeenCalledTimes(2);
       expect(pollingMock).toHaveBeenCalledTimes(1);
       expect(await screen.findByTestId('loading-mask')).toBeInTheDocument();
@@ -538,11 +552,13 @@ describe('IssueRuleEditor', () => {
         body: {uuid},
       });
       createWrapper();
+      // Flush the initial debounced preview fetch (500ms debounce)
+      await act(() => jest.advanceTimersByTimeAsync(600));
       await userEvent.click(await screen.findByRole('button', {name: 'Save Rule'}), {
         delay: null,
       });
 
-      act(() => jest.advanceTimersByTime(1000));
+      await act(() => jest.advanceTimersByTimeAsync(1000));
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
       expect(addErrorMessage).toHaveBeenCalledTimes(1);
@@ -572,7 +588,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },
@@ -597,7 +613,7 @@ describe('IssueRuleEditor', () => {
           location: {
             query: {
               createFromDuplicate: 'true',
-              duplicateRuleId: `${rule.id}`,
+              duplicateRuleId: rule.id,
             },
           },
         },

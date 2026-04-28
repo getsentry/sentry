@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -81,7 +81,7 @@ def serialize(data, projects):
     return [update for update in updates_list if len(update["suggestions"]) > 0]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
@@ -122,7 +122,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
         return Response(serialize(result["data"], projects))
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSdksEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -7,7 +7,7 @@ import type {
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
 import {ErrorHelpType} from 'sentry/utils/issueTypeConfig/types';
-import isHydrationError from 'sentry/utils/react/isHydrationError';
+import {isHydrationError} from 'sentry/utils/react/isHydrationError';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 export const errorConfig: IssueCategoryConfigMapping = {

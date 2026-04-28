@@ -1,7 +1,7 @@
 const REGEXP =
   /(does not match server-rendered HTML|Hydration failed because|error while hydrating)/i;
 
-export default function isHydrationError(errorTitle: string) {
+export function isHydrationError(errorTitle: string) {
   // Hydration Errors captured by the errors-SDK will match the REGEXP above
   // while errors generated from the Replay Breadcrumb Ingest will have a static
   // title set inside `report_hydration_error_issue_with_replay_event()`

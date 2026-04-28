@@ -1,10 +1,8 @@
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
-
 const bulletStyle = (theme: Theme) => css`
-  padding-left: ${space(3)};
+  padding-left: ${theme.space['2xl']};
   list-style-type: circle;
   & > li::marker {
     color: ${theme.tokens.content.secondary};
@@ -22,7 +20,7 @@ const numericStyle = (
   {isSolid = false, initialCounterValue = 0}: Options
 ) => css`
   & > li {
-    padding-left: ${space(4)};
+    padding-left: ${theme.space['3xl']};
     :before {
       border-radius: 50%;
       position: absolute;

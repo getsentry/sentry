@@ -10,24 +10,26 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import Placeholder from 'sentry/components/placeholder';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t, tctCode} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {
   DisplayType,
@@ -36,32 +38,42 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
-import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
-import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
-import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
-import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {
+  doesDisplayTypeSupportThresholds,
+  usesTimeSeriesData,
+} from 'sentry/views/dashboards/utils';
+import {AxisRangeSection} from 'sentry/views/dashboards/widgetBuilder/components/axisRangeSection';
+import {WidgetBuilderDatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
+import {WidgetBuilderDescriptionField} from 'sentry/views/dashboards/widgetBuilder/components/descriptionField';
+import {WidgetBuilderFilterBar} from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
+import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
+import {LegendTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/legendTypeSelector';
+import {WidgetBuilderNameAndDescription} from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {
   WidgetPreviewContainer,
   type ThresholdMetaState,
 } from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
-import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
-import SaveButtonGroup from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
-import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
-import ThresholdsSection from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
-import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
-import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
-import WidgetTemplatesList from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import {SaveButtonGroup} from 'sentry/views/dashboards/widgetBuilder/components/saveButtonGroup';
+import {WidgetBuilderSortBySelector} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
+import {ThresholdsSection} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
+import {WidgetBuilderTypeSelector} from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
+import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useCacheBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useCacheBuilderState';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {useSegmentSpanWidgetState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSegmentSpanWidgetState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
+import {readableConditions} from 'sentry/views/dashboards/widgetCard/widgetLLMContext';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
@@ -73,11 +85,11 @@ type WidgetBuilderSlideoutProps = {
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
-  onDataFetched?: (tableData: TableDataWithTitle[]) => void;
+  onDataFetched?: (results: OnDataFetchedParams) => void;
   thresholdMetaState?: ThresholdMetaState;
 };
 
-function WidgetBuilderSlideout({
+function WidgetBuilderSlideoutInner({
   onClose,
   onSave,
   onQueryConditionChange,
@@ -92,12 +104,34 @@ function WidgetBuilderSlideout({
 }: WidgetBuilderSlideoutProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const {visible: isModalVisible} = useGlobalModal();
   const {state, dispatch} = useWidgetBuilderContext();
   const [initialState] = useState(state);
   const [customizeFromLibrary, setCustomizeFromLibrary] = useState(false);
   const [error, setError] = useState<Record<string, any>>({});
   const theme = useTheme();
   const isEditing = useIsEditingWidget();
+
+  // Push widget builder state into the LLM context tree for Seer Explorer.
+  useLLMContext({
+    priority: 1,
+    contextHint:
+      'Sentry widget builder. The user is configuring a dashboard widget. visualize is the y-axis metrics (timeseries) or the aggregate (big number/table). fields are group-by columns (timeseries) or visible columns (table). query filters the data and sort controls ordering.',
+    dashboardTitle: dashboard.title,
+    dashboardWidgetCount: dashboard.widgets.length,
+    dashboardFilters: dashboard.filters,
+    mode: isEditing ? 'editing' : 'creating',
+    title: state.title,
+    description: state.description,
+    dataset: state.dataset,
+    displayType: state.displayType,
+    visualize: state.yAxis?.map(generateFieldAsString),
+    fields: state.fields?.map(generateFieldAsString),
+    query: state.query?.map(readableConditions),
+    sort: state.sort?.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    thresholds: state.thresholds,
+    legendAlias: state.legendAlias,
+  });
   const source = useDashboardWidgetSource();
   const {cacheBuilderState} = useCacheBuilderState();
   const {setSegmentSpanBuilderState} = useSegmentSpanWidgetState();
@@ -131,19 +165,44 @@ function WidgetBuilderSlideout({
     : isEditing
       ? t('Edit Widget')
       : t('Custom Widget Builder');
-  const isChartWidget = isChartDisplayType(state.displayType);
+  const isTimeSeriesWidget = usesTimeSeriesData(state.displayType);
+  const isCategoricalBarWidget = state.displayType === DisplayType.CATEGORICAL_BAR;
+  const isTextWidget = state.displayType === DisplayType.TEXT;
 
-  const showVisualizeSection = state.displayType !== DisplayType.DETAILS;
-  const showQueryFilterBuilder = !(
-    state.dataset === WidgetType.ISSUE && isChartDisplayType(state.displayType)
-  );
-  const showGroupBySelector = isChartWidget && !(state.dataset === WidgetType.ISSUE);
+  const showVisualizeSection = state.displayType !== DisplayType.DETAILS && !isTextWidget;
+  const showQueryFilterBuilder =
+    !isTextWidget &&
+    !(state.dataset === WidgetType.ISSUE && usesTimeSeriesData(state.displayType));
+
+  // Group By is used by time-series chart widgets to break down data by a field.
+  // - Time-series widgets: show Group By to allow breaking down by fields
+  // - Issue widgets: don't support Group By (issues have their own grouping)
+  // - Categorical Bar widgets: group by is not supported yet, but may be in the future
+  // - Text widgets: don't support Group By (no data visualization)
+  const showGroupBySelector =
+    isTimeSeriesWidget && !(state.dataset === WidgetType.ISSUE) && !isTextWidget;
+
+  // X-Axis selector is only for Categorical Bar widgets, other chart widgets
+  // always use time as the X-axis
+  const showXAxisSelector = isCategoricalBarWidget;
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
+  // Sort By controls the ordering of results.
+  // - Table: Always show to control row ordering
+  // - Line, Area, Bar (Time Series): Show to control which top N groups are displayed
+  // - Bar (Categorical): Show to control category ordering (like tables)
+  // - Text: don't need Sort By (no data)
   const showSortByStep =
-    (isChartWidget && state.fields && state.fields.length > 0) ||
-    state.displayType === DisplayType.TABLE;
+    (isCategoricalBarWidget ||
+      (isTimeSeriesWidget && state.fields && state.fields.length > 0) ||
+      state.displayType === DisplayType.TABLE) &&
+    !isTextWidget;
+
+  // Dataset Selector is used by widgets to know which dataset to query.
+  // - Text: doesn't need a dataset because it does not query any data
+  // - Other widgets: need to select a dataset to query the appropriate data
+  const showDatasetSelector = !isTextWidget;
 
   const observer = useMemo(
     () =>
@@ -185,9 +244,7 @@ function WidgetBuilderSlideout({
         // clears the widget to start fresh on the library page
         dispatch({
           type: 'SET_STATE',
-          payload: convertWidgetToBuilderStateParams(
-            widgetLibraryWidgets[0] ?? ({} as Widget)
-          ),
+          payload: convertWidgetToBuilderState(widgetLibraryWidgets[0] ?? ({} as Widget)),
         });
       }}
     >
@@ -203,6 +260,19 @@ function WidgetBuilderSlideout({
       onConfirm: onClose,
     });
   }, [initialState, onClose, state]);
+
+  useHotkeys([
+    {
+      match: 'Escape',
+      skipPreventDefault: true,
+      callback: (evt: KeyboardEvent) => {
+        if (!isModalVisible) {
+          evt.preventDefault();
+          onCloseWithModal();
+        }
+      },
+    },
+  ]);
 
   const breadcrumbs = customizeFromLibrary
     ? [
@@ -234,7 +304,6 @@ function WidgetBuilderSlideout({
       <CloseButton
         priority="link"
         size="zero"
-        borderless
         aria-label={t('Close Widget Builder')}
         icon={<IconClose size="sm" />}
         onClick={onCloseWithModal}
@@ -245,11 +314,7 @@ function WidgetBuilderSlideout({
   );
 
   return (
-    <SlideOverPanel
-      position="left"
-      data-test-id="widget-slideout"
-      transitionProps={animationTransitionSettings}
-    >
+    <SlideOverPanel position="left" data-test-id="widget-slideout">
       {({isOpening}) => {
         if (isOpening) {
           return (
@@ -281,7 +346,7 @@ function WidgetBuilderSlideout({
                           setShowTransactionsDeprecationAlert(false);
                         }}
                         size="zero"
-                        borderless
+                        priority="transparent"
                       />
                     }
                   >
@@ -366,13 +431,26 @@ function WidgetBuilderSlideout({
                       />
                     </Section>
                   </DisableTransactionWidget>
-                  <Section>
-                    <WidgetBuilderDatasetSelector />
-                  </Section>
+                  {showDatasetSelector && (
+                    <Section>
+                      <WidgetBuilderDatasetSelector />
+                    </Section>
+                  )}
                   <DisableTransactionWidget>
                     <Section>
                       <WidgetBuilderTypeSelector error={error} setError={setError} />
+                      {isTimeSeriesWidget && <AxisRangeSection />}
+                      {isTimeSeriesWidget && <LegendTypeSelector />}
                     </Section>
+                    {isTextWidget && (
+                      <Section>
+                        <WidgetBuilderDescriptionField
+                          rows={12}
+                          placeholder={t('Write your markdown here...')}
+                          autosize={false}
+                        />
+                      </Section>
+                    )}
                     <div ref={observeForDraggablePreview}>
                       {isSmallScreen && (
                         <Section>
@@ -393,12 +471,16 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
+                    {showXAxisSelector && (
+                      <Section>
+                        <WidgetBuilderXAxisSelector />
+                      </Section>
+                    )}
                     {showVisualizeSection && (
                       <Section>
                         <Visualize error={error} setError={setError} />
                       </Section>
                     )}
-
                     {showQueryFilterBuilder && (
                       <Section>
                         <WidgetBuilderQueryFilterBuilder
@@ -407,7 +489,7 @@ function WidgetBuilderSlideout({
                         />
                       </Section>
                     )}
-                    {state.displayType === DisplayType.BIG_NUMBER && (
+                    {doesDisplayTypeSupportThresholds(state.displayType) && (
                       <Section>
                         <ThresholdsSection
                           dataType={thresholdMetaState?.dataType}
@@ -446,7 +528,10 @@ function WidgetBuilderSlideout({
   );
 }
 
-export default WidgetBuilderSlideout;
+export const WidgetBuilderSlideout = registerLLMContext(
+  'widget-builder',
+  WidgetBuilderSlideoutInner
+);
 
 function Section({children}: {children: React.ReactNode}) {
   return (

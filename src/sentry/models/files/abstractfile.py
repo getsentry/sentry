@@ -7,7 +7,6 @@ import mmap
 import os
 import tempfile
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
@@ -16,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
+from taskbroker_client.task import Task
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, WrappingU32IntegerField
@@ -23,8 +23,8 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.abstractfileblobindex import AbstractFileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, AssembleChecksumMismatch, nooplogger
-from sentry.taskworker.task import Task
 from sentry.utils import metrics
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ class ChunkedFileBlobIndexWrapper:
                     mem[offset : offset + len(chunk)] = chunk
                     offset += len(chunk)
 
-        with ThreadPoolExecutor(max_workers=4) as exe:
+        with ContextPropagatingThreadPoolExecutor(max_workers=4) as exe:
             for idx in self._indexes:
                 exe.submit(fetch_file, idx.offset, idx.blob.getfile)
 

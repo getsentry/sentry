@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const metricConfig: IssueCategoryConfigMapping = {
+export const metricConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -107,6 +107,7 @@ const metricConfig: IssueCategoryConfigMapping = {
     header: {
       filterBar: {enabled: true, fixedEnvironment: true, searchBar: {enabled: false}},
       graph: {enabled: true, type: 'detector-history'},
+      eventNavigation: {enabled: true},
       tagDistribution: {enabled: false},
       occurrenceSummary: {enabled: false},
     },
@@ -123,16 +124,14 @@ const metricConfig: IssueCategoryConfigMapping = {
     },
     eventAndUserCounts: {enabled: false},
     resources: null,
-    autofix: true,
+    autofix: false,
     mergedIssues: {enabled: false},
     similarIssues: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
     stats: {enabled: true},
     tags: {enabled: false},
-    issueSummary: {enabled: true},
+    issueSummary: {enabled: false},
     groupingInfo: {enabled: false},
   },
 };
-
-export default metricConfig;

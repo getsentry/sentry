@@ -9,17 +9,13 @@ import {
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
-import {
-  mergeAndSortTagValues,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 interface EventSearchProps {
@@ -69,8 +65,6 @@ export function EventSearch({
 }: EventSearchProps) {
   const api = useApi();
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
   const groupTagsQuery = useGroupTags(
     {groupId: group.id, environment: environments},
     {enabled: true}
@@ -135,16 +129,6 @@ export function EventSearch({
 
   const filterKeySections = useMemo(() => getFilterKeySections(filterKeys), [filterKeys]);
 
-  const experimentSearchSource = hasStreamlinedUI
-    ? 'new_org_issue_details_header'
-    : 'new_org_issue_events_tab';
-
-  const searchSource = defined(organization.streamlineOnly)
-    ? experimentSearchSource
-    : hasStreamlinedUI
-      ? 'issue_details_header'
-      : 'issue_events_tab';
-
   return (
     <SearchQueryBuilder
       initialQuery={query}
@@ -152,9 +136,9 @@ export function EventSearch({
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
-      placeholder={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events\u2026')}
-      label={hasStreamlinedUI ? t('Filter events\u2026') : t('Search events')}
-      searchSource={searchSource}
+      placeholder={t('Filter events\u2026')}
+      label={t('Filter events\u2026')}
+      searchSource="issue_details_header"
       className={className}
       {...queryBuilderProps}
     />

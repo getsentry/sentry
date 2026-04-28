@@ -39,6 +39,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
@@ -46,6 +47,8 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     ColumnDefinitions,
     FormulaDefinition,
+    ResolvedArgument,
+    ResolvedArguments,
     ResolvedAttribute,
     ResolvedColumn,
     ResolvedEquation,
@@ -61,7 +64,23 @@ from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.search.exceptions import InvalidIssueSearchQuery
+
+
+def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
+    """Collect non-empty issue filter values from a parsed search tree (including OR/AND)."""
+    out: set[str] = set()
+    for term in terms:
+        if isinstance(term, event_search.SearchFilter):
+            if term.key.name == "issue":
+                for v in to_list(term.value.value):
+                    if v:
+                        out.add(str(v))
+        elif isinstance(term, event_search.ParenExpression):
+            out |= collect_issue_short_ids_from_parsed_terms(term.children)
+    return out
 
 
 @dataclass(frozen=True)
@@ -86,6 +105,7 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
+    qualified_short_id_to_group_id_cache: dict[int, dict[str, int]] = field(default_factory=dict)
 
     def get_function_definition(
         self, function_name: str
@@ -133,7 +153,9 @@ class SearchResolver:
         )
 
     @sentry_sdk.trace
-    def resolve_query(self, querystring: str | None) -> tuple[
+    def resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -197,7 +219,42 @@ class SearchResolver:
             )
         )
 
-    def __resolve_query(self, querystring: str | None) -> tuple[
+    def _init_issue_short_id_cache(
+        self,
+        parsed_terms: Sequence[object],
+    ) -> None:
+        """One bulk Group lookup for issue short ids in the query; store maps on this resolver."""
+        if "issue" not in self.definitions.filter_aliases or self.params.organization_id is None:
+            return
+
+        collected = collect_issue_short_ids_from_parsed_terms(parsed_terms)
+        if not collected:
+            return
+        try:
+            groups = list(
+                Group.objects.by_qualified_short_id_bulk(
+                    organization_id=self.params.organization_id, short_ids_raw=list(collected)
+                )
+            )
+        except Group.DoesNotExist:
+            raise InvalidIssueSearchQuery(sorted(collected))
+
+        idx = {(g.project.slug.lower(), g.short_id): g for g in groups}
+
+        for raw in collected:
+            parsed = parse_short_id(raw)
+            if parsed is None:
+                raise InvalidIssueSearchQuery(sorted(collected))
+            g = idx.get((parsed.project_slug, parsed.short_id))
+            if g is None:
+                raise InvalidIssueSearchQuery(sorted(collected))
+            if g.project.id not in self.qualified_short_id_to_group_id_cache:
+                self.qualified_short_id_to_group_id_cache[g.project.id] = {}
+            self.qualified_short_id_to_group_id_cache[g.project.id][raw] = g.id
+
+    def __resolve_query(
+        self, querystring: str | None
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -221,6 +278,9 @@ class SearchResolver:
             else:
                 raise InvalidSearchQuery(f"Parse error for: {querystring}")
 
+        # If occurrences dataset, cache group_id to issues mapping.
+        self._init_issue_short_id_cache(parsed_terms)
+
         if any(
             isinstance(term, event_search.ParenExpression)
             or event_search.SearchBoolean.is_operator(term)
@@ -230,7 +290,9 @@ class SearchResolver:
         else:
             return self._resolve_terms(parsed_terms)
 
-    def _resolve_boolean_conditions(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_boolean_conditions(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -324,7 +386,9 @@ class SearchResolver:
 
         return where, having, contexts
 
-    def _resolve_terms(self, terms: event_filter.ParsedTerms) -> tuple[
+    def _resolve_terms(
+        self, terms: event_filter.ParsedTerms
+    ) -> tuple[
         TraceItemFilter | None,
         AggregationFilter | None,
         list[VirtualColumnDefinition | None],
@@ -382,7 +446,7 @@ class SearchResolver:
     ) -> list[str] | str:
         # Convert the term to the expected values
         final_raw_value: str | list[str] = []
-        resolved_context = context.constructor(self.params)
+        resolved_context = context.constructor(self.params, self)
         reversed_context = {v: k for k, v in resolved_context.value_map.items()}
         if isinstance(raw_value, list):
             new_value = []
@@ -427,7 +491,7 @@ class SearchResolver:
 
         converter = self.definitions.filter_aliases.get(name)
         if converter is not None:
-            return converter(self.params, term)
+            return converter(self.params, term, self)
 
         return [term]
 
@@ -654,7 +718,7 @@ class SearchResolver:
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
 
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
@@ -685,7 +749,7 @@ class SearchResolver:
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
         """
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
         is_number_column = (
             context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
         )
@@ -846,7 +910,7 @@ class SearchResolver:
         for context_definition in context_definitions:
             if context_definition is None:
                 continue
-            context = context_definition.constructor(self.params)
+            context = context_definition.constructor(self.params, self)
             if context is None or context.to_column_name in existing_target_columns:
                 continue
             else:
@@ -855,7 +919,9 @@ class SearchResolver:
         return final_contexts
 
     @sentry_sdk.trace
-    def resolve_columns(self, selected_columns: list[str], has_aggregates: bool = False) -> tuple[
+    def resolve_columns(
+        self, selected_columns: list[str], has_aggregates: bool = False
+    ) -> tuple[
         list[ResolvedAttribute | ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -895,6 +961,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
+        default_value: float | None = None,
     ) -> tuple[
         ResolvedAttribute | ResolvedFunction,
         VirtualColumnDefinition | None,
@@ -903,7 +970,9 @@ class SearchResolver:
         resolve function"""
         match = fields.is_function(column)
         if match:
-            return self.resolve_function(column, match, public_alias_override)
+            return self.resolve_function(
+                column, match, public_alias_override, default_value=default_value
+            )
         else:
             return self.resolve_attribute(column, public_alias_override)
 
@@ -1001,7 +1070,9 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     @sentry_sdk.trace
-    def resolve_functions(self, columns: list[str]) -> tuple[
+    def resolve_functions(
+        self, columns: list[str]
+    ) -> tuple[
         list[ResolvedFunction],
         list[VirtualColumnDefinition | None],
     ]:
@@ -1018,6 +1089,7 @@ class SearchResolver:
         column: str,
         match: Match[str] | None = None,
         public_alias_override: str | None = None,
+        default_value: float | None = None,
     ) -> tuple[ResolvedFunction, VirtualColumnDefinition | None]:
         if match is None:
             match = fields.is_function(column)
@@ -1031,7 +1103,8 @@ class SearchResolver:
         if public_alias_override is not None:
             alias = public_alias_override
 
-        if alias in self._resolved_function_cache:
+        # Don't use cache if default_value is passed
+        if alias in self._resolved_function_cache and default_value is None:
             return self._resolved_function_cache[alias]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
 
@@ -1039,7 +1112,7 @@ class SearchResolver:
         if function_definition.private and function_name not in self.config.fields_acl.functions:
             raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
-        parsed_args: list[ResolvedAttribute | Any] = []
+        parsed_args: list[ResolvedAttribute | str | int | float | TraceItemFilter] = []
 
         # Parse the arguments
         arguments = fields.parse_arguments(function_name, columns)
@@ -1081,12 +1154,19 @@ class SearchResolver:
                     if argument_definition.argument_types is None:
                         parsed_args.append(argument)  # assume it's a string
                         continue
-                    # TODO: we assume that the argument is only one type for now, and we only support string/integer
-                    for type in argument_definition.argument_types:
-                        if type == "integer":
+                    for arg_type in argument_definition.argument_types:
+                        if arg_type == "integer":
                             parsed_args.append(int(argument))
-                        if type == "number":
+                        elif arg_type == "number":
                             parsed_args.append(float(argument))
+                        elif arg_type == "query":
+                            # Only TraceItemFilter currently supported
+                            trace_item_filters = self.resolve_query(argument[1:-1])[0]
+                            if trace_item_filters is None:
+                                raise InvalidSearchQuery(
+                                    "The if combinator requires non-aggregate filters"
+                                )
+                            parsed_args.append(trace_item_filters)
                         else:
                             parsed_args.append(argument)
                     continue
@@ -1109,12 +1189,13 @@ class SearchResolver:
                         f"{parsed_argument.public_alias} is invalid for parameter {argument_index} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                     )
 
-        resolved_arguments = []
+        resolved_arguments: ResolvedArguments = []
         for parsed_arg in parsed_args:
+            resolved_argument: ResolvedArgument
             if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
                 search_type = function_definition.default_search_type
-            elif isinstance(parsed_arg.proto_definition, AttributeKey):
+            else:
                 resolved_argument = parsed_arg.proto_definition
             resolved_arguments.append(resolved_argument)
 
@@ -1135,13 +1216,19 @@ class SearchResolver:
             snuba_params=self.params,
             query_result_cache=self._query_result_cache,
             search_config=self.config,
+            default_value=default_value,
         )
 
         resolved_context = None
-        self._resolved_function_cache[alias] = (resolved_function, resolved_context)
-        return self._resolved_function_cache[alias]
+        if default_value is None:
+            self._resolved_function_cache[alias] = (resolved_function, resolved_context)
+            return self._resolved_function_cache[alias]
+        else:
+            return resolved_function, resolved_context
 
-    def resolve_equations(self, equations: list[str]) -> tuple[
+    def resolve_equations(
+        self, equations: list[str]
+    ) -> tuple[
         list[ResolvedColumn],
         list[VirtualColumnDefinition],
     ]:
@@ -1153,7 +1240,9 @@ class SearchResolver:
             contexts.extend(context)
         return formulas, contexts
 
-    def resolve_equation(self, equation: str) -> tuple[
+    def resolve_equation(
+        self, equation: str
+    ) -> tuple[
         ResolvedColumn,
         list[VirtualColumnDefinition],
     ]:
@@ -1177,8 +1266,12 @@ class SearchResolver:
                 ),
                 [],
             )
-        lhs, lhs_contexts = self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
-        rhs, rhs_contexts = self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+        lhs, lhs_contexts = (
+            self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
+        )
+        rhs, rhs_contexts = (
+            self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
+        )
         has_aggregates = False
         for function in functions:
             resolved_function, _ = self.resolve_function(function)
@@ -1200,7 +1293,9 @@ class SearchResolver:
             lhs_contexts + rhs_contexts,
         )
 
-    def _resolve_operation(self, operation: arithmetic.OperandType) -> tuple[
+    def _resolve_operation(
+        self, operation: arithmetic.OperandType
+    ) -> tuple[
         Column,
         list[VirtualColumnDefinition],
     ]:
@@ -1210,10 +1305,10 @@ class SearchResolver:
         """
         if isinstance(operation, arithmetic.Operation):
             lhs, lhs_contexts = (
-                self._resolve_operation(operation.lhs) if operation.lhs else (None, [])
+                self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
             )
             rhs, rhs_contexts = (
-                self._resolve_operation(operation.rhs) if operation.rhs else (None, [])
+                self._resolve_operation(operation.rhs) if operation.rhs is not None else (None, [])
             )
             vcc = []
             if lhs_contexts:
@@ -1234,7 +1329,8 @@ class SearchResolver:
             return Column(literal=LiteralValue(val_double=operation)), []
 
         # Resolve the column, and turn it into a RPC Column so it can be used in a BinaryFormula
-        col, context = self.resolve_column(operation)
+        # Columns in equations must pass default_value=0 otherwise they may become a null and ruin the entire formula
+        col, context = self.resolve_column(operation, default_value=0)
         contexts = [context] if context is not None else []
         proto_definition = col.proto_definition
 
@@ -1264,7 +1360,7 @@ class SearchResolver:
     def remap_value_using_context_definition(
         self, context_definition: VirtualColumnDefinition, value: str | int | list[str] | Any
     ) -> str | int | list[str] | Any:
-        context = context_definition.constructor(self.params)
+        context = context_definition.constructor(self.params, self)
 
         # if the value passed is one of the potential values, then it's expected
         # and we should pass it through as is

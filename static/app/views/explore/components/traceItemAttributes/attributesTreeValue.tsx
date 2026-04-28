@@ -2,10 +2,12 @@ import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/links/externalLink';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {AnnotatedAttributeTooltip} from 'sentry/views/explore/components/annotatedAttributeTooltip';
+import {InlineJsonHighlight} from 'sentry/views/explore/components/traceItemAttributes/inlineJsonHighlight';
 import {getAttributeItem} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
 
@@ -14,6 +16,26 @@ import type {
   AttributesTreeContent,
   AttributesTreeRowConfig,
 } from './attributesTree';
+
+function tryParseJson(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasNestedObject(value: unknown) {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const values = Array.isArray(value) ? value : Object.values(value);
+  return values.some(v => typeof v === 'object' && v !== null);
+}
 
 export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>({
   config,
@@ -32,11 +54,12 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
   // Check if we have a custom renderer for this attribute
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
+  const value = String(content.value);
 
-  const defaultValue = <span>{String(content.value)}</span>;
+  const defaultValue = <span>{value}</span>;
 
   if (config?.disableRichValue) {
-    return String(content.value);
+    return value;
   }
 
   if (renderer) {
@@ -57,20 +80,41 @@ export function AttributesTreeValue<RendererExtra extends RenderFunctionBaggage>
       );
     }
   }
-  return isUrl(String(content.value)) ? (
-    <AttributeLinkText>
-      <ExternalLink
-        onClick={e => {
-          e.preventDefault();
-          openNavigateToExternalLinkModal({linkText: String(content.value)});
-        }}
-      >
-        {defaultValue}
-      </ExternalLink>
-    </AttributeLinkText>
-  ) : (
-    defaultValue
-  );
+
+  const parsedJson = tryParseJson(content.value);
+  if (typeof parsedJson === 'object' && parsedJson !== null) {
+    return (
+      <AttributeStructuredData
+        data={parsedJson}
+        maxDefaultDepth={2}
+        withAnnotatedText={false}
+        className={
+          value.length <= 48 && !hasNestedObject(parsedJson) ? 'compact' : undefined
+        }
+      />
+    );
+  }
+
+  if (isUrl(value)) {
+    return (
+      <AttributeLinkText>
+        <ExternalLink
+          onClick={e => {
+            e.preventDefault();
+            openNavigateToExternalLinkModal({linkText: value});
+          }}
+        >
+          {defaultValue}
+        </ExternalLink>
+      </AttributeLinkText>
+    );
+  }
+
+  if (value.includes('{') || value.includes('[')) {
+    return <InlineJsonHighlight value={value} />;
+  }
+
+  return defaultValue;
 }
 
 const AttributeLinkText = styled('span')`
@@ -84,5 +128,31 @@ const AttributeLinkText = styled('span')`
 
   div {
     white-space: normal;
+  }
+`;
+
+const AttributeStructuredData = styled(StructuredEventData)`
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  &.compact {
+    display: inline;
+
+    span[data-base-with-toggle='true'] {
+      display: inline;
+      padding-left: 0;
+    }
+
+    button {
+      display: none;
+    }
+
+    div {
+      display: inline;
+      padding-left: 0;
+    }
   }
 `;

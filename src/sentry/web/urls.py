@@ -23,6 +23,9 @@ from sentry.users.web.account_identity import AccountIdentityAssociateView
 from sentry.users.web.user_avatar import UserAvatarPhotoView
 from sentry.web import api
 from sentry.web.frontend import csrf_failure, generic
+from sentry.web.frontend.accept_organization_invite_redirect import (
+    AcceptOrganizationInviteRedirectView,
+)
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -130,11 +133,6 @@ urlpatterns += [
         r"^_warmup/$",
         WarmupEndpoint.as_view(),
         name="sentry-warmup",
-    ),
-    re_path(
-        r"^api/(?P<project_id>[^/]+)/crossdomain\.xml$",
-        api.crossdomain_xml,
-        name="sentry-api-crossdomain-xml",
     ),
     # Frontend client config
     re_path(
@@ -559,7 +557,7 @@ urlpatterns += [
     ),
     re_path(
         r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
-        GenericReactPageView.as_view(auth_required=False),
+        AcceptOrganizationInviteRedirectView.as_view(),
         name="sentry-accept-invite",
     ),
     re_path(
@@ -1277,12 +1275,6 @@ urlpatterns += [
         api.not_found,
         name="sentry-favicon-404",
     ),
-    # crossdomain.xml
-    re_path(
-        r"^crossdomain\.xml$",
-        api.not_found,
-        name="sentry-crossdomain-404",
-    ),
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
@@ -1307,6 +1299,10 @@ urlpatterns += [
                 re_path(
                     r"^slack/",
                     include("sentry.integrations.slack.urls"),
+                ),
+                re_path(
+                    r"^slack-staging/",
+                    include("sentry.integrations.slack.staging.urls"),
                 ),
                 re_path(
                     r"^github/",

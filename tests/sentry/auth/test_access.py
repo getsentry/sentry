@@ -203,7 +203,8 @@ class FromUserTest(AccessFactoryTestCase):
     def test_member_no_teams_closed_membership(self) -> None:
         user = self.create_user()
         organization = self.create_organization(
-            owner=self.user, flags=0  # disable default allow_joinleave
+            owner=self.user,
+            flags=0,  # disable default allow_joinleave
         )
         member = self.create_member(organization=organization, user=user, role="member")
         team = self.create_team(organization=organization)
@@ -507,6 +508,22 @@ class FromUserTest(AccessFactoryTestCase):
             assert not result.has_project_scope(project_other, "project:write")
             assert not result.has_project_scope(project_other, "project:read")
 
+    def test_token_only_scope_survives_upper_bound_intersection(self) -> None:
+        organization = self.create_organization()
+        user = self.create_user()
+        self.create_member(organization=organization, user=user)
+
+        request = self.make_request(user=user)
+
+        results = [
+            self.from_user(user, organization, scopes=["org:read", "org:ci"]),
+            self.from_request(request, organization, scopes=["org:read", "org:ci"]),
+        ]
+
+        for result in results:
+            assert result.scopes == frozenset({"org:read", "org:ci"})
+            assert not result.has_scope("project:read")
+
 
 @all_silo_test
 class FromRequestTest(AccessFactoryTestCase):
@@ -593,7 +610,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.scopes == set(member.get_scopes()).union(SUPERUSER_READONLY_SCOPES)
 
         # readonly scopes does not override owner scopes if passed in
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             member.update(role="owner")
 
         result = self.from_request(request, self.org, scopes=member.get_scopes())
@@ -691,7 +708,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_closed_membership(self) -> None:
         # disable default allow_joinleave
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
@@ -715,7 +732,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.org.flags.allow_joinleave = True
             self.org.save()
         member_user = self.create_user(is_superuser=False)

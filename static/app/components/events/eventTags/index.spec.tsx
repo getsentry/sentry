@@ -58,9 +58,8 @@ describe('event tags', () => {
     });
 
     render(<EventTags projectSlug={project.slug} event={event} />, {organization});
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(screen.getByText('device.family')).toBeInTheDocument();
+    expect(await screen.findByText('device.family')).toBeInTheDocument();
     expect(screen.getByText('iOS')).toBeInTheDocument();
 
     expect(screen.getByText('app.device')).toBeInTheDocument();
@@ -88,9 +87,8 @@ describe('event tags', () => {
     });
 
     render(<EventTags projectSlug={project.slug} event={event} />, {organization});
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    expect(screen.getByText('mytransaction')).toBeInTheDocument();
+    expect(await screen.findByText('mytransaction')).toBeInTheDocument();
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/insights/summary/?project=1&referrer=event-tags-table&transaction=mytransaction`

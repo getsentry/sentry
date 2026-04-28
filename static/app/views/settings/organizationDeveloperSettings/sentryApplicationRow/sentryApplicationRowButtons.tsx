@@ -1,4 +1,4 @@
-import Access from 'sentry/components/acl/access';
+import {Access} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
 import type {
   SentryApp,
@@ -8,7 +8,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
-import ActionButtons from './actionButtons';
+import {ActionButtons} from './actionButtons';
 
 type Props = {
   app: SentryApp;
@@ -41,7 +41,7 @@ const hasUIComponent = (elements: SentryAppSchemaElement[] | undefined): boolean
     : false;
 };
 
-function SentryApplicationRowButtons({
+export function SentryApplicationRowButtons({
   organization,
   app,
   onClickRemove,
@@ -97,5 +97,3 @@ function SentryApplicationRowButtons({
     </Access>
   );
 }
-
-export default SentryApplicationRowButtons;

@@ -371,7 +371,7 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
         )
 
         assert self.incompatible_workflow1.id not in detector1_workflow_ids, (
-            f"detector1 should not have incompatible_workflow1, " f"got {detector1_workflow_ids}"
+            f"detector1 should not have incompatible_workflow1, got {detector1_workflow_ids}"
         )
 
         assert self.assigned_team1_workflow.id in detector1_workflow_ids, (
@@ -451,12 +451,12 @@ class RelinkCronsToCompatibleIssueWorkflowsTest(TestMigrations):
             f"expected {expected_detector3_workflows}, got {detector3_workflow_ids}"
         )
 
-        assert (
-            self.compatible_workflow1.id not in detector3_workflow_ids
-        ), "detector3 should not be linked to project1 workflows"
-        assert (
-            self.compatible_workflow2.id not in detector3_workflow_ids
-        ), "detector3 should not be linked to project1 workflows"
+        assert self.compatible_workflow1.id not in detector3_workflow_ids, (
+            "detector3 should not be linked to project1 workflows"
+        )
+        assert self.compatible_workflow2.id not in detector3_workflow_ids, (
+            "detector3 should not be linked to project1 workflows"
+        )
 
         detector4_workflows = DetectorWorkflow.objects.filter(detector=self.cron_detector4)
         detector4_workflow_ids = set(detector4_workflows.values_list("workflow_id", flat=True))

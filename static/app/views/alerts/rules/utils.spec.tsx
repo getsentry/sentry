@@ -76,7 +76,7 @@ describe('getExploreUrl', () => {
       projectId: '1',
     });
     expect(url).toBe(
-      '/organizations/slug/explore/traces/?end=2017-10-19T12%3A00%3A00.000Z&environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&start=2017-10-12T12%3A00%3A00.000Z&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
+      '/organizations/slug/explore/traces/?end=2017-10-19T12%3A00%3A00.000&environment=prod&interval=30m&project=1&query=span.op%3Ahttp.client&start=2017-10-12T12%3A00%3A00.000&visualize=%7B%22chartType%22%3A1%2C%22yAxes%22%3A%5B%22p75%28span.duration%29%22%5D%7D'
     );
   });
 });

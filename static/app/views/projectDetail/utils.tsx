@@ -1,13 +1,10 @@
 import type {PlatformKey} from 'sentry/types/project';
 
-export function isPlatformANRCompatible(platform?: PlatformKey, features?: string[]) {
+export function isPlatformANRCompatible(platform?: PlatformKey) {
   if (isPlatformForegroundANRCompatible(platform)) {
     return true;
   }
-  if (
-    isAppHangPlatform(platform) &&
-    features?.includes('project-detail-apple-app-hang-rate')
-  ) {
+  if (isAppHangPlatform(platform)) {
     return true;
   }
   return false;

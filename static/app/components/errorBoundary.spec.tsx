@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ErrorBoundary from './errorBoundary';
+import {ErrorBoundary} from './errorBoundary';
 
 describe('ErrorBoundary', () => {
   it('renders components', () => {

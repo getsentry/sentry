@@ -1,6 +1,5 @@
+import {Tag} from '@sentry/scraps/badge';
 import {Container} from '@sentry/scraps/layout';
-
-import {Tag} from 'sentry/components/core/badge/tag';
 
 export type RawFlag = {
   action: string;

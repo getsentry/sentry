@@ -1,13 +1,15 @@
+from typing import Any
+
 from rest_framework import serializers
 
 
-class IncidentGroupOpenPeriodValidator(serializers.Serializer):
+class IncidentGroupOpenPeriodValidator(serializers.Serializer[Any]):
     incident_id = serializers.IntegerField(required=False)
     incident_identifier = serializers.IntegerField(required=False)
     group_id = serializers.IntegerField(required=False)
     open_period_id = serializers.IntegerField(required=False)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         super().validate(attrs)
         if (
             not attrs.get("incident_id")

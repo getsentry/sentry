@@ -9,6 +9,7 @@ from typing import Any, Literal, NotRequired, TypedDict
 import sentry_sdk
 from django.utils import timezone
 from sentry_relay.processing import validate_sampling_condition
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -49,7 +50,6 @@ from sentry.snuba.metrics.extraction import (
 )
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 

@@ -3,13 +3,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import TeamStore from 'sentry/stores/teamStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {Organization} from 'sentry/types/organization';
 
 jest.mock('sentry/actionCreators/projects', () => ({
   addTeamToProject: jest.fn(),
@@ -43,16 +44,18 @@ const project = ProjectFixture({teams: [teams[0]!]});
 const organization = OrganizationFixture({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
-function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>> = {}) {
+function createWrapper(
+  props: Partial<React.ComponentProps<typeof TeamSelector>> = {},
+  org?: Organization
+) {
   return render(
     <TeamSelector
-      organization={props.organization ?? organization}
       name="teamSelector"
       aria-label="Select a team"
       onChange={() => {}}
       {...props}
     />,
-    {organization: props.organization ?? organization}
+    {organization: org ?? organization}
   );
 }
 
@@ -158,11 +161,13 @@ describe('Team Selector', () => {
     const onChangeMock = jest.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
-    createWrapper({
-      allowCreate: true,
-      onChange: onChangeMock,
-      organization: orgWithAccess,
-    });
+    createWrapper(
+      {
+        allowCreate: true,
+        onChange: onChangeMock,
+      },
+      orgWithAccess
+    );
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
     await userEvent.click(screen.getByText('Create team'));
@@ -177,11 +182,13 @@ describe('Team Selector', () => {
     const onChangeMock = jest.fn();
     const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
-    createWrapper({
-      allowCreate: true,
-      onChange: onChangeMock,
-      organization: orgWithAccess,
-    });
+    createWrapper(
+      {
+        allowCreate: true,
+        onChange: onChangeMock,
+      },
+      orgWithAccess
+    );
 
     await selectEvent.select(screen.getByText('Select...'), '#team1');
     // it does no open the create team modal yet
@@ -199,11 +206,13 @@ describe('Team Selector', () => {
     const onChangeMock = jest.fn();
     const orgWithoutAccess = OrganizationFixture({access: ['project:write']});
 
-    createWrapper({
-      allowCreate: true,
-      onChange: onChangeMock,
-      organization: orgWithoutAccess,
-    });
+    createWrapper(
+      {
+        allowCreate: true,
+        onChange: onChangeMock,
+      },
+      orgWithoutAccess
+    );
 
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
     await userEvent.click(screen.getByText('Create team'));

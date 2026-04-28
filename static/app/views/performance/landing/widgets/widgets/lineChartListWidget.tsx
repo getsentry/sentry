@@ -3,17 +3,18 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {LinkButton} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {EventsRequest as _EventsRequest} from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
-import TextOverflow from 'sentry/components/textOverflow';
-import Truncate from 'sentry/components/truncate';
+import {Count} from 'sentry/components/count';
+import {TextOverflow} from 'sentry/components/textOverflow';
+import {Truncate} from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import type EventView from 'sentry/utils/discover/eventView';
+import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -22,9 +23,10 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
-import withApi from 'sentry/utils/withApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {withApi} from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
@@ -37,11 +39,11 @@ import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
-import DurationChart from 'sentry/views/performance/charts/chart';
+import {Chart as DurationChart} from 'sentry/views/performance/charts/chart';
 import {excludeTransaction} from 'sentry/views/performance/landing/utils';
 import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
-import SelectableList, {
+import {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
@@ -104,9 +106,10 @@ const integrationEmptyStateWidgets = [
 
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const {organization, InteractiveTitle} = props;
   const {setPageDanger} = usePageAlert();
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
@@ -617,6 +620,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -641,6 +645,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -672,6 +677,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -680,7 +686,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
         case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
-          const description = listItem[SpanFields.NORMALIZED_DESCRIPTION] as string;
+          const description = (listItem[SpanFields.NORMALIZED_DESCRIPTION] ??
+            '') as string;
           const group = listItem[SpanFields.SPAN_GROUP] as string;
           const projectID = listItem['project.id'] as number;
           const timeSpentPercentage = listItem[fieldString] as number;
@@ -715,6 +722,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -743,6 +751,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -767,6 +776,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                       excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
+                        navigate,
                       })
                     }
                   />
@@ -787,6 +797,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                     excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
+                      navigate,
                     })
                   }
                 />
@@ -796,52 +807,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       }
     });
 
-  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
-    organization.features.includes('performance-new-widget-designs')
-      ? [
-          {
-            component: provided => (
-              <Accordion
-                expandedIndex={selectedListIndex}
-                setExpandedIndex={setSelectListIndex}
-                items={assembleAccordionItems(provided)}
-              />
-            ),
-            // accordion items height + chart height
-            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-            noPadding: true,
-          },
-        ]
-      : [
-          {
-            component: provided => (
-              <DurationChart
-                {...provided.widgetData.chart}
-                {...provided}
-                disableMultiAxis
-                disableXAxis
-                chartColors={props.chartColor ? [props.chartColor] : undefined}
-                isLineChart
-              />
-            ),
-            height: props.chartHeight,
-          },
-          {
-            component: provided => (
-              <SelectableList
-                selectedIndex={selectedListIndex}
-                setSelectedIndex={setSelectListIndex}
-                items={getItems(provided)}
-              />
-            ),
-            height: 124,
-            noPadding: true,
-          },
-        ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
+    {
+      component: provided => (
+        <Accordion
+          expandedIndex={selectedListIndex}
+          setExpandedIndex={setSelectListIndex}
+          items={assembleAccordionItems(provided)}
+        />
+      ),
+      // accordion items height + chart height
+      height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+      noPadding: true,
+    },
+  ];
 
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = (provided: ComponentData) => {
+  const getContainerActions = () => {
     const route: string =
       (
         {
@@ -868,11 +851,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           </LinkButton>
         </div>
       </Fragment>
-    ) : (
-      ContainerActions && (
-        <ContainerActions isLoading={provided.widgetData.list?.isLoading} />
-      )
-    );
+    ) : null;
   };
 
   return (
@@ -882,7 +861,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => (
         <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
-      HeaderActions={provided => getContainerActions(provided)}
+      HeaderActions={() => getContainerActions()}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

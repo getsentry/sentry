@@ -10,7 +10,7 @@ from django.utils.functional import SimpleLazyObject
 
 from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
-from sentry.silo.base import SiloMode, region_silo_function
+from sentry.silo.base import SiloMode, cell_silo_function
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_tasks
 from sentry.users.services.user.model import RpcUser
@@ -24,16 +24,22 @@ LAZY_OBJECT_KEY = "lazyobjectrpcuser"
 MODEL_KEY = "model"
 
 
+def _serialize_value(v: Any) -> Any:
+    """Recursively convert values to JSON-serializable types."""
+    if isinstance(v, datetime):
+        return v.isoformat()
+    if isinstance(v, frozenset):
+        return [_serialize_value(item) for item in v]
+    if isinstance(v, list):
+        return [_serialize_value(item) for item in v]
+    if isinstance(v, dict):
+        return {k: _serialize_value(val) for k, val in v.items()}
+    return v
+
+
 def serialize_lazy_object_user(arg: SimpleLazyObject, key: str | None = None) -> dict[str, Any]:
     raw_data = arg.dict()  # type: ignore[attr-defined]
-    parsed_data = {}
-    for k, v in raw_data.items():
-        if isinstance(v, datetime):
-            v = v.isoformat()
-        if isinstance(v, frozenset):
-            v = list(v)
-
-        parsed_data[k] = v
+    parsed_data = {k: _serialize_value(v) for k, v in raw_data.items()}
 
     return {
         "type": LAZY_OBJECT_KEY,
@@ -61,7 +67,7 @@ def serialize_anonymous_user(arg: AnonymousUser, key: str | None = None) -> dict
     }
 
 
-@region_silo_function
+@cell_silo_function
 def async_send_notification(
     NotificationClass: type[BaseNotification], *args: Any, **kwargs: Any
 ) -> None:
@@ -104,7 +110,7 @@ def async_send_notification(
     name="src.sentry.notifications.utils.async_send_notification",
     namespace=notifications_tasks,
     processing_deadline_duration=30,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def _send_notification(notification_class_name: str, arg_list: Iterable[Mapping[str, Any]]) -> None:
     NotificationClass = get(notification_class_name)

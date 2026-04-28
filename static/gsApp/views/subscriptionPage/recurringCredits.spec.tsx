@@ -8,7 +8,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DataCategory} from 'sentry/types/core';
 
 import type {Plan} from 'getsentry/types';
-import RecurringCredits from 'getsentry/views/subscriptionPage/recurringCredits';
+import {RecurringCredits} from 'getsentry/views/subscriptionPage/recurringCredits';
 
 describe('Recurring Credits', () => {
   const organization = OrganizationFixture({features: [], access: ['org:billing']});

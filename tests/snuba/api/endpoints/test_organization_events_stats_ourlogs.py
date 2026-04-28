@@ -44,7 +44,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
                     for minute in range(count)
                 ],
             )
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self._do_request(
             data={
@@ -96,7 +96,10 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             },
         )
         assert response.status_code == 200, response.content
-        assert [attrs for time, attrs in response.data["data"]] == [[{"count": 0}]] * 338
+        data = [attrs for time, attrs in response.data["data"]]
+        assert all(attrs == [{"count": 0}] for attrs in data)
+        # quantize_date_params applies a 0-60s jitter to end time which rounds up to the next hour
+        assert 338 <= len(data) <= 339
 
     def test_top_events(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -128,7 +131,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
                     for minute in range(count)
                 ],
             )
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self._do_request(
             data={
@@ -184,7 +187,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
                     for minute in range(count)
                 ],
             )
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self._do_request(
             data={
@@ -213,7 +216,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             assert response.data[key]["meta"]["dataset"] == "logs"
 
     def test_top_events_multi_y_axis(self) -> None:
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": message},
@@ -254,7 +257,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_top_events_with_project(self) -> None:
         projects = [self.create_project(), self.create_project()]
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo"},
@@ -291,7 +294,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
 
     def test_top_events_with_project_and_project_id(self) -> None:
         projects = [self.create_project(), self.create_project()]
-        self.store_ourlogs(
+        self.store_eap_items(
             [
                 self.create_ourlog(
                     {"body": "foo"},

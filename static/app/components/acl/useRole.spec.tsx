@@ -4,8 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 
 describe('useRole', () => {
   const organization = OrganizationFixture({

@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import pytest
 from jsonschema import ValidationError
 
@@ -11,7 +13,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueOccurrencesCondition(ConditionTestCase):
     condition = Condition.ISSUE_OCCURRENCES
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": IssueOccurrencesFilter.id,
         "value": "10",
     }
@@ -41,7 +43,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
 
     def test_dual_write__min_zero(self) -> None:
         dcg = self.create_data_condition_group()
-        local_payload = self.payload.copy()
+        local_payload = dict(self.payload)
         local_payload["value"] = "-10"
         dc = self.translate_to_data_condition(local_payload, dcg)
 

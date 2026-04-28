@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import partial
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import (
@@ -17,14 +18,14 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.event_search import SearchConfig, SearchFilter, SearchKey, default_config
@@ -44,9 +45,11 @@ from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamp
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.utils import parse_user_value
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
@@ -54,11 +57,9 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.ids import to_valid_int_id, to_valid_int_id_list
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
-from sentry.workflow_engine.endpoints.validators.detector_workflow import (
-    BulkWorkflowDetectorsValidator,
-)
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
@@ -80,7 +81,7 @@ SORT_COL_MAP = {
 workflow_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "action"},
-    allowed_keys={"name", "action"},
+    allowed_keys={"name", "action", "created_by"},
     allow_boolean=False,
     free_text_key="query",
 )
@@ -99,11 +100,14 @@ class OrganizationWorkflowPermission(OrganizationPermission):
 class OrganizationWorkflowEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationWorkflowPermission,)
 
-    def convert_args(self, request: Request, workflow_id, *args, **kwargs):
+    def convert_args(
+        self, request: Request, workflow_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Organization | Workflow]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
             kwargs["workflow"] = Workflow.objects.get(
-                organization=kwargs["organization"], id=workflow_id
+                organization=kwargs["organization"], id=validated_workflow_id
             )
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
@@ -127,7 +131,7 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         return args, kwargs
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -148,21 +152,19 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
 
         if raw_idlist := request.GET.getlist("id"):
-            try:
-                ids = [int(id) for id in raw_idlist]
-            except ValueError:
-                raise ValidationError({"id": ["Invalid ID format"]})
+            ids = to_valid_int_id_list("id", raw_idlist)
             queryset = queryset.filter(id__in=ids)
 
         if raw_detectorlist := request.GET.getlist("detector"):
-            try:
-                detector_ids = [int(id) for id in raw_detectorlist]
-            except ValueError:
-                raise ValidationError({"detector": ["Invalid detector ID format"]})
+            detector_ids = to_valid_int_id_list("detector", raw_detectorlist)
             queryset = queryset.filter(detectorworkflow__detector_id__in=detector_ids).distinct()
 
         if raw_query := request.GET.get("query"):
-            for filter in parse_workflow_query(raw_query):
+            try:
+                parsed_query = parse_workflow_query(raw_query)
+            except InvalidSearchQuery as e:
+                raise serializers.ValidationError({"query": [str(e)]})
+            for filter in parsed_query:
                 assert isinstance(filter, SearchFilter)
                 match filter:
                     case SearchFilter(key=SearchKey("name"), operator=("=" | "IN" | "!=")):
@@ -174,6 +176,21 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                             "workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__type",
                             distinct=True,
                         )
+                    case SearchFilter(
+                        key=SearchKey("created_by"),
+                        operator=("=" | "IN" | "!=" | "NOT IN"),
+                    ):
+                        values = (
+                            filter.value.value
+                            if isinstance(filter.value.value, list)
+                            else [filter.value.value]
+                        )
+                        user_ids = [parse_user_value(v, request.user).id for v in values]
+                        created_by_q = Q(created_by_id__in=user_ids)
+                        if filter.operator in ("!=", "NOT IN"):
+                            queryset = queryset.exclude(created_by_q)
+                        else:
+                            queryset = queryset.filter(created_by_q)
                     case SearchFilter(key=SearchKey("query"), operator="="):
                         # 'query' is our free text key; all free text gets returned here
                         # as '=', and we search any relevant fields for it.
@@ -219,7 +236,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def get(self, request, organization):
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -232,10 +249,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         # When the `priorityDetector` query param is provided, workflows connected to this detector are sorted first
         priority_detector_id: int | None = None
         if raw_priority := request.GET.get("priorityDetector"):
-            try:
-                priority_detector_id = int(raw_priority)
-            except ValueError:
-                raise ValidationError({"priorityDetector": ["Invalid detector ID format"]})
+            priority_detector_id = to_valid_int_id("priorityDetector", raw_priority)
 
             is_priority = Exists(
                 DetectorWorkflow.objects.filter(
@@ -305,7 +319,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         },
         examples=WorkflowEngineExamples.CREATE_WORKFLOW,
     )
-    def post(self, request, organization):
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -315,24 +329,8 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             data=request.data,
             context={"organization": organization, "request": request},
         )
-
         validator.is_valid(raise_exception=True)
-
-        with transaction.atomic(router.db_for_write(Workflow)):
-            workflow = validator.create(validator.validated_data)
-
-            detector_ids = request.data.get("detectorIds", [])
-            if detector_ids:
-                bulk_validator = BulkWorkflowDetectorsValidator(
-                    data={
-                        "workflow_id": workflow.id,
-                        "detector_ids": detector_ids,
-                    },
-                    context={"organization": organization, "request": request},
-                )
-                bulk_validator.is_valid(raise_exception=True)
-                bulk_validator.save()
-
+        workflow = validator.create(validator.validated_data)
         return Response(serialize(workflow, request.user), status=status.HTTP_201_CREATED)
 
     @extend_schema(
@@ -362,7 +360,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         ),
         examples=WorkflowEngineExamples.LIST_WORKFLOWS,
     )
-    def put(self, request, organization):
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -423,7 +421,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request, organization):
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         ⚠️ This endpoint is currently in **beta** and may be subject to change. It is supported by [New Monitors and Alerts](/product/new-monitors-and-alerts/) and may not be viewable in the UI today.
 
@@ -452,7 +450,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         for workflow in queryset:
             with transaction.atomic(router.db_for_write(Workflow)):
-                RegionScheduledDeletion.schedule(workflow, days=0, actor=request.user)
+                CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(
                     request=request,
                     organization=organization,

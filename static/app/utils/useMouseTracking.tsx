@@ -45,7 +45,7 @@ function getBoundingRect(
   });
 }
 
-function useMouseTracking<T extends Element>({
+export function useMouseTracking<T extends Element>({
   elem,
   onPositionChange,
   onMouseEnter,
@@ -114,5 +114,3 @@ function useMouseTracking<T extends Element>({
     },
   };
 }
-
-export default useMouseTracking;

@@ -28,13 +28,23 @@ import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FieldKind} from 'sentry/utils/fields';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-export type GetTagValues = (
-  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined},
-  searchQuery: string
-) => Promise<string[]>;
+export interface GetTagValuesParams {
+  /**
+   * The search query to use to fetch tag values.
+   */
+  searchQuery: string;
+  /**
+   * The tag to fetch values for.
+   */
+  tag: Pick<Tag, 'key' | 'name'> & {kind: FieldKind | undefined};
+}
+
+export type GetTagValues = (params: GetTagValuesParams) => Promise<string[]>;
+
+export type GetTagKeys = (searchQuery: string) => Promise<Tag[]>;
 
 export interface SearchQueryBuilderProps {
   /**
@@ -118,6 +128,18 @@ export interface SearchQueryBuilderProps {
    * known column.
    */
   getSuggestedFilterKey?: (key: string) => string | null;
+  /**
+   * When provided, enables async fetching of filter keys.
+   * The combobox will call this function with the current search query
+   * and display the returned keys alongside any static filterKeys.
+   */
+  getTagKeys?: GetTagKeys;
+  /**
+   * List of filter key strings that are invalid.
+   * When provided, tokens with matching keys will display a warning state.
+   * The parent component is responsible for fetching and determining invalid keys.
+   */
+  invalidFilterKeys?: string[];
 
   /**
    * Allows for customization of the invalid token messages.
@@ -166,11 +188,11 @@ export interface SearchQueryBuilderProps {
    */
   portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
+
   /**
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
-
   /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input
@@ -222,7 +244,7 @@ function ActionButtons({
             aria-pressed={isCaseInsensitive}
             size="zero"
             icon={<IconCase variant={isCaseInsensitive ? 'muted' : 'accent'} />}
-            borderless
+            priority="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
               onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
@@ -235,7 +257,7 @@ function ActionButtons({
           aria-label={t('Clear search query')}
           size="zero"
           icon={<IconClose />}
-          borderless
+          priority="transparent"
           onClick={() => {
             setDisplayAskSeerFeedback(false);
             dispatch({type: 'CLEAR'});

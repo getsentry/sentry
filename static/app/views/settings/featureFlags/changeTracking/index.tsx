@@ -1,30 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AnalyticsArea from 'sentry/components/analyticsArea';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import LoadingError from 'sentry/components/loadingError';
+import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationFeatureFlagsAuditLogTable} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable';
 import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
 
@@ -47,7 +44,11 @@ type RemoveSecretQueryVariables = {
 };
 
 export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
-  [`/organizations/${orgSlug}/flags/signing-secrets/`] as const;
+  [
+    getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
+  ] as const;
 
 function SecretList({
   secretList,
@@ -150,9 +151,9 @@ function OrganizationFeatureFlagsChangeTracking() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Change Tracking')} orgSlug={organization.slug} />
-      <SettingsPageHeader title={t('Change Tracking')} />
-      <TextBlock>
-        {tct(
+      <SettingsPageHeader
+        title={t('Change Tracking')}
+        subtitle={tct(
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
@@ -160,7 +161,7 @@ function OrganizationFeatureFlagsChangeTracking() {
             ),
           }
         )}
-      </TextBlock>
+      />
 
       <Flex justify="between">
         <h5>{t('Providers')}</h5>
@@ -218,5 +219,5 @@ const ResponsivePanelTable = styled(PanelTable)`
       display: none;
     }
   }
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;

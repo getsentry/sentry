@@ -103,7 +103,6 @@ class StatusChangeTestMixin:
         return kwargs
 
     def build_statuschange(self, **overrides: Any) -> StatusChangeMessage:
-
         return StatusChangeMessage(**self.build_statuschange_data(**overrides))
 
 

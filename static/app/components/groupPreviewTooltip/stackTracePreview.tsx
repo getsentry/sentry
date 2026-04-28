@@ -1,24 +1,25 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
-import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
-import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
+import {getThreadStacktrace} from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
 import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {
   useDelayedLoadingState,
   usePreviewEvent,
 } from 'sentry/components/groupPreviewTooltip/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function getStacktrace(event: Event): StacktraceType | null {
   const exceptionsWithStacktrace =
@@ -60,6 +61,8 @@ export function StackTracePreviewContent({
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
 }) {
+  const organization = useOrganization();
+
   const includeSystemFrames = useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
   }, [stacktrace]);
@@ -80,16 +83,14 @@ export function StackTracePreviewContent({
     | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
-    return (
-      <NativeContent
-        {...commonProps}
-        groupingCurrentLevel={groupingCurrentLevel}
-        hideIcon
-      />
-    );
+    return <NativeContent {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />;
   }
 
-  return <StackTraceContent {...commonProps} expandFirstFrame={false} hideIcon />;
+  if (organization.features.includes('issue-details-new-stack-trace')) {
+    return <IssueStackTracePreview event={event} stacktrace={stacktrace} />;
+  }
+
+  return <StackTraceContent {...commonProps} expandFirstFrame={false} />;
 }
 
 type StackTracePreviewProps = {
@@ -101,11 +102,10 @@ type StackTracePreviewProps = {
   query?: string;
 };
 
-interface StackTracePreviewBodyProps
-  extends Pick<
-    StackTracePreviewProps,
-    'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
-  > {
+interface StackTracePreviewBodyProps extends Pick<
+  StackTracePreviewProps,
+  'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
+> {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
@@ -200,7 +200,7 @@ const StackTracePreviewWrapper = styled('div')`
 
 const NoStackTraceWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   align-items: center;

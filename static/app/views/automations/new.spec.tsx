@@ -1,6 +1,9 @@
 import {AutomationFixture} from 'sentry-fixture/automations';
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 import {
   ActionHandlerFixture,
@@ -8,8 +11,12 @@ import {
 } from 'sentry-fixture/workflowEngine';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
+import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionHandlerGroupType,
@@ -39,12 +46,97 @@ describe('AutomationNewSettings', () => {
         ActionHandlerFixture({
           type: ActionType.SLACK,
           handlerGroup: ActionGroup.NOTIFICATION,
-          integrations: [{id: '1', name: 'My Slack Workspace'}],
+          integrations: [{id: 'slack-1', name: 'My Slack Workspace'}],
         }),
         ActionHandlerFixture({
           type: ActionType.EMAIL,
           handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: undefined,
+        }),
+        ActionHandlerFixture({
+          type: ActionType.DISCORD,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'discord-1', name: 'My Discord Server'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.MSTEAMS,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'msteams-1', name: 'My MS Teams'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.PAGERDUTY,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [
+            {
+              id: 'pagerduty-1',
+              name: 'My PagerDuty',
+              services: [{id: 'pd-service-1', name: 'PD Service'}],
+            },
+          ],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.OPSGENIE,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [
+            {
+              id: 'opsgenie-1',
+              name: 'My Opsgenie',
+              services: [{id: 'og-team-1', name: 'Ops Team'}],
+            },
+          ],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.WEBHOOK,
+          handlerGroup: ActionGroup.NOTIFICATION,
           integrations: [],
+          services: [{slug: 'webhook-service', name: 'Webhook Service'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.SENTRY_APP,
+          handlerGroup: ActionGroup.OTHER,
+          integrations: [],
+          sentryApp: {
+            id: 'sentry-app-1',
+            installationId: 'installation-id',
+            installationUuid: 'installation-uuid',
+            name: 'My Sentry App',
+            status: 0,
+          },
+        }),
+        ActionHandlerFixture({
+          type: ActionType.GITHUB,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'github-1', name: 'GitHub Org'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.GITHUB_ENTERPRISE,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'github-enterprise-1', name: 'GitHub Enterprise'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.JIRA,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'jira-1', name: 'Jira Cloud'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.JIRA_SERVER,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'jira-server-1', name: 'Jira Server'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.AZURE_DEVOPS,
+          handlerGroup: ActionGroup.TICKET_CREATION,
+          integrations: [{id: 'azure-1', name: 'Azure DevOps'}],
+        }),
+        ActionHandlerFixture({
+          type: ActionType.PLUGIN,
+          handlerGroup: ActionGroup.OTHER,
+          integrations: undefined,
+        }),
+        ActionHandlerFixture({
+          type: ActionType.SLACK_STAGING,
+          handlerGroup: ActionGroup.NOTIFICATION,
+          integrations: [{id: 'slack-staging-1', name: 'My Slack Staging Workspace'}],
         }),
       ],
     });
@@ -119,7 +211,12 @@ describe('AutomationNewSettings', () => {
       body: created,
     });
 
-    const {router} = render(<AutomationNewSettings />, {organization});
+    const {router} = render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
 
     // Add an action filter (tagged event)
     await selectEvent.select(
@@ -183,7 +280,7 @@ describe('AutomationNewSettings', () => {
                       targetIdentifier: '',
                       targetDisplay: '#alerts',
                     },
-                    integrationId: '1',
+                    integrationId: 'slack-1',
                     data: {},
                     status: 'active',
                   },
@@ -200,8 +297,8 @@ describe('AutomationNewSettings', () => {
                 ],
               },
             ],
-            config: {frequency: 1440},
-            detectorIds: [],
+            config: {frequency: 0},
+            detectorIds: ['123'],
             enabled: true,
           },
         })
@@ -225,6 +322,371 @@ describe('AutomationNewSettings', () => {
       success: true,
       actions_count: expect.any(Number),
       source: 'full',
+    });
+  });
+
+  it('submits correct payloads for each action type', async () => {
+    const created = AutomationFixture({
+      id: '456',
+      name: 'Automation with every action type',
+    });
+    const saveWorkflow = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: created,
+    });
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
+
+    const addAction = async (label: string) => {
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
+    };
+
+    await addAction('Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
+      delay: null,
+    });
+
+    await addAction('Slack (Staging)');
+    {
+      const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
+      const stagingTarget = stagingTargets.at(-1);
+      expect(stagingTarget).toBeDefined();
+      await userEvent.type(stagingTarget as HTMLElement, '#staging-alerts', {
+        delay: null,
+      });
+    }
+
+    await addAction('Discord');
+    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
+      delay: null,
+    });
+
+    await addAction('MS Teams');
+    const targets = screen.getAllByRole('textbox', {name: 'Target'});
+    const msTeamsTarget = targets.at(-1);
+    expect(msTeamsTarget).toBeDefined();
+    await userEvent.type(msTeamsTarget as HTMLElement, 'alerts-team', {delay: null});
+
+    await addAction('Pagerduty');
+    await addAction('Opsgenie');
+
+    await addAction('Notify on preferred channel');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Notification target type'}),
+      'Member'
+    );
+    await selectEvent.select(screen.getByRole('textbox', {name: 'User'}), 'Moo Deng');
+
+    await addAction('Send a notification via an integration');
+    await addAction('My Sentry App');
+    await addAction('GitHub');
+    await addAction('GitHub Enterprise');
+    await addAction('Jira');
+    await addAction('Jira Server');
+    await addAction('Azure DevOps');
+    await addAction('Legacy integrations');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    const EXPECTED_ACTION_PAYLOADS: Record<ActionType, any> = {
+      slack: {
+        type: 'slack',
+        integrationId: 'slack-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '#alerts',
+        },
+      },
+      discord: {
+        type: 'discord',
+        integrationId: 'discord-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '123',
+          targetDisplay: null,
+        },
+      },
+      msteams: {
+        type: 'msteams',
+        integrationId: 'msteams-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: 'alerts-team',
+        },
+      },
+      pagerduty: {
+        type: 'pagerduty',
+        integrationId: 'pagerduty-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: 'pd-service-1',
+          targetDisplay: 'PD Service',
+        },
+        data: {priority: 'default'},
+      },
+      opsgenie: {
+        type: 'opsgenie',
+        integrationId: 'opsgenie-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: 'og-team-1',
+          targetDisplay: 'Ops Team',
+        },
+        data: {priority: 'P1'},
+      },
+      email: {
+        type: 'email',
+        config: {
+          targetType: 'user',
+          targetIdentifier: '1',
+          targetDisplay: null,
+        },
+        data: {},
+      },
+      webhook: {
+        type: 'webhook',
+        config: {
+          targetType: null,
+          targetIdentifier: 'webhook-service',
+          targetDisplay: null,
+        },
+      },
+      sentry_app: {
+        type: 'sentry_app',
+        config: {
+          targetType: 'sentry_app',
+          targetIdentifier: 'sentry-app-1',
+          targetDisplay: 'My Sentry App',
+        },
+      },
+      github: {
+        type: 'github',
+        integrationId: 'github-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      github_enterprise: {
+        type: 'github_enterprise',
+        integrationId: 'github-enterprise-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      jira: {
+        type: 'jira',
+        integrationId: 'jira-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      jira_server: {
+        type: 'jira_server',
+        integrationId: 'jira-server-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      vsts: {
+        type: 'vsts',
+        integrationId: 'azure-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: null,
+          targetDisplay: null,
+        },
+      },
+      plugin: {
+        type: 'plugin',
+        config: {
+          targetType: null,
+          targetIdentifier: '',
+          targetDisplay: null,
+        },
+      },
+      slack_staging: {
+        type: 'slack_staging',
+        integrationId: 'slack-staging-1',
+        config: {
+          targetType: 'specific',
+          targetIdentifier: '',
+          targetDisplay: '#staging-alerts',
+        },
+      },
+    };
+
+    await waitFor(() => expect(saveWorkflow).toHaveBeenCalled());
+    const actionsData: Action[] =
+      saveWorkflow.mock.calls[0]?.[1]?.data?.actionFilters?.[0]?.actions ?? [];
+    expect(actionsData).toHaveLength(Object.keys(EXPECTED_ACTION_PAYLOADS).length);
+
+    actionsData.forEach(action => {
+      const expectedAction = EXPECTED_ACTION_PAYLOADS[action.type];
+      expect(expectedAction).toBeDefined();
+      expect(action).toEqual(expect.objectContaining(expectedAction));
+    });
+  }, 30000);
+
+  it('sends test notification with project slug from connected monitor', async () => {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
+    const project = ProjectFixture({id: '1', slug: 'my-project'});
+    ProjectsStore.loadInitialData([project]);
+
+    const detectorId = '10';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      method: 'GET',
+      body: [IssueStreamDetectorFixture({id: detectorId, projectId: project.id})],
+    });
+
+    const testFireAction = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/test-fire-actions/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/new/`,
+          query: {connectedIds: detectorId},
+        },
+      },
+    });
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
+
+    await waitFor(() => {
+      expect(testFireAction).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            actions: [
+              {
+                type: ActionType.SLACK,
+                integrationId: 'slack-1',
+                config: {
+                  targetType: 'specific',
+                  targetIdentifier: '',
+                  targetDisplay: '#alerts',
+                },
+                data: {},
+                status: 'active',
+              },
+            ],
+            projectSlug: 'my-project',
+          },
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
+    });
+  });
+
+  it('shows validation error when submitting with no projects or monitors selected', async () => {
+    ProjectsStore.loadInitialData([]);
+
+    const post = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture(),
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    // Add an action so the builder validation passes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    // Submit with no projects or monitors selected
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    // Should show validation error
+    expect(
+      await screen.findByText(
+        'Select at least one project or monitor to create an alert.'
+      )
+    ).toBeInTheDocument();
+
+    // Should not have submitted
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('pre-selects a project from page filters on first load', async () => {
+    const project = ProjectFixture({id: '2', slug: 'my-project', isMember: true});
+    ProjectsStore.loadInitialData([project]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(project.id)]})
+    );
+
+    render(<AutomationNewSettings />, {organization});
+
+    // The project selector should show the pre-selected project
+    expect(await screen.findByText('my-project')).toBeInTheDocument();
+  });
+
+  it('pre-selects the first member project when "my projects" is selected', async () => {
+    const memberProject = ProjectFixture({
+      id: '3',
+      slug: 'member-project',
+      isMember: true,
+    });
+    const otherProject = ProjectFixture({
+      id: '4',
+      slug: 'other-project',
+      isMember: false,
+    });
+    ProjectsStore.loadInitialData([otherProject, memberProject]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: []}));
+
+    render(<AutomationNewSettings />, {organization});
+
+    // Should pre-select the member project
+    expect(await screen.findByText('member-project')).toBeInTheDocument();
+  });
+
+  it('surfaces error details when test notification fails', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/test-fire-actions/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        actions: [{repo: 'Repository is required'}],
+      },
+    });
+
+    render(<AutomationNewSettings />, {organization});
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
     });
   });
 });

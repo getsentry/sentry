@@ -125,7 +125,6 @@ def _create_file_blame_info(commit: CommitInfo, file: SourceLineInfo) -> FileBla
 def _handle_file_blame_error(
     error: ApiError, file: SourceLineInfo, extra: Mapping[str, Any]
 ) -> None:
-
     # Ignore expected error codes
     if error.code in (401, 403, 404):
         logger.warning(

@@ -7,6 +7,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.fetch_issues import utils
 from sentry.snuba.referrer import Referrer
 
@@ -45,9 +46,11 @@ def _fetch_issues_from_repo_projects(
 @utils.handle_fetch_issues_exceptions
 def fetch_issues(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
     query: str,
+    owner: str,
+    name: str,
     sort_by: str = SORT_BY_DEFAULT,
     limit: int = utils.MAX_NUM_ISSUES_DEFAULT,
     max_num_days_ago: int = utils.MAX_NUM_DAYS_AGO_DEFAULT,
@@ -57,7 +60,12 @@ def fetch_issues(
     Fetch issues whose message contains `query`.
     """
     repo_projects = utils.get_repo_and_projects(
-        organization_id, provider, external_id, run_id=run_id
+        organization_id,
+        provider,
+        external_id,
+        owner=owner,
+        name=name,
+        run_id=run_id,
     )
     groups = _fetch_issues_from_repo_projects(
         repo_projects,

@@ -43,6 +43,11 @@ SCIM_400_UNSUPPORTED_ATTRIBUTE = {
     "detail": "Invalid Replace attr. Only displayName and members supported.",
 }
 
+SCIM_400_INVALID_PAYLOAD = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "Invalid SCIM payload.",
+}
+
 SCIM_400_INVALID_PATCH = "Invalid Patch Operation."
 
 

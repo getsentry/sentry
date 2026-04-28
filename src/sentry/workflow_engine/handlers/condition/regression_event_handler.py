@@ -9,6 +9,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 class RegressionEventConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
     comparison_json_schema = {"type": "boolean"}
+    label_template = "The issue changes state from resolved to unresolved"
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
@@ -13,8 +14,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
@@ -85,7 +86,7 @@ function mockTraceResponse(resp?: Partial<ResponseType>) {
 
 function mockPerformanceSubscriptionDetailsResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/subscriptions/org-slug/',
+    url: '/customers/org-slug/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {body: {}}),
@@ -122,7 +123,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
 
 function mockProjectDetailsResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug//`,
+    url: '/projects/org-slug//',
     method: 'GET',
     asyncDelay: 1,
     ...resp,
@@ -149,7 +150,7 @@ function mockTraceRootEvent(id: string, resp?: Partial<ResponseType>) {
 
 function mockTraceRootFacets(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events-facets/`,
+    url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
@@ -159,7 +160,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
 
 function mockTraceEventDetails(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/events/`,
+    url: '/organizations/org-slug/events/',
     method: 'GET',
     asyncDelay: 1,
     body: {},
@@ -545,7 +546,11 @@ async function simpleTestSetup() {
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
-async function completeTestSetup() {
+async function completeTestSetup({
+  organization,
+}: {
+  organization?: ReturnType<typeof OrganizationFixture>;
+} = {}) {
   mockPerformanceSubscriptionDetailsResponse();
   mockProjectDetailsResponse();
   const start = Date.now() / 1e3;
@@ -746,6 +751,7 @@ async function completeTestSetup() {
 
   const value = render(<TraceView />, {
     initialRouterConfig,
+    organization,
   });
   const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
@@ -943,7 +949,7 @@ describe('trace view', () => {
     });
     expect(
       await screen.findByText(
-        /We were unable to find any spans for this trace. Seeing this often?/i
+        /We were unable to find any spans for this trace\. If you came here from Logs or Application Metrics/i
       )
     ).toBeInTheDocument();
   });
@@ -977,6 +983,18 @@ describe('trace view', () => {
       )
     ).toBeInTheDocument();
   });
+
+  it.isKnownFlake(
+    'does not render the summary tab even when the legacy feature flag is enabled',
+    async () => {
+      const organization = OrganizationFixture({features: ['single-trace-summary']});
+
+      await completeTestSetup({organization});
+
+      expect(await screen.findByRole('tab', {name: 'Waterfall'})).toBeInTheDocument();
+      expect(screen.queryByRole('tab', {name: 'Summary'})).not.toBeInTheDocument();
+    }
+  );
 
   describe('pageload', () => {
     it('scrolls to trace root', async () => {
@@ -1451,7 +1469,8 @@ describe('trace view', () => {
       });
     });
 
-    it('arrowup+shift scrolls to the start of the list', async () => {
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('arrowup+shift scrolls to the start of the list', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);

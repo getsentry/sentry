@@ -33,6 +33,7 @@ class ReleaseActivityNotification(ActivityNotification):
     metrics_key = "release_activity"
     notification_setting_type_enum = NotificationSettingEnum.DEPLOY
     template_path = "sentry/emails/activity/release"
+    max_subject_projects = 2
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity)
@@ -110,10 +111,18 @@ class ReleaseActivityNotification(ActivityNotification):
         )
         return set(projects)
 
+    def get_subject_project_text(self, project_slugs: Sequence[str]) -> str:
+        visible_project_slugs = list(project_slugs[: self.max_subject_projects])
+        remaining_projects = len(project_slugs) - len(visible_project_slugs)
+        projects_text = ", ".join(visible_project_slugs)
+        if remaining_projects > 0:
+            projects_text = f"{projects_text} +{remaining_projects} more"
+        return projects_text
+
     def get_recipient_context(
         self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        projects = self.get_projects(recipient)
+        projects = sorted(self.get_projects(recipient), key=lambda project: project.slug)
         release_links = [
             self.organization.absolute_url(
                 f"/organizations/{self.organization.slug}/releases/{self.version}/?project={p.id}",
@@ -129,9 +138,14 @@ class ReleaseActivityNotification(ActivityNotification):
             **super().get_recipient_context(recipient, extra_context),
             "projects": list(zip(projects, release_links, resolved_issue_counts)),
             "project_count": len(projects),
+            "subject_project_slugs": [project.slug for project in projects],
         }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
+        project_slugs = context.get("subject_project_slugs", []) if context else []
+        if project_slugs:
+            projects_text = self.get_subject_project_text(project_slugs)
+            return f"Deployed {projects_text} version {self.version_parsed} to {self.environment}"
         return f"Deployed version {self.version_parsed} to {self.environment}"
 
     @property

@@ -5,7 +5,7 @@ interface Options {
   timeMs: number;
 }
 
-export default function useTimeout({timeMs, onTimeout}: Options) {
+export function useTimeout({timeMs, onTimeout}: Options) {
   const timeoutRef = useRef<number | null>(null);
 
   // Using a ref to stabilize the callbacks.

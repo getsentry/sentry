@@ -2,14 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import InputField from 'sentry/components/forms/fields/inputField';
-import Form from 'sentry/components/forms/form';
+import {InputField} from 'sentry/components/forms/fields/inputField';
+import {Form} from 'sentry/components/forms/form';
 
 type Props = {
   onAction: (effectiveAt: string) => void;
 };
 
-const openChangeEffectiveAtModal = ({onAction}: Props) =>
+export const openChangeEffectiveAtModal = ({onAction}: Props) =>
   openModal(({Header, Body, closeModal}) => (
     <Fragment>
       <Header closeButton>Change Effective At Date</Header>
@@ -38,5 +38,3 @@ const openChangeEffectiveAtModal = ({onAction}: Props) =>
 const DateField = styled(InputField)`
   padding-left: 0px;
 `;
-
-export default openChangeEffectiveAtModal;

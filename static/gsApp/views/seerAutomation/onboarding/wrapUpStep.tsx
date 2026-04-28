@@ -1,17 +1,16 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import nextStepsImg from 'sentry-images/spot/seer-config-bug-2.svg';
 
-import {Button} from '@sentry/scraps/button';
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {useGuidedStepsContext} from 'sentry/components/guidedSteps/guidedSteps';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {ActionSection, MaxWidthPanel, PanelDescription, StepContent} from './common';
@@ -22,9 +21,9 @@ export function WrapUpStep() {
     useSeerOnboardingContext();
   const {currentStep, setCurrentStep} = useGuidedStepsContext();
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
   const hasCodeReview = useMemo(
     () => selectedCodeReviewRepositories.length > 0,

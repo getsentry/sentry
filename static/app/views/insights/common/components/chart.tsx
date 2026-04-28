@@ -17,22 +17,23 @@ import min from 'lodash/min';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
-import BaseChart from 'sentry/components/charts/baseChart';
+import {BaseChart} from 'sentry/components/charts/baseChart';
 import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
-import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
-import TransitionChart from 'sentry/components/charts/transitionChart';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {ScatterSeries} from 'sentry/components/charts/series/scatterSeries';
+import {TransitionChart} from 'sentry/components/charts/transitionChart';
+import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   createIngestionSeries,
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -51,7 +52,6 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -114,7 +114,7 @@ type Props = {
   tooltipFormatterOptions?: FormatterOptions;
 };
 
-function Chart({
+export function Chart({
   data,
   dataMax,
   previousData,
@@ -267,7 +267,7 @@ function Chart({
           ],
         ] as PairOfSeries;
       },
-      [[], []] as PairOfSeries
+      [[], []]
     );
   }
 
@@ -579,8 +579,6 @@ function Chart({
   );
 }
 
-export default Chart;
-
 function computeMax(data: Series[]) {
   const valuesDict = data.map(value => value.data.map(point => point.value));
 
@@ -604,7 +602,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const power = Math.log10(maxValue);
-  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]) as number;
+  const magnitude = min([max([10 ** (power - Math.floor(power)), 0]), 10]);
 
   let scale: number;
   if (magnitude <= 2.5) {

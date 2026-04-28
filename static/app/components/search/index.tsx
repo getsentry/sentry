@@ -4,22 +4,24 @@ import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import AutoComplete from 'sentry/components/autoComplete';
+import {AutoComplete} from 'sentry/components/autoComplete';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
-import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import useRouter from 'sentry/utils/useRouter';
 
-import ApiSource from './sources/apiSource';
-import CommandSource from './sources/commandSource';
-import FormSource from './sources/formSource';
-import OrganizationsSource from './sources/organizationsSource';
-import RouteSource from './sources/routeSource';
+import {ApiSource} from './sources/apiSource';
+import {CommandSource} from './sources/commandSource';
+import {DsnLookupSource} from './sources/dsnLookupSource';
+import {FormSource} from './sources/formSource';
+import {OrganizationsSource} from './sources/organizationsSource';
+import {RouteSource} from './sources/routeSource';
 import type {Result} from './sources/types';
-import List from './list';
-import SearchSources from './sources';
+import {List} from './list';
+import {SearchSources} from './sources';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 
@@ -92,7 +94,8 @@ function Search({
   searchOptions,
   sources,
 }: SearchProps): React.ReactElement {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const params = useParams<{orgId: string}>();
   useEffect(() => {
@@ -150,9 +153,14 @@ function Search({
               ...item.to,
               pathname: replaceRouterParams(item.to.pathname, params),
             };
-      navigateTo(nextTo, router, item.configUrl);
+      if (item.configUrl) {
+        // @ts-expect-error TODO(ryan953): Invalid useApiQuery path (comes from api response)
+        navigateTo(nextTo, navigate, location, [item.configUrl]);
+      } else {
+        navigateTo(nextTo, navigate, location);
+      }
     },
-    [entryPoint, router, params, onAction]
+    [entryPoint, navigate, location, params, onAction]
   );
 
   const saveQueryMetrics = useCallback(
@@ -203,6 +211,7 @@ function Search({
                     RouteSource,
                     OrganizationsSource,
                     CommandSource,
+                    DsnLookupSource,
                   ]
                 }
               >

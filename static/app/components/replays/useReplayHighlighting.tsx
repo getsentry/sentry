@@ -15,7 +15,7 @@ interface Props {
 type HighlightParams = Parameters<typeof highlightNode>[1];
 type RemoveParams = Parameters<typeof removeHighlightedNode>[1];
 
-export default function useReplayHighlighting({replayerRef}: Props) {
+export function useReplayHighlighting({replayerRef}: Props) {
   const highlightCallback = useCallback(
     (params: HighlightParams) => {
       const replayer = replayerRef.current;

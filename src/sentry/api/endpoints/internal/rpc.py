@@ -1,5 +1,6 @@
 import pydantic
 import sentry_sdk
+from rest_framework import status
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,9 +10,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, internal_all_silo_endpoint
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.hybridcloud.rpc.service import RpcResolutionException, dispatch_to_local_service
+from sentry.hybridcloud.rpc.service import (
+    RpcResolutionException,
+    RpcValidationException,
+    dispatch_to_local_service,
+)
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import (
+    ViewerContext,
+    observe_viewer_context_propagation,
+    viewer_context_scope,
+)
 
 
 @internal_all_silo_endpoint
@@ -56,9 +66,33 @@ class InternalRpcServiceEndpoint(Endpoint):
                 sentry_sdk.capture_exception()
                 raise ParseError from e
 
+        meta = request.data.get("meta") or {}
+        vc_data = meta.get("viewer_context")
+        vc = ViewerContext()
+        if vc_data:
+            try:
+                vc = ViewerContext.deserialize(vc_data)
+            except Exception as e:
+                sentry_sdk.capture_exception()
+                raise ParseError from e
+
+        # Observe what the caller actually sent, not the empty default we fall back to.
+        # `vc` is always non-None (defaulted to ViewerContext()), so observing inside
+        # the scope below would always see actor_type=unknown and never trigger the
+        # missing-VC signal.
+        observe_viewer_context_propagation(
+            "rpc_inbound",
+            ctx=vc if vc_data else None,
+        )
+
         try:
-            with auth_context.applied_to_request(request):
+            with viewer_context_scope(vc), auth_context.applied_to_request(request):
                 result = dispatch_to_local_service(service_name, method_name, arguments)
+        except RpcValidationException as e:
+            return Response(
+                data={"detail": e.detail, "code": e.code},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e

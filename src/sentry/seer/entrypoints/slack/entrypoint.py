@@ -1,0 +1,587 @@
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Any, TypedDict
+
+from sentry import features
+from sentry.constants import ENABLE_SEER_ENHANCED_ALERTS_DEFAULT, ObjectStatus
+from sentry.integrations.services.integration.service import integration_service
+from sentry.locks import locks
+from sentry.models.organization import Organization
+from sentry.notifications.platform.templates.seer import (
+    SeerAgentError,
+    SeerAgentResponse,
+    SeerAutofixError,
+    SeerAutofixUpdate,
+)
+from sentry.notifications.utils.actions import BlockKitMessageAction
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.registry import (
+    agent_entrypoint_registry,
+    autofix_entrypoint_registry,
+)
+from sentry.seer.entrypoints.slack.messaging import (
+    schedule_all_thread_updates,
+    send_thread_update,
+    update_existing_message,
+)
+from sentry.seer.entrypoints.types import (
+    SeerAgentEntrypoint,
+    SeerAutofixEntrypoint,
+    SeerEntrypointKey,
+)
+from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
+from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.integrations.slack.requests.action import SlackActionRequest
+    from sentry.models.group import Group
+
+
+class EntrypointSetupError(Exception):
+    """Raised when entrypoint construction fails during mention processing."""
+
+    pass
+
+
+class SlackThreadDetails(TypedDict):
+    thread_ts: str
+    channel_id: str
+
+
+class SlackAutofixCachePayload(TypedDict):
+    organization_id: int
+    project_id: int
+    group_id: int
+    integration_id: int
+    group_link: str
+    threads: list[SlackThreadDetails]
+
+
+class SlackAgentCachePayload(TypedDict):
+    organization_id: int
+    integration_id: int
+    thread: SlackThreadDetails
+
+
+class SlackPendingMentionPayload(TypedDict):
+    """
+    Kwargs for `route_slack_seer_event` stashed on control silo when a Slack
+    @-mention cannot proceed (identity not linked). Popped after identity
+    link so the task can be re-dispatched as if the webhook just arrived.
+    """
+
+    payload: dict[str, Any]
+    integration_id: int
+    slack_user_id: str
+    channel_id: str
+    thread_ts: str
+    message_ts: str
+    event_type: str
+    message_text: str
+
+
+MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
+
+
+def _get_missing_scope_settings_url(
+    *,
+    integration_id: int,
+    organization_id: int,
+    channel_id: str,
+    thread_ts: str,
+) -> str | None:
+    """
+    Returns a settings URL if the integration is missing history scopes for the channel,
+    and we haven't already shown the footer for this thread. Returns None otherwise.
+    """
+    from sentry.integrations.slack.integration import SlackIntegration
+
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if not integration:
+        return None
+
+    install = SlackIntegration(model=integration, organization_id=organization_id)
+    if install.has_history_scope(channel_id):
+        return None
+
+    try:
+        org = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        return None
+
+    # TODO: remove the legacy check once MISSING_SCOPE_FOOTER_CACHE_TIMEOUT has elapsed since deploy.
+    legacy_cache_key = f"seer:explorer:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    if cache.get(legacy_cache_key):
+        return None
+
+    cache_key = f"seer:agent:scope_footer:{integration_id}:{channel_id}:{thread_ts}"
+    if not cache.add(cache_key, True, timeout=MISSING_SCOPE_FOOTER_CACHE_TIMEOUT):
+        return None
+
+    return org.absolute_url(f"/settings/{org.slug}/integrations/slack/")
+
+
+class SlackAutofixEntrypoint(
+    SeerAutofixEntrypoint[SlackAutofixCachePayload],
+):
+    key = SeerEntrypointKey.SLACK
+    autofix_stopping_point: AutofixStoppingPoint = AutofixStoppingPoint.ROOT_CAUSE
+
+    def __init__(
+        self,
+        slack_request: SlackActionRequest,
+        group: Group,
+        organization_id: int,
+        action: BlockKitMessageAction,
+    ):
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        self.slack_request = slack_request
+        self.group = group
+        self.channel_id = slack_request.channel_id or ""
+        self.message_ts = slack_request.data["message"]["ts"]
+        # Use the thread_ts if available, otherwise this is a channel message, so it will
+        # be the parent of a future thread.
+        self.thread_ts = slack_request.data["message"].get("thread_ts", self.message_ts)
+        self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id)
+        self.organization_id = organization_id
+        self.install = SlackIntegration(
+            model=slack_request.integration, organization_id=organization_id
+        )
+        self.autofix_stopping_point = self.get_autofix_stopping_point_from_action(
+            action=action, group_id=group.id
+        )
+        self.slack_user_id = slack_request.user_id
+        self.autofix_run_id = self.slack_request.callback_data.get("run_id")
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        has_feature_flag = features.has("organizations:seer-slack-workflows", organization)
+        has_enhanced_alerts = bool(
+            organization.get_option(
+                "sentry:enable_seer_enhanced_alerts",
+                default=ENABLE_SEER_ENHANCED_ALERTS_DEFAULT,
+            )
+        )
+        return has_feature_flag and has_enhanced_alerts
+
+    @staticmethod
+    def get_group_link(group: Group) -> str:
+        return f"{group.get_absolute_url()}?seerDrawer=true"
+
+    @staticmethod
+    def get_autofix_stopping_point_from_action(
+        *, action: BlockKitMessageAction, group_id: int
+    ) -> AutofixStoppingPoint:
+        """
+        Parses the autofix stopping point from a passed BlockKitMessageAction.
+        XXX: We could attempt to interpret it from the slack_request value, but this will make
+        it explicit which we use in case there's multiple in the body.
+        """
+        stopping_point = AutofixStoppingPoint.ROOT_CAUSE
+        if not action.value:
+            return stopping_point
+        try:
+            stopping_point = AutofixStoppingPoint(action.value)
+        except ValueError:
+            logger.exception(
+                "seer.entrypoint.slack.invalid_stopping_point",
+                extra={
+                    "entrypoint_key": SeerEntrypointKey.SLACK.value,
+                    "stopping_point": action.value,
+                    "action_id": action.action_id,
+                    "group_id": group_id,
+                },
+            )
+        return stopping_point
+
+    @staticmethod
+    def get_autofix_lock_key(*, group_id: int, stopping_point: AutofixStoppingPoint) -> str:
+        return (
+            f"autofix:entrypoint:{SeerEntrypointKey.SLACK.value}:{group_id}:{stopping_point.value}"
+        )
+
+    def _update_existing_message(
+        self, *, run_id: int, has_complete_stage: bool, include_user: bool
+    ) -> None:
+        """
+        Updates the clicked message as 'in-progress' with a given run_id.
+        """
+        data = SeerAutofixUpdate(
+            run_id=run_id,
+            organization_id=self.organization_id,
+            project_id=self.group.project_id,
+            group_id=self.group.id,
+            current_point=self.autofix_stopping_point,
+            group_link=self.get_group_link(self.group),
+        )
+        update_existing_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.message_ts,
+            data=data,
+            has_complete_stage=has_complete_stage,
+            slack_user_id=self.slack_request.user_id if include_user else None,
+        )
+
+    def on_trigger_autofix_error(self, *, error: str) -> None:
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerAutofixError(error_message=error),
+            ephemeral_user_id=self.slack_request.user_id,
+        )
+
+    def on_trigger_autofix_success(self, *, run_id: int) -> None:
+        self._update_existing_message(run_id=run_id, has_complete_stage=False, include_user=True)
+
+    def on_trigger_autofix_already_exists(self, *, run_id: int, has_complete_stage: bool) -> None:
+        # We don't include the user since we don't know that they started the original run.
+        self._update_existing_message(
+            run_id=run_id, has_complete_stage=has_complete_stage, include_user=False
+        )
+
+    def create_autofix_cache_payload(self) -> SlackAutofixCachePayload:
+        return SlackAutofixCachePayload(
+            threads=[self.thread],
+            organization_id=self.organization_id,
+            integration_id=self.install.model.id,
+            project_id=self.group.project_id,
+            group_id=self.group.id,
+            group_link=self.get_group_link(self.group),
+        )
+
+    @staticmethod
+    def on_autofix_update(
+        event_type: SentryAppEventType,
+        event_payload: dict[str, Any],
+        cache_payload: SlackAutofixCachePayload,
+    ) -> None:
+        logging_ctx = {
+            "event_type": event_type,
+            "cache_payload": cache_payload,
+            "entrypoint_key": SeerEntrypointKey.SLACK.value,
+        }
+        # Piecemeal assembly of frozen SeerAutofixUpdate dataclass
+        data_kwargs = {
+            "run_id": event_payload["run_id"],
+            "organization_id": cache_payload["organization_id"],
+            "project_id": cache_payload["project_id"],
+            "group_id": cache_payload["group_id"],
+            "group_link": cache_payload["group_link"],
+        }
+
+        match event_type:
+            case SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
+                root_cause = event_payload.get("root_cause", {})
+
+                if legacy_description := root_cause.get("description"):
+                    summary = legacy_description
+                elif explorer_description := root_cause.get("one_line_description"):
+                    summary = explorer_description
+                else:
+                    summary = ""
+
+                if legacy_steps := root_cause.get("steps", []):
+                    steps = [step.get("title", "") for step in legacy_steps]
+                elif explorer_steps := root_cause.get("reproduction_steps", []):
+                    steps = explorer_steps
+                else:
+                    steps = []
+
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.ROOT_CAUSE,
+                        "summary": summary,
+                        "steps": steps,
+                    }
+                )
+            case SentryAppEventType.SEER_SOLUTION_COMPLETED:
+                solution = event_payload.get("solution", {})
+
+                if legacy_description := solution.get("description"):
+                    summary = legacy_description
+                elif explorer_description := solution.get("one_line_description"):
+                    summary = explorer_description
+                else:
+                    summary = ""
+
+                steps = [step.get("title", "") for step in solution.get("steps", [])]
+
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.SOLUTION,
+                        "summary": summary,
+                        "steps": steps,
+                    }
+                )
+            case SentryAppEventType.SEER_CODING_COMPLETED:
+                if legacy_changes := event_payload.get("changes", []):
+                    changes_list = [
+                        {
+                            "repo_name": change.get("repo_name", ""),
+                            "diff": change.get("diff", ""),
+                            "title": change.get("title", ""),
+                            "description": change.get("description", ""),
+                        }
+                        for change in legacy_changes
+                    ]
+                elif explorer_changes := event_payload.get("code_changes", {}):
+                    changes_list = [
+                        {
+                            "repo_name": repo,
+                            "title": change.get("path", ""),
+                            "description": "",  # No description available in explorer autofix
+                            "diff": change.get("diff", ""),
+                        }
+                        for repo, changes in explorer_changes.items()
+                        for change in changes
+                    ]
+                else:
+                    changes_list = []
+
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.CODE_CHANGES,
+                        "changes": changes_list,
+                    }
+                )
+            case SentryAppEventType.SEER_PR_CREATED:
+                pull_requests = [
+                    pr_payload.get("pull_request", {})
+                    for pr_payload in event_payload.get("pull_requests", [])
+                ]
+                summary = pull_requests[0].get("pr_url", "") if pull_requests else None
+                pull_requests_list = [
+                    {"pr_number": pr["pr_number"], "pr_url": pr["pr_url"]} for pr in pull_requests
+                ]
+                data_kwargs.update(
+                    {
+                        "current_point": AutofixStoppingPoint.OPEN_PR,
+                        "pull_requests": pull_requests_list,
+                        "summary": summary,
+                    }
+                )
+            case _:
+                logging_ctx["event_type"] = event_type
+                logger.info("seer.entrypoint.slack.unsupported_event_type", extra=logging_ctx)
+                return
+
+        data = SeerAutofixUpdate(**data_kwargs)
+        schedule_all_thread_updates(
+            threads=cache_payload["threads"],
+            integration_id=cache_payload["integration_id"],
+            organization_id=cache_payload["organization_id"],
+            data=data,
+        )
+        logger.info("seer.entrypoint.slack.autofix_update_scheduled", extra=logging_ctx)
+        metrics.incr(
+            "seer.entrypoint.slack.autofix_update_scheduled",
+            tags={
+                "event_type": str(event_type),
+                "current_point": str(data.current_point),
+                "thread_count": len(cache_payload["threads"]),
+            },
+        )
+
+
+class SlackAgentEntrypoint(
+    SeerAgentEntrypoint[SlackAgentCachePayload],
+):
+    key = SeerEntrypointKey.SLACK
+
+    def __init__(
+        self,
+        *,
+        integration_id: int,
+        organization_id: int,
+        channel_id: str,
+        thread_ts: str,
+        slack_user_id: str,
+    ):
+        from sentry.integrations.services.integration import integration_service
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        if not integration:
+            raise EntrypointSetupError(f"Slack integration {integration_id} not found")
+
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            limit=1,
+        )
+        if not ois:
+            raise EntrypointSetupError(
+                f"Slack integration {integration_id} is not active for org {organization_id}"
+            )
+
+        self.channel_id = channel_id
+        self.thread_ts = thread_ts
+        self.thread = SlackThreadDetails(thread_ts=self.thread_ts, channel_id=channel_id)
+        self.organization_id = organization_id
+        self.integration = integration
+        self.install = SlackIntegration(model=integration, organization_id=organization_id)
+        self.slack_user_id = slack_user_id
+
+    @staticmethod
+    def has_feature_flag(organization: Organization | RpcOrganization) -> bool:
+        return features.has("organizations:seer-slack-explorer", organization)
+
+    @staticmethod
+    def has_access(organization: Organization | RpcOrganization) -> bool:
+        """
+        Determines access to Seer Agent, along with the Slack feature. Shouldn't be called from
+        the CONTROL silo since `has_explorer_access_with_detail` will not get populated with the
+        subscription context, and will return False every time. For slim, CONTROL calls, use
+        the `has_feature_flag` method instead.
+        """
+        has_agent_access, _ = has_seer_explorer_access_with_detail(organization, None)
+        return SlackAgentEntrypoint.has_feature_flag(organization) and has_agent_access
+
+    def on_trigger_agent_error(self, *, error: str) -> None:
+        send_thread_update(
+            install=self.install,
+            thread=self.thread,
+            data=SeerAgentError(error_message=error),
+            ephemeral_user_id=self.slack_user_id,
+        )
+
+    def on_trigger_agent_success(self, *, run_id: int) -> None:
+        pass
+
+    def create_agent_cache_payload(self) -> SlackAgentCachePayload:
+        return SlackAgentCachePayload(
+            thread=self.thread,
+            organization_id=self.organization_id,
+            integration_id=self.install.model.id,
+        )
+
+    @staticmethod
+    def on_agent_update(
+        cache_payload: SlackAgentCachePayload,
+        summary: str | None,
+        run_id: int,
+    ) -> None:
+        organization_id = cache_payload["organization_id"]
+        integration_id = cache_payload["integration_id"]
+        thread = cache_payload["thread"]
+
+        if not summary:
+            data: SeerAgentError | SeerAgentResponse = SeerAgentError(
+                error_message="Seer was unable to generate a response."
+            )
+        else:
+            missing_scope_url = _get_missing_scope_settings_url(
+                integration_id=integration_id,
+                organization_id=organization_id,
+                channel_id=thread["channel_id"],
+                thread_ts=thread["thread_ts"],
+            )
+            data = SeerAgentResponse(
+                run_id=run_id,
+                organization_id=organization_id,
+                summary=summary,
+                missing_scope_settings_url=missing_scope_url,
+            )
+        schedule_all_thread_updates(
+            threads=[thread],
+            integration_id=integration_id,
+            organization_id=organization_id,
+            data=data,
+        )
+
+
+def prepare_slack_thread_for_autofix_updates(
+    *,
+    thread_ts: str,
+    channel_id: str,
+    group: Group,
+    organization_id: int,
+    integration_id: int,
+) -> None:
+    """
+    Use parameters to create a payload for the operator to populate the pre-autofix cache.
+    This will allow for a future migration of the cache to post-autofix for subsequent updates.
+    Merges threads if an existing cache entry exists for this group.
+    """
+    logging_ctx = {
+        "entrypoint_key": SlackAutofixEntrypoint.key,
+        "group_id": group.id,
+        "organization_id": organization_id,
+        "integration_id": integration_id,
+        "thread_ts": thread_ts,
+        "channel_id": channel_id,
+    }
+    threads: list[SlackThreadDetails] = []
+    incoming_thread = SlackThreadDetails(thread_ts=thread_ts, channel_id=channel_id)
+    lock_key = SlackAutofixEntrypoint.get_autofix_lock_key(
+        group_id=group.id,
+        stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+    )
+
+    lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
+    try:
+        with lock.blocking_acquire(initial_delay=0.1, timeout=3):
+            existing_cache = SeerOperatorAutofixCache[SlackAutofixCachePayload].get(
+                entrypoint_key=str(SlackAutofixEntrypoint.key),
+                group_id=group.id,
+            )
+            if existing_cache:
+                threads = existing_cache["payload"].get("threads", [])
+            if incoming_thread not in threads:
+                threads.append(incoming_thread)
+
+            cache_result = SeerOperatorAutofixCache[
+                SlackAutofixCachePayload
+            ].populate_pre_autofix_cache(
+                entrypoint_key=str(SlackAutofixEntrypoint.key),
+                group_id=group.id,
+                cache_payload=SlackAutofixCachePayload(
+                    threads=threads,
+                    organization_id=organization_id,
+                    integration_id=integration_id,
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    group_link=SlackAutofixEntrypoint.get_group_link(group),
+                ),
+            )
+    except UnableToAcquireLock:
+        logger.exception("seer.entrypoint.slack.prepare_thread.lock_failed", extra=logging_ctx)
+        return
+    logger.info(
+        "seer.entrypoint.slack.prepare_thread.cache_populated",
+        extra={
+            "cache_key": cache_result["key"],
+            "cache_source": cache_result["source"],
+            "thread_count": len(threads),
+            **logging_ctx,
+        },
+    )
+    metrics.incr(
+        "seer.entrypoint.slack.prepare_thread.cache_populated",
+        tags={"cache_source": cache_result["source"]},
+    )
+
+
+# Register after class definition to avoid decorator type-narrowing when stacking two registries.
+autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
+agent_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAgentEntrypoint)

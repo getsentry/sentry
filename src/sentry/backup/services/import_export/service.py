@@ -27,13 +27,13 @@ DEFAULT_IMPORT_FLAGS = RpcImportFlags.into_rpc(ImportFlags())
 class ImportExportService(RpcService):
     """
     A service for bulk importing and exporting models to and from JSON. All import/export operations
-    must be triggered from either a REGION or MONOLITH silo, but never from the CONTROL silo.
+    must be triggered from either a CELL or MONOLITH silo, but never from the CONTROL silo.
 
     Unlike most other RPC services, the `..._by_model` methods in this service select their
     implementations (local vs remote) based on their inputs. Specifically, they choose whether or
-    not to perform the underlying operation in the REGION (where all import/export operations must
+    not to perform the underlying operation in the CELL (where all import/export operations must
     start) or the CONTROL silo depending on the model being imported (aka the `model_name`
-    argument): if the model is a REGION model, the operation proceeds locally, whereas for CONTROL
+    argument): if the model is a CELL model, the operation proceeds locally, whereas for CONTROL
     models, an RPC call is made into the CONTROL silo.
 
     In cases where Sentry is running in MONOLITH mode, the local implementation is always used,

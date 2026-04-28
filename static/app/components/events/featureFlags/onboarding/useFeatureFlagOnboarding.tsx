@@ -1,13 +1,14 @@
 import {useCallback, useEffect} from 'react';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const FLAG_HASH = '#flag-sidequest';
 

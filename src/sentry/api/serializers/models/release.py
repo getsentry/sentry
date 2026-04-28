@@ -295,7 +295,6 @@ def get_author_users_by_email(
     secondary_match: dict[CommitAuthor, str] = {}
 
     for user in users:
-
         primary_email = user.email.lower()
         if primary_email in author_email_map:
             found_author = author_email_map[primary_email]

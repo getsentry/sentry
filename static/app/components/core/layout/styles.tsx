@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
-import {css, useTheme, type SerializedStyles} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import type {
   BorderVariant,
@@ -20,7 +20,7 @@ export function rc<T>(
     breakpoint: BreakpointSize | undefined,
     theme: Theme
   ) => string | undefined
-): SerializedStyles | undefined {
+): string | undefined {
   // Most values are unlikely to be responsive, so we can resolve
   // them directly and return early.
   if (!isResponsive(value)) {
@@ -31,39 +31,37 @@ export function rc<T>(
       return undefined;
     }
 
-    return css`
-      ${property}: ${resolvedValue as string};
-    `;
+    return `${property}: ${resolvedValue as string};`;
   }
 
   let first = true;
-  return css`
-    ${BREAKPOINT_ORDER.map(breakpoint => {
-      const v = value[breakpoint];
-      const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
+  return BREAKPOINT_ORDER.map(breakpoint => {
+    const v = value[breakpoint];
+    const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
 
-      // A resolver can return undefined to indicate that the value should be omitted.
-      if (resolvedValue === undefined) {
-        return undefined;
-      }
+    // A resolver can return undefined to indicate that the value should be omitted.
+    if (resolvedValue === undefined) {
+      return undefined;
+    }
 
-      if (first) {
-        first = false;
-        return css`
+    if (first) {
+      first = false;
+      return `
           @media (min-width: ${theme.breakpoints[breakpoint]}),
             (max-width: ${theme.breakpoints[breakpoint]}) {
             ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
           }
         `;
-      }
+    }
 
-      return css`
+    return `
         @media (min-width: ${theme.breakpoints[breakpoint]}) {
           ${property}: ${resolver ? resolver(v, breakpoint, theme) : (v as string)};
         }
       `;
-    }).filter(Boolean)}
-  `;
+  })
+    .filter(Boolean)
+    .join('');
 }
 
 const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
@@ -139,7 +137,7 @@ function borderValue(key: BorderVariant, theme: Theme): string {
   if (key === 'primary') {
     return theme.tokens.border[key];
   }
-  if (key === 'muted') {
+  if (key === 'muted' || key === 'secondary') {
     return theme.tokens.border.secondary;
   }
   return theme.tokens.border[key].vibrant;
@@ -171,7 +169,7 @@ export function getRadius(
 
   if (radius.length < 3) {
     // This can only be a single radius value, so we can resolve it directly.
-    return resolveRadius(radius as RadiusSize, theme) as string;
+    return resolveRadius(radius as RadiusSize, theme);
   }
 
   return radius
@@ -191,7 +189,7 @@ export function getSpacing(
 
   if (spacing.length < 3) {
     // This can only be a single spacing value, so we can resolve it directly.
-    return resolveSpacing(spacing as SpaceSize, theme) as string;
+    return resolveSpacing(spacing as SpaceSize, theme);
   }
 
   return spacing

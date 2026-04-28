@@ -14,8 +14,10 @@ from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderB
 from snuba_sdk import Request as SnubaRequest
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
@@ -36,6 +38,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
+from sentry.search.eap.occurrences.query_utils import keyed_counts_subset_match
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -48,7 +51,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.occurrences_rpc import Occurrences
+from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
 from sentry.snuba.referrer import Referrer
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
@@ -130,9 +133,26 @@ class CommitContextIntegration(ABC):
     def integration_name(self) -> str:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def integration_id(self) -> int:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def org_integration(self) -> RpcOrganizationIntegration:
+        raise NotImplementedError
+
     @abstractmethod
     def get_client(self) -> CommitContextClient:
         raise NotImplementedError
+
+    def get_organization_id(self) -> int | None:
+        """
+        Return the organization ID when available on the installation instance.
+        Some unit-test mocks don't inherit IntegrationInstallation and won't have it.
+        """
+        return getattr(self, "organization_id", None)
 
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: dict[str, Any]
@@ -145,6 +165,8 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.GET_BLAME_FOR_FILES,
             provider_key=self.integration_name,
+            integration_id=self.integration_id,
+            organization_id=self.get_organization_id(),
         ).capture() as lifecycle:
             try:
                 client = self.get_client()
@@ -201,13 +223,22 @@ class CommitContextIntegration(ABC):
         group_owner: GroupOwner,
         group_id: int,
     ) -> None:
+        from sentry import features
+
         try:
             # TODO(jianyuan): Remove this try/except once we have implemented the abstract method for all integrations
             pr_comment_workflow = self.get_pr_comment_workflow()
         except NotImplementedError:
             return
 
-        if not OrganizationOption.objects.get_value(
+        if features.has("organizations:scm-config-oi-reads", project.organization):
+            try:
+                pr_comments_enabled = self.org_integration.config.get("pr_comments", False)
+            except OrganizationIntegrationNotFound:
+                pr_comments_enabled = False
+            if not pr_comments_enabled:
+                return
+        elif not OrganizationOption.objects.get_value(
             organization=project.organization,
             key=pr_comment_workflow.organization_option_key,
             default=False,
@@ -224,6 +255,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=SCMIntegrationInteractionType.QUEUE_COMMENT_TASK,
             provider_key=self.integration_name,
+            integration_id=self.integration_id,
             organization_id=project.organization_id,
             project=project,
             commit=commit,
@@ -334,6 +366,7 @@ class CommitContextIntegration(ABC):
         with CommitContextIntegrationInteractionEvent(
             interaction_type=interaction_type,
             provider_key=self.integration_name,
+            integration_id=self.integration_id,
             repository=repo,
             pull_request_id=pr.id,
         ).capture():
@@ -525,10 +558,10 @@ class PRCommentWorkflow(ABC):
             projects=[project],
         )
 
-        group_id_filter = " OR ".join([f"group_id:{gid}" for gid in issue_ids])
-        group_id_query = (
-            f"({group_id_filter})" if len(issue_ids) > 1 else f"group_id:{issue_ids[0]}"
-        )
+        if len(issue_ids) == 1:
+            group_id_query = f"group_id:{issue_ids[0]}"
+        else:
+            group_id_query = f"group_id:[{', '.join(str(gid) for gid in issue_ids)}]"
         query_string = f"{group_id_query} !level:info"
 
         try:
@@ -541,6 +574,7 @@ class PRCommentWorkflow(ABC):
                 limit=5,
                 referrer=self.referrer.value,
                 config=SearchResolverConfig(),
+                occurrence_category=OccurrenceCategory.ERROR,
             )
             return [
                 {"group_id": row["group_id"], "event_count": row["count()"]}
@@ -576,6 +610,17 @@ class PRCommentWorkflow(ABC):
                 eap_results,
                 "integrations.pr_comment.get_top_5_issues_by_count",
                 is_experimental_data_a_null_result=len(eap_results) == 0,
+                reasonable_match_comparator=lambda snuba_rows, eap_rows: keyed_counts_subset_match(
+                    snuba_rows,
+                    eap_rows,
+                    key_fn=lambda row: int(row["group_id"]),
+                    count_field="event_count",
+                ),
+                debug_context={
+                    "organization_id": project.organization_id,
+                    "project_id": project.id,
+                    "issue_ids": issue_ids,
+                },
             )
 
         return results

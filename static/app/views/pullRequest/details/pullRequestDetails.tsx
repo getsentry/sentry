@@ -1,13 +1,14 @@
-import {Container, Flex, Stack} from 'sentry/components/core/layout';
-import {TabList} from 'sentry/components/core/tabs';
-import {Heading, Text} from 'sentry/components/core/text';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {TabList} from '@sentry/scraps/tabs';
+import {Heading, Text} from '@sentry/scraps/text';
+
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useQueryParamState} from 'sentry/utils/url/useQueryParamState';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {PullRequestDetailsHeaderContent} from 'sentry/views/pullRequest/details/header/pullRequestDetailsHeaderContent';
 import {PullRequestDetailsMainContent} from 'sentry/views/pullRequest/details/main/pullRequestDetailsMainContent';
@@ -25,22 +26,30 @@ export default function PullRequestDetails() {
     fieldName: 'tab',
   });
 
-  const pullRequestQuery: UseApiQueryResult<PullRequestDetailsResponse, RequestError> =
-    useApiQuery<PullRequestDetailsResponse>(
-      [
-        `/projects/${organization.slug}/pullrequest-details/${params.repoOrg}/${params.repoName}/${params.prId}/`,
-      ],
-      {
-        staleTime: 0,
-        enabled: !!params.repoName && !!params.prId,
-      }
-    );
+  const pullRequestQuery = useApiQuery<PullRequestDetailsResponse>(
+    [
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/pullrequest-details/$repoName/$prNumber/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            repoName: params.repoName,
+            prNumber: params.prId,
+          },
+        }
+      ),
+    ],
+    {
+      staleTime: 0,
+      enabled: !!params.repoName && !!params.prId,
+    }
+  );
 
   const {data, isLoading, error} = pullRequestQuery;
 
   if (isLoading) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <Layout.Title>Pull Request Details</Layout.Title>
         </Layout.Header>
@@ -51,14 +60,14 @@ export default function PullRequestDetails() {
             </Flex>
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     );
   }
 
   const errorData = error?.responseJSON as PullRequestDetailsErrorResponse | undefined;
   if (error || !data) {
     return (
-      <Layout.Page>
+      <Stack flex={1}>
         <Layout.Header>
           <Layout.Title>Pull Request Details</Layout.Title>
         </Layout.Header>
@@ -81,7 +90,7 @@ export default function PullRequestDetails() {
             </Container>
           </Layout.Main>
         </Layout.Body>
-      </Layout.Page>
+      </Stack>
     );
   }
 
@@ -96,7 +105,8 @@ export default function PullRequestDetails() {
   }
 
   return (
-    <Layout.Page
+    <Stack
+      flex={1}
       title={`#${prSuccessData.pull_request.number}: ${prSuccessData.pull_request.title}`}
     >
       <Layout.Header>
@@ -114,6 +124,6 @@ export default function PullRequestDetails() {
       <Layout.Body>
         <Layout.Main width="full">{mainContent}</Layout.Main>
       </Layout.Body>
-    </Layout.Page>
+    </Stack>
   );
 }

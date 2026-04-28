@@ -3,26 +3,25 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import LoadingError from 'sentry/components/loadingError';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {LoadingError} from 'sentry/components/loadingError';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {displayCrashFreePercent} from 'sentry/views/explore/releases/utils';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {groupByTrend} from './utils';
@@ -32,7 +31,7 @@ interface TeamStabilityProps extends DateTimeObject {
   projects: Project[];
 }
 
-function TeamStability({
+export function TeamStability({
   organization,
   projects,
   period,
@@ -57,7 +56,7 @@ function TeamStability({
     refetch: refetchPeriodSessions,
   } = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -77,7 +76,7 @@ function TeamStability({
     refetch: refetchWeekSessions,
   } = useApiQuery<SessionApiResponse>(
     [
-      getApiUrl(`/organizations/$organizationIdOrSlug/sessions/`, {
+      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
@@ -141,12 +140,16 @@ function TeamStability({
     );
 
     const sumSessionsCount = Math.floor(sumSessions.length / 7);
-    const countSeriesWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
+    const countSeriesWeeklyTotals = Array.from<number>({length: sumSessionsCount}).fill(
+      0
+    );
     countSeries.forEach(
       (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)]! += s.value)
     );
 
-    const sumSessionsWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
+    const sumSessionsWeeklyTotals = Array.from<number>({length: sumSessionsCount}).fill(
+      0
+    );
     sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)]! += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
@@ -253,8 +256,6 @@ function TeamStability({
   );
 }
 
-export default TeamStability;
-
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;
   font-size: ${p => p.theme.font.size.md};
@@ -266,14 +267,14 @@ const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   overflow: visible;
 
   & > div {
-    padding: ${space(1)} ${space(2)};
+    padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
 
   ${p =>
     p.isEmpty &&
     css`
       & > div:last-child {
-        padding: 48px ${space(2)};
+        padding: 48px ${p.theme.space.xl};
       }
     `}
 `;
@@ -290,5 +291,5 @@ const ScoreWrapper = styled('div')`
 `;
 
 const PaddedIconArrow = styled(IconArrow)`
-  margin: 0 ${space(0.5)};
+  margin: 0 ${p => p.theme.space.xs};
 `;

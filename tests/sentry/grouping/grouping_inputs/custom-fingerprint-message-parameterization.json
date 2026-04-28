@@ -1,0 +1,12 @@
+{
+  "fingerprint": ["{{ message }}", "dogs are great"],
+  "exception": {
+    "values": [
+      {
+        "type": "FailedToFetchError",
+        "value": "FailedToFetchError: Charlie didn't bring 2 balls back!"
+      }
+    ]
+  },
+  "platform": "javascript"
+}

@@ -6,7 +6,7 @@ import {profiling} from 'sentry/gettingStartedDocs/ruby/profiling';
 
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   crashReportOnboarding: CrashReportWebApiOnboarding,
   profilingOnboarding: profiling(),
@@ -17,5 +17,3 @@ const docs: Docs = {
     docsPlatform: 'rack',
   }),
 };
-
-export default docs;

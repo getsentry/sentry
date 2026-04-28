@@ -410,7 +410,9 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         disable_uptime_detector(self.detector)
         enable_uptime_detector(self.detector)
 
-        with (self.feature("organizations:uptime"),):
+        with (
+            self.feature("organizations:uptime"),
+        ):
             self.send_result(result)
 
             assert mock_produce.call_count == 1
@@ -1411,7 +1413,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             current_minute=5,
         )
 
-    def test_out_of_order_result_queued(self):
+    def test_out_of_order_result_queued(self) -> None:
         """Out-of-order results should be queued when feature flag is enabled."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1444,7 +1446,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             assert call_kwargs["countdown"] == 10
             assert call_kwargs["kwargs"]["attempt"] == 1
 
-    def test_feature_flag_disabled_processes_normally(self):
+    def test_feature_flag_disabled_processes_normally(self) -> None:
         """When feature flag is disabled, results should process normally without queueing."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1465,7 +1467,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         backlog_key = build_backlog_key(str(self.subscription.id))
         assert cluster.zcard(backlog_key) == 0
 
-    def test_task_scheduling_deduplication(self):
+    def test_task_scheduling_deduplication(self) -> None:
         """Multiple out-of-order results shouldn't schedule duplicate tasks."""
         cluster = get_cluster()
         base_time = datetime.now()
@@ -1670,6 +1672,71 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         self.subscription.refresh_from_db()
         assert self.subscription.capture_response_on_failure is True
+
+    def test_response_capture_not_reenabled_when_user_disabled(self) -> None:
+        """
+        Test that capture_response_on_failure is not re-enabled on success when the user
+        has disabled response capture entirely via response_capture_enabled=False.
+        """
+        self.subscription.update(
+            response_capture_enabled=False,
+            capture_response_on_failure=False,
+        )
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics"),
+            self.feature("organizations:uptime"),
+            self.tasks(),
+        ):
+            self.send_result(result)
+
+        self.subscription.refresh_from_db()
+        assert not self.subscription.capture_response_on_failure
+
+    def test_response_capture_skipped_when_disabled_by_user(self) -> None:
+        """
+        Test that response capture is skipped when response_capture_enabled is False.
+        """
+        self.subscription.update(response_capture_enabled=False)
+
+        response_body = b"<html><body>Server Error</body></html>"
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        request_info = result["request_info"]
+        assert request_info is not None
+        result["request_info_list"] = [
+            {
+                **request_info,
+                "response_body": base64.b64encode(response_body).decode("utf-8"),
+                "response_headers": [
+                    ["Content-Type", "text/html"],
+                ],
+            }
+        ]
+
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime"),
+        ):
+            self.send_result(result)
+            for call_args in metrics.incr.call_args_list:
+                assert call_args[0][0] != "uptime.response_capture.created"
+
+        assert (
+            UptimeResponseCapture.objects.filter(
+                uptime_subscription_id=self.subscription.id
+            ).count()
+            == 0
+        )
+        assert File.objects.filter(type="uptime.response").count() == 0
 
 
 @thread_leak_allowlist(reason="uptime consumers", issue=97045)

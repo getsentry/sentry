@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-const FullViewport = styled('div')`
+export const FullViewport = styled('div')`
   height: 100vh;
   width: 100%;
 
@@ -22,5 +22,3 @@ const FullViewport = styled('div')`
   when you try to scroll something that is non-scrollable.
   */
 `;
-
-export default FullViewport;

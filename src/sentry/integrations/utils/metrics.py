@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
@@ -86,12 +87,23 @@ class IntegrationEventLifecycleMetric(EventLifecycleMetric, ABC):
         tokens = ("integrations", self.get_metrics_domain(), str(outcome))
         return ".".join(tokens)
 
+    def get_integration_id(self) -> int | None:
+        """Return the integration ID if available. Override in subclasses."""
+        return None
+
     def get_metric_tags(self) -> Mapping[str, str]:
-        return {
+        tags: dict[str, str] = {
             "integration_domain": str(self.get_integration_domain()),
             "integration_name": self.get_integration_name(),
             "interaction_type": self.get_interaction_type(),
         }
+        # TODO(telkins): Remove killswitch once we no longer need integration_id on SLO metrics
+        integration_id = self.get_integration_id()
+        if integration_id is not None and options.get(
+            "integrations.slo.integration-id-tag-enabled"
+        ):
+            tags["integration_id"] = str(integration_id)
+        return tags
 
     def capture(
         self, assume_success: bool = True, sample_log_rate: float = 1.0
@@ -196,7 +208,7 @@ class EventLifecycle:
                 if outcome == EventLifecycleOutcome.FAILURE:
                     logger.warning(key, **log_params)
                 elif outcome == EventLifecycleOutcome.HALTED:
-                    logger.info(key, **log_params)
+                    logger.warning(key, **log_params)
 
     @staticmethod
     def _report_flow_error(message) -> None:
@@ -436,6 +448,7 @@ class IntegrationWebhookEventType(StrEnum):
     # This represents a webhook event for an inbound sync operation, such as syncing external resources or data into Sentry.
     INBOUND_SYNC = "inbound_sync"
     INSTALLATION = "installation"
+    INSTALLATION_REPOSITORIES = "installation_repositories"
     ISSUE_COMMENT = "issue_comment"
     MERGE_REQUEST = "pull_request"
     MERGE_REQUEST_REVIEW = "pull_request_review"

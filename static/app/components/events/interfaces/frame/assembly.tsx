@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   culture?: string;
@@ -49,7 +48,7 @@ const AssemblyWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   text-align: center;
   position: relative;
-  padding: ${space(0.25)} ${space(3)};
+  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space['2xl']};
 `;
 
 const Caption = styled('span')`

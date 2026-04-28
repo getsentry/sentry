@@ -2,7 +2,7 @@ import type {LocationRange} from 'peggy';
 
 import {t} from 'sentry/locale';
 
-import grammar from './grammar.pegjs';
+import {parse} from './grammar.pegjs';
 
 // This constant should stay in sync with the backend parser
 const MAX_OPERATORS = 10;
@@ -119,7 +119,7 @@ type ParseResult = {
 export function parseArithmetic(query: string): ParseResult {
   const tc = new TokenConverter();
   try {
-    const result = grammar.parse(query, {tc});
+    const result = parse(query, {tc});
     return {result, error: tc.errors[0], tc};
   } catch (error: any) {
     return {result: null, error: error.message, tc};

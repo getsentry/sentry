@@ -20,7 +20,7 @@ export function isAUnitConvertibleFieldType(
 }
 
 export function isAPlottableTimeSeriesValueType(
-  timeSeriesValueType?: string | undefined | null
+  timeSeriesValueType?: string | null
 ): timeSeriesValueType is PlottableTimeSeriesValueType {
   if (!defined(timeSeriesValueType)) {
     return false;

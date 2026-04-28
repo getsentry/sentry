@@ -11,7 +11,6 @@ from sentry.testutils.cases import TestCase
 
 @patch("sys.stderr.write")
 class IntegrationEndpointTest(TestCase):
-
     # Since both `IntegrationEndpoint.handle_exception_with_details` and `Endpoint.handle_exception_with_details` potentially
     # run, and they both call their own module's copy of `capture_exception`, in order to prove that
     # neither one is not called, we assert on the underlying method from the SDK

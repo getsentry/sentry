@@ -12,24 +12,9 @@ describe('ProjectDetail Utils', () => {
       expect(isPlatformANRCompatible('android')).toBe(true);
     });
 
-    it('returns true for apple projects when the feature flag is enabled', () => {
-      expect(
-        isPlatformANRCompatible('apple', ['project-detail-apple-app-hang-rate'])
-      ).toBe(true);
-
-      expect(
-        isPlatformANRCompatible('apple-ios', ['project-detail-apple-app-hang-rate'])
-      ).toBe(true);
-    });
-
-    it('returns false for apple projects different feature flag is enabled', () => {
-      expect(isPlatformANRCompatible('apple', ['empty'])).toBe(false);
-
-      expect(isPlatformANRCompatible('apple', undefined)).toBe(false);
-    });
-
-    it('returns false for apple projects when feature flags are undefined', () => {
-      expect(isPlatformANRCompatible('apple', undefined)).toBe(false);
+    it('returns true for apple platforms', () => {
+      expect(isPlatformANRCompatible('apple')).toBe(true);
+      expect(isPlatformANRCompatible('apple-ios')).toBe(true);
     });
 
     it('returns false for incompatible platforms', () => {
@@ -37,7 +22,6 @@ describe('ProjectDetail Utils', () => {
       expect(isPlatformANRCompatible('node')).toBe(false);
       expect(isPlatformANRCompatible(undefined)).toBe(false);
       expect(isPlatformANRCompatible('apple-macos')).toBe(false);
-      expect(isPlatformANRCompatible('apple-ios')).toBe(false);
     });
   });
 

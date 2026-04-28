@@ -19,7 +19,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.utils.errors import SentryAppErrorType
+from sentry.sentry_apps.utils.errors import SentryAppErrorType, SentryAppIntegratorError
 from sentry.utils import json
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"
@@ -58,7 +58,6 @@ class SentryAppAlertRuleActionRequester:
                 "sentry_app_slug": self.sentry_app.slug,
             }
             try:
-
                 response = send_and_save_sentry_app_request(
                     url=self._build_url(),
                     sentry_app=self.sentry_app,
@@ -82,6 +81,15 @@ class SentryAppAlertRuleActionRequester:
                     webhook_context={"error_type": halt_reason, **extras},
                     status_code=500,
                 )
+            except SentryAppIntegratorError as e:
+                lifecycle.record_halt(halt_reason=e, extra={**extras})
+                return SentryAppAlertRuleActionResult(
+                    success=False,
+                    message=e.message,
+                    error_type=SentryAppErrorType.INTEGRATOR,
+                    webhook_context={"error_type": e.webhook_context["error_type"], **extras},
+                    status_code=e.status_code,
+                )
             except Exception as e:
                 failure_reason = FAILURE_REASON_BASE.format(
                     SentryAppExternalRequestFailureReason.UNEXPECTED_ERROR
@@ -103,6 +111,19 @@ class SentryAppAlertRuleActionRequester:
             )
 
     def _build_url(self) -> str:
+        if not self.sentry_app.webhook_url:
+            raise SentryAppIntegratorError(
+                message="Sentry app webhook_url is not configured",
+                webhook_context={
+                    "error_type": FAILURE_REASON_BASE.format(
+                        SentryAppExternalRequestFailureReason.MISSING_URL
+                    ),
+                    "sentry_app_slug": self.sentry_app.slug,
+                    "uri": self.uri,
+                },
+                status_code=500,
+            )
+
         urlparts = list(urlparse(self.sentry_app.webhook_url))
         urlparts[2] = self.uri
         return urlunparse(urlparts)

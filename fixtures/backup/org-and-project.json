@@ -1,0 +1,64 @@
+[
+{
+  "model": "sentry.organization",
+  "pk": 1,
+  "fields": {
+    "name": "test-org",
+    "slug": "test-org",
+    "status": 0,
+    "date_added": "2023-06-22T22:54:28.773Z",
+    "default_role": "member",
+    "is_test": false,
+    "flags": "1"
+  }
+},
+{
+  "model": "sentry.organizationmember",
+  "pk": 3,
+  "fields": {
+    "organization": 1,
+    "user_id": null,
+    "email": "pending@example.com",
+    "role": "member",
+    "flags": "0",
+    "token": null,
+    "date_added": "2023-06-22T22:59:56.561Z",
+    "token_expires_at": null,
+    "has_global_access": true,
+    "inviter_id": 1,
+    "invite_status": 1,
+    "type": 50,
+    "user_is_active": true,
+    "user_email": null
+  }
+},
+{
+  "model": "sentry.team",
+  "pk": 1,
+  "fields": {
+    "organization": 1,
+    "slug": "devs",
+    "name": "Devs",
+    "status": 0,
+    "actor": 1,
+    "idp_provisioned": false,
+    "date_added": "2023-06-22T22:54:28.821Z"
+  }
+},
+{
+  "model": "sentry.project",
+  "pk": 1,
+  "fields": {
+    "slug": "internal",
+    "name": "Internal",
+    "forced_color": null,
+    "organization": 1,
+    "public": false,
+    "date_added": "2023-06-22T22:54:28.851Z",
+    "status": 0,
+    "first_event": null,
+    "flags": "10",
+    "platform": null
+  }
+}
+]

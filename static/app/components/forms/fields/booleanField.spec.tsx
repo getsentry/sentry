@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import BooleanField from 'sentry/components/forms/fields/booleanField';
-import Form from 'sentry/components/forms/form';
+import {BooleanField} from 'sentry/components/forms/fields/booleanField';
+import {Form} from 'sentry/components/forms/form';
 
 describe('BooleanField', () => {
   it('renders without form context', () => {

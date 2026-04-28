@@ -1,13 +1,13 @@
 import {useCallback} from 'react';
 
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {UpsellModalSamePriceProps} from 'getsentry/actionCreators/modal';
 import {
   openAM2UpsellModal,
   openAM2UpsellModalSamePrice,
 } from 'getsentry/actionCreators/modal';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
 import type {Subscription} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
 

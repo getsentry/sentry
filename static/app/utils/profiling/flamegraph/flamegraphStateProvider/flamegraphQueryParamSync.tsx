@@ -3,11 +3,11 @@ import type {Query} from 'history';
 import type * as qs from 'query-string';
 
 import type {DeepPartial} from 'sentry/types/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {FlamegraphState} from './flamegraphContext';
 import {DEFAULT_FLAMEGRAPH_STATE} from './flamegraphContext';
@@ -172,16 +172,20 @@ function maybeOmitHighlightedFrame(query: Query, state: FlamegraphState) {
 
 export function FlamegraphStateQueryParamSync() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [state] = useFlamegraphState();
 
   useEffect(() => {
-    browserHistory.replace({
-      ...location,
-      query: {
-        ...maybeOmitHighlightedFrame(location.query, state),
-        ...encodeFlamegraphStateToQueryParams(state),
+    navigate(
+      {
+        ...location,
+        query: {
+          ...maybeOmitHighlightedFrame(location.query, state),
+          ...encodeFlamegraphStateToQueryParams(state),
+        },
       },
-    });
+      {replace: true}
+    );
     // We only want to sync the query params when the state changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);

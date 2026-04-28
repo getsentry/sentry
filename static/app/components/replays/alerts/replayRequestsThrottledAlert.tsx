@@ -1,7 +1,8 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
-export default function ReplayRequestsThrottledAlert() {
+export function ReplayRequestsThrottledAlert() {
   return (
     <Alert.Container>
       <Alert variant="info" data-test-id="replay-throttled">

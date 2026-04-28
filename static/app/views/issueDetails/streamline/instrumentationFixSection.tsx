@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {AnimatePresence} from 'framer-motion';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
   hasCodeChanges as checkHasCodeChanges,
@@ -16,19 +16,19 @@ import {
   CodeChangesCard,
   CodingAgentHandoffCard,
   SolutionCard,
-  type ArtifactData,
 } from 'sentry/components/events/autofix/v2/artifactCards';
 import {ExplorerStatusCard} from 'sentry/components/events/autofix/v2/autofixStatusCard';
 import {ExplorerNextSteps} from 'sentry/components/events/autofix/v2/nextSteps';
-import Placeholder from 'sentry/components/placeholder';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
-import {openSeerExplorer} from 'sentry/views/seerExplorer/openSeerExplorer';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 interface InstrumentationFixSectionProps {
   event: Event;
@@ -38,10 +38,12 @@ interface InstrumentationFixSectionProps {
 export function InstrumentationFixSection({group}: InstrumentationFixSectionProps) {
   const organization = useOrganization();
 
-  const isSeerExplorerEnabled =
-    organization.features.includes('seer-explorer') &&
+  const seerExplorerEnabled =
+    isSeerExplorerEnabled(organization) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
+
+  const {openSeerExplorer} = useSeerExplorerContext();
 
   const {
     runState,
@@ -66,13 +68,13 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     [blocks, artifacts]
   );
 
-  const handleStartCodeChanges = useCallback(() => {
+  const handleStartCodeChanges = () => {
     startStep('code_changes');
-  }, [startStep]);
+  };
 
   const handleStartStep = useCallback(
     async (step: Parameters<typeof startStep>[0]) => {
-      await startStep(step, runState?.run_id);
+      await startStep(step, {runId: runState?.run_id});
     },
     [startStep, runState?.run_id]
   );
@@ -92,7 +94,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     } else {
       openSeerExplorer({startNewRun: true});
     }
-  }, [runState?.run_id]);
+  }, [runState?.run_id, openSeerExplorer]);
 
   const handleCodingAgentHandoff = useCallback(
     async (integration: CodingAgentIntegration) => {
@@ -103,7 +105,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
     [triggerCodingAgentHandoff, runState?.run_id]
   );
 
-  if (!isSeerExplorerEnabled) {
+  if (!seerExplorerEnabled) {
     return null;
   }
 
@@ -149,7 +151,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
           icon={<IconRefresh />}
           onClick={() => reset()}
           aria-label={t('Start over')}
-          title={t('Start over')}
+          tooltipProps={{title: t('Start over')}}
         />
       }
     >
@@ -163,7 +165,7 @@ export function InstrumentationFixSection({group}: InstrumentationFixSectionProp
 
             // Only show solution and code changes for instrumentation issues
             if (key === 'solution') {
-              return <SolutionCard key="solution" data={artifact.data as ArtifactData} />;
+              return <SolutionCard key="solution" data={artifact.data} />;
             }
             return null;
           })}

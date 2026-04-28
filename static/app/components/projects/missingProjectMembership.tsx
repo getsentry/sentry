@@ -1,22 +1,22 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
-import {Button} from 'sentry/components/core/button';
-import EmptyMessage from 'sentry/components/emptyMessage';
-import Panel from 'sentry/components/panels/panel';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import TeamStore from 'sentry/stores/teamStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 interface JoinTeamActionProps {
   organization: Organization;
@@ -29,7 +29,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
   const teamStoreData = useLegacyStore(TeamStore);
   const selectedTeam = teamStoreData.teams.find(team => team.slug === teamSlug);
 
-  const handleJoinTeam = useCallback(() => {
+  const handleJoinTeam = () => {
     setIsLoading(true);
 
     joinTeam(
@@ -49,7 +49,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
         },
       }
     );
-  }, [api, organization.slug, teamSlug]);
+  };
 
   const openMembership = organization.features.includes('open-membership');
 
@@ -77,7 +77,7 @@ interface MissingProjectMembershipProps {
   project: Project | undefined | null;
 }
 
-export default function MissingProjectMembership({
+export function MissingProjectMembership({
   organization,
   project,
 }: MissingProjectMembershipProps) {
@@ -132,7 +132,7 @@ export default function MissingProjectMembership({
               justify="center"
             >
               <StyledCompactSelect
-                searchable
+                search
                 value={selectedTeam || undefined}
                 trigger={triggerProps => (
                   <OverlayTrigger.Button {...triggerProps}>
@@ -153,7 +153,7 @@ export default function MissingProjectMembership({
             </Grid>
           }
         >
-          {t(`You'll need to join a team with access before you can view this data.`)}
+          {t("You'll need to join a team with access before you can view this data.")}
         </EmptyMessage>
       ) : (
         <EmptyMessage icon={<IconFlag />}>

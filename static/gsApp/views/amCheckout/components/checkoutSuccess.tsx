@@ -8,13 +8,14 @@ import moment from 'moment-timezone';
 import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GIGABYTE} from 'getsentry/constants';
 import type {
@@ -497,7 +498,16 @@ function Receipt({
   );
 }
 
-function CheckoutSuccess({
+const checkoutSuccessFeedbackOptions = {
+  formTitle: t('Give feedback'),
+  messagePlaceholder: t('How can we make the checkout experience better for you?'),
+  tags: {
+    ['feedback.source']: 'checkout_success',
+    ['feedback.owner']: 'billing',
+  },
+};
+
+export function CheckoutSuccess({
   invoice,
   basePlan,
   nextQueryParams,
@@ -606,19 +616,7 @@ function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton
-              feedbackOptions={{
-                formTitle: t('Give feedback'),
-                messagePlaceholder: t(
-                  'How can we make the checkout experience better for you?'
-                ),
-                tags: {
-                  ['feedback.source']: 'checkout_success',
-                  ['feedback.owner']: 'billing',
-                },
-              }}
-              size="md"
-            />
+            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
           </Flex>
         </Flex>
       </Flex>
@@ -639,8 +637,6 @@ function CheckoutSuccess({
     </Flex>
   );
 }
-
-export default CheckoutSuccess;
 
 const Title = styled(Heading)`
   @media (max-width: ${p => p.theme.breakpoints.md}) {

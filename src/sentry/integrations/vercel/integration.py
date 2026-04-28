@@ -480,7 +480,10 @@ class VercelIntegrationProvider(IntegrationProvider):
             )
             return
 
-        user = User.objects.get(id=extra.get("user_id"))
+        user_id = extra.get("user_id")
+        if user_id is None:
+            raise ValueError("user_id is required in post_install_data")
+        user = User.objects.get(id=user_id)
         # create the internal integration and link it to the join table
         sentry_app = SentryAppCreator(
             name="Vercel Internal Integration",
@@ -489,7 +492,7 @@ class VercelIntegrationProvider(IntegrationProvider):
             is_internal=True,
             verify_install=False,
             overview=internal_integration_overview.strip(),
-            scopes=["project:releases", "project:read", "project:write"],
+            scopes=["org:ci"],
         ).run(user=user)
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         SentryAppInstallationForProvider.objects.create(

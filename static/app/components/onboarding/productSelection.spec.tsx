@@ -7,7 +7,7 @@ import {
   platformProductAvailability,
   ProductSelection,
 } from 'sentry/components/onboarding/productSelection';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({

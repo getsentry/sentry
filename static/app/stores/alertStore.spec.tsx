@@ -1,4 +1,4 @@
-import AlertStore from 'sentry/stores/alertStore';
+import {AlertStore} from 'sentry/stores/alertStore';
 
 jest.mock('sentry/utils/localStorage');
 

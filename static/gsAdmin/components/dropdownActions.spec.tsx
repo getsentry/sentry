@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import DropdownActions from './dropdownActions';
+import {DropdownActions} from './dropdownActions';
 
 describe('DropdownActions', () => {
   it('selecting actions calls onAction', async () => {

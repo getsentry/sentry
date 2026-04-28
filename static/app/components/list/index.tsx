@@ -1,8 +1,6 @@
 import {Children, cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 import type {ListItemProps} from './listItem';
 import {getListSymbolStyle, listSymbol} from './utils';
 
@@ -16,7 +14,7 @@ type Props = {
   symbol?: keyof typeof listSymbol | React.ReactElement;
 };
 
-const List = styled(
+export const List = styled(
   ({
     children,
     className,
@@ -52,11 +50,9 @@ const List = styled(
   list-style: none;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&
     getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)}
 `;
-
-export default List;

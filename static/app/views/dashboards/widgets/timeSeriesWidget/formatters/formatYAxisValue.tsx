@@ -1,7 +1,7 @@
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {ABYTE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
+  ABYTE_UNITS,
   DurationUnit,
   RATE_UNIT_LABELS,
   RateUnit,
@@ -55,6 +55,9 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
     case 'integer':
       return formatAbbreviatedNumber(value);
     case 'number':
+      if (Number.isInteger(value)) {
+        return formatAbbreviatedNumber(value);
+      }
       return value.toLocaleString(undefined, {
         maximumFractionDigits: 20,
       });

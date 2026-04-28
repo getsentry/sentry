@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectPlugins from 'sentry/views/settings/projectPlugins/projectPlugins';
+import {ProjectPlugins} from 'sentry/views/settings/projectPlugins/projectPlugins';
 
 describe('ProjectPlugins', () => {
   it('renders', async () => {

@@ -1,0 +1,82 @@
+import {
+  makeAndOp,
+  makeHeaderCheckOp,
+  makeJsonPathOp,
+  makeNotOp,
+  makeOrOp,
+  makeStatusCodeOp,
+} from 'sentry/views/alerts/rules/uptime/assertions/testUtils';
+import type {UptimeAssertion} from 'sentry/views/alerts/rules/uptime/types';
+
+import {Tree} from './tree';
+
+describe('Assertion Failure Tree model', () => {
+  it('Builds the expected tree', () => {
+    const assertion: UptimeAssertion = {
+      root: makeAndOp({
+        id: 'op-1',
+        children: [
+          makeStatusCodeOp({id: 'op-2', value: 200}),
+          makeOrOp({
+            id: 'op-3',
+            children: [makeJsonPathOp({id: 'op-4'})],
+          }),
+          makeNotOp({
+            id: 'op-5',
+            operand: makeAndOp({
+              id: 'op-6',
+              children: [makeHeaderCheckOp({id: 'op-7'})],
+            }),
+          }),
+        ],
+      }),
+    };
+
+    const tree = Tree.FromAssertion(assertion);
+
+    expect(tree.serialize()).toMatchSnapshot();
+  });
+
+  it('Merges logical ops - root', () => {
+    const assertion: UptimeAssertion = {
+      root: makeAndOp({
+        id: 'op-1',
+        children: [
+          makeNotOp({
+            id: 'op-2',
+            operand: makeOrOp({
+              id: 'op-3',
+              children: [makeStatusCodeOp({id: 'op-4', value: 200})],
+            }),
+          }),
+        ],
+      }),
+    };
+
+    const tree = Tree.FromAssertion(assertion);
+    expect(tree.serialize()).toMatchSnapshot();
+  });
+
+  it('Merges logical ops - non-root', () => {
+    const assertion: UptimeAssertion = {
+      root: makeAndOp({
+        id: 'op-1',
+        children: [
+          makeNotOp({
+            id: 'op-2',
+            operand: makeAndOp({
+              id: 'op-3',
+              children: [
+                makeStatusCodeOp({id: 'op-4', value: 200}),
+                makeJsonPathOp({id: 'op-5'}),
+              ],
+            }),
+          }),
+        ],
+      }),
+    };
+
+    const tree = Tree.FromAssertion(assertion);
+    expect(tree.serialize()).toMatchSnapshot();
+  });
+});

@@ -33,32 +33,28 @@ jest.mock(
 );
 
 jest.mock('sentry/views/insights/sessions/queries/useReleaseNewIssues', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useReleaseNewIssues: jest.fn(() => ({
     series: [{}],
     isPending: false,
     isError: false,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useRecentIssues', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useRecentIssues: jest.fn(() => ({
     recentIssues: [],
     isPending: false,
     isError: false,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useNewAndResolvedIssues', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useNewAndResolvedIssues: jest.fn(() => ({
     series: [{}],
     isPending: false,
     isError: false,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useCrashFreeSessions', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useCrashFreeSessions: jest.fn(() => ({
     series: [{}],
     isPending: false,
     isError: false,
@@ -113,40 +109,35 @@ jest.mock('sentry/utils/timeSeries/useFetchEventsTimeSeries', () => ({
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useErroredSessions', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useErroredSessions: jest.fn(() => ({
     series: [{}],
     isPending: false,
     error: null,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useSessionHealthBreakdown', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useSessionHealthBreakdown: jest.fn(() => ({
     series: [{}],
     isPending: false,
     error: null,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useReleaseSessionPercentage', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useReleaseSessionPercentage: jest.fn(() => ({
     series: [{}],
     isPending: false,
     error: null,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useReleaseSessionCounts', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useReleaseSessionCounts: jest.fn(() => ({
     series: [{}],
     isPending: false,
     error: null,
   })),
 }));
 jest.mock('sentry/views/insights/sessions/queries/useUserHealthBreakdown', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+  useUserHealthBreakdown: jest.fn(() => ({
     series: [{}],
     isPending: false,
     error: null,

@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
-import SortLink from 'sentry/components/tables/gridEditable/sortLink';
+import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
@@ -41,10 +42,10 @@ const SORTABLE_FIELDS = new Set([
   `sum(${SPAN_DURATION})`,
   `sum(${SPAN_SELF_TIME})`,
   `p95(${SPAN_SELF_TIME})`,
-  `p75(transaction.duration)`,
-  `transaction.duration`,
+  'p75(transaction.duration)',
+  'transaction.duration',
   'transaction',
-  `count()`,
+  'count()',
   `${EPM}()`,
   `${TPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,

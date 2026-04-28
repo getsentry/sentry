@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {t, tct, tn} from 'sentry/locale';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import ExtraDescription from './extraDescription';
+import {ExtraDescription} from './extraDescription';
 
 export const BULK_LIMIT = 1000;
 export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
@@ -84,8 +85,8 @@ export function getConfirm({
       : tn(
           // Use sprintf argument swapping since the number value must come
           // first. See https://github.com/alexei/sprintf.js#argument-swapping
-          `Are you sure you want to %2$s this %s issue%3$s?`,
-          `Are you sure you want to %2$s these %s issues%3$s?`,
+          'Are you sure you want to %2$s this %s issue%3$s?',
+          'Are you sure you want to %2$s these %s issues%3$s?',
           numIssues,
           action,
           append
@@ -149,7 +150,7 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
       ? t('Bulk %s issues', action)
       : // Use sprintf argument swapping to put the capitalized string first. See
         // https://github.com/alexei/sprintf.js#argument-swapping
-        tn(`%2$s %s selected issue`, `%2$s %s selected issues`, numIssues, capitalized);
+        tn('%2$s %s selected issue', '%2$s %s selected issues', numIssues, capitalized);
 
     return text + append;
   };

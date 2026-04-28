@@ -1,18 +1,15 @@
 import {useState} from 'react';
 
 import {Flex} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {getKnownData} from 'sentry/components/events/contexts/utils';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {
-  TraceDrawerComponents,
-  type SectionCardKeyValueList,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 enum EventExtraDataType {
   CRASHED_PROCESS = 'crashed_process',
@@ -64,7 +61,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
   });
 
-  const formattedDataItems: SectionCardKeyValueList = raw
+  const formattedDataItems = raw
     ? knownData
     : knownData.map(data => {
         return {

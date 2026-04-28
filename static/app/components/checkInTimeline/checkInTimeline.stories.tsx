@@ -1,17 +1,15 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {TimeRangeSelectTrigger} from 'sentry/components/timeRangeSelector';
 import * as Storybook from 'sentry/stories';
-import {space} from 'sentry/styles/space';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {useTimeWindowConfig} from './hooks/useTimeWindowConfig';
@@ -56,7 +54,7 @@ function generateMockTickData(
   const buckets = timeWindowConfig.timelineWidth;
   const secondsPerBucket = (timeWindowConfig.elapsedMinutes * 60) / buckets;
 
-  return new Array(timeWindowConfig.timelineWidth)
+  return Array.from({length: timeWindowConfig.timelineWidth})
     .fill(null)
     .map<CheckInBucket<ExampleStatus>>((_, bucketIndex) => {
       const second = Math.floor(bucketIndex * secondsPerBucket);
@@ -84,7 +82,7 @@ function generateMockTickData(
 export default Storybook.story('CheckInTimeline', story => {
   story('Simple', () => {
     const elementRef = useRef<HTMLDivElement>(null);
-    const {width: timelineWidth} = useDimensions<HTMLDivElement>({elementRef});
+    const {width: timelineWidth} = useDimensions({elementRef});
     const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
     const [secondsGap, setSecondsGap] = useState(60);
@@ -189,9 +187,11 @@ export default Storybook.story('CheckInTimeline', story => {
   });
 });
 
-const Controls = styled(ButtonBar)`
+const Controls = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   width: max-content;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const ExampleContainer = styled(NegativeSpaceContainer)`

@@ -1,3 +1,3 @@
-__all__ = ["SlackActionHandler"]
+__all__ = ["SlackActionHandler", "SlackStagingActionHandler"]
 
-from .slack_action_handler import SlackActionHandler
+from .slack_action_handler import SlackActionHandler, SlackStagingActionHandler

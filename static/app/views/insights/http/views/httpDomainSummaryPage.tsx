@@ -1,17 +1,18 @@
 import React, {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/core/alert';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
@@ -28,7 +29,7 @@ import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle'
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
+import {SubregionSelector} from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
   getThroughputTitle,
@@ -197,21 +198,21 @@ export function HTTPDomainSummaryPage() {
 
                     <MetricReadout
                       title={t('3XXs')}
-                      value={domainMetrics?.[0]?.[`http_response_rate(3)`]}
+                      value={domainMetrics?.[0]?.['http_response_rate(3)']}
                       unit="percentage"
                       isLoading={areDomainMetricsLoading}
                     />
 
                     <MetricReadout
                       title={t('4XXs')}
-                      value={domainMetrics?.[0]?.[`http_response_rate(4)`]}
+                      value={domainMetrics?.[0]?.['http_response_rate(4)']}
                       unit="percentage"
                       isLoading={areDomainMetricsLoading}
                     />
 
                     <MetricReadout
                       title={t('5XXs')}
-                      value={domainMetrics?.[0]?.[`http_response_rate(5)`]}
+                      value={domainMetrics?.[0]?.['http_response_rate(5)']}
                       unit="percentage"
                       isLoading={areDomainMetricsLoading}
                     />

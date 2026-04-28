@@ -8,7 +8,7 @@ import zlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 import msgpack
 import sentry_sdk
@@ -45,6 +45,8 @@ DEFAULT_ENHANCEMENTS_BASE = "all-platforms:2026-01-20"
 # base64 strings never contain '#')
 BASE64_ENHANCEMENTS_DELIMITER = b"#"
 
+# This has a space between "stack" and "trace" to match the way the hints come back from the rust
+# enhancer, even though that's not how it eventually gets rendered in grouping info
 HINT_STACKTRACE_RULE_REGEX = re.compile(r"stack trace rule \((.+)\)$")
 
 VALID_PROFILING_MATCHER_PREFIXES = (
@@ -175,6 +177,14 @@ def _can_use_hint(
     return True
 
 
+@overload
+def _add_rule_source_to_hint(hint: str, custom_rules: set[str]) -> str: ...
+
+
+@overload
+def _add_rule_source_to_hint(hint: None, custom_rules: set[str]) -> None: ...
+
+
 def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | None:
     """Add 'custom' or 'built-in' to the rule description in the given hint (if any)."""
     if not hint:
@@ -183,7 +193,7 @@ def _add_rule_source_to_hint(hint: str | None, custom_rules: set[str]) -> str | 
     def _add_type_to_rule(rule_regex_match: re.Match) -> str:
         rule_str = rule_regex_match.group(1)
         rule_type = "custom" if rule_str in custom_rules else "built-in"
-        return f"{rule_type} stack trace rule ({rule_str})"
+        return f"{rule_type} stacktrace rule ({rule_str})"
 
     return HINT_STACKTRACE_RULE_REGEX.sub(_add_type_to_rule, hint)
 
@@ -210,7 +220,7 @@ def _get_hint_for_frame(
     if variant_name == "app" and desired_hint_type == "in-app":
         default_in_app_hint = "non app frame" if not frame_component.in_app else None
         client_in_app_hint = (
-            f"marked {"in-app" if client_in_app else "out of app"} by the client"
+            f"marked {'in-app' if client_in_app else 'out of app'} by the client"
             # Only create the hint if it's going to match the eventual outcome. Otherwise, we might
             # fall back to the client hint even though the client in-app value got overridden.
             if client_in_app is not None and client_in_app == rust_in_app
@@ -244,7 +254,7 @@ def _get_hint_for_stacktrace(
         return None
 
     # Add 'custom' or 'built-in' to any stacktrace rule description as appropriate
-    return _add_rule_source_to_hint(raw_hint, custom_rules)
+    return _add_rule_source_to_hint(raw_hint, custom_rules).replace("stack trace", "stacktrace")
 
 
 def _split_rules(
@@ -579,7 +589,7 @@ class EnhancementsConfig:
             rust_enhancements = _get_rust_enhancements("config_structure", pickled)
 
         except (LookupError, AttributeError, TypeError, ValueError) as e:
-            raise ValueError("invalid stack trace rule config: %s" % e)
+            raise ValueError("invalid stacktrace rule config: %s" % e)
 
         return EnhancementsConfigData(
             rules, [rule.text for rule in rules], rust_enhancements, version, bases

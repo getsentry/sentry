@@ -2,8 +2,6 @@ import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import RRWebPlayer from '@sentry-internal/rrweb-player';
 
-import {space} from 'sentry/styles/space';
-
 type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 
 interface Props {
@@ -35,7 +33,7 @@ function BaseRRWebReplayerComponent({events, className}: Props) {
   return <div ref={playerEl} className={className} />;
 }
 
-const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
+export const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .replayer-mouse {
     position: absolute;
     width: 32px;
@@ -158,7 +156,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
   .rr-controller {
     width: 100%;
     display: block;
-    padding: ${space(2)} 0;
+    padding: ${p => p.theme.space.xl} 0;
     background: ${p => p.theme.tokens.background.primary};
     border-radius: 0 0 3px 3px;
     border: 1px solid ${p => p.theme.tokens.border.primary};
@@ -187,6 +185,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
 
     &:before {
       content: '';
+      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
       background: ${p => p.theme.tokens.border.secondary};
       border-radius: 3px;
       display: block;
@@ -225,7 +224,7 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
-    gap: ${space(0.75)};
+    gap: ${p => p.theme.space.sm};
     align-items: center;
     justify-content: center;
     font-size: ${p => p.theme.font.size.sm};
@@ -246,17 +245,18 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     transition: background 200ms ease;
 
     > svg {
-      fill: ${p => p.theme.tokens.content.primary};
+      fill: ${p => p.theme.tokens.graphics.neutral.vibrant};
     }
   }
 
   .rr-controller__btns button:active {
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 
   .rr-controller__btns button.active {
     color: ${p => p.theme.colors.white};
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rr-controller__btns button:disabled {
@@ -314,14 +314,13 @@ const BaseRRWebReplayer = styled(BaseRRWebReplayerComponent)`
     height: 10px;
     border-radius: 50%;
     transition: all 200ms ease;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
     z-index: 2;
   }
 
   .switch input[type='checkbox']:checked + label:after {
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
     transform: translateX(16px);
   }
 `;
-
-export default BaseRRWebReplayer;

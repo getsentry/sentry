@@ -7,6 +7,7 @@ from typing import Any, TypedDict
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -219,16 +220,27 @@ class IntegrationProviderSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> IntegrationProviderResponse:
-        org_slug = kwargs.pop("organization").slug
+        organization = kwargs.pop("organization")
+        org_slug = organization.slug
         metadata: Any = obj.metadata
         metadata = metadata and metadata.asdict() or None
+
+        can_add = obj.can_add
+        if can_add and not obj.allow_multiple:
+            existing = integration_service.get_integrations(
+                organization_id=organization.id,
+                providers=[obj.key],
+                status=ObjectStatus.ACTIVE,
+            )
+            if existing:
+                can_add = False
 
         return {
             "key": obj.key,
             "slug": obj.key,
             "name": obj.name,
             "metadata": metadata,
-            "canAdd": obj.can_add,
+            "canAdd": can_add,
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
             "setupDialog": dict(

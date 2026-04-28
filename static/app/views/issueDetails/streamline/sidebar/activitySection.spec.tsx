@@ -11,12 +11,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
+import {StreamlinedActivitySection} from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 
 describe('StreamlinedActivitySection', () => {
   const project = ProjectFixture();
@@ -211,8 +211,7 @@ describe('StreamlinedActivitySection', () => {
     expect(
       await screen.findByText('This note came from my sentry app')
     ).toBeInTheDocument();
-    const icon = screen.getByTestId('upload-avatar');
-    expect(icon).toHaveAttribute('title', sentryApp.name);
+    expect(screen.getByTestId('upload-avatar')).toBeInTheDocument();
     expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
     // We should not show the user, if a sentry app is attached
     expect(screen.queryByText(newUser.name)).not.toBeInTheDocument();

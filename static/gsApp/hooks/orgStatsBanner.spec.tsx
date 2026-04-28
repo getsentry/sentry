@@ -5,7 +5,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 describe('OrgStatsBanner', () => {
   let wrapper: any;

@@ -2,14 +2,16 @@ import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  AndOp,
-  GroupOp,
-  HeaderCheckOp,
-  JsonPathOp,
-  NotOp,
-  OrOp,
-  StatusCodeOp,
+import {
+  UptimeComparisonType,
+  UptimeOpType,
+  type UptimeAndOp,
+  type UptimeGroupOp,
+  type UptimeHeaderCheckOp,
+  type UptimeJsonPathOp,
+  type UptimeNotOp,
+  type UptimeOrOp,
+  type UptimeStatusCodeOp,
 } from 'sentry/views/alerts/rules/uptime/types';
 
 import {AssertionOpGroup} from './opGroup';
@@ -19,7 +21,7 @@ function StatefulOpGroup({
   initialValue,
   onRemove,
 }: {
-  initialValue: GroupOp | NotOp;
+  initialValue: UptimeGroupOp | UptimeNotOp;
   onRemove?: () => void;
 }) {
   const [value, setValue] = useState(initialValue);
@@ -30,7 +32,7 @@ describe('AssertionOpGroup', () => {
   const mockOnChange = jest.fn();
   const mockOnRemove = jest.fn();
 
-  const renderRootGroup = async (value: GroupOp | NotOp) => {
+  const renderRootGroup = async (value: UptimeGroupOp | UptimeNotOp) => {
     const result = render(
       <AssertionOpGroup value={value} onChange={mockOnChange} root />
     );
@@ -38,7 +40,10 @@ describe('AssertionOpGroup', () => {
     return result;
   };
 
-  const renderGroup = async (value: GroupOp | NotOp, onRemove?: () => void) => {
+  const renderGroup = async (
+    value: UptimeGroupOp | UptimeNotOp,
+    onRemove?: () => void
+  ) => {
     const result = render(
       <AssertionOpGroup
         value={value}
@@ -57,9 +62,9 @@ describe('AssertionOpGroup', () => {
 
   describe('root mode', () => {
     it('renders root group without border controls', async () => {
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
@@ -76,16 +81,16 @@ describe('AssertionOpGroup', () => {
     });
 
     it('renders children in root mode', async () => {
-      const statusCodeOp: StatusCodeOp = {
+      const statusCodeOp: UptimeStatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [statusCodeOp],
       };
 
@@ -95,9 +100,9 @@ describe('AssertionOpGroup', () => {
     });
 
     it('adds operation in root mode', async () => {
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-root',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
@@ -109,12 +114,12 @@ describe('AssertionOpGroup', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-root',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [
           {
             id: expect.any(String),
-            op: 'status_code_check',
-            operator: {cmp: 'equals'},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -124,17 +129,17 @@ describe('AssertionOpGroup', () => {
 
   describe('non-root mode', () => {
     it('cycles through all group types by clicking', async () => {
-      const statusCodeOp: StatusCodeOp = {
+      const statusCodeOp: UptimeStatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       };
 
       // Start with "and" group
-      const initialValue: AndOp = {
+      const initialValue: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [statusCodeOp],
       };
 
@@ -151,7 +156,7 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(document.body);
 
       // Click to remove negation (same "Negate result" option toggles it off)
-      await userEvent.click(screen.getByRole('button', {name: 'Assert Not Any'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Assert None'}));
       await userEvent.click(await screen.findByRole('option', {name: 'Negate result'}));
       await userEvent.click(document.body);
 
@@ -164,16 +169,16 @@ describe('AssertionOpGroup', () => {
       await userEvent.click(await screen.findByRole('option', {name: 'Negate result'}));
       await userEvent.click(document.body);
 
-      // Verify label is "Assert None"
+      // Verify label is "Assert Not All"
       expect(
-        await screen.findByRole('button', {name: 'Assert None'})
+        await screen.findByRole('button', {name: 'Assert Not All'})
       ).toBeInTheDocument();
     });
 
     it('shows empty state message when no children', async () => {
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
@@ -182,9 +187,9 @@ describe('AssertionOpGroup', () => {
     });
 
     it('calls onRemove when remove button is clicked', async () => {
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
@@ -194,9 +199,9 @@ describe('AssertionOpGroup', () => {
     });
 
     it('does not show remove button when onRemove is not provided', async () => {
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
@@ -211,9 +216,9 @@ describe('AssertionOpGroup', () => {
 
   describe('adding and removing children', () => {
     it('cycles through adding and removing different operation types', async () => {
-      const initialValue: AndOp = {
+      const initialValue: UptimeAndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
@@ -241,7 +246,7 @@ describe('AssertionOpGroup', () => {
       );
 
       // Verify JSON path child rendered
-      expect(await screen.findByRole('textbox')).toBeInTheDocument();
+      expect(await screen.findByTestId('json-path-value-input')).toBeInTheDocument();
 
       // Remove JSON path
       await userEvent.click(screen.getByRole('button', {name: 'Remove assertion'}));
@@ -271,16 +276,16 @@ describe('AssertionOpGroup', () => {
 
   describe('updating children', () => {
     it('renders status code child', async () => {
-      const statusCodeOp: StatusCodeOp = {
+      const statusCodeOp: UptimeStatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [statusCodeOp],
       };
 
@@ -292,51 +297,55 @@ describe('AssertionOpGroup', () => {
     });
 
     it('updates json path child', async () => {
-      const jsonPathOp: JsonPathOp = {
+      const jsonPathOp: UptimeJsonPathOp = {
         id: 'test-id-1',
-        op: 'json_path',
+        op: UptimeOpType.JSON_PATH,
         value: '',
+        operator: {cmp: UptimeComparisonType.EQUALS},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [jsonPathOp],
       };
 
       await renderGroup(value);
 
-      // Wait for the json path child textbox to render
-      const input = await screen.findByRole('textbox');
+      // Wait for the json path child input to render
+      const input = screen.getByTestId('json-path-value-input');
       await userEvent.type(input, 'x');
 
       // Verify onChange was called with the updated value
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-id-1',
-            op: 'json_path',
+            op: UptimeOpType.JSON_PATH,
             value: 'x',
+            operator: {cmp: UptimeComparisonType.EQUALS},
+            operand: {jsonpath_op: 'literal', value: ''},
           },
         ],
       });
     });
 
     it('updates header child', async () => {
-      const headerOp: HeaderCheckOp = {
+      const headerOp: UptimeHeaderCheckOp = {
         id: 'test-id-1',
-        op: 'header_check',
-        key_op: {cmp: 'equals'},
+        op: UptimeOpType.HEADER_CHECK,
+        key_op: {cmp: UptimeComparisonType.EQUALS},
         key_operand: {header_op: 'literal', value: ''},
-        value_op: {cmp: 'equals'},
+        value_op: {cmp: UptimeComparisonType.EQUALS},
         value_operand: {header_op: 'literal', value: ''},
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [headerOp],
       };
 
@@ -349,14 +358,14 @@ describe('AssertionOpGroup', () => {
       // Verify onChange was called with the updated value
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-id-1',
-            op: 'header_check',
-            key_op: {cmp: 'equals'},
+            op: UptimeOpType.HEADER_CHECK,
+            key_op: {cmp: UptimeComparisonType.EQUALS},
             key_operand: {header_op: 'literal', value: 'x'},
-            value_op: {cmp: 'equals'},
+            value_op: {cmp: UptimeComparisonType.EQUALS},
             value_operand: {header_op: 'literal', value: ''},
           },
         ],
@@ -366,37 +375,39 @@ describe('AssertionOpGroup', () => {
 
   describe('rendering different child types', () => {
     it('renders all different child types together', async () => {
-      const statusCodeOp: StatusCodeOp = {
+      const statusCodeOp: UptimeStatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       };
 
-      const jsonPathOp: JsonPathOp = {
+      const jsonPathOp: UptimeJsonPathOp = {
         id: 'test-id-2',
-        op: 'json_path',
+        op: UptimeOpType.JSON_PATH,
         value: '$.status',
+        operator: {cmp: UptimeComparisonType.EQUALS},
+        operand: {jsonpath_op: 'literal', value: ''},
       };
 
-      const headerOp: HeaderCheckOp = {
+      const headerOp: UptimeHeaderCheckOp = {
         id: 'test-id-3',
-        op: 'header_check',
-        key_op: {cmp: 'equals'},
+        op: UptimeOpType.HEADER_CHECK,
+        key_op: {cmp: UptimeComparisonType.EQUALS},
         key_operand: {header_op: 'literal', value: 'X-Custom'},
-        value_op: {cmp: 'equals'},
+        value_op: {cmp: UptimeComparisonType.EQUALS},
         value_operand: {header_op: 'literal', value: 'test'},
       };
 
-      const nestedGroup: OrOp = {
+      const nestedGroup: UptimeOrOp = {
         id: 'test-id-4',
-        op: 'or',
+        op: UptimeOpType.OR,
         children: [],
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-5',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [statusCodeOp, jsonPathOp, headerOp, nestedGroup],
       };
 
@@ -415,22 +426,22 @@ describe('AssertionOpGroup', () => {
 
   describe('complex interactions', () => {
     it('updates nested group child', async () => {
-      const statusCodeOp: StatusCodeOp = {
+      const statusCodeOp: UptimeStatusCodeOp = {
         id: 'test-id-1',
-        op: 'status_code_check',
-        operator: {cmp: 'equals'},
+        op: UptimeOpType.STATUS_CODE_CHECK,
+        operator: {cmp: UptimeComparisonType.EQUALS},
         value: 200,
       };
 
-      const nestedGroup: AndOp = {
+      const nestedGroup: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [statusCodeOp],
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-3',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [nestedGroup],
       };
 
@@ -450,11 +461,11 @@ describe('AssertionOpGroup', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-3',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-id-2',
-            op: 'or',
+            op: UptimeOpType.OR,
             children: [statusCodeOp],
           },
         ],
@@ -462,15 +473,15 @@ describe('AssertionOpGroup', () => {
     });
 
     it('removes nested group', async () => {
-      const nestedGroup: AndOp = {
+      const nestedGroup: UptimeAndOp = {
         id: 'test-id-1',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       };
 
-      const value: AndOp = {
+      const value: UptimeAndOp = {
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [nestedGroup],
       };
 
@@ -490,7 +501,7 @@ describe('AssertionOpGroup', () => {
 
       expect(mockOnChange).toHaveBeenCalledWith({
         id: 'test-id-2',
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
       });
     });

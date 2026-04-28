@@ -1,15 +1,13 @@
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {CodeBlock} from 'sentry/components/core/code';
-import {Image} from 'sentry/components/core/image/image';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
 import {DebugNotificationsPreview} from 'sentry/debug/notifications/components/debugNotificationsPreview';
 import {NotificationBodyRenderer} from 'sentry/debug/notifications/components/notificationBodyRenderer';
 import {
@@ -19,7 +17,7 @@ import {
 import {IconCheckmark, IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 const MSTEAMS_PREVIEW_URL = 'https://adaptivecards.microsoft.com/designer.html';
 
@@ -38,7 +36,7 @@ export function TeamsPreview({
     <DebugNotificationsPreview
       title="MS Teams"
       actions={
-        <ButtonBar>
+        <Grid flow="column" align="center" gap="md">
           <Button
             size="xs"
             onClick={() =>
@@ -59,7 +57,7 @@ export function TeamsPreview({
           >
             Designer
           </LinkButton>
-        </ButtonBar>
+        </Grid>
       }
     >
       <Container border="primary" radius="md">

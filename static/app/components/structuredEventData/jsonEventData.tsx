@@ -1,4 +1,5 @@
-import StructuredEventData, {
+import {
+  StructuredEventData,
   type StructedEventDataConfig,
   type StructuredEventDataProps,
 } from 'sentry/components/structuredEventData';

@@ -5,21 +5,21 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SearchBar from 'sentry/components/searchBar';
-import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
-import TeamStore from 'sentry/stores/teamStore';
-import {space} from 'sentry/styles/space';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
+import {defined} from 'sentry/utils';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
@@ -27,6 +27,7 @@ import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnersh
 interface OwnershipRulesTableProps {
   codeowners: CodeOwner[];
   projectRules: ParsedOwnershipRule[];
+  actions?: React.ReactNode;
 }
 
 /**
@@ -41,6 +42,7 @@ const PAGE_LIMIT = 25;
 export function OwnershipRulesTable({
   projectRules,
   codeowners,
+  actions,
 }: OwnershipRulesTableProps) {
   const user = useUser();
   const [search, setSearch] = useState<string>('');
@@ -66,7 +68,7 @@ export function OwnershipRulesTable({
     const actors = combinedRules
       .flatMap(rule => rule.owners)
       .filter(actor => actor.name)
-      .map(owner => ({...owner, id: `${owner.id}`}));
+      .map(owner => ({...owner, id: owner.id}));
     return (
       uniqBy(actors, actor => `${actor.type}:${actor.id}`)
         // Sort by type, then by name
@@ -86,6 +88,10 @@ export function OwnershipRulesTable({
   const myTeams = useMemo(() => {
     const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);
     return allActors.filter(actor => {
+      if (!defined(actor.id)) {
+        return false;
+      }
+
       if (actor.type === 'user') {
         return actor.id === user.id;
       }
@@ -142,7 +148,7 @@ export function OwnershipRulesTable({
     <RulesTableWrapper data-test-id="ownership-rules-table">
       <Flex align="center" gap="xl">
         <OwnershipOwnerFilter
-          actors={allActors}
+          actors={allActors.filter((actor): actor is Actor => defined(actor.id))}
           selectedTeams={selectedActors ?? []}
           handleChangeFilter={handleChangeFilter}
           isMyTeams={
@@ -160,6 +166,7 @@ export function OwnershipRulesTable({
           query={search}
           onChange={handleSearch}
         />
+        {actions}
       </Flex>
 
       <StyledPanelTable
@@ -168,18 +175,20 @@ export function OwnershipRulesTable({
         emptyMessage={t('No ownership rules found')}
       >
         {chunkedRules[page]?.map((rule, index) => {
-          let name: string | undefined = 'unknown';
-          // ID might not be a string, so we need to convert it
-          const owners = rule.owners.map(owner => ({...owner, id: `${owner.id}`}));
-          if (owners[0]?.type === 'team') {
-            const team = TeamStore.getById(owners[0].id);
-            if (team?.slug) {
-              name = `#${team.slug}`;
+          const hasUnknownOwners = rule.owners.some(owner => !defined(owner.id));
+          const ownerNames = rule.owners.map(owner => {
+            if (!owner.id) {
+              return owner.name;
             }
-          } else if (owners[0]?.type === 'user') {
-            const firstUser = MemberListStore.getById(owners[0].id);
-            name = firstUser?.name;
-          }
+            if (owner.type === 'team') {
+              const team = TeamStore.getById(owner.id);
+              return team?.slug ? `#${team.slug}` : owner.name;
+            }
+            const memberUser = MemberListStore.getById(owner.id);
+            return memberUser?.name ?? owner.name;
+          });
+
+          const name = ownerNames[0] ?? 'unknown';
 
           return (
             <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
@@ -188,23 +197,27 @@ export function OwnershipRulesTable({
               </Flex>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <Flex align="center" gap="md">
-                <AvatarContainer numAvatars={Math.min(owners.length, 3)}>
-                  <SuggestedAvatarStack
-                    owners={owners}
-                    suggested={false}
-                    reverse={false}
-                  />
+                <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
+                  {/* Avoid attempting to render the avatar stack if there are broken owners */}
+                  {!hasUnknownOwners && (
+                    <SuggestedAvatarStack
+                      owners={rule.owners as Actor[]}
+                      suggested={false}
+                      reverse={false}
+                      tooltip={ownerNames.join(', ')}
+                    />
+                  )}
                 </AvatarContainer>
                 {name}
-                {owners.length > 1 &&
-                  tn(' and %s other', ' and %s others', owners.length - 1)}
+                {rule.owners.length > 1 &&
+                  tn(' and %s other', ' and %s others', rule.owners.length - 1)}
               </Flex>
             </Fragment>
           );
         })}
       </StyledPanelTable>
       <Flex justify="end">
-        <ButtonBar merged gap="0">
+        <ButtonBar>
           <Button
             icon={<IconChevron direction="left" size="sm" />}
             onClick={() => {
@@ -236,8 +249,8 @@ const StyledSearchBar = styled(SearchBar)`
 const RulesTableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
@@ -249,7 +262,7 @@ const StyledPanelTable = styled(PanelTable)`
     !p.isEmpty &&
     css`
       & > div {
-        padding: ${space(1.5)} ${space(2)};
+        padding: ${p.theme.space.lg} ${p.theme.space.xl};
       }
     `}
 `;
@@ -257,7 +270,7 @@ const StyledPanelTable = styled(PanelTable)`
 const RowRule = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   word-break: break-word;

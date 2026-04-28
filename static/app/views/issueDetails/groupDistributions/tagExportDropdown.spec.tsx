@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import TagExportDropdown from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
+import {TagExportDropdown} from 'sentry/views/issueDetails/groupDistributions/tagExportDropdown';
 
 describe('TagExportDropdown', () => {
   const group = GroupFixture();

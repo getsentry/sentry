@@ -60,16 +60,27 @@ class OAuthDeviceView(AuthLoginView):
     """
     Device verification page for OAuth 2.0 Device Flow (RFC 8628 §3.3).
 
-    This view handles the user-facing part of the device authorization flow,
-    where users enter the user_code displayed by their device and approve
-    or deny the authorization request.
+    Purpose
+    - Handles the user-facing verification step where the user enters the
+      `user_code` shown on their device and then explicitly approves or denies
+      the authorization request (RFC 8628 §3.3).
+    - Supports `verification_uri_complete` by accepting `user_code` on GET and,
+      after validation, advancing to the explicit approve/deny step. This keeps
+      the user interaction at the verification endpoint described in RFC 8628
+      §3.3/§3.3.1 while still requiring a second confirmation step and aligning
+      with the phishing mitigation guidance in §5.4.
 
     Flow:
-    1. GET /oauth/device - Show form to enter user_code (or with ?user_code=XXX)
-    2. POST /oauth/device - Verify code and show approval form
+    1. GET /oauth/device - Show the entry form, or validate `user_code` from
+       `verification_uri_complete` (`?user_code=...`) and show the approval form
+    2. POST /oauth/device - Validate the code and show the approval form
     3. POST /oauth/device (op=approve/deny) - Complete verification
 
-    Reference: https://datatracker.ietf.org/doc/html/rfc8628#section-3.3
+    References:
+    - Verification endpoint: https://datatracker.ietf.org/doc/html/rfc8628#section-3.3
+    - Non-textual verification URI optimization:
+      https://datatracker.ietf.org/doc/html/rfc8628#section-3.3.1
+    - Remote phishing mitigation: https://datatracker.ietf.org/doc/html/rfc8628#section-5.4
     """
 
     auth_required = False
@@ -138,7 +149,10 @@ class OAuthDeviceView(AuthLoginView):
         return device_code, None
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
-        # Check if user_code was provided in query string (verification_uri_complete)
+        # RFC 8628 §3.3.1 allows `verification_uri_complete` to carry the user code.
+        # We validate it here and advance to the approval step, but the user must
+        # still explicitly approve or deny the request per §3.3 and the
+        # confirmation guidance in §5.4.
         user_code = request.GET.get("user_code", "").upper().strip()
 
         if not request.user.is_authenticated:
@@ -147,16 +161,13 @@ class OAuthDeviceView(AuthLoginView):
                 request.session["device_user_code"] = user_code
             return super().get(request, **kwargs)
 
-        # If we have a user_code, try to look it up and show the approval form
         if user_code:
             return self._show_approval_form(request, user_code)
 
-        # Check if we stored a user_code in session during login
         stored_code = request.session.pop("device_user_code", None)
         if stored_code:
             return self._show_approval_form(request, stored_code)
 
-        # Otherwise, show the user_code entry form
         context = self.get_default_context(request) | {
             "user": request.user,
         }

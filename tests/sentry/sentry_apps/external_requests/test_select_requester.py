@@ -5,12 +5,16 @@ import responses
 from requests import HTTPError
 
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.sentry_apps.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.external_requests.select_requester import (
+    FAILURE_REASON_BASE,
+    SelectRequester,
+)
 from sentry.sentry_apps.metrics import (
     SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
 )
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.asserts import (
@@ -21,6 +25,7 @@ from sentry.testutils.asserts import (
     assert_success_metric,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
@@ -338,4 +343,35 @@ class TestSelectRequester(TestCase):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sentry_app_integrator_error(self, mock_record: MagicMock) -> None:
+        with assume_test_silo_mode_of(SentryApp):
+            self.sentry_app.webhook_url = ""
+            self.sentry_app.save()
+        self.install = app_service.get_many(filter=dict(installation_ids=[self.orm_install.id]))[0]
+
+        uri = "asdhbaljkdnaklskand"
+        with pytest.raises(SentryAppIntegratorError) as exception_info:
+            SelectRequester(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri=uri,
+            ).run()
+        assert exception_info.value.message == "Sentry app webhook_url is not configured"
+        assert exception_info.value.webhook_context == {
+            "error_type": FAILURE_REASON_BASE.format(
+                SentryAppExternalRequestFailureReason.MISSING_URL
+            ),
+            "sentry_app_slug": self.sentry_app.slug,
+            "uri": uri,
+        }
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
         )

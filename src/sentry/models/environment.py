@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
@@ -22,7 +22,7 @@ from sentry.utils.hashlib import md5_text
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
-@region_silo_model
+@cell_silo_model
 class EnvironmentProject(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -36,7 +36,7 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
-@region_silo_model
+@cell_silo_model
 class Environment(Model):
     __relocation_scope__ = RelocationScope.Organization
 

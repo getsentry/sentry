@@ -150,7 +150,9 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        with (mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,):
+        with (
+            mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,
+        ):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
             metrics.incr.assert_called_once_with(
@@ -528,7 +530,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
 
     def test_debug_meta(self) -> None:
-        debug_meta_cases = [
+        debug_meta_cases: list[dict[str, Any]] = [
             {"debug_meta": {}},
             {"debug_meta": None},
             {"debug_meta": {"images": []}},

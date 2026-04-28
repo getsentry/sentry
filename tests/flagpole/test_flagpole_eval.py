@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 import yaml
 
-from flagpole import Feature, OwnerInfo
+from flagpole import ExperimentMode, Feature, InvalidFeatureFlagConfiguration, OwnerInfo
 from flagpole.conditions import EqualsCondition, Segment
 from flagpole.evaluation_context import EvaluationContext
 from flagpole.flagpole_eval import evaluate_flag, get_arguments, read_feature
@@ -92,7 +92,7 @@ class TestReadFeature:
             "options": {
                 "test-feature": {
                     "enabled": True,
-                    "owner": "test-team",
+                    "owner": {"team": "test-team"},
                     "segments": [
                         {
                             "name": "test-segment",
@@ -118,10 +118,9 @@ class TestReadFeature:
         try:
             feature = read_feature("test-feature", temp_file)
 
-            assert isinstance(feature, Feature)
             assert feature.name == "test-feature"
             assert feature.enabled is True
-            assert feature.owner == "test-team"
+            assert feature.owner.team == "test-team"
             assert len(feature.segments) == 1
             assert feature.segments[0].name == "test-segment"
         finally:
@@ -147,7 +146,9 @@ class TestReadFeature:
     def test_read_feature_missing_flag(self):
         """Test read_feature raises exception when flag doesn't exist in file."""
         yaml_content = {
-            "options": {"other-feature": {"enabled": True, "owner": "test-team", "segments": []}}
+            "options": {
+                "other-feature": {"enabled": True, "owner": {"team": "test-team"}, "segments": []}
+            }
         }
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -163,39 +164,10 @@ class TestReadFeature:
             Path(temp_file).unlink()
 
 
-class TestOwnerInfo:
-    """Test OwnerInfo dataclass and Feature with OwnerInfo owner."""
+class TestFeatureOwnerParsing:
+    """Test Feature owner parsing from dict."""
 
-    def test_feature_with_owner_info(self):
-        """Test creating a Feature with OwnerInfo as owner."""
-        owner = OwnerInfo(team="test-team", email="owner@sentry.io")
-        feature = Feature(
-            name="test-feature",
-            owner=owner,
-            enabled=True,
-            segments=[Segment(name="test-segment", rollout=100, conditions=[])],
-        )
-
-        assert isinstance(feature.owner, OwnerInfo)
-        assert feature.owner.team == "test-team"
-        assert feature.owner.email == "owner@sentry.io"
-
-    def test_feature_with_owner_info_no_email(self):
-        """Test creating a Feature with OwnerInfo without email."""
-        owner = OwnerInfo(team="test-team")
-        feature = Feature(
-            name="test-feature",
-            owner=owner,
-            enabled=True,
-            segments=[Segment(name="test-segment", rollout=100, conditions=[])],
-        )
-
-        assert isinstance(feature.owner, OwnerInfo)
-        assert feature.owner.team == "test-team"
-        assert feature.owner.email is None
-
-    def test_feature_from_dict_with_owner_object(self):
-        """Test parsing a Feature from dict with owner as object."""
+    def test_parses_owner_with_email(self):
         config_dict = {
             "enabled": True,
             "owner": {"team": "test-team", "email": "owner@sentry.io"},
@@ -204,12 +176,10 @@ class TestOwnerInfo:
 
         feature = Feature.from_feature_dictionary("test-feature", config_dict)
 
-        assert isinstance(feature.owner, OwnerInfo)
         assert feature.owner.team == "test-team"
         assert feature.owner.email == "owner@sentry.io"
 
-    def test_feature_from_dict_with_owner_object_no_email(self):
-        """Test parsing a Feature from dict with owner object without email."""
+    def test_parses_owner_without_email(self):
         config_dict = {
             "enabled": True,
             "owner": {"team": "test-team"},
@@ -218,7 +188,6 @@ class TestOwnerInfo:
 
         feature = Feature.from_feature_dictionary("test-feature", config_dict)
 
-        assert isinstance(feature.owner, OwnerInfo)
         assert feature.owner.team == "test-team"
         assert feature.owner.email is None
 
@@ -228,7 +197,9 @@ class TestEvaluateFlag:
 
     def test_evaluate_flag_no_segments(self):
         """Test evaluate_flag with feature that has no segments."""
-        feature = Feature(name="no-segments-feature", owner="test-team", enabled=True, segments=[])
+        feature = Feature(
+            name="no-segments-feature", owner=OwnerInfo(team="test-team"), enabled=True, segments=[]
+        )
         context = EvaluationContext({"user_id": 123})
 
         result, rollout, segment = evaluate_flag(feature, context)
@@ -241,7 +212,7 @@ class TestEvaluateFlag:
         """Test evaluate_flag with disabled feature."""
         feature = Feature(
             name="disabled-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=False,
             segments=[Segment(name="test-segment", rollout=100, conditions=[])],
         )
@@ -258,7 +229,7 @@ class TestEvaluateFlag:
         # Create a mock segment that always matches
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[Segment(name="always-match-segment", rollout=100, conditions=[])],
         )
@@ -276,7 +247,7 @@ class TestEvaluateFlag:
         # Create a mock segment that always matches but has 0% rollout
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[Segment(name="zero-rollout-segment", rollout=0, conditions=[])],
         )
@@ -294,7 +265,7 @@ class TestEvaluateFlag:
         # Create a mock segment that never matches
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[
                 Segment(
@@ -317,7 +288,7 @@ class TestEvaluateFlag:
         # Create a mock segment that never matches
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[
                 Segment(
@@ -340,7 +311,7 @@ class TestEvaluateFlag:
         # Create segments where first doesn't match, second matches
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[
                 Segment(
@@ -368,7 +339,7 @@ class TestEvaluateFlag:
         """Test evaluate_flag with multiple segments where none match."""
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[
                 Segment(
@@ -395,7 +366,7 @@ class TestEvaluateFlag:
         """Test evaluate_flag with partial rollout percentage."""
         feature = Feature(
             name="test-feature",
-            owner="test-team",
+            owner=OwnerInfo(team="test-team"),
             enabled=True,
             segments=[Segment(name="partial-rollout-segment", rollout=75, conditions=[])],
         )
@@ -409,3 +380,84 @@ class TestEvaluateFlag:
         assert rollout == 75
         assert segment
         assert segment.name == "partial-rollout-segment"
+
+
+class TestExperimentMode:
+    """Test experiment_mode field on Feature dataclass."""
+
+    def test_feature_with_experiment_mode_simple(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "experiment_mode": "simple",
+            "segments": [{"name": "all-orgs", "rollout": 50, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-experiment", config_dict)
+
+        assert feature.experiment_mode == ExperimentMode.SIMPLE
+
+    def test_feature_without_experiment_mode(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "segments": [{"name": "all-orgs", "rollout": 100, "conditions": []}],
+        }
+
+        feature = Feature.from_feature_dictionary("test-feature", config_dict)
+
+        assert feature.experiment_mode is None
+
+    def test_experiment_mode_does_not_affect_match(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "segments": [{"name": "all-orgs", "rollout": 100, "conditions": []}],
+        }
+        config_with_experiment = {**config_dict, "experiment_mode": "simple"}
+
+        feature_regular = Feature.from_feature_dictionary("regular", config_dict)
+        feature_experiment = Feature.from_feature_dictionary("experiment", config_with_experiment)
+
+        context = EvaluationContext({"user_id": 123})
+
+        assert feature_regular.match(context) == feature_experiment.match(context)
+
+    def test_invalid_experiment_mode_raises_on_parse(self):
+        config_dict = {
+            "enabled": True,
+            "owner": {"team": "growth"},
+            "created_at": "2026-03-13",
+            "experiment_mode": "invalid",
+            "segments": [{"name": "all-orgs", "rollout": 50, "conditions": []}],
+        }
+
+        with pytest.raises(InvalidFeatureFlagConfiguration):
+            Feature.from_feature_dictionary("test-feature", config_dict)
+
+    def test_validate_valid_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode=ExperimentMode.SIMPLE,
+        )
+
+        assert feature.validate() is True
+
+    def test_validate_none_experiment_mode(self):
+        feature = Feature(
+            name="test-feature",
+            owner=OwnerInfo(team="growth"),
+            enabled=True,
+            created_at="2026-03-13",
+            segments=[],
+            experiment_mode=None,
+        )
+
+        assert feature.validate() is True

@@ -7,7 +7,6 @@ import {useResizeObserver} from '@react-aria/utils';
 import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
@@ -45,12 +44,11 @@ interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
 
 type UseOverOverlayState = ReturnType<typeof useHoverOverlay>;
 
-interface HovercardContentProps
-  extends Pick<
-    HovercardProps,
-    'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
-  > {
-  hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger'>;
+interface HovercardContentProps extends Pick<
+  HovercardProps,
+  'animated' | 'bodyClassName' | 'className' | 'header' | 'body'
+> {
+  hoverOverlayState: Omit<UseOverOverlayState, 'isOpen' | 'wrapTrigger' | 'snapClosed'>;
 }
 
 interface HovercardProviderValue {
@@ -131,7 +129,7 @@ function Hovercard({
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
   const theme = useTheme();
-  const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay({
+  const {wrapTrigger, isOpen, snapClosed, ...hoverOverlayState} = useHoverOverlay({
     offset,
     displayTimeout,
     isHoverable: true,
@@ -154,26 +152,31 @@ function Hovercard({
     return <Fragment>{wrapTrigger(children)}</Fragment>;
   }
 
-  const hovercardContent = isOpen ? (
-    <HovercardContent
-      {...{
-        animated,
-        body,
-        bodyClassName,
-        className,
-        tipBorderColor: theme.tokens.border.primary,
-        tipColor: theme.tokens.background.primary,
-        header,
-        hoverOverlayState,
-      }}
-    />
-  ) : null;
+  const hovercardContent =
+    isOpen && !snapClosed ? (
+      <HovercardContent
+        {...{
+          animated,
+          body,
+          bodyClassName,
+          className,
+          tipBorderColor: theme.tokens.border.primary,
+          tipColor: theme.tokens.background.primary,
+          header,
+          hoverOverlayState,
+        }}
+      />
+    ) : null;
 
-  const hovercard = animated ? (
-    <AnimatePresence>{hovercardContent}</AnimatePresence>
-  ) : (
-    hovercardContent
-  );
+  // Unmounting AnimatePresence (rather than toggling its child) when
+  // snap-closing skips the exit animation so the incoming overlay doesn't
+  // trail alongside a fading-out sibling.
+  const hovercard =
+    animated && !snapClosed ? (
+      <AnimatePresence>{hovercardContent}</AnimatePresence>
+    ) : (
+      hovercardContent
+    );
 
   return (
     <HovercardContext.Provider value={contextValue}>
@@ -189,7 +192,7 @@ const StyledHovercard = styled(Overlay)`
   h6 {
     color: ${p => p.theme.tokens.content.secondary};
     font-size: ${p => p.theme.font.size.xs};
-    margin-bottom: ${space(1)};
+    margin-bottom: ${p => p.theme.space.md};
     text-transform: uppercase;
   }
 `;
@@ -200,11 +203,11 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   font-weight: ${p => p.theme.font.weight.sans.medium};
   word-wrap: break-word;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const Body = styled('div')`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   min-height: 30px;
   word-wrap: break-word;
 `;

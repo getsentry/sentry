@@ -1,5 +1,4 @@
 from collections import defaultdict
-from typing import DefaultDict
 
 from django.db.models import prefetch_related_objects
 
@@ -15,7 +14,7 @@ class AlertRuleTriggerSerializer(Serializer):
         prefetch_related_objects(item_list, "alert_rule")
 
         triggers = {item.id: item for item in item_list}
-        result: DefaultDict[str, dict[str, list[str]]] = defaultdict(dict)
+        result: defaultdict[str, dict[str, list[str]]] = defaultdict(dict)
 
         actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger__in=item_list).order_by(
             "id"

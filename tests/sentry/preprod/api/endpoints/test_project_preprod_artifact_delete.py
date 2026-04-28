@@ -1,5 +1,3 @@
-from django.test import override_settings
-
 from sentry.models.files.file import File
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -10,17 +8,16 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodArtifactDeleteTest(APITestCase):
-    endpoint = "sentry-api-0-project-preprod-artifact-delete"
+    endpoint = "sentry-api-0-organization-preprod-artifact-delete"
     method = "delete"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.login_as(user=self.user)
 
-    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_delete_artifact_success(self):
+    def test_delete_artifact_success(self) -> None:
         main_file = self.create_file(name="test_artifact.zip", type="application/zip")
         installable_file = self.create_file(name="test_app.ipa", type="application/octet-stream")
         artifact = self.create_preprod_artifact(
@@ -52,7 +49,6 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=200,
         )
@@ -71,36 +67,16 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
         assert not PreprodArtifactSizeMetrics.objects.filter(id=size_metric.id).exists()
         assert not InstallablePreprodArtifact.objects.filter(id=installable.id).exists()
 
-    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_delete_artifact_not_found(self):
+    def test_delete_artifact_not_found(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
-            self.project.slug,
             "999999",  # Non-existent artifact ID
             status_code=404,
         )
 
         assert "The requested head preprod artifact does not exist" in response.data["detail"]
 
-    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": False})
-    def test_delete_artifact_feature_disabled(self):
-        artifact = self.create_preprod_artifact(
-            app_name="test_artifact",
-            app_id="com.test.app",
-            build_version="1.0.0",
-            build_number=1,
-        )
-        response = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            artifact.id,
-            status_code=403,
-        )
-
-        assert response.data["error"] == "Feature not enabled"
-
-    @override_settings(SENTRY_FEATURES={"organizations:preprod-frontend-routes": True})
-    def test_delete_artifact_minimal(self):
+    def test_delete_artifact_minimal(self) -> None:
         """Test deleting an artifact with only the minimum required fields"""
         # Create the preprod artifact without optional files
         artifact = self.create_preprod_artifact(
@@ -112,7 +88,6 @@ class ProjectPreprodArtifactDeleteTest(APITestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            self.project.slug,
             artifact.id,
             status_code=200,
         )

@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import {Client} from 'sentry/api';
-import SelectField from 'sentry/components/forms/fields/selectField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {
@@ -26,7 +26,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class ForkCustomerAction extends Component<Props> {
+export class ForkCustomerAction extends Component<Props> {
   state: State = {
     regionUrl: '',
   };
@@ -81,5 +81,3 @@ class ForkCustomerAction extends Component<Props> {
     );
   }
 }
-
-export default ForkCustomerAction;

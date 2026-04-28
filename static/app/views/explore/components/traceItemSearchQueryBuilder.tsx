@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
   SearchQueryBuilder,
@@ -11,7 +12,9 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
+import {useAttributeValidation} from 'sentry/views/explore/hooks/useAttributeValidation';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {TRACEMETRICS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/metrics/constants';
@@ -19,16 +22,21 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export type TraceItemSearchQueryBuilderProps = {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
   stringAttributes: TagCollection;
   stringSecondaryAliases: TagCollection;
+  attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
+  disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
   disallowHas?: boolean;
   disallowLogicalOperators?: boolean;
+  hiddenAttributeKeys?: string[];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
@@ -40,14 +48,14 @@ const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
     return {};
   }
 
-  return supportedAggregates.reduce((acc, item) => {
+  return supportedAggregates.reduce<TagCollection>((acc, item) => {
     acc[item] = {
       key: item,
       name: item,
       kind: FieldKind.FUNCTION,
     };
     return acc;
-  }, {} as TagCollection);
+  }, {});
 };
 
 const typeMap: Partial<
@@ -75,6 +83,8 @@ function getTraceItemFieldDefinitionFunction(
 
 export function useTraceItemSearchQueryBuilderProps({
   itemType,
+  booleanAttributes,
+  booleanSecondaryAliases,
   numberAttributes,
   numberSecondaryAliases,
   stringAttributes,
@@ -96,26 +106,53 @@ export function useTraceItemSearchQueryBuilderProps({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = itemTypeToDefaultPlaceholder(itemType);
+
+  const {selection} = usePageFilters();
+  const effectiveProjects = projects ?? selection.projects;
+  const validationSelection = useMemo(
+    () => ({datetime: selection.datetime, projects: effectiveProjects}),
+    [selection.datetime, effectiveProjects]
+  );
+
+  const {invalidFilterKeys} = useAttributeValidation(
+    itemType,
+    initialQuery ?? '',
+    validationSelection
+  );
   const functionTags = useFunctionTags(itemType, supportedAggregates);
   const filterKeySections = useFilterKeySections(itemType, stringAttributes);
-  const filterTags = useFilterTags(
+  const filterTags = useFilterTags({
     numberAttributes,
     stringAttributes,
     functionTags,
-    disallowHas ?? false
-  );
+    booleanAttributes,
+    disallowHas: disallowHas ?? false,
+  });
 
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: itemType,
     type: 'string',
     projectIds: projects,
+    query: attributeQuery,
   });
 
   const getSuggestedAttribute = useExploreSuggestedAttribute({
     numberAttributes,
     stringAttributes,
+    booleanAttributes,
+  });
+
+  const getTagKeys = useGetTraceItemAttributeTagKeys({
+    itemType,
+    projects,
+    extraTags: functionTags,
+    query: attributeQuery,
+    hiddenKeys: hiddenAttributeKeys,
   });
 
   return useMemo(
@@ -132,29 +169,41 @@ export function useTraceItemSearchQueryBuilderProps({
       filterKeySections,
       getSuggestedFilterKey: getSuggestedAttribute,
       getTagValues: getTraceItemAttributeValues,
-      disallowUnsupportedFilters: true,
+      getTagKeys,
+      disallowUnsupportedFilters: !getTagKeys,
       disallowFreeText,
       disallowLogicalOperators,
-      recentSearches: itemTypeToRecentSearches(itemType),
+      recentSearches: disableRecentSearches
+        ? undefined
+        : itemTypeToRecentSearches(itemType),
       namespace,
       showUnsubmittedIndicator: true,
       portalTarget,
       replaceRawSearchKeys,
       matchKeySuggestions,
-      filterKeyAliases: {...numberSecondaryAliases, ...stringSecondaryAliases},
+      filterKeyAliases: {
+        ...numberSecondaryAliases,
+        ...stringSecondaryAliases,
+        ...booleanSecondaryAliases,
+      },
       caseInsensitive,
       onCaseInsensitiveClick,
+      invalidFilterKeys,
     }),
     [
+      booleanSecondaryAliases,
       caseInsensitive,
       disallowFreeText,
       disallowLogicalOperators,
+      disableRecentSearches,
       filterKeySections,
       filterTags,
       getFilterTokenWarning,
       getSuggestedAttribute,
+      getTagKeys,
       getTraceItemAttributeValues,
       initialQuery,
+      invalidFilterKeys,
       itemType,
       matchKeySuggestions,
       namespace,
@@ -175,6 +224,8 @@ export function useTraceItemSearchQueryBuilderProps({
 export function TraceItemSearchQueryBuilder({
   autoFocus,
   initialQuery,
+  booleanSecondaryAliases,
+  booleanAttributes,
   numberSecondaryAliases,
   numberAttributes,
   stringSecondaryAliases,
@@ -198,9 +249,14 @@ export function TraceItemSearchQueryBuilder({
   disallowHas,
   disallowFreeText,
   disallowLogicalOperators,
+  disableRecentSearches,
+  attributeQuery,
+  hiddenAttributeKeys,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
+    booleanAttributes,
+    booleanSecondaryAliases,
     numberAttributes,
     stringAttributes,
     numberSecondaryAliases,
@@ -222,6 +278,9 @@ export function TraceItemSearchQueryBuilder({
     disallowHas,
     disallowFreeText,
     disallowLogicalOperators,
+    disableRecentSearches,
+    attributeQuery,
+    hiddenAttributeKeys,
   });
 
   return (
@@ -245,27 +304,36 @@ function useFunctionTags(
   }, [itemType, supportedAggregates]);
 }
 
-function useFilterTags(
-  numberAttributes: TagCollection,
-  stringAttributes: TagCollection,
-  functionTags: TagCollection,
-  disallowHas: boolean
-) {
+function useFilterTags({
+  numberAttributes,
+  stringAttributes,
+  booleanAttributes,
+  functionTags,
+  disallowHas,
+}: {
+  booleanAttributes: TagCollection;
+  disallowHas: boolean;
+  functionTags: TagCollection;
+  numberAttributes: TagCollection;
+  stringAttributes: TagCollection;
+}) {
   return useMemo(() => {
     const tags: TagCollection = {
       ...functionTags,
       ...numberAttributes,
       ...stringAttributes,
+      ...booleanAttributes,
     };
 
     if (!disallowHas) {
       tags.has = getHasTag({
         ...numberAttributes,
         ...stringAttributes,
+        ...booleanAttributes,
       });
     }
     return tags;
-  }, [numberAttributes, stringAttributes, functionTags, disallowHas]);
+  }, [booleanAttributes, disallowHas, functionTags, numberAttributes, stringAttributes]);
 }
 
 function useFilterKeySections(
@@ -323,7 +391,7 @@ function itemTypeToDefaultPlaceholder(itemType: TraceItemDataset) {
     return t('Search for spans, users, tags, and more');
   }
   if (itemType === TraceItemDataset.TRACEMETRICS) {
-    return t('Search for metrics, users, tags, and more');
+    return t('Search for application metrics, users, tags, and more');
   }
   if (itemType === TraceItemDataset.PREPROD) {
     return t('Search for builds, versions, and more');

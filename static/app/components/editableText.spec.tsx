@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EditableText from 'sentry/components/editableText';
+import {EditableText} from 'sentry/components/editableText';
 
 describe('EditableText', () => {
   it('edit value and click outside of the component', async () => {

@@ -248,7 +248,11 @@ describe('DemoTours', () => {
             title="Test Title"
             description="Test Description"
           >
-            <div data-test-id="element-content">Element Content</div>
+            {props => (
+              <div {...props} data-test-id="element-content">
+                Element Content
+              </div>
+            )}
           </DemoTourElement>
         </DemoToursProvider>
       );

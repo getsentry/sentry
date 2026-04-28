@@ -1,31 +1,37 @@
 import {useId, type ChangeEventHandler, type FocusEventHandler} from 'react';
 
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InputGroup} from '@sentry/scraps/input';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
-import type {StatusCodeOp} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  type UptimeOp,
+  type UptimeStatusCodeOp,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
 
 interface AssertionOpStatusCodeProps {
-  onChange: (op: StatusCodeOp) => void;
+  onChange: (op: UptimeStatusCodeOp) => void;
   onRemove: () => void;
-  value: StatusCodeOp;
+  value: UptimeStatusCodeOp;
+  erroredOp?: UptimeOp;
 }
 
 export function AssertionOpStatusCode({
   value,
   onChange,
   onRemove,
+  erroredOp,
 }: AssertionOpStatusCodeProps) {
   const inputId = useId();
 
   // Filter out 'always' and 'never' which are not valid for status code checks
   const statusCodeOptions = COMPARISON_OPTIONS.filter(
-    opt => !['always', 'never'].includes(opt.value)
+    opt => ![UptimeComparisonType.ALWAYS, UptimeComparisonType.NEVER].includes(opt.value)
   );
   const selectedOption = statusCodeOptions.find(opt => opt.value === value.operator.cmp);
 
@@ -63,6 +69,7 @@ export function AssertionOpStatusCode({
       onRemove={onRemove}
       inputId={inputId}
       op={value}
+      erroredOp={erroredOp}
     >
       <InputGroup>
         <InputGroup.LeadingItems>
@@ -80,7 +87,7 @@ export function AssertionOpStatusCode({
               <OverlayTrigger.Button
                 {...triggerProps}
                 size="zero"
-                borderless
+                priority="transparent"
                 showChevron={false}
               >
                 <Text monospace>{selectedOption?.symbol ?? ''}</Text>

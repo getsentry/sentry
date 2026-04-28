@@ -1,16 +1,15 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -21,15 +20,15 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
@@ -68,13 +67,13 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     p => p.id === String(props.profileGroup.metadata.projectID)
   );
 
-  const onEnvironmentTabClick = useCallback(() => {
+  const onEnvironmentTabClick = () => {
     setDetailsTab('environment');
-  }, []);
+  };
 
-  const onTransactionTabClick = useCallback(() => {
+  const onTransactionTabClick = () => {
     setDetailsTab('transaction');
-  }, []);
+  };
 
   const flamegraphPreferences = useFlamegraphPreferences();
   const isResizableDetailsBar =
@@ -97,7 +96,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
       }
 
       if (isSidebarLayout) {
-        detailsBarRef.current.style.width = `100%`;
+        detailsBarRef.current.style.width = '100%';
         detailsBarRef.current.style.height = `${maybeOldSize ?? newSize}px`;
       } else {
         detailsBarRef.current.style.height = '';
@@ -523,7 +522,7 @@ const FlexRow = styled('span')`
   align-items: center;
 
   > div {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
@@ -543,12 +542,12 @@ const DetailsRow = styled('div')`
   }
 
   > strong {
-    margin-right: ${space(0.5)};
+    margin-right: ${p => p.theme.space.xs};
   }
 `;
 
 const DetailsContainer = styled('div')`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   margin: 0;
   overflow: auto;
   position: absolute;

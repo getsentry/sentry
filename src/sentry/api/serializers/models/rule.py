@@ -11,6 +11,8 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
@@ -20,15 +22,41 @@ from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_compone
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleWorkflow,
+    Condition,
     DataCondition,
     DataConditionGroup,
     Workflow,
     WorkflowDataConditionGroup,
 )
+from sentry.workflow_engine.models.data_condition import is_slow_condition
+from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.processors.workflow_fire_history import get_last_fired_dates
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.typings.notification_action import (
+    ActionTargetType,
+    FallthroughChoiceType,
+)
+from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
+
+# Check for unsupported conditions which exist in Workflows, but are unsupported in Rules
+# if we're trying to return these in legacy APIs, it's best to skip over them and warn the user
+UNSUPPORTED_CONDITIONS = [
+    Condition.EVENT_CREATED_BY_DETECTOR.value,
+    Condition.EVENT_SEEN_COUNT.value,
+    Condition.ISSUE_OPEN_DURATION.value,
+    Condition.ISSUE_PRIORITY_EQUALS.value,
+    Condition.ISSUE_PRIORITY_DEESCALATING.value,
+    Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL.value,
+    Condition.ISSUE_RESOLUTION_CHANGE.value,
+    Condition.ISSUE_RESOLVED_TRIGGER.value,
+]
+
+EMAIL_ACTION = "sentry.mail.actions.NotifyEmailAction"
 
 
 def generate_rule_label(project, rule, data):
@@ -178,7 +206,6 @@ class RuleSerializer(Serializer):
                     rpc_install = install_context.installation
                     rpc_component = install_context.component
                     rpc_app = rpc_install.sentry_app
-
                     component = (
                         prepare_ui_component(
                             rpc_install,
@@ -259,21 +286,49 @@ class RuleSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
+        from sentry.rules.conditions.event_frequency import EventFrequencyPercentCondition
+        # imported here due to circular dependency
+
+        # Mark that we're using legacy Rule models
+        report_used_legacy_models()
+
         environment = attrs["environment"]
-        all_conditions = [
-            dict(list(o.items()) + [("name", generate_rule_label(obj.project, obj, o))])
-            for o in obj.data.get("conditions", [])
-        ]
+        all_conditions = []
+        for o in obj.data.get("conditions", []):
+            normalized_data_condition = dict(o)
+            # EventFrequencyPercentCondition stores float values (e.g. 100.0) but the
+            # WorkflowEngineRuleSerializer normalizes integer-valued floats to int when
+            # rendering labels. Normalize here so both serializers produce consistent labels.
+            normalized_value = normalized_data_condition.get("value")
+            if (
+                normalized_data_condition.get("id") == EventFrequencyPercentCondition.id
+                and isinstance(normalized_value, float)
+                and normalized_value.is_integer()
+            ):
+                normalized_data_condition["value"] = int(normalized_value)
+            all_conditions.append(
+                dict(
+                    list(normalized_data_condition.items())
+                    + [("name", generate_rule_label(obj.project, obj, normalized_data_condition))]
+                )
+            )
 
         actions = []
         for action in obj.data.get("actions", []):
             try:
-                actions.append(
-                    dict(
-                        list(action.items())
-                        + [("name", generate_rule_label(obj.project, obj, action))]
-                    )
+                action_data = dict(
+                    list(action.items()) + [("name", generate_rule_label(obj.project, obj, action))]
                 )
+                # Normalize email Member/Team actions to match WorkflowEngineRuleSerializer output
+                if action_data.get("id") == EMAIL_ACTION and action_data.get("targetType") in (
+                    ActionTargetType.MEMBER.value,
+                    ActionTargetType.TEAM.value,
+                ):
+                    if action_data.get("targetIdentifier") is not None:
+                        action_data["targetIdentifier"] = str(action_data["targetIdentifier"])
+                    if "fallthroughType" not in action_data:
+                        action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+                actions.append(action_data)
             except serializers.ValidationError:
                 # Integrations can be deleted and we don't want to fail to load the rule
                 pass
@@ -346,15 +401,13 @@ class WorkflowEngineRuleSerializer(Serializer):
             )
         }
 
-    def _fetch_workflow_projects(
-        self, item_list: Sequence[Workflow]
-    ) -> dict[Workflow, set[Project]]:
-        workflow_to_projects: dict[Workflow, set[Project]] = defaultdict(set)
+    def _fetch_workflow_projects(self, item_list: Sequence[Workflow]) -> dict[int, set[Project]]:
+        workflow_to_projects: dict[int, set[Project]] = defaultdict(set)
         detector_workflows = DetectorWorkflow.objects.filter(
             workflow_id__in=[item.id for item in item_list]
-        ).prefetch_related("detector__project")
-        for detector_workflow in detector_workflows:
-            workflow_to_projects[detector_workflow.workflow].add(detector_workflow.detector.project)
+        ).select_related("detector__project")
+        for dw in detector_workflows:
+            workflow_to_projects[dw.workflow_id].add(dw.detector.project)
 
         return workflow_to_projects
 
@@ -379,9 +432,7 @@ class WorkflowEngineRuleSerializer(Serializer):
         return dict(
             AlertRuleWorkflow.objects.filter(
                 workflow_id__in=[wf.id for wf in item_list], rule_id__isnull=False
-            ).values_list(
-                "workflow_id", "rule_id"
-            )  # type: ignore[arg-type]
+            ).values_list("workflow_id", "rule_id")  # type: ignore[arg-type]
         )
 
     def _fetch_workflow_created_by(
@@ -406,25 +457,74 @@ class WorkflowEngineRuleSerializer(Serializer):
             return actor.identifier
         return None
 
+    def _fetch_actions_by_dcg(self, condition_group_ids: Sequence[int]) -> dict[int, list[Action]]:
+        dcg_actions = (
+            DataConditionGroupAction.objects.filter(
+                condition_group_id__in=condition_group_ids,
+            )
+            .exclude(
+                action__status__in=[
+                    ObjectStatus.DELETION_IN_PROGRESS,
+                    ObjectStatus.PENDING_DELETION,
+                ],
+            )
+            .select_related("action")
+        )
+        result: dict[int, list[Action]] = defaultdict(list)
+        for dcg_action in dcg_actions:
+            result[dcg_action.condition_group_id].append(dcg_action.action)
+        return result
+
     def _generate_rule_conditions_filters(
         self, workflow: Workflow, project: Project, workflow_dcg: WorkflowDataConditionGroup
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         from sentry.workflow_engine.migration_helpers.rule_conditions import (
+            FILTER_ID_TO_CONDITION_TYPE_MAPPING,
             translate_to_rule_condition_filters,
         )
 
         all_conditions: list[dict[str, Any]] = []
         all_filters: list[dict[str, Any]] = []
 
-        def update_condition_name(condition: dict[str, Any]) -> dict[str, Any]:
-            condition["name"] = generate_rule_label(project=project, rule=None, data=condition)
-            return condition
+        def update_condition_name(
+            condition_data: dict[str, Any], is_slow_condition: bool = False
+        ) -> dict[str, Any]:
+            from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers import (
+                BaseEventFrequencyQueryHandler,
+                slow_condition_query_handler_registry,
+            )
+            from sentry.workflow_engine.types import DataConditionHandler
+
+            condition_type = condition_data.pop("condition_type", None)
+
+            handler: type[BaseEventFrequencyQueryHandler] | type[DataConditionHandler[Any]]
+            if is_slow_condition:
+                try:
+                    handler = slow_condition_query_handler_registry.get(condition_type)
+                except NoRegistrationExistsError:
+                    raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+            else:
+                try:
+                    handler = condition_handler_registry.get(condition_type)
+                except NoRegistrationExistsError:
+                    raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
+
+            condition_data["name"] = handler.render_label(condition_data)
+            return condition_data
 
         def generate_condition_filters(conditions: list[DataCondition], is_filter: bool):
             for cond in conditions:
-                condition, filters = translate_to_rule_condition_filters(cond, is_filter=is_filter)
-                if condition:
-                    all_conditions.append(update_condition_name(condition))
+                condition_data, filters = translate_to_rule_condition_filters(
+                    cond, is_filter=is_filter
+                )
+                if condition_data.get("id"):
+                    condition_data["condition_type"] = cond.type
+                    all_conditions.append(
+                        update_condition_name(condition_data, is_slow_condition(cond))
+                    )
+                for f in filters:
+                    f["condition_type"] = FILTER_ID_TO_CONDITION_TYPE_MAPPING[f["id"]]
+
                 all_filters.extend([update_condition_name(f) for f in filters])
 
         trigger_conditions = (
@@ -442,24 +542,76 @@ class WorkflowEngineRuleSerializer(Serializer):
         results = get_last_fired_dates([w.id for w in item_list])
         return {wf_id: date for wf_id, date in results.items() if date is not None}
 
+    def _fetch_sentry_app_installations_by_uuid(
+        self,
+        workflow: Workflow,
+        action_to_action_data: Mapping[Action, Any],
+        actions_with_handlers: list[Action],
+    ) -> Mapping[str, RpcSentryAppComponentContext]:
+        from sentry.sentry_apps.services.app import app_service
+
+        sentry_app_installations_by_uuid: Mapping[str, RpcSentryAppComponentContext] = {}
+        if self.prepare_component_fields:
+            sentry_app_uuids = [
+                action_to_action_data[action]["sentryAppInstallationUuid"]
+                for action in actions_with_handlers
+                if action_to_action_data.get(action)
+                and action_to_action_data[action].get("sentryAppInstallationUuid") is not None
+            ]
+            install_contexts = app_service.get_component_contexts(
+                filter={"uuids": sentry_app_uuids, "organization_id": workflow.organization_id},
+                component_type="alert-rule-action",
+            )
+            sentry_app_installations_by_uuid = {
+                install_context.installation.uuid: install_context
+                for install_context in install_contexts
+            }
+        return sentry_app_installations_by_uuid
+
     def get_attrs(self, item_list: Sequence[Workflow], user, **kwargs):
+        from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+        from sentry.notifications.notification_action.registry import issue_alert_handler_registry
+
         # Bulk fetch users that created workflows
         users = self._fetch_workflow_users(item_list)
 
         # Bulk fetch projects for workflows (attached through detectors)
         workflow_to_projects = self._fetch_workflow_projects(item_list)
 
-        # Bulk fetch wokflows with trigger and filter conditionx
+        # Bulk fetch workflows with trigger and filter conditions
         workflows = self._fetch_workflows(item_list)
 
         # Bulk fetch workflow -> rule ids
         workflow_rule_ids = self._fetch_workflow_rule_ids(item_list)
 
+        # Bulk fetch actions for all condition groups across all workflows
+        all_dcg_ids: list[int] = []
+        for wf in workflows:
+            all_dcg_ids.extend(
+                wdcg.condition_group_id
+                for wdcg in wf.prefetched_wdcgs  # type: ignore[attr-defined]
+            )
+        actions_by_dcg = self._fetch_actions_by_dcg(all_dcg_ids)
+
+        # Batch-fetch integrations for all actions to avoid per-action RPC calls in render_label
+        all_integration_ids: set[int] = set()
+        for action_list in actions_by_dcg.values():
+            for action in action_list:
+                if action.integration_id is not None:
+                    all_integration_ids.add(action.integration_id)
+
+        integration_cache: dict[int, RpcIntegration] = {}
+        if all_integration_ids and item_list:
+            integrations = integration_service.get_integrations(
+                integration_ids=list(all_integration_ids),
+                organization_id=item_list[0].organization_id,
+                status=ObjectStatus.ACTIVE,
+            )
+            integration_cache = {i.id: i for i in integrations}
+
         last_triggered_lookup: dict[int, datetime] = {}
         if "lastTriggered" in self.expand:
             last_triggered_lookup = self._fetch_workflow_last_triggered(item_list)
-
-        # TODO: SERIALIZE ACTIONS
 
         result: dict[Workflow, dict[str, Any]] = defaultdict(dict)
         for workflow in workflows:
@@ -467,29 +619,178 @@ class WorkflowEngineRuleSerializer(Serializer):
 
             owner = self._fetch_workflow_owner(workflow)
             if owner:
-                result[workflow]["created_by"] = owner
+                result[workflow]["owner"] = owner
 
             result[workflow]["environment"] = workflow.environment
-            result[workflow]["projects"] = list(workflow_to_projects[workflow])
-            result[workflow]["rule_id"] = workflow_rule_ids[workflow.id]
+            result[workflow]["projects"] = list(workflow_to_projects[workflow.id])
+            result[workflow]["rule_id"] = workflow_rule_ids.get(
+                workflow.id, get_fake_id_from_object_id(workflow.id)
+            )
 
             result[workflow]["action_match"] = (
                 workflow.when_condition_group.logic_type if workflow.when_condition_group else None
             )
+
+            # Check if workflow has at least one WorkflowDataConditionGroup
+            # prefetched_wdcgs is set by Prefetch(to_attr="prefetched_wdcgs") in _fetch_workflows
+            prefetched_wdcgs: list[WorkflowDataConditionGroup] = workflow.prefetched_wdcgs  # type: ignore[attr-defined]
+            if not prefetched_wdcgs:
+                # Workflow has no WorkflowDataConditionGroups - set defaults
+                result[workflow]["filter_match"] = None
+                result[workflow]["conditions"] = []
+                result[workflow]["filters"] = []
+                result[workflow]["actions"] = []
+                continue
+
             # pick first DCG for filter_match (rules only have 1)
-            workflow_dcg = workflow.prefetched_wdcgs[0]  # type: ignore[attr-defined]
+            workflow_dcg = prefetched_wdcgs[0]
             result[workflow]["filter_match"] = workflow_dcg.condition_group.logic_type
 
-            # Generate conditions and filters
-            conditions, filters = self._generate_rule_conditions_filters(
-                workflow, result[workflow]["projects"][0], workflow_dcg
+            # build up actions data
+            actions = actions_by_dcg.get(workflow_dcg.condition_group_id, [])
+            action_to_handler = {}
+            for action in actions:
+                try:
+                    handler = issue_alert_handler_registry.get(action.type)
+                    action_to_handler[action] = handler
+                except Exception:
+                    continue  # just keep iterating through the actions in case we have valid ones in there
+            actions_with_handlers = list(action_to_handler.keys())
+
+            action_to_action_data = {}
+            for action in actions_with_handlers:
+                try:
+                    action_to_action_data[action] = action_to_handler[
+                        action
+                    ].build_rule_action_blob(action, workflow.organization_id)
+                except ValueError:
+                    # if we have a missing sentry app installation but the action is still connected to the sentry app, we skip so we can return the rest of the rule
+                    continue
+
+            sentry_app_installations_by_uuid = self._fetch_sentry_app_installations_by_uuid(
+                workflow, action_to_action_data, actions_with_handlers
             )
+            serialized_actions = []
+            errors = []
+
+            if len(prefetched_wdcgs) > 1:
+                errors.append(
+                    {
+                        "detail": "Multiple if/then blocks are not supported in this view. Only the first if/then block is displayed."
+                    }
+                )
+            for action in actions_with_handlers:
+                action_data = action_to_action_data.get(action)
+                if not action_data:
+                    continue
+
+                action_data["name"] = action_to_handler[action].render_label(
+                    workflow.organization_id, action_data, integration_cache=integration_cache
+                )
+                installation_uuid = action_data.get("sentryAppInstallationUuid")
+                install_context = None
+                if installation_uuid:
+                    install_context = sentry_app_installations_by_uuid.get(installation_uuid)
+                if install_context:
+                    rpc_install = install_context.installation
+                    rpc_component = install_context.component
+                    rpc_app = rpc_install.sentry_app
+                    component = (
+                        prepare_ui_component(
+                            rpc_install,
+                            rpc_component,
+                            self.project_slug,
+                            action_data.get("settings"),
+                        )
+                        if rpc_component
+                        else None
+                    )
+                    if component is None:
+                        errors.append({"detail": f"Could not fetch details from {rpc_app.name}"})
+                        action_data["disabled"] = True
+                        serialized_actions.append(action_data)
+                        continue
+
+                    action_data["formFields"] = component.app_schema.get("settings", {})
+
+                # HACKs below - we don't want to change the underlying data we render for ACI but we need to return it in the expected issue alert format
+
+                # XXX: convert fallthrough_type to fallthroughType
+                if action_data.get("fallthrough_type"):
+                    action_data["fallthroughType"] = action_data.get("fallthrough_type")
+                    del action_data["fallthrough_type"]
+
+                # XXX: add default fallthroughType for email Team/Member actions
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and "fallthroughType" not in action_data
+                    and action_data.get("targetType")
+                    in (ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value)
+                ):
+                    action_data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+
+                # XXX: add a targetIdentifier empty string for email only
+                if (
+                    action.type == Action.Type.EMAIL.value
+                    and action_data.get("targetIdentifier") is None
+                ):
+                    action_data["targetIdentifier"] = ""
+
+                # XXX: remove notes unless it actually has content
+                if action.data.get("notes") == "":
+                    action_data.pop("notes", None)
+
+                # XXX: workspace needs to be returned as a string
+                if action_data.get("workspace"):
+                    action_data["workspace"] = str(action_data["workspace"])
+
+                serialized_actions.append(action_data)
+
+            # Generate conditions and filters
+            projects = result[workflow]["projects"]
+            if projects:
+                conditions, filters = self._generate_rule_conditions_filters(
+                    workflow, projects[0], workflow_dcg
+                )
+            else:
+                conditions, filters = [], []
+
+            for f in filters:
+                # IssueCategoryFilter stores numeric string choices and must stay as str
+                if (
+                    f.get("value")
+                    and f.get("id") != "sentry.rules.filters.issue_category.IssueCategoryFilter"
+                ):
+                    try:
+                        f["value"] = int(f["value"])
+                    except (ValueError, TypeError):
+                        continue
 
             result[workflow]["conditions"] = conditions
             result[workflow]["filters"] = filters
 
-            if workflow.id in last_triggered_lookup:
-                result[workflow]["last_triggered"] = last_triggered_lookup[workflow.id]
+            trigger_conditions = (
+                list(workflow.when_condition_group.conditions.all())
+                if workflow.when_condition_group
+                else []
+            )
+            filter_conditions = list(workflow_dcg.condition_group.conditions.all())
+
+            for condition in trigger_conditions:
+                if condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append({"detail": f"Condition not supported: {condition.type}"})
+
+            for filter_condition in filter_conditions:
+                if filter_condition.type in UNSUPPORTED_CONDITIONS:
+                    errors.append({"detail": f"Filter not supported: {filter_condition.type}"})
+
+            if len(errors):
+                result[workflow]["errors"] = errors
+
+            if "lastTriggered" in self.expand:
+                result[workflow]["last_triggered"] = last_triggered_lookup.get(workflow.id, None)
+
+            result[workflow]["actions"] = serialized_actions
 
         return result
 
@@ -508,7 +809,7 @@ class WorkflowEngineRuleSerializer(Serializer):
             "id": str(attrs["rule_id"]) if attrs.get("rule_id") else None,
             "conditions": attrs["conditions"],
             "filters": attrs["filters"],
-            "actions": [],  # TODO: reverse translate actions
+            "actions": attrs["actions"],
             "actionMatch": action_match,
             "filterMatch": filter_match,
             "frequency": obj.config.get("frequency", 0),
@@ -518,9 +819,15 @@ class WorkflowEngineRuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "environment": environment.name if environment is not None else None,
             "projects": [p.slug for p in attrs["projects"]],
-            "status": "active" if obj.enabled else "disabled",
-            "snooze": "snooze" in attrs,
+            # Workflow.enabled is toggled by snooze-for-everyone, but "disabled" in the
+            # UI means a broken/misconfigured rule (matching legacy Rule.status/ObjectStatus).
+            # Snooze state is communicated via the snooze fields instead.
+            "status": "active",
+            "snooze": not obj.enabled,
         }
+        if not obj.enabled:
+            workflow_rule["snoozeForEveryone"] = True
+
         if "last_triggered" in attrs:
             workflow_rule["lastTriggered"] = attrs["last_triggered"]
 

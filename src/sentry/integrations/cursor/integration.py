@@ -4,13 +4,13 @@ import uuid
 from collections.abc import Mapping, MutableMapping
 from typing import Any, Literal
 
-from django import forms
 from django.http.request import HttpRequest
-from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from requests import HTTPError
+from rest_framework.fields import CharField
 
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -24,9 +24,10 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.integrations.cursor.client import CursorAgentClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.apitoken import generate_token
+from sentry.pipeline.types import PipelineStepResult
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 
 DESCRIPTION = "Connect your Sentry organization with Cursor Cloud Agents."
@@ -58,50 +59,39 @@ metadata = IntegrationMetadata(
 )
 
 
-class CursorAgentConfigForm(forms.Form):
-    api_key = forms.CharField(
-        label=_("Cursor API Key"),
-        help_text=_("Enter your Cursor API key to call Cursor Agents with."),
-        widget=forms.PasswordInput(attrs={"placeholder": _("***********************")}),
-        max_length=255,
-    )
+class CursorApiKeySerializer(CamelSnakeSerializer):
+    api_key = CharField(required=True, max_length=255)
 
 
-class CursorPipelineView:
-    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
-        if request.method == "POST":
-            form = CursorAgentConfigForm(request.POST)
-            if form.is_valid():
-                pipeline.bind_state("config", form.cleaned_data)
-                return pipeline.next_step()
-        else:
-            form = CursorAgentConfigForm()
+class CursorApiKeyApiStep:
+    step_name = "api_key_config"
 
-        from sentry.web.helpers import render_to_response
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        return {}
 
-        return render_to_response(
-            template="sentry/integrations/cursor-config.html",
-            context={"form": form},
-            request=request,
-        )
+    def get_serializer_cls(self) -> type:
+        return CursorApiKeySerializer
+
+    def handle_post(
+        self,
+        validated_data: dict[str, str],
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        pipeline.bind_state("config", {"api_key": validated_data["api_key"]})
+        return PipelineStepResult.advance()
 
 
 class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
     key = "cursor"
     name = "Cursor Agent"
-    can_add = True
     metadata = metadata
-    setup_dialog_config = {"width": 600, "height": 700}
-    requires_feature_flag = True
-
-    features = frozenset(
-        [
-            IntegrationFeatures.CODING_AGENT,
-        ]
-    )
 
     def get_pipeline_views(self):
-        return [CursorPipelineView()]
+        return []
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        return [CursorApiKeyApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
@@ -113,11 +103,11 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
 
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=webhook_secret)
-            cursor_metadata = client.get_api_key_metadata()
-            api_key_name = cursor_metadata.apiKeyName
-            user_email = cursor_metadata.userEmail
+            cursor_metadata = client.verify_api_key()
+            api_key_name = cursor_metadata.apiKeyName if cursor_metadata else None
+            user_email = cursor_metadata.userEmail if cursor_metadata else None
         except (HTTPError, ApiError) as e:
-            self.get_logger().exception("cursor.build_integration.metadata_fetch_failed")
+            self.get_logger().exception("cursor.build_integration.api_key_verification_failed")
             status_code: int | None = None
             if isinstance(e, ApiError):
                 status_code = e.code
@@ -130,19 +120,14 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             raise IntegrationConfigurationError(
                 "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
-        except ValidationError:
-            self.get_logger().exception("cursor.build_integration.metadata_validation_failed")
-            raise IntegrationConfigurationError(
-                "Received unexpected response from Cursor API. Please try again."
-            )
 
-        integration_name = (
-            f"Cursor Cloud Agent - {user_email}/{api_key_name}"
-            if user_email and api_key_name
-            else "Cursor Cloud Agent"
-        )
+        if user_email and api_key_name:
+            integration_name = f"Cursor Cloud Agent - {user_email}/{api_key_name}"
+        else:
+            key_hint = api_key[:8] if len(api_key) >= 8 else api_key
+            integration_name = f"Cursor Cloud Agent ({key_hint}...)"
 
-        metadata = CursorIntegrationMetadata(
+        int_metadata = CursorIntegrationMetadata(
             domain_name="cursor.sh",
             api_key=api_key,
             webhook_secret=webhook_secret,
@@ -156,7 +141,7 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
             # or if the same user can have multiple installations across multiple orgs. So just a UUID per installation is the best approach. Re-configuring an existing installation will still maintain this external id
             "external_id": uuid.uuid4().hex,
             "name": integration_name,
-            "metadata": metadata.dict(),
+            "metadata": int_metadata.dict(),
         }
 
     def get_agent_name(self) -> str:
@@ -195,10 +180,10 @@ class CursorAgentIntegration(CodingAgentIntegration):
 
         try:
             client = CursorAgentClient(api_key=api_key, webhook_secret=metadata.webhook_secret)
-            cursor_metadata = client.get_api_key_metadata()
+            cursor_metadata = client.verify_api_key()
             metadata.api_key = api_key
-            metadata.api_key_name = cursor_metadata.apiKeyName
-            metadata.user_email = cursor_metadata.userEmail
+            metadata.api_key_name = cursor_metadata.apiKeyName if cursor_metadata else None
+            metadata.user_email = cursor_metadata.userEmail if cursor_metadata else None
         except (HTTPError, ApiError) as e:
             status_code: int | None = None
             if isinstance(e, ApiError):
@@ -212,22 +197,14 @@ class CursorAgentIntegration(CodingAgentIntegration):
             raise IntegrationConfigurationError(
                 "Unable to validate Cursor API key. Please try again or contact support if the issue persists."
             )
-        except ValidationError:
-            raise IntegrationConfigurationError(
-                "Received unexpected response from Cursor API. Please try again."
-            )
 
-        integration_name = (
-            f"Cursor Cloud Agent - {metadata.user_email}/{metadata.api_key_name}"
-            if metadata.user_email and metadata.api_key_name
-            else "Cursor Cloud Agent"
-        )
+        if metadata.user_email and metadata.api_key_name:
+            integration_name = f"Cursor Cloud Agent - {metadata.user_email}/{metadata.api_key_name}"
+        else:
+            key_hint = api_key[:8] if len(api_key) >= 8 else api_key
+            integration_name = f"Cursor Cloud Agent ({key_hint}...)"
 
-        integration_service.update_integration(
-            integration_id=self.model.id, name=integration_name, metadata=metadata.dict()
-        )
-        self.model.metadata = metadata.dict()
-
+        self._persist_metadata(metadata, name=integration_name)
         super().update_organization_config({})
 
     def get_client(self):

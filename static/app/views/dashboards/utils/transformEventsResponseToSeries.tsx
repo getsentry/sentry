@@ -4,6 +4,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 
 import {
@@ -49,7 +50,7 @@ export function transformEventsResponseToSeries(
 
         const seriesData = groupData[seriesName] as EventsStats;
         const prefixedName = queryAlias
-          ? `${queryAlias} > ${groupName} : ${seriesName}`
+          ? `${queryAlias}${SERIES_QUERY_DELIMITER}${groupName} : ${seriesName}`
           : `${groupName} : ${seriesName}`;
 
         seriesWithOrdering.push([

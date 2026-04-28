@@ -2,6 +2,10 @@ import {useMemo} from 'react';
 
 import {defined} from 'sentry/utils';
 import {MAX_CROSS_EVENT_QUERIES} from 'sentry/views/explore/constants';
+import {
+  createTraceMetricEventsFilter,
+  isCompleteTraceMetric,
+} from 'sentry/views/explore/metrics/utils';
 import {useQueryParamsCrossEvents} from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
 
@@ -20,8 +24,8 @@ export function useCrossEventQueries() {
       .slice(0, MAX_CROSS_EVENT_QUERIES);
 
     const logQuery: string[] = [];
-    const metricQuery: string[] = [];
     const spanQuery: string[] = [];
+    const metricQuery: string[] = [];
 
     for (const crossEvent of slicedCrossEvents) {
       switch (crossEvent.type) {
@@ -31,11 +35,15 @@ export function useCrossEventQueries() {
         case 'logs':
           logQuery.push(crossEvent.query);
           break;
-        case 'metrics':
-          metricQuery.push(crossEvent.query);
+        case 'metrics': {
+          const {metric} = crossEvent;
+          if (!isCompleteTraceMetric(metric)) {
+            break;
+          }
+          const filter = createTraceMetricEventsFilter([metric]);
+          metricQuery.push(crossEvent.query ? `${filter} ${crossEvent.query}` : filter);
           break;
-        default:
-          break;
+        }
       }
     }
 

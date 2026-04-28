@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from sentry.features.handler import FeatureHandler
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.organizations.services.organization.model import RpcOrganization
     from sentry.users.models.user import User
 
 
@@ -321,7 +322,7 @@ class FeatureManager(RegisteredFeatureManager):
         feature_names: Sequence[str],
         actor: User | RpcUser | AnonymousUser | None = None,
         projects: Sequence[Project] | None = None,
-        organization: Organization | None = None,
+        organization: RpcOrganization | Organization | None = None,
     ) -> dict[str, dict[str, bool | None]] | None:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
@@ -412,6 +413,27 @@ class FeatureManager(RegisteredFeatureManager):
                 sentry_sdk.capture_exception(e)
                 return None
         return None
+
+    def get_experiment_assignments(
+        self,
+        organization: Organization,
+        actor: User | RpcUser | AnonymousUser | None = None,
+    ) -> dict[str, str]:
+        """
+        Get experiment assignments for an organization.
+
+        Returns a dict mapping experiment name (without scope prefix) to
+        assignment ("active" or "control") for all flags with experiment_mode set.
+
+        Delegates to the entity handler (FlagpoleFeatureHandler in getsentry).
+        """
+        try:
+            if self._entity_handler:
+                return self._entity_handler.get_experiment_assignments(organization, actor)
+        except Exception:
+            if in_random_rollout("features.error.capture_rate"):
+                logger.exception("Failed to get experiment assignments")
+        return {}
 
     @staticmethod
     def _shim_feature_strategy(

@@ -2,14 +2,14 @@ import {useMemo} from 'react';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import type {Event} from 'sentry/types/event';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
   event: Event;
   projectSlug: string;
 }
 
-export default function useFeedbackScreenshot({projectSlug, event}: Props) {
+export function useFeedbackScreenshot({projectSlug, event}: Props) {
   const organization = useOrganization();
   const {data: attachments} = useFetchEventAttachments({
     orgSlug: organization.slug,

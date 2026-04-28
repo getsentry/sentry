@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
+import {OrganizationMemberRow} from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', () => {
   const member = MemberFixture({
@@ -339,6 +339,92 @@ describe('OrganizationMemberRow', () => {
       render(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(removeButton()).toBeEnabled();
+    });
+  });
+
+  describe('Member with null user (eventual consistency)', () => {
+    it('renders member row correctly when user is null', () => {
+      const memberWithNullUser = MemberFixture({
+        id: '1',
+        email: 'deleted@example.com',
+        name: 'Deleted User',
+        orgRole: 'member',
+        roleName: 'Member',
+        pending: false,
+        user: null,
+        flags: {
+          'sso:linked': false,
+          'idp:provisioned': false,
+          'idp:role-restricted': false,
+          'member-limit:restricted': false,
+          'partnership:restricted': false,
+          'sso:invalid': false,
+        },
+      });
+
+      render(
+        <OrganizationMemberRow
+          {...{
+            organization: OrganizationFixture(),
+            status: '',
+            requireLink: false,
+            memberCanLeave: false,
+            canAddMembers: false,
+            canRemoveMembers: false,
+            member: memberWithNullUser,
+            currentUser: UserFixture({id: '2', email: 'other@example.com'}),
+            onSendInvite: () => {},
+            onRemove: () => {},
+            onLeave: () => {},
+          }}
+        />
+      );
+
+      // Should render without crashing
+      expect(screen.getByText('Deleted User')).toBeInTheDocument();
+      expect(screen.getByText('deleted@example.com')).toBeInTheDocument();
+      // 2FA status should show "Not Enabled" since user is null (has2fa is undefined)
+      expect(screen.getByText('2FA Not Enabled')).toBeInTheDocument();
+    });
+
+    it('renders avatar with fallback when user is null', () => {
+      const memberWithNullUser = MemberFixture({
+        id: '1',
+        email: 'deleted@example.com',
+        name: 'Deleted User',
+        user: null,
+        flags: {
+          'sso:linked': false,
+          'idp:provisioned': false,
+          'idp:role-restricted': false,
+          'member-limit:restricted': false,
+          'partnership:restricted': false,
+          'sso:invalid': false,
+        },
+      });
+
+      render(
+        <OrganizationMemberRow
+          {...{
+            organization: OrganizationFixture(),
+            status: '',
+            requireLink: false,
+            memberCanLeave: false,
+            canAddMembers: false,
+            canRemoveMembers: false,
+            member: memberWithNullUser,
+            currentUser: UserFixture({id: '2', email: 'other@example.com'}),
+            onSendInvite: () => {},
+            onRemove: () => {},
+            onLeave: () => {},
+          }}
+        />
+      );
+
+      // Component should render without crashing when user is null
+      // The UserAvatar component uses fallback object (email as user data)
+      expect(screen.getByText('Deleted User')).toBeInTheDocument();
+      expect(screen.getByText('deleted@example.com')).toBeInTheDocument();
     });
   });
 });

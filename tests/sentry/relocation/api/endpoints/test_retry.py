@@ -54,7 +54,7 @@ class RetryRelocationTest(APITestCase):
         self.staff_user = self.create_user(is_staff=True)
         self.relocation: Relocation = Relocation.objects.create(
             date_added=TEST_DATE_ADDED,
-            creator_id=self.superuser.id,
+            creator_id=self.staff_user.id,
             owner_id=self.owner.id,
             status=Relocation.Status.FAILURE.value,
             step=Relocation.Step.PREPROCESSING.value,
@@ -84,10 +84,12 @@ class RetryRelocationTest(APITestCase):
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
         )
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_good_simple(self, uploading_start_mock: Mock, analytics_record_mock: Mock) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
@@ -176,7 +178,9 @@ class RetryRelocationTest(APITestCase):
             ),
         )
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": False, "relocation.daily-limit.small": 2, "staff.ga-rollout": False}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_good_superuser_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
@@ -216,12 +220,14 @@ class RetryRelocationTest(APITestCase):
             ),
         )
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": False, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_bad_without_superuser_when_feature_disabled(
+    def test_bad_without_staff_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
         file_count = File.objects.count()
@@ -241,7 +247,9 @@ class RetryRelocationTest(APITestCase):
 
         assert uploading_start_mock.call_count == 0
 
-    @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": False, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_bad_expired_superuser_when_feature_disabled(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
@@ -267,24 +275,28 @@ class RetryRelocationTest(APITestCase):
         assert uploading_start_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_bad_relocation_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
 
         self.get_error_response(str(uuid4().hex), status_code=404)
 
         assert uploading_start_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_bad_relocation_file_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
         RelocationFile.objects.all().delete()
 
         response = self.get_error_response(self.relocation.uuid, status_code=400)
@@ -293,18 +305,37 @@ class RetryRelocationTest(APITestCase):
         assert uploading_start_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_bad_file_not_found(
         self, uploading_start_mock: Mock, analytics_record_mock: Mock
     ) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
         File.objects.all().delete()
 
         response = self.get_error_response(self.relocation.uuid, status_code=400)
 
         assert response.data.get("detail") == ERR_FILE_NO_LONGER_EXISTS
         assert uploading_start_mock.call_count == 0
+
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": False}
+    )
+    @patch("sentry.relocation.tasks.process.uploading_start.delay")
+    def test_bad_superuser_owner_not_found(
+        self, uploading_start_mock: Mock, analytics_record_mock: Mock
+    ) -> None:
+        self.login_as(user=self.superuser, superuser=True)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            User.objects.filter(id=self.owner.id).delete()
+
+        response = self.get_error_response(self.relocation.uuid, status_code=400)
+
+        assert response.data.get("detail") == ERR_OWNER_NO_LONGER_EXISTS
+        assert uploading_start_mock.call_count == 0
+        analytics_record_mock.assert_not_called()
 
     @override_options(
         {"relocation.enabled": True, "relocation.daily-limit.small": 2, "staff.ga-rollout": True}
@@ -323,25 +354,12 @@ class RetryRelocationTest(APITestCase):
         assert uploading_start_mock.call_count == 0
         analytics_record_mock.assert_not_called()
 
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
-    @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_bad_superuser_owner_not_found(
-        self, uploading_start_mock: Mock, analytics_record_mock: Mock
-    ) -> None:
-        self.login_as(user=self.superuser, superuser=True)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            User.objects.filter(id=self.owner.id).delete()
-
-        response = self.get_error_response(self.relocation.uuid, status_code=400)
-
-        assert response.data.get("detail") == ERR_OWNER_NO_LONGER_EXISTS
-        assert uploading_start_mock.call_count == 0
-        analytics_record_mock.assert_not_called()
-
-    @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
+    @override_options(
+        {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
+    )
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
     def test_bad_throttled(self, uploading_start_mock: Mock, analytics_record_mock: Mock) -> None:
-        self.login_as(user=self.owner, superuser=False)
+        self.login_as(user=self.owner, staff=False)
 
         response = self.get_error_response(self.relocation.uuid, status_code=429)
 
@@ -354,7 +372,13 @@ class RetryRelocationTest(APITestCase):
         Relocation.Status.PAUSE,
     ]:
 
-        @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
+        @override_options(
+            {
+                "relocation.enabled": True,
+                "relocation.daily-limit.small": 2,
+                "staff.ga-rollout": True,
+            }
+        )
         @patch("sentry.relocation.tasks.process.uploading_start.delay")
         def test_bad_relocation_still_ongoing(
             self,
@@ -362,7 +386,7 @@ class RetryRelocationTest(APITestCase):
             analytics_record_mock: Mock,
             stat: Relocation.Status = stat,
         ) -> None:
-            self.login_as(user=self.owner, superuser=False)
+            self.login_as(user=self.owner, staff=False)
             self.relocation.status = stat.value
             self.relocation.latest_notified = Relocation.EmailKind.STARTED.value
             self.relocation.save()
@@ -380,7 +404,13 @@ class RetryRelocationTest(APITestCase):
         Relocation.Status.PAUSE,
     ]:
 
-        @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 3})
+        @override_options(
+            {
+                "relocation.enabled": True,
+                "relocation.daily-limit.small": 3,
+                "staff.ga-rollout": True,
+            }
+        )
         @patch("sentry.relocation.tasks.process.uploading_start.delay")
         def test_bad_owner_has_another_active_relocation(
             self,
@@ -388,10 +418,10 @@ class RetryRelocationTest(APITestCase):
             analytics_record_mock: Mock,
             stat: Relocation.Status = stat,
         ) -> None:
-            self.login_as(user=self.owner, superuser=False)
+            self.login_as(user=self.owner, staff=False)
             Relocation.objects.create(
                 date_added=TEST_DATE_ADDED,
-                creator_id=self.superuser.id,
+                creator_id=self.staff_user.id,
                 owner_id=self.owner.id,
                 status=stat.value,
                 step=Relocation.Step.PREPROCESSING.value,

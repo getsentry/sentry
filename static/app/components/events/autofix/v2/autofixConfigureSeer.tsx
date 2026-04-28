@@ -1,28 +1,41 @@
 import {Fragment, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
 import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
-import {Flex} from '@sentry/scraps/layout/flex';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Image} from 'sentry/components/core/image/image';
 import {useGroupSummary} from 'sentry/components/group/groupSummary';
-import Panel from 'sentry/components/panels/panel';
-import Placeholder from 'sentry/components/placeholder';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {Panel} from 'sentry/components/panels/panel';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useSeerOnboardingCheck} from 'sentry/utils/useSeerOnboardingCheck';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export const AiSetupConfiguration = HookOrDefault({
+  hookName: 'component:ai-setup-configuration',
+  defaultComponent: ({
+    event,
+    group,
+    project,
+  }: {
+    event: Event;
+    group: Group;
+    project: Project;
+  }) => <AutofixConfigureSeer event={event} group={group} project={project} />,
+});
 
 interface AutofixConfigureSeerProps {
   event: Event;
@@ -32,14 +45,14 @@ interface AutofixConfigureSeerProps {
 
 export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSeerProps) {
   const organization = useOrganization();
-  const seerOnboardingCheck = useSeerOnboardingCheck();
+  const {data: setupCheck} = useQuery(getSeerOnboardingCheckQueryOptions({organization}));
   const {data, isPending, isError} = useGroupSummary(group, event, project);
 
   const orgNeedsToConfigureSeer =
     // needs to enable autofix
-    !seerOnboardingCheck.data?.isAutofixEnabled ||
+    !setupCheck?.isAutofixEnabled ||
     // catch all, ensure seer is configured
-    !seerOnboardingCheck.data?.isSeerConfigured;
+    !setupCheck?.isSeerConfigured;
 
   return (
     <Fragment>
@@ -124,7 +137,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               {orgNeedsToConfigureSeer ? (
                 <LinkButton
                   priority="primary"
-                  to={`/organizations/${organization.slug}/settings/seer/onboarding/`}
+                  to={`/settings/${organization.slug}/seer/onboarding/`}
                   icon={<IconSeer />}
                 >
                   {t('Set Up Seer')}
@@ -132,7 +145,7 @@ export function AutofixConfigureSeer({event, group, project}: AutofixConfigureSe
               ) : (
                 <LinkButton
                   priority="primary"
-                  to={`/organizations/${organization.slug}/settings/projects/${project.slug}/seer/`}
+                  to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                   icon={<IconSeer />}
                 >
                   {t('Set Up Seer for This Project')}

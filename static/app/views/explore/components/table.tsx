@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef, type CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
@@ -14,21 +14,21 @@ import {
   GridHeadCell,
   GridRow,
 } from 'sentry/components/tables/gridEditable/styles';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {
+  height?: CSSProperties['height'];
   ref?: React.Ref<HTMLTableElement>;
   showVerticalScrollbar?: boolean;
   // Size of the loading element in order to match the height of the row.
   size?: number;
 }
 
-export function Table({ref, children, style, ...props}: TableProps) {
+export function Table({ref, children, height, style, ...props}: TableProps) {
   return (
     <_TableWrapper {...props}>
-      <_Table ref={ref} style={style}>
+      <_Table ref={ref} height={height} style={style}>
         {children}
       </_Table>
     </_TableWrapper>
@@ -169,6 +169,6 @@ export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
 export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   cursor: ${p => (p.isFrozen ? 'default' : 'pointer')};
 `;

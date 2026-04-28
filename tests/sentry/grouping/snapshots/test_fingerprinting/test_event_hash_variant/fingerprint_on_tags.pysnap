@@ -17,10 +17,10 @@ fingerprint:
 - '{{ tags.barfoo }}'
 title: Hello my sweet Love
 variants:
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: tags.foobar:"*stuff*" -> "foobar-matched-stuff-{{ tags.barfoo }}"
     type: custom_fingerprint
     values:

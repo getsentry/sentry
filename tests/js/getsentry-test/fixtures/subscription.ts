@@ -1,5 +1,8 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {
+  PlanDetailsLookupFixture,
+  type PlanIds,
+} from 'getsentry-test/fixtures/planDetailsLookup';
 import {
   DynamicSamplingReservedBudgetFixture,
   ReservedBudgetMetricHistoryFixture,
@@ -22,7 +25,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
 
   // Use planDetails from params if provided, otherwise look it up
   const planDetails = (planData.planDetails ||
-    PlanDetailsLookupFixture(planData.plan)) as Plan;
+    PlanDetailsLookupFixture(planData.plan as PlanIds)) as Plan;
 
   const hasPerformance = planDetails?.categories?.includes(DataCategory.TRANSACTIONS);
   const hasReplays = planDetails?.categories?.includes(DataCategory.REPLAYS);
@@ -337,7 +340,7 @@ export function SubscriptionWithLegacySeerFixture(props: Props): TSubscription {
 
 export function InvoicedSubscriptionFixture(props: Props): TSubscription {
   const planData = {plan: 'am2_business_ent_auf', planTier: 'am2', ...props};
-  const planDetails = PlanDetailsLookupFixture(planData.plan);
+  const planDetails = PlanDetailsLookupFixture(planData.plan as PlanIds);
   const subscription = SubscriptionFixture({
     ...props,
     planDetails,

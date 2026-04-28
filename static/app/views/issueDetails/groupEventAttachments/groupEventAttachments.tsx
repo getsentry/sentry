@@ -1,28 +1,28 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/core/layout';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {Flex, Stack} from '@sentry/scraps/layout';
+
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/hooks/useEventQuery';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import GroupEventAttachmentsFilter, {
+import {
   EventAttachmentFilter,
+  GroupEventAttachmentsFilter,
 } from './groupEventAttachmentsFilter';
-import GroupEventAttachmentsTable from './groupEventAttachmentsTable';
+import {GroupEventAttachmentsTable} from './groupEventAttachmentsTable';
 import {ScreenshotCard} from './screenshotCard';
 import {useDeleteGroupEventAttachment} from './useDeleteGroupEventAttachment';
 import {useGroupEventAttachments} from './useGroupEventAttachments';
@@ -34,10 +34,9 @@ type GroupEventAttachmentsProps = {
 
 const DEFAULT_ATTACHMENTS_TAB = EventAttachmentFilter.ALL;
 
-function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
+export function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const eventQuery = useEventQuery();
   const eventView = useIssueDetailsEventView({group});
   const navigate = useNavigate();
@@ -68,13 +67,15 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
     }
   }, [previouslyUsedAttachmentsTab, location, navigate]);
 
-  const {attachments, isPending, isError, getResponseHeader, refetch} =
-    useGroupEventAttachments({
-      group,
-      activeAttachmentsTab,
-    });
+  const {attachments, isPending, isError, pageLinks, refetch} = useGroupEventAttachments({
+    group,
+    activeAttachmentsTab,
+  });
 
   const {mutate: deleteAttachment} = useDeleteGroupEventAttachment();
+
+  const hasSetStatsPeriod =
+    location.query.statsPeriod || location.query.start || location.query.end;
 
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
@@ -84,12 +85,13 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
       group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      // We only want to filter by date/query/environment if we're using the Streamlined UI
-      environment: hasStreamlinedUI ? (eventView.environment as string[]) : undefined,
-      start: hasStreamlinedUI ? eventView.start : undefined,
-      end: hasStreamlinedUI ? eventView.end : undefined,
-      statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,
-      eventQuery: hasStreamlinedUI ? eventQuery : undefined,
+      environment: eventView.environment as string[],
+      eventQuery,
+      ...(hasSetStatsPeriod && {
+        start: eventView.start,
+        end: eventView.end,
+        statsPeriod: eventView.statsPeriod,
+      }),
     });
   };
 
@@ -151,35 +153,29 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   };
 
   return (
-    <Wrapper>
-      {hasStreamlinedUI ? (
-        <Flex justify="between">
-          <Flex align="center" gap="md">
-            <IconFilter size="xs" />
-            {t('Results are filtered by the selections above.')}
-          </Flex>
-          <GroupEventAttachmentsFilter
-            onChange={key => setPreviouslyUsedAttachmentsTab(key)}
-          />
+    <Stack gap="xl">
+      <Flex justify="between">
+        <Flex align="center" gap="md">
+          <IconFilter size="xs" />
+          {t('Results are filtered by the selections above.')}
         </Flex>
-      ) : (
-        <GroupEventAttachmentsFilter />
-      )}
+        <GroupEventAttachmentsFilter
+          onChange={key => setPreviouslyUsedAttachmentsTab(key)}
+        />
+      </Flex>
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
         : renderAttachmentsTable()}
-      <NoMarginPagination pageLinks={getResponseHeader?.('Link')} />
-    </Wrapper>
+      <NoMarginPagination pageLinks={pageLinks} />
+    </Stack>
   );
 }
-
-export default GroupEventAttachments;
 
 const ScreenshotGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
   grid-template-rows: repeat(2, max-content);
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
@@ -196,10 +192,4 @@ const ScreenshotGrid = styled('div')`
 
 const NoMarginPagination = styled(Pagination)`
   margin: 0;
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${space(2)};
 `;

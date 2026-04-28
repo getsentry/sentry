@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
 import {FullHeightForm} from 'sentry/components/workflowEngine/form/fullHeightForm';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import type {AvatarProject} from 'sentry/types/project';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 interface WorkflowEngineEditLayoutProps {
   /**
@@ -21,18 +23,17 @@ interface WorkflowEngineEditLayoutProps {
 /**
  * Precomposed layout for Monitors / Alerts edit pages with form handling.
  */
-function EditLayout({children, formProps}: WorkflowEngineEditLayoutProps) {
+function EditLayoutComponent({children, formProps}: WorkflowEngineEditLayoutProps) {
+  // TODO(JonasBadalic): Remove this once the page-frame feature is GA'd
+  const hasPageFrame = useHasPageFrameFeature();
   return (
     <FullHeightForm hideFooter {...formProps}>
-      <StyledPage>{children}</StyledPage>
+      <Stack flex="unset" background={hasPageFrame ? undefined : 'primary'}>
+        {children}
+      </Stack>
     </FullHeightForm>
   );
 }
-
-const StyledPage = styled(Layout.Page)`
-  background: ${p => p.theme.tokens.background.primary};
-  flex: unset;
-`;
 
 const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.tokens.background.primary};
@@ -105,7 +106,7 @@ function Actions({children}: RequiredChildren) {
 
 function HeaderFields({children}: RequiredChildren) {
   return (
-    <Stack gap="xl" column="1 / -1">
+    <Stack gap="md" column="1 / -1">
       {children}
     </Stack>
   );
@@ -141,7 +142,7 @@ function Footer({children, label, maxWidth}: FooterProps) {
   );
 }
 
-const WorkflowEngineEditLayout = Object.assign(EditLayout, {
+export const EditLayout = Object.assign(EditLayoutComponent, {
   Header,
   HeaderContent,
   Actions,
@@ -150,5 +151,3 @@ const WorkflowEngineEditLayout = Object.assign(EditLayout, {
   Footer,
   Title,
 });
-
-export default WorkflowEngineEditLayout;

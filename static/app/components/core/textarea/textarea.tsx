@@ -3,14 +3,11 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {InputStylesProps} from 'sentry/components/core/input';
-import {inputStyles} from 'sentry/components/core/input';
+import {inputStyles, type InputStylesProps} from '@sentry/scraps/input/inputStyles';
 
 export interface TextAreaProps
-  extends Omit<
-      React.TextareaHTMLAttributes<HTMLTextAreaElement>,
-      'css' | 'onResize' | 'style'
-    >,
+  extends
+    Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css' | 'onResize' | 'style'>,
     InputStylesProps {
   /**
    * Enable autosizing of the textarea.
@@ -37,7 +34,7 @@ function TextAreaControl({
   ...p
 }: TextAreaProps) {
   return autosize ? (
-    <TextareaAutosize {...p} ref={ref} rows={rows} maxRows={maxRows} />
+    <TextareaAutosize {...p} ref={ref} minRows={rows} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} rows={rows} />
   );

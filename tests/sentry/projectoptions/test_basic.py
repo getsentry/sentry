@@ -1,10 +1,6 @@
 from unittest import mock
 
-import pytest
-
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.project_template_option import ProjectTemplateOption
-from sentry.models.projecttemplate import ProjectTemplate
 from sentry.projectoptions import default_manager, defaults
 from sentry.projectoptions.manager import WellKnownProjectOption
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -75,20 +71,3 @@ def test_isset_differentiates_unset_from_set_to_default(default_project) -> None
     default_project.update_option("best_dogs", "all dogs")
     assert default_project.get_option("best_dogs") == "all dogs"
     assert default_manager.isset(default_project, "best_dogs") is True
-
-
-@django_db_all
-@pytest.mark.skip
-def test_project_template_options(default_project) -> None:
-    default_manager.register("test_option", default="default")
-    assert default_project.get_option("test_option") == "default"
-
-    template = ProjectTemplate.objects.create(
-        name="Test Template", organization=default_project.organization
-    )
-
-    default_project.template = template
-    ProjectTemplateOption.objects.create(
-        project_template=template, key="test_option", value="template"
-    )
-    assert default_project.get_option("test_option") == "template"

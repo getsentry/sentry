@@ -1,6 +1,4 @@
-import type {Location} from 'history';
-
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   decodeInteger,
@@ -8,39 +6,34 @@ import {
   decodeScalar,
   type QueryValue,
 } from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-
-jest.mock('sentry/utils/useLocation');
-
-const mockLocation: Location = {
-  key: '',
-  search: '',
-  hash: '',
-  action: 'PUSH',
-  state: null,
-  query: {},
-  pathname: '/mock-pathname/',
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+const initialRouterConfig = {
+  route: '/mock-pathname/',
+  location: {
+    pathname: '/mock-pathname/',
+  },
 };
 
 describe('useLocationQuery', () => {
   it('should read query values from the url', () => {
-    jest.mocked(useLocation).mockReturnValue({
-      ...mockLocation,
-      query: {
-        name: 'Adam',
-        age: '12',
-        titles: ['Mr.', 'Dr.'],
-        extra: 'foo bar',
-      },
-    } as Location);
-
-    const {result} = renderHook(useLocationQuery, {
+    const {result} = renderHookWithProviders(useLocationQuery, {
       initialProps: {
         fields: {
           name: decodeScalar,
           age: decodeInteger,
           titles: decodeList,
+        },
+      },
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            name: 'Adam',
+            age: '12',
+            titles: ['Mr.', 'Dr.'],
+            extra: 'foo bar',
+          },
         },
       },
     });
@@ -53,12 +46,7 @@ describe('useLocationQuery', () => {
   });
 
   it('should return undefined if the url does not contain a requested field', () => {
-    jest.mocked(useLocation).mockReturnValue({
-      ...mockLocation,
-      query: {},
-    } as Location);
-
-    const {result} = renderHook(useLocationQuery, {
+    const {result} = renderHookWithProviders(useLocationQuery, {
       initialProps: {
         fields: {
           name: decodeScalar,
@@ -66,6 +54,7 @@ describe('useLocationQuery', () => {
           titles: decodeList,
         },
       },
+      initialRouterConfig,
     });
 
     expect(result.current).toStrictEqual({
@@ -76,13 +65,6 @@ describe('useLocationQuery', () => {
   });
 
   it('allows custom typed decoders', () => {
-    jest.mocked(useLocation).mockReturnValueOnce({
-      ...mockLocation,
-      query: {
-        titles: ['Mx', 'Dr'],
-      },
-    } as Location);
-
     type Title = 'Mr' | 'Ms' | 'Mx';
 
     const titlesDecoder = (value: QueryValue): Title[] | undefined => {
@@ -95,10 +77,19 @@ describe('useLocationQuery', () => {
       return validTitles.length > 0 ? validTitles : undefined;
     };
 
-    const {result} = renderHook(useLocationQuery, {
+    const {result} = renderHookWithProviders(useLocationQuery, {
       initialProps: {
         fields: {
           titles: titlesDecoder,
+        },
+      },
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            titles: ['Mx', 'Dr'],
+          },
         },
       },
     });
@@ -109,21 +100,23 @@ describe('useLocationQuery', () => {
   });
 
   it('should pass-through static values along with decoded ones', () => {
-    jest.mocked(useLocation).mockReturnValueOnce({
-      ...mockLocation,
-      query: {
-        name: 'Adam',
-        titles: ['Mr.', 'Dr.'],
-      },
-    } as Location);
-
-    const {result} = renderHook(useLocationQuery, {
+    const {result} = renderHookWithProviders(useLocationQuery, {
       initialProps: {
         fields: {
           name: decodeScalar,
           stringy: 'bar',
           list: ['biz', 'baz'],
           num: 12,
+        },
+      },
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            name: 'Adam',
+            titles: ['Mr.', 'Dr.'],
+          },
         },
       },
     });
@@ -136,31 +129,7 @@ describe('useLocationQuery', () => {
     });
   });
 
-  it('should only change return object identity when values change', () => {
-    // 1st render:
-    jest.mocked(useLocation).mockReturnValueOnce({
-      ...mockLocation,
-      query: {
-        name: 'Adam',
-        titles: ['Mr.', 'Dr.'],
-      },
-    } as Location);
-    // 2nd render, same values (but the array is re-built, new object ref):
-    jest.mocked(useLocation).mockReturnValueOnce({
-      ...mockLocation,
-      query: {
-        name: 'Adam',
-        titles: ['Mr.', 'Dr.'],
-      },
-    } as Location);
-    // 3rd render, name is changed.
-    jest.mocked(useLocation).mockReturnValueOnce({
-      ...mockLocation,
-      query: {
-        name: 'Betty',
-      },
-    } as Location);
-
+  it('should only change return object identity when values change', async () => {
     const props = {
       fields: {
         name: decodeScalar,
@@ -168,13 +137,27 @@ describe('useLocationQuery', () => {
         titles: decodeList,
       },
     };
-    const {result, rerender} = renderHook(useLocationQuery, {
+    const {result, router} = renderHookWithProviders(useLocationQuery, {
       initialProps: props,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            name: 'Adam',
+            titles: ['Mr.', 'Dr.'],
+          },
+        },
+      },
     });
     const first = result.current;
-    rerender(props);
+
+    router.navigate('/mock-pathname/?name=Adam&titles=Mr.&titles=Dr.');
+    await waitFor(() => expect(result.current.name).toBe('Adam'));
     const second = result.current;
-    rerender(props);
+
+    router.navigate('/mock-pathname/?name=Betty');
+    await waitFor(() => expect(result.current.name).toBe('Betty'));
     const third = result.current;
 
     expect(first.name).toBe('Adam');

@@ -9,7 +9,7 @@ import {renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibr
 
 import type {Subscription} from 'getsentry/types';
 
-import addGiftBudgetAction from './addGiftBudgetAction';
+import {addGiftBudgetAction} from './addGiftBudgetAction';
 
 describe('GiftBudgetAction', () => {
   const organization = OrganizationFixture();

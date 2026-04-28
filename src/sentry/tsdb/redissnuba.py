@@ -49,9 +49,9 @@ method_specifications = {
     "flush": (WRITE, dont_do_this),
 }
 
-assert (
-    set(method_specifications) == BaseTSDB.__read_methods__ | BaseTSDB.__write_methods__
-), "all read and write methods must have a specification defined"
+assert set(method_specifications) == BaseTSDB.__read_methods__ | BaseTSDB.__write_methods__, (
+    "all read and write methods must have a specification defined"
+)
 
 model_backends = {
     # model: (read, write)

@@ -21,14 +21,12 @@ class TestCreateIssueOccurrence(TestCase):
             "explanation": "Test explanation",
             "impact": "Test impact",
             "evidence": "Test evidence",
-            "missing_telemetry": None,
             "offender_span_ids": ["span1", "span2"],
             "title": "Test Issue",
-            "subcategory": "test",
-            "category": "performance",
             "verification_reason": "test reason",
             "trace_id": "abc123",
             "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
         }
 
         result = create_issue_occurrence(
@@ -58,14 +56,12 @@ class TestCreateIssueOccurrence(TestCase):
             "explanation": "Test explanation",
             "impact": "Test impact",
             "evidence": "Test evidence",
-            "missing_telemetry": None,
             "offender_span_ids": ["span1", "span2"],
             "title": "Test Issue",
-            "subcategory": "test",
-            "category": "performance",
             "verification_reason": "test reason",
             "trace_id": "abc123",
             "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
         }
 
         with pytest.raises(Project.DoesNotExist):
@@ -74,6 +70,34 @@ class TestCreateIssueOccurrence(TestCase):
                 project_id=other_project.id,
                 detected_issue=detected_issue,
             )
+
+    @patch("sentry.seer.issue_detection.create_issue_occurrence_from_detection")
+    def test_create_issue_occurrence_uses_issue_project_id(self, mock_create: Any) -> None:
+        other_project = self.create_project(organization=self.organization)
+
+        detected_issue = {
+            "explanation": "Test explanation",
+            "impact": "Test impact",
+            "evidence": "Test evidence",
+            "offender_span_ids": ["span1", "span2"],
+            "title": "Test Issue",
+            "verification_reason": "test reason",
+            "trace_id": "abc123",
+            "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
+            "project_id": other_project.id,
+        }
+
+        result = create_issue_occurrence(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            detected_issue=detected_issue,
+        )
+
+        assert result == {"success": True}
+        mock_create.assert_called_once()
+        call_args = mock_create.call_args
+        assert call_args.kwargs["project"] == other_project
 
     @patch("sentry.seer.issue_detection.logger")
     @patch("sentry.seer.issue_detection.create_issue_occurrence_from_detection")
@@ -84,14 +108,12 @@ class TestCreateIssueOccurrence(TestCase):
             "explanation": "Test explanation",
             "impact": "Test impact",
             "evidence": "Test evidence",
-            "missing_telemetry": None,
             "offender_span_ids": ["span1", "span2"],
             "title": "Test Issue",
-            "subcategory": "test",
-            "category": "performance",
             "verification_reason": "test reason",
             "trace_id": "abc123",
             "transaction_name": "/api/test",
+            "group_for_fingerprint": "test-group-key",
         }
 
         mock_create.side_effect = Exception("Failed to create occurrence")

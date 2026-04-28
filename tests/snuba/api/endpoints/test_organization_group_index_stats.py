@@ -263,6 +263,6 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             # Also check that lifetime stats are upsampled
             assert response.data[0]["lifetime"]["count"] == "10"
             # Also check that stats are upsampled, latest time bucket should contain upsampled event
-            assert any(
-                bucket[1] == 10 for bucket in response.data[0]["stats"]["24h"]
-            ), "could not find upsampled bucket in stats"
+            assert any(bucket[1] == 10 for bucket in response.data[0]["stats"]["24h"]), (
+                "could not find upsampled bucket in stats"
+            )

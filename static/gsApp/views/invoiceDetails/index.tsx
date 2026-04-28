@@ -1,49 +1,109 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {DateTime} from 'sentry/components/dateTime';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {InvoiceStatus} from 'getsentry/types';
-import type {BillingDetails, Invoice} from 'getsentry/types';
+import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-import InvoiceDetailsActions from './actions';
+import {InvoiceDetailsActions} from './actions';
 
 function InvoiceDetails() {
   const {invoiceGuid} = useParams<{invoiceGuid: string}>();
 
   const organization = useOrganization();
+  const navigate = useNavigate();
+
+  const {data: invoiceList} = useQuery(
+    // Use apiOptions so the cache key matches paymentHistory.tsx's list query,
+    // avoiding a redundant network request when navigating from the receipts list.
+    apiOptions.as<InvoiceBase[]>()('/customers/$organizationIdOrSlug/invoices/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 60_000,
+    })
+  );
+
+  const currentIndex = invoiceList
+    ? invoiceList.findIndex(inv => inv.id === invoiceGuid)
+    : -1;
+  // The list is newest-first, so "previous" is the older receipt (higher index)
+  // and "next" is the more recent receipt (lower index).
+  const prevId =
+    invoiceList && currentIndex >= 0 && currentIndex < invoiceList.length - 1
+      ? invoiceList[currentIndex + 1]!.id
+      : null;
+  const nextId =
+    invoiceList && currentIndex > 0 ? invoiceList[currentIndex - 1]!.id : null;
+
+  function receiptUrl(id: string) {
+    return `/settings/${organization.slug}/billing/receipts/${id}/`;
+  }
+
+  // Build a synthetic Link header string so <Pagination> can derive
+  // disabled state from results="false" / results="true".
+  // parseLinkHeader reads the cursor from the ; cursor="…" attribute, not the URL.
+  const pageLinks = invoiceList
+    ? [
+        prevId
+          ? `<.>; rel="previous"; results="true"; cursor="${prevId}"`
+          : `<.>; rel="previous"; results="false"`,
+        nextId
+          ? `<.>; rel="next"; results="true"; cursor="${nextId}"`
+          : `<.>; rel="next"; results="false"`,
+      ].join(', ')
+    : null;
+
   const {
     data: billingDetails,
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>([`/customers/${organization.slug}/billing-details/`], {
-    staleTime: 0,
-    placeholderData: keepPreviousData,
-  });
+  } = useApiQuery<BillingDetails>(
+    [
+      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+      placeholderData: keepPreviousData,
+    }
+  );
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
-  } = useApiQuery<Invoice>([`/customers/${organization.slug}/invoices/${invoiceGuid}/`], {
-    staleTime: Infinity,
-  });
+  } = useApiQuery<Invoice>(
+    [
+      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
+        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
+      }),
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
 
   if (isBillingDetailsError || isInvoiceError) {
     return (
@@ -60,9 +120,15 @@ function InvoiceDetails() {
 
   return (
     <SubscriptionPageContainer background="secondary">
-      <SettingsPageHeader title={t('Receipt Details')}>
-        {t('Receipt Details')}
-      </SettingsPageHeader>
+      <SettingsPageHeader
+        title={t('Receipt Details')}
+        action={
+          <InvoicePagination
+            pageLinks={pageLinks}
+            onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
+          />
+        }
+      />
       <Panel>
         {isInvoiceLoading || isBillingDetailsLoading ? (
           <PanelBody withPadding>
@@ -136,7 +202,7 @@ type AttributeProps = {
 };
 
 function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
-  let paymentStatus: InvoiceStatus = InvoiceStatus.CLOSED;
+  let paymentStatus = InvoiceStatus.CLOSED;
 
   if (invoice.isPaid) {
     paymentStatus = InvoiceStatus.PAID;
@@ -267,15 +333,15 @@ export default InvoiceDetails;
 const SenderName = styled('h3')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const SenderContainer = styled('div')`
   display: grid;
   grid-template-columns: auto auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
-  padding-left: ${space(1)};
+  padding-left: ${p => p.theme.space.md};
 
   /* Use a vertical layout on smaller viewports */
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -287,7 +353,7 @@ const SenderContainer = styled('div')`
 const AttributeGroup = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
   /* Use a vertical layout on smaller viewports */
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
@@ -301,12 +367,12 @@ const Attributes = styled('dl')`
 
   dt {
     font-weight: bold;
-    margin: 0 0 ${space(0.25)} ${space(1)};
+    margin: 0 0 ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   }
   dd {
     background: ${p => p.theme.tokens.background.secondary};
-    padding: ${space(1)};
-    margin-bottom: ${space(2)};
+    padding: ${p => p.theme.space.md};
+    margin-bottom: ${p => p.theme.space.xl};
   }
 `;
 
@@ -322,7 +388,7 @@ const InvoiceItems = styled('table')`
   tr th,
   tr td {
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding: ${space(2)} ${space(1)};
+    padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   }
   thead tr:first-child th,
   thead tr:first-child td {
@@ -337,7 +403,7 @@ const InvoiceItems = styled('table')`
 
   td small {
     display: block;
-    margin-top: ${space(0.5)};
+    margin-top: ${p => p.theme.space.xs};
   }
 `;
 
@@ -349,7 +415,13 @@ const RefundRow = styled('tr')`
 `;
 
 const FinePrint = styled('div')`
-  margin-top: ${space(1)};
+  margin-top: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.xs};
   color: ${p => p.theme.colors.gray400};
+`;
+
+// Strip the default top margin from Pagination so it sits cleanly in the
+// SettingsPageHeader action slot without extra spacing.
+const InvoicePagination = styled(Pagination)`
+  margin: 0;
 `;

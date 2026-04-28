@@ -2,7 +2,6 @@ from functools import reduce
 
 from django.db import models
 from django.db.models.functions import Cast
-from django.http import StreamingHttpResponse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.types import EventLifecycleOutcome
@@ -44,10 +43,7 @@ def assert_commit_shape(commit):
 def assert_status_code(response, minimum: int, maximum: int | None = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
-    assert minimum <= response.status_code < maximum, (
-        response.status_code,
-        response.getvalue() if isinstance(response, StreamingHttpResponse) else response.content,
-    )
+    assert minimum <= response.status_code < maximum, response
 
 
 def assert_existing_projects_status(

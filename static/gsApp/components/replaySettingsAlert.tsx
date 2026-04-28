@@ -1,7 +1,8 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
-export default function ReplaySettingsAlert() {
+export function ReplaySettingsAlert() {
   return (
     <Alert.Container>
       <Alert data-test-id="replay-settings-alert" variant="info" showIcon={false}>

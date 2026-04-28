@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import BroadcastDetails from 'admin/views/broadcastDetails';
+import {BroadcastDetails} from 'admin/views/broadcastDetails';
 
 describe('Broadcast Details', () => {
   it('renders', async () => {
@@ -48,20 +48,20 @@ describe('Broadcast Details', () => {
       screen.getByText(textWithMarkupMatcher(`Media URL:${broadcast.mediaUrl}`))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(`Category:Blog Post`))
+      screen.getByText(textWithMarkupMatcher('Category:Blog Post'))
     ).toBeInTheDocument();
-    expect(screen.getByText(textWithMarkupMatcher(`Region:DE`))).toBeInTheDocument();
+    expect(screen.getByText(textWithMarkupMatcher('Region:DE'))).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(`Platform:Bun, Capacitor`))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher(`Product:Errors, Spans`))
+      screen.getByText(textWithMarkupMatcher('Platform:Bun, Capacitor'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(`Created By:admin@sentry.io`))
+      screen.getByText(textWithMarkupMatcher('Product:Errors, Spans'))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(`Early Adopter:Yes`))
+      screen.getByText(textWithMarkupMatcher('Created By:admin@sentry.io'))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher('Early Adopter:Yes'))
     ).toBeInTheDocument();
   });
 });

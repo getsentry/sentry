@@ -25,6 +25,9 @@ export const getDetectorDataset = (
       if (eventTypes.includes(EventTypes.TRACE_ITEM_LOG)) {
         return DetectorDataset.LOGS;
       }
+      if (eventTypes.includes(EventTypes.TRACE_ITEM_METRIC)) {
+        return DetectorDataset.METRICS;
+      }
       return DetectorDataset.SPANS;
     }
     case Dataset.METRICS:

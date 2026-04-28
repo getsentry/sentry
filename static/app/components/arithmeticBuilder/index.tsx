@@ -2,15 +2,16 @@ import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Input} from '@sentry/scraps/input';
+
 import {useArithmeticBuilderAction} from 'sentry/components/arithmeticBuilder/action';
 import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/context';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {Input} from 'sentry/components/core/input';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
-import PanelProvider from 'sentry/utils/panelProvider';
+import {PanelProvider} from 'sentry/utils/panelProvider';
 
 interface ArithmeticBuilderProps {
   aggregations: string[];
@@ -27,8 +28,15 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
+  /**
+   * When provided, the arithmetic builder will use the references to suggest
+   * keys for the user instead of aggregations and function arguments.
+   */
+  references?: Set<string>;
   setExpression?: (expression: Expression) => void;
 }
+
+const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,
@@ -40,9 +48,19 @@ export function ArithmeticBuilder({
   getSuggestedKey,
   className,
   disabled,
+  references,
 }: ArithmeticBuilderProps) {
+  if (references) {
+    for (const reference of references) {
+      if (!VALID_REFERENCE_PATTERN.test(reference)) {
+        throw new Error(`Invalid reference: ${reference}`);
+      }
+    }
+  }
+
   const {state, dispatch} = useArithmeticBuilderAction({
     initialExpression: expression || '',
+    references,
     updateExpression: setExpression,
   });
 
@@ -56,6 +74,7 @@ export function ArithmeticBuilder({
       functionArguments,
       getFieldDefinition,
       getSuggestedKey,
+      references,
     };
   }, [
     state,
@@ -64,6 +83,7 @@ export function ArithmeticBuilder({
     functionArguments,
     getFieldDefinition,
     getSuggestedKey,
+    references,
   ]);
 
   return (

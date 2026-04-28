@@ -6,8 +6,9 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
+from sentry.integrations.source_code_management.repository import RepositoryInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -21,6 +22,7 @@ EXCLUDED_PATHS = ["tests/"]
 class RepoAndBranch(NamedTuple):
     name: str
     branch: str
+    external_id: str
 
 
 class RepoTree(NamedTuple):
@@ -51,7 +53,7 @@ class RepoTreesIntegration(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(self, query: str | None = None) -> list[RepositoryInfo]:
         raise NotImplementedError
 
     @property
@@ -89,8 +91,9 @@ class RepoTreesIntegration(ABC):
             repositories = [
                 # Do not use RepoAndBranch so it stores in the cache as a simple dict
                 {
-                    "full_name": repo_info["identifier"],
-                    "default_branch": repo_info["default_branch"],
+                    "full_name": str(repo_info["identifier"]),
+                    "default_branch": repo_info.get("default_branch") or "",
+                    "external_id": repo_info["external_id"],
                 }
                 for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
@@ -144,7 +147,13 @@ class RepoTreesIntegration(ABC):
                 # The API rate limit is reset every hour
                 # Spread the expiration of the cache of each repo across the day
                 trees[repo_full_name] = self._populate_tree(
-                    RepoAndBranch(repo_full_name, repo_info["default_branch"]),
+                    # Use .get() for external_id since cached entries from before this field
+                    # was added won't have it. The cache TTL will naturally cycle them out.
+                    RepoAndBranch(
+                        repo_full_name,
+                        repo_info["default_branch"],
+                        repo_info.get("external_id", ""),
+                    ),
                     use_cache,
                     3600 * (index % 24),
                 )
@@ -189,6 +198,8 @@ class RepoTreesIntegration(ABC):
 
         repo_full_name: e.g. getsentry/sentry
         tree_sha: A branch or a commit sha
+        shifted_seconds: Staggers cache expiration times across repositories
+            so cache misses and API refreshes are spread out over time.
         only_source_code_files: Include all files or just the source code files
         only_use_cache: Do not hit the network but use the value from the cache
             if any. This is useful if the remaining API requests are low
@@ -198,8 +209,27 @@ class RepoTreesIntegration(ABC):
         use_api = not cache_hit and not only_use_cache
         repo_files: list[str] = cache.get(key, [])
         if use_api:
+            tree = None
             # Cache miss – fetch from API
-            tree = self.get_client().get_tree(repo_full_name, tree_sha)
+            try:
+                tree = self.get_client().get_tree(repo_full_name, tree_sha)
+            except ApiConflictError:
+                # Empty repos return 409 — cache the empty result so we don't
+                # keep burning API calls on repos we know have no files.
+                logger.info(
+                    "Caching empty files result for repo",
+                    extra={"repo": repo_full_name},
+                )
+            except ApiError as error:
+                if _is_not_found_error(error):
+                    # Keep visibility when transient 404s happen while still
+                    # caching an empty result to avoid repeated API calls.
+                    logger.warning(
+                        "Caching empty files result for missing repo or ref",
+                        extra={"repo": repo_full_name, "error_code": error.code},
+                    )
+                else:
+                    raise
             if tree:
                 # Keep files; discard directories
                 repo_files = [node["path"] for node in tree if node["type"] == "blob"]
@@ -214,6 +244,8 @@ class RepoTreesIntegration(ABC):
                 # repositories is a single API network request, thus,
                 # being acceptable to sometimes not having everything cached
                 cache.set(key, repo_files, self.CACHE_SECONDS + shifted_seconds)
+            else:
+                cache.set(key, [], self.CACHE_SECONDS + shifted_seconds)
 
             metrics.incr(
                 f"{METRICS_KEY_PREFIX}.get_tree",
@@ -285,3 +317,13 @@ def should_include(file_path: str) -> bool:
     if any(file_path.startswith(path) for path in EXCLUDED_PATHS):
         return False
     return True
+
+
+def _is_not_found_error(error: ApiError) -> bool:
+    if error.code == 404:
+        return True
+    if error.code is not None:
+        return False
+
+    error_message = error.json.get("message") if error.json else error.text
+    return error_message in ("Not Found", "Not Found.")

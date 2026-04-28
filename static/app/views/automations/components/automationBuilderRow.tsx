@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface RowProps {
   children: React.ReactNode;
@@ -16,7 +16,7 @@ interface RowProps {
   warningMessage?: React.ReactNode;
 }
 
-export default function AutomationBuilderRow({
+export function AutomationBuilderRow({
   onDelete,
   children,
   hasError,
@@ -31,7 +31,7 @@ export default function AutomationBuilderRow({
           aria-label={t('Delete row')}
           size="sm"
           icon={<IconDelete />}
-          borderless
+          priority="transparent"
           onClick={onDelete}
           className="delete-row"
         />
@@ -49,7 +49,7 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
   border: 1px ${p => p.theme.tokens.border.secondary} solid;
   border-color: ${p => (p.incompatible ? p.theme.tokens.border.danger.vibrant : 'none')};
   position: relative;
-  padding: ${space(0.75)} ${space(1.5)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
   min-height: 46px;
   align-items: center;
 
@@ -65,6 +65,6 @@ const RowContainer = styled('div')<{incompatible?: boolean}>`
 
 const DeleteButton = styled(Button)`
   position: absolute;
-  top: ${space(0.75)};
-  right: ${space(0.75)};
+  top: ${p => p.theme.space.sm};
+  right: ${p => p.theme.space.sm};
 `;

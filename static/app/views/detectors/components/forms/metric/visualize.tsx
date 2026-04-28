@@ -1,14 +1,14 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
-import {Input} from 'sentry/components/core/input';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FormContext from 'sentry/components/forms/formContext';
+import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
@@ -21,23 +21,23 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/fields';
 import {unreachable} from 'sentry/utils/unreachable';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTags from 'sentry/utils/useTags';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTags} from 'sentry/utils/useTags';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {MetricsEquationVisualize} from 'sentry/views/detectors/components/forms/metric/metricsEquationVisualize';
+import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
-import {
-  useTraceItemNumberAttributes,
-  useTraceItemStringAttributes,
-} from 'sentry/views/detectors/datasetConfig/useTraceItemAttributes';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 /**
@@ -222,6 +222,27 @@ function buildAggregateFunction(aggregate: string, parameters: string[]): string
 
 export function Visualize() {
   const organization = useOrganization();
+  const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
+  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
+  const environment = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.environment);
+
+  if (dataset === DetectorDataset.METRICS) {
+    if (canUseMetricsEquationsInAlerts(organization)) {
+      return (
+        <MetricsEquationVisualize
+          projectIds={projectId ? [Number(projectId)] : undefined}
+          environments={environment ? [environment] : undefined}
+        />
+      );
+    }
+    return <MetricsVisualize />;
+  }
+
+  return <GenericVisualize />;
+}
+
+function GenericVisualize() {
+  const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const dataset = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.dataset);
   const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
@@ -232,14 +253,21 @@ export function Visualize() {
 
   const traceItemType =
     dataset === DetectorDataset.SPANS ? TraceItemDataset.SPANS : TraceItemDataset.LOGS;
-  const {attributes: numericSpanTags} = useTraceItemNumberAttributes({
+  const {attributes: numericSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
-  const {attributes: stringSpanTags} = useTraceItemStringAttributes({
+    {projects: [projectId]},
+    'number'
+  );
+  const {attributes: stringSpanTags} = useTraceItemDatasetAttributes(
     traceItemType,
-    projectIds: [Number(projectId)],
-  });
+    {projects: [projectId]},
+    'string'
+  );
+  const {attributes: booleanSpanTags} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {projects: [projectId]},
+    'boolean'
+  );
   const formContext = useContext(FormContext);
 
   const isTransactionsDataset = dataset === DetectorDataset.TRANSACTIONS;
@@ -284,6 +312,12 @@ export function Visualize() {
               prettifyTagKey(tag.name),
             ])
           : []),
+        ...(isTypeAllowed(FieldValueType.BOOLEAN)
+          ? Object.values(booleanSpanTags).map((tag): [string, string] => [
+              tag.key,
+              prettifyTagKey(tag.name),
+            ])
+          : []),
       ];
       return spanColumnOptions.sort((a, b) => a[1].localeCompare(b[1]));
     }
@@ -296,7 +330,14 @@ export function Visualize() {
       )
       .map((option): [string, string] => [option.value.meta.name, option.value.meta.name])
       .sort((a, b) => a[1].localeCompare(b[1]));
-  }, [dataset, stringSpanTags, numericSpanTags, aggregateOptions, aggregate]);
+  }, [
+    aggregate,
+    aggregateOptions,
+    booleanSpanTags,
+    dataset,
+    numericSpanTags,
+    stringSpanTags,
+  ]);
 
   const fieldOptionsDropdown = useMemo(() => {
     return fieldOptions.map(([value, label]) => ({
@@ -378,7 +419,7 @@ export function Visualize() {
             </Tooltip>
           </div>
           <StyledAggregateSelect
-            searchable
+            search
             trigger={triggerProps => (
               <OverlayTrigger.Button {...triggerProps}>
                 {aggregate || t('Select aggregate')}
@@ -397,7 +438,7 @@ export function Visualize() {
             <Stack flex="1" gap="xs" maxWidth="425px" key={index}>
               {param.kind === 'column' ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {lockedOption
@@ -418,7 +459,7 @@ export function Visualize() {
                 />
               ) : param.kind === 'dropdown' && param.options ? (
                 <StyledVisualizeSelect
-                  searchable
+                  search
                   trigger={triggerProps => (
                     <OverlayTrigger.Button {...triggerProps}>
                       {parameters[index] || param.defaultValue || t('Select value')}

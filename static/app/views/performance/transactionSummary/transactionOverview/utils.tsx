@@ -1,7 +1,7 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -48,10 +48,10 @@ export function getTransactionMEPParamsIfApplicable(
 export function generateTransactionOverviewEventView({
   location,
   transactionName,
-  shouldUseOTelFriendlyUI,
+  shouldUseEAP,
 }: {
   location: Location;
-  shouldUseOTelFriendlyUI: boolean;
+  shouldUseEAP: boolean;
   transactionName: string;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
@@ -60,7 +60,7 @@ export function generateTransactionOverviewEventView({
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  if (shouldUseOTelFriendlyUI) {
+  if (shouldUseEAP) {
     conditions.setFilterValues('is_transaction', ['true']);
     conditions.setFilterValues(
       'transaction.method',
@@ -78,7 +78,7 @@ export function generateTransactionOverviewEventView({
     }
   });
 
-  const fields = shouldUseOTelFriendlyUI
+  const fields = shouldUseEAP
     ? [
         'id',
         'user.email',
@@ -99,7 +99,7 @@ export function generateTransactionOverviewEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
-      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS : undefined,
+      dataset: shouldUseEAP ? DiscoverDatasets.SPANS : undefined,
     },
     location
   );

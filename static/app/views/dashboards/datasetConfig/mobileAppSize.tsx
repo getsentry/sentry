@@ -1,3 +1,4 @@
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -12,10 +13,11 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {
   Aggregation,
   AggregationOutputType,
+  DataUnit,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {SizeUnit} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DatasetConfig,
   SearchBarData,
@@ -26,7 +28,10 @@ import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import {getTimeseriesSortOptions} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  isEventsStats,
+  isMultiSeriesEventsStats,
+} from 'sentry/views/dashboards/utils/isEventsStats';
 import {
   useMobileAppSizeSeriesQuery,
   useMobileAppSizeTableQuery,
@@ -36,7 +41,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
-import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {usePreprodItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -191,20 +196,25 @@ function useMobileAppSizeSearchBarDataProvider(
   } = usePageFilters();
 
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemAttributes('string', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes({enabled: true}, 'string', HIDDEN_PREPROD_ATTRIBUTES);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemAttributes('number', HIDDEN_PREPROD_ATTRIBUTES);
+    usePreprodItemAttributes({enabled: true}, 'number', HIDDEN_PREPROD_ATTRIBUTES);
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    usePreprodItemAttributes({enabled: true}, 'boolean', HIDDEN_PREPROD_ATTRIBUTES);
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
       itemType: TraceItemDataset.PREPROD,
       numberAttributes,
       stringAttributes,
+      booleanAttributes,
       numberSecondaryAliases,
       stringSecondaryAliases,
+      booleanSecondaryAliases,
       searchSource: 'dashboards',
       initialQuery: props.widgetQuery?.conditions ?? '',
       projects,
+      hiddenAttributeKeys: HIDDEN_PREPROD_ATTRIBUTES,
     });
   return {
     getFilterKeySections: () => filterKeySections,
@@ -213,10 +223,31 @@ function useMobileAppSizeSearchBarDataProvider(
   };
 }
 
+function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
+  data: EventsStats | MultiSeriesEventsStats,
+  widgetQuery: WidgetQuery,
+  value: T
+): Record<string, T> {
+  const result: Record<string, T> = {};
+
+  for (const aggregate of widgetQuery.aggregates ?? []) {
+    result[aggregate] = value;
+  }
+
+  if (isMultiSeriesEventsStats(data)) {
+    for (const seriesName of Object.keys(data)) {
+      result[seriesName] = value;
+    }
+  }
+
+  return result;
+}
+
 export const MobileAppSizeConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData
 > = {
+  axisRange: 'dataMin',
   defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
@@ -301,17 +332,10 @@ export const MobileAppSizeConfig: DatasetConfig<
 
     return seriesWithOrder.sort((a, b) => a.order - b.order).map(item => item.series);
   },
-  getSeriesResultType: (
-    _data: EventsStats | MultiSeriesEventsStats,
-    _widgetQuery: WidgetQuery
-  ): Record<string, AggregationOutputType> => {
-    return {
-      'max(install_size)': 'size',
-      'max(download_size)': 'size',
-      'min(install_size)': 'size',
-      'min(download_size)': 'size',
-    };
-  },
+  getSeriesResultType: (data, widgetQuery) =>
+    buildSeriesResultMap(data, widgetQuery, 'size'),
+  getSeriesResultUnit: (data, widgetQuery) =>
+    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
   filterAggregateParams,
   handleOrderByReset,
 };

@@ -4,7 +4,7 @@ import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {Overlay} from 'sentry/components/overlay';
-import useOverlay from 'sentry/utils/useOverlay';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 

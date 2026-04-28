@@ -1,29 +1,33 @@
-import {useCallback} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
 export function useReorderStarredDashboards() {
   const organization = useOrganization();
-  const api = useApi();
-  const invalidateStarredDashboards = useInvalidateStarredDashboards();
-  const reorderStarredDashboards = useCallback(
-    async (dashboards: DashboardListItem[]) => {
-      await api.requestPromise(
-        `/organizations/${organization.slug}/dashboards/starred/order/`,
-        {
-          method: 'PUT',
-          data: {
-            dashboard_ids: dashboards.map(dashboard => dashboard.id),
-          },
-        }
-      );
-      invalidateStarredDashboards();
-    },
-    [api, organization.slug, invalidateStarredDashboards]
-  );
+  const queryClient = useQueryClient();
+  const queryKey = getStarredDashboardsQueryKey(organization);
 
-  return reorderStarredDashboards;
+  const {mutate} = useMutation({
+    mutationFn: (dashboards: DashboardListItem[]) =>
+      fetchMutation({
+        url: `/organizations/${organization.slug}/dashboards/starred/order/`,
+        method: 'PUT',
+        data: {
+          dashboard_ids: dashboards.map(dashboard => dashboard.id),
+        },
+      }),
+    onMutate: dashboards => {
+      queryClient.setQueryData(queryKey, prev =>
+        prev ? {...prev, json: dashboards} : prev
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({queryKey});
+    },
+  });
+
+  return mutate;
 }

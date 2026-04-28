@@ -25,6 +25,7 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
 PAGERDUTY_CUSTOM_PRIORITIES = {
+    "default",
     "critical",
     "warning",
     "error",
@@ -98,7 +99,6 @@ def build_incident_attachment(
     integration_key: str,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
-
     data = incident_attachment_info(
         organization=organization,
         alert_context=alert_context,

@@ -22,7 +22,7 @@ export function InsightsRedirectNotice({children}: {children: React.ReactNode}) 
       trailingItems={
         <Button
           size="zero"
-          borderless
+          priority="transparent"
           icon={<IconClose />}
           aria-label={t('Dismiss')}
           onClick={() => {

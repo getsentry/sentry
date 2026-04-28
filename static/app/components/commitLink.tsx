@@ -1,5 +1,6 @@
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
+import {LinkButton} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -51,7 +52,7 @@ type Props = {
   showIcon?: boolean;
 };
 
-function CommitLink({
+export function CommitLink({
   inline,
   commitId,
   repository,
@@ -109,5 +110,3 @@ function CommitLink({
     </LinkButton>
   );
 }
-
-export default CommitLink;

@@ -1,6 +1,11 @@
 import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 
-import {UptimeMonitorMode} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeComparisonType,
+  UptimeMonitorMode,
+  UptimeOpType,
+  type UptimeAssertion,
+} from 'sentry/views/alerts/rules/uptime/types';
 import {
   UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
   UPTIME_DEFAULT_RECOVERY_THRESHOLD,
@@ -60,14 +65,14 @@ describe('uptimeFormDataToEndpointPayload', () => {
   });
 
   it('includes assertion in payload when provided', () => {
-    const assertion = {
+    const assertion: UptimeAssertion = {
       root: {
-        op: 'and' as const,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -174,6 +179,40 @@ describe('uptimeFormDataToEndpointPayload', () => {
     expect(payload.config.recoveryThreshold).toBe(UPTIME_DEFAULT_RECOVERY_THRESHOLD);
     expect(payload.config.downtimeThreshold).toBe(UPTIME_DEFAULT_DOWNTIME_THRESHOLD);
   });
+
+  it('converts empty assertion structure to null', () => {
+    // When the assertions field isn't rendered (feature flag off), the empty
+    // assertion structure from savedDetectorToFormData persists. This should
+    // be converted to null before sending to the API.
+    const formData = {
+      name: 'Test Monitor',
+      owner: 'user:1',
+      projectId: '123',
+      workflowIds: [],
+      description: null,
+      intervalSeconds: 60,
+      method: 'GET',
+      timeoutMs: 10000,
+      traceSampling: false,
+      url: 'https://example.com',
+      headers: [],
+      body: '',
+      assertion: {
+        root: {
+          op: UptimeOpType.AND,
+          id: 'empty-root',
+          children: [],
+        },
+      } satisfies UptimeAssertion,
+      recoveryThreshold: 1,
+      downtimeThreshold: 3,
+      environment: 'production',
+    };
+
+    const payload = uptimeFormDataToEndpointPayload(formData);
+
+    expect(payload.dataSources[0]?.assertion).toBeNull();
+  });
 });
 
 describe('uptimeSavedDetectorToFormData', () => {
@@ -203,14 +242,14 @@ describe('uptimeSavedDetectorToFormData', () => {
   });
 
   it('extracts assertion from data source', () => {
-    const assertion = {
+    const assertion: UptimeAssertion = {
       root: {
-        op: 'and' as const,
+        op: UptimeOpType.AND,
         children: [
           {
             id: 'test-1',
-            op: 'status_code_check' as const,
-            operator: {cmp: 'equals' as const},
+            op: UptimeOpType.STATUS_CODE_CHECK,
+            operator: {cmp: UptimeComparisonType.EQUALS},
             value: 200,
           },
         ],
@@ -255,7 +294,7 @@ describe('uptimeSavedDetectorToFormData', () => {
 
     expect(formData.assertion).toMatchObject({
       root: {
-        op: 'and',
+        op: UptimeOpType.AND,
         children: [],
         id: expect.any(String),
       },
@@ -281,7 +320,7 @@ describe('uptimeSavedDetectorToFormData', () => {
       // null would cause a crash in getValue when accessing value.root.children.length
       assertion: {
         root: {
-          op: 'and',
+          op: UptimeOpType.AND,
           children: [],
           id: expect.any(String),
         },

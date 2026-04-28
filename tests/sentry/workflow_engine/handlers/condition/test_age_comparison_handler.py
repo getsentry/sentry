@@ -3,9 +3,9 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from jsonschema import ValidationError
 
-from sentry.rules.age import AgeComparisonType
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase

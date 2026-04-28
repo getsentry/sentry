@@ -39,9 +39,9 @@ def create_preview_check(validated_data, region: UptimeRegionConfig) -> CheckCon
 # Call into the uptime checker to validation the check config, throwing a validation
 # error if the config does not pass validation.
 def invoke_checker_validator(
-    validation_enabled: bool, check_config: CheckConfig, region: UptimeRegionConfig
+    check_config: CheckConfig, region: UptimeRegionConfig
 ) -> requests.Response | None:
-    if not validation_enabled:
+    if not region.api_endpoint:
         return None
 
     result = requests.post(
@@ -55,9 +55,9 @@ def invoke_checker_validator(
 
 # Call into the uptime checker to execute the check config
 def invoke_checker_preview(
-    assertions_enabled: bool, check_config: CheckConfig, region: UptimeRegionConfig
+    check_config: CheckConfig, region: UptimeRegionConfig
 ) -> requests.Response | None:
-    if not assertions_enabled:
+    if not region.api_endpoint:
         return None
 
     result = requests.post(

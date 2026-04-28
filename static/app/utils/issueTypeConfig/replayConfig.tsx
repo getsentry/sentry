@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const replayConfig: IssueCategoryConfigMapping = {
+export const replayConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -47,5 +47,3 @@ const replayConfig: IssueCategoryConfigMapping = {
     issueSummary: {enabled: false},
   },
 };
-
-export default replayConfig;

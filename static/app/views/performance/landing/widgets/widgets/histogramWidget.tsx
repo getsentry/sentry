@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
+import {HistogramQuery} from 'sentry/utils/performance/histogram/histogramQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
 import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
@@ -25,7 +25,7 @@ type AreaDataType = {
 export function HistogramWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
-  const {ContainerActions, InteractiveTitle} = props;
+  const {InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
 
   const Queries = useMemo((): GenericPerformanceWidgetProps<AreaDataType>['Queries'] => {
@@ -62,9 +62,6 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
             : t('In the last period')}
         </Subtitle>
       )}
-      HeaderActions={provided =>
-        ContainerActions && <ContainerActions {...provided.widgetData.chart} />
-      }
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

@@ -1,4 +1,4 @@
-import LogoSentry from 'sentry/components/logoSentry';
+import {LogoSentry} from 'sentry/components/logoSentry';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('LogoSentry', story => {

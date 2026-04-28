@@ -1,18 +1,19 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Count from 'sentry/components/count';
-import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
+import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Count} from 'sentry/components/count';
 import {IconWrapper} from 'sentry/components/sidebarSection';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -26,7 +27,7 @@ import {
 import type {BaseContextProps} from './utils';
 import {ContextType} from './utils';
 
-function IssueContext(props: BaseContextProps) {
+export function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
 
   useEffect(() => {
@@ -40,16 +41,13 @@ function IssueContext(props: BaseContextProps) {
     isPending: issueLoading,
     isError: issueError,
     data: issue,
-  } = useApiQuery<Group>(
-    makeFetchGroupQueryKey({
+  } = useQuery(
+    groupApiOptions({
       groupId: dataRow['issue.id'],
       organizationSlug: organization.slug,
       // The link to issue details doesn't seem to currently pass selected environments
       environments: [],
-    }),
-    {
-      staleTime: 30_000,
-    }
+    })
   );
 
   const title = issue?.title;
@@ -149,6 +147,19 @@ function IssueContext(props: BaseContextProps) {
   );
 }
 
+function getAssignedToDisplayName(group: Group) {
+  if (group.assignedTo?.type === 'team') {
+    const team = TeamStore.getById(group.assignedTo.id);
+    return `#${team?.slug ?? group.assignedTo.name}`;
+  }
+  if (group.assignedTo?.type === 'user') {
+    const user = MemberListStore.getById(group.assignedTo.id);
+    return user?.name ?? group.assignedTo.name;
+  }
+
+  return group.assignedTo?.name;
+}
+
 const IssueTitleBody = styled(ContextBody)`
   margin: 0;
   max-width: 300px;
@@ -161,20 +172,19 @@ const IssueTitleBody = styled(ContextBody)`
 
 const IssueContextContainer = styled(ContextContainer)`
   & + & {
-    margin-top: ${space(2)};
+    margin-top: ${p => p.theme.space.xl};
   }
 `;
 
 const StatusText = styled('span')`
-  margin-left: ${space(0.5)};
+  margin-left: ${p => p.theme.space.xs};
   text-transform: capitalize;
 `;
 
 const AssignedToBody = styled(ContextBody)`
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const StyledIconWrapper = styled(IconWrapper)`
   margin: 0;
 `;
-export default IssueContext;

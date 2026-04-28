@@ -1,11 +1,12 @@
-import {Alert} from 'sentry/components/core/alert';
+import {Alert} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
 type Props = {
   message?: React.ReactNode;
 };
 
-function NoStackTraceMessage({message}: Props) {
+export function NoStackTraceMessage({message}: Props) {
   return (
     <Alert.Container>
       <Alert variant="muted" showIcon={false}>
@@ -14,5 +15,3 @@ function NoStackTraceMessage({message}: Props) {
     </Alert.Container>
   );
 }
-
-export default NoStackTraceMessage;

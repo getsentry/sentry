@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {
@@ -10,7 +10,7 @@ import type {
   NavigationSection,
 } from 'sentry/views/settings/types';
 
-import withSubscription from 'getsentry/components/withSubscription';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
 type Props = {

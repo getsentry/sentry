@@ -26,7 +26,8 @@ class SentryAppInstallationServiceHookProjectsEndpointTest(APITestCase):
         )
 
         self.api_token = self.create_internal_integration_token(
-            install=self.install, user=self.user  # using same install for auth token and webhooks
+            install=self.install,
+            user=self.user,  # using same install for auth token and webhooks
         )
 
         with assume_test_silo_mode_of(ServiceHook):

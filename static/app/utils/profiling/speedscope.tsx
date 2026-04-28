@@ -43,7 +43,7 @@ export class Rect {
   }
 
   isValid(): boolean {
-    return this.toMatrix().every(n => !isNaN(n));
+    return [...this.toMatrix()].every(n => !Number.isNaN(n));
   }
 
   isEmpty(): boolean {
@@ -130,7 +130,7 @@ export class Rect {
     const {width: w, height: h, x, y} = this;
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
     // https://webglfundamentals.org/webgl/lessons/webgl-matrix-vs-math.html
-    // prettier-ignore
+    // oxfmt-ignore
     return mat3.fromValues(w, 0, 0, 0, h, 0, x, y, 1);
   }
 

@@ -5,7 +5,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import region_silo_model
+from sentry.db.models import cell_silo_model
 from sentry.db.models.base import DefaultFieldsModel, DefaultFieldsModelExisting
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -14,7 +14,7 @@ from sentry.models.savedsearch import SortOptions
 DEFAULT_TIME_FILTER = {"period": "14d"}
 
 
-@region_silo_model
+@cell_silo_model
 class GroupSearchViewProject(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -35,7 +35,7 @@ class GroupSearchViewVisibility:
         return [(cls.ORGANIZATION, _("Organization"))]
 
 
-@region_silo_model
+@cell_silo_model
 class GroupSearchView(DefaultFieldsModelExisting):
     """
     A model for a user's view of the issue stream

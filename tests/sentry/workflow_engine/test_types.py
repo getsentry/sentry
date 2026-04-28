@@ -7,7 +7,6 @@ from sentry.workflow_engine.types import WorkflowEvaluation, WorkflowEvaluationD
 
 
 class TestWorkflowEvaluationLogTo(TestCase):
-
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()

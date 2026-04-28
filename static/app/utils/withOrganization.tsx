@@ -1,14 +1,14 @@
 import type {Organization} from 'sentry/types/organization';
-import getDisplayName from 'sentry/utils/getDisplayName';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
 
-import useOrganization from './useOrganization';
+import {useOrganization} from './useOrganization';
 
 type InjectedOrganizationProps = {
   organization?: Organization;
   organizationAllowNull?: undefined | true;
 };
 
-function withOrganization<P extends InjectedOrganizationProps>(
+export function withOrganization<P extends InjectedOrganizationProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
   type Props = Omit<P, keyof InjectedOrganizationProps> &
@@ -27,5 +27,3 @@ function withOrganization<P extends InjectedOrganizationProps>(
 
   return Wrapper;
 }
-
-export default withOrganization;

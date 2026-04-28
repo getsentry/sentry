@@ -1,12 +1,13 @@
 from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
+from objectstore_client.client import RequestError
 
 from sentry.testutils.cases import APITestCase
 
 
 class ProjectPreprodArtifactImageTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
@@ -103,7 +104,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         mock_get_session.assert_called_once_with(self.org.id, self.project.id)
         mock_session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{self.image_id}")
 
-    def test_endpoint_requires_project_access(self):
+    def test_endpoint_requires_project_access(self) -> None:
         other_user = self.create_user()
         self.login_as(user=other_user)
         self.api_token = self.create_user_auth_token(
@@ -115,6 +116,20 @@ class ProjectPreprodArtifactImageTest(APITestCase):
             url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
         assert response.status_code == 403
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
+    def test_objectstore_404_returns_404(self, mock_get_session):
+        mock_session = MagicMock()
+        mock_session.get.side_effect = RequestError(message="Not Found", status=404, response="")
+        mock_get_session.return_value = mock_session
+
+        url = self._get_url()
+        response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
+        )
+
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Image not found"}
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_preprod_session")
     def test_error_handling_returns_json(self, mock_get_session):

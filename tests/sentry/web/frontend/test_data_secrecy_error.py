@@ -12,7 +12,7 @@ class DataSecrecyErrorTest(TestCase):
         super().setUp()
         self.owner = self.create_user()
         self.organization = self.create_organization(name="foo", owner=self.owner)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.flags.prevent_superuser_access = True
             self.organization.save()
 

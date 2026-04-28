@@ -6,11 +6,12 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.db.models import F
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.views import APIView
 
+from sentry.api.authentication import ViewerContextAuthentication
 from sentry.api.bases.organization import (
     NoProjects,
     OrganizationAndStaffPermission,
@@ -42,6 +43,13 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.security.orgauthtoken_token import hash_token
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    encode_viewer_context,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 class MockSuperUser:
@@ -96,6 +104,8 @@ class PermissionBaseTestCase(TestCase):
 
 
 class OrganizationPermissionTest(PermissionBaseTestCase):
+    VIEWER_CONTEXT_SHARED_SECRET = "test-seer-api-shared-secret"
+
     def org_require_2fa(self):
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set is True
@@ -311,6 +321,36 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         with pytest.raises(SsoRequired):
             assert not self.has_object_perm("POST", self.org, user=user)
 
+    @override_settings(SEER_API_SHARED_SECRET=VIEWER_CONTEXT_SHARED_SECRET)
+    def test_viewer_context_auth_bypasses_sso_gate(self) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider = AuthProvider.objects.create(
+                organization_id=self.org.id, provider="dummy"
+            )
+            AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
+
+        context = encode_viewer_context(
+            ViewerContext(user_id=user.id, actor_type=ActorType.USER),
+            key=self.VIEWER_CONTEXT_SHARED_SECRET,
+        )
+
+        request = RequestFactory().get("/api/0/organizations/")
+        request.session = SessionBase()
+        request.META["HTTP_X_VIEWER_CONTEXT"] = context
+
+        drf_request = drf_request_from_request(request)
+        result = ViewerContextAuthentication().authenticate(drf_request)
+
+        assert result is not None
+        drf_request.user, drf_request.auth = result
+        assert getattr(drf_request, "user_from_viewer_context", False) is True
+
+        permission = self.permission_cls()
+        permission.determine_access(request=drf_request, organization=self.org)
+
 
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     def setUp(self) -> None:
@@ -375,6 +415,20 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
+    def test_convert_args_enriches_viewer_context_with_organization(self) -> None:
+        request = drf_request_from_request(self.build_request(user=self.owner))
+        request._request.organization = None
+
+        with viewer_context_scope(ViewerContext(user_id=self.owner.id)):
+            self.endpoint.convert_args(request, self.org.slug)
+            ctx = get_viewer_context()
+
+        assert ctx is not None
+        assert ctx.user_id == self.owner.id
+        assert ctx.organization_id == self.org.id
 
 
 class GetProjectIdsTest(BaseOrganizationEndpointTest):
@@ -585,13 +639,13 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             self.org,
         )
 
-        mock__filter_projects_by_permissions.assert_called_with(
-            projects=[self.project_1, self.project_2],
-            request=request,
-            filter_by_membership=False,
-            force_global_perms=False,
-            include_all_accessible=True,
-        )
+        mock__filter_projects_by_permissions.assert_called_once()
+        call_kwargs = mock__filter_projects_by_permissions.call_args.kwargs
+        assert set(call_kwargs["projects"]) == {self.project_1, self.project_2}
+        assert call_kwargs["request"] == request
+        assert call_kwargs["filter_by_membership"] is False
+        assert call_kwargs["force_global_perms"] is False
+        assert call_kwargs["include_all_accessible"] is True
         assert len(response) == 2
         assert self.project_1 in response
         assert self.project_2 in response

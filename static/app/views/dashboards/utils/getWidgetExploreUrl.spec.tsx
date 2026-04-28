@@ -41,6 +41,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -110,6 +111,7 @@ describe('getWidgetExploreUrl', () => {
           'visualize',
           JSON.stringify({chartType: 1, yAxes: ['equation|avg(span.duration) + 100']}),
         ],
+        ['project', ''],
       ],
     });
   });
@@ -140,6 +142,7 @@ describe('getWidgetExploreUrl', () => {
         ['interval', '30m'],
         ['mode', 'samples'],
         ['statsPeriod', '14d'],
+        ['project', ''],
       ],
     });
   });
@@ -173,6 +176,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 2, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -205,6 +209,7 @@ describe('getWidgetExploreUrl', () => {
         ['mode', 'aggregate'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 2, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -240,6 +245,7 @@ describe('getWidgetExploreUrl', () => {
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['count(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -281,6 +287,7 @@ describe('getWidgetExploreUrl', () => {
         ['sort', '-avg(span.duration)'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
@@ -309,9 +316,10 @@ describe('getWidgetExploreUrl', () => {
     });
 
     const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).not.toBeNull();
 
     // Provide a fake base URL to allow parsing the relative URL
-    const urlObject = new URL(url, 'https://www.example.com');
+    const urlObject = new URL(url!, 'https://www.example.com');
     expect(urlObject.pathname).toBe('/organizations/org-slug/explore/traces/compare/');
 
     expect(urlObject.searchParams.get('interval')).toBe('30m');
@@ -331,6 +339,30 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.fields).toEqual([]);
     expect(query2.groupBys).toEqual(['span.description']);
     expect(query2.query).toBe('is_transaction:false');
+  });
+
+  it('returns null for log widgets with multiple queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.LOGS,
+      queries: [
+        WidgetQueryFixture({
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'level:error',
+          orderby: '',
+        }),
+        WidgetQueryFixture({
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'level:warning',
+          orderby: '',
+        }),
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
   });
 
   it('adds referrer query parameter if provided', () => {
@@ -371,6 +403,7 @@ describe('getWidgetExploreUrl', () => {
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
         ['referrer', 'test-referrer'],
+        ['project', ''],
       ],
     });
   });
@@ -417,16 +450,18 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
         ['sort', '-span.duration'],
         ['statsPeriod', '14d'],
         ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
       ],
     });
   });
 });
 
-function expectUrl(url: string) {
+function expectUrl(url: string | null) {
   return {
     toMatch({path, params}: {params: Array<[string, string]>; path: string}) {
+      expect(url).not.toBeNull();
       expect(url).toMatch(new RegExp(`^${path}\\?`));
-      const urlParams = new URLSearchParams(url.substring(path.length));
+      const urlParams = new URLSearchParams(url!.substring(path.length));
       function compareFn(a: [string, string], b: [string, string]) {
         if (a[0] < b[0]) {
           return -1;

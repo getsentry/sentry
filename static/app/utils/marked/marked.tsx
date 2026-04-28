@@ -9,8 +9,6 @@ import {loadPrismLanguage} from 'sentry/utils/prism';
 // Only https and mailto, (e.g. no javascript, vbscript, data protocols)
 const safeLinkPattern = /^(https?:|mailto:)/i;
 
-const safeImagePattern = /^https?:\/\/./i;
-
 function isSafeHref(href: string, pattern: RegExp) {
   try {
     return pattern.test(decodeURIComponent(unescape(href)));
@@ -31,17 +29,16 @@ class SafeRenderer extends marked.Renderer {
 
     const out = super.link(tokens);
     return dompurify.sanitize(out, {
-      FORBID_ATTR: ['style'],
+      ALLOWED_TAGS,
+      ALLOWED_ATTR,
     });
   }
+}
 
-  image(tokens: Tokens.Image) {
-    // For a bad image, return an empty string
-    if (!isSafeHref(tokens.href, safeImagePattern)) {
-      return '';
-    }
-
-    return super.image(tokens);
+class NoHeadingRenderer extends SafeRenderer {
+  heading(tokens: Tokens.Heading) {
+    // Render headings as bold text instead of h1-h6 elements
+    return super.strong({...tokens, type: 'strong'});
   }
 }
 
@@ -52,13 +49,52 @@ class NoParagraphRenderer extends SafeRenderer {
   }
 }
 
+/**
+ * Allowlist of HTML tags that markdown rendering can produce.
+ * Using an allowlist rather than a blocklist ensures unexpected tags
+ * (style, form, input, script, iframe, etc.) are stripped by default.
+ */
+const ALLOWED_TAGS = [
+  // Block elements
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'blockquote',
+  'pre',
+  'ul',
+  'ol',
+  'li',
+  'hr',
+  'br',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  // Inline elements
+  'a',
+  'code',
+  'em',
+  'strong',
+  'del',
+  'span',
+  'b',
+  'i',
+  'sub',
+  'sup',
+];
+
+const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'id', 'align'];
+
 function postprocess(html: string) {
   return dompurify.sanitize(html, {
-    // Forbid style attributes to prevent CSS injection attacks
-    // This is the primary security fix to prevent arbitrary CSS injection
-    FORBID_ATTR: ['style'],
-    // Keep default tag allowlist but remove dangerous attributes
-    // This prevents CSS injection while preserving markdown functionality
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
   });
 }
 
@@ -128,6 +164,17 @@ export const asyncSanitizedMarked = (src: string, inline?: boolean): Promise<str
  */
 export const sanitizedMarked = (src: string): string => {
   return noHighlightingMarked.parse(src, {async: false});
+};
+
+/**
+ * Renders markdown without any heading tags applied.
+ * WARNING: Does not apply any syntax highlighting.
+ */
+export const sanitizedMarkedNoHeadings = (src: string): string => {
+  return noHighlightingMarked.parse(src, {
+    async: false,
+    renderer: new NoHeadingRenderer(),
+  });
 };
 
 /**

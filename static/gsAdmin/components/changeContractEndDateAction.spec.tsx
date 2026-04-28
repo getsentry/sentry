@@ -6,9 +6,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
+import {ModalStore} from 'sentry/stores/modalStore';
 
-import ChangeContractEndDateAction from 'admin/components/changeContractEndDateAction';
+import {ChangeContractEndDateAction} from 'admin/components/changeContractEndDateAction';
 
 describe('ChangeContractEndDateAction', () => {
   const onAction = jest.fn();

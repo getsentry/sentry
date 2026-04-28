@@ -7,10 +7,10 @@ from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.models.group import Group
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base import plugins
-from sentry.web.frontend.base import ProjectView, region_silo_view
+from sentry.web.frontend.base import ProjectView, cell_silo_view
 
 
-@region_silo_view
+@cell_silo_view
 class GroupPluginActionView(ProjectView):
     required_scope = "event:read"
 

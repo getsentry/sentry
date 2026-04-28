@@ -9,19 +9,17 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
-from sentry.analytics.events.rule_disable_opt_out import (
-    RuleDisableOptOutEdit,
-    RuleDisableOptOutExplicit,
-)
+from sentry import analytics, audit_log, features
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule
-from sentry.api.fields.actor import ActorField
+from sentry.api.base import cell_silo_endpoint
+from sentry.api.bases.rule import WorkflowEngineRuleEndpoint
+from sentry.api.endpoints.project_rules import (
+    find_duplicate_rule,
+)
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer
+from sentry.api.serializers.models.rule import RuleSerializer, WorkflowEngineRuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import (
@@ -33,17 +31,24 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
-from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
+from sentry.models.project import Project
+from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
+from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -88,14 +93,18 @@ class ProjectRuleDetailsPutSerializer(serializers.Serializer):
         required=False,
         help_text="A list of filters that determine if a rule fires after the necessary conditions have been met. See [Create an Issue Alert Rule](/api/alerts/create-an-issue-alert-rule-for-a-project) for valid filters.",
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
 
 
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
-class ProjectRuleDetailsEndpoint(RuleEndpoint):
+@cell_silo_endpoint
+class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
+    workflow_engine_method_flags = {
+        "GET": "organizations:workflow-engine-issue-alert-endpoints-get",
+        "DELETE": "organizations:workflow-engine-issue-alert-endpoints-delete",
+    }
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -117,7 +126,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
-    def get(self, request: Request, project, rule) -> Response:
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
+    def get(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated
         🚧 Use [Fetch an Alert](/api/monitors/fetch-an-alert) instead.
@@ -130,13 +140,24 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
-        # Serialize Rule object
-        rule_serializer = RuleSerializer(
-            expand=request.GET.getlist("expand", []),
-            prepare_component_fields=True,
-            project_slug=project.slug,
-        )
-        serialized_rule = serialize(rule, request.user, rule_serializer)
+        if isinstance(rule, Workflow):
+            workflow = rule
+            workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
+                expand=request.GET.getlist("expand", []),
+                prepare_component_fields=True,
+                project_slug=project.slug,
+            )
+            serialized_rule = serialize(workflow, request.user, workflow_engine_rule_serializer)
+        else:
+            report_used_legacy_models()
+            # Serialize Rule object
+            rule_serializer = RuleSerializer(
+                expand=request.GET.getlist("expand", []),
+                prepare_component_fields=True,
+                project_slug=project.slug,
+            )
+            serialized_rule = serialize(rule, request.user, rule_serializer)
+
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
             # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
@@ -168,7 +189,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
-    def put(self, request: Request, project, rule) -> Response:
+    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
+    def put(self, request: Request, project: Project, rule: Rule) -> Response:
         """
         ## Deprecated
         🚧 Use [Update an Alert by ID](/api/monitors/update-an-alert-by-id) instead.
@@ -182,68 +204,28 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
+        report_used_legacy_models()
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
+        current_owner = None
         if rule.owner_team_id or rule.owner_user_id:
-            rule_data_before["owner"] = Actor.from_id(
-                user_id=rule.owner_user_id, team_id=rule.owner_team_id
-            )
+            current_owner = Actor.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
+            rule_data_before["owner"] = current_owner
         rule_data_before["label"] = rule.label
 
         serializer = DrfRuleSerializer(
-            context={"project": project, "organization": project.organization, "request": request},
+            context={
+                "project": project,
+                "organization": project.organization,
+                "request": request,
+            },
             data=request.data,
             partial=True,
         )
 
         if serializer.is_valid():
             data = serializer.validated_data
-
-            # this is temporary for opting out of a migration of rules that haven't been
-            # interacted with by the user for x period of time
-            explicit_opt_out = request.data.get("optOutExplicit")
-            edit_opt_out = request.data.get("optOutEdit")
-            if explicit_opt_out or edit_opt_out:
-                try:
-                    neglected_rule = NeglectedRule.objects.get(
-                        rule=rule.id, organization=project.organization, opted_out=False
-                    )
-                    neglected_rule.opted_out = True
-                    neglected_rule.save()
-
-                    analytics_data = {
-                        "rule_id": rule.id,
-                        "user_id": request.user.id,
-                        "organization_id": project.organization.id,
-                    }
-
-                    if explicit_opt_out:
-                        try:
-                            analytics.record(
-                                RuleDisableOptOutExplicit(**analytics_data),
-                            )
-                        except Exception as e:
-                            sentry_sdk.capture_exception(e)
-                    if edit_opt_out:
-                        try:
-                            analytics.record(
-                                RuleDisableOptOutEdit(**analytics_data),
-                            )
-                        except Exception as e:
-                            sentry_sdk.capture_exception(e)
-                except NeglectedRule.DoesNotExist:
-                    pass
-
-                except NeglectedRule.MultipleObjectsReturned:
-                    logger.info(
-                        "rule_disable_opt_out.multiple",
-                        extra={
-                            "rule_id": rule.id,
-                            "org_id": project.organization.id,
-                        },
-                    )
-
             if not data.get("actions", []):
                 return Response(
                     {
@@ -352,6 +334,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
+            if features.has(
+                "organizations:workflow-engine-rule-serializers", project.organization
+            ) or features.has(
+                "organizations:workflow-engine-issue-alert-endpoints-put", project.organization
+            ):
+                try:
+                    workflow = AlertRuleWorkflow.objects.get(rule_id=updated_rule.id).workflow
+                    return Response(
+                        serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                    )
+                except AlertRuleWorkflow.DoesNotExist:
+                    logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
+                    return Response(serialize(updated_rule, request.user))
 
             return Response(serialize(updated_rule, request.user))
 
@@ -371,7 +366,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, rule) -> Response:
+    @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
+    def delete(self, request: Request, project: Project, rule: Rule | Workflow) -> Response:
         """
         ## Deprecated
          🚧 Use [Delete an Alert](/api/monitors/delete-an-alert) instead.
@@ -384,19 +380,59 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        with transaction.atomic(router.db_for_write(Rule)):
-            rule.update(status=ObjectStatus.PENDING_DELETION)
-            RuleActivity.objects.create(
-                rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+        if isinstance(rule, Workflow):
+            with transaction.atomic(router.db_for_write(Workflow)):
+                rule.update(status=ObjectStatus.PENDING_DELETION)
+                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=rule.id,
+                event=audit_log.get_event_id("WORKFLOW_REMOVE"),
+                data=rule.get_audit_log_data(),
+                transaction_id=scheduled.id,
             )
-            scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
+            try:
+                ard = AlertRuleWorkflow.objects.get(workflow_id=rule.id)
+                rule = Rule.objects.get(id=ard.rule_id, project=project)
 
-        self.create_audit_entry(
-            request=request,
-            organization=project.organization,
-            target_object=rule.id,
-            event=audit_log.get_event_id("RULE_REMOVE"),
-            data=rule.get_audit_log_data(),
-            transaction_id=scheduled.id,
-        )
+                report_used_legacy_models()
+                with transaction.atomic(router.db_for_write(Rule)):
+                    rule.update(status=ObjectStatus.PENDING_DELETION)
+                    RuleActivity.objects.create(
+                        rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                    )
+                    scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                self.create_audit_entry(
+                    request=request,
+                    organization=project.organization,
+                    target_object=rule.id,
+                    event=audit_log.get_event_id("RULE_REMOVE"),
+                    data=rule.get_audit_log_data(),
+                    transaction_id=scheduled.id,
+                )
+            except (AlertRuleWorkflow.DoesNotExist, Rule.DoesNotExist):
+                return Response(status=202)
+
+        else:
+            report_used_legacy_models()
+            with transaction.atomic(router.db_for_write(Rule)):
+                rule.update(status=ObjectStatus.PENDING_DELETION)
+                RuleActivity.objects.create(
+                    rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
+                )
+                scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)
+                # The Rule's scheduled deletion should take care of the workflow, but
+                # we mark it pending immediately so we don't return it while the deletion is in progress.
+                for workflow in Workflow.objects.filter(alertruleworkflow__rule_id=rule.id):
+                    workflow.update(status=ObjectStatus.PENDING_DELETION)
+
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=rule.id,
+                event=audit_log.get_event_id("RULE_REMOVE"),
+                data=rule.get_audit_log_data(),
+                transaction_id=scheduled.id,
+            )
         return Response(status=202)

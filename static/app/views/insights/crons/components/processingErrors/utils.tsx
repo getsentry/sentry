@@ -1,5 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export function makeMonitorErrorsQueryKey(
   organization: Organization,

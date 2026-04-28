@@ -1,7 +1,8 @@
 import {useState} from 'react';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {ExternalLink} from '@sentry/scraps/link';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {CONSOLE_PLATFORM_INSTRUCTIONS} from 'sentry/components/onboarding/consoleModal';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
@@ -14,7 +15,7 @@ import {
   CONSOLE_PLATFORM_METADATA,
   ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 
 function getPlayStationRequestButtonAccessDescription(platform?: string) {
@@ -62,7 +63,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
         {
           projectSettingsLink: (
             <ExternalLink
-              href={`/settings/projects/${params.project.slug}/playstation/`}
+              href={`/settings/${params.organization.slug}/projects/${params.project.slug}/playstation/`}
             />
           ),
         }

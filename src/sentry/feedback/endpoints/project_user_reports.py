@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,12 +10,13 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import DSNAuthentication
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.helpers.environments import get_environment, get_environment_func
 from sentry.api.helpers.user_reports import user_reports_filter_to_unresolved
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import UserReportWithGroupSerializer, serialize
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
 from sentry.models.environment import Environment
@@ -32,7 +34,7 @@ class _PaginateKwargs(TypedDict):
     post_query_filter: NotRequired[object]
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint):
     owner = ApiOwner.FEEDBACK
     publish_status = {
@@ -41,6 +43,10 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
+    @extend_schema(
+        operation_id="List a Project's User Feedback",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, project) -> Response:
         """
         List a Project's User Feedback

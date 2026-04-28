@@ -12,12 +12,12 @@ import {
   generateProfileFlamechartRouteWithQuery,
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 export interface ProfilingBreadcrumbsProps {
   organization: Organization;
-  trails: Trail[];
+  trails: readonly Trail[];
 }
 
 function ProfilingBreadcrumbs({organization, trails}: ProfilingBreadcrumbsProps) {

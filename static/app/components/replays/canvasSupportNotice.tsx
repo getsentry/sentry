@@ -1,18 +1,18 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {MIN_CANVAS_SUPPORTED_SDK} from 'sentry/utils/replays/sdkVersions';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
 
 const LOCAL_STORAGE_KEY = 'replay-canvas-supported';
 
@@ -52,7 +52,7 @@ export function CanvasSupportNotice() {
           icon={<IconClose />}
           onClick={dismiss}
           size="zero"
-          borderless
+          priority="transparent"
         />
       }
     >
@@ -96,5 +96,5 @@ export function CanvasSupportNotice() {
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

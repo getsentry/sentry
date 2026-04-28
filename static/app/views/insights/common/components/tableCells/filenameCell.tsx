@@ -5,7 +5,7 @@ type Props = {
   url?: string;
 };
 
-function FilenameCell(props: Props) {
+export function FilenameCell(props: Props) {
   const {url} = props;
   const filename = url?.split('/').pop()?.split('?')[0];
   return (
@@ -14,5 +14,3 @@ function FilenameCell(props: Props) {
     </WiderHovercard>
   );
 }
-
-export default FilenameCell;

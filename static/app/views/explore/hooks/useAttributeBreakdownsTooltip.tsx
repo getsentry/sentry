@@ -1,14 +1,14 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
-import type {ECharts, TooltipComponentFormatterCallbackParams} from 'echarts';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 
 import type {TooltipOption} from 'sentry/components/charts/baseChart';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {
   useAddSearchFilter,
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
+import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 const TOOLTIP_POSITION_X_OFFSET = 20;
 const TOOLTIP_POSITION_Y_OFFSET = -10;
@@ -27,9 +27,15 @@ type Params = {
    */
   formatter: (params: TooltipComponentFormatterCallbackParams) => string;
   /**
-   * The function to render the HTML for the tooltip actions. The actions are rendered on click, anywhere on the chart.
+   * Action handlers and renderer for the tooltip. When provided, the tooltip will show
+   * clickable actions on click. When null, no actions are shown.
    */
-  actionsHtmlRenderer?: (value: string) => string;
+  actions?: TooltipActions | null;
+};
+
+export type TooltipActions = {
+  htmlRenderer: (value: string) => string;
+  onAction: (params: {action: string; key: string; value: string}) => void;
 };
 
 export enum Actions {
@@ -37,6 +43,32 @@ export enum Actions {
   ADD_TO_FILTER = 'add_value_to_filter',
   EXCLUDE_FROM_FILTER = 'exclude_value_from_filter',
   COPY_TO_CLIPBOARD = 'copy_value_to_clipboard',
+}
+
+export function useAttributeBreakdownsTooltipAction(): TooltipActions['onAction'] {
+  const addSearchFilter = useAddSearchFilter();
+  const setGroupBys = useSetQueryParamsGroupBys();
+  const copyToClipboard = useCopyToClipboard();
+
+  return useCallback(
+    ({action, key, value}: {action: string; key: string; value: string}) => {
+      switch (action) {
+        case Actions.GROUP_BY:
+          setGroupBys([key], Mode.AGGREGATE);
+          break;
+        case Actions.ADD_TO_FILTER:
+          addSearchFilter({key, value});
+          break;
+        case Actions.EXCLUDE_FROM_FILTER:
+          addSearchFilter({key, value, negated: true});
+          break;
+        case Actions.COPY_TO_CLIPBOARD:
+          copyToClipboard.copy(value);
+          break;
+      }
+    },
+    [addSearchFilter, setGroupBys, copyToClipboard]
+  );
 }
 
 // This hook creates a tooltip configuration for attribute breakdowns charts.
@@ -47,21 +79,18 @@ export function useAttributeBreakdownsTooltip({
   chartRef,
   formatter,
   chartWidth,
-  actionsHtmlRenderer,
+  actions,
 }: Params): TooltipOption {
   const [frozenPosition, setFrozenPosition] = useState<[number, number] | null>(null);
-  const tooltipParamsRef = useRef<TooltipComponentFormatterCallbackParams | null>(null);
-
-  const addSearchFilter = useAddSearchFilter();
-  const copyToClipboard = useCopyToClipboard();
-  const setGroupBys = useSetQueryParamsGroupBys();
+  const tooltipContentRef = useRef<string | null>(null);
+  const tooltipValueRef = useRef<string | null>(null);
 
   // This effect runs on load and when the frozen position changes.
   // - If frozen position is set, trigger a re-render of the tooltip with frozen position to show the
   //   tooltip actions (if passed in).
   // - Sets up the listener for clicks anywhere on the chart to toggle the frozen tooltip state.
   useEffect(() => {
-    const chartInstance: ECharts | undefined = chartRef.current?.getEchartsInstance();
+    const chartInstance = chartRef.current?.getEchartsInstance();
     if (!chartInstance) return;
 
     if (frozenPosition) {
@@ -81,7 +110,8 @@ export function useAttributeBreakdownsTooltip({
       // If the tooltip is frozen, toggle the frozen state and reset the tooltip params.
       if (frozenPosition) {
         setFrozenPosition(null);
-        tooltipParamsRef.current = null;
+        tooltipContentRef.current = null;
+        tooltipValueRef.current = null;
       } else {
         // If the tooltip is not frozen, set the frozen position to the current pixel point.
         setFrozenPosition(pixelPoint);
@@ -99,14 +129,14 @@ export function useAttributeBreakdownsTooltip({
         el = el.parentElement;
       }
 
-      tooltipParamsRef.current = null;
+      tooltipContentRef.current = null;
+      tooltipValueRef.current = null;
       setFrozenPosition(null);
     };
 
     dom.addEventListener('click', handleClickAnywhere);
     dom.addEventListener('mouseleave', handleMouseLeave);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       dom.removeEventListener('click', handleClickAnywhere);
       dom.removeEventListener('mouseleave', handleMouseLeave);
@@ -118,8 +148,6 @@ export function useAttributeBreakdownsTooltip({
   useEffect(() => {
     if (!frozenPosition) return;
 
-    // TODO Abdullah Khan: Take the actions in as a prop to the hook, to allow other
-    // product areas to use the component feature. This is explore specific for now.
     const handleClickActions = (event: MouseEvent) => {
       event.preventDefault();
 
@@ -129,29 +157,7 @@ export function useAttributeBreakdownsTooltip({
       const value = target.getAttribute('data-tooltip-action-value');
 
       if (action && value && key) {
-        switch (action) {
-          case Actions.GROUP_BY:
-            setGroupBys([key], Mode.AGGREGATE);
-            break;
-          case Actions.ADD_TO_FILTER:
-            addSearchFilter({
-              key,
-              value,
-            });
-            break;
-          case Actions.EXCLUDE_FROM_FILTER:
-            addSearchFilter({
-              key,
-              value,
-              negated: true,
-            });
-            break;
-          case Actions.COPY_TO_CLIPBOARD:
-            copyToClipboard.copy(value);
-            break;
-          default:
-            throw new Error(`Unknown attribute breakdowns tooltip action: ${action}`);
-        }
+        actions?.onAction({action, key, value});
       }
     };
 
@@ -179,13 +185,12 @@ export function useAttributeBreakdownsTooltip({
     document.addEventListener('mouseover', handleMouseOver);
     document.addEventListener('mouseout', handleMouseOut);
 
-    // eslint-disable-next-line consistent-return
     return () => {
       document.removeEventListener('click', handleClickActions);
       document.removeEventListener('mouseover', handleMouseOver);
       document.removeEventListener('mouseout', handleMouseOut);
     };
-  }, [frozenPosition, copyToClipboard, addSearchFilter, setGroupBys]);
+  }, [frozenPosition, actions]);
 
   const tooltipConfig: TooltipOption = useMemo(
     () => ({
@@ -203,9 +208,15 @@ export function useAttributeBreakdownsTooltip({
         // If the tooltip is NOT frozen, set the tooltip params and return the formatted content,
         // including the tooltip actions placeholder.
         if (!frozenPosition) {
-          tooltipParamsRef.current = params;
+          const formattedContent = formatter(params);
+          const tooltipValue =
+            (Array.isArray(params) ? params[0]?.name : params.name) ?? '';
 
-          const actionsPlaceholder = `
+          tooltipContentRef.current = formattedContent;
+          tooltipValueRef.current = tooltipValue;
+
+          const actionsPlaceholder = actions?.htmlRenderer
+            ? `
           <div
             class="tooltip-footer"
             style="
@@ -217,20 +228,27 @@ export function useAttributeBreakdownsTooltip({
           >
             Click for actions
           </div>
-        `.trim();
+        `.trim()
+            : '';
 
-          return wrapContent(formatter(params) + actionsPlaceholder);
+          return wrapContent(formattedContent + actionsPlaceholder);
         }
 
-        if (!tooltipParamsRef.current) {
+        const frozenTooltipContent = tooltipContentRef.current ?? formatter(params);
+        const frozenTooltipValue =
+          tooltipValueRef.current ??
+          (Array.isArray(params) ? params[0]?.name : params.name) ??
+          '';
+
+        if (!frozenTooltipContent) {
           return wrapContent('\u2014');
         }
 
-        // If the tooltip is frozen, use the cached tooltip params and
-        // return the formatted content, including the tooltip actions.
-        const p = tooltipParamsRef.current;
-        const value = (Array.isArray(p) ? p[0]?.name : p.name) ?? '';
-        return wrapContent(formatter(p) + (actionsHtmlRenderer?.(value) ?? ''));
+        // If the tooltip is frozen, use the cached tooltip content and
+        // append the tooltip actions based on the cached value.
+        return wrapContent(
+          frozenTooltipContent + (actions?.htmlRenderer(frozenTooltipValue) ?? '')
+        );
       },
       position(
         point: [number, number],
@@ -252,7 +270,7 @@ export function useAttributeBreakdownsTooltip({
         return [x, y];
       },
     }),
-    [frozenPosition, chartWidth, formatter, actionsHtmlRenderer, tooltipParamsRef]
+    [frozenPosition, chartWidth, formatter, actions, tooltipContentRef, tooltipValueRef]
   );
 
   return tooltipConfig;

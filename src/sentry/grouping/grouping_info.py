@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry.grouping.fingerprinting.utils import get_custom_fingerprint_description
 from sentry.grouping.strategies.base import StrategyConfiguration
 from sentry.grouping.variants import BaseVariant, ComponentVariant, SaltedComponentVariant
 from sentry.models.project import Project
@@ -82,7 +83,8 @@ def _get_new_description(variant: BaseVariant) -> str:
         "checksum": "checksum",
         "csp_local_script_violation": "directive",
         "csp_url": "directive and URL",
-        "custom_fingerprint": "custom fingerprint",
+        "custom_client_fingerprint": "custom client fingerprint",
+        "custom_server_fingerprint": "custom server fingerprint",
         "exception": "exception",  # TODO: hotfix for case in which nothing in the exception contributes
         "exception_message": "exception message",
         "exception_stacktrace": "exception stacktrace",
@@ -111,7 +113,10 @@ def _get_new_description(variant: BaseVariant) -> str:
         description_parts.append(stacktrace_descriptor)
 
     if isinstance(variant, SaltedComponentVariant):
-        description_parts.append("and custom fingerprint")
+        fingerprint_description = get_custom_fingerprint_description(
+            variant.fingerprint_info, pretty=True
+        )
+        description_parts.append(f"and {fingerprint_description}")
 
     return " ".join(description_parts)
 

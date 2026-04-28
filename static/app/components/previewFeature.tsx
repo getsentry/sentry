@@ -1,11 +1,12 @@
-import {Alert, type AlertProps} from 'sentry/components/core/alert';
+import {Alert, type AlertProps} from '@sentry/scraps/alert';
+
 import {t} from 'sentry/locale';
 
 type Props = {
   variant?: AlertProps['variant'];
 };
 
-function PreviewFeature({variant = 'info'}: Props) {
+export function PreviewFeature({variant = 'info'}: Props) {
   return (
     <Alert.Container>
       <Alert variant={variant}>
@@ -16,5 +17,3 @@ function PreviewFeature({variant = 'info'}: Props) {
     </Alert.Container>
   );
 }
-
-export default PreviewFeature;

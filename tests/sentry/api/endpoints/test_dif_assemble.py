@@ -251,3 +251,106 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[total_checksum]["state"] == ChunkFileState.ERROR
         assert "unsupported object file format" in response.data[total_checksum]["detail"]
+
+    def test_reuses_existing_proguard_file_with_new_debug_id(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+        first_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "/proguard/mapping-11111111-1111-1111-1111-111111111111.txt",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+        assert response.data[checksum]["dif"]["uuid"] == "11111111-1111-1111-1111-111111111111"
+
+        second_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="11111111-1111-1111-1111-111111111111",
+        )
+
+        assert first_dif.file_id == second_dif.file_id
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+
+    def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+        assert (
+            ProjectDebugFile.objects.filter(
+                project_id=self.project.id,
+                debug_id="00000000-0000-0000-0000-000000000000",
+            ).count()
+            == 1
+        )
+
+    def test_proguard_reupload_errors_for_non_proguard_file(self) -> None:
+        sym_file = self.load_fixture("crash.sym")
+        checksum = sha1(sym_file).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
+        chunks = [blob.checksum]
+
+        assemble_dif(
+            project_id=self.project.id,
+            name="crash.sym",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "/proguard/mapping-11111111-1111-1111-1111-111111111111.txt",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.ERROR
+        assert response.data[checksum]["detail"] == "This file is not a ProGuard mapping."

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, MutableMapping
 
 from django.utils.functional import cached_property
-from snuba_sdk import Column, Condition, Function, Op, OrderBy
+from snuba_sdk import Column, Condition, Direction, Function, Op, OrderBy
 
 from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
@@ -846,7 +846,8 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.SnQLDateArg("middle"),
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                    snql_distribution=lambda args,
+                    alias: function_aliases.resolve_metrics_percentile(
                         args=args,
                         alias=alias,
                         fixed_percentile=args["percentile"],
@@ -945,8 +946,13 @@ class MetricsDatasetConfig(DatasetConfig):
         return function_converter
 
     @property
-    def orderby_converter(self) -> Mapping[str, OrderBy]:
-        return {}
+    def orderby_converter(self) -> Mapping[str, Callable[[Direction], OrderBy]]:
+        return {
+            constants.DEVICE_CLASS_ALIAS: self._device_class_orderby_converter,
+        }
+
+    def _device_class_orderby_converter(self, direction: Direction) -> OrderBy:
+        return OrderBy(self.builder.column("device.class"), direction)
 
     # Field Aliases
     def _resolve_title_alias(self, alias: str) -> SelectType:
@@ -2122,7 +2128,6 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -2146,7 +2151,6 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -2170,7 +2174,6 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
-
         statuses = [self.builder.resolve_tag_value(status) for status in constants.CACHE_HIT_STATUS]
 
         return self._resolve_count_if(

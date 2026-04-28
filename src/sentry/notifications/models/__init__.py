@@ -7,9 +7,11 @@ from sentry.notifications.models.notificationaction import (
     NotificationActionProject,
 )
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.notifications.models.notificationrecord import NotificationRecord
 from sentry.notifications.models.notificationsettingbase import NotificationSettingBase
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.models.notificationthread import NotificationThread
 
 __all__ = (
     "NotificationActionProject",
@@ -20,6 +22,8 @@ __all__ = (
     "ActionRegistration",
     "NotificationSettingBase",
     "NotificationMessage",
+    "NotificationRecord",
     "NotificationSettingOption",
     "NotificationSettingProvider",
+    "NotificationThread",
 )

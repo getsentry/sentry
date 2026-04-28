@@ -2,14 +2,15 @@ import {Fragment, useMemo, useState} from 'react';
 import type {PropItem, Props} from 'react-docgen-typescript';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Button} from '@sentry/scraps/button';
+import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {IconChevron} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
-import * as Storybook from 'sentry/stories';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
+import {Section} from 'sentry/stories/layout';
+import {fzf} from 'sentry/utils/search/fzf';
 
 interface APIReferenceProps {
   componentProps: TypeLoader.ComponentDocWithFilename | undefined;
@@ -20,7 +21,7 @@ export function APIReference(props: APIReferenceProps) {
   const nodes = usePropTree(props.componentProps?.props ?? {}, query);
 
   return (
-    <Storybook.Section>
+    <Section>
       {props.componentProps?.description && <p>{props.componentProps.description}</p>}
       <Container marginBottom="md">
         <InputGroup>
@@ -86,7 +87,7 @@ export function APIReference(props: APIReferenceProps) {
           </tbody>
         </StoryTypesTable>
       </StoryTableContainer>
-    </Storybook.Section>
+    </Section>
   );
 }
 
@@ -111,7 +112,7 @@ function StoryDefinitionFilePath(props: {node: PropTreeNode}) {
         <StoryTypesTableDefinitionCell colSpan={2}>
           <Flex align="center">
             <Button
-              borderless
+              priority="transparent"
               icon={<IconChevron direction={expanded ? 'down' : 'right'} />}
               onClick={() => {
                 props.node.expanded = !expanded;

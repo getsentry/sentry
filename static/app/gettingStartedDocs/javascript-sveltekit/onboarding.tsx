@@ -1,5 +1,6 @@
-import {ExternalLink} from 'sentry/components/core/link';
-import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {copyDsnFieldBlock} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -29,10 +30,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'custom',
-          content: <CopyDsnField params={params} />,
-        },
+        copyDsnFieldBlock(params),
       ],
     },
   ],

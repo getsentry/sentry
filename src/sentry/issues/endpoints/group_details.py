@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import features, tagstore, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
@@ -57,7 +57,7 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
@@ -199,8 +199,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 )
             )
 
-            hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
-
             if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
                 inbox_reason = inbox_map.get(group.id)
@@ -277,10 +275,13 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     "pluginIssues": get_available_issue_plugins(group),
                     "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
-                    "stats": {"24h": hourly_stats, "30d": daily_stats},
                     "count": get_group_global_count(group),
                 }
             )
+
+            if "stats" not in collapse:
+                hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
+                data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
 
             participants = user_service.serialize_many(
                 filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},

@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
@@ -163,7 +163,7 @@ def calculate_unresolved_counts(
     return agg_project_counts
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {

@@ -3,7 +3,7 @@ import type {Result as SearchResult} from '@sentry-internal/global-search';
 import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-search';
 import dompurify from 'dompurify';
 
-import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
+import {parseHtmlMarks} from 'sentry/utils/parseHtmlMarks';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 import type {ChildProps, Result, ResultItem} from './types';
@@ -29,7 +29,7 @@ const MARK_TAGS = {
   highlightPostTag: '</mark>',
 };
 
-function HelpSource({children, query, platforms}: Props) {
+export function HelpSource({children, query, platforms}: Props) {
   const [results, setResults] = useState<Result[]>([]);
   const [isLoading, setLoading] = useState(true);
   const [search] = useState(
@@ -114,5 +114,3 @@ function mapSearchResults(results: SearchResult[]) {
 
   return items;
 }
-
-export default HelpSource;

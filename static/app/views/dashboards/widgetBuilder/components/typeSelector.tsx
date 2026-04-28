@@ -1,78 +1,115 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import {Select} from 'sentry/components/core/select';
-import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {IconGraph, IconNumber, IconSettings, IconTable} from 'sentry/icons';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {isChartDisplayType} from 'sentry/views/dashboards/utils';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import useDashboardWidgetSource from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
-import useIsEditingWidget from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
+import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/hooks/useDashboardWidgetSource';
+import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
-const typeIcons = {
+export const typeIcons: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
   [DisplayType.BAR]: <IconGraph key="bar" type="bar" />,
   [DisplayType.LINE]: <IconGraph key="line" type="line" />,
   [DisplayType.TABLE]: <IconTable key="table" />,
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
+  [DisplayType.CATEGORICAL_BAR]: <IconGraph key="categorical_bar" type="bar" />,
+  [DisplayType.TEXT]: <IconMarkdown key="text" />,
 };
-
-const BASE_DISPLAY_TYPES: Partial<Record<DisplayType, string>> = {
-  [DisplayType.AREA]: t('Area'),
-  [DisplayType.BAR]: t('Bar'),
-  [DisplayType.LINE]: t('Line'),
-  [DisplayType.TABLE]: t('Table'),
-  [DisplayType.BIG_NUMBER]: t('Big Number'),
-} as const;
 
 interface WidgetBuilderTypeSelectorProps {
   error?: Record<string, any>;
   setError?: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorProps) {
+export function WidgetBuilderTypeSelector({
+  error,
+  setError,
+}: WidgetBuilderTypeSelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const config = getDatasetConfig(state.dataset);
   const source = useDashboardWidgetSource();
   const isEditing = useIsEditingWidget();
   const organization = useOrganization();
 
-  const allowIssueWidgetSeriesDisplayType = organization.features.includes(
-    'dashboards-issue-widget-series-display-type'
-  );
-
-  const shouldDisabledIssueDisplayType = (value: DisplayType) => {
-    return (
-      state.dataset === WidgetType.ISSUE &&
-      !allowIssueWidgetSeriesDisplayType &&
-      isChartDisplayType(value)
-    );
-  };
-
-  const displayTypes = {...BASE_DISPLAY_TYPES};
-  if (organization.features.includes('dashboards-details-widget')) {
-    displayTypes[DisplayType.DETAILS] = t('Details');
-  }
+  const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
+  const hasTextWidget = organization.features.includes('dashboards-text-widgets');
+  // Use an array to define display type order explicitly.
+  // Object key ordering in JS is technically specified but easy to break accidentally.
+  const displayTypeOrder: Array<{
+    details: string;
+    label: string;
+    type: DisplayType;
+  }> = [
+    {
+      type: DisplayType.AREA,
+      label: t('Area'),
+      details: t('Compare relative contributions over time.'),
+    },
+    {
+      type: DisplayType.BAR,
+      label: t('Bar (Time Series)'),
+      details: t('Compare one or more measurements over time using bars.'),
+    },
+    {
+      type: DisplayType.CATEGORICAL_BAR,
+      label: t('Bar (Categorical)'),
+      details: t('Compare measurements across categories.'),
+    },
+    {
+      type: DisplayType.LINE,
+      label: t('Line'),
+      details: t('Compare one or more measurements over time.'),
+    },
+    {
+      type: DisplayType.TABLE,
+      label: t('Table'),
+      details: t('Display filtered fields and aggregations in a table.'),
+    },
+    {
+      type: DisplayType.BIG_NUMBER,
+      label: t('Big Number'),
+      details: t('Show a single aggregated value over the selected time range.'),
+    },
+    ...(hasTextWidget
+      ? [
+          {
+            type: DisplayType.TEXT,
+            label: t('Text (Markdown)'),
+            details: t('Display rich text and formatted markdown.'),
+          },
+        ]
+      : []),
+    ...(hasDetailsWidget
+      ? [
+          {
+            type: DisplayType.DETAILS,
+            label: t('Details'),
+            details: t('Show a representative example of the filtered event data.'),
+          },
+        ]
+      : []),
+  ];
 
   // Issue series widgets query a different data source from table widgets.
   // Therefore we need to handle resetting the query on display type change due to incompatibility.
   const handleIssueWidgetDisplayTypeChange = (newValue: DisplayType) => {
     if (state.dataset === WidgetType.ISSUE && config.defaultSeriesWidgetQuery) {
-      const newDisplayIsChart = isChartDisplayType(newValue);
-      const oldDisplayIsChart = isChartDisplayType(state.displayType);
+      const newDisplayIsChart = usesTimeSeriesData(newValue);
+      const oldDisplayIsChart = usesTimeSeriesData(state.displayType);
       if (newDisplayIsChart === oldDisplayIsChart) {
         // Data source does not change, so we just do a normal display type change.
         dispatch({
@@ -83,7 +120,7 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
         // Data source changed between table and series, so we need to reset the query.
         dispatch({
           type: BuilderStateAction.SET_STATE,
-          payload: convertWidgetToBuilderStateParams({
+          payload: convertWidgetToBuilderState({
             widgetType: WidgetType.ISSUE,
             queries: [
               (newDisplayIsChart && config.defaultSeriesWidgetQuery) ||
@@ -98,6 +135,23 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
     }
   };
 
+  const handleTextWidgetDisplayTypeChange = (newValue: DisplayType) => {
+    const defaultConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
+    dispatch({
+      type: BuilderStateAction.SET_STATE,
+      payload: convertWidgetToBuilderState({
+        widgetType: state.dataset ?? WidgetType.ERRORS,
+        queries: [
+          (usesTimeSeriesData(newValue) && defaultConfig.defaultSeriesWidgetQuery) ||
+            defaultConfig.defaultWidgetQuery,
+        ],
+        displayType: newValue,
+        interval: '',
+        title: state.title ?? '',
+      }),
+    });
+  };
+
   return (
     <Fragment>
       <SectionHeader
@@ -109,36 +163,35 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
         inline={false}
         flexibleControlStateSize
       >
-        <Select
-          name="displayType"
+        <CompactSelect
           value={state.displayType}
-          options={Object.keys(displayTypes).map(value => ({
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            leadingItems: typeIcons[value],
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            label: displayTypes[value],
-            value,
+          options={displayTypeOrder.map(({type, label, details}) => ({
+            leadingItems: typeIcons[type],
+            label,
+            value: type,
+            details,
             disabled:
-              !config.supportedDisplayTypes.includes(value as DisplayType) ||
-              shouldDisabledIssueDisplayType(value as DisplayType),
+              type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type),
           }))}
-          clearable={false}
-          onChange={(newValue: any) => {
-            if (newValue?.value === state.displayType) {
+          menuWidth={300}
+          onChange={selection => {
+            const newValue = selection.value;
+            if (newValue === state.displayType) {
               return;
             }
             setError?.({...error, displayType: undefined});
 
-            if (state.dataset === WidgetType.ISSUE) {
-              handleIssueWidgetDisplayTypeChange(newValue?.value);
+            if (state.displayType === DisplayType.TEXT && newValue !== DisplayType.TEXT) {
+              handleTextWidgetDisplayTypeChange(newValue);
+            } else if (state.dataset === WidgetType.ISSUE) {
+              handleIssueWidgetDisplayTypeChange(newValue);
             } else {
               dispatch({
                 type: BuilderStateAction.SET_DISPLAY_TYPE,
-                payload: newValue?.value,
+                payload: newValue,
               });
               if (
-                (newValue.value === DisplayType.TABLE ||
-                  newValue.value === DisplayType.BIG_NUMBER) &&
+                (newValue === DisplayType.TABLE || newValue === DisplayType.BIG_NUMBER) &&
                 state.query?.length
               ) {
                 dispatch({
@@ -152,22 +205,10 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
               widget_type: state.dataset ?? '',
               builder_version: WidgetBuilderVersion.SLIDEOUT,
               field: 'displayType',
-              value: newValue?.value ?? '',
+              value: newValue ?? '',
               new_widget: !isEditing,
               organization,
             });
-          }}
-          components={{
-            SingleValue: (containerProps: any) => {
-              return (
-                <components.SingleValue {...containerProps}>
-                  <Flex gap="md">
-                    {containerProps.data.leadingItems}
-                    {containerProps.children}
-                  </Flex>
-                </components.SingleValue>
-              );
-            },
           }}
         />
       </StyledFieldGroup>
@@ -175,9 +216,8 @@ function WidgetBuilderTypeSelector({error, setError}: WidgetBuilderTypeSelectorP
   );
 }
 
-export default WidgetBuilderTypeSelector;
-
 const StyledFieldGroup = styled(FieldGroup)`
   width: 100%;
   padding: 0px;
+  border-bottom: none;
 `;

@@ -1,16 +1,16 @@
 import styled from '@emotion/styled';
 
-import ErrorBoundary from 'sentry/components/errorBoundary';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 
 import type {GetBadgeProps} from './getBadge';
-import getBadge from './getBadge';
+import {getBadge} from './getBadge';
 
 /**
  * Public interface for all "id badges":
  * Organization, project, team, user
  */
 
-function IdBadge(props: GetBadgeProps) {
+export function IdBadge(props: GetBadgeProps) {
   const componentBadge = getBadge(props);
 
   if (!componentBadge) {
@@ -21,8 +21,6 @@ function IdBadge(props: GetBadgeProps) {
 
   return <InlineErrorBoundary mini>{componentBadge}</InlineErrorBoundary>;
 }
-
-export default IdBadge;
 
 const InlineErrorBoundary = styled(ErrorBoundary)`
   background-color: transparent;

@@ -1,6 +1,6 @@
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Carousel from 'sentry/components/carousel';
+import {Carousel} from 'sentry/components/carousel';
 
 describe('Carousel', () => {
   let intersectionOnbserverCb: (
@@ -10,6 +10,7 @@ describe('Carousel', () => {
   window.IntersectionObserver = class IntersectionObserver {
     root = null;
     rootMargin = '';
+    scrollMargin = '';
     thresholds = [];
     takeRecords = jest.fn();
 

@@ -2,7 +2,7 @@ import type {RouteObject} from 'react-router-dom';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/router/routes';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace
 // USING_CUSTOMER_DOMAIN with a getter.

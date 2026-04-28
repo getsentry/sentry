@@ -26,13 +26,13 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         values = []
         for index, crumb in enumerate(get_path(data, "values", filter=True, default=())):
             # TODO(ja): Handle already invalid and None breadcrumbs
             values.append(cls.normalize_crumb(crumb))
 
-        return super().to_python({"values": values}, **kwargs)
+        return super().to_python({"values": values})
 
     def to_json(self):
         return prune_empty_keys(

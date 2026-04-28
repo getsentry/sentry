@@ -1,5 +1,11 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
+
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
   addErrorMessage,
@@ -7,34 +13,28 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex, Stack} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
-import SearchBar from 'sentry/components/searchBar';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SEER_THRESHOLD_MAP} from 'sentry/views/settings/projectSeer';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/views/settings/projectSeer/constants';
 
@@ -46,11 +46,8 @@ function ProjectSeerSetting({project, orgSlug}: {orgSlug: string; project: Proje
     projectSlug: project.slug,
   });
 
-  const {
-    preference,
-    isPending: isLoadingPreferences,
-    codeMappingRepos,
-  } = useProjectSeerPreferences(project);
+  const {data, isPending: isLoadingPreferences} = useProjectSeerPreferences(project);
+  const {preference, code_mapping_repos: codeMappingRepos} = data ?? {};
 
   if (detailedProject.isPending || isLoadingPreferences) {
     return (
@@ -151,7 +148,7 @@ export function SeerAutomationProjectList() {
 
   const handleSearchChange = (searchQuery: string) => {
     setSearch(searchQuery);
-    setPage(1); // Reset to first page when search changes
+    setPage(1);
   };
 
   if (fetching) {
@@ -183,14 +180,12 @@ export function SeerAutomationProjectList() {
     filteredProjects.every(project => selected.has(project.id));
   const toggleSelectAll = () => {
     if (allFilteredSelected) {
-      // Unselect all filtered projects
       setSelected(prev => {
         const newSet = new Set(prev);
         filteredProjects.forEach(project => newSet.delete(project.id));
         return newSet;
       });
     } else {
-      // Select all filtered projects
       setSelected(prev => {
         const newSet = new Set(prev);
         filteredProjects.forEach(project => newSet.add(project.id));
@@ -220,13 +215,12 @@ export function SeerAutomationProjectList() {
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent row click when clicking checkbox
+    e.stopPropagation();
   };
 
   async function updateProjectsSeerValue(value: string) {
     addLoadingMessage('Updating projects...', {duration: 60000});
     try {
-      // Process projects in batches to avoid concurrency limit
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
 
@@ -238,8 +232,6 @@ export function SeerAutomationProjectList() {
             if (!project) return Promise.resolve();
 
             const updateData: any = {autofixAutomationTuning: value};
-
-            // If setting fixes to anything other than "off", also enable scanner
             if (value !== 'off') {
               updateData.seerScannerAutomation = true;
             }
@@ -252,7 +244,7 @@ export function SeerAutomationProjectList() {
         );
       }
       addSuccessMessage('Projects updated successfully');
-    } catch (err) {
+    } catch {
       addErrorMessage('Failed to update some projects');
     } finally {
       Array.from(selected).forEach(projectId => {
@@ -271,7 +263,6 @@ export function SeerAutomationProjectList() {
   async function updateProjectsSeerScanner(value: boolean) {
     addLoadingMessage('Updating projects...', {duration: 60000});
     try {
-      // Process projects in batches to avoid concurrency limit
       const batchSize = 20;
       const selectedProjects = Array.from(selected);
 
@@ -289,7 +280,7 @@ export function SeerAutomationProjectList() {
         );
       }
       addSuccessMessage('Projects updated successfully');
-    } catch (err) {
+    } catch {
       addErrorMessage('Failed to update some projects');
     } finally {
       Array.from(selected).forEach(projectId => {
@@ -365,9 +356,9 @@ export function SeerAutomationProjectList() {
         </PanelHeader>
         <PanelBody>
           {filteredProjects.length === 0 && search && (
-            <div style={{padding: space(2), textAlign: 'center', color: '#888'}}>
+            <SimpleTable.Empty>
               {t('No projects found matching "%(search)s"', {search})}
-            </div>
+            </SimpleTable.Empty>
           )}
           {paginatedProjects.map(project => (
             <ClickablePanelItem key={project.id} onClick={() => handleRowClick(project)}>
@@ -390,7 +381,7 @@ export function SeerAutomationProjectList() {
       </Panel>
       {totalProjects > PROJECTS_PER_PAGE && (
         <Flex justify="end">
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -413,9 +404,8 @@ export function SeerAutomationProjectList() {
 }
 
 const SearchWrapper = styled('div')`
-  margin-bottom: ${space(2)};
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
 `;
 
@@ -427,7 +417,7 @@ const SeerValue = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   display: flex;
   justify-content: flex-end;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
 `;
 
 const ActionDropdownMenu = styled(DropdownMenu)`

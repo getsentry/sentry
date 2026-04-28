@@ -5,8 +5,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import type {SearchBarProps} from 'sentry/components/performance/searchBar';
-import SearchBar from 'sentry/components/performance/searchBar';
-import EventView from 'sentry/utils/discover/eventView';
+import {SearchBar} from 'sentry/components/performance/searchBar';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 describe('SearchBar', () => {

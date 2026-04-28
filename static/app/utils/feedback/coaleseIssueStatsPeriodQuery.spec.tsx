@@ -1,4 +1,4 @@
-import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
+import {coaleseIssueStatsPeriodQuery} from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 
 const Jan1st = new Date('2024-01-01');
 const Oct31 = new Date('2024-10-31');

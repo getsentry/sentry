@@ -1,16 +1,17 @@
 import {useCallback, useEffect} from 'react';
 
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useSelectedProjectsHaveField} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const CRASH_REPORT_HASH = '#crashreport-sidequest';
 const FEEDBACK_HASH = '#feedback-sidequest';
 
-export default function useHaveSelectedProjectsSetupFeedback() {
+export function useHaveSelectedProjectsSetupFeedback() {
   const {hasField: hasSetupOneFeedback, fetching} =
     useSelectedProjectsHaveField('hasFeedbacks');
   return {hasSetupOneFeedback, fetching};

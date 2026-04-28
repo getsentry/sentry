@@ -1,4 +1,4 @@
-import TagsPageContent from './content';
+import {TagsPageContent} from './content';
 
 function TransactionTags() {
   return <TagsPageContent />;

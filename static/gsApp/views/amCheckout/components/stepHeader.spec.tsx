@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import StepHeader from 'getsentry/views/amCheckout/components/stepHeader';
+import {StepHeader} from 'getsentry/views/amCheckout/components/stepHeader';
 
 describe('StepHeader', () => {
   const mockTitle = 'Mock Title';

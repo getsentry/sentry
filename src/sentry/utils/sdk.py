@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import copy
 import logging
 import sys
@@ -29,6 +30,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
@@ -77,19 +79,15 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
+    "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
 }
 
 SAMPLED_ROUTES = {
     "/_warmup/": 0.0,
     "/api/0/auth/validate/": 0.0,
-    # Temporary: 100% sampling for ai-conversations endpoint debugging (sentry org)
-    "/api/0/organizations/sentry/ai-conversations/": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -256,10 +254,13 @@ def before_send(event: Event, hint: Hint) -> Event | None:
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)
-        if settings.SENTRY_REGION:
-            event["tags"]["sentry_region"] = settings.SENTRY_REGION
+        if settings.SENTRY_LOCAL_CELL:
+            event["tags"]["sentry_region"] = settings.SENTRY_LOCAL_CELL
 
-    if hint.get("exc_info", [None])[0] == OperationalError:
+    event_exc: type[BaseException] | None = hint.get("exc_info", [None])[0]
+    if event_exc == asyncio.CancelledError:
+        return None
+    if event_exc == OperationalError:
         event["level"] = "warning"
 
     return event
@@ -273,6 +274,15 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
         if attributes.get("sentry.message.template") == "New partitions assigned: %r":
             return None
 
+    try:
+        # FIXME: when in ASGI, the call to `options.store` from `in_random_rollout`
+        #        would fail, because of SyncOnlyOperation.
+        #        While we should ideally figure out how to actually fix this,
+        #        for the moment let's just simplify and skip this entirely.
+        asyncio.get_running_loop()
+        return None
+    except Exception:
+        pass
     if in_random_rollout("ourlogs.sentry-emit-rollout"):
         return log
     return None
@@ -392,38 +402,75 @@ def configure_sdk():
 
             self._capture_anything("capture_event", event)
 
+        def _should_drop_s4s(self, method_name, *args) -> bool:
+            """
+            Deterministically drop transaction/span data sent to S4S
+            based on trace_id. Rate is controlled by the
+            store.s4s-transaction-sample-rate option. Errors are never dropped.
+            """
+            sample_rate = options.get("store.s4s-transaction-sample-rate")
+            if sample_rate >= 1.0:
+                return False
+
+            trace_id = None
+            if method_name == "capture_envelope":
+                envelope = args[0]
+                # Drop envelopes containing transactions or standalone spans, not errors
+                has_transaction = envelope.get_transaction_event() is not None
+                # The Python SDK doesn't currently send standalone span items
+                # (spans are embedded in transaction envelopes), but the envelope
+                # spec defines a "span" item type for future SDK versions.
+                has_spans = any(item.type == "span" for item in envelope.items)
+                if not has_transaction and not has_spans:
+                    return False
+                trace_id = envelope.headers.get("trace", {}).get("trace_id")
+            elif method_name == "capture_event":
+                # Only drop transaction events, not errors
+                if args[0].get("type") != "transaction":
+                    return False
+                trace_id = args[0].get("contexts", {}).get("trace", {}).get("trace_id")
+
+            if trace_id is None:
+                return False
+
+            # trace_ids are hex strings — parse directly, no hashing needed
+            return (int(trace_id[:8], 16) % 100) >= int(sample_rate * 100)
+
         def _capture_anything(self, method_name, *args, **kwargs):
             # Sentry4Sentry (upstream) should get the event first because
             # it is most isolated from the sentry installation.
             if sentry4sentry_transport:
-                metrics.incr("internal.captured.events.upstream")
-                # TODO(mattrobenolt): Bring this back safely.
-                # from sentry import options
-                # install_id = options.get('sentry:install-id')
-                # if install_id:
-                #     event.setdefault('tags', {})['install-id'] = install_id
-                s4s_args = args
-                # We want to control whether we want to send metrics at the s4s upstream.
-                if (
-                    not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
-                    and method_name == "capture_envelope"
-                ):
-                    args_list = list(args)
-                    envelope = args_list[0]
-                    # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
-                    # unless we allow them via a separate sample rate.
-                    safe_items = [
-                        x
-                        for x in envelope.items
-                        if x.data_category != "statsd"
-                        or in_random_rollout("store.allow-s4s-ddm-sample-rate")
-                    ]
-                    if len(safe_items) != len(envelope.items):
-                        relay_envelope = copy.copy(envelope)
-                        relay_envelope.items = safe_items
-                        s4s_args = (relay_envelope, *args_list[1:])
+                if self._should_drop_s4s(method_name, *args):
+                    metrics.incr("internal.captured.events.upstream.s4s_dropped", sample_rate=0.01)
+                else:
+                    metrics.incr("internal.captured.events.upstream", sample_rate=0.01)
+                    # TODO(mattrobenolt): Bring this back safely.
+                    # from sentry import options
+                    # install_id = options.get('sentry:install-id')
+                    # if install_id:
+                    #     event.setdefault('tags', {})['install-id'] = install_id
+                    s4s_args = args
+                    # We want to control whether we want to send metrics at the s4s upstream.
+                    if (
+                        not settings.SENTRY_SDK_UPSTREAM_METRICS_ENABLED
+                        and method_name == "capture_envelope"
+                    ):
+                        args_list = list(args)
+                        envelope = args_list[0]
+                        # We filter out all the statsd envelope items, which contain custom metrics sent by the SDK.
+                        # unless we allow them via a separate sample rate.
+                        safe_items = [
+                            x
+                            for x in envelope.items
+                            if x.data_category != "statsd"
+                            or in_random_rollout("store.allow-s4s-ddm-sample-rate")
+                        ]
+                        if len(safe_items) != len(envelope.items):
+                            relay_envelope = copy.copy(envelope)
+                            relay_envelope.items = safe_items
+                            s4s_args = (relay_envelope, *args_list[1:])
 
-                getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
+                    getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
             if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
@@ -478,28 +525,36 @@ def configure_sdk():
     from sentry_sdk.integrations.redis import RedisIntegration
     from sentry_sdk.integrations.threading import ThreadingIntegration
 
+    integrations = [
+        DjangoAtomicIntegration(),
+        DjangoIntegration(
+            signals_spans=False,
+            cache_spans=True,
+            middleware_spans=False,
+            db_transaction_spans=True,
+        ),
+        # This makes it so all levels of logging are recorded as breadcrumbs,
+        # but none are captured as events (that's handled by the `internal`
+        # logger defined in `server.py`, which ignores the levels set
+        # in the integration and goes straight to the underlying handler class).
+        LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
+        RustInfoIntegration(),
+        RedisIntegration(),
+    ]
+    disabled_integrations = []
+
+    if settings.SENTRY_SDK_THREADING_INTEGRATION:
+        integrations.append(ThreadingIntegration())
+    else:
+        disabled_integrations.append(ThreadingIntegration())
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
         dsn=dsns.sentry4sentry,
-        transport=MultiplexingTransport(),
-        integrations=[
-            DjangoAtomicIntegration(),
-            DjangoIntegration(
-                signals_spans=False,
-                cache_spans=True,
-                middleware_spans=False,
-                db_transaction_spans=True,
-            ),
-            # This makes it so all levels of logging are recorded as breadcrumbs,
-            # but none are captured as events (that's handled by the `internal`
-            # logger defined in `server.py`, which ignores the levels set
-            # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
-            RustInfoIntegration(),
-            RedisIntegration(),
-            ThreadingIntegration(),
-        ],
+        transport=MultiplexingTransport,
+        integrations=integrations,
+        disabled_integrations=disabled_integrations,
         **sdk_options,
     )
 
@@ -638,6 +693,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     scope = sentry_sdk.get_isolation_scope()
+    set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
     with sentry_sdk.start_span(op="other", name="bind_organization_context"):

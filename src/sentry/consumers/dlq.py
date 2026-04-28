@@ -13,9 +13,16 @@ from arroyo.processing.strategies.abstract import (
     ProcessingStrategy,
     ProcessingStrategyFactory,
 )
-from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
+from arroyo.types import (
+    FILTERED_PAYLOAD,
+    BrokerValue,
+    Commit,
+    FilteredPayload,
+    Message,
+    Partition,
+    Value,
+)
 from arroyo.types import Topic as ArroyoTopic
-from arroyo.types import Value
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils import metrics
@@ -45,7 +52,6 @@ class MultipleDestinationDlqProducer(KafkaDlqProducer):
         value: BrokerValue[KafkaPayload],
         reason: str | None = None,
     ) -> ProducerFuture[BrokerValue[KafkaPayload]]:
-
         reject_reason = RejectReason(reason) if reason else RejectReason.INVALID
         producer = self.producers.get(reject_reason)
 

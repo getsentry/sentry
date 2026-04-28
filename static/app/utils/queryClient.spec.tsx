@@ -2,13 +2,8 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {
-  parseQueryKey,
-  useApiQuery,
-  type ApiQueryKey,
-  type InfiniteApiQueryKey,
-} from 'sentry/utils/queryClient';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type ResponseData = {
   value: number;
@@ -19,73 +14,17 @@ beforeEach(() => {
 });
 
 describe('queryClient', () => {
-  describe('parseQueryKey', () => {
-    it('can parse a undefined', () => {
-      const result = parseQueryKey(undefined);
-      expect(result).toEqual({
-        isInfinite: false,
-        url: undefined,
-        options: undefined,
-      });
-    });
-    it('can parse a simple query key, without options', () => {
-      const queryKey: ApiQueryKey = [getApiUrl('/api-tokens/')];
-      const result = parseQueryKey(queryKey);
-      expect(result).toEqual({
-        isInfinite: false,
-        url: '/api-tokens/',
-        options: undefined,
-      });
-    });
-
-    it('can parse a simple query key, with options', () => {
-      const queryKey: ApiQueryKey = [getApiUrl('/api-tokens/'), {query: {filter: 'red'}}];
-      const result = parseQueryKey(queryKey);
-      expect(result).toEqual({
-        isInfinite: false,
-        url: '/api-tokens/',
-        options: {query: {filter: 'red'}},
-      });
-    });
-
-    it('can parse an infinite query key, without options', () => {
-      const queryKey: InfiniteApiQueryKey = ['infinite', getApiUrl('/api-tokens/')];
-      const result = parseQueryKey(queryKey);
-      expect(result).toEqual({
-        isInfinite: true,
-        url: '/api-tokens/',
-        options: undefined,
-      });
-    });
-
-    it('can parse a infinite query key, with options', () => {
-      const queryKey: InfiniteApiQueryKey = [
-        'infinite',
-        getApiUrl('/api-tokens/'),
-        {query: {filter: 'red'}},
-      ];
-      const result = parseQueryKey(queryKey);
-      expect(result).toEqual({
-        isInfinite: true,
-        url: '/api-tokens/',
-        options: {query: {filter: 'red'}},
-      });
-    });
-  });
-
   describe('useQuery', () => {
     it('can do a simple fetch', async () => {
       const mock = MockApiClient.addMockResponse({
         url: '/api-tokens/',
         body: {value: 5},
-        headers: {'Custom-Header': 'header value'},
       });
 
       function TestComponent() {
-        const {data, getResponseHeader} = useApiQuery<ResponseData>(
-          [getApiUrl('/api-tokens/')],
-          {staleTime: 0}
-        );
+        const {data} = useApiQuery<ResponseData>([getApiUrl('/api-tokens/')], {
+          staleTime: 0,
+        });
 
         if (!data) {
           return null;
@@ -94,7 +33,6 @@ describe('queryClient', () => {
         return (
           <Fragment>
             <div>{data.value}</div>
-            <div>{getResponseHeader?.('Custom-Header')}</div>
           </Fragment>
         );
       }
@@ -102,7 +40,6 @@ describe('queryClient', () => {
       render(<TestComponent />);
 
       expect(await screen.findByText('5')).toBeInTheDocument();
-      expect(screen.getByText('header value')).toBeInTheDocument();
 
       expect(mock).toHaveBeenCalledWith('/api-tokens/', expect.anything());
     });

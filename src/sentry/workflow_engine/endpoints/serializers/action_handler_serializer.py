@@ -19,11 +19,11 @@ class SentryAppContext(TypedDict):
 class ActionHandlerSerializerResponse(TypedDict):
     type: str
     handlerGroup: str
-    configSchema: dict
-    dataSchema: dict
+    configSchema: dict[str, Any]
+    dataSchema: dict[str, Any]
     sentryApp: NotRequired[SentryAppContext]
-    integrations: NotRequired[list]
-    services: NotRequired[list]
+    integrations: NotRequired[list[Any]]
+    services: NotRequired[list[Any]]
 
 
 @register(ActionHandler)

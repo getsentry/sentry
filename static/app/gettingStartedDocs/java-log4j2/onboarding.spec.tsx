@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PackageManager} from 'sentry/gettingStartedDocs/java/utils';
 
-import docs from '.';
+import {docs} from '.';
 
 describe('getting started with log4j2', () => {
   it('renders gradle docs correctly', async () => {
@@ -50,7 +50,7 @@ describe('getting started with log4j2', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
-          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/m
+          /<artifactId>sentry-maven-plugin<\/artifactId>\s*<version>3\.99\.9<\/version>/
         )
       )
     ).toBeInTheDocument();

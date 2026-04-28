@@ -1,24 +1,30 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.apidocs.parameters import CursorQueryParam
 from sentry.constants import ObjectStatus
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (ProjectReleasePermission,)
 
+    @extend_schema(
+        operation_id="List a Project Release's Commits",
+        parameters=[CursorQueryParam],
+    )
     def get(self, request: Request, project, version) -> Response:
         """
         List a Project Release's Commits

@@ -6,11 +6,12 @@ import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
-import {MenuListItem} from 'sentry/components/core/menuListItem';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {MenuListItem} from '@sentry/scraps/menuListItem';
+
 import {IconChevron} from 'sentry/icons';
-import usePrevious from 'sentry/utils/usePrevious';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
 
@@ -29,6 +30,11 @@ export interface MenuItemProps extends MenuListItemProps {
    * Pass a class name to the menu item.
    */
   className?: string;
+  /**
+   * Whether to close the menu when this item is clicked. Overrides the list-level
+   * `closeOnSelect` prop when set.
+   */
+  closeOnSelect?: boolean;
   /**
    * Destination if this menu item is an external link.
    */
@@ -98,7 +104,7 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function DropdownMenuItem({
+export function DropdownMenuItem({
   node,
   state,
   closeOnSelect,
@@ -110,17 +116,27 @@ function DropdownMenuItem({
   const innerWrapRef = useRef<HTMLDivElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, trailingItems, externalHref, ...itemProps} =
-    node.value ?? {};
+  const {
+    key,
+    onAction,
+    to,
+    label,
+    isSubmenu,
+    trailingItems,
+    externalHref,
+    closeOnSelect: itemCloseOnSelect,
+    ...itemProps
+  } = node.value ?? {};
   const {size} = node.props;
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
+  const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
   const actionHandler = () => {
     if (isLink) {
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
-      if (closeOnSelect) {
+      if (resolvedCloseOnSelect) {
         requestAnimationFrame(() => rootOverlayState?.close());
       }
       return;
@@ -179,7 +195,7 @@ function DropdownMenuItem({
         onClose?.();
         rootOverlayState?.close();
       },
-      closeOnSelect: isLink ? false : closeOnSelect,
+      closeOnSelect: isLink ? false : resolvedCloseOnSelect,
       isDisabled,
     },
     state,
@@ -244,5 +260,3 @@ function DropdownMenuItem({
     />
   );
 }
-
-export default DropdownMenuItem;

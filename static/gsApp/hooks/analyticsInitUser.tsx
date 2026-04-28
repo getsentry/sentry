@@ -2,11 +2,11 @@ import * as Amplitude from '@amplitude/analytics-browser';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
-import sessionStorageWrapper from 'sentry/utils/sessionStorage';
+import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
-import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
+import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 
 const MARKETING_EVENT_SESSION_KEY = 'marketing_event_recorded';
 
@@ -21,7 +21,7 @@ type MarketingEventSchema = {
  * It also handles other initialization logic for analytics like sending
  * events to Google Analytics and storing the previous_referrer into local storage
  */
-export default function analyticsInitUser(user: User) {
+export function analyticsInitUser(user: User) {
   const {frontend_events, referrer} = qs.parse(window.location.search) || {};
   // store the referrer in sessionStorage so we know what it was when the user
   // navigates to another page

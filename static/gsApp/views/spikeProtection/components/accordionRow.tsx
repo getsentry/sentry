@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 type AccordionRowProps = {
   /**
@@ -29,7 +28,7 @@ type AccordionRowProps = {
   onOpen?: () => Promise<void>;
 };
 
-function AccordionRow({
+export function AccordionRow({
   disabled = false,
   disableBody,
   body,
@@ -89,8 +88,8 @@ function AccordionRow({
 const AccordionContent = styled('div')`
   display: flex;
   flex-direction: column;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding-left: ${p => p.theme.space.xl};
+  padding-right: ${p => p.theme.space.xl};
   width: 100%;
 `;
 
@@ -101,5 +100,3 @@ const Title = styled('div')<{disabled: boolean}>`
   align-items: center;
   cursor: ${props => (props.disabled ? 'auto' : 'pointer')};
 `;
-
-export default AccordionRow;

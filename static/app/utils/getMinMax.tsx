@@ -9,7 +9,7 @@
  * `lodash.min()` & `lodash.max()` are also options, they use a while-loop as here,
  * but that also includes a comparator function which adds overhead.
  */
-export default function getMinMax(arr: number[]) {
+export function getMinMax(arr: number[]) {
   let len = arr.length;
   let min = Infinity;
   let max = -Infinity;

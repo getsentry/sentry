@@ -21,7 +21,7 @@ function makeSearchResultsMock(items?: ResultItem[], threshold?: number) {
     loading: boolean;
     query: string;
   }): React.ReactElement<any, any> | null {
-    const searchableItems: ResultItem[] = items ?? [
+    const searchableItems = items ?? [
       {
         resultType: 'integration',
         sourceType: 'organization',
@@ -169,14 +169,16 @@ describe('Search', () => {
     expect(opener.location.href).toBe('https://vandelayindustries.io/import');
   });
   it('renders max search results', async () => {
-    const results: ResultItem[] = new Array(10).fill(0).map((_, i) => ({
-      resultType: 'integration',
-      sourceType: 'organization',
-      title: `${i} Vandelay Industries - Import`,
-      to: 'https://vandelayindustries.io/import',
-      model: {slug: 'vdl-imp'},
-      resolvedTs: 0,
-    }));
+    const results: ResultItem[] = Array.from({length: 10})
+      .fill(0)
+      .map((_, i) => ({
+        resultType: 'integration',
+        sourceType: 'organization',
+        title: `${i} Vandelay Industries - Import`,
+        to: 'https://vandelayindustries.io/import',
+        model: {slug: 'vdl-imp'},
+        resolvedTs: 0,
+      }));
 
     render(
       <Search

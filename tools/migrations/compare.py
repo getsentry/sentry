@@ -112,7 +112,7 @@ def main() -> int:
 
     if differences:
         raise SystemExit(
-            f'{"".join(differences)}\n'
+            f"{''.join(differences)}\n"
             f"---\n\n"
             f"{bold}migrations drift detected!{reset}\n\n"
             f"{subtle}(drift due to step 1 of deletion is normal){reset}\n\n"

@@ -11,7 +11,7 @@ from sentry import analytics
 from sentry.analytics.events.relocation_created import RelocationCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
@@ -38,7 +38,7 @@ ERR_FILE_NO_LONGER_EXISTS = (
 logger = logging.getLogger("sentry.relocation")
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class RelocationRetryEndpoint(Endpoint):
     owner = ApiOwner.HYBRID_CLOUD
     publish_status = {

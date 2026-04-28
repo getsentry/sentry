@@ -1,9 +1,16 @@
 import type {Layout} from 'react-grid-layout';
+import * as Sentry from '@sentry/react';
 
+import {clampWidgetLayout} from 'sentry/views/dashboards/clampWidgetLayout';
 import {
+  assignDefaultLayout,
   calculateColumnDepths,
+  getDashboardLayout,
   getNextAvailablePosition,
 } from 'sentry/views/dashboards/layoutUtils';
+import {DisplayType} from 'sentry/views/dashboards/types';
+
+jest.mock('@sentry/react');
 
 describe('Dashboards > Utils', () => {
   describe('calculateColumnDepths', () => {
@@ -113,6 +120,107 @@ describe('Dashboards > Utils', () => {
       getNextAvailablePosition(columnDepths, 4);
 
       expect(columnDepths).toEqual([1, 1, 1, 1, 1, 1]);
+    });
+  });
+
+  describe('clampWidgetLayout', () => {
+    it('returns valid layouts unchanged', () => {
+      const layout = {x: 0, y: 0, w: 2, h: 2, minH: 2};
+      expect(clampWidgetLayout(layout)).toEqual(layout);
+    });
+
+    it('clamps width exceeding grid columns', () => {
+      const layout = {x: 0, y: 0, w: 12, h: 2, minH: 2};
+      expect(clampWidgetLayout(layout)).toEqual({x: 0, y: 0, w: 6, h: 2, minH: 2});
+    });
+
+    it('clamps x + w exceeding grid columns', () => {
+      const layout = {x: 4, y: 0, w: 4, h: 2, minH: 2};
+      expect(clampWidgetLayout(layout)).toEqual({x: 4, y: 0, w: 2, h: 2, minH: 2});
+    });
+
+    it('clamps negative x to 0', () => {
+      const layout = {x: -1, y: 0, w: 2, h: 2, minH: 2};
+      expect(clampWidgetLayout(layout)).toEqual({x: 0, y: 0, w: 2, h: 2, minH: 2});
+    });
+
+    it('clamps width of 0 to 1', () => {
+      const layout = {x: 0, y: 0, w: 0, h: 2, minH: 2};
+      expect(clampWidgetLayout(layout)).toEqual({x: 0, y: 0, w: 1, h: 2, minH: 2});
+    });
+
+    it('clamps x beyond last column', () => {
+      const layout = {x: 10, y: 0, w: 2, h: 2, minH: 2};
+      expect(clampWidgetLayout(layout)).toEqual({x: 5, y: 0, w: 1, h: 2, minH: 2});
+    });
+  });
+
+  describe('getDashboardLayout', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('clamps oversized widget layouts', () => {
+      const widgets = [
+        {
+          displayType: DisplayType.LINE,
+          interval: '5m',
+          title: 'Test',
+          queries: [],
+          id: '1',
+          layout: {x: 0, y: 0, w: 12, h: 2, minH: 2},
+        },
+      ];
+      const layouts = getDashboardLayout(widgets);
+      expect(layouts[0]).toEqual(
+        expect.objectContaining({x: 0, y: 0, w: 6, h: 2, minH: 2})
+      );
+    });
+
+    it('logs to Sentry when layout is clamped', () => {
+      const widgets = [
+        {
+          displayType: DisplayType.LINE,
+          interval: '5m',
+          title: 'Test',
+          queries: [],
+          id: '1',
+          layout: {x: 0, y: 0, w: 12, h: 2, minH: 2},
+        },
+      ];
+      getDashboardLayout(widgets);
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Invalid widget layout dimensions detected',
+        expect.objectContaining({extra: expect.any(Object)})
+      );
+    });
+
+    it('does not log to Sentry for valid layouts', () => {
+      const widgets = [
+        {
+          displayType: DisplayType.LINE,
+          interval: '5m',
+          title: 'Test',
+          queries: [],
+          id: '1',
+          layout: {x: 0, y: 0, w: 2, h: 2, minH: 2},
+        },
+      ];
+      getDashboardLayout(widgets);
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assignDefaultLayout', () => {
+    it('clamps existing oversized layouts', () => {
+      const widgets = [
+        {
+          displayType: DisplayType.LINE,
+          layout: {x: 0, y: 0, w: 12, h: 2, minH: 2},
+        },
+      ];
+      const result = assignDefaultLayout(widgets, [0, 0, 0, 0, 0, 0]);
+      expect(result[0]!.layout).toEqual({x: 0, y: 0, w: 6, h: 2, minH: 2});
     });
   });
 });

@@ -1,6 +1,6 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
+import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 describe('getDaysSinceDate', () => {
   beforeEach(() => {

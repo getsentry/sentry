@@ -1,7 +1,7 @@
 /* eslint no-console:0 */
 import {DefaultIssuePlugin} from 'sentry/plugins/defaultIssuePlugin';
 import {DefaultPlugin} from 'sentry/plugins/defaultPlugin';
-import type SessionStackPlugin from 'sentry/plugins/sessionstack';
+import type {SessionStackPlugin} from 'sentry/plugins/sessionstack';
 import type {Plugin} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 
@@ -10,7 +10,7 @@ type PluginComponent =
   | typeof DefaultPlugin
   | typeof SessionStackPlugin;
 
-export default class Registry {
+export class Registry {
   plugins: Record<string, PluginComponent> = {};
   assetCache: Record<string, HTMLScriptElement> = {};
 

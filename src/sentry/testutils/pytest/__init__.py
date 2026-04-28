@@ -1,7 +1,8 @@
+import os
+
 pytest_plugins = [
     "sentry.testutils.skips",
     "sentry.testutils.pytest.sentry",
-    "sentry.testutils.pytest.selenium",
     "sentry.testutils.pytest.fixtures",
     "sentry.testutils.pytest.unittest",
     "sentry.testutils.pytest.kafka",
@@ -12,3 +13,6 @@ pytest_plugins = [
     "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.thread_leaks.pytest",
 ]
+
+if os.environ.get("SENTRY_SKIP_SELENIUM_PLUGIN") != "1":
+    pytest_plugins.append("sentry.testutils.pytest.selenium")

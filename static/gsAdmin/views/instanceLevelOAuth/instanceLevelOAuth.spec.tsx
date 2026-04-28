@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import InstanceLevelOAuth from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
+import {InstanceLevelOAuth} from 'admin/views/instanceLevelOAuth/instanceLevelOAuth';
 
 describe('instance level OAuth list', () => {
   const mockClientRows = [

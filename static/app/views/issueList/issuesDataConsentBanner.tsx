@@ -1,4 +1,4 @@
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 
 const DataConsentBanner = HookOrDefault({
   hookName: 'component:data-consent-banner',

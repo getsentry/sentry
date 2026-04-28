@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {
   BaseDetectorUpdatePayload,
@@ -9,8 +10,9 @@ import type {
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/forms/common/getDetectorAnalyticsPayload';
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
@@ -60,6 +62,8 @@ export function useCreateDetectorFormSubmit<
       );
 
       try {
+        formModel.setFormSaving();
+
         const resultDetector = await createDetector(payload);
 
         trackAnalytics('monitor.created', {
@@ -68,7 +72,7 @@ export function useCreateDetectorFormSubmit<
           success: true,
         });
 
-        addSuccessMessage(t('Monitor created successfully'));
+        addSuccessMessage(t('Monitor created'));
 
         if (onSuccess) {
           onSuccess(resultDetector);
@@ -77,14 +81,18 @@ export function useCreateDetectorFormSubmit<
         }
 
         onSubmitSuccess?.(resultDetector);
-      } catch (error) {
+      } catch (error: unknown) {
         trackAnalytics('monitor.created', {
           organization,
           detector_type: payload.type,
           success: false,
         });
 
-        addErrorMessage(t('Unable to create monitor'));
+        addErrorMessage(
+          (error instanceof RequestError
+            ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
+            : null) ?? t('Unable to create monitor')
+        );
 
         if (onError) {
           onError(error);

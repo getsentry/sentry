@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
-import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
+import type {OnExpandCallback} from 'sentry/views/explore/replays/detail/useVirtualizedInspector';
 
 interface Props {
   description: ReactNode;

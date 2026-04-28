@@ -2,24 +2,26 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import {Button} from 'sentry/components/core/button';
-import {Input} from 'sentry/components/core/input';
-import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
+import {Button} from '@sentry/scraps/button';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
   // TODO(msun): Add tests for this component
   const organization = useOrganization();
   const [isEditing, setIsEditing] = useState(false);
   const user = useUser();
+  const hasPageFrame = useHasPageFrameFeature();
 
   const {mutate: updateGroupSearchView} = useUpdateGroupSearchView();
 
@@ -56,6 +58,31 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
     setIsEditing(true);
   };
 
+  if (hasPageFrame) {
+    return (
+      <TopBar.Slot name="title">
+        {isEditing ? (
+          <EditingViewTitle
+            initialTitle={view.name}
+            onSave={handleOnSave}
+            stopEditing={() => setIsEditing(false)}
+          />
+        ) : (
+          <PageFrameViewTitleWrapper>
+            <ViewTitle onDoubleClick={handleBeginEditing}>{view.name}</ViewTitle>
+            <Button
+              icon={<IconEdit />}
+              onClick={handleBeginEditing}
+              aria-label={t('Edit view name')}
+              size="sm"
+              priority="transparent"
+            />
+          </PageFrameViewTitleWrapper>
+        )}
+      </TopBar.Slot>
+    );
+  }
+
   return isEditing ? (
     <EditingViewTitle
       initialTitle={view.name}
@@ -72,7 +99,7 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
         onClick={handleBeginEditing}
         aria-label={t('Edit view name')}
         size="sm"
-        borderless
+        priority="transparent"
       />
     </ViewTitleWrapper>
   );
@@ -89,6 +116,7 @@ function EditingViewTitle({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(initialTitle);
+  const hasPageFrame = useHasPageFrameFeature();
 
   const handleOnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -102,8 +130,6 @@ function EditingViewTitle({
       case 'Escape':
         stopEditing();
         break;
-      default:
-        break;
     }
   };
 
@@ -116,8 +142,10 @@ function EditingViewTitle({
     value: title,
   });
 
+  const GrowingInput = hasPageFrame ? PageFrameGrowingInput : StyledGrowingInput;
+
   return (
-    <StyledGrowingInput
+    <GrowingInput
       value={title}
       ref={mergeRefs(inputRef, autosizeInputRef)}
       onChange={handleOnChange}
@@ -127,6 +155,26 @@ function EditingViewTitle({
     />
   );
 }
+
+const PageFrameViewTitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+
+  > div {
+    height: auto;
+    border-bottom: none;
+  }
+
+  :not(:hover, :focus-within) {
+    button {
+      opacity: 0;
+    }
+
+    div {
+      border-bottom-color: transparent;
+    }
+  }
+`;
 
 const ViewTitleWrapper = styled(Layout.Title)`
   display: flex;
@@ -147,7 +195,7 @@ const ViewTitleWrapper = styled(Layout.Title)`
 const ViewTitle = styled('div')`
   height: 40px;
   letter-spacing: normal;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
   font-size: inherit;
   align-items: center;
   border-bottom: 1px dotted ${p => p.theme.tokens.border.primary};
@@ -182,4 +230,11 @@ const StyledGrowingInput = styled(Input)`
   &:hover {
     box-shadow: none;
   }
+`;
+
+const PageFrameGrowingInput = styled(StyledGrowingInput)`
+  height: auto;
+  line-height: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 `;

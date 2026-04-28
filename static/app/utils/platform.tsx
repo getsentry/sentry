@@ -72,7 +72,7 @@ export function isDisabledGamingPlatform({
   platform,
   enabledConsolePlatforms,
 }: {
-  platform: Platform;
+  platform: Pick<Platform, 'id' | 'type'>;
   enabledConsolePlatforms?: string[];
 }) {
   return platform.type === 'console' && !enabledConsolePlatforms?.includes(platform.id);

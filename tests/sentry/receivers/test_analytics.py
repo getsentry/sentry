@@ -21,7 +21,7 @@ class CreateDefaultProjectsTest(TestCase):
         )
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def test_user_modified_does_not_record_analytics(self):
+    def test_user_modified_does_not_record_analytics(self) -> None:
         user: User = self.create_user()
         with patch("sentry.analytics.record") as mock_record:
             user.email = "new@example.com"

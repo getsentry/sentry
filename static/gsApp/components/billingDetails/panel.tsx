@@ -2,21 +2,21 @@ import {Fragment, useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import BillingDetailsForm from 'getsentry/components/billingDetails/form';
+import {BillingDetailsForm} from 'getsentry/components/billingDetails/form';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
 import type {Subscription} from 'getsentry/types';
 import {hasSomeBillingDetails} from 'getsentry/utils/billing';
-import formatCurrency from 'getsentry/utils/formatCurrency';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {countryHasSalesTax, getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -24,7 +24,7 @@ import type {GetsentryEventKey} from 'getsentry/utils/trackGetsentryAnalytics';
 /**
  * Panel displaying existing billing details.
  */
-function BillingDetailsPanel({
+export function BillingDetailsPanel({
   organization,
   subscription,
   analyticsEvent,
@@ -75,7 +75,7 @@ function BillingDetailsPanel({
       ? tct('[credits] credit', {
           credits: formatCurrency(0 - subscription.accountBalance),
         })
-      : `${formatCurrency(subscription.accountBalance)}`;
+      : formatCurrency(subscription.accountBalance);
 
   return (
     <Flex
@@ -182,5 +182,3 @@ function BillingDetailsPanel({
     </Flex>
   );
 }
-
-export default BillingDetailsPanel;

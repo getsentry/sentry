@@ -4,15 +4,20 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useRemoveMetric} from 'sentry/views/explore/metrics/metricsQueryParams';
 
-export function DeleteMetricButton() {
+export function DeleteMetricButton({disabled}: {disabled?: boolean}) {
   const removeMetric = useRemoveMetric();
 
   return (
     <Button
-      size="sm"
+      priority="transparent"
       icon={<IconDelete />}
-      aria-label={t('Delete metric')}
+      size="zero"
       onClick={removeMetric}
+      disabled={disabled}
+      tooltipProps={{
+        title: disabled ? t('This application metric is used in an equation') : undefined,
+      }}
+      aria-label={t('Delete Metric')}
     />
   );
 }

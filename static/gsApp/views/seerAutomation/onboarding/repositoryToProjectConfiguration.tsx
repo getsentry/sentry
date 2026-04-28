@@ -1,15 +1,15 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {Alert} from '@sentry/scraps/alert/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Flex} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
 
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Select} from 'sentry/components/core/select';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
-import {IconArrow, IconRepository} from 'sentry/icons';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Repository} from 'sentry/types/integrations';
@@ -134,19 +134,16 @@ const RepositoryRow = memo(function RepositoryRow({
       : memberProjects.map(getProjectItem);
   }, [memberProjects, nonMemberProjects]);
 
-  const handleRepositoryChange = useCallback(
-    (option: SelectValue<string> | null) => {
-      if (option === null) {
-        onRemoveRepository?.(repository.id);
-        return;
-      }
+  const handleRepositoryChange = (option: SelectValue<string> | null) => {
+    if (option === null) {
+      onRemoveRepository?.(repository.id);
+      return;
+    }
 
-      if (option?.value && option.value !== repository.id) {
-        onChangeRepository(repository.id, option.value);
-      }
-    },
-    [repository.id, onChangeRepository, onRemoveRepository]
-  );
+    if (option?.value && option.value !== repository.id) {
+      onChangeRepository(repository.id, option.value);
+    }
+  };
 
   return (
     <MappingItem key={repository.id}>
@@ -159,7 +156,6 @@ const RepositoryRow = memo(function RepositoryRow({
         options={repositories}
         noOptionsMessage={() => t('No repositories found')}
         menuPortalTarget={document.body}
-        prefix={<IconRepository size="sm" />}
       />
 
       <Arrow direction="right" size="lg" />

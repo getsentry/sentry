@@ -1,4 +1,4 @@
-import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import {crashReportCallout} from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import type {OnboardingConfig} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
@@ -47,7 +47,7 @@ export const feedback: OnboardingConfig<PlatformOptions> = {
               label: 'JavaScript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/vue";`,
+                importStatement: 'import * as Sentry from "@sentry/vue";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

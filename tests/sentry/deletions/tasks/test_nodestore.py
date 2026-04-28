@@ -14,7 +14,6 @@ from sentry.utils.snuba import UnqualifiedQueryError
 
 
 class NodestoreDeletionTaskTest(TestCase):
-
     def create_n_events_with_group(self, n_events: int) -> list[Event]:
         events = []
         for _ in range(n_events):

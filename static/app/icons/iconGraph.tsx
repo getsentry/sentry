@@ -5,11 +5,11 @@ import {IconGraphLine} from './iconGraphLine';
 import {IconGraphScatter} from './iconGraphScatter';
 import type {SVGIconProps} from './svgIcon';
 
-interface Props extends SVGIconProps {
+export interface IconGraphProps extends SVGIconProps {
   type?: 'line' | 'circle' | 'bar' | 'area' | 'scatter';
 }
 
-export function IconGraph({type = 'line', ...props}: Props) {
+export function IconGraph({type = 'line', ...props}: IconGraphProps) {
   switch (type) {
     case 'circle':
       return <IconGraphCircle {...props} />;

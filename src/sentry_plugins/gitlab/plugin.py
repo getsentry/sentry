@@ -84,7 +84,7 @@ class GitLabPlugin(CorePluginMixin, IssuePlugin2):
                     group.get_absolute_url(params={"referrer": "gitlab_plugin"})
                 ),
                 "type": "textarea",
-                "help": ("Leave blank if you don't want to " "add a comment to the GitLab issue."),
+                "help": ("Leave blank if you don't want to add a comment to the GitLab issue."),
                 "required": False,
             },
         ]

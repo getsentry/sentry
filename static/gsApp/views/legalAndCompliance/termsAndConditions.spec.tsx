@@ -22,7 +22,7 @@ describe('TermsAndConditions', () => {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/subscriptions/${organization.slug}/`,
+      url: `/customers/${organization.slug}/`,
       method: 'GET',
       body: subscription,
     });

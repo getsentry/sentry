@@ -1,7 +1,7 @@
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
 
-export default function getRepoStatusLabel(repo: Repository) {
+export function getRepoStatusLabel(repo: Repository) {
   switch (repo.status) {
     case RepositoryStatus.PENDING_DELETION:
       return 'Deletion Queued';

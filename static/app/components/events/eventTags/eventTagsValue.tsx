@@ -1,4 +1,5 @@
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {EventTag} from 'sentry/types/event';
@@ -13,7 +14,7 @@ type Props = {
   withOnlyFormattedText?: boolean;
 };
 
-function EventTagsValue({
+export function EventTagsValue({
   tag: {key, value},
   meta,
   streamPath,
@@ -36,5 +37,3 @@ function EventTagsValue({
 
   return content;
 }
-
-export default EventTagsValue;

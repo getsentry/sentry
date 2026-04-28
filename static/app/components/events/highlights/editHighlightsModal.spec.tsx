@@ -11,7 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import EditHighlightsModal, {
+import {
+  EditHighlightsModal,
   type EditHighlightsModalProps,
 } from 'sentry/components/events/highlights/editHighlightsModal';
 import type {Project} from 'sentry/types/project';

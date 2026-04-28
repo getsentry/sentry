@@ -2,12 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 
 import ResultGrid from 'admin/components/resultGrid';
 
@@ -41,7 +40,7 @@ function getStatusLabel(status: number): string {
   return STATUS_LABELS[status] ?? `Unknown (${status})`;
 }
 
-function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
+export function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const toggleRow = (id: number) => {
@@ -128,7 +127,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
           <td key="expand">
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => toggleRow(row.id)}
               icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
               aria-label={isExpanded ? 'Collapse row' : 'Expand row'}
@@ -159,7 +158,7 @@ function CustomerIntegrationDebugDetails({orgId, ...props}: Props) {
 
 const MetadataContent = styled('pre')`
   margin: 0;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
   border-radius: 4px;
   overflow-x: auto;
   font-size: ${p => p.theme.font.size.sm};
@@ -167,5 +166,3 @@ const MetadataContent = styled('pre')`
   white-space: pre-wrap;
   word-wrap: break-word;
 `;
-
-export default CustomerIntegrationDebugDetails;

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentry.taskworker.runtime import app
 
 # Namespaces for taskworker tasks
@@ -195,6 +197,11 @@ reports_tasks = app.taskregistry.create_namespace(
     app_feature="shared",
 )
 
+scm_tasks = app.taskregistry.create_namespace(
+    "scm",
+    app_feature="scm",
+)
+
 sdk_tasks = app.taskregistry.create_namespace(
     "sdk",
     app_feature="shared",
@@ -255,6 +262,9 @@ workflow_engine_tasks = app.taskregistry.create_namespace(
     app_feature="workflow_engine",
 )
 
+
+# External namespaces for tasks belonging to other applications
+launchpad_tasks = app.create_external_namespace(name="default", application="launchpad")
 
 # Namespaces for testing taskworker tasks
 exampletasks = app.taskregistry.create_namespace(name="examples")

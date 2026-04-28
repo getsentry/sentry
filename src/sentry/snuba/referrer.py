@@ -25,10 +25,16 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+
+    # ** Dashboards **
+
+    API_DASHBOARDS_RELEASE_SELECTOR = "api.dashboards-release-selector"
+    API_DASHBOARDS_DETAILS_WIDGET_DOMAIN_STATUS = "api.dashboards.details-widget.domain-status"
     API_DASHBOARDS_BIGNUMBERWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.bignumberwidget.metrics-enhanced.primary"
     )
     API_DASHBOARDS_BIGNUMBERWIDGET = "api.dashboards.bignumberwidget"
+    API_DASHBOARDS_BIGNUMBERWIDGET_ROW = "api.dashboards.bignumberwidget.row"
     API_DASHBOARDS_TABLEWIDGET_METRICS_ENHANCED_PRIMARY = (
         "api.dashboards.tablewidget.metrics-enhanced.primary"
     )
@@ -36,6 +42,7 @@ class Referrer(StrEnum):
         "api.dashboards.tablewidget.metrics-enhanced.secondary"
     )
     API_DASHBOARDS_TABLEWIDGET = "api.dashboards.tablewidget"
+    API_DASHBOARDS_TABLEWIDGET_ROW = "api.dashboards.tablewidget.row"
     API_DASHBOARDS_TOP_EVENTS = "api.dashboards.top-events"
     API_DASHBOARDS_WIDGET_AREA_CHART_FIND_TOPN = "api.dashboards.widget.area-chart.find-topn"
     API_DASHBOARDS_WIDGET_AREA_CHART_METRICS_ENHANCED = (
@@ -48,6 +55,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.area-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_AREA_CHART = "api.dashboards.widget.area-chart"
+    API_DASHBOARDS_WIDGET_AREA_CHART_ROW = "api.dashboards.widget.area-chart.row"
     API_DASHBOARDS_WIDGET_BAR_CHART_FIND_TOPN = "api.dashboards.widget.bar-chart.find-topn"
     API_DASHBOARDS_WIDGET_BAR_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.bar-chart.metrics-enhanced"
@@ -59,6 +67,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.bar-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_BAR_CHART = "api.dashboards.widget.bar-chart"
+    API_DASHBOARDS_WIDGET_BAR_CHART_ROW = "api.dashboards.widget.bar-chart.row"
     API_DASHBOARDS_WIDGET_LINE_CHART_FIND_TOPN = "api.dashboards.widget.line-chart.find-topn"
     API_DASHBOARDS_WIDGET_LINE_CHART_METRICS_ENHANCED = (
         "api.dashboards.widget.line-chart.metrics-enhanced"
@@ -70,6 +79,7 @@ class Referrer(StrEnum):
         "api.dashboards.widget.line-chart.find-topn.metrics-enhanced.primary"
     )
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
+    API_DASHBOARDS_WIDGET_LINE_CHART_ROW = "api.dashboards.widget.line-chart.row"
 
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
     API_SPANS_TOTAL_COUNT_FIELD = "api.spans.total-events-field"
@@ -122,6 +132,9 @@ class Referrer(StrEnum):
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
     API_EXPLORE_LOGS_RAW_COUNT_HIGH_ACCURACY = "api.explore.logs.raw-count.high-accuracy"
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL = "api.explore.tracemetrics.raw-count.normal"
+    API_EXPLORE_TRACEMETRICS_RAW_COUNT_NORMAL_EXTRAPOLATED_TOTAL = (
+        "api.explore.tracemetrics.raw-count.normal-extrapolated-total"
+    )
     API_EXPLORE_TRACEMETRICS_RAW_COUNT_HIGH_ACCURACY = (
         "api.explore.tracemetrics.raw-count.high-accuracy"
     )
@@ -316,12 +329,12 @@ class Referrer(StrEnum):
     API_INSIGHTS_MOBILE_SPAN_TABLE = "api.insights.mobile-span-table"
     API_INSIGHTS_MOBILE_LANDING_TABLE = "api.insights.mobile.landing-table"
 
-    # Service Entry Spans
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE = "api.insights.service-entry-spans-table"
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_WITH_CATEGORY = (
-        "api.insights.service-entry-spans-table-with-category"
+    # Segment Spans
+    API_INSIGHTS_SEGMENT_SPANS_TABLE = "api.insights.segment-spans-table"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_WITH_CATEGORY = (
+        "api.insights.segment-spans-table-with-category"
     )
-    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_COUNT = "api.insights.service-entry-spans-table-count"
+    API_INSIGHTS_SEGMENT_SPANS_TABLE_COUNT = "api.insights.segment-spans-table-count"
 
     # Trace Panel
     API_INSIGHTS_TRACE_PANEL_LEFT_TRACE_LINK = "api.insights.trace-panel-left-trace-link"
@@ -458,7 +471,6 @@ class Referrer(StrEnum):
         "api.organization-events.metrics-enhanced.secondary"
     )
     API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
-    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
     API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
         "api.organization-events-spans-performance-examples"
     )
@@ -479,7 +491,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
-    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
@@ -562,12 +573,16 @@ class Referrer(StrEnum):
     API_LOGS_TAB_VIEW = "api.logs-tab.view"
     API_PREPROD_TAG_KEYS_RPC = "api.preprod.tags-keys.rpc"
     API_PREPROD_TAG_VALUES_RPC = "api.preprod.tags-values.rpc"
+    API_PROCESSING_ERRORS_TAG_KEYS_RPC = "api.processing-errors.tags-keys.rpc"
+    API_PROCESSING_ERRORS_TAG_VALUES_RPC = "api.processing-errors.tags-values.rpc"
+    API_TRACE_ITEM_ATTRIBUTE_VALIDATE = "api.trace-item.attribute-validate"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
     API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
     API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+    API_OCCURRENCES_FREQUENCY_STATS_RPC = "api.occurrences.fields-stats.rpc"
     API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
@@ -610,30 +625,11 @@ class Referrer(StrEnum):
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
     DELETIONS_GROUP = "deletions.group"
     DISCOVER = "discover"
+    DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_BREAKDOWN = (
-        "dynamic-sampling.distribution.fetch-project-breakdown"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_SDK_VERSIONS_INFO = (
-        "dynamic-sampling.distribution.fetch-project-sdk-versions-info"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS = (
-        "dynamic-sampling.distribution.fetch-project-stats"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS_COUNT = (
-        "dynamic-sampling.distribution.fetch-transactions-count"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS = (
-        "dynamic-sampling.distribution.fetch-transactions"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
-        "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
-    )
+    EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
     DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
         "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_ORGS_WITH_COUNT_PER_ROOT = (
-        "dynamic_sampling.distribution.fetch_orgs_with_count_per_root_total_volumes"
     )
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
@@ -641,13 +637,8 @@ class Referrer(StrEnum):
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
         "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
-    DYNAMIC_SAMPLING_COUNTERS_GET_ACTIVE_ORGS = "dynamic_sampling.counters.get_active_orgs"
     DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
         "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
-    )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
-    DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
-        "dynamic_sampling.tasks.custom_rule_notifications"
     )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
@@ -659,12 +650,6 @@ class Referrer(StrEnum):
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_CONDITIONS = (
-        "getsentry.promotion.mobile_performance_adoption.check_conditions"
-    )
-    GETSENTRY_PROMOTION_MOBILE_PERFORMANCE_ADOPTION_CHECK_ELIGIBLE = (
-        "getsentry.promotion.mobile_performance_adoption.check_eligible"
-    )
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
@@ -693,6 +678,7 @@ class Referrer(StrEnum):
     INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
 
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
+    BILLING_USAGE_SERVICE_CLICKHOUSE = "billing.usage_service.clickhouse"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
     PREVIEW_GET_EVENTS = "preview.get_events"
@@ -789,23 +775,22 @@ class Referrer(StrEnum):
     REPORTS_KEY_TRANSACTIONS = "reports.key_transactions"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
-    DAILY_SUMMARY_KEY_ERRORS = "daily_summary.key_errors"
-    DAILY_SUMMARY_KEY_PERFORMANCE_ISSUES = "daily_summary.key_performance_issues"
-    DAILY_SUMMARY_KEY_TRANSACTIONS_P95 = "daily_summary.key_transactions.p95"
-    DAILY_SUMMARY_KEY_TRANSACTIONS = "daily_summary.key_transactions"
-    DAILY_SUMMARY_OUTCOME_SERIES = "daily_summary.outcome_series"
-    DAILY_SUMMARY_OUTCOMES = "daily_summary.outcomes"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
+    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
     SEER_EXPLORER_INDEX = "seer.explorer_index"
+    SEER_EXPLORER_SERVICE_MAP = "seer.explorer_service_map"
     SEER_EXPLORER_TOOLS = "seer.explorer_tools"
+    SUPERGROUPS_BACKFILL_LIGHTWEIGHT_GET_LATEST_EVENTS = (
+        "supergroups_backfill_lightweight.get_latest_events"
+    )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
@@ -859,6 +844,7 @@ class Referrer(StrEnum):
     )
     TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
+    TAGSTORE_GET_GROUP_TAG_VALUE_COUNT = "tagstore.get_group_tag_value_count"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
     TAGSTORE_GET_GROUPS_USER_COUNTS_GROUP_SNOOZE = "tagstore.get_groups_user_counts.groupsnooze"

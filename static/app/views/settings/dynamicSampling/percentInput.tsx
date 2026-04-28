@@ -1,8 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {InputGroup, type InputProps} from 'sentry/components/core/input/inputGroup';
-import {space} from 'sentry/styles/space';
+import {InputGroup, type InputProps} from '@sentry/scraps/input';
 
 export function PercentInput({ref, ...props}: InputProps) {
   return (
@@ -11,7 +10,7 @@ export function PercentInput({ref, ...props}: InputProps) {
         width: 120px;
       `}
     >
-      <InputGroup.Input ref={ref} type="number" min={0} max={100} {...props} />
+      <InputGroup.Input ref={ref} type="number" step="any" min={0} max={100} {...props} />
       <InputGroup.TrailingItems>
         <TrailingPercent>%</TrailingPercent>
       </InputGroup.TrailingItems>
@@ -20,5 +19,5 @@ export function PercentInput({ref, ...props}: InputProps) {
 }
 
 const TrailingPercent = styled('strong')`
-  padding: 0 ${space(0.25)};
+  padding: 0 ${p => p.theme.space['2xs']};
 `;

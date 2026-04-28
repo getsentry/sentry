@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {getOperatorLabel} from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';

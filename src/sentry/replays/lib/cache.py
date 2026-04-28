@@ -9,7 +9,6 @@ U = TypeVar("U")
 
 
 class CacheProtocol[T, U](Protocol):
-
     def __contains__(self, key: T) -> bool: ...
 
     def __delitem__(self, key: T) -> None: ...

@@ -130,9 +130,9 @@ class PostProcessForwarderTest(TestCase):
             key=f"{self.events_topic}:0:{synchronize_commit_group}".encode(),
             value=b'{"orig_message_ts": 123456, "offset": 1}',
         )
-        assert (
-            commit_log_producer.flush(5) == 0
-        ), "snuba-commit-log producer did not successfully flush queue"
+        assert commit_log_producer.flush(5) == 0, (
+            "snuba-commit-log producer did not successfully flush queue"
+        )
 
         with patch("sentry.eventstream.kafka.dispatch.dispatch_post_process_group_task") as mock:
             # Run the loop for sometime

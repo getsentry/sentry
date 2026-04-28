@@ -27,7 +27,6 @@ from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
 from sentry.objectstore import get_attachments_session, get_symbolicator_url
-from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
@@ -115,11 +114,21 @@ class Symbolicator:
         self.project = project
         self.event_id = event_id
 
-    def _process(self, task_name: str, path: str, **kwargs):
+    def _process(
+        self,
+        task_name: str,
+        path: str,
+        kwargs_cb: Callable[[], dict[str, Any]] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         """
         This function will submit a symbolication task to a Symbolicator and handle
         polling it using the `SymbolicatorSession`.
         It will also correctly handle `TaskIdNotFound` and `ServiceUnavailable` errors.
+
+        `kwargs_cb`, if provided, is called on every new task submission and its result
+        is merged over `kwargs`. Use this for values that must be fresh on each
+        (re)submission, such as expiring tokens.
         """
         session = SymbolicatorSession(
             url=self.base_url,
@@ -138,7 +147,8 @@ class Symbolicator:
                 try:
                     if not task_id:
                         # We are submitting a new task to Symbolicator
-                        json_response = session.create_task(path, **kwargs)
+                        create_kwargs = {**kwargs, **(kwargs_cb() if kwargs_cb else {})}
+                        json_response = session.create_task(path, **create_kwargs)
                     else:
                         # The task has already been submitted to Symbolicator and we are polling
                         json_response = session.query_task(task_id)
@@ -188,13 +198,6 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
 
-        force_stored_attachment = not minidump.stored_id and in_random_rollout(
-            "objectstore.force-stored-symbolication"
-        )
-        if force_stored_attachment:
-            session = get_attachments_session(self.project.organization_id, self.project.id)
-            minidump.stored_id = session.put(minidump.load_data(self.project))
-
         if minidump.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, minidump.stored_id)
@@ -209,13 +212,13 @@ class Symbolicator:
                     "rewrite_first_module": rewrite_first_module,
                 },
             }
-            try:
-                res = self._process("process_minidump", "symbolicate-any", json=json)
-                return process_response(res)
-            finally:
-                if force_stored_attachment:
-                    session.delete(minidump.stored_id)
-                    minidump.stored_id = None
+
+            def cb() -> dict[str, Any]:
+                json["symbolicate"]["storage_token"] = session.mint_token()
+                return {"json": json}
+
+            res = self._process("process_minidump", "symbolicate-any", kwargs_cb=cb)
+            return process_response(res)
 
         data = {
             "platform": orjson.dumps(platform).decode(),
@@ -233,13 +236,6 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
 
-        force_stored_attachment = not report.stored_id and in_random_rollout(
-            "objectstore.force-stored-symbolication"
-        )
-        if force_stored_attachment:
-            session = get_attachments_session(self.project.organization_id, self.project.id)
-            report.stored_id = session.put(report.load_data(self.project))
-
         if report.stored_id:
             session = get_attachments_session(self.project.organization_id, self.project.id)
             storage_url = get_symbolicator_url(session, report.stored_id)
@@ -253,13 +249,13 @@ class Symbolicator:
                     "storage_url": storage_url,
                 },
             }
-            try:
-                res = self._process("process_applecrashreport", "symbolicate-any", json=json)
-                return process_response(res)
-            finally:
-                if force_stored_attachment:
-                    session.delete(report.stored_id)
-                    report.stored_id = None
+
+            def cb() -> dict[str, Any]:
+                json["symbolicate"]["storage_token"] = session.mint_token()
+                return {"json": json}
+
+            res = self._process("process_applecrashreport", "symbolicate-any", kwargs_cb=cb)
+            return process_response(res)
 
         data = {
             "platform": orjson.dumps(platform).decode(),

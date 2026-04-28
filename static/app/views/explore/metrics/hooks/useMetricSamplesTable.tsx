@@ -1,15 +1,14 @@
 import {useCallback, useMemo} from 'react';
-import moment from 'moment-timezone';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -22,6 +21,7 @@ import {
   useMetricsFrozenSearch,
   useMetricsFrozenTracePeriod,
 } from 'sentry/views/explore/metrics/metricsFrozenContext';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/metricToolbar/metricSelector';
 import {
   TraceMetricKnownFieldKey,
   type TraceMetricEventsResponseItem,
@@ -34,7 +34,6 @@ import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 const MILLISECONDS_PER_SECOND = 1000;
 
 interface UseMetricSamplesTableOptions {
@@ -43,6 +42,7 @@ interface UseMetricSamplesTableOptions {
   disabled?: boolean;
   ingestionDelaySeconds?: number;
   queryExtras?: RPCQueryExtras;
+  staleTime?: number;
   traceMetric?: TraceMetric;
 }
 
@@ -98,13 +98,27 @@ function useMetricsQueryKey({
     if (traceMetric) {
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_NAME, traceMetric.name);
       newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_TYPE, traceMetric.type);
+      if (traceMetric.unit && traceMetric.unit !== '-') {
+        if (traceMetric.unit !== NONE_UNIT) {
+          newSearch.addFilterValue(
+            TraceMetricKnownFieldKey.METRIC_UNIT,
+            traceMetric.unit
+          );
+        } else if (traceMetric.unit === NONE_UNIT) {
+          newSearch.addOp('(');
+          newSearch.addFilterValue('!has', TraceMetricKnownFieldKey.METRIC_UNIT);
+          newSearch.addOp('OR');
+          newSearch.addFilterValue(TraceMetricKnownFieldKey.METRIC_UNIT, NONE_UNIT);
+          newSearch.addOp(')');
+        }
+      }
     }
 
     return newSearch.formatString();
   }, [userSearch, frozenSearch, traceMetric]);
 
-  const adjustedDatetime = useMemo(() => {
-    const baseDatetime = frozenTracePeriod
+  const baseDatetime = useMemo(() => {
+    const datetime = frozenTracePeriod
       ? {
           start: frozenTracePeriod.start ?? null,
           end: frozenTracePeriod.end ?? null,
@@ -113,27 +127,26 @@ function useMetricsQueryKey({
         }
       : selection.datetime;
 
-    const {start, end, period, utc} = baseDatetime;
+    return datetime;
+  }, [selection.datetime, frozenTracePeriod]);
 
+  const delayedRelativePeriod = useMemo(() => {
+    const {end, period} = baseDatetime;
     const periodMs = period ? intervalToMilliseconds(period) : 0;
-    if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
-      const startTime = moment().subtract(periodMs, 'milliseconds');
-      const delayedEndTime = moment().subtract(ingestionDelaySeconds, 'seconds');
 
+    if (period && periodMs > ingestionDelaySeconds * MILLISECONDS_PER_SECOND && !end) {
       return {
-        start: startTime.format(DATE_FORMAT),
-        end: delayedEndTime.format(DATE_FORMAT),
-        period: null,
-        utc,
+        statsPeriodStart: period,
+        statsPeriodEnd: `${ingestionDelaySeconds}s`,
       };
     }
 
-    return {start, end, period, utc};
-  }, [selection.datetime, frozenTracePeriod, ingestionDelaySeconds]);
+    return undefined;
+  }, [baseDatetime, ingestionDelaySeconds]);
 
   const pageFilters = {
     ...selection,
-    datetime: adjustedDatetime,
+    datetime: baseDatetime,
   };
   const dataset = DiscoverDatasets.TRACEMETRICS;
 
@@ -157,6 +170,15 @@ function useMetricsQueryKey({
   const params = {
     query: {
       ...eventViewPayload,
+      ...(delayedRelativePeriod
+        ? {
+            start: undefined,
+            end: undefined,
+            statsPeriod: undefined,
+            statsPeriodStart: delayedRelativePeriod.statsPeriodStart,
+            statsPeriodEnd: delayedRelativePeriod.statsPeriodEnd,
+          }
+        : {}),
       orderby: orderby.length > 0 ? orderby : undefined,
       per_page: limit,
       referrer,
@@ -170,7 +192,12 @@ function useMetricsQueryKey({
     eventView,
   };
 
-  const queryKey: ApiQueryKey = [`/organizations/${organization.slug}/events/`, params];
+  const queryKey: ApiQueryKey = [
+    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+    params,
+  ];
 
   return {
     queryKey,
@@ -188,6 +215,7 @@ export function useMetricSamplesTable({
   fields,
   ingestionDelaySeconds,
   queryExtras,
+  staleTime,
 }: UseMetricSamplesTableOptions) {
   const canTriggerHighAccuracy = useCallback(
     (result: MetricSamplesTableResult['result']) => {
@@ -207,6 +235,7 @@ export function useMetricSamplesTable({
       fields,
       ingestionDelaySeconds,
       queryExtras,
+      staleTime,
     },
     queryOptions: {
       canTriggerHighAccuracy,
@@ -221,6 +250,7 @@ function useMetricSamplesTableImpl({
   fields,
   ingestionDelaySeconds = INGESTION_DELAY,
   queryExtras,
+  staleTime,
 }: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
   const {queryKey, other} = useMetricsQueryKey({
     limit,
@@ -233,7 +263,7 @@ function useMetricSamplesTableImpl({
 
   const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
     enabled,
-    staleTime: getStaleTimeForEventView(other.eventView),
+    staleTime: staleTime ?? getStaleTimeForEventView(other.eventView),
   });
 
   return {

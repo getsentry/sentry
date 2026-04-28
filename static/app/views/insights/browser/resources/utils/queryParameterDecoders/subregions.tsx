@@ -3,7 +3,7 @@ import {subregionCodeToName, type SubregionCode} from 'sentry/views/insights/typ
 
 const OPTIONS = Object.keys(subregionCodeToName) as SubregionCode[];
 
-export default function decode(
+export function decodeSubregions(
   value: string | string[] | undefined | null
 ): SubregionCode[] | undefined {
   const decodedValue = decodeList(value);
@@ -14,5 +14,5 @@ export default function decode(
 
 function isAValidOption(maybeOption: string): maybeOption is SubregionCode {
   // Manually widen to allow the comparison to string
-  return (OPTIONS as unknown as string[]).includes(maybeOption as SubregionCode);
+  return (OPTIONS as unknown as string[]).includes(maybeOption);
 }

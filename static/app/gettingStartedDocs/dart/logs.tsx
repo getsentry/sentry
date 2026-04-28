@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -90,7 +91,7 @@ export const logs: OnboardingConfig = {
         {
           type: 'code',
           language: 'dart',
-          code: `Sentry.logger.fmt.info("Test log from %s", ["Sentry"])`,
+          code: 'Sentry.logger.fmt.info("Test log from %s", ["Sentry"])',
         },
         {
           type: 'text',

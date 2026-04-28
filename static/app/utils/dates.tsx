@@ -1,6 +1,6 @@
 import moment from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {TableDataRow} from './discover/discoverQuery';
 
@@ -104,7 +104,7 @@ export function setDateToTime(
     date.setUTCHours(hours, minutes);
   }
 
-  if (typeof seconds !== 'undefined') {
+  if (seconds !== undefined) {
     date.setSeconds(seconds);
   }
 

@@ -20,6 +20,7 @@ def is_new_event(event_data: WorkflowEventData) -> bool:
 class FirstSeenEventConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
     comparison_json_schema = {"type": "boolean"}
+    label_template = "A new issue is created"
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:

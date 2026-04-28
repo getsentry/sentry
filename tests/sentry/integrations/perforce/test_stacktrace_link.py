@@ -13,7 +13,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
 
     provider = PerforceIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -54,7 +54,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         self.check_file_patcher.stop()
         super().tearDown()
 
-    def test_get_stacktrace_config_python_path(self):
+    def test_get_stacktrace_config_python_path(self) -> None:
         """Test stacktrace link generation for Python SDK path"""
         self.check_file_patcher.stop()
         self.check_file_patcher = patch(
@@ -109,7 +109,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         assert result["error"] is None
         assert result["src_path"] == "game/src/main.cpp#1"
 
-    def test_get_stacktrace_config_no_matching_code_mapping(self):
+    def test_get_stacktrace_config_no_matching_code_mapping(self) -> None:
         """Test stacktrace link when no code mapping matches"""
         ctx: StacktraceLinkContext = {
             "file": "other/app/services/processor.py",
@@ -354,7 +354,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
 
     provider = PerforceIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -376,7 +376,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         self.check_file_patcher.stop()
         super().tearDown()
 
-    def test_stacktrace_link_empty_stack_root(self):
+    def test_stacktrace_link_empty_stack_root(self) -> None:
         """Test stacktrace link with empty stack_root (shouldn't match anything)"""
         self.check_file_patcher.stop()
         self.check_file_patcher = patch(

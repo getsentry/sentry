@@ -6,10 +6,10 @@ import pytest
 from sentry.sentry_apps.metrics import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import cell_silo_test
 
 
-@region_silo_test
+@cell_silo_test
 class BroadcastWebhooksForOrganizationTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization()
@@ -169,7 +169,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
             self.installation_1.id, "issue.created", payload
         )
 
-    def test_valid_event_types_accepted(self):
+    def test_valid_event_types_accepted(self) -> None:
         """Test that all valid SentryAppEventType values are accepted."""
         valid_combinations = [
             ("error", "created"),
@@ -305,7 +305,7 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         # Verify installations were fetched for the correct organization
         mock_installations.assert_called_once_with(organization_id=different_org.id)
 
-    def test_event_type_construction(self):
+    def test_event_type_construction(self) -> None:
         """Test that event types are constructed correctly."""
         test_cases = [
             ("issue", "created", "issue.created"),

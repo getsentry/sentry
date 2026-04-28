@@ -110,10 +110,10 @@ if memcached:
     memcached_port = env("SENTRY_MEMCACHED_PORT") or "11211"
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
+            "BACKEND": "sentry.cache.backends.reconnectingmemcache.ReconnectingMemcache",
             "LOCATION": [memcached + ":" + memcached_port],
             "TIMEOUT": 3600,
-            "OPTIONS": {"ignore_exc": True},
+            "OPTIONS": {"ignore_exc": True, "reconnect_age": 300},
         }
     }
 
@@ -224,7 +224,7 @@ if not secret_key:
         "Error: SENTRY_SECRET_KEY is undefined, run `generate-secret-key` and set to -e SENTRY_SECRET_KEY"
     )
 
-if "SENTRY_RUNNING_UWSGI" not in os.environ and len(secret_key) < 32:
+if "SENTRY_RUNNING_GRANIAN" not in os.environ and len(secret_key) < 32:
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     print("!!                    CAUTION                       !!")
     print("!! Your SENTRY_SECRET_KEY is potentially insecure.  !!")

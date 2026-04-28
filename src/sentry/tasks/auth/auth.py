@@ -5,6 +5,7 @@ import logging
 
 from django.db import router
 from django.db.models import F
+from taskbroker_client.retry import Retry
 
 from sentry import audit_log, options
 from sentry.auth import manager
@@ -16,8 +17,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import auth_control_tasks, auth_tasks
-from sentry.taskworker.retry import Retry
-from sentry.types.region import RegionMappingNotFound
+from sentry.types.cell import CellMappingNotFound
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.audit import create_audit_entry_from_user
@@ -58,7 +58,7 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
         organization_service.send_sso_link_emails(
             organization_id=org_id, sending_user_email=user.email, provider_key=provider_key
         )
-    except RegionMappingNotFound:
+    except CellMappingNotFound:
         logger.warning("Could not send SSO link emails: Missing organization")
 
 
@@ -66,7 +66,7 @@ def _email_missing_links(org_id: int, sending_user_id: int, provider_key: str) -
     name="sentry.tasks.email_unlink_notifications",
     namespace=auth_tasks,
     processing_deadline_duration=90,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def email_unlink_notifications(
     org_id: int, sending_user_email: str, provider_key: str, actor_id: int | None = None
@@ -200,7 +200,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     retry=Retry(
         delay=60 * 5,
     ),
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 @retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):

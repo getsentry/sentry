@@ -8,7 +8,7 @@ import {
 import {DataCategory} from 'sentry/types/core';
 
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {
   exceedsInvoicedBudgetLimit,
   getOnDemandBudget,

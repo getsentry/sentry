@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import zxcvbn from 'zxcvbn';
 
 import {tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 /**
  * The maximum score that zxcvbn reports
@@ -97,7 +96,7 @@ const StrengthProgressBar = styled('div')`
 
 const StrengthLabel = styled('div')`
   font-size: 0.8em;
-  margin-top: ${space(0.25)};
+  margin-top: ${p => p.theme.space['2xs']};
   color: ${p => p.theme.colors.gray500};
 `;
 

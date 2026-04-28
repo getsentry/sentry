@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {keepPreviousData} from '@tanstack/react-query';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
+
 import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {keepPreviousData} from 'sentry/utils/queryClient';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -22,9 +23,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
     options: {placeholderData: keepPreviousData, fetchAllAvailable: true},
   });
 
-  const attachmentPagination = parseLinkHeader(
-    attachments.getResponseHeader?.('Link') ?? null
-  );
+  const attachmentPagination = parseLinkHeader(attachments.pageLinks);
 
   // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
   const hasManyAttachments =

@@ -1,5 +1,8 @@
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
-import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
+import {
+  PlanDetailsLookupFixture,
+  type PlanIds,
+} from 'getsentry-test/fixtures/planDetailsLookup';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -10,7 +13,7 @@ export function BillingHistoryFixture(
   params: Partial<TBillingHistory> = {}
 ): TBillingHistory {
   const planData = {plan: 'am1_f', ...params};
-  const planDetails = PlanDetailsLookupFixture(planData.plan);
+  const planDetails = PlanDetailsLookupFixture(planData.plan as PlanIds);
 
   return {
     id: '625529670',
@@ -18,9 +21,9 @@ export function BillingHistoryFixture(
     onDemandMaxSpend: 0,
     onDemandSpend: 0,
     onDemandBudgetMode: OnDemandBudgetMode.SHARED,
-    plan: planDetails!.id,
-    planName: planDetails!.name,
-    planDetails: planDetails!,
+    plan: planDetails.id,
+    planName: planDetails.name,
+    planDetails,
     periodStart: '2018-01-01',
     periodEnd: '2018-01-31',
     categories: {

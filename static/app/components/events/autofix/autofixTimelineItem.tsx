@@ -5,11 +5,10 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
-import AutofixInsightSources from 'sentry/components/events/autofix/insights/autofixInsightSources';
+import {AutofixInsightSources} from 'sentry/components/events/autofix/insights/autofixInsightSources';
 import type {TimelineItemProps} from 'sentry/components/timeline';
 import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 
@@ -152,7 +151,7 @@ const StyledSpan = styled(MarkedText)`
 `;
 
 const SourcesWrapper = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
@@ -160,11 +159,11 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: ${p => p.theme.space[0]} ${p => p.theme.space.xs};
+  padding: ${p => p.theme.space['0']} ${p => p.theme.space.xs};
   border-radius: ${p => p.theme.radius.md};
   cursor: pointer;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
   text-decoration-color: ${p => p.theme.colors.pink400};
   text-decoration-thickness: 1px;
@@ -173,7 +172,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   & > span:first-of-type {
     flex: 1;
     min-width: 0;
-    margin-right: ${space(1)};
+    margin-right: ${p => p.theme.space.md};
   }
 
   &:hover {
@@ -190,5 +189,5 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 const StyledIconChevron = styled(IconChevron)`
   color: ${p => p.theme.tokens.content.secondary};
   flex-shrink: 0;
-  margin-right: ${space(0.25)};
+  margin-right: ${p => p.theme.space['2xs']};
 `;

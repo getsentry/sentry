@@ -4,9 +4,8 @@ from contextlib import contextmanager
 from typing import Any, Literal
 
 import sentry_sdk
-
-from sentry.taskworker.state import current_task
-from sentry.taskworker.workerchild import ProcessingDeadlineExceeded
+from taskbroker_client.state import current_task
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 logger = logging.getLogger(__name__)
 

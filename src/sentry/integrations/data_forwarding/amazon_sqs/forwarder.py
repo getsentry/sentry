@@ -107,7 +107,9 @@ class AmazonSQSForwarder(BaseDataForwarder):
                 key = f"{event.project.slug}/{date}/{event.event_id}"
                 s3_put_object(
                     Bucket=s3_bucket,
-                    Body=orjson.dumps(payload, option=orjson.OPT_UTC_Z).decode(),
+                    Body=orjson.dumps(
+                        payload, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS
+                    ).decode(),
                     Key=key,
                 )
 
@@ -122,7 +124,7 @@ class AmazonSQSForwarder(BaseDataForwarder):
                 # Invalid bucket name
                 return False
 
-        message = orjson.dumps(payload, option=orjson.OPT_UTC_Z).decode()
+        message = orjson.dumps(payload, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS).decode()
 
         if len(message) > AWS_SQS_MAX_MESSAGE_SIZE:
             return False

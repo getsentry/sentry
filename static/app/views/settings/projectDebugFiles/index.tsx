@@ -1,62 +1,36 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery, useQueryClient, useMutation} from '@tanstack/react-query';
+
+import {Checkbox} from '@sentry/scraps/checkbox';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
-import {
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import useApi from 'sentry/utils/useApi';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {routeTitleGen} from 'sentry/utils/routeTitle';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-import DebugFileRow from './debugFileRow';
-import Sources from './sources';
-
-function makeDebugFilesQueryKey({
-  orgSlug,
-  projectSlug,
-  query,
-}: {
-  orgSlug: string;
-  projectSlug: string;
-  query: {cursor: string | undefined; query: string | undefined};
-}): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
-}
-
-function makeSymbolSourcesQueryKey({
-  orgSlug,
-  platform,
-}: {
-  orgSlug: string;
-  platform?: string;
-}): ApiQueryKey {
-  return [`/organizations/${orgSlug}/builtin-symbol-sources/`, {query: {platform}}];
-}
+import {DebugFileRow} from './debugFileRow';
+import {Sources} from './sources';
 
 export default function ProjectDebugSymbols() {
   const organization = useOrganization();
@@ -71,21 +45,34 @@ export default function ProjectDebugSymbols() {
   const cursor = location.query.cursor as string | undefined;
   const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
 
+  const debugFilesApiOptions = apiOptions.as<DebugFile[]>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
+    {
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      query: {query, cursor},
+      staleTime: 0,
+    }
+  );
+
   const {
-    data: debugFiles,
-    getResponseHeader: getDebugFilesResponseHeader,
+    data: debugFilesResponse,
     isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
-  } = useApiQuery<DebugFile[] | null>(
-    makeDebugFilesQueryKey({
-      projectSlug: project.slug,
-      orgSlug: organization.slug,
-      query: {query, cursor},
-    }),
+  } = useQuery({
+    ...debugFilesApiOptions,
+    select: selectJsonWithHeaders,
+    retry: false,
+  });
+
+  const debugFiles = debugFilesResponse?.json;
+
+  const symbolSourcesOptions = apiOptions.as<BuiltinSymbolSource[] | null>()(
+    '/organizations/$organizationIdOrSlug/builtin-symbol-sources/',
     {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {platform: project.platform},
       staleTime: 0,
-      retry: false,
     }
   );
 
@@ -94,17 +81,11 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
-  } = useApiQuery<BuiltinSymbolSource[] | null>(
-    makeSymbolSourcesQueryKey({
-      orgSlug: organization.slug,
-      platform: project.platform,
-    }),
-    {
-      staleTime: 0,
-      enabled: hasSymbolSourcesFeatureFlag,
-      retry: 0,
-    }
-  );
+  } = useQuery({
+    ...symbolSourcesOptions,
+    enabled: hasSymbolSourcesFeatureFlag,
+    retry: 0,
+  });
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -133,19 +114,12 @@ export default function ProjectDebugSymbols() {
 
       // invalidate debug files query
       queryClient.invalidateQueries({
-        queryKey: makeDebugFilesQueryKey({
-          projectSlug: project.slug,
-          orgSlug: organization.slug,
-          query: {query, cursor},
-        }),
+        queryKey: debugFilesApiOptions.queryKey,
       });
 
       // invalidate symbol sources query
       queryClient.invalidateQueries({
-        queryKey: makeSymbolSourcesQueryKey({
-          orgSlug: organization.slug,
-          platform: project.platform,
-        }),
+        queryKey: symbolSourcesOptions.queryKey,
       });
     },
     onError: () => {
@@ -155,15 +129,14 @@ export default function ProjectDebugSymbols() {
 
   return (
     <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), project.slug, false)}>
-      <SettingsPageHeader title={t('Debug Information Files')} />
-
-      <TextBlock>
-        {t(`
+      <SettingsPageHeader
+        title={t('Debug Information Files')}
+        subtitle={t(`
           Debug information files are used to convert addresses and minified
           function names from native crash reports into function names and
           locations.
         `)}
-      </TextBlock>
+      />
 
       {organization.features.includes('symbol-sources') && (
         <Fragment>
@@ -256,7 +229,7 @@ export default function ProjectDebugSymbols() {
                 })
               : null}
           </StyledPanelTable>
-          <Pagination pageLinks={getDebugFilesResponseHeader?.('Link')} />
+          <Pagination pageLinks={debugFilesResponse?.headers.Link} />
         </Fragment>
       )}
     </SentryDocumentTitle>
@@ -274,10 +247,10 @@ const Actions = styled('div')`
 const Wrapper = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: ${space(4)};
+  gap: ${p => p.theme.space['3xl']};
   align-items: center;
-  margin-top: ${space(4)};
-  margin-bottom: ${space(1)};
+  margin-top: ${p => p.theme.space['3xl']};
+  margin-bottom: ${p => p.theme.space.md};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
@@ -288,7 +261,7 @@ const Filters = styled('div')`
   grid-template-columns: min-content minmax(200px, 400px);
   align-items: center;
   justify-content: flex-end;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: min-content 1fr;
   }
@@ -300,5 +273,5 @@ const Label = styled('label')`
   align-items: center;
   margin-bottom: 0;
   white-space: nowrap;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;

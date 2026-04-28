@@ -1,7 +1,7 @@
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 

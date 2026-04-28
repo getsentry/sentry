@@ -5,7 +5,7 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 
-function CheckoutOption({
+export function CheckoutOption({
   isSelected,
   onClick,
   dataTestId,
@@ -78,8 +78,6 @@ function CheckoutOption({
   );
 }
 
-export default CheckoutOption;
-
 const Option = styled('div')<{isSelected: boolean}>`
   width: 100%;
   color: ${p => p.theme.tokens.content.primary};
@@ -99,7 +97,7 @@ const Option = styled('div')<{isSelected: boolean}>`
     background: ${p =>
       p.isSelected
         ? p.theme.tokens.graphics.accent.vibrant
-        : p.theme.tokens.border.primary};
+        : p.theme.tokens.graphics.neutral.moderate};
     border-radius: ${p => p.theme.radius.md};
     top: ${p => p.theme.space['2xs']};
     transform: translateY(-${p => p.theme.space['2xs']});
@@ -107,7 +105,7 @@ const Option = styled('div')<{isSelected: boolean}>`
       ${p =>
         p.isSelected
           ? p.theme.tokens.graphics.accent.vibrant
-          : p.theme.tokens.border.primary};
+          : p.theme.tokens.graphics.neutral.moderate};
   }
 
   &::after {

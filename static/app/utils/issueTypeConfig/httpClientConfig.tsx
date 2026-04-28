@@ -3,7 +3,7 @@ import {IssueType} from 'sentry/types/group';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 
-const httpClientConfig: IssueCategoryConfigMapping = {
+export const httpClientConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
@@ -101,5 +101,3 @@ const httpClientConfig: IssueCategoryConfigMapping = {
     },
   },
 };
-
-export default httpClientConfig;

@@ -4,21 +4,19 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import startCase from 'lodash/startCase';
 
-import {Stack} from '@sentry/scraps/layout';
+import {DocIntegrationAvatar, SentryAppAvatar} from '@sentry/scraps/avatar';
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Select} from '@sentry/scraps/select';
 
-import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Select} from 'sentry/components/core/select';
-import HookOrDefault from 'sentry/components/hookOrDefault';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,
@@ -29,6 +27,7 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
   getAlertText,
@@ -45,12 +44,13 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
-import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
-import IntegrationRow from 'sentry/views/settings/organizationIntegrations/integrationRow';
-import ReinstallAlert from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
+import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
+import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -85,13 +85,25 @@ function useIntegrationList() {
     isError: isConfigError,
   } = useApiQuery<{
     providers: IntegrationProvider[];
-  }>([`/organizations/${organization.slug}/config/integrations/`], queryOptions);
+  }>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
+    queryOptions
+  );
   const {
     data: integrations = [],
     isPending: isIntegrationsPending,
     isError: isIntegrationsError,
   } = useApiQuery<Integration[]>(
-    [`/organizations/${organization.slug}/integrations/`, {query: {includeConfig: 0}}],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {includeConfig: 0}},
+    ],
     queryOptions
   );
   const {
@@ -99,7 +111,11 @@ function useIntegrationList() {
     isPending: isOrgOwnedAppsPending,
     isError: isOrgOwnedAppsError,
   } = useApiQuery<SentryApp[]>(
-    [`/organizations/${organization.slug}/sentry-apps/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-apps/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     queryOptions
   );
   const {
@@ -107,7 +123,7 @@ function useIntegrationList() {
     isPending: isPublishedAppsPending,
     isError: isPublishedAppsError,
   } = useApiQuery<SentryApp[]>(
-    ['/sentry-apps/', {query: {status: 'published'}}],
+    [getApiUrl('/sentry-apps/'), {query: {status: 'published'}}],
     queryOptions
   );
   const {
@@ -115,7 +131,11 @@ function useIntegrationList() {
     isPending: isAppInstallsPending,
     isError: isAppInstallsError,
   } = useApiQuery<SentryAppInstallation[]>(
-    [`/organizations/${organization.slug}/sentry-app-installations/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     queryOptions
   );
   const {
@@ -123,20 +143,31 @@ function useIntegrationList() {
     isPending: isPluginsPending,
     isError: isPluginsError,
   } = useApiQuery<PluginWithProjectList[]>(
-    [`/organizations/${organization.slug}/plugins/configs/`],
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/plugins/configs/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+    ],
     queryOptions
   );
   const {
     data: docIntegrations = [],
     isPending: isDocIntegrationsPending,
     isError: isDocIntegrationsError,
-  } = useApiQuery<DocIntegration[]>(['/doc-integrations/'], queryOptions);
+  } = useApiQuery<DocIntegration[]>([getApiUrl('/doc-integrations/')], queryOptions);
 
   // This is the only conditional query, so we need to handle the pending and error states uniquely
-  const extraAppQuery = useApiQuery<SentryApp>([`/sentry-apps/${extraAppSlug ?? ''}/`], {
-    ...queryOptions,
-    enabled: isExtraAppEnabled,
-  });
+  const extraAppQuery = useApiQuery<SentryApp>(
+    [
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+        path: {sentryAppIdOrSlug: extraAppSlug ?? ''},
+      }),
+    ],
+    {
+      ...queryOptions,
+      enabled: isExtraAppEnabled,
+    }
+  );
   const {data: extraApp} = extraAppQuery;
   const isExtraAppPending = isExtraAppEnabled && extraAppQuery.isPending;
   const isExtraAppError = isExtraAppEnabled && extraAppQuery.isError;
@@ -238,7 +269,6 @@ export default function IntegrationListDirectory() {
     ({value: newCategory}: SelectOption<string>) => {
       navigate(
         {
-          ...location,
           query: {...location.query, category: newCategory ? newCategory : undefined},
         },
         {replace: true}
@@ -258,7 +288,6 @@ export default function IntegrationListDirectory() {
     (newSearch: string) => {
       navigate(
         {
-          ...location,
           query: {...location.query, search: newSearch ? newSearch : undefined},
         },
         {replace: true}
@@ -477,6 +506,7 @@ function IntegrationSettingsHeader({
   search: string;
   title: string;
 }) {
+  const hasPageFrame = useHasPageFrameFeature();
   const getCategoryLabel = useCallback((c: string) => {
     return c === 'api' ? 'API' : startCase(c);
   }, []);
@@ -492,24 +522,55 @@ function IntegrationSettingsHeader({
     <SettingsPageHeader
       title={title}
       body={
-        <ActionContainer>
-          <Select
-            name="select-categories"
-            onChange={onChangeCategory}
-            value={category}
-            options={categoryOptions}
-          />
-          <SearchBar
-            query={search}
-            onSearch={onChangeSearch}
-            placeholder={t('Filter Integrations\u2026')}
-            aria-label={t('Filter')}
-            width="100%"
-            data-test-id="search-bar"
-          />
-        </ActionContainer>
+        hasPageFrame ? (
+          <Flex align="center" gap="md">
+            <Container width="240px">
+              <Select
+                name="select-categories"
+                onChange={onChangeCategory}
+                value={category}
+                options={categoryOptions}
+              />
+            </Container>
+            <Container flex={1}>
+              {({className}) => (
+                <SearchBar
+                  className={className}
+                  query={search}
+                  onSearch={onChangeSearch}
+                  placeholder={t('Filter Integrations\u2026')}
+                  aria-label={t('Filter')}
+                  width="100%"
+                  data-test-id="search-bar"
+                />
+              )}
+            </Container>
+            <CreateIntegrationButton analyticsView="integrations_directory" size="md" />
+          </Flex>
+        ) : (
+          <ActionContainer>
+            <Select
+              name="select-categories"
+              onChange={onChangeCategory}
+              value={category}
+              options={categoryOptions}
+            />
+            <SearchBar
+              query={search}
+              onSearch={onChangeSearch}
+              placeholder={t('Filter Integrations\u2026')}
+              aria-label={t('Filter')}
+              width="100%"
+              data-test-id="search-bar"
+            />
+          </ActionContainer>
+        )
       }
-      action={<CreateIntegrationButton analyticsView="integrations_directory" />}
+      action={
+        hasPageFrame ? undefined : (
+          <CreateIntegrationButton analyticsView="integrations_directory" />
+        )
+      }
     />
   );
 }
@@ -537,14 +598,14 @@ function IntegrationResultsEmpty({searchTerm}: {searchTerm: string}) {
 const ActionContainer = styled('div')`
   display: grid;
   grid-template-columns: 240px auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 `;
 
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
   color: ${p => p.theme.tokens.content.secondary};
-  padding-bottom: ${space(2)};
+  padding-bottom: ${p => p.theme.space.xl};
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`

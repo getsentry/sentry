@@ -9,7 +9,7 @@ export function appendReleaseFilters(
   const validPrimary =
     primaryRelease && primaryRelease !== '' ? primaryRelease : undefined;
 
-  let queryString: string = query.formatString();
+  let queryString = query.formatString();
   if (defined(validPrimary)) {
     queryString = query.copy().addStringFilter(`release:${validPrimary}`).formatString();
   }

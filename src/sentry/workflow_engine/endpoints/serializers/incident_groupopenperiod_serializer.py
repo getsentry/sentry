@@ -15,7 +15,7 @@ class IncidentGroupOpenPeriodSerializerResponse(TypedDict):
 @register(IncidentGroupOpenPeriod)
 class IncidentGroupOpenPeriodSerializer(Serializer):
     def serialize(
-        self, obj: IncidentGroupOpenPeriod, attrs: Mapping[str, Any], user, **kwargs
+        self, obj: IncidentGroupOpenPeriod, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> IncidentGroupOpenPeriodSerializerResponse:
         return {
             "incidentId": str(obj.incident_id) if obj.incident_id else None,

@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 
 from django.http import HttpResponse
+from objectstore_client.client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.objectstore import get_preprod_session
@@ -16,7 +17,7 @@ from sentry.objectstore import get_preprod_session
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
     owner = ApiOwner.EMERGE_TOOLS
     publish_status = {
@@ -29,7 +30,6 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         project: Project,
         image_id: str,
     ) -> HttpResponse:
-
         organization_id = project.organization_id
         project_id = project.id
 
@@ -43,7 +43,18 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
             # Detect content type from the image data
             return HttpResponse(image_data, content_type=result.metadata.content_type)
-
+        except RequestError as e:
+            if e.status == 404:
+                return Response({"detail": "Image not found"}, status=404)
+            logger.exception(
+                "Unexpected error retrieving image",
+                extra={
+                    "organization_id": organization_id,
+                    "project_id": project_id,
+                    "image_id": image_id,
+                },
+            )
+            return Response({"detail": "Internal server error"}, status=500)
         except Exception:
             logger.exception(
                 "Unexpected error retrieving image",

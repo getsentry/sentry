@@ -1,4 +1,4 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 export function getIssueViewQueryParams({view}: {view: GroupSearchView}) {

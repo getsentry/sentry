@@ -1,6 +1,5 @@
 import * as qs from 'query-string';
 
-import type {Result} from 'sentry/components/core/select/async';
 import {
   IconAsana,
   IconBitbucket,
@@ -15,7 +14,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {
   AppOrProviderOrPlugin,
@@ -26,7 +25,9 @@ import type {
   Integration,
   IntegrationFeature,
   IntegrationInstallationStatus,
+  IntegrationProvider,
   IntegrationType,
+  PluginNoProject,
   PluginWithProjectList,
   SentryApp,
   SentryAppInstallation,
@@ -77,7 +78,7 @@ export const getSentryAppInstallStatus = (install: SentryAppInstallation | undef
   if (install && install.status !== 'pending_deletion') {
     return capitalize(install.status) as IntegrationInstallationStatus;
   }
-  if (install && install.status === 'pending_deletion') {
+  if (install?.status === 'pending_deletion') {
     return 'Pending Deletion';
   }
   return 'Not Installed';
@@ -142,6 +143,24 @@ export function isDocIntegration(
   integration: AppOrProviderOrPlugin
 ): integration is DocIntegration {
   return integration.hasOwnProperty('isDraft');
+}
+
+/**
+ * True when the provider exposes the `commits` feature gate, which is the
+ * canonical marker for source-code-management integrations (GitHub, GitLab,
+ * Bitbucket, Azure DevOps, and their enterprise/server variants).
+ */
+export function isScmProvider(provider: IntegrationProvider): boolean {
+  return provider.metadata.features.some(f => f.featureGate.includes('commits'));
+}
+
+/**
+ * True when the plugin declares the `commits` feature gate. The legacy GitHub
+ * and Bitbucket plugins both declare this, so they must not be reported as
+ * non-SCM to analytics.
+ */
+export function isScmPlugin(plugin: PluginNoProject): boolean {
+  return plugin.features.includes('commits');
 }
 
 export function isExternalActorMapping(
@@ -230,8 +249,9 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'github_enterprise':
       return 'GitHub Enterprise';
     case 'jira':
-    case 'jira_server':
       return 'Jira';
+    case 'jira_server':
+      return 'Jira Server';
     case 'perforce':
       return 'Perforce';
     case 'vsts':
@@ -320,11 +340,6 @@ export const getExternalActorEndpointDetails = (
     apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
   };
 };
-
-export const sentryNameToOption = ({id, name}: any): Result => ({
-  value: id,
-  label: name,
-});
 
 export function getIntegrationStatus(integration: Integration) {
   // there are multiple status fields for an integration we consider

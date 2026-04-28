@@ -2,6 +2,7 @@ import type {
   BlockRenderers,
   ContentBlock,
 } from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
+import {BlockPathProvider} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 
 export enum ContentBlockCssVariables {
   BLOCK_SPACING = '--block-spacing',
@@ -22,6 +23,13 @@ export function renderBlocks(
 
     // The index actually works well as a key here
     // as long as the conditional block is used instead of JS logic to edit the blocks array
-    return <RendererComponent {...block} key={index} />;
+    // BlockPathProvider extends the block path context so that tabbed
+    // code blocks deeper in the tree (e.g. inside conditionals) get
+    // unique keys like "2_1" instead of colliding with top-level "1".
+    return (
+      <BlockPathProvider index={index} key={index}>
+        <RendererComponent {...block} />
+      </BlockPathProvider>
+    );
   });
 }

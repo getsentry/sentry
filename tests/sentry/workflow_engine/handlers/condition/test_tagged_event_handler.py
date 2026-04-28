@@ -1,3 +1,5 @@
+from typing import Any, Mapping
+
 import pytest
 from jsonschema import ValidationError
 
@@ -12,7 +14,7 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestTaggedEventCondition(ConditionTestCase):
     condition = Condition.TAGGED_EVENT
-    payload = {
+    payload: Mapping[str, Any] = {
         "id": TaggedEventCondition.id,
         "match": MatchType.EQUAL,
         "key": "LOGGER",
@@ -71,9 +73,10 @@ class TestTaggedEventCondition(ConditionTestCase):
         assert dc.condition_group == dcg
 
     def test_dual_write_filter(self) -> None:
-        self.payload["id"] = TaggedEventFilter.id
+        payload_copy = dict(self.payload)
+        payload_copy["id"] = TaggedEventFilter.id
         dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
+        dc = self.translate_to_data_condition(payload_copy, dcg)
 
         assert dc.type == self.condition
         assert dc.comparison == {
@@ -84,13 +87,13 @@ class TestTaggedEventCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-        self.payload = {
+        other_payload = {
             "id": TaggedEventFilter.id,
             "match": MatchType.IS_SET,
             "key": "logger",
         }
         dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
+        dc = self.translate_to_data_condition(other_payload, dcg)
 
         assert dc.type == self.condition
         assert dc.comparison == {

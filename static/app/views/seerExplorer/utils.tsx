@@ -1,18 +1,23 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type {UseFeedbackOptions} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {getConversationsUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import type {
   Block,
   ToolCall,
@@ -33,9 +38,16 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId?: number
+  runId: number | null
 ): ApiQueryKey => [
-  `/organizations/${orgSlug}/seer/explorer-chat/${runId ? `${runId}/` : ''}`,
+  runId
+    ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
+        path: {organizationIdOrSlug: orgSlug, runId},
+      })
+    : getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+
   {},
 ];
 
@@ -59,7 +71,7 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
     return isLoading ? `Googling '${question}'...` : `Googled '${question}'`;
   },
 
-  telemetry_live_search: (args, isLoading, linkParams) => {
+  telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
     const projectSlugs = args.project_slugs;
@@ -85,10 +97,16 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
         : `Queried logs${projectInfo}: '${question}'`;
     }
 
+    if (dataset === 'metrics' || dataset === 'tracemetrics') {
+      return isLoading
+        ? `Querying metrics${projectInfo}: '${question}'...`
+        : `Queried metrics${projectInfo}: '${question}'`;
+    }
+
     // Default to spans dataset
     return isLoading
       ? `Querying spans${projectInfo}: '${question}'...`
-      : linkParams?.mode === 'traces'
+      : resultMetadata?.mode === 'traces'
         ? `Queried traces${projectInfo}: '${question}'...`
         : `Queried spans${projectInfo}: '${question}'`;
   },
@@ -106,28 +124,55 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       : `Viewed waterfall for trace ${traceId.slice(0, 8)}`;
   },
 
-  get_issue_details: (args, isLoading) => {
-    const {issue_id, event_id, start, end} = args;
+  get_issue_details: (args, isLoading, resultMetadata) => {
+    const {issue_id, start, end, event_id} = args;
+
+    if (event_id) {
+      // For backwards compatibility. event_id arg only present in an older version (issue_and_event_details)
+      return isLoading
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
+    }
 
     if (issue_id) {
       if (start && end) {
         return isLoading
           ? `Inspecting issue ${issue_id} between ${start} to ${end}...`
-          : `Inspected issue ${issue_id} between ${start} to ${end}`;
+          : `Inspected issue ${resultMetadata?.short_id || issue_id} between ${start} to ${end}`;
       }
       return isLoading
         ? `Inspecting issue ${issue_id}...`
-        : `Inspected issue ${issue_id}`;
+        : `Inspected issue ${resultMetadata?.short_id || issue_id}`;
     }
 
+    // shouldn't happen (issue_id required)
+    return isLoading ? 'Inspecting issue...' : 'Inspected issue';
+  },
+
+  get_event_details: (args, isLoading, resultMetadata) => {
+    const {event_id, issue_id, start, end} = args;
+
+    // event ID mode
     if (event_id) {
       return isLoading
-        ? `Inspecting event ${event_id.slice(0, 8)}...`
-        : `Inspected event ${event_id.slice(0, 8)}`;
+        ? `Analyzing event ${event_id.slice(0, 8)}...`
+        : `Analyzed event ${event_id.slice(0, 8)}`;
     }
 
-    // Should not happen unless there's a bug.
-    return isLoading ? `Inspecting issue...` : `Inspected issue`;
+    // recommended event mode
+    if (issue_id) {
+      if (start && end) {
+        return isLoading
+          ? `Analyzing recommended event for issue ${issue_id}, sampled from ${start} to ${end}...`
+          : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}, sampled from ${start} to ${end}`;
+      }
+      return isLoading
+        ? `Analyzing recommended event for issue ${issue_id}...`
+        : `Analyzed recommended event for ${resultMetadata?.short_id || `issue ${issue_id}`}`;
+    }
+
+    // shouldn't happen (either event_id or issue_id required)
+    return isLoading ? 'Analyzing event...' : 'Analyzed event';
   },
 
   code_search: (args, isLoading) => {
@@ -336,10 +381,17 @@ export function getToolsStringFromBlock(block: Block): string[] {
   const isLoading = block.loading ?? false;
   const toolCalls = block.message.tool_calls || [];
   const toolLinks = block.tool_links || [];
+  const toolResults = block.tool_results || [];
 
-  for (let i = 0; i < toolCalls.length; i++) {
-    const tool = toolCalls[i] as ToolCall;
-    const toolLink = toolLinks[i];
+  const toolLinkByCallId = new Map<string, ToolLink | null>();
+  toolResults.forEach((result, idx) => {
+    if (result?.tool_call_id) {
+      toolLinkByCallId.set(result.tool_call_id, toolLinks[idx] ?? null);
+    }
+  });
+
+  for (const tool of toolCalls) {
+    const toolLink = toolLinkByCallId.get(tool.id) ?? null;
     const formatter = TOOL_FORMATTERS[tool.function];
 
     if (formatter) {
@@ -375,7 +427,9 @@ function linkifyIssueShortIds(text: string): string {
   // Pattern matches: PROJECT_SLUG-SHORT_ID (uppercase only, case-sensitive)
   // Requires at least 2 chars before hyphen and 1+ chars after
   // First segment must contain at least one uppercase letter (all letters must be uppercase)
-  const shortIdPattern = /\b((?:[A-Z][A-Z0-9_]{1,}|[0-9_]+[A-Z][A-Z0-9_]*)-[A-Z0-9]+)\b/g;
+  // Allows multi-hyphen project slugs like FRONTEND-REACT-59A or BACKEND-RUBY-ON-RAILS-58
+  const shortIdPattern =
+    /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/g;
 
   // Track positions that should be excluded (inside code blocks, links, or URLs)
   const excludedRanges: Array<{end: number; start: number}> = [];
@@ -397,7 +451,7 @@ function linkifyIssueShortIds(text: string): string {
     });
   }
   // Find all URLs (http://, https://, or starting with /)
-  const urlPattern = /(https?:\/\/[^\s]+|\/[^\s)]+)/g;
+  const urlPattern = /(https?:\/\/\S+|\/[^\s)]+)/g;
   for (const urlMatch of text.matchAll(urlPattern)) {
     excludedRanges.push({
       end: urlMatch.index + urlMatch[0].length,
@@ -443,21 +497,15 @@ export function postProcessLLMMarkdown(text: string | null | undefined): string 
 }
 
 /**
- * Simulates the keyboard shortcut to toggle the Seer Explorer panel.
- * This dispatches a keyboard event that matches the Cmd+/ (Mac) or Ctrl+/ (non-Mac) shortcut.
+ * Validate an ISO string and return it with 'Z' suffix stripped.
+ * Returns undefined if invalid.
  */
-export function toggleSeerExplorerPanel(): void {
-  const isMac = navigator.platform.toUpperCase().includes('MAC');
-  const keyboardEvent = new KeyboardEvent('keydown', {
-    key: '/',
-    code: 'Slash',
-    keyCode: 191,
-    which: 191,
-    metaKey: isMac,
-    ctrlKey: !isMac,
-    bubbles: true,
-  } as KeyboardEventInit);
-  document.dispatchEvent(keyboardEvent);
+function validateIso(val: unknown): string | undefined {
+  if (!val || typeof val !== 'string') {
+    return undefined;
+  }
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
 }
 
 /**
@@ -568,6 +616,20 @@ export function buildToolLinkUrl(
         };
       }
 
+      if (dataset === 'metrics' || dataset === 'tracemetrics') {
+        // TODO: The metrics explore page reads metric-specific state (metric name,
+        // type, aggregations, group bys) from a JSON-encoded `metric` URL param.
+        // Currently we only pass page filter params (project, statsPeriod, etc.)
+        // which means the search query context is lost on navigation. To fully
+        // preserve context, the Seer backend should include structured metric
+        // metadata (name, type, unit) in tool_link params so we can build the
+        // `metric` param here via encodeMetricsQueryParams().
+        return {
+          pathname: `/organizations/${orgSlug}/explore/metrics/`,
+          query: queryParams,
+        };
+      }
+
       // Default to spans (traces) search
       const {y_axes, group_by, mode} = toolLink.params;
       const aggregateFields: string[] = [];
@@ -626,10 +688,31 @@ export function buildToolLinkUrl(
       };
     }
     case 'get_issue_details': {
-      const {event_id, issue_id} = toolLink.params;
+      const {issue_id, start, end, event_id} = toolLink.params;
+      const query = {
+        start: validateIso(start),
+        end: validateIso(end),
+      };
+
+      if (issue_id) {
+        if (event_id) {
+          // Should only be present in older version (get_issue_and_event_details)
+          return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
+        }
+        return {pathname: `/issues/${issue_id}/`, query};
+      }
+
+      return null;
+    }
+    case 'get_event_details': {
+      const {event_id, issue_id, start, end} = toolLink.params;
 
       if (event_id && issue_id) {
-        return {pathname: `/issues/${issue_id}/events/${event_id}/`};
+        const query = {
+          start: validateIso(start),
+          end: validateIso(end),
+        };
+        return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
       }
 
       return null;
@@ -764,8 +847,8 @@ export function getValidToolLinks(
  */
 export function usePageReferrer(): {getPageReferrer: () => string} {
   // Track the normalized path of the current page (e.g. /issues/:groupId/) for analytics.
-  const routes = useRoutes();
-  const routeString = getRouteStringFromRoutes(routes);
+  const matches = useMatches();
+  const routeString = getRouteStringFromRoutes({matches});
   const routeStringRef = useRef(routeString);
 
   useEffect(() => {
@@ -780,26 +863,29 @@ export function usePageReferrer(): {getPageReferrer: () => string} {
 
 export function useCopySessionDataToClipboard({
   blocks,
+  status,
   organization,
   projects,
   enabled,
 }: {
-  blocks: Block[];
+  blocks: Block[] | undefined;
   enabled: boolean;
   organization: Organization | null;
+  status: string | undefined;
   projects?: Array<{id: string; slug: string}>;
 }) {
   const [isError, setIsError] = useState(false);
 
   const copySessionToClipboard = useCallback(async () => {
-    if (!enabled || !organization || !blocks) {
+    if (!enabled || !organization) {
       return;
     }
     setIsError(false);
     try {
-      await navigator.clipboard.writeText(
-        formatSessionData(blocks, organization.slug, projects)
-      );
+      const text = blocks
+        ? formatSessionData(blocks, organization.slug, projects)
+        : `No data available. Status: ${status ?? 'unknown'}`;
+      await navigator.clipboard.writeText(text);
       addSuccessMessage('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
@@ -807,7 +893,7 @@ export function useCopySessionDataToClipboard({
     }
 
     trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
-  }, [enabled, blocks, organization, projects]);
+  }, [enabled, blocks, status, organization, projects]);
 
   return {copySessionToClipboard, isError};
 }
@@ -903,7 +989,37 @@ function locationToUrl(location: LocationDescriptor): string | null {
   return `${base}${queryPart}${hashPart}`;
 }
 
-export const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RUN_ID_QUERY_PARAM = 'explorerRunId';
+
+/**
+ * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ */
+export function useSeerExplorerDeepLink({
+  callback,
+  enabled = true,
+}: {
+  callback: (runId: number) => void;
+  enabled?: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (!paramValue || typeof paramValue !== 'string') {
+      return;
+    }
+
+    const parsedRunId = Number(paramValue);
+    if (!Number.isNaN(parsedRunId)) {
+      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
+      navigate({...location, query: restQuery}, {replace: true});
+      callback(parsedRunId);
+    }
+  }, [location, navigate, callback, enabled]);
+}
 
 /**
  * Returns the URL of the current window with the run ID query param set.
@@ -915,5 +1031,38 @@ export function getExplorerUrl(runId: number | string): string {
 }
 
 export function getLangfuseUrl(runId: number | string): string {
-  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/traces?filter=sessionId%3Bstring%3B%3B%3D%3B${runId}`;
+  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
+}
+
+export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+  return {
+    formTitle: 'Seer Agent Feedback',
+    messagePlaceholder: 'How can we make Seer better for you?',
+    tags: {
+      ['feedback.source']: 'seer_explorer',
+      ['feedback.owner']: 'ml-ai',
+      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
+      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
+      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      ...(runId === null
+        ? {}
+        : {['conversations_url']: getConversationsUrl('sentry', runId)}),
+    },
+  };
+}
+
+/**
+ * Checks if Seer Explorer is enabled for the organization.
+ * Requires the rollout flag and:
+ * - 'gen-ai-features' feature flag
+ * - Organization has not disabled open membership
+ * - Organization has not disabled AI features (hideAiFeatures is false)
+ */
+export function isSeerExplorerEnabled(organization: Organization): boolean {
+  return (
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
+  );
 }

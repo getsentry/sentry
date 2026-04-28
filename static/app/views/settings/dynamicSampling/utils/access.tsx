@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {Scope} from 'sentry/types/core';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const DYNAMIC_SAMPLING_READ_ACCESS: Scope[] = ['org:read'];
 

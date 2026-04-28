@@ -104,14 +104,14 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         #    - recovery codes
         response = serialize(interface, serializer=get_interface_serializer(interface))
         if interface.interface_id == "recovery":
-            assert isinstance(
-                interface, RecoveryCodeInterface
-            ), "Interace must be RecoveryCodeInterface to get unused codes"
+            assert isinstance(interface, RecoveryCodeInterface), (
+                "Interace must be RecoveryCodeInterface to get unused codes"
+            )
             response["codes"] = interface.get_unused_codes()
         if interface.interface_id == "u2f":
-            assert isinstance(
-                interface, U2fInterface
-            ), "Interace must be U2fInterface to get registered devices"
+            assert isinstance(interface, U2fInterface), (
+                "Interace must be U2fInterface to get registered devices"
+            )
             response["devices"] = interface.get_registered_devices()
 
         return Response(response)
@@ -167,9 +167,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         interface = authenticator.interface
         # Remove a single device and not entire authentication method
         if interface.interface_id == "u2f" and interface_device_id is not None:
-            assert isinstance(
-                interface, U2fInterface
-            ), "Interace must be U2fInterface to get registered devices"
+            assert isinstance(interface, U2fInterface), (
+                "Interace must be U2fInterface to get registered devices"
+            )
             device_name = interface.get_device_name(interface_device_id)
             # Can't remove if this is the last device, will return False if so
             if not interface.remove_u2f_device(interface_device_id):
@@ -212,31 +212,33 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 )
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user)
+        backup_interfaces = [x for x in interfaces if x.is_backup_interface]
+        non_backup_interfaces = [x for x in interfaces if not x.is_backup_interface]
+
+        # If we're about to delete the last non-backup authenticator,
+        # also remove backup interfaces (e.g. recovery codes) so they
+        # don't persist as orphaned credentials.
+        is_last_primary = not interface.is_backup_interface and len(non_backup_interfaces) == 1
 
         with transaction.atomic(using=router.db_for_write(Authenticator)):
             authenticator.delete()
 
-            # if we delete an actual authenticator and all that
-            # remains are backup interfaces, then we kill them in the
-            # process.
-            if not interface.is_backup_interface:
-                backup_interfaces = [x for x in interfaces if x.is_backup_interface]
-                if len(backup_interfaces) == len(interfaces):
-                    for iface in backup_interfaces:
-                        assert iface.authenticator, "Interface must have an authenticator to delete"
-                        iface.authenticator.delete()
+            if is_last_primary:
+                for iface in backup_interfaces:
+                    assert iface.authenticator, "Interface must have an authenticator to delete"
+                    iface.authenticator.delete()
 
-                    # wait to generate entries until all pending writes
-                    # have been sent to db
-                    for iface in backup_interfaces:
-                        capture_security_activity(
-                            account=request.user,
-                            type="mfa-removed",
-                            actor=request.user,
-                            ip_address=request.META["REMOTE_ADDR"],
-                            context={"authenticator": iface.authenticator},
-                            send_email=False,
-                        )
+                # wait to generate entries until all pending writes
+                # have been sent to db
+                for iface in backup_interfaces:
+                    capture_security_activity(
+                        account=request.user,
+                        type="mfa-removed",
+                        actor=request.user,
+                        ip_address=request.META["REMOTE_ADDR"],
+                        context={"authenticator": iface.authenticator},
+                        send_email=False,
+                    )
 
             capture_security_activity(
                 account=user,

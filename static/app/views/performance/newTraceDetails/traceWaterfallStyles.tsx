@@ -10,5 +10,5 @@ export const traceGridCssVariables = ({theme}: {theme: Theme}) => `
   --unknown: ${theme.tokens.graphics.neutral.vibrant};
   --profile: ${theme.tokens.graphics.accent.vibrant};
   --autogrouped: ${theme.tokens.graphics.accent.vibrant};
-  --occurence: ${theme.tokens.graphics.accent.vibrant};
+  --occurrence: ${theme.tokens.graphics.accent.vibrant};
 `;

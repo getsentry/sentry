@@ -156,12 +156,7 @@ def get_function_layer_arns(function):
 
 def get_latest_layer_for_function(function):
     region = parse_arn(function["FunctionArn"])["region"]
-    return "arn:aws:lambda:{}:{}:layer:{}:{}".format(
-        region,
-        get_option_value(function, OPTION_ACCOUNT_NUMBER),
-        get_option_value(function, OPTION_LAYER_NAME),
-        get_option_value(function, OPTION_VERSION),
-    )
+    return f"arn:aws:lambda:{region}:{get_option_value(function, OPTION_ACCOUNT_NUMBER)}:layer:{get_option_value(function, OPTION_LAYER_NAME)}:{get_option_value(function, OPTION_VERSION)}"
 
 
 def get_latest_layer_version(function):

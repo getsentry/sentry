@@ -1,25 +1,24 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+
+import {Button} from '@sentry/scraps/button';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import type {Client} from 'sentry/api';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Placeholder from 'sentry/components/placeholder';
-import TimeSince from 'sentry/components/timeSince';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import withApi from 'sentry/utils/withApi';
+import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
@@ -29,14 +28,13 @@ import {
 } from 'sentry/views/dashboards/manage/settings';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-import DashboardCard from './dashboardCard';
-import GridPreview from './gridPreview';
+import {DashboardCard} from './dashboardCard';
+import {GridPreview} from './gridPreview';
 
 type Props = {
   api: Client;
   columnCount: number;
   dashboards: DashboardListItem[] | undefined;
-  location: Location;
   onDashboardsChange: () => void;
   organization: Organization;
   rowCount: number;
@@ -46,7 +44,6 @@ type Props = {
 function DashboardGrid({
   api,
   organization,
-  location,
   dashboards,
   onDashboardsChange,
   rowCount,
@@ -90,19 +87,13 @@ function DashboardGrid({
   }
 
   function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
-    const shouldDisablePrebuiltControls =
-      defined(dashboard.prebuiltId) &&
-      !organization.features.includes('dashboards-prebuilt-controls');
     const {
       hasReachedDashboardLimit,
       isLoading: isLoadingDashboardsLimit,
       limitMessage,
     } = dashboardLimitData;
 
-    const disableDuplicate =
-      hasReachedDashboardLimit ||
-      isLoadingDashboardsLimit ||
-      shouldDisablePrebuiltControls;
+    const disableDuplicate = hasReachedDashboardLimit || isLoadingDashboardsLimit;
 
     const disableDelete = defined(dashboard.prebuiltId);
 
@@ -118,9 +109,7 @@ function DashboardGrid({
           });
         },
         disabled: disableDuplicate,
-        tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be duplicated')
-          : limitMessage,
+        tooltip: limitMessage,
         tooltipOptions: {
           isHoverable: true,
         },
@@ -137,9 +126,6 @@ function DashboardGrid({
           });
         },
         disabled: disableDelete,
-        tooltip: shouldDisablePrebuiltControls
-          ? t('Prebuilt dashboards cannot be deleted')
-          : undefined,
       },
     ];
 
@@ -158,7 +144,7 @@ function DashboardGrid({
             {...triggerProps}
             aria-label={t('Dashboard actions')}
             size="xs"
-            borderless
+            priority="transparent"
             onClick={e => {
               e.stopPropagation();
               e.preventDefault();
@@ -178,14 +164,6 @@ function DashboardGrid({
     return <GridPreview widgetPreview={dashboard.widgetPreview} />;
   }
 
-  // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
-  // router 6 handles empty query objects without appending a trailing ?
-  const queryLocation = {
-    ...(location.query && Object.keys(location.query).length > 0
-      ? {query: location.query}
-      : {}),
-  };
-
   function renderMiniDashboards() {
     // on pagination, render no dashboards to show placeholders while loading
     if (
@@ -201,10 +179,7 @@ function DashboardGrid({
           {dashboardLimitData => (
             <DashboardCard
               title={dashboard.title}
-              to={{
-                pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-                ...queryLocation,
-              }}
+              to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
               detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
               dateStatus={
                 dashboard.dateCreated ? (
@@ -248,9 +223,9 @@ function DashboardGrid({
         {renderMiniDashboards()}
         {isLoading &&
           rowCount * columnCount > numDashboards &&
-          new Array(rowCount * columnCount - numDashboards)
+          Array.from({length: rowCount * columnCount - numDashboards})
             .fill(0)
-            .map((_, index) => <Placeholder key={index} height="210px" />)}
+            .map((_, index) => <Placeholder key={index} height="208px" />)}
       </DashboardGridContainer>
     );
   }
@@ -269,7 +244,7 @@ const DashboardGridContainer = styled('div')<{columns: number; rows: number}>`
 `;
 
 const DropdownTrigger = styled(Button)`
-  transform: translateX(${space(1)});
+  transform: translateX(${p => p.theme.space.md});
 `;
 
 export default withApi(DashboardGrid);

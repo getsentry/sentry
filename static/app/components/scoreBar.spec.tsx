@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import ScoreBar from 'sentry/components/scoreBar';
+import {ScoreBar} from 'sentry/components/scoreBar';
 
 describe('ScoreBar', () => {
   beforeEach(() => {});

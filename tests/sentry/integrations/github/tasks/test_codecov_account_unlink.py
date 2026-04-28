@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class CodecovAccountUnlinkTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -53,7 +53,7 @@ class CodecovAccountUnlinkTestCase(IntegrationTestCase):
         )
         mock_response.raise_for_status.assert_called_once()
 
-    def test_codecov_account_unlink_missing_integration(self):
+    def test_codecov_account_unlink_missing_integration(self) -> None:
         with patch("sentry.integrations.github.tasks.codecov_account_unlink.logger") as mock_logger:
             codecov_account_unlink(
                 integration_id=99999,  # Non-existent integration

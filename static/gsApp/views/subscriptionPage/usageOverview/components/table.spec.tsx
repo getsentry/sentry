@@ -6,14 +6,14 @@ import {
   SubscriptionFixture,
   SubscriptionWithLegacySeerFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
 import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
-import UsageOverviewTable from 'getsentry/views/subscriptionPage/usageOverview/components/table';
+import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
 
 describe('UsageOverviewTable', () => {
   const organization = OrganizationFixture();
@@ -46,6 +46,27 @@ describe('UsageOverviewTable', () => {
     expect(
       screen.getAllByRole('button', {name: /^View .+ usage$/i}).length
     ).toBeGreaterThan(0);
+  });
+
+  it('does not add an extra cell when hovering a product row', async () => {
+    render(
+      <UsageOverviewTable
+        subscription={subscription}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const attachmentsRow = screen.getByTestId('product-row-attachments');
+    expect(within(attachmentsRow).getAllByRole('cell')).toHaveLength(3);
+
+    await userEvent.hover(attachmentsRow);
+
+    expect(within(attachmentsRow).getAllByRole('cell')).toHaveLength(3);
   });
 
   it('renders columns for non-billing users', async () => {
@@ -407,6 +428,129 @@ describe('UsageOverviewTable', () => {
     expect(screen.queryByRole('cell', {name: 'Errors'})).not.toBeInTheDocument();
   });
 
+  it('renders gifted-only monitors as enabled, not disabled', async () => {
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.categories.monitorSeats = {
+      ...sub.categories.monitorSeats!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    sub.categories.uptime = {
+      ...sub.categories.uptime!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // Gifted-only monitors should appear as enabled rows
+    expect(screen.getByTestId('product-row-monitorSeats')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-monitorSeats')
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('product-row-uptime')).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
+  });
+
+  it('renders soft cap monitors as enabled, not disabled', async () => {
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.categories.monitorSeats = {
+      ...sub.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    sub.categories.uptime = {
+      ...sub.categories.uptime!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    sub.hasSoftCap = true;
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    // Soft cap monitors should appear as enabled rows
+    expect(screen.getByTestId('product-row-monitorSeats')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-monitorSeats')
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('product-row-uptime')).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
+  });
+
+  it('renders hasSoftCap monitors as enabled even when category softCapType is null', async () => {
+    // Legacy soft cap orgs can have hasSoftCap=true on the subscription but
+    // softCapType=null on newer categories (e.g. MONITOR_SEAT, UPTIME)
+    // because create_new_category_histories does not inherit soft_cap_type
+    // from siblings or from the subscription-level soft_cap flag.
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.hasSoftCap = true;
+    sub.categories.monitorSeats = {
+      ...sub.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    sub.categories.uptime = {
+      ...sub.categories.uptime!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.getByTestId('product-row-monitorSeats')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('product-row-disabled-monitorSeats')
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByTestId('product-row-uptime')).toBeInTheDocument();
+    expect(screen.queryByTestId('product-row-disabled-uptime')).not.toBeInTheDocument();
+  });
+
   it('renders disabled product rows', async () => {
     // both profiling categories are disabled because there is no PAYG
     subscription.onDemandBudgets = {
@@ -457,5 +601,45 @@ describe('UsageOverviewTable', () => {
       within(profileDurationUIRow).getByRole('button', {name: 'Start trial'})
     ).toBeInTheDocument();
     expect(screen.queryByTestId('product-row-profileDurationUI')).not.toBeInTheDocument();
+  });
+
+  it('renders disabled products after enabled products', async () => {
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    sub.onDemandBudgets = {
+      enabled: true,
+      budgetMode: OnDemandBudgetMode.SHARED,
+      sharedMaxBudget: 0,
+      onDemandSpendUsed: 0,
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    const allRows = screen.getAllByTestId(/^product-row/);
+    const rowTestIds = allRows.map(row => row.getAttribute('data-test-id')!);
+
+    const enabledRows = rowTestIds.filter(id => !id.startsWith('product-row-disabled-'));
+    const disabledRows = rowTestIds.filter(id => id.startsWith('product-row-disabled-'));
+
+    // Ensure the test is meaningful: there should be at least one of each
+    expect(enabledRows.length).toBeGreaterThan(0);
+    expect(disabledRows.length).toBeGreaterThan(0);
+
+    // Find the index of the last enabled row and the first disabled row
+    const lastEnabledIndex = rowTestIds.lastIndexOf(enabledRows[enabledRows.length - 1]!);
+    const firstDisabledIndex = rowTestIds.indexOf(disabledRows[0]!);
+
+    // All disabled rows must appear after all enabled rows
+    expect(lastEnabledIndex).toBeLessThan(firstDisabledIndex);
   });
 });

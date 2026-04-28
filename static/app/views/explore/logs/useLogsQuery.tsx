@@ -1,24 +1,25 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
+import type {QueryClient, InfiniteData} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {type ApiResult} from 'sentry/api';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {defined} from 'sentry/utils';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {
   fetchDataQuery,
-  useInfiniteQuery,
-  useQueryClient,
   type ApiQueryKey,
-  type InfiniteData,
   type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
@@ -27,8 +28,12 @@ import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   AlwaysPresentLogFields,
+  LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
+  LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
+  LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
   MAX_LOG_INGEST_DELAY,
   MAX_LOGS_INFINITE_QUERY_PAGES,
+  MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
@@ -151,7 +156,9 @@ function useLogsQueryKey({
     frozenTraceIds || frozenReplayInfo.replayId ? 'trace-logs' : 'events';
 
   const queryKey: ApiQueryKey = [
-    `/organizations/${organization.slug}/${endpointSuffix}/`,
+    getApiUrl(`/organizations/$organizationIdOrSlug/${endpointSuffix}/`, {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
     params,
   ];
 
@@ -232,7 +239,7 @@ function getPageParam(
         sortByDirection: sortBy.kind,
         autoRefresh,
         cursor: link.cursor ?? undefined,
-      } as FlexTimePageParam;
+      };
     }
 
     const firstRow = pageData.data?.[0];
@@ -249,7 +256,7 @@ function getPageParam(
       firstTimestamp = BigInt(firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
       lastTimestamp = BigInt(lastRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]);
     } catch {
-      logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+      logger.warn('No timestamp precise found for log row, using timestamp instead', {
         logId: firstRow[OurLogKnownFieldKey.ID],
         timestamp: firstRow[OurLogKnownFieldKey.TIMESTAMP],
         timestampPrecise: firstRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE],
@@ -393,17 +400,33 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type QueryKey = [url: string, endpointOptions: QueryKeyEndpointOptions, 'infinite'];
+type QueryKey = [
+  url: ReturnType<typeof getApiUrl>,
+  endpointOptions: QueryKeyEndpointOptions,
+  'infinite',
+];
+
+/**
+ * `maxPages` is evaluated before `useInfiniteQuery` returns `data`, so we base it on the
+ * query cache (same snapshot React Query will use for this key).
+ */
+function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): number {
+  // eslint-disable-next-line @sentry/no-query-data-type-parameters
+  const cached = client.getQueryData<InfiniteData<ApiResult<EventsLogsResult>>>(queryKey);
+  const rows =
+    cached?.pages?.reduce((n, page) => n + (page[0]?.data?.length ?? 0), 0) ?? 0;
+  return rows < LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES
+    ? MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED
+    : MAX_LOGS_INFINITE_QUERY_PAGES;
+}
 
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
-  maxAutoFetches = 5,
   referrer,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
-  maxAutoFetches?: number;
   referrer?: string;
 } = {}) {
   const _referrer = referrer ?? 'api.explore.logs-table';
@@ -519,7 +542,7 @@ export function useInfiniteLogsQuery({
     initialPageParam,
     enabled: !disabled,
     staleTime: autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView),
-    maxPages: MAX_LOGS_INFINITE_QUERY_PAGES,
+    maxPages: maxPagesForLogsInfiniteQuery(queryClient, queryKeyWithInfinite),
     refetchIntervalInBackground: true, // Don't refetch when tab is not visible
   });
 
@@ -635,6 +658,7 @@ export function useInfiniteLogsQuery({
     return filteredData;
   }, [data, virtualStreamedTimestamp]);
 
+  const pageCount = data?.pages?.length;
   const _meta = useMemo<EventsMetaType>(() => {
     return (
       data?.pages.reduce(
@@ -648,7 +672,8 @@ export function useInfiniteLogsQuery({
         {fields: {}, units: {}}
       ) ?? {fields: {}, units: {}}
     );
-  }, [data]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageCount]);
 
   const _fetchPreviousPage = useCallback(() => {
     if (autoRefresh || hasPreviousPage) {
@@ -680,28 +705,19 @@ export function useInfiniteLogsQuery({
   const lastPageLength = data?.pages?.[data.pages.length - 1]?.[0]?.data?.length ?? 0;
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
-  // the original state starts at -1 because we have to count
-  // the 1 query made by default outside of the auto fetches
-  const [autoFetchesRemaining, setAutoFetchesRemaining] = useState(maxAutoFetches - 1);
   const canAutoFetchNextPage =
     !!highFidelity &&
     hasNextPage &&
     nextPageHasData &&
     (lastPageLength === 0 || _data.length < limit);
-  const shouldAutoFetchNextPage = canAutoFetchNextPage && autoFetchesRemaining > 0;
 
-  useEffect(() => {
-    if (!shouldAutoFetchNextPage) {
-      return;
-    }
-
-    if (isFetchingNextPage) {
-      return;
-    }
-
-    setAutoFetchesRemaining(remaining => remaining - 1);
-    _fetchNextPage();
-  }, [shouldAutoFetchNextPage, isFetchingNextPage, _fetchNextPage, nextPageCursor]);
+  const {shouldAutoFetchNextPage, resumeAutoFetch} = useAutoFetchWindow({
+    queryKey: queryKeyWithInfinite,
+    canAutoFetchNextPage,
+    isFetchingNextPage,
+    nextPageCursor,
+    fetchNextPage: _fetchNextPage,
+  });
 
   return {
     error,
@@ -732,13 +748,93 @@ export function useInfiniteLogsQuery({
     isFetchingPreviousPage,
     lastPageLength,
     canResumeAutoFetch: canAutoFetchNextPage,
-    resumeAutoFetch: () => setAutoFetchesRemaining(maxAutoFetches),
+    resumeAutoFetch,
     dataScanned,
     bytesScanned: totalBytesScanned,
   };
 }
 
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;
+
+interface AutoFetchWindowOptions {
+  canAutoFetchNextPage: boolean;
+  fetchNextPage: () => unknown;
+  isFetchingNextPage: boolean;
+  nextPageCursor: string | null | undefined;
+  queryKey: QueryKey;
+}
+
+/**
+ * Time-bounds the high-fidelity "needle in a haystack" auto-fetching.
+ * Whenever the caller reports it wants to start (`canAutoFetchNextPage`),
+ * this hook continuously calls `fetchNextPage` until the window closes.
+ * `resumeAutoFetch` reopens a fresh (longer) window after the first.
+ */
+function useAutoFetchWindow({
+  queryKey,
+  canAutoFetchNextPage,
+  isFetchingNextPage,
+  nextPageCursor,
+  fetchNextPage,
+}: AutoFetchWindowOptions) {
+  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
+  const timesFetched = useRef(0);
+
+  const queryKeyHash = useMemo(() => {
+    const [url, endpointOptions] = queryKey;
+    return JSON.stringify([url, endpointOptions?.query]);
+  }, [queryKey]);
+
+  useEffect(() => {
+    setDeadlineMs(null);
+    timesFetched.current = 0;
+  }, [queryKeyHash]);
+
+  useEffect(() => {
+    if (!canAutoFetchNextPage || isFetchingNextPage) {
+      return;
+    }
+
+    if (deadlineMs === null) {
+      setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS);
+      return;
+    }
+
+    if (Date.now() >= deadlineMs) {
+      Sentry.metrics.distribution(
+        'explore.logs.flex_time_pages_before_data',
+        timesFetched.current,
+        {attributes: {status: 'out_of_time'}}
+      );
+      return;
+    }
+
+    Sentry.metrics.distribution(
+      'explore.logs.flex_time_pages_before_data',
+      timesFetched.current,
+      {attributes: {status: 'fetching'}}
+    );
+
+    timesFetched.current += 1;
+    fetchNextPage();
+  }, [
+    canAutoFetchNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    nextPageCursor,
+    deadlineMs,
+  ]);
+
+  const resumeAutoFetch = useCallback(
+    () => setDeadlineMs(Date.now() + LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS),
+    []
+  );
+
+  const shouldAutoFetchNextPage =
+    canAutoFetchNextPage && (deadlineMs === null || Date.now() < deadlineMs);
+
+  return {shouldAutoFetchNextPage, resumeAutoFetch};
+}
 
 export function useLogsQueryHighFidelity() {
   const sortBys = useQueryParamsSortBys();

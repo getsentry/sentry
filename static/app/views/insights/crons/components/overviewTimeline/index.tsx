@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
@@ -15,18 +16,16 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useDateNavigation} from 'sentry/components/checkInTimeline/hooks/useDateNavigation';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {Sticky} from 'sentry/components/sticky';
-import {space} from 'sentry/styles/space';
-import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import type {Monitor} from 'sentry/views/insights/crons/types';
-import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
 
 import {OverviewRow} from './overviewRow';
 import {SortSelector} from './sortSelector';
@@ -42,7 +41,7 @@ export function OverviewTimeline({monitorList}: Props) {
   const location = useLocation();
 
   const elementRef = useRef<HTMLDivElement>(null);
-  const {width: containerWidth} = useDimensions<HTMLDivElement>({elementRef});
+  const {width: containerWidth} = useDimensions({elementRef});
   const timelineWidth = useDebouncedValue(containerWidth, 1000);
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
@@ -54,14 +53,16 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-      if (!oldMonitorList) {
+    const monitorListOptions = monitorListApiOptions(organization, location.query);
+
+    queryClient.setQueryData(monitorListOptions.queryKey, old => {
+      if (!old) {
         return undefined;
       }
+      const oldMonitorList = old.json;
       const oldMonitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
       if (oldMonitorIdx < 0) {
-        return oldMonitorList;
+        return old;
       }
 
       const oldMonitor = oldMonitorList[oldMonitorIdx]!;
@@ -75,10 +76,10 @@ export function OverviewTimeline({monitorList}: Props) {
       const right = oldMonitorList.slice(oldMonitorIdx + 1);
 
       if (newEnvList.length === 0) {
-        return [...left, ...right];
+        return {...old, json: [...left, ...right]};
       }
 
-      return [...left, updatedMonitor, ...right];
+      return {...old, json: [...left, updatedMonitor, ...right]};
     });
   };
 
@@ -99,11 +100,14 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-      return oldMonitorList
-        ? // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
-          oldMonitorList.map(m => (m.slug === monitor.slug ? resp : m))
+    const monitorListOptions = monitorListApiOptions(organization, location.query);
+    queryClient.setQueryData(monitorListOptions.queryKey, old => {
+      return old
+        ? {
+            ...old,
+            // TODO(davidenwang): in future only change the specifically modified environment for optimistic updates
+            json: old.json.map(m => (m.slug === monitor.slug ? resp : m)),
+          }
         : undefined;
     });
   };
@@ -116,12 +120,15 @@ export function OverviewTimeline({monitorList}: Props) {
       return;
     }
 
-    const queryKey = makeMonitorListQueryKey(organization, location.query);
-    setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
-      return oldMonitorList
-        ? oldMonitorList.map(m =>
-            m.slug === monitor.slug ? {...m, status: resp.status} : m
-          )
+    const monitorListOptions = monitorListApiOptions(organization, location.query);
+    queryClient.setQueryData(monitorListOptions.queryKey, old => {
+      return old
+        ? {
+            ...old,
+            json: old.json.map(m =>
+              m.slug === monitor.slug ? {...m, status: resp.status} : m
+            ),
+          }
         : undefined;
     });
   };
@@ -136,7 +143,7 @@ export function OverviewTimeline({monitorList}: Props) {
             dateNavigation={dateNavigation}
             direction="back"
             size="xs"
-            borderless
+            priority="transparent"
           />
         </Flex>
         <AlignedGridLineLabels timeWindowConfig={timeWindowConfig} />
@@ -145,7 +152,7 @@ export function OverviewTimeline({monitorList}: Props) {
             dateNavigation={dateNavigation}
             direction="forward"
             size="xs"
-            borderless
+            priority="transparent"
           />
         </HeaderControlsRight>
       </Header>
@@ -187,6 +194,7 @@ const Header = styled(Sticky)`
   background: ${p => p.theme.tokens.background.primary};
   border-top-left-radius: ${p => p.theme.radius.md};
   border-top-right-radius: ${p => p.theme.radius.md};
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
 
   &[data-stuck] {
@@ -209,6 +217,7 @@ const AlignedGridLineOverlay = styled(GridLineOverlay)`
 `;
 
 const AlignedGridLineLabels = styled(GridLineLabels)`
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: -1px 0 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   grid-row: 1;
   grid-column: 3/-1;
@@ -231,5 +240,5 @@ const MonitorRows = styled('ul')`
 const HeaderControlsRight = styled('div')`
   grid-row: 1;
   grid-column: -1;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;

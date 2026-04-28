@@ -6,7 +6,6 @@ import OrganizationProjectsContainer from 'sentry/views/settings/organizationPro
 
 describe('OrganizationProjects', () => {
   let projectsGetMock: jest.Mock;
-  let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
   const project = ProjectFixture();
 
@@ -14,11 +13,6 @@ describe('OrganizationProjects', () => {
     projectsGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
-    });
-
-    statsGetMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats/',
-      body: [[[], 1]],
     });
 
     projectsPutMock = MockApiClient.addMockResponse({
@@ -37,19 +31,6 @@ describe('OrganizationProjects', () => {
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
     expect(projectsGetMock).toHaveBeenCalledTimes(1);
-    expect(statsGetMock).toHaveBeenCalledTimes(1);
-    expect(statsGetMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/stats/',
-      expect.objectContaining({
-        query: {
-          group: 'project',
-          projectID: [project.id],
-          // Time is frozen in tests
-          since: 1508121680,
-          stat: 'generated',
-        },
-      })
-    );
     expect(projectsPutMock).toHaveBeenCalledTimes(0);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Bookmark'}));

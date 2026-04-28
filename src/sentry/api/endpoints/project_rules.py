@@ -1,39 +1,71 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.fields.actor import ActorField
+from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.rule import RuleSerializer, RuleSerializerResponse
+from sentry.api.serializers.models.rule import (
+    RuleSerializer,
+    RuleSerializerResponse,
+    WorkflowEngineRuleSerializer,
+)
 from sentry.api.serializers.rest_framework.rule import RuleNodeField
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processing.processor import is_condition_slow
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
+from sentry.types.actor import parse_and_validate_actor
+from sentry.workflow_engine.endpoints.validators.base.action import ActionInput
+from sentry.workflow_engine.endpoints.validators.base.data_condition import DataConditionInput
+from sentry.workflow_engine.endpoints.validators.base.data_condition_group import (
+    DataConditionGroupInput,
+)
+from sentry.workflow_engine.endpoints.validators.base.workflow import (
+    ActionFilterInput,
+    WorkflowInput,
+)
+from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
+    translate_to_data_condition_data,
+)
+from sentry.workflow_engine.migration_helpers.rule_action import (
+    translate_rule_data_actions_to_notification_actions,
+)
+from sentry.workflow_engine.models import AlertRuleWorkflow, DataConditionGroup, Workflow
+from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.utils.legacy_metric_tracking import (
+    report_used_legacy_models,
+    track_alert_endpoint_execution,
+)
+
+logger = logging.getLogger(__name__)
 
 
 def clean_rule_data(data):
@@ -232,6 +264,9 @@ class DuplicateRuleEvaluator:
             all_rules = Rule.objects.exclude(id=self._rule_id)
 
         existing_rules = all_rules.filter(project__id=self._project_id, status=ObjectStatus.ACTIVE)
+        # Mark that we're using legacy Rule models (even if query returns no results)
+        report_used_legacy_models()
+
         for existing_rule in existing_rules:
             keys_checked = 0
             keys_matched = 0
@@ -284,7 +319,7 @@ class ProjectRulesPostSerializer(serializers.Serializer):
     environment = serializers.CharField(
         required=False, allow_null=True, help_text="The name of the environment to filter by."
     )
-    owner = ActorField(
+    owner = OwnerActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
     frequency = serializers.IntegerField(
@@ -671,8 +706,127 @@ A list of actions that take place when all required conditions and filters for t
     )
 
 
+class ConditionsData(TypedDict):
+    id: str
+    value: NotRequired[str | int]
+    attribute: NotRequired[str]
+    match: NotRequired[str]
+    interval: NotRequired[str]
+    comparisonType: NotRequired[str]
+    level: NotRequired[str]
+
+
+class FiltersData(TypedDict):
+    id: str
+    match: NotRequired[str]
+    key: NotRequired[str]
+    value: NotRequired[str | int]
+    targetType: NotRequired[Literal["Member", "Team", "Unassigned"]]
+    targetIdentifier: NotRequired[int]
+    fallthroughType: NotRequired[Literal["ActiveMembers", "AllMembers", "NoOne"]]
+    oldest_or_newest: NotRequired[str]
+    older_or_newer: NotRequired[str]
+    environment: NotRequired[str]
+
+
+class ProjectRulePostData(TypedDict):
+    name: str
+    frequency: int
+    actionMatch: Literal["all", "any", "none"]
+    conditions: list[ConditionsData]
+    actions: list[dict[str, Any]]
+    environment: NotRequired[str | None]
+    owner: NotRequired[str | int | None]
+    filterMatch: NotRequired[Literal["all", "any", "none"]]
+    filters: NotRequired[list[FiltersData]]
+    status: NotRequired[str]
+    snooze: NotRequired[bool]
+    projects: NotRequired[list[str]]
+
+
+def format_request_data(
+    data: ProjectRulePostData,
+    project: Project,
+) -> WorkflowInput:
+    workflow_payload: WorkflowInput = {
+        "name": data.get("name", ""),
+        "enabled": data.get("status", "active") == "active",
+        "environment": data.get("environment"),
+        "config": {"frequency": data.get("frequency")},
+    }
+    owner = data.get("owner", "")
+    if owner:
+        actor = parse_and_validate_actor(str(owner), project.organization_id)
+        if actor is not None:
+            workflow_payload["owner"] = actor.identifier
+    elif owner is None:  # user has explicitly passed None so as to clear the owner field
+        workflow_payload["owner"] = None
+
+    triggers: DataConditionGroupInput = {"logicType": "any-short", "conditions": []}
+    translated_filter_list: list[DataConditionInput] = []
+    fake_dcg = DataConditionGroup()
+    # XXX: In order to avoid making bigger changes to translate_to_data_condition in issue_alert_conditions.py
+    # we pass in a dummy DCG and then pop it off since we just need the formatted data
+
+    for condition in data.get("conditions", []):
+        try:
+            triggers["conditions"].append(
+                translate_to_data_condition_data(condition, fake_dcg).to_input()
+            )
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid condition data")
+
+    workflow_payload["triggers"] = triggers
+
+    for filter_data in data.get("filters", []):
+        try:
+            translated_filter_list.append(
+                translate_to_data_condition_data(filter_data, fake_dcg).to_input()
+            )
+        except KeyError:
+            raise ValidationError("Ensure all required fields are filled in.")
+        except ValueError:
+            raise ValidationError("Invalid filter data")
+
+    translated_actions: list[ActionInput] = []
+    for action_data in translate_rule_data_actions_to_notification_actions(
+        data.get("actions", []), False
+    ):
+        action: ActionInput = {
+            "type": action_data["type"],
+            "data": action_data["data"],
+            "config": action_data["config"],
+            "integrationId": action_data["integration_id"],
+        }
+        target_type = action["config"].get("target_type")
+        if target_type is not None:
+            assert isinstance(target_type, int)
+            action["config"]["target_type"] = ActionTarget.get_name(target_type)
+        translated_actions.append(action)
+
+    filter_match = data.get("filterMatch") or Rule.DEFAULT_FILTER_MATCH
+    if filter_match == "any":
+        filter_match = DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value
+
+    action_filters: ActionFilterInput = {
+        "logicType": filter_match,
+        "conditions": translated_filter_list,
+        "actions": translated_actions,
+    }
+    workflow_payload["actionFilters"] = [action_filters]
+
+    issue_stream_detector = Detector.get_issue_stream_detector_for_project(project.id)
+    if issue_stream_detector is None:
+        raise serializers.ValidationError("Could not find issue stream detector for project")
+    workflow_payload["detectorIds"] = [issue_stream_detector.id]
+
+    return workflow_payload
+
+
 @extend_schema(tags=["Alerts"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class ProjectRulesEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -683,7 +837,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
     @extend_schema(
         operation_id="(DEPRECATED) List a Project's Issue Alert Rules",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer("ListRules", list[RuleSerializerResponse]),
@@ -693,6 +847,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
+    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
     def get(self, request: Request, project: Project) -> Response:
         """
         ## Deprecated
@@ -706,20 +861,32 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-        queryset = Rule.objects.filter(
-            project=project,
-            status=ObjectStatus.ACTIVE,
-        ).select_related("project")
-
         expand = request.GET.getlist("expand", ["lastTriggered"])
+
+        queryset: BaseQuerySet[Workflow, Workflow] | BaseQuerySet[Rule, Rule]
+        serializer: WorkflowEngineRuleSerializer | RuleSerializer
+        if features.has(
+            "organizations:workflow-engine-issue-alert-endpoints-get", project.organization
+        ) or features.has("organizations:workflow-engine-rule-serializers", project.organization):
+            queryset = Workflow.objects.filter(
+                detectorworkflow__detector__project=project,
+                status=ObjectStatus.ACTIVE,
+            ).distinct()
+            serializer = WorkflowEngineRuleSerializer(expand=expand, project_slug=project.slug)
+        else:
+            queryset = Rule.objects.filter(
+                project=project,
+                status=ObjectStatus.ACTIVE,
+            ).select_related("project")
+            # Mark that we're using legacy Rule models
+            report_used_legacy_models()
+            serializer = RuleSerializer(expand=expand, project_slug=project.slug)
 
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(
-                x, request.user, RuleSerializer(expand=expand, project_slug=project.slug)
-            ),
+            on_results=lambda x: serialize(x, request.user, serializer),
         )
 
     @extend_schema(
@@ -737,6 +904,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
+    @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
     def post(self, request: Request, project) -> Response:
         """
         ## Deprecated
@@ -750,7 +918,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
-
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization, "request": request},
             data=request.data,
@@ -781,6 +948,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 break
 
         rules = Rule.objects.filter(project=project, status=ObjectStatus.ACTIVE)
+        report_used_legacy_models()
         slow_rules = 0
         for rule in rules:
             for condition in rule.data["conditions"]:
@@ -896,5 +1064,19 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
+        if features.has(
+            "organizations:workflow-engine-rule-serializers", project.organization
+        ) or features.has(
+            "organizations:workflow-engine-issue-alert-endpoints-post", project.organization
+        ):
+            try:
+                workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
+                return Response(
+                    serialize(workflow, request.user, WorkflowEngineRuleSerializer()),
+                    status=201,
+                )
+            except AlertRuleWorkflow.DoesNotExist:
+                logger.info("alertruleworkflow-doesnotexist", extra={"rule_id": rule.id})
+                return Response(serialize(rule, request.user))
 
         return Response(serialize(rule, request.user))

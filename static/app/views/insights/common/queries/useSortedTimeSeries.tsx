@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {
   EventsStats,
@@ -16,7 +17,6 @@ import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,
@@ -29,10 +29,6 @@ import type {
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {
-  getRetryDelay,
-  shouldRetryHandler,
-} from 'sentry/views/insights/common/utils/retryHandlers';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
@@ -124,9 +120,6 @@ export const useSortedTimeSeries = <
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
-        refetchOnWindowFocus: false,
-        retry: shouldRetryHandler,
-        retryDelay: getRetryDelay,
         staleTime:
           usesRelativeDateRange &&
           defined(intervalInMilliseconds) &&

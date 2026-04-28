@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PreviewDataFixture} from 'getsentry/__fixtures__/previewData';
-import NextBillCard from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
+import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
 
 describe('NextBillCard', () => {
   const organization = OrganizationFixture({access: ['org:billing']});

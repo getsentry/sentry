@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
-import {space} from 'sentry/styles/space';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -11,7 +10,7 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import type {SpanProperty} from 'sentry/views/insights/types';
 
 type TableData = {
@@ -79,7 +78,7 @@ export function MobileMetricsRibbon({
 }
 
 const StyledReadoutRibbon = styled(ReadoutRibbon)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function MetricsBlock({

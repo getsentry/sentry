@@ -481,7 +481,7 @@ export type Subscription = {
   vatStatus?: VatStatus | null;
 };
 
-export type DiscountInfo = {
+type DiscountInfo = {
   amount: number;
   billingInterval: 'monthly' | 'annual';
   billingPeriods: number;
@@ -571,8 +571,6 @@ export type BillingStatTotal = {
 };
 
 export type CustomerUsage = {
-  onDemandEventsAllowed: number;
-  onDemandMaxSpend: number;
   periodEnd: string;
   periodStart: string;
   stats: Record<string, BillingStats>;
@@ -746,8 +744,8 @@ type FeeInvoiceItemType = (typeof FEE_INVOICE_ITEM_TYPES)[number];
  */
 const _SEER_INVOICE_ITEM_TYPES = [
   'reserved_seer_budget', // Special case: shared budget for seer_autofix and seer_scanner
-  'reserved_seer_users', // Special case: reserved prevent users (PREVENT_USER category maps to this)
-  'activated_seer_users', // Activation-based prevent users billing (PREVENT_USER category)
+  'reserved_seer_users',
+  'activated_seer_users',
 ] as const;
 
 type SeerInvoiceItemType = (typeof _SEER_INVOICE_ITEM_TYPES)[number];
@@ -835,7 +833,7 @@ export type BillingMetricHistory = {
   trueForward: boolean;
   usage: number;
   usageExceeded: boolean;
-  retention?: {downsampled: number | null; standard: number};
+  retention?: {downsampled: number | null; standard: number | null};
 };
 
 export type BillingHistory = {
@@ -1190,13 +1188,16 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    */
   hasSpikeProtection: boolean;
   /**
-   * The maximum number of free events that can be gifted
-   */
-  maxAdminGift: number;
-  /**
    * How usage is tallied for the category
    */
   tallyType: 'usage' | 'seat';
+  /**
+   * Feature flag required for admin-only product trials.
+   * - `string`: Feature flag name - trials only available if org has this flag
+   * - `true`: Graduated - trials always available (no flag check needed)
+   * - `null/undefined`: Not an admin-only trial category
+   */
+  adminOnlyProductTrialFeature?: string | boolean | null;
   /**
    * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
    */

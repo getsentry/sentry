@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
+export const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
   cursor: pointer;
   display: block;
   color: ${p => p.theme.tokens.content.primary};
@@ -27,5 +27,3 @@ const SearchResultWrapper = styled('div')<{highlighted?: boolean}>`
     border-top: 1px solid ${p => p.theme.tokens.border.secondary};
   }
 `;
-
-export default SearchResultWrapper;

@@ -1,6 +1,6 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
+import {useFetchSequentialPages} from 'sentry/utils/api/useFetchSequentialPages';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const MOCK_API_ENDPOINT = '/api/test/';

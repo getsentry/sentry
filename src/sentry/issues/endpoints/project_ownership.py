@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.projectownership import ProjectOwnershipSerializer
@@ -67,9 +67,10 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
 
     def _validate_team_ownership(self, rules):
         """
-        Validate that the user has permission to assign ownership to the teams
-        referenced in the rules. Users must either have team:admin scope or be
-        a member of each team they're assigning ownership to.
+        Validate that the user has permission to assign ownership to the teams referenced in the
+        rules. If the organization has open team membership enabled, any user can assign ownership.
+        Otherwise, users must either have `team:admin` scope or be a member of each team to which
+        they're assigning ownership.
         """
         team_slugs = {
             owner.get("identifier")
@@ -94,6 +95,13 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             )
 
         project = self.context["ownership"].project
+        organization = project.organization
+
+        # If open team membership is enabled, users can assign any team as owner since they could
+        # join any team anyway
+        if organization and organization.flags.allow_joinleave:
+            return
+
         user_team_count = OrganizationMemberTeam.objects.filter(
             team__slug__in=team_slugs,
             team__projectteam__project=project,
@@ -216,7 +224,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         return changed
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Projects"])
 class ProjectOwnershipEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES

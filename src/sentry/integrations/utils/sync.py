@@ -23,7 +23,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.silo.base import region_silo_function
+from sentry.silo.base import cell_silo_function
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -40,11 +40,13 @@ def should_sync_assignee_inbound(
     organization: Organization | RpcOrganization, provider: str
 ) -> bool:
     if provider == "github":
-        return features.has("organizations:integrations-github-project-management", organization)
+        return True
     elif provider == "github_enterprise":
         return features.has(
             "organizations:integrations-github_enterprise-project-management", organization
         )
+    elif provider == "gitlab":
+        return features.has("organizations:integrations-gitlab-project-management", organization)
     return True
 
 
@@ -90,7 +92,6 @@ def _handle_assign(
     integration: RpcIntegration | Integration,
     users: list[RpcUser],
 ) -> list[Group]:
-
     groups_assigned: list[Group] = []
 
     users_by_id = {user.id: user for user in users}
@@ -130,14 +131,13 @@ def _handle_assign(
     return groups_assigned
 
 
-@region_silo_function
+@cell_silo_function
 def sync_group_assignee_inbound_by_external_actor(
     integration: RpcIntegration | Integration,
     external_user_name: str,
     external_issue_key: str | None,
     assign: bool = True,
 ) -> QuerySet[Group] | list[Group]:
-
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
 
     with ProjectManagementEvent(
@@ -169,6 +169,7 @@ def sync_group_assignee_inbound_by_external_actor(
         user_ids = [
             external_actor for external_actor in external_actors if external_actor is not None
         ]
+
         log_context["user_ids"] = user_ids
         logger.info("sync_group_assignee_inbound_by_external_actor.user_ids", extra=log_context)
 
@@ -186,7 +187,7 @@ def sync_group_assignee_inbound_by_external_actor(
         return groups_assigned
 
 
-@region_silo_function
+@cell_silo_function
 def sync_group_assignee_inbound(
     integration: RpcIntegration | Integration,
     email: str | None,

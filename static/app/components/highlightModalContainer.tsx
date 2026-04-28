@@ -16,7 +16,7 @@ type Props = {
   topWidth?: string;
 };
 
-export default function HighlightModalContainer({
+export function HighlightModalContainer({
   topWidth = '400px',
   bottomWidth = '200px',
   children,

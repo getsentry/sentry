@@ -1,35 +1,33 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Badge} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Card from 'sentry/components/card';
+import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Badge} from 'sentry/components/core/badge';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import OnCallServiceForm from 'sentry/components/notificationActions/forms/onCallServiceForm';
-import SlackForm from 'sentry/components/notificationActions/forms/slackForm';
+import {OnCallServiceForm} from 'sentry/components/notificationActions/forms/onCallServiceForm';
+import {SlackForm} from 'sentry/components/notificationActions/forms/slackForm';
 import {IconEllipsis, IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import {space} from 'sentry/styles/space';
 import type {
   AvailableNotificationAction,
   NotificationAction,
 } from 'sentry/types/notificationActions';
 import {NotificationActionService} from 'sentry/types/notificationActions';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type NotificationActionItemProps = {
   /**
@@ -74,7 +72,7 @@ type NotificationActionItemProps = {
   recipientRoles?: string[];
 };
 
-function NotificationActionItem({
+export function NotificationActionItem({
   action,
   index,
   availableActions,
@@ -289,14 +287,14 @@ function NotificationActionItem({
             <Flex align="center" wrap="wrap" gap="xs">
               {renderDescription()}
             </Flex>
-            <ButtonBar gap="xs">
+            <Grid flow="column" align="center" gap="xs">
               <Button onClick={handleCancel} size="xs">
                 {t('Cancel')}
               </Button>
               <Button priority="primary" size="xs" onClick={handleSave}>
                 {t('Save')}
               </Button>
-            </ButtonBar>
+            </Grid>
           </Flex>
         );
       case NotificationActionService.SLACK:
@@ -365,11 +363,11 @@ function NotificationActionItem({
 }
 
 const StyledCard = styled(Card)<{isEditing: boolean}>`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   background-color: ${props =>
     props.isEditing ? props.theme.tokens.background.tertiary : 'inherit'};
 `;
@@ -378,5 +376,3 @@ const NotificationRecipientBadge = styled(Badge)`
   border-radius: ${p => p.theme.radius.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
-
-export default NotificationActionItem;

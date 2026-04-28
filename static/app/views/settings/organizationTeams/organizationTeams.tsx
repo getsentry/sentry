@@ -3,27 +3,24 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import SearchBar from 'sentry/components/searchBar';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SearchBar} from 'sentry/components/searchBar';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AccessRequest, Organization} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
-import AllTeamsList from './allTeamsList';
-import {GRID_TEMPLATE} from './allTeamsRow';
 import OrganizationAccessRequests from './organizationAccessRequests';
+import {OtherTeamsTable} from './otherTeamsTable';
+import {YourTeamsTable} from './yourTeamsTable';
 
 type Props = {
   access: Set<string>;
@@ -33,7 +30,7 @@ type Props = {
   requestList: AccessRequest[];
 };
 
-export default function OrganizationTeams({
+export function OrganizationTeams({
   organization,
   access,
   features,
@@ -41,25 +38,28 @@ export default function OrganizationTeams({
   onRemoveAccessRequest,
 }: Props) {
   const [teamQuery, setTeamQuery] = useState('');
+  const hasPageFrame = useHasPageFrameFeature();
   const {initiallyLoaded} = useTeams({provideUserTeams: true});
   const {teams, onSearch, loadMore, hasMore, fetching} = useTeams();
 
   if (!organization) {
     return null;
   }
+
   const canCreateTeams = access.has('project:admin');
+  const openMembership = !!(features.has('open-membership') || access.has('org:write'));
 
   const action = (
     <Button
       priority="primary"
       size="sm"
       disabled={!canCreateTeams}
-      title={canCreateTeams ? undefined : t('You do not have permission to create teams')}
-      onClick={() =>
-        openCreateTeamModal({
-          organization,
-        })
-      }
+      tooltipProps={{
+        title: canCreateTeams
+          ? undefined
+          : t('You do not have permission to create teams'),
+      }}
+      onClick={() => openCreateTeamModal({organization})}
       icon={<IconAdd />}
     >
       {t('Create Team')}
@@ -74,7 +74,6 @@ export default function OrganizationTeams({
     debouncedSearch(query);
   }
 
-  const {slug: orgSlug, orgRole, orgRoleList, teamRoleList} = organization;
   const filteredTeams = teams.filter(team =>
     `#${team.slug}`.toLowerCase().includes(teamQuery.toLowerCase())
   );
@@ -82,60 +81,43 @@ export default function OrganizationTeams({
 
   return (
     <div data-test-id="team-list">
-      <SentryDocumentTitle title={title} orgSlug={orgSlug} />
-      <SettingsPageHeader title={title} action={action} />
+      <SentryDocumentTitle title={title} orgSlug={organization.slug} />
+      <SettingsPageHeader title={title} action={hasPageFrame ? undefined : action} />
 
       <OrganizationAccessRequests
         orgSlug={organization.slug}
         requestList={requestList}
         onRemoveAccessRequest={onRemoveAccessRequest}
       />
-      <StyledSearchBar
-        placeholder={t('Search teams')}
-        onChange={handleSearch}
-        query={teamQuery}
+      <SearchWrapper>
+        <Flex align="center" gap="md">
+          <Container flex={1}>
+            {({className}) => (
+              <SearchBar
+                className={className}
+                placeholder={t('Search teams')}
+                onChange={handleSearch}
+                query={teamQuery}
+              />
+            )}
+          </Container>
+          {hasPageFrame && action}
+        </Flex>
+      </SearchWrapper>
+      <YourTeamsTable
+        teams={userTeams}
+        isLoading={!initiallyLoaded}
+        canCreateTeams={canCreateTeams}
+        hasSearch={teamQuery.length > 0}
+        allTeamsCount={teams.length}
       />
-      <Panel>
-        <StyledPanelHeader>
-          <div>{t('Your Teams')}</div>
-          <div />
-          <div>
-            <TeamRoleColumnLabel />
-          </div>
-          <div />
-        </StyledPanelHeader>
-        <PanelBody>
-          <RoleOverwritePanelAlert
-            orgRole={orgRole}
-            orgRoleList={orgRoleList}
-            teamRoleList={teamRoleList}
-            isSelf
-          />
-          {initiallyLoaded ? (
-            <AllTeamsList
-              organization={organization}
-              teamList={userTeams.filter(team => team.slug.includes(teamQuery))}
-              access={access}
-              openMembership={false}
-            />
-          ) : (
-            <LoadingIndicator />
-          )}
-        </PanelBody>
-      </Panel>
-      <Panel>
-        <PanelHeader>{t('Other Teams')}</PanelHeader>
-        <PanelBody>
-          <AllTeamsList
-            organization={organization}
-            teamList={otherTeams}
-            access={access}
-            openMembership={
-              !!(features.has('open-membership') || access.has('org:write'))
-            }
-          />
-        </PanelBody>
-      </Panel>
+      <OtherTeamsTable
+        teams={otherTeams}
+        openMembership={openMembership}
+        canCreateTeams={canCreateTeams}
+        hasSearch={teamQuery.length > 0}
+        allTeamsCount={teams.length}
+      />
       {hasMore && (
         <LoadMoreWrapper>
           {fetching && <LoadingIndicator mini />}
@@ -146,17 +128,13 @@ export default function OrganizationTeams({
   );
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  ${GRID_TEMPLATE}
+const SearchWrapper = styled('div')`
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const LoadMoreWrapper = styled('div')`
   display: grid;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
   justify-content: end;
   grid-auto-flow: column;

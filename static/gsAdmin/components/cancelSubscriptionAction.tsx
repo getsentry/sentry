@@ -19,7 +19,7 @@ type State = {
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-class CancelSubscriptionAction extends Component<Props, State> {
+export class CancelSubscriptionAction extends Component<Props, State> {
   state: State = {
     cancelAtPeriodEnd: true,
     applyBalance: true,
@@ -93,5 +93,3 @@ class CancelSubscriptionAction extends Component<Props, State> {
     );
   }
 }
-
-export default CancelSubscriptionAction;

@@ -3,34 +3,30 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import type {DistributedOmit} from 'type-fest';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {ControlProps, GeneralSelectValue, StylesConfig} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/core/button';
-import type {
-  ControlProps,
-  GeneralSelectValue,
-  StylesConfig,
-} from 'sentry/components/core/select';
-import {Select} from 'sentry/components/core/select';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
-import IdBadge from 'sentry/components/idBadge';
+import {IdBadge} from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 
 const StyledIconUser = styled(IconUser)`
-  margin-left: ${space(0.25)};
-  margin-right: ${space(1)};
+  margin-left: ${p => p.theme.space['2xs']};
+  margin-right: ${p => p.theme.space.md};
   color: ${p => p.theme.colors.gray500};
 `;
 
@@ -58,8 +54,6 @@ const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 
-const getOptionValue = (option: TeamOption) => option.value;
-
 // Ensures that the svg icon is white when selected
 const getUnassignedSelectStyles = (theme: Theme): StylesConfig => ({
   option: (provided, state) => ({
@@ -74,7 +68,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
     display: 'grid',
     gridTemplateColumns: 'max-content 1fr',
     alignItems: 'center',
-    gridGap: space(1),
+    gridGap: theme.space.md,
     ':before': {
       backgroundColor: theme.tokens.background.secondary,
       height: 24,
@@ -90,7 +84,7 @@ const getPlaceholderSelectStyles = (theme: Theme): StylesConfig => ({
   }),
 });
 
-interface Props extends ControlProps {
+type Props = DistributedOmit<ControlProps, 'onChange'> & {
   onChange: (value: any) => any;
   /**
    * Controls whether the dropdown allows to create a new team
@@ -117,7 +111,7 @@ interface Props extends ControlProps {
    * Flag that lets the caller decide to use the team value by default if there is only one option
    */
   useTeamDefaultIfOnlyOne?: boolean;
-}
+};
 
 type TeamActor = {
   id: string;
@@ -285,7 +279,7 @@ export function TeamSelector(props: Props) {
           >
             <Button
               size="zero"
-              borderless
+              priority="transparent"
               disabled={!canAddTeam}
               onClick={() => handleAddTeamToProject(team)}
               icon={<IconAdd />}
@@ -369,9 +363,7 @@ export function TeamSelector(props: Props) {
 
     // If there is only one team, and our flow wants to enable using that team as a default, update the parent state
     if (options.length === 1 && useTeamDefaultIfOnlyOne) {
-      const castedValue = multiple
-        ? (options as TeamOption[])
-        : (options[0] as TeamOption);
+      const castedValue = multiple ? options : (options[0] as TeamOption);
       handleChange(castedValue);
     }
     // We only want to do this once when the component is finished loading for teams and mounted.
@@ -383,11 +375,11 @@ export function TeamSelector(props: Props) {
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}
-      getOptionValue={getOptionValue}
+      getOptionValue={option => option.value}
       filterOption={filterOption}
       styles={styles}
       isLoading={fetching}
-      onChange={handleChange}
+      onChange={handleChange as never}
       {...extraProps}
     />
   );

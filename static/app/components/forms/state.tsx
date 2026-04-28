@@ -1,4 +1,4 @@
-enum FormState {
+export enum FormState {
   HOVER = 'Hover',
   DISABLED = 'Disabled',
   LOADING = 'Loading',
@@ -7,5 +7,3 @@ enum FormState {
   ERROR = 'Error',
   INCOMPLETE = 'Incomplete',
 }
-
-export default FormState;

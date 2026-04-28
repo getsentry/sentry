@@ -45,3 +45,6 @@ class ProjectManagementEvent(IntegrationEventLifecycleMetric):
 
     def get_interaction_type(self) -> str:
         return str(self.action_type)
+
+    def get_integration_id(self) -> int | None:
+        return self.integration.id

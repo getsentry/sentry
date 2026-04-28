@@ -7,7 +7,8 @@ import InstallWizard from 'sentry/views/admin/installWizard';
 describe('InstallWizard', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: '/internal/options/?query=is:required',
+      url: '/internal/options/',
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
       body: InstallWizardFixture(),
     });
   });
@@ -22,7 +23,8 @@ describe('InstallWizard', () => {
 
   it('has no option selected when beacon.anonymous is unset', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/options/?query=is:required',
+      url: '/internal/options/',
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
       body: InstallWizardFixture({
         'beacon.anonymous': {
           field: {
@@ -38,9 +40,8 @@ describe('InstallWizard', () => {
       }),
     });
     render(<InstallWizard onConfigured={jest.fn()} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('radio', {
+      await screen.findByRole('radio', {
         name: 'Please keep my usage information anonymous',
       })
     ).not.toBeChecked();
@@ -53,7 +54,8 @@ describe('InstallWizard', () => {
 
   it('has no option selected even when beacon.anonymous is set', async () => {
     MockApiClient.addMockResponse({
-      url: '/internal/options/?query=is:required',
+      url: '/internal/options/',
+      match: [MockApiClient.matchQuery({query: 'is:required'})],
       body: InstallWizardFixture({
         'beacon.anonymous': {
           field: {
@@ -69,9 +71,8 @@ describe('InstallWizard', () => {
       }),
     });
     render(<InstallWizard onConfigured={jest.fn()} />);
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('radio', {
+      await screen.findByRole('radio', {
         name: 'Please keep my usage information anonymous',
       })
     ).not.toBeChecked();

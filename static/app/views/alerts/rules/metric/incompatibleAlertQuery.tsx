@@ -1,11 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Aggregation} from 'sentry/utils/discover/fields';
 import {AGGREGATIONS, explodeFieldString} from 'sentry/utils/discover/fields';
 import {
@@ -121,7 +122,7 @@ export function IncompatibleAlertQuery(props: IncompatibleAlertQueryProps) {
             aria-label={t('Close')}
             size="zero"
             onClick={() => setIsOpen(false)}
-            borderless
+            priority="transparent"
           />
         }
       >

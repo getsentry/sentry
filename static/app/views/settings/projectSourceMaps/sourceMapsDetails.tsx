@@ -1,34 +1,34 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {Tag} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import FileSize from 'sentry/components/fileSize';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
+import {FileSize} from 'sentry/components/fileSize';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import SearchBar from 'sentry/components/searchBar';
-import TimeSince from 'sentry/components/timeSince';
+import {SearchBar} from 'sentry/components/searchBar';
+import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
-import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {DebugIdBundleDeleteButton} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDeleteButton';
 import {DebugIdBundleDetails} from 'sentry/views/settings/projectSourceMaps/debugIdBundleDetails';
 import {useDeleteDebugIdBundle} from 'sentry/views/settings/projectSourceMaps/useDeleteDebugIdBundle';
@@ -96,7 +96,7 @@ function ArtifactsTableRow({
             icon={<IconDownload size="sm" />}
             disabled={!hasRole}
             href={downloadUrl}
-            title={hasRole ? t('Download Artifact') : undefined}
+            tooltipProps={{title: hasRole ? t('Download Artifact') : undefined}}
             aria-label={t('Download Artifact')}
           />
         </Tooltip>
@@ -120,72 +120,67 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const query = decodeScalar(location.query.query);
   const cursor = decodeScalar(location.query.cursor);
 
-  // endpoints
-  const artifactsEndpoint = `/projects/${organization.slug}/${
-    project.slug
-  }/releases/${encodeURIComponent(bundleId)}/files/`;
-  const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
-    project.slug
-  }/artifact-bundles/${encodeURIComponent(bundleId)}/files/`;
-
   const isDebugIdBundle = isUUID(bundleId);
 
-  const {
-    data: artifactsData,
-    getResponseHeader: artifactsHeaders,
-    isPending: artifactsLoading,
-  } = useApiQuery<Artifact[]>(
-    [
-      artifactsEndpoint,
+  const {data: artifactsResponse, isPending: artifactsLoading} = useQuery({
+    ...apiOptions.as<Artifact[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/files/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          version: bundleId,
+        },
         query: {query, cursor},
-      },
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      enabled: !isDebugIdBundle,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+    enabled: !isDebugIdBundle,
+  });
+
+  const artifactsData = artifactsResponse?.json;
 
   const {
-    data: debugIdBundlesArtifacts,
-    getResponseHeader: debugIdBundlesArtifactsHeaders,
+    data: debugIdBundlesArtifactsResponse,
     isPending: debugIdBundlesArtifactsLoading,
-  } = useApiQuery<DebugIdBundleArtifact>(
-    [
-      debugIdBundlesArtifactsEndpoint,
+  } = useQuery({
+    ...apiOptions.as<DebugIdBundleArtifact>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/artifact-bundles/$bundleId/files/',
       {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          bundleId,
+        },
         query: {query, cursor},
-      },
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-      enabled: isDebugIdBundle,
-    }
-  );
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
+    enabled: isDebugIdBundle,
+  });
+
+  const debugIdBundlesArtifacts = debugIdBundlesArtifactsResponse?.json;
 
   const releaseVersions = debugIdBundlesArtifacts?.associations.map(
     association => `"${association.release}"`
   );
 
-  const {data: releasesData, isPending: releasesLoading} = useApiQuery<Release[]>(
-    [
-      `/organizations/${organization.slug}/releases/`,
-      {
-        query: {
-          project: [project.id],
-          query: `release:[${releaseVersions?.join(',')}]`,
-        },
+  const {data: releasesData, isPending: releasesLoading} = useQuery({
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: [project.id],
+        query: `release:[${releaseVersions?.join(',')}]`,
       },
-    ],
-    {
       staleTime: Infinity,
-      retry: false,
-      enabled: !!releaseVersions?.length,
-    }
-  );
+    }),
+    retry: false,
+    enabled: !!releaseVersions?.length,
+  });
 
   const debugIdBundlesArtifactsData = useMemo(() => {
     if (releasesLoading) {
@@ -347,8 +342,8 @@ export function SourceMapsDetails({bundleId, project}: Props) {
       <Pagination
         pageLinks={
           isDebugIdBundle
-            ? (debugIdBundlesArtifactsHeaders?.('Link') ?? '')
-            : (artifactsHeaders?.('Link') ?? '')
+            ? (debugIdBundlesArtifactsResponse?.headers.Link ?? '')
+            : (artifactsResponse?.headers.Link ?? '')
         }
       />
     </Fragment>
@@ -380,11 +375,11 @@ const ActionsColumn = styled(Column)`
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const DetailsPanel = styled(Panel)`
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ArtifactColumn = styled('div')`
@@ -414,7 +409,7 @@ const SizeColumn = styled('div')`
 
 const TimeWrapper = styled('div')`
   display: grid;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   grid-template-columns: min-content 1fr;
   font-size: ${p => p.theme.font.size.md};
   align-items: center;
@@ -422,7 +417,7 @@ const TimeWrapper = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  margin-left: ${space(1)};
+  margin-left: ${p => p.theme.space.md};
 `;
 
 const SubText = styled('span')`
@@ -432,6 +427,6 @@ const SubText = styled('span')`
 const VersionAndDetails = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   word-break: break-word;
 `;

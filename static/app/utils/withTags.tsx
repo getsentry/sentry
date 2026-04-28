@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {TagCollection} from 'sentry/types/group';
-import getDisplayName from 'sentry/utils/getDisplayName';
+import {getDisplayName} from 'sentry/utils/getDisplayName';
 
 type InjectedTagsProps = {
   tags: TagCollection;
@@ -15,7 +15,7 @@ type State = {
 /**
  * HOC for getting *only* tags from the TagStore.
  */
-function withTags<P extends InjectedTagsProps>(
+export function withTags<P extends InjectedTagsProps>(
   WrappedComponent: React.ComponentType<P>
 ): React.ComponentType<Omit<P, keyof InjectedTagsProps>> {
   class WithTags extends Component<Omit<P, keyof InjectedTagsProps>, State> {
@@ -40,7 +40,7 @@ function withTags<P extends InjectedTagsProps>(
         <WrappedComponent
           tags={tags ?? this.state.tags}
           // TODO(any): HoC prop types not working w/ emotion https://github.com/emotion-js/emotion/issues/3261
-          {...(props as P as any)}
+          {...(props as any)}
         />
       );
     }
@@ -48,5 +48,3 @@ function withTags<P extends InjectedTagsProps>(
 
   return WithTags;
 }
-
-export default withTags;

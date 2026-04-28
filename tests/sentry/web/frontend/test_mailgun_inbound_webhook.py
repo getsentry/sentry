@@ -16,7 +16,7 @@ body_plain = "foo bar"
 class TestMailgunInboundWebhookView(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.event = self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
         self.mailto = group_id_to_email(self.group.pk)
 
@@ -96,7 +96,7 @@ class TestMailgunInboundWebhookView(TestCase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             activity = Activity.objects.get(group_id=self.group.id, user_id=self.user.id)
             assert activity.data == {"text": body_plain}
 
@@ -126,6 +126,6 @@ class TestMailgunInboundWebhookView(TestCase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             qs = Activity.objects.filter(group_id=self.group.id, user_id=self.user.id)
             assert qs.count() == 1

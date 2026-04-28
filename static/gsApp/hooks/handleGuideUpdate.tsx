@@ -1,6 +1,6 @@
 import type {Guide} from 'sentry/components/assistant/types';
 
-export default function handleGuideUpdate(
+export function handleGuideUpdate(
   nextGuide: Guide | null,
   {dismissed}: {dismissed?: boolean}
 ) {

@@ -16,8 +16,9 @@ describe('NewProjectPlatform', () => {
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+      url: `/organizations/${organization.slug}/integrations/`,
       body: integrations,
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
     });
   });
 

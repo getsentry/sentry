@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import {ModuleName} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('ModulePageProviders', () => {
   afterEach(() => {
@@ -24,7 +24,7 @@ describe('ModulePageProviders', () => {
       }
     );
 
-    await screen.findByText(`You don't have access to this feature`);
+    await screen.findByText("You don't have access to this feature");
   });
 
   it('renders module content if module is enabled', async () => {
@@ -39,6 +39,6 @@ describe('ModulePageProviders', () => {
       }
     );
 
-    await screen.findByText(`Module Content`);
+    await screen.findByText('Module Content');
   });
 });

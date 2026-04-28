@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 
 
 class AmazonSQSDataForwarderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.data_forwarder = DataForwarder.objects.create(
             organization=self.organization,

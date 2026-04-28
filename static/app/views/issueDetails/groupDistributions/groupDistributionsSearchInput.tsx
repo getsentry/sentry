@@ -1,6 +1,7 @@
 import type {Dispatch, SetStateAction} from 'react';
 
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
+
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -10,7 +11,7 @@ interface Props {
   search: string;
 }
 
-export default function GroupDistributionsSearchInput({
+export function GroupDistributionsSearchInput({
   includeFeatureFlagsTab,
   search,
   onChange,

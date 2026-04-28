@@ -2,19 +2,26 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
+import {useExperiment} from 'sentry/utils/useExperiment';
 
-import StepHeading from './stepHeading';
+import {OnboardingStepHeading} from './onboardingStepHeading';
 
 type Props = {
   platform: PlatformKey;
   stepHeaderText: string;
 };
-export default function SetupIntroduction({stepHeaderText, platform}: Props) {
+export function SetupIntroduction({stepHeaderText, platform}: Props) {
+  const {inExperiment: hasScmOnboarding} = useExperiment({
+    feature: 'onboarding-scm-experiment',
+    reportExposure: false,
+  });
+
   return (
     <TitleContainer>
-      <StepHeading step={2}>{stepHeaderText}</StepHeading>
+      <OnboardingStepHeading step={hasScmOnboarding ? undefined : 2}>
+        {stepHeaderText}
+      </OnboardingStepHeading>
       <IconWrapper
         variants={{
           initial: {opacity: 0, x: 20},
@@ -30,9 +37,9 @@ export default function SetupIntroduction({stepHeaderText, platform}: Props) {
 
 const TitleContainer = styled('div')`
   display: flex;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
 
-  ${StepHeading} {
+  ${OnboardingStepHeading} {
     margin-bottom: 0;
     min-width: 0;
   }

@@ -9,7 +9,7 @@ from sentry.taskworker.namespaces import issues_tasks
     name="sentry.tasks.auto_remove_inbox",
     namespace=issues_tasks,
     processing_deadline_duration=120,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def auto_remove_inbox() -> None:
     BulkDeleteQuery(model=GroupInbox, days=7, dtfield="date_added").execute()

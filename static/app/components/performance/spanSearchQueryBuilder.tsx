@@ -11,7 +11,7 @@ import {
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSpanItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -50,6 +50,8 @@ export interface UseSpanSearchQueryBuilderProps {
   useEap?: boolean;
 }
 export interface SpanSearchQueryBuilderProps extends UseSpanSearchQueryBuilderProps {
+  booleanAttributes: TagCollection;
+  booleanSecondaryAliases: TagCollection;
   itemType: TraceItemDataset;
   numberAttributes: TagCollection;
   numberSecondaryAliases: TagCollection;
@@ -65,10 +67,12 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   spanSearchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
   spanSearchQueryBuilderProviderProps: UseTraceItemSearchQueryBuilderPropsReturnType;
 } {
-  const {tags: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceItemTags('number');
-  const {tags: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceItemTags('string');
+  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
+    useSpanItemAttributes({}, 'number');
+  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
+    useSpanItemAttributes({}, 'string');
+  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
+    useSpanItemAttributes({}, 'boolean');
 
   const stringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in stringAttributes) {
@@ -84,6 +88,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     () => ({
       ...props,
       itemType: TraceItemDataset.SPANS,
+      booleanAttributes,
+      booleanSecondaryAliases,
       numberAttributes,
       stringAttributes: stringAttributesWithSemver,
       numberSecondaryAliases,
@@ -91,6 +97,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       caseInsensitive: props.caseInsensitive ? true : undefined,
     }),
     [
+      booleanAttributes,
+      booleanSecondaryAliases,
       numberAttributes,
       numberSecondaryAliases,
       props,
@@ -102,6 +110,8 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
   const spanSearchQueryBuilderProviderProps = useTraceItemSearchQueryBuilderProps({
     ...props,
     itemType: TraceItemDataset.SPANS,
+    booleanAttributes,
+    booleanSecondaryAliases,
     numberAttributes,
     stringAttributes: stringAttributesWithSemver,
     numberSecondaryAliases,

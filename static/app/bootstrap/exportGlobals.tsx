@@ -3,7 +3,7 @@ import {createRoot} from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
-import plugins from 'sentry/plugins';
+import {plugins} from 'sentry/plugins';
 
 const globals: Record<string, any> = {
   // The following globals are used in sentry-plugins webpack externals

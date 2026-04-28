@@ -1,16 +1,19 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
+import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
+import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
+import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -26,9 +29,9 @@ import {
   generateProfileFlamechartRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
@@ -88,7 +91,7 @@ export function useSpanProfileDetails(
     return profileGroup.profiles.find(p => p.threadId === threadId) ?? null;
   }, [profileGroup.profiles, threadId]);
 
-  const nodes: CallTreeNode[] = useMemo(() => {
+  const nodes = useMemo(() => {
     if (profile === null || !event) {
       return [];
     }
@@ -265,7 +268,7 @@ export function SpanProfileDetails({
           )}
         />
         <SpanDetailsItem>
-          <ButtonBar merged gap="0">
+          <ButtonBar>
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -300,20 +303,41 @@ export function SpanProfileDetails({
           </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
-      <StackTraceContent
-        event={processedEvent}
-        newestFirst
-        platform={event.platform || 'other'}
-        stacktrace={{
-          framesOmitted: null,
-          hasSystemFrames: false,
-          registers: null,
-          frames,
-        }}
-        stackView={StackView.APP}
-        inlined
-        maxDepth={MAX_STACK_DEPTH}
-      />
+      {organization.features.includes('issue-details-new-stack-trace') ? (
+        <StackTraceViewStateProvider platform={event.platform || 'other'}>
+          <StackTraceProvider
+            event={processedEvent}
+            stacktrace={{
+              framesOmitted: null,
+              hasSystemFrames: false,
+              registers: null,
+              frames,
+            }}
+            maxDepth={MAX_STACK_DEPTH}
+          >
+            <StackTraceFrames
+              borderless
+              frameActionsComponent={IssueFrameActions}
+              frameContextComponent={FrameContent}
+            />
+          </StackTraceProvider>
+        </StackTraceViewStateProvider>
+      ) : (
+        <StackTraceContent
+          event={processedEvent}
+          newestFirst
+          platform={event.platform || 'other'}
+          stacktrace={{
+            framesOmitted: null,
+            hasSystemFrames: false,
+            registers: null,
+            frames,
+          }}
+          stackView={StackView.APP}
+          inlined
+          maxDepth={MAX_STACK_DEPTH}
+        />
+      )}
     </SpanContainer>
   );
 }
@@ -325,7 +349,7 @@ function getTopNodes(
 ): CallTreeNode[] {
   let duration = profile.startedAt;
 
-  const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);
+  const callTree = new CallTreeNode(ProfilingFrame.Root, null);
 
   for (let i = 0; i < profile.samples.length; i++) {
     const sample = profile.samples[i]!;
@@ -413,7 +437,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
   const frames: Frame[] = [];
 
   while (node && !node.isRoot) {
-    const frame = {
+    const frame: Frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
       context: [],
@@ -424,8 +448,10 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformKey): Frame[
       lineNo: node.frame.line ?? null,
       module: node.frame.module ?? null,
       package: node.frame.package ?? null,
+      parentIndex: null,
       platform,
       rawFunction: null,
+      sampleCount: null,
       symbol: node.frame.symbol ?? null,
       symbolAddr: node.frame.symbolAddr ?? null,
       symbolicatorStatus: node.frame.symbolicatorStatus,
@@ -455,10 +481,10 @@ const SpanContainer = styled('div')`
   }
 `;
 const SpanDetails = styled('div')`
-  padding: ${space(0.5)} ${space(1)};
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`

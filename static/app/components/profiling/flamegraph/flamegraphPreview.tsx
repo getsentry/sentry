@@ -192,7 +192,7 @@ export function FlamegraphPreview({
     textRenderer,
   ]);
 
-  const hoveredNode: FlamegraphFrame | null = useMemo(() => {
+  const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
       return null;
     }
@@ -306,7 +306,7 @@ export function computePreviewConfigView(
     };
   }
 
-  const frames: FlamegraphFrame[] = flamegraph.root.children.slice();
+  const frames = flamegraph.root.children.slice();
 
   // If we're using the max depth in the window, then we want to anchor it
   // from the bottom because if the config view grows, we want to show more

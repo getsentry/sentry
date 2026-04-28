@@ -1,7 +1,9 @@
-import AlertStore from 'sentry/stores/alertStore';
+import {Container} from '@sentry/scraps/layout';
+
+import {AlertStore} from 'sentry/stores/alertStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-import AlertMessage from './alertMessage';
+import {AlertMessage} from './alertMessage';
 
 type Props = {className?: string};
 
@@ -9,11 +11,11 @@ function SystemAlerts(props: Props) {
   const alerts = useLegacyStore(AlertStore);
 
   return (
-    <div {...props}>
+    <Container {...props}>
       {alerts.map((alert, index) => (
         <AlertMessage alert={alert} key={`${alert.id}-${index}`} system />
       ))}
-    </div>
+    </Container>
   );
 }
 

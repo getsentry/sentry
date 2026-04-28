@@ -39,7 +39,7 @@ export function CacheHitMissChart({search}: Props) {
   return (
     <InsightsLineChartWidget
       queryInfo={queryInfo}
-      title={DataTitles[`cache_miss_rate()`]}
+      title={DataTitles['cache_miss_rate()']}
       timeSeries={data?.timeSeries}
       showLegend="never"
       isLoading={isCacheHitRateLoading}

@@ -52,7 +52,7 @@ describe('commitRow', () => {
   });
 
   it('renders invite flow for non associated users', async () => {
-    const commit: Commit = {
+    const commit = {
       ...baseCommit,
       author: {
         ...baseCommit.author,
@@ -79,7 +79,7 @@ describe('commitRow', () => {
   });
 
   it('renders commit info', () => {
-    const commit: Commit = {
+    const commit = {
       ...baseCommit,
       author: {
         ...baseCommit.author,

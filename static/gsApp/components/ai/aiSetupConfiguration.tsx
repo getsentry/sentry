@@ -6,28 +6,27 @@ import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigShipImg from 'sentry-images/spot/seer-config-ship.svg';
 
-import {Alert} from '@sentry/scraps/alert/alert';
-import {Stack} from '@sentry/scraps/layout/stack';
-import {Heading} from '@sentry/scraps/text/heading';
-import {Text} from '@sentry/scraps/text/text';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Image as ImageBase} from '@sentry/scraps/image';
+import {Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Image as ImageBase} from 'sentry/components/core/image/image';
 import {
   AutofixConfigureSeer,
   ImageContainer,
   SeerFeaturesPanel,
 } from 'sentry/components/events/autofix/v2/autofixConfigureSeer';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconUpgrade} from 'sentry/icons/iconUpgrade';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-import useSubscription from 'getsentry/hooks/useSubscription';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
 
 interface AiSetupConfigurationProps {
@@ -36,11 +35,7 @@ interface AiSetupConfigurationProps {
   project: Project;
 }
 
-export default function AiSetupConfiguration({
-  event,
-  group,
-  project,
-}: AiSetupConfigurationProps) {
+export function AiSetupConfiguration({event, group, project}: AiSetupConfigurationProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   if (organization.features.includes('seer-billing') && !aiConfig.hasAutofixQuota) {

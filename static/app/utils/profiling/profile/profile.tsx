@@ -27,7 +27,7 @@ export class Profile {
   name = 'Unknown';
 
   callTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
-  framesInStack: Set<Profiling.Event['frame']> = new Set();
+  framesInStack = new Set<Profiling.Event['frame']>();
 
   // Min duration of a single frame in our profile
   minFrameDuration = Number.POSITIVE_INFINITY;
@@ -45,10 +45,10 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  callTreeNodeProfileIdMap: Map<
+  callTreeNodeProfileIdMap = new Map<
     CallTreeNode,
     Set<Profiling.ProfileReference> | Set<string>
-  > = new Map();
+  >();
 
   constructor({
     duration,
@@ -149,7 +149,7 @@ export class Profile {
     }
   }
 
-  build(): Profile {
+  build(): this {
     this.duration = Math.max(
       this.duration,
       this.weights.reduce((a, b) => a + b, 0)

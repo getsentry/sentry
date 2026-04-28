@@ -116,7 +116,6 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
-
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
                 if condition is None:

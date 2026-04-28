@@ -7,6 +7,6 @@ import {defined} from 'sentry/utils';
  *
  *
  */
-export default function hasThresholdValue(value: number | '' | null): value is number {
+export function hasThresholdValue(value: number | '' | null): value is number {
   return defined(value) && value !== '';
 }

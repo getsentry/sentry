@@ -1,5 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {mutationOptions} from '@tanstack/react-query';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -9,11 +12,10 @@ import {stringifyToken} from 'sentry/components/searchSyntax/utils';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -73,6 +75,7 @@ export function SpansTabSeerComboBox() {
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const {
     currentInputValueRef,
     query,
@@ -263,18 +266,26 @@ export function SpansTabSeerComboBox() {
         group_by_count: groupBys.length,
         visualize_count: visualizations.length,
       });
+      trackAnalytics('ai_query.applied', {
+        organization,
+        area: analyticsArea,
+        query: queryToUse,
+        group_by_count: groupBys.length,
+        visualize_count: visualizations.length,
+      });
       navigate(url, {replace: true, preventScrollReset: true});
     },
-    [askSeerSuggestedQueryRef, navigate, organization, pageFilters.selection]
+    [
+      analyticsArea,
+      askSeerSuggestedQueryRef,
+      navigate,
+      organization,
+      pageFilters.selection,
+    ]
   );
 
-  const areAiFeaturesAllowed =
-    enableAISearch &&
-    !organization?.hideAiFeatures &&
-    organization.features.includes('gen-ai-features');
-
   useTraceExploreAiQuerySetup({
-    enableAISearch: areAiFeaturesAllowed && !useTranslateEndpoint,
+    enableAISearch: enableAISearch && !useTranslateEndpoint,
   });
 
   // Get selected project IDs for the polling variant
@@ -342,7 +353,6 @@ export function SpansTabSeerComboBox() {
         applySeerSearchQuery={applySeerSearchQuery}
         transformResponse={transformResponse}
         analyticsSource="trace.explorer"
-        feedbackSource="trace_explorer_ai_query"
         fallbackMutationOptions={spansTabAskSeerMutationOptions}
       />
     );
@@ -354,7 +364,6 @@ export function SpansTabSeerComboBox() {
       askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
       analyticsSource="trace.explorer"
-      feedbackSource="trace_explorer_ai_query"
     />
   );
 }

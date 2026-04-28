@@ -6,7 +6,7 @@ from sentry.debug_files.artifact_bundles import maybe_renew_artifact_bundles_fro
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -77,16 +77,17 @@ def _merge_frame(new_frame, symbolicated):
 # TODO: Change this error handling to be JS-specific?
 def _handle_response_status(event_data, response_json):
     if not response_json:
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
     elif response_json["status"] == "completed":
         return True
     elif response_json["status"] == "failed":
         error = SymbolicationFailed(
-            message=response_json.get("message") or None, type=EventError.NATIVE_SYMBOLICATOR_FAILED
+            message=response_json.get("message") or None,
+            type=EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
         )
     else:
         logger.error("Unexpected symbolicator status: %s", response_json["status"])
-        error = SymbolicationFailed(type=EventError.NATIVE_INTERNAL_FAILURE)
+        error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
 
     write_error(error, event_data)
 
@@ -124,27 +125,31 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
-                    "type": EventError.JS_MISSING_SOURCE,
+                    "type": EventErrorType.JS_MISSING_SOURCE,
                     "url": abs_path,
                 }
             )
         elif ty == "missing_source" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append(
-                {"symbolicator_type": ty, "type": EventError.JS_MISSING_SOURCE, "url": abs_path}
+                {"symbolicator_type": ty, "type": EventErrorType.JS_MISSING_SOURCE, "url": abs_path}
             )
         elif ty == "missing_sourcemap" and not should_skip_missing_source_error(abs_path):
             mapped_errors.append(
-                {"symbolicator_type": ty, "type": EventError.JS_MISSING_SOURCE, "url": abs_path}
+                {"symbolicator_type": ty, "type": EventErrorType.JS_MISSING_SOURCE, "url": abs_path}
             )
         elif ty == "scraping_disabled":
             mapped_errors.append(
-                {"symbolicator_type": ty, "type": EventError.JS_SCRAPING_DISABLED, "url": abs_path}
+                {
+                    "symbolicator_type": ty,
+                    "type": EventErrorType.JS_SCRAPING_DISABLED,
+                    "url": abs_path,
+                }
             )
         elif ty == "malformed_sourcemap":
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
-                    "type": EventError.JS_INVALID_SOURCEMAP,
+                    "type": EventErrorType.JS_INVALID_SOURCEMAP,
                     "url": error["url"],
                 }
             )
@@ -152,7 +157,7 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
-                    "type": EventError.JS_MISSING_SOURCES_CONTENT,
+                    "type": EventErrorType.JS_MISSING_SOURCES_CONTENT,
                     "source": error["source"],
                     "sourcemap": error["sourcemap"],
                 }
@@ -161,7 +166,7 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append(
                 {
                     "symbolicator_type": ty,
-                    "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                    "type": EventErrorType.JS_INVALID_SOURCEMAP_LOCATION,
                     "column": error["col"],
                     "row": error["line"],
                     "source": abs_path,

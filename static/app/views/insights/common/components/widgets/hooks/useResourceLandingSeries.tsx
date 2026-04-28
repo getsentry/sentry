@@ -54,7 +54,7 @@ export function useResourceLandingSeriesSearch(): SearchHook {
       : []),
   ];
 
-  let query: string = buildDiscoverQueryConditions(spanTimeChartsFilters);
+  let query = buildDiscoverQueryConditions(spanTimeChartsFilters);
 
   if (extraQuery.length) {
     query += ` ${extraQuery.join(' ')}`;

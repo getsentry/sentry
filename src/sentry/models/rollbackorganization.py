@@ -2,11 +2,11 @@ from django.db import models
 from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModel, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_model
+@cell_silo_model
 class RollbackOrganization(DefaultFieldsModel):
     """
     Stores a summary of every organization's year-in-review information to power the 2024 Sentry Rollback.

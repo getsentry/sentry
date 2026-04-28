@@ -210,12 +210,29 @@ class AppleCrashReport:
     @sentry_sdk.trace
     def get_threads_apple_string(self):
         rv = []
-        exception = self.exceptions or []
+        exceptions = self.exceptions or []
         threads = self.threads or []
-        for thread_info in exception + threads:
+
+        # Process threads first, tracking which ones produced output.
+        # When an exception's thread_id matches a thread that produced
+        # output, we skip the exception to avoid duplication (the thread
+        # carries richer metadata like name/crashed state).
+        output_thread_ids = set()
+        for thread_info in threads:
             thread_string = self.get_thread_apple_string(thread_info)
             if thread_string is not None:
                 rv.append(thread_string)
+                thread_id = thread_info.get("id")
+                if thread_id is not None:
+                    output_thread_ids.add(thread_id)
+
+        for exception_info in exceptions:
+            if exception_info.get("thread_id") in output_thread_ids:
+                continue
+            thread_string = self.get_thread_apple_string(exception_info)
+            if thread_string is not None:
+                rv.append(thread_string)
+
         return "\n\n".join(rv)
 
     def get_thread_apple_string(self, thread_info):
@@ -300,11 +317,12 @@ class AppleCrashReport:
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
         slide_value = debug_image.get("image_vmaddr", 0)
         image_addr = debug_image["image_addr"] + slide_value
+        image_size = debug_image.get("image_size")
         return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
-            hex(image_addr + debug_image["image_size"] - 1),
+            hex(image_addr + image_size - 1) if image_size else NATIVE_UNKNOWN_STRING,
             image_name(debug_image.get("code_file") or NATIVE_UNKNOWN_STRING),
             get_path(self.context, "device", "arch") or NATIVE_UNKNOWN_STRING,
-            debug_image.get("debug_id").replace("-", "").lower(),
+            (debug_image.get("debug_id") or "").replace("-", "").lower() or NATIVE_UNKNOWN_STRING,
             debug_image.get("code_file") or NATIVE_UNKNOWN_STRING,
         )

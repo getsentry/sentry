@@ -10,10 +10,10 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import ConfigStore from 'sentry/stores/configStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
 
@@ -136,7 +136,7 @@ describe('GroupReplays', () => {
     it('should show access denied when user does not have granular replay permissions', async () => {
       const {organization} = init({
         organizationProps: {
-          features: ['session-replay', 'granular-replay-permissions'],
+          features: ['session-replay'],
           hasGranularReplayPermissions: true,
           replayAccessMembers: [999], // User ID 1 is not in this list
         },

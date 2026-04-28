@@ -2,22 +2,22 @@ import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 
-import {Text} from 'sentry/components/core/text';
+import {Text} from '@sentry/scraps/text';
+
 import {Overlay} from 'sentry/components/overlay';
-import {space} from 'sentry/styles/space';
 import {getFormattedDate, shouldUse24Hours} from 'sentry/utils/dates';
-import formatDuration from 'sentry/utils/duration/formatDuration';
-import divide from 'sentry/utils/number/divide';
-import toPercent from 'sentry/utils/number/toPercent';
+import {formatDuration} from 'sentry/utils/duration/formatDuration';
+import {divide} from 'sentry/utils/number/divide';
+import {toPercent} from 'sentry/utils/number/toPercent';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type Props = {
   container: HTMLElement;
 };
 
-export default function TimelineTooltip({container}: Props) {
+export function TimelineTooltip({container}: Props) {
   const replay = useReplayReader();
   const [prefs] = useReplayPrefs();
   const timestampType = prefs.timestampType;
@@ -81,7 +81,7 @@ export default function TimelineTooltip({container}: Props) {
 
 const CursorLabel = styled(Overlay)`
   position: absolute;
-  padding: ${space(0.75)} ${space(1)};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   pointer-events: none;
   white-space: nowrap;
   z-index: 1000;

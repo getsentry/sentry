@@ -8,9 +8,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
@@ -30,13 +29,18 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 class ReplayCountQueryParamsValidator(serializers.Serializer):
     query = serializers.CharField(required=True)
     data_source = serializers.ChoiceField(
-        choices=(Dataset.Discover.value, Dataset.IssuePlatform.value),
+        choices=(
+            Dataset.Discover.value,
+            Dataset.Events.value,
+            Dataset.Transactions.value,
+            Dataset.IssuePlatform.value,
+        ),
         default=Dataset.Discover.value,
     )
     returnIds = serializers.BooleanField(default=False)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Replays"])
 class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
     """
@@ -44,7 +48,6 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
     then verify that they exist in the replays dataset, and return the count.
     """
 
-    owner = ApiOwner.REPLAY
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

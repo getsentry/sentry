@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 import sentry.models.groupsnooze
-from sentry.models.group import Group
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -74,7 +73,7 @@ class GroupSnoozeTest(
     @freeze_time()
     def test_user_delta_reached(self) -> None:
         for i in range(5):
-            self.store_event(
+            event = self.store_event(
                 data={
                     "user": {"id": i},
                     "timestamp": before_now(seconds=1).isoformat(),
@@ -83,7 +82,7 @@ class GroupSnoozeTest(
                 project_id=self.project.id,
             )
 
-        group = list(Group.objects.all())[-1]
+        group = event.group
         snooze = GroupSnooze.objects.create(group=group, user_count=5, state={"users_seen": 0})
         assert not snooze.is_valid(test_rates=True)
 
@@ -203,7 +202,9 @@ class GroupSnoozeTest(
                 "sentry.models.groupsnooze.tsdb.backend.get_distinct_counts_totals"
             ) as mocked_get_distinct_counts_totals,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+                sentry.models.groupsnooze,
+                "cache",
+                wraps=sentry.models.groupsnooze.cache,  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             mocked_get_distinct_counts_totals.side_effect = [
@@ -252,7 +253,9 @@ class GroupSnoozeTest(
                 "sentry.models.groupsnooze.tsdb.backend.get_distinct_counts_totals"
             ) as mocked_get_distinct_counts_totals,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+                sentry.models.groupsnooze,
+                "cache",
+                wraps=sentry.models.groupsnooze.cache,  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             mocked_get_distinct_counts_totals.side_effect = [
@@ -292,10 +295,11 @@ class GroupSnoozeTest(
                 side_effect=[95, 98, 100],
             ) as mocked_count_users_seen,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+                sentry.models.groupsnooze,
+                "cache",
+                wraps=sentry.models.groupsnooze.cache,  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
-
             cache_spy.set = mock.Mock(side_effect=cache_spy.set)
             cache_spy.incr = mock.Mock(side_effect=cache_spy.incr)
 
@@ -340,7 +344,9 @@ class GroupSnoozeTest(
                 side_effect=[98, 99, 100],
             ) as mocked_count_users_seen,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+                sentry.models.groupsnooze,
+                "cache",
+                wraps=sentry.models.groupsnooze.cache,  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             cache_spy.set = mock.Mock(side_effect=cache_spy.set)
@@ -374,7 +380,9 @@ class GroupSnoozeTest(
                 "sentry.models.groupsnooze.tsdb.backend.get_timeseries_sums"
             ) as mocked_get_timeseries_sums,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+                sentry.models.groupsnooze,
+                "cache",
+                wraps=sentry.models.groupsnooze.cache,  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             mocked_get_timeseries_sums.side_effect = [{snooze.group_id: c} for c in [95, 98, 100]]
@@ -421,7 +429,9 @@ class GroupSnoozeTest(
                 "sentry.models.groupsnooze.tsdb.backend.get_timeseries_sums"
             ) as mocked_get_timeseries_sums,
             mock.patch.object(
-                sentry.models.groupsnooze, "cache", wraps=sentry.models.groupsnooze.cache  # type: ignore[attr-defined]
+                sentry.models.groupsnooze,
+                "cache",
+                wraps=sentry.models.groupsnooze.cache,  # type: ignore[attr-defined]
             ) as cache_spy,
         ):
             mocked_get_timeseries_sums.side_effect = [{snooze.group_id: c} for c in [98, 99, 100]]

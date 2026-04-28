@@ -3,27 +3,25 @@ import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 import {
   getImageAttachmentRenderer,
   imageMimeTypes,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelFooter from 'sentry/components/panels/panelFooter';
-import PanelHeader from 'sentry/components/panels/panelHeader';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelFooter} from 'sentry/components/panels/panelFooter';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -44,7 +42,7 @@ type Props = {
   onlyRenderScreenshot?: boolean;
 };
 
-function Screenshot({
+export function Screenshot({
   eventId,
   organization,
   screenshot,
@@ -124,7 +122,7 @@ function Screenshot({
       </StyledPanelBody>
       {!onlyRenderScreenshot && (
         <StyledPanelFooter>
-          <ButtonBar>
+          <Grid flow="column" align="center" gap="md">
             <Button
               size="xs"
               onClick={() =>
@@ -168,14 +166,12 @@ function Screenshot({
                 },
               ]}
             />
-          </ButtonBar>
+          </Grid>
         </StyledPanelFooter>
       )}
     </StyledPanel>
   );
 }
-
-export default Screenshot;
 
 const StyledPanel = styled(Panel)`
   display: flex;
@@ -193,7 +189,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-bottom: 0;
@@ -226,7 +222,7 @@ const StyledPanelBody = styled(PanelBody)<{hasHeader: boolean}>`
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   width: 100%;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-top: 0;

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {IconArrow} from 'sentry/icons';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -19,7 +20,7 @@ type Props = {
   replace?: boolean;
 };
 
-function SortLink({
+export function SortLink({
   align,
   title,
   canSort,
@@ -95,5 +96,3 @@ const StyledNonLink = styled('div')<{align: Alignments}>`
 const StyledIconArrow = styled(IconArrow)`
   vertical-align: top;
 `;
-
-export default SortLink;

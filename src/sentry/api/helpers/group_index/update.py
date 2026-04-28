@@ -22,7 +22,6 @@ from sentry import analytics, features, options
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.db.models.query import create_or_update
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import GroupCategory
@@ -46,6 +45,7 @@ from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus, follows_semver_versioning_scheme
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -187,10 +187,12 @@ def update_groups(
     if len({p.organization_id for p in projects}) > 1:
         return Response({"detail": "All groups must belong to same organization."}, status=400)
 
+    organization = projects[0].organization if projects else None
+
     if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
-    serializer = validate_request(request, projects, data)
+    serializer = validate_request(request, projects, data, user)
 
     if serializer is None:
         logger.error("Error validating request. Investigate.")
@@ -248,6 +250,7 @@ def update_groups(
         )
 
     return prepare_response(
+        request,
         result,
         groups,
         project_lookup,
@@ -256,6 +259,7 @@ def update_groups(
         data,
         res_type,
         request.META.get("HTTP_REFERER", ""),
+        organization,
     )
 
 
@@ -296,6 +300,7 @@ def validate_request(
     request: Request,
     projects: Sequence[Project],
     data: Mapping[str, Any],
+    user: RpcUser | User | AnonymousUser | None = None,
 ) -> GroupValidator | None:
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
@@ -309,6 +314,10 @@ def validate_request(
                 "project": project,
                 "organization": project.organization,
                 "access": getattr(request, "access", None),
+                "request": request,
+                # Pass user explicitly for cases like Slack webhooks where
+                # request.user may be anonymous but the actual user is known
+                "user": user or getattr(request, "user", None),
             },
         )
         if not serializer.is_valid():
@@ -331,19 +340,25 @@ def get_group_list(
 
     Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    groups = []
+    groups: list[Group] = []
     # Convert all group IDs to integers and filter out any non-integer values
     group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
     if group_ids_int:
         return list(
             Group.objects.filter(
                 project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
-            )
+            ).select_related("project")
         )
     else:
+        project_ids = {p.id for p in projects}
         for group_id in group_ids:
             if isinstance(group_id, str):
-                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+                try:
+                    group = Group.objects.by_qualified_short_id(organization_id, group_id)
+                except Group.DoesNotExist:
+                    continue
+                if group.project_id in project_ids:
+                    groups.append(group)
 
     return groups
 
@@ -753,6 +768,7 @@ def handle_other_status_updates(
 
 
 def prepare_response(
+    request: Request,
     result: dict[str, Any],
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
@@ -761,6 +777,7 @@ def prepare_response(
     data: Mapping[str, Any],
     res_type: int | None,
     referer: str,
+    organization: Organization | None = None,
 ) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
@@ -863,13 +880,23 @@ def greatest_semver_release(project: Project) -> Release | None:
 
 
 def get_semver_releases(project: Project) -> QuerySet[Release]:
-    return (
+    order_by_build_code = features.has(
+        "organizations:semver-ordering-with-build-code", project.organization
+    )
+
+    semver_cols = (
+        Release.SEMVER_COLS_WITH_BUILD_CODE if order_by_build_code else Release.SEMVER_COLS
+    )
+
+    qs = (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
         .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
         .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
-        .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
+    if order_by_build_code:
+        qs = qs.annotate_build_code_column()
+    return qs.order_by(*[f"-{col}" for col in semver_cols])
 
 
 def handle_is_subscribed(
@@ -889,11 +916,11 @@ def handle_is_subscribed(
         # subscribed" to "you were subscribed since you were
         # assigned" just by clicking the "subscribe" button (and you
         # may no longer be assigned to the issue anyway).
-        GroupSubscription.objects.create_or_update(
+        GroupSubscription.objects.update_or_create(
             user_id=acting_user.id if acting_user else None,
             group=group,
             project=project_lookup[group.project_id],
-            values={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
+            defaults={"is_active": is_subscribed, "reason": GroupSubscriptionReason.unknown},
         )
 
     return {"reason": SUBSCRIPTION_REASON_MAP.get(GroupSubscriptionReason.unknown, "unknown")}
@@ -951,12 +978,11 @@ def handle_has_seen(
     if has_seen:
         for group in group_list:
             if is_member_map.get(group.project_id):
-                create_or_update(
-                    GroupSeen,
+                GroupSeen.objects.update_or_create(
                     group=group,
                     user_id=user_id,
                     project=project_lookup[group.project_id],
-                    values={"last_seen": django_timezone.now()},
+                    defaults={"last_seen": django_timezone.now()},
                 )
     elif has_seen is False and user_id is not None:
         GroupSeen.objects.filter(

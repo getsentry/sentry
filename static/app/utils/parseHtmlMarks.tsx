@@ -19,7 +19,7 @@ type Options = {
  * @param markTags.highlightPreTag The left tag
  * @param markTags.highlightPostTag The right tag
  */
-export default function parseHtmlMarks({key, htmlString, markTags}: Options) {
+export function parseHtmlMarks({key, htmlString, markTags}: Options) {
   const {highlightPreTag, highlightPostTag} = markTags;
 
   const indices: Array<[number, number]> = [];

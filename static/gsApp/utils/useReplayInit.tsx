@@ -12,12 +12,12 @@ let replayRef: ReturnType<typeof replayIntegration> | null;
 /**
  * Load the Sentry Replay integration based on the feature flag.
  */
-export default function useReplayInit() {
+export function useReplayInit() {
   const user = useUser();
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
-      const {replayIntegration, replayCanvasIntegration} = await import('@sentry/react');
+      const {replayIntegration} = await import('@sentry/react');
 
       if (!replayRef) {
         const client = getClient();
@@ -58,7 +58,7 @@ export default function useReplayInit() {
             'x-served-by',
           ],
           maskFn: (text: string) =>
-            isStaticString(text) ? text : text.replace(/[\S]/g, '*'),
+            isStaticString(text) ? text : text.replace(/\S/g, '*'),
 
           slowClickIgnoreSelectors: [
             '[aria-label*="download" i]',
@@ -66,7 +66,6 @@ export default function useReplayInit() {
           ],
         });
 
-        client.addIntegration(replayCanvasIntegration());
         client.addIntegration(replayRef);
       }
     }

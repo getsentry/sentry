@@ -10,8 +10,8 @@ import {
 } from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {
+  GetTagKeys,
   GetTagValues,
   SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
@@ -32,8 +32,8 @@ import {defined} from 'sentry/utils';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 
 interface SearchQueryBuilderContextData {
   actionBarRef: React.RefObject<HTMLDivElement | null>;
@@ -55,11 +55,13 @@ interface SearchQueryBuilderContextData {
   filterKeySections: FilterKeySection[];
   filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
-  gaveSeerConsent: boolean;
+  // @deprecated: remove this, it's constant now
+  gaveSeerConsent: true;
   getFieldDefinition: (key: string, kind?: FieldKind) => FieldDefinition | null;
   getSuggestedFilterKey: (key: string) => string | null;
   getTagValues: GetTagValues;
   handleSearch: (query: string) => void;
+  invalidFilterKeys: string[];
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
   query: string;
@@ -71,6 +73,7 @@ interface SearchQueryBuilderContextData {
   wrapperRef: React.RefObject<HTMLDivElement | null>;
   caseInsensitive?: CaseInsensitive;
   filterKeyAliases?: TagCollection;
+  getTagKeys?: GetTagKeys;
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   namespace?: string;
   onCaseInsensitiveClick?: (value: CaseInsensitive) => void;
@@ -112,6 +115,7 @@ export function SearchQueryBuilderProvider({
   filterKeyMenuWidth = 460,
   filterKeySections,
   getSuggestedFilterKey,
+  getTagKeys,
   getTagValues,
   onSearch,
   placeholder,
@@ -125,6 +129,7 @@ export function SearchQueryBuilderProvider({
   filterKeyAliases,
   caseInsensitive,
   onCaseInsensitiveClick,
+  invalidFilterKeys,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -140,8 +145,6 @@ export function SearchQueryBuilderProvider({
     Boolean(enableAISearchProp) &&
     !organization.hideAiFeatures &&
     organization.features.includes('gen-ai-features');
-
-  const {setupAcknowledgement} = useOrganizationSeerSetup({enabled: enableAISearch});
 
   const [displayAskSeerState, setDisplayAskSeerState] = useState(false);
   const displayAskSeer = enableAISearch ? displayAskSeerState : false;
@@ -197,6 +200,11 @@ export function SearchQueryBuilderProvider({
 
   const parsedQuery = useMemo(() => parseQuery(state.query), [parseQuery, state.query]);
 
+  const stableInvalidFilterKeys = useMemo(
+    () => invalidFilterKeys ?? [],
+    [invalidFilterKeys]
+  );
+
   const previousQuery = usePrevious(state.query);
   const firstRender = useRef(true);
   useEffect(() => {
@@ -241,6 +249,7 @@ export function SearchQueryBuilderProvider({
     return {
       ...state,
       aiSearchBadgeType,
+      invalidFilterKeys: stableInvalidFilterKeys,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
       disallowLogicalOperators: Boolean(disallowLogicalOperators),
@@ -253,6 +262,7 @@ export function SearchQueryBuilderProvider({
       filterKeys: stableFilterKeys,
       getSuggestedFilterKey: stableGetSuggestedFilterKey,
       getTagValues,
+      getTagKeys,
       getFieldDefinition: stableFieldDefinitionGetter,
       dispatch,
       wrapperRef,
@@ -271,7 +281,7 @@ export function SearchQueryBuilderProvider({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases,
-      gaveSeerConsent: setupAcknowledgement.orgHasAcknowledged,
+      gaveSeerConsent: true,
       currentInputValueRef,
       displayAskSeerFeedback,
       setDisplayAskSeerFeedback,
@@ -295,8 +305,10 @@ export function SearchQueryBuilderProvider({
     filterKeyAliases,
     filterKeyMenuWidth,
     filterKeySections,
+    getTagKeys,
     getTagValues,
     handleSearch,
+    stableInvalidFilterKeys,
     matchKeySuggestions,
     onCaseInsensitiveClick,
     parseQuery,
@@ -307,7 +319,6 @@ export function SearchQueryBuilderProvider({
     namespace,
     replaceRawSearchKeys,
     searchSource,
-    setupAcknowledgement.orgHasAcknowledged,
     size,
     stableFieldDefinitionGetter,
     stableFilterKeys,

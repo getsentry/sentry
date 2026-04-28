@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 
-import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -47,13 +48,13 @@ export function MetricsDrawer({event, project, group}: MetricsIssueDrawerProps) 
               ),
             },
             {label: getShortEventId(event.id)},
-            {label: t('Metrics')},
+            {label: t('Application Metrics')},
           ]}
         />
       </EventDrawerHeader>
       <EventNavigator style={{gap: '0px'}}>
         <SearchQueryBuilder
-          placeholder={t('Search metrics for this trace')}
+          placeholder={t('Search application metrics for this trace')}
           filterKeys={{}}
           getTagValues={() => new Promise<string[]>(() => [])}
           initialQuery={metricsSearch.formatString()}

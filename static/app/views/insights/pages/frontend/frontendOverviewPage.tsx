@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+
 import Feature from 'sentry/components/acl/feature';
-import type {SelectOption} from 'sentry/components/core/compactSelect';
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
-} from 'sentry/components/organizations/datePageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -18,14 +20,13 @@ import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {OverviewIssuesWidget} from 'sentry/views/insights/common/components/overviewIssuesWidget';
@@ -38,6 +39,7 @@ import OverviewTransactionThroughputChartWidget from 'sentry/views/insights/comm
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TripleRowWidgetWrapper} from 'sentry/views/insights/pages/backend/backendOverviewPage';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
@@ -47,6 +49,7 @@ import {
   isAValidSort,
   type ValidSort,
 } from 'sentry/views/insights/pages/frontend/frontendOverviewTable';
+import {PlatformizedFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/platformizedFrontendOverviewPage';
 import {useFrontendTableData} from 'sentry/views/insights/pages/frontend/queries/useFrontendTableData';
 import type {PageSpanOps} from 'sentry/views/insights/pages/frontend/settings';
 import {
@@ -56,9 +59,9 @@ import {
   SPAN_OP_QUERY_PARAM,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
-import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {NextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
+import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
 import {WebVitalsWidget} from 'sentry/views/insights/pages/platform/nextjs/webVitalsWidget';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
@@ -83,9 +86,7 @@ function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) 
   useDefaultToAllProjects();
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const spanOp: PageSpanOps = getSpanOpFromQuery(
-    decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM])
-  );
+  const spanOp = getSpanOpFromQuery(decodeScalar(location.query?.[SPAN_OP_QUERY_PARAM]));
 
   const {query: searchBarQuery} = useLocationQuery({
     fields: {
@@ -162,7 +163,7 @@ function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) 
                   <DatePageFilter {...datePageFilterProps} />
                 </PageFilterBar>
                 {!showOnboarding && (
-                  <InsightsSpanTagProvider>
+                  <Fragment>
                     <CompactSelect
                       value={spanOp}
                       menuTitle={t('Filter by operation')}
@@ -189,7 +190,7 @@ function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) 
                       }}
                       query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                     />
-                  </InsightsSpanTagProvider>
+                  </Fragment>
                 )}
               </ToolRibbon>
             </ModuleLayout.Full>
@@ -246,14 +247,19 @@ function FrontendOverviewPageWithProviders() {
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
   const isNextJsPageEnabled = useIsNextJsInsightsAvailable();
   const useEap = useInsightsEap();
 
   let overviewPage = (
     <Am1FrontendOverviewPage datePageFilterProps={datePageFilterProps} />
   );
-  if (isNextJsPageEnabled) {
+  if (isNextJsPageEnabled && hasPlatformizedInsights) {
+    overviewPage = <PlatformizedNextJsOverviewPage />;
+  } else if (isNextJsPageEnabled) {
     overviewPage = <NextJsOverviewPage datePageFilterProps={datePageFilterProps} />;
+  } else if (useEap && hasPlatformizedInsights) {
+    overviewPage = <PlatformizedFrontendOverviewPage />;
   } else if (useEap) {
     overviewPage = <FrontendOverviewPage datePageFilterProps={datePageFilterProps} />;
   }

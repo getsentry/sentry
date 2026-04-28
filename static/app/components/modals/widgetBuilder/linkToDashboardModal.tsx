@@ -2,25 +2,28 @@ import {Fragment, useCallback, useEffect, useState, type ReactNode} from 'react'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Select} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {fetchDashboard, fetchDashboards} from 'sentry/actionCreators/dashboards';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {Select} from 'sentry/components/core/select';
-import Spinner from 'sentry/components/forms/spinner';
+import {Spinner} from 'sentry/components/forms/spinner';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  LinkedDashboard,
+import {
+  DashboardFilter,
+  MAX_WIDGETS,
+  type DashboardDetails,
+  type DashboardListItem,
+  type LinkedDashboard,
 } from 'sentry/views/dashboards/types';
-import {MAX_WIDGETS} from 'sentry/views/dashboards/types';
 import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export type LinkToDashboardModalProps = {
@@ -56,20 +59,45 @@ export function LinkToDashboardModal({
     let unmounted = false;
 
     setIsDashboardListLoading(true);
-    fetchDashboards(api, organization.slug)
-      .then(response => {
-        // If component has unmounted, dont set state
+
+    const dashboardListPromise = fetchDashboards(api, organization.slug, {
+      filter: DashboardFilter.SHOW_HIDDEN,
+    });
+    const linkedDashboardPromise = currentLinkedDashboard?.dashboardId
+      ? fetchDashboard(api, organization.slug, currentLinkedDashboard.dashboardId).catch(
+          () => null
+        )
+      : Promise.resolve(null);
+
+    Promise.all([dashboardListPromise, linkedDashboardPromise])
+      .then(([dashboardList, linkedDashboard]) => {
         if (unmounted) {
           return;
         }
 
-        setDashboards(response);
-        const currentDashboard = response.find(
-          dashboard => dashboard.id === currentLinkedDashboard?.dashboardId
-        );
-        if (currentDashboard) {
-          setSelectedDashboardId(currentDashboard.id);
+        if (linkedDashboard) {
+          const alreadyIncluded = dashboardList.some(d => d.id === linkedDashboard.id);
+          if (!alreadyIncluded) {
+            // Converts dashboard details to dashboard list item
+            dashboardList.push({
+              id: linkedDashboard.id,
+              title: linkedDashboard.title,
+              filters: linkedDashboard.filters,
+              projects: linkedDashboard.projects ?? [],
+              environment: linkedDashboard.environment ?? [],
+              widgetDisplay: linkedDashboard.widgets.map(w => w.displayType),
+              widgetPreview: linkedDashboard.widgets.map(w => ({
+                displayType: w.displayType,
+                layout: w.layout ?? null,
+              })),
+              dateCreated: linkedDashboard.dateCreated,
+              createdBy: linkedDashboard.createdBy,
+            });
+          }
+          setSelectedDashboardId(linkedDashboard.id);
         }
+
+        setDashboards(dashboardList);
       })
       .finally(() => {
         setIsDashboardListLoading(false);
@@ -111,7 +139,7 @@ export function LinkToDashboardModal({
       limitMessage: ReactNode | null
     ) => {
       if (dashboards === null) {
-        return null;
+        return [];
       }
 
       return [
@@ -154,7 +182,18 @@ export function LinkToDashboardModal({
 
   return (
     <Fragment>
-      <Header closeButton>{t('Link to Dashboard')}</Header>
+      <Header closeButton>
+        <Flex align="center" gap="sm">
+          {t('Link to Dashboard')}
+          <Tooltip
+            title={t(
+              'Dashboard linking allows you to create a connection between a field in this widget and another dashboard. When users click on a value in the linked field, they will be taken to the linked dashboard with relevant filters applied.'
+            )}
+          >
+            <IconInfo size="sm" />
+          </Tooltip>
+        </Flex>
+      </Header>
       <Body>
         <Wrapper>
           <DashboardCreateLimitWrapper>
@@ -169,7 +208,7 @@ export function LinkToDashboardModal({
                   placeholder={t('Select Dashboard')}
                   value={selectedDashboardId}
                   options={getOptions(hasReachedDashboardLimit, isLoading, limitMessage)}
-                  onChange={(option: SelectValue<string>) => {
+                  onChange={option => {
                     if (option.disabled) {
                       return;
                     }
@@ -185,7 +224,7 @@ export function LinkToDashboardModal({
         <StyledButtonBar gap="lg">
           <Button
             disabled={!canSubmit}
-            title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
+            tooltipProps={{title: canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}}
             onClick={() => linkToDashboard()}
             aria-label={t('Link to dashboard')}
           >
@@ -198,13 +237,15 @@ export function LinkToDashboardModal({
 }
 
 const Wrapper = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
+const StyledButtonBar = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   @media (max-width: ${props => props.theme.breakpoints.sm}) {
     grid-template-rows: repeat(2, 1fr);
-    gap: ${space(1.5)};
+    gap: ${p => p.theme.space.lg};
     width: 100%;
 
     > button {

@@ -17,7 +17,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     VirtualColumnContext,
 )
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -27,7 +27,7 @@ from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 
-ResolvedArgument: TypeAlias = AttributeKey | str | int | float
+ResolvedArgument: TypeAlias = AttributeKey | str | int | float | TraceItemFilter
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
 ProtoDefinition: TypeAlias = (
     LiteralValue
@@ -43,6 +43,7 @@ class ResolverSettings(TypedDict):
     snuba_params: SnubaParams
     query_result_cache: dict[str, EAPResponse]
     search_config: SearchResolverConfig
+    conditional: bool
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -144,7 +145,7 @@ class BaseArgumentDefinition:
 @dataclass
 class ValueArgumentDefinition(BaseArgumentDefinition):
     # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid conversion errors
-    argument_types: set[Literal["integer", "string", "number"]] | None = None
+    argument_types: set[Literal["integer", "string", "number", "query"]] | None = None
 
 
 @dataclass
@@ -156,7 +157,10 @@ class AttributeArgumentDefinition(BaseArgumentDefinition):
 
 @dataclass
 class VirtualColumnDefinition:
-    constructor: Callable[[SnubaParams], VirtualColumnContext]
+    constructor: Callable[[SnubaParams, Any], VirtualColumnContext]
+    # Need a type for the attributes endpoint
+    search_type: constants.SearchType
+    secondary_alias: bool = False
     # Allows additional processing to the term after its been resolved
     term_resolver: (
         Callable[
@@ -169,6 +173,10 @@ class VirtualColumnDefinition:
     default_value: str | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
+    # The raw source column to use for ORDER BY instead of the virtual column.
+    # When set, sorting uses this column (with original values) rather than the
+    # transformed virtual column values, which may not sort in the desired order.
+    sort_column: str | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -179,6 +187,7 @@ class ResolvedFunction(ResolvedColumn):
     """
 
     is_aggregate: bool
+    default_value: float | None = None
 
     @property
     def proto_definition(
@@ -229,12 +238,21 @@ class ResolvedAggregate(ResolvedFunction):
     @property
     def proto_definition(self) -> AttributeAggregation:
         """The definition of this function as needed by the RPC"""
-        return AttributeAggregation(
-            aggregate=self.internal_name,
-            key=self.argument,
-            label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
-        )
+        if self.default_value is not None:
+            return AttributeAggregation(
+                aggregate=self.internal_name,
+                key=self.argument,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+                default_value_double=self.default_value,
+            )
+        else:
+            return AttributeAggregation(
+                aggregate=self.internal_name,
+                key=self.argument,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+            )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -247,23 +265,55 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
 
     is_aggregate: bool = field(default=True, init=False)
     trace_metric: TraceMetric | None
+    trace_filter: TraceItemFilter | None
 
     @property
-    def proto_definition(self) -> AttributeAggregation | AttributeConditionalAggregation:
-        if self.trace_metric is None:
-            return AttributeAggregation(
+    def proto_definition(
+        self,
+    ) -> AttributeAggregation | AttributeConditionalAggregation:
+        if self.trace_metric is None and self.trace_filter is None:
+            if self.default_value is not None:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                    default_value_double=self.default_value,
+                )
+            else:
+                return AttributeAggregation(
+                    aggregate=self.internal_name,
+                    key=self.key,
+                    label=self.public_alias,
+                    extrapolation_mode=self.extrapolation_mode,
+                )
+
+        if self.trace_filter is None and self.trace_metric is not None:
+            trace_filter = self.trace_metric.get_filter()
+        elif self.trace_filter is not None and self.trace_metric is None:
+            trace_filter = self.trace_filter
+        elif self.trace_filter is not None and self.trace_metric is not None:
+            trace_filter = TraceItemFilter(
+                and_filter=AndFilter(filters=[self.trace_metric.get_filter(), self.trace_filter])
+            )
+
+        if self.default_value is not None:
+            return AttributeConditionalAggregation(
                 aggregate=self.internal_name,
                 key=self.key,
+                filter=trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+                default_value_double=self.default_value,
+            )
+        else:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=trace_filter,
                 label=self.public_alias,
                 extrapolation_mode=self.extrapolation_mode,
             )
-        return AttributeConditionalAggregation(
-            aggregate=self.internal_name,
-            key=self.key,
-            filter=self.trace_metric.get_filter(),
-            label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
-        )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -272,7 +322,7 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     internal_name: Function.ValueType
     extrapolation_mode: ExtrapolationMode.ValueType
     # The condition to filter on
-    filter: TraceItemFilter
+    trace_filter: TraceItemFilter
     # The attribute to conditionally aggregate on
     key: AttributeKey
 
@@ -281,13 +331,23 @@ class ResolvedConditionalAggregate(ResolvedFunction):
     @property
     def proto_definition(self) -> AttributeConditionalAggregation:
         """The definition of this function as needed by the RPC"""
-        return AttributeConditionalAggregation(
-            aggregate=self.internal_name,
-            key=self.key,
-            filter=self.filter,
-            label=self.public_alias,
-            extrapolation_mode=self.extrapolation_mode,
-        )
+        if self.default_value is not None:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=self.trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+                default_value_double=self.default_value,
+            )
+        else:
+            return AttributeConditionalAggregation(
+                aggregate=self.internal_name,
+                key=self.key,
+                filter=self.trace_filter,
+                label=self.public_alias,
+                extrapolation_mode=self.extrapolation_mode,
+            )
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -340,6 +400,7 @@ class FunctionDefinition:
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         raise NotImplementedError()
 
@@ -361,6 +422,7 @@ class AggregateDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -386,13 +448,17 @@ class AggregateDefinition(FunctionDefinition):
                 search_config, self.extrapolation_mode_override
             ),
             argument=resolved_attribute,
+            default_value=default_value,
         )
 
 
 @dataclass(kw_only=True)
 class TraceMetricAggregateDefinition(AggregateDefinition):
+    offset = 0
+    expected_args = 4
+
     def __post_init__(self) -> None:
-        validate_trace_metric_aggregate_arguments(self.arguments)
+        validate_trace_metric_aggregate_arguments(self.arguments, self.offset, self.expected_args)
 
     def resolve(
         self,
@@ -402,30 +468,59 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
-        if not isinstance(resolved_arguments[0], AttributeKey):
+        if not isinstance(resolved_arguments[self.offset], AttributeKey):
             raise InvalidSearchQuery(
-                "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+                f"Trace metric aggregates expect argument {self.offset} to be of type AttributeArgumentDefinition"
             )
 
-        resolved_attribute = resolved_arguments[0]
+        resolved_attribute = resolved_arguments[self.offset]
         if self.attribute_resolver is not None:
             resolved_attribute = self.attribute_resolver(resolved_attribute)
 
-        trace_metric = extract_trace_metric_aggregate_arguments(resolved_arguments)
+        trace_metric = extract_trace_metric_aggregate_arguments(
+            resolved_arguments, offset=self.offset
+        )
+
+        # The search type for the first argument is always going to be 'number', but
+        # the real unit for the metric is stored in the metric_unit field of the trace metric
+        resolved_search_type = search_type
+        if (
+            trace_metric
+            and trace_metric.metric_unit
+            and self.internal_function not in [Function.FUNCTION_COUNT, Function.FUNCTION_UNIQ]
+        ):
+            if (
+                trace_metric.metric_unit in constants.DURATION_TYPE
+                or trace_metric.metric_unit in constants.SIZE_TYPE
+            ):
+                resolved_search_type = trace_metric.metric_unit
 
         return ResolvedTraceMetricAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
-            search_type=search_type,
+            search_type=resolved_search_type,
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
             ),
-            key=resolved_attribute,
+            key=cast(AttributeKey, resolved_attribute),
             trace_metric=trace_metric,
+            trace_filter=(
+                cast(TraceItemFilter, resolved_arguments[0])
+                if isinstance(self, ConditionalTraceMetricAggregateDefinition)
+                else None
+            ),
+            default_value=default_value,
         )
+
+
+@dataclass(kw_only=True)
+class ConditionalTraceMetricAggregateDefinition(TraceMetricAggregateDefinition):
+    offset = 1
+    expected_args = 5
 
 
 @dataclass(kw_only=True)
@@ -448,6 +543,7 @@ class ConditionalAggregateDefinition(AggregateDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         key, aggregate_filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -455,12 +551,13 @@ class ConditionalAggregateDefinition(AggregateDefinition):
             internal_name=self.internal_function,
             search_type=search_type,
             internal_type=self.internal_type,
-            filter=aggregate_filter,
+            trace_filter=aggregate_filter,
             key=key,
             processor=self.processor,
             extrapolation_mode=resolve_extrapolation_mode(
                 search_config, self.extrapolation_mode_override
             ),
+            default_value=default_value,
         )
 
 
@@ -484,6 +581,7 @@ class FormulaDefinition(FunctionDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -492,6 +590,7 @@ class FormulaDefinition(FunctionDefinition):
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
             search_config=search_config,
+            conditional=False,
         )
 
         return ResolvedFormula(
@@ -501,13 +600,19 @@ class FormulaDefinition(FunctionDefinition):
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
+            default_value=default_value,
         )
 
 
 @dataclass(kw_only=True)
 class TraceMetricFormulaDefinition(FormulaDefinition):
+    offset = 0
+    expected_args = 4
+
     def __post_init__(self) -> None:
-        validate_trace_metric_aggregate_arguments(self.arguments)
+        validate_trace_metric_aggregate_arguments(
+            self.arguments, offset=self.offset, expected_args=self.expected_args
+        )
 
     def resolve(
         self,
@@ -517,6 +622,7 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
         snuba_params: SnubaParams,
         query_result_cache: dict[str, EAPResponse],
         search_config: SearchResolverConfig,
+        default_value: float | None = None,
     ) -> ResolvedFunction:
         resolver_settings = ResolverSettings(
             extrapolation_mode=resolve_extrapolation_mode(
@@ -525,19 +631,32 @@ class TraceMetricFormulaDefinition(FormulaDefinition):
             snuba_params=snuba_params,
             query_result_cache=query_result_cache,
             search_config=search_config,
+            conditional=isinstance(self, ConditionalTraceMetricFormulaDefinition),
         )
 
-        trace_metric = extract_trace_metric_aggregate_arguments(resolved_arguments)
+        trace_metric = extract_trace_metric_aggregate_arguments(
+            resolved_arguments, offset=self.offset
+        )
 
         return ResolvedTraceMetricFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments, resolver_settings),
+            formula=self.formula_resolver(
+                resolved_arguments,
+                resolver_settings,
+            ),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
             trace_metric=trace_metric,
+            default_value=default_value,
         )
+
+
+@dataclass(kw_only=True)
+class ConditionalTraceMetricFormulaDefinition(TraceMetricFormulaDefinition):
+    offset = 1
+    expected_args = 5
 
 
 def simple_sentry_field(
@@ -577,8 +696,8 @@ def datetime_processor(datetime_value: str | float) -> str:
 
 def project_context_constructor(
     column_name: str,
-) -> Callable[[SnubaParams], VirtualColumnContext]:
-    def context_constructor(params: SnubaParams) -> VirtualColumnContext:
+) -> Callable[[SnubaParams, Any], VirtualColumnContext]:
+    def context_constructor(params: SnubaParams, _resolver: Any) -> VirtualColumnContext:
         return VirtualColumnContext(
             from_column_name="sentry.project_id",
             to_column_name=column_name,
@@ -607,12 +726,14 @@ class ColumnDefinitions:
     columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType
-    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter], list[SearchFilter]]]
+    filter_aliases: Mapping[str, Callable[[SnubaParams, SearchFilter, Any], list[SearchFilter]]]
     alias_to_column: Callable[[str], str | None] | None
     column_to_alias: Callable[[str], str | None] | None
 
 
-def attribute_key_to_tuple(attribute_key: AttributeKey) -> tuple[str, AttributeKey.Type.ValueType]:
+def attribute_key_to_tuple(
+    attribute_key: AttributeKey,
+) -> tuple[str, AttributeKey.Type.ValueType]:
     return (attribute_key.name, attribute_key.type)
 
 
@@ -637,18 +758,20 @@ def count_argument_resolver_optimized(
 
 def validate_trace_metric_aggregate_arguments(
     arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition],
+    offset: int = 0,
+    expected_args: int = 4,
 ) -> None:
-    if len(arguments) != 4:
+    if len(arguments) != expected_args:
         raise InvalidSearchQuery(
-            f"Trace metric aggregates expects exactly 4 arguments to be defined, got {len(arguments)}"
+            f"Trace metric aggregates expects exactly {expected_args} arguments to be defined, got {len(arguments)}"
         )
 
-    if not isinstance(arguments[0], AttributeArgumentDefinition):
+    if not isinstance(arguments[offset], AttributeArgumentDefinition):
         raise InvalidSearchQuery(
-            "Trace metric aggregates expect argument 0 to be of type AttributeArgumentDefinition"
+            f"Trace metric aggregates expect argument {offset} to be of type AttributeArgumentDefinition"
         )
 
-    for i in range(1, 4):
+    for i in range(offset + 1, expected_args):
         if not isinstance(arguments[i], ValueArgumentDefinition):
             raise InvalidSearchQuery(
                 f"Trace metric aggregates expects argument {i} to be of type ValueArgumentDefinition"
@@ -657,21 +780,26 @@ def validate_trace_metric_aggregate_arguments(
 
 def extract_trace_metric_aggregate_arguments(
     resolved_arguments: ResolvedArguments,
+    offset: int = 0,
 ) -> TraceMetric | None:
     if all(
         isinstance(resolved_argument, str) and resolved_argument != ""
-        for resolved_argument in resolved_arguments[1:]
+        for resolved_argument in resolved_arguments[offset + 1 :]
     ):
         # a metric was passed
         return TraceMetric(
-            metric_name=cast(str, resolved_arguments[1]),
-            metric_type=cast(TraceMetricType, resolved_arguments[2]),
-            metric_unit=None if resolved_arguments[3] == "-" else cast(str, resolved_arguments[3]),
+            metric_name=cast(str, resolved_arguments[offset + 1]),
+            metric_type=cast(TraceMetricType, resolved_arguments[offset + 2]),
+            metric_unit=(
+                None
+                if resolved_arguments[offset + 3] == "-"
+                else cast(str, resolved_arguments[offset + 3])
+            ),
         )
-    elif all(resolved_argument == "" for resolved_argument in resolved_arguments[1:]):
+    elif all(resolved_argument == "" for resolved_argument in resolved_arguments[offset + 1 :]):
         # no metrics were specified, assume we query all metrics
         return None
 
     raise InvalidSearchQuery(
-        f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[1]} type:{resolved_arguments[2]} unit:{resolved_arguments[3]}"
+        f"Trace metric aggregates expect the full metric to be specified, got name:{resolved_arguments[offset + 1]} type:{resolved_arguments[offset + 2]} unit:{resolved_arguments[offset + 3]}"
     )

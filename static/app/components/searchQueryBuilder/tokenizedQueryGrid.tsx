@@ -19,7 +19,6 @@ import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/toke
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface TokenizedQueryGridProps {
   actionBarWidth: number;
@@ -101,7 +100,7 @@ function Grid(props: GridProps) {
       ref={ref}
       style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
       onBlur={e => {
-        if (ref.current?.contains(e.relatedTarget as Node)) {
+        if (ref.current?.contains(e.relatedTarget)) {
           return;
         }
 
@@ -197,13 +196,13 @@ export function TokenizedQueryGrid({
 
 const SearchQueryGridWrapper = styled('div')`
   /* calc + 1px to account for the border */
-  padding-top: calc(${space(0.5)} + 1px);
-  padding-bottom: calc(${space(0.5)} + 1px);
+  padding-top: calc(${p => p.theme.space.xs} + 1px);
+  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
   padding-left: 32px;
-  padding-right: ${space(0.75)};
+  padding-right: ${p => p.theme.space.sm};
   display: flex;
   align-items: stretch;
-  row-gap: ${space(0.5)};
+  row-gap: ${p => p.theme.space.xs};
   flex-wrap: wrap;
 
   &:focus {

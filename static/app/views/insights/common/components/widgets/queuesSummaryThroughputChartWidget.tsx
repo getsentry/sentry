@@ -1,5 +1,5 @@
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {Referrer} from 'sentry/views/insights/queues/referrers';

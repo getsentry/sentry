@@ -2,14 +2,14 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 
 type State = {
   /**
@@ -194,7 +194,8 @@ export function useMembers({ids, emails, limit}: Options = {}) {
     [emails, emailsFailedToLoad, storeEmails]
   );
 
-  const shouldLoadByQuery = emailsToLoad.length > 0 || idsToLoad.length > 0;
+  const shouldLoadByQuery =
+    !store.loading && (emailsToLoad.length > 0 || idsToLoad.length > 0);
 
   // If we don't need to make a request either for emails and we have members,
   // set initiallyLoaded to true
@@ -381,7 +382,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   const result: Result = {
     members: filteredMembers,
     fetching: state.fetching || store.loading,
-    initiallyLoaded: state.initiallyLoaded,
+    initiallyLoaded,
     fetchError: state.fetchError,
     hasMore: state.hasMore ?? store.hasMore,
     onSearch: handleSearch,

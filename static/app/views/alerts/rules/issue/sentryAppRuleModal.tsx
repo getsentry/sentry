@@ -15,7 +15,7 @@ type Props = ModalRenderProps & {
   sentryAppInstallationUuid: string;
 };
 
-function SentryAppRuleModal({
+export function SentryAppRuleModal({
   Header,
   Body,
   sentryAppInstallationUuid,
@@ -52,5 +52,3 @@ const Description = styled('div')`
   padding-top: 0;
   color: ${p => p.theme.tokens.content.secondary};
 `;
-
-export default SentryAppRuleModal;

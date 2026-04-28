@@ -16,7 +16,7 @@ logger = logging.getLogger()
 class DataExportNotificationsEndpoint(Endpoint):
     """PubSub notifications endpoint."""
 
-    owner = ApiOwner.REPLAY
+    owner = ApiOwner.DATA_BROWSING
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
     permission_classes = (SentryIsAuthenticated,)
 

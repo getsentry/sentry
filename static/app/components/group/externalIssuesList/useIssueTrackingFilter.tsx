@@ -5,7 +5,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 const issueTrackingFilterKey = 'issueTrackingFilter';
 
-export default function useIssueTrackingFilter() {
+export function useIssueTrackingFilter() {
   const location = useLocation();
   const issueTrackingQueryParam = location.query.issueTracking;
   const [issueTracking, setIssueTracking] = useLocalStorageState<string>(

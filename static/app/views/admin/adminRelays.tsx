@@ -1,12 +1,13 @@
-import {useCallback, useState} from 'react';
+import {useState} from 'react';
 import moment from 'moment-timezone';
 
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
-import ResultGrid from 'sentry/components/resultGrid';
+import {Button} from '@sentry/scraps/button';
+
+import {Confirm} from 'sentry/components/confirm';
+import {ResultGrid} from 'sentry/components/resultGrid';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 const prettyDate = (x: string) => moment(x).format('ll LTS');
 
@@ -23,17 +24,14 @@ export default function AdminRelays() {
   // TODO: Loading not hooked up to anything?
   const [, setLoading] = useState(false);
 
-  const onDelete = useCallback(
-    (key: string) => {
-      setLoading(true);
-      api.request(`/relays/${key}/`, {
-        method: 'DELETE',
-        success: () => setLoading(false),
-        error: () => setLoading(false),
-      });
-    },
-    [api]
-  );
+  const onDelete = (key: string) => {
+    setLoading(true);
+    api.request(`/relays/${key}/`, {
+      method: 'DELETE',
+      success: () => setLoading(false),
+      error: () => setLoading(false),
+    });
+  };
 
   const getRow = (row: RelayRow) => {
     return [

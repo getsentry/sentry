@@ -1,6 +1,6 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {detectorTypeIsUserCreateable} from './detectorTypeConfig';
 

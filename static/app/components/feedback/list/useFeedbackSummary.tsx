@@ -1,7 +1,8 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FeedbackSummaryResponse = {
   numFeedbacksUsed: number;
@@ -9,7 +10,7 @@ type FeedbackSummaryResponse = {
   summary: string | null;
 };
 
-export default function useFeedbackSummary(): {
+export function useFeedbackSummary(): {
   isError: boolean;
   isPending: boolean;
   numFeedbacksUsed: number;
@@ -24,7 +25,11 @@ export default function useFeedbackSummary(): {
 
   const {data, isPending, isError} = useApiQuery<FeedbackSummaryResponse>(
     [
-      `/organizations/${organization.slug}/feedback-summary/`,
+      getApiUrl('/organizations/$organizationIdOrSlug/feedback-summary/', {
+        path: {
+          organizationIdOrSlug: organization.slug,
+        },
+      }),
       {
         query: {
           ...normalizedDateRange,

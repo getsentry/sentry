@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchviewstarred import GroupSearchViewStarredSerializer
@@ -17,7 +17,7 @@ class MemberPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -30,6 +30,7 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         Retrieve a list of starred views for the current organization member.
         """
 
+        assert request.user.id is not None
         starred_views = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
         ).select_related("group_search_view")

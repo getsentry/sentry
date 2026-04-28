@@ -23,8 +23,7 @@ interface Internal {
 }
 
 interface SubscriptionStoreDefintion
-  extends StrictStoreDefinition<Subscriptions>,
-    Internal {
+  extends StrictStoreDefinition<Subscriptions>, Internal {
   clearStartedTrial: (orgSlug: string) => void;
   get: (orgSlug: string, callback: GetCallback) => void;
   loadData: (
@@ -108,7 +107,7 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
     }
     this.loadingData[orgSlug] = true;
 
-    const data = await this.api.requestPromise(`/subscriptions/${orgSlug}/`);
+    const data = await this.api.requestPromise(`/customers/${orgSlug}/`);
     if (markStartedTrial) {
       data.isTrialStarted = true;
     }
@@ -118,6 +117,4 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
   },
 };
 
-const SubscriptionStore = createStore(subscriptionStoreConfig);
-
-export default SubscriptionStore;
+export const SubscriptionStore = createStore(subscriptionStoreConfig);

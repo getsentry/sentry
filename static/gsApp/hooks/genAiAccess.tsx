@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 import {BillingType, type Subscription} from 'getsentry/types';

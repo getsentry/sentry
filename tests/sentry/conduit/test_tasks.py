@@ -28,7 +28,7 @@ class GenerateJWTTest(TestCase):
         CONDUIT_PUBLISH_JWT_ISSUER="test-issuer",
         CONDUIT_PUBLISH_JWT_AUDIENCE="test-audience",
     )
-    def test_generate_jwt_uses_settings(self):
+    def test_generate_jwt_uses_settings(self) -> None:
         """Test that generate_jwt uses settings when parameters are not provided."""
         token = generate_jwt(subject="test-subject")
 
@@ -39,7 +39,7 @@ class GenerateJWTTest(TestCase):
         assert claims["aud"] == "test-audience"
         assert "exp" in claims
 
-    def test_generate_jwt_uses_provided_parameters(self):
+    def test_generate_jwt_uses_provided_parameters(self) -> None:
         """Test that generate_jwt uses parameters when provided."""
         token = generate_jwt(
             subject="test-subject",
@@ -55,7 +55,7 @@ class GenerateJWTTest(TestCase):
         assert claims["aud"] == "custom-audience"
         assert "exp" in claims
 
-    def test_generate_jwt_raises_when_secret_missing(self):
+    def test_generate_jwt_raises_when_secret_missing(self) -> None:
         """Test that generate_jwt raises ValueError when secret is not configured."""
         with pytest.raises(ValueError) as context:
             generate_jwt(subject="test-subject")
@@ -65,7 +65,7 @@ class GenerateJWTTest(TestCase):
 
 class GetTimestampTest(TestCase):
     @freeze_time("2025-01-01T12:00:00Z")
-    def test_get_timestamp_uses_current_time(self):
+    def test_get_timestamp_uses_current_time(self) -> None:
         """Test that get_timestamp generates a valid timestamp."""
         timestamp = get_timestamp()
 
@@ -73,7 +73,7 @@ class GetTimestampTest(TestCase):
         expected = datetime.datetime(2025, 1, 1, 12, 0, 0)
         assert dt == expected
 
-    def test_get_timestamp_uses_provided_datetime(self):
+    def test_get_timestamp_uses_provided_datetime(self) -> None:
         """Test that get_timestamp uses provided datetime."""
         custom_dt = datetime.datetime(2024, 1, 1, 12, 0, 0)
         timestamp = get_timestamp(custom_dt)
@@ -90,7 +90,7 @@ class PublishDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    def test_publish_data_success(self):
+    def test_publish_data_success(self) -> None:
         """Test successful publish request."""
         org_id = 123
         channel_id = str(uuid4())
@@ -131,7 +131,7 @@ class PublishDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    def test_publish_data_retry_on_failure(self):
+    def test_publish_data_retry_on_failure(self) -> None:
         """Test that publish_data retries on RequestException."""
         org_id = 123
         channel_id = str(uuid4())
@@ -179,7 +179,7 @@ class PublishDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    def test_publish_data_max_retries_exceeded(self):
+    def test_publish_data_max_retries_exceeded(self) -> None:
         """Test that publish_data raises after max retries."""
         org_id = 123
         channel_id = str(uuid4())
@@ -216,7 +216,7 @@ class PublishDataTest(TestCase):
         CONDUIT_PUBLISH_JWT_AUDIENCE="conduit",
         CONDUIT_PUBLISH_URL="http://localhost:9093",
     )
-    def test_publish_data_uses_custom_url(self):
+    def test_publish_data_uses_custom_url(self) -> None:
         """Test that publish_data uses provided publish_url."""
         org_id = 123
         channel_id = str(uuid4())

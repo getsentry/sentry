@@ -10,8 +10,8 @@ import {
   IssueCategory,
   PriorityLevel,
   VALID_ISSUE_CATEGORIES,
+  AI_DETECTED_ISSUE_TYPES,
   VISIBLE_ISSUE_TYPES,
-  type Tag,
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -26,10 +26,10 @@ import {
   ISSUE_FIELDS,
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
-import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
-import useMemberUsernames from 'sentry/utils/membersAndTeams/useMemberUsernames';
+import {useAssignedSearchValues} from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
+import {useMemberUsernames} from 'sentry/utils/membersAndTeams/useMemberUsernames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
+import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
@@ -160,9 +160,9 @@ export const useFetchIssueTags = ({
   const usernames = useMemberUsernames();
 
   const allTags = useMemo(() => {
-    const eventsTags: Tag[] = eventsTagsQuery.data || [];
-    const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
-    const featureFlagTags: Tag[] = featureFlagTagsQuery.data || [];
+    const eventsTags = eventsTagsQuery.data || [];
+    const issuePlatformTags = issuePlatformTagsQuery.data || [];
+    const featureFlagTags = featureFlagTagsQuery.data || [];
 
     const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
       (acc, tag) => {
@@ -205,6 +205,7 @@ export const useFetchIssueTags = ({
       currentTags: renamedTags,
       assigneeFieldValues: assignedValues,
       bookmarksValues: usernames,
+      organization: org,
     });
 
     return {
@@ -217,6 +218,7 @@ export const useFetchIssueTags = ({
     featureFlagTagsQuery.data,
     usernames,
     assignedValues,
+    org,
   ]);
 
   return {
@@ -236,10 +238,12 @@ function builtInIssuesFields({
   currentTags,
   assigneeFieldValues = [],
   bookmarksValues = [],
+  organization,
 }: {
   assigneeFieldValues: SearchGroup[] | string[];
   bookmarksValues: string[];
   currentTags: TagCollection;
+  organization: Organization;
 }): TagCollection {
   const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
     (acc, tag) => {
@@ -254,10 +258,13 @@ function builtInIssuesFields({
     },
     {}
   );
-  const hasFieldValues = [
-    ...Object.values(currentTags).map(tag => tag.key),
-    ...Object.values(SEMVER_TAGS).map(tag => tag.key),
-  ].sort();
+  const hasFieldValues = Array.from(
+    new Set([
+      ...Object.values(currentTags).map(tag => tag.key),
+      ...Object.values(SEMVER_TAGS).map(tag => tag.key),
+      ...ISSUE_EVENT_PROPERTY_FIELDS,
+    ])
+  ).sort();
 
   const tagCollection: TagCollection = {
     [FieldKey.IS]: {
@@ -320,7 +327,13 @@ function builtInIssuesFields({
     [FieldKey.ISSUE_TYPE]: {
       ...PREDEFINED_FIELDS[FieldKey.ISSUE_TYPE]!,
       name: 'Issue Type',
-      values: VISIBLE_ISSUE_TYPES.map(value => ({
+      values: [
+        ...VISIBLE_ISSUE_TYPES,
+        ...(organization.features.includes('ai-issue-detection') &&
+        !organization.hideAiFeatures
+          ? [...AI_DETECTED_ISSUE_TYPES]
+          : []),
+      ].map(value => ({
         icon: null,
         title: value,
         name: value,

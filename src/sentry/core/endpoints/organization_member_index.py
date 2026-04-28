@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
 from sentry.api.paginator import OffsetPaginator
@@ -20,7 +20,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.core.endpoints.organization_member_utils import (
@@ -161,7 +161,7 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         return valid_team_roles
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -191,6 +191,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         operation_id="List an Organization's Members",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(

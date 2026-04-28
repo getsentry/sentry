@@ -1,10 +1,10 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 
@@ -12,6 +12,7 @@ interface TimezoneOverrideProps {
   monitor: Monitor;
   onTimezoneSelected: (timezone: string) => void;
   userTimezone: string;
+  size?: 'sm' | 'xs';
 }
 
 type Mode = 'user' | 'monitor' | 'utc';
@@ -19,6 +20,7 @@ type Mode = 'user' | 'monitor' | 'utc';
 export function TimezoneOverride({
   monitor,
   onTimezoneSelected,
+  size = 'xs',
   userTimezone,
 }: TimezoneOverrideProps) {
   const monitorTimezone = monitor.config.timezone ?? 'UTC';
@@ -34,17 +36,14 @@ export function TimezoneOverride({
     [monitorTimezone, userTimezone]
   );
 
-  const handleChange = useCallback(
-    (newMode: Mode) => {
-      setMode(newMode);
-      onTimezoneSelected(timezoneMapping[newMode]);
-    },
-    [onTimezoneSelected, timezoneMapping]
-  );
+  const handleChange = (newMode: Mode) => {
+    setMode(newMode);
+    onTimezoneSelected(timezoneMapping[newMode]);
+  };
 
   return (
     <CompactSelect
-      size="xs"
+      size={size}
       value={mode}
       position="bottom-end"
       onChange={option => handleChange(option.value)}

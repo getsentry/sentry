@@ -11,7 +11,7 @@ import type {MinimalProject} from 'sentry/types/project';
  *
  * Basically: is this a frontend project
  */
-function projectSupportsReplay(project: MinimalProject) {
+export function projectSupportsReplay(project: MinimalProject) {
   return Boolean(project.platform && replayPlatforms.includes(project.platform));
 }
 
@@ -43,5 +43,3 @@ export function projectCanUpsellReplay(project: undefined | MinimalProject) {
     !replayBackendPlatforms.includes(project.platform)
   );
 }
-
-export default projectSupportsReplay;

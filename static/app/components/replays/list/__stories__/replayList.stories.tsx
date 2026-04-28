@@ -1,16 +1,16 @@
 import {useState} from 'react';
 import {ClassNames} from '@emotion/react';
+import {useInfiniteQuery} from '@tanstack/react-query';
 
-import {Flex} from 'sentry/components/core/layout/flex';
+import {Flex} from '@sentry/scraps/layout';
+
 import {Hovercard} from 'sentry/components/hovercard';
-import ReplayList from 'sentry/components/replays/list/__stories__/replayList';
-import EnvironmentPicker from 'sentry/components/replays/player/__stories__/environmentPicker';
-import ProjectPicker from 'sentry/components/replays/player/__stories__/projectPicker';
+import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
+import {EnvironmentPicker} from 'sentry/components/replays/player/__stories__/environmentPicker';
+import {ProjectPicker} from 'sentry/components/replays/player/__stories__/projectPicker';
 import * as Storybook from 'sentry/stories';
-import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
-import useReplayListQueryKey from 'sentry/utils/replays/hooks/useReplayListQueryKey';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayListRecord} from 'sentry/views/replays/types';
+import {replayListInfiniteApiOptions} from 'sentry/utils/replays/replayListApiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default Storybook.story('ReplayList', story => {
   story('Rendered', () => {
@@ -26,15 +26,13 @@ export default Storybook.story('ReplayList', story => {
       statsPeriod: '90d',
     };
 
-    const listQueryKey = useReplayListQueryKey({
-      options: {query},
-      organization,
-      queryReferrer: 'replayList',
-    });
-    const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: ['infinite', ...(listQueryKey ?? '')],
-      enabled: Boolean(listQueryKey),
-    });
+    const queryResult = useInfiniteQuery(
+      replayListInfiniteApiOptions({
+        options: {query},
+        organization,
+        queryReferrer: 'replayList',
+      })
+    );
 
     return (
       <Flex direction="column" gap="md">
@@ -71,15 +69,13 @@ export default Storybook.story('ReplayList', story => {
       statsPeriod: '90d',
     };
 
-    const listQueryKey = useReplayListQueryKey({
-      options: {query},
-      organization,
-      queryReferrer: 'replayList',
-    });
-    const queryResult = useInfiniteApiQuery<{data: ReplayListRecord[]}>({
-      queryKey: ['infinite', ...(listQueryKey ?? '')],
-      enabled: Boolean(listQueryKey),
-    });
+    const queryResult = useInfiniteQuery(
+      replayListInfiniteApiOptions({
+        options: {query},
+        organization,
+        queryReferrer: 'replayList',
+      })
+    );
 
     return (
       <ClassNames>

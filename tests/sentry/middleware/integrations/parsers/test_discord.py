@@ -17,12 +17,12 @@ from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads
-from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.testutils.silo import control_silo_test, create_test_cells
 from sentry.utils import json
 from sentry.utils.signing import sign
 
 
-@control_silo_test(regions=create_test_regions("us"))
+@control_silo_test(cells=create_test_cells("us"))
 class DiscordRequestParserTest(TestCase):
     factory = RequestFactory()
     discord_id = "808"
@@ -141,13 +141,13 @@ class DiscordRequestParserTest(TestCase):
             responses.POST,
             "http://us.testserver/extensions/discord/interactions/",
             status=202,
-            body=b"region_response",
+            body=b"cell_response",
         )
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b"region_response"
+        assert response.content == b"cell_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
 
@@ -186,13 +186,13 @@ class DiscordRequestParserTest(TestCase):
             responses.POST,
             "http://us.testserver/extensions/discord/interactions/",
             status=201,
-            body=b"region_response",
+            body=b"cell_response",
         )
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.content == b"region_response"
+        assert response.content == b"cell_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
 
@@ -239,7 +239,7 @@ class DiscordRequestParserTest(TestCase):
         payload = create_async_request_payload(self.request)
         mock_discord_task.apply_async.assert_called_once_with(
             kwargs={
-                "region_names": ["us"],
+                "cell_names": ["us"],
                 "payload": payload,
                 "response_url": response_url,
             }

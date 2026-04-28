@@ -4,11 +4,11 @@ from itertools import islice
 from typing import Any
 
 import sentry_sdk
+from taskbroker_client.retry import Retry
 
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import performance_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
 from . import ClustererNamespace, rules

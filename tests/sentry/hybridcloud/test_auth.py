@@ -107,7 +107,7 @@ def test_enable_sso_user_triggers_signal() -> None:
     assert auth_provider_query.count() == 1
     with outbox_runner():
         pass
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         adopted = FeatureAdoption.objects.filter().first()
         assert adopted
         assert adopted.feature_id == adoption_manager.get_by_slug("sso").id

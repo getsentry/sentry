@@ -6,7 +6,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import StructuredEventData from 'sentry/components/structuredEventData';
+import {StructuredEventData} from 'sentry/components/structuredEventData';
 
 describe('StructuredEventData', () => {
   describe('strings', () => {

@@ -2,6 +2,16 @@
 
 > For critical test commands, see the "Command Execution Guide" section in `/AGENTS.md` in the repository root.
 
+## Running Tests Locally
+
+For backend-scoped changes, prefer `make test-selective` over running the full suite — it detects tests affected by your local diff and runs only those:
+
+```bash
+make test-selective
+```
+
+Fall back to `pytest -svv --reuse-db <path>` when you need to target a specific file or `test-selective` doesn't cover your case.
+
 ## How to Determine Where to Add New Test Cases
 
 When fixing errors or adding functionality, you MUST add test cases to existing test files rather than creating new test files. Follow this pattern to locate the correct test file:
@@ -44,6 +54,12 @@ Notes:
 
 - Tests should ALWAYS be procedural with NO branching logic. It is very rare
   that you will need an if statement as part of a backend test.
+
+## Date-stable tests (current or future year)
+
+Do not use the **current or future UTC calendar year** as a hardcoded test “now” at **module or class** scope (or in `freeze_time(datetime(...))`)—that date drifts into Snuba retention. Use **`before_now(...)`** (or `now - timedelta`) for relative time, or an older fixed year for intentional historical fixtures. Fixed timestamps in **function bodies** (fixtures, assertions) are fine.
+
+Flake8 **S015** flags literals with year greater than or equal to the current UTC year in those scopes.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`
 

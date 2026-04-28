@@ -1,16 +1,17 @@
+import {Button} from '@sentry/scraps/button';
+import {Link} from '@sentry/scraps/link';
+
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {Link} from 'sentry/components/core/link';
-import UserBadge from 'sentry/components/idBadge/userBadge';
-import Truncate from 'sentry/components/truncate';
+import {UserBadge} from 'sentry/components/idBadge/userBadge';
+import {Truncate} from 'sentry/components/truncate';
 import {IconEdit} from 'sentry/icons';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
-import UserPermissionsModal from 'admin/components/users/userPermissionsModal';
+import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
-export default function SentryEmployees() {
+export function SentryEmployees() {
   const gridColumns = [
     <th key="user">User</th>,
     <th key="email" style={{width: 100, textAlign: 'center'}}>

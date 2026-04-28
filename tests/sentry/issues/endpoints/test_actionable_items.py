@@ -1,6 +1,6 @@
 from rest_framework import status
 
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -53,9 +53,12 @@ class ActionableItemsEndpointTestCase(APITestCase):
                     ]
                 },
                 "errors": [
-                    {"type": EventError.INVALID_DATA, "name": "foo"},
-                    {"type": EventError.JS_MISSING_SOURCES_CONTENT, "url": "http://example.com"},
-                    {"type": EventError.UNKNOWN_ERROR, "name": "bar"},
+                    {"type": EventErrorType.INVALID_DATA.value, "name": "foo"},
+                    {
+                        "type": EventErrorType.JS_MISSING_SOURCES_CONTENT.value,
+                        "url": "http://example.com",
+                    },
+                    {"type": EventErrorType.UNKNOWN_ERROR.value, "name": "bar"},
                 ],
             },
             project_id=self.project.id,
@@ -77,5 +80,5 @@ class ActionableItemsEndpointTestCase(APITestCase):
         missing_error = errors[0]
         invalid_data = errors[1]
 
-        assert missing_error["type"] == EventError.JS_MISSING_SOURCES_CONTENT
-        assert invalid_data["type"] == EventError.INVALID_DATA
+        assert missing_error["type"] == EventErrorType.JS_MISSING_SOURCES_CONTENT
+        assert invalid_data["type"] == EventErrorType.INVALID_DATA

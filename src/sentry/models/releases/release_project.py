@@ -11,7 +11,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -40,7 +40,7 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
         self._on_post(project=instance.project, trigger="releaseproject.post_delete")
 
 
-@region_silo_model
+@cell_silo_model
 class ReleaseProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

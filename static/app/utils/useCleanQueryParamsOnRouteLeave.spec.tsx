@@ -5,8 +5,9 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import useCleanQueryParamsOnRouteLeave, {
+import {
   handleRouteLeave,
+  useCleanQueryParamsOnRouteLeave,
 } from './useCleanQueryParamsOnRouteLeave';
 import {useLocation} from './useLocation';
 

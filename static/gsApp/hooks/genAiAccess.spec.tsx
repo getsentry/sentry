@@ -2,12 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {Organization} from 'sentry/types/organization';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import {useUser} from 'sentry/utils/useUser';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {BillingType} from 'getsentry/types';
 
@@ -21,12 +19,6 @@ jest.mock('sentry/utils/regions', () => ({
 
 const mockUseUser = jest.mocked(useUser);
 const mockGetRegionData = jest.mocked(getRegionDataFromOrganization);
-
-const contextWrapper = (organization: Organization) => {
-  return function ({children}: {children: React.ReactNode}) {
-    return <OrganizationContext value={organization}>{children}</OrganizationContext>;
-  };
-};
 
 describe('useGenAiConsentButtonAccess', () => {
   beforeEach(() => {
@@ -52,9 +44,10 @@ describe('useGenAiConsentButtonAccess', () => {
       });
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
+      const {result} = renderHookWithProviders(
+        () => useGenAiConsentButtonAccess({subscription}),
+        {organization}
+      );
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -83,9 +76,10 @@ describe('useGenAiConsentButtonAccess', () => {
       });
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
+      const {result} = renderHookWithProviders(
+        () => useGenAiConsentButtonAccess({subscription}),
+        {organization}
+      );
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -114,9 +108,10 @@ describe('useGenAiConsentButtonAccess', () => {
       });
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: true}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
+      const {result} = renderHookWithProviders(
+        () => useGenAiConsentButtonAccess({subscription}),
+        {organization}
+      );
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -145,9 +140,10 @@ describe('useGenAiConsentButtonAccess', () => {
       });
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
+      const {result} = renderHookWithProviders(
+        () => useGenAiConsentButtonAccess({subscription}),
+        {organization}
+      );
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -179,9 +175,10 @@ describe('useGenAiConsentButtonAccess', () => {
       });
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
+      const {result} = renderHookWithProviders(
+        () => useGenAiConsentButtonAccess({subscription}),
+        {organization}
+      );
 
       expect(result.current).toEqual(
         expect.objectContaining({
@@ -210,9 +207,10 @@ describe('useGenAiConsentButtonAccess', () => {
       });
       mockUseUser.mockReturnValue(UserFixture({isSuperuser: false}));
 
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}), {
-        wrapper: contextWrapper(organization),
-      });
+      const {result} = renderHookWithProviders(
+        () => useGenAiConsentButtonAccess({subscription}),
+        {organization}
+      );
 
       expect(result.current).toEqual(
         expect.objectContaining({

@@ -6,15 +6,20 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
+from django.urls import reverse
 
 from sentry.integrations.cursor.integration import (
     CursorAgentIntegration,
     CursorAgentIntegrationProvider,
 )
 from sentry.integrations.cursor.models import CursorApiKeyMetadata
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
-from sentry.testutils.cases import IntegrationTestCase
-from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 
 
 @pytest.fixture
@@ -28,14 +33,10 @@ def test_build_integration_stores_metadata(provider):
         patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
         patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
         patch(
-            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
-        ) as mock_get_metadata,
+            "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key",
+            return_value=None,
+        ),
     ):
-        mock_get_metadata.return_value = CursorApiKeyMetadata(
-            apiKeyName="Test Key",
-            createdAt="2024-01-15T10:30:00Z",
-            userEmail="test@example.com",
-        )
         integration_data = provider.build_integration(state={"config": {"api_key": "cursor-api"}})
 
     assert integration_data["external_id"] == fake_uuid.hex
@@ -47,37 +48,46 @@ def test_build_integration_stores_metadata(provider):
     assert metadata["webhook_secret"] == "hook-secret"
 
 
-def test_build_integration_fetches_and_stores_api_key_metadata(provider):
-    """Test that build_integration fetches metadata from /v0/me and stores it"""
+def test_build_integration_with_user_api_key(provider):
+    """Test that build_integration uses /v0/me metadata when available"""
     fake_uuid = UUID("22222222-3333-4444-5555-666666666666")
-    mock_metadata = CursorApiKeyMetadata(
-        apiKeyName="Production API Key",
-        createdAt="2024-01-15T10:30:00Z",
-        userEmail="developer@example.com",
-    )
 
     with (
         patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
         patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
-        patch(
-            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
-        ) as mock_get_metadata,
+        patch("sentry.integrations.cursor.client.CursorAgentClient.verify_api_key") as mock_verify,
     ):
-        mock_get_metadata.return_value = mock_metadata
+        mock_verify.return_value = CursorApiKeyMetadata(
+            apiKeyName="Production API Key",
+            createdAt="2024-01-15T10:30:00Z",
+            userEmail="developer@example.com",
+        )
         integration_data = provider.build_integration(state={"config": {"api_key": "cursor-api"}})
 
-    # Verify metadata was fetched
-    mock_get_metadata.assert_called_once()
-
-    # Verify metadata is stored
-    metadata = integration_data["metadata"]
-    assert metadata["api_key_name"] == "Production API Key"
-    assert metadata["user_email"] == "developer@example.com"
-
-    # Verify integration name includes API key name
+    mock_verify.assert_called_once()
     assert (
         integration_data["name"] == "Cursor Cloud Agent - developer@example.com/Production API Key"
     )
+    assert integration_data["metadata"]["api_key_name"] == "Production API Key"
+    assert integration_data["metadata"]["user_email"] == "developer@example.com"
+
+
+def test_build_integration_with_service_account(provider):
+    """Test that build_integration falls back to key hint for service accounts"""
+    fake_uuid = UUID("22222222-3333-4444-5555-666666666666")
+
+    with (
+        patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
+        patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
+        patch("sentry.integrations.cursor.client.CursorAgentClient.verify_api_key") as mock_verify,
+    ):
+        mock_verify.return_value = None
+        integration_data = provider.build_integration(
+            state={"config": {"api_key": "curs-abcdef123"}}
+        )
+
+    mock_verify.assert_called_once()
+    assert integration_data["name"] == "Cursor Cloud Agent (curs-abc...)"
 
 
 def test_build_integration_raises_on_api_error(provider):
@@ -88,7 +98,7 @@ def test_build_integration_raises_on_api_error(provider):
         patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
         patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
         patch(
-            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
+            "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key"
         ) as mock_get_metadata,
     ):
         mock_get_metadata.side_effect = ApiError("API Error", 500)
@@ -107,7 +117,7 @@ def test_build_integration_raises_on_invalid_api_key(provider):
         patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
         patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
         patch(
-            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
+            "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key"
         ) as mock_get_metadata,
     ):
         mock_get_metadata.side_effect = ApiError("Unauthorized", 401)
@@ -118,40 +128,12 @@ def test_build_integration_raises_on_invalid_api_key(provider):
             provider.build_integration(state={"config": {"api_key": "invalid-api-key"}})
 
 
-def test_build_integration_raises_on_validation_error(provider):
-    """Test that build_integration raises IntegrationConfigurationError on ValidationError"""
-    fake_uuid = UUID("55555555-6666-7777-8888-999999999999")
-
-    with (
-        patch("sentry.integrations.cursor.integration.uuid.uuid4", return_value=fake_uuid),
-        patch("sentry.integrations.cursor.integration.generate_token", return_value="hook-secret"),
-        patch(
-            "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
-        ) as mock_get_metadata,
-    ):
-        try:
-            CursorApiKeyMetadata.parse_obj({})
-        except Exception as e:
-            validation_error = e
-
-        mock_get_metadata.side_effect = validation_error
-        with pytest.raises(
-            IntegrationConfigurationError,
-            match="Received unexpected response from Cursor API",
-        ):
-            provider.build_integration(state={"config": {"api_key": "cursor-api"}})
-
-
 def test_build_integration_stores_api_key_and_webhook_secret(provider):
     """Test that build_integration stores both API key and webhook secret"""
     with patch(
-        "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
-    ) as mock_get_metadata:
-        mock_get_metadata.return_value = CursorApiKeyMetadata(
-            apiKeyName="Test Key",
-            createdAt="2024-01-15T10:30:00Z",
-            userEmail="test@example.com",
-        )
+        "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key",
+        return_value=None,
+    ):
         integration_data = provider.build_integration(state={"config": {"api_key": "new-api"}})
 
     metadata_arg = integration_data["metadata"]
@@ -166,7 +148,7 @@ def test_build_integration_stores_api_key_and_webhook_secret(provider):
 class CursorIntegrationTest(IntegrationTestCase):
     provider = CursorAgentIntegrationProvider
 
-    def test_build_integration(self):
+    def test_build_integration(self) -> None:
         state: Mapping[str, Any] = {"config": {"api_key": "test_api_key_123"}}
         fake_uuid = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
 
@@ -176,14 +158,10 @@ class CursorIntegrationTest(IntegrationTestCase):
                 "sentry.integrations.cursor.integration.generate_token", return_value="secret123"
             ),
             patch(
-                "sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata"
-            ) as mock_get_metadata,
+                "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key",
+                return_value=None,
+            ),
         ):
-            mock_get_metadata.return_value = CursorApiKeyMetadata(
-                apiKeyName="Test Key",
-                createdAt="2024-01-15T10:30:00Z",
-                userEmail="test@example.com",
-            )
             integration_dict = self.provider().build_integration(state)
 
         assert integration_dict["external_id"] == fake_uuid.hex
@@ -194,21 +172,21 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert metadata["api_key"] == "test_api_key_123"
         assert metadata["webhook_secret"] == "secret123"
 
-    def test_build_integration_missing_config(self):
+    def test_build_integration_missing_config(self) -> None:
         """Test that build_integration raises error when config is missing"""
         state: Mapping[str, Any] = {}
 
         with pytest.raises(IntegrationConfigurationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
-    def test_build_integration_empty_config(self):
+    def test_build_integration_empty_config(self) -> None:
         """Test that build_integration raises error when config is empty"""
         state: Mapping[str, Any] = {"config": {}}
 
         with pytest.raises(IntegrationConfigurationError, match="Missing configuration data"):
             self.provider().build_integration(state)
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         metadata = {
             "api_key": "test_api_key_123",
             "webhook_secret": "test_secret_123",
@@ -287,22 +265,14 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert result.id == "test_session_123"
         assert result.status == CodingAgentStatus.RUNNING
         assert result.provider == CodingAgentProviderType.CURSOR_BACKGROUND_AGENT
-        assert result.name == "Test Session"
+        assert result.name == "testorg/testrepo: Test Session"
 
         mock_post.assert_called_once()
         call_args = mock_post.call_args
         assert call_args[0][0] == "/v0/agents"
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata")
-    def test_update_organization_config_persists_api_key_and_clears_org_config(
-        self, mock_get_metadata
-    ):
-        mock_get_metadata.return_value = CursorApiKeyMetadata(
-            apiKeyName="New Key",
-            createdAt="2024-01-15T10:30:00Z",
-            userEmail="new@example.com",
-        )
-
+    @patch("sentry.integrations.cursor.client.CursorAgentClient.verify_api_key", return_value=None)
+    def test_update_organization_config_persists_api_key_and_clears_org_config(self, mock_verify):
         integration = self.create_integration(
             organization=self.organization,
             provider="cursor",
@@ -319,14 +289,12 @@ class CursorIntegrationTest(IntegrationTestCase):
 
         installation.update_organization_config({"api_key": "new_secret_key"})
 
-        mock_get_metadata.assert_called_once()
+        mock_verify.assert_called_once()
 
         integration.refresh_from_db()
         assert integration.metadata["api_key"] == "new_secret_key"
         assert integration.metadata["webhook_secret"] == "secret123"
-        assert integration.metadata["api_key_name"] == "New Key"
-        assert integration.metadata["user_email"] == "new@example.com"
-        assert integration.name == "Cursor Cloud Agent - new@example.com/New Key"
+        assert integration.name == "Cursor Cloud Agent (new_secr...)"
 
         from sentry.integrations.models.organization_integration import OrganizationIntegration
 
@@ -336,7 +304,7 @@ class CursorIntegrationTest(IntegrationTestCase):
             )
             assert org_integration.config == {}
 
-    def test_update_organization_config_missing_api_key_raises(self):
+    def test_update_organization_config_missing_api_key_raises(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
             provider="cursor",
@@ -354,7 +322,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         with pytest.raises(IntegrationConfigurationError, match="API key is required"):
             installation.update_organization_config({})
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata")
+    @patch("sentry.integrations.cursor.client.CursorAgentClient.verify_api_key")
     def test_update_organization_config_raises_on_invalid_key(self, mock_get_metadata):
         mock_get_metadata.side_effect = ApiError("Unauthorized", 401)
 
@@ -378,7 +346,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         integration.refresh_from_db()
         assert integration.metadata["api_key"] == "old_key"
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata")
+    @patch("sentry.integrations.cursor.client.CursorAgentClient.verify_api_key")
     def test_update_organization_config_raises_on_api_error(self, mock_get_metadata):
         mock_get_metadata.side_effect = ApiError("API Error", 500)
 
@@ -404,7 +372,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         integration.refresh_from_db()
         assert integration.metadata["api_key"] == "old_key"
 
-    def test_property_getters(self):
+    def test_property_getters(self) -> None:
         """Test that api_key and webhook_secret property getters return correct values"""
         integration = self.create_integration(
             organization=self.organization,
@@ -426,14 +394,9 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert installation.api_key == "test_api_key_value"
         assert installation.webhook_secret == "test_webhook_secret_value"
 
-    @patch("sentry.integrations.cursor.client.CursorAgentClient.get_api_key_metadata")
-    def test_build_integration_creates_unique_installations(self, mock_get_metadata):
+    @patch("sentry.integrations.cursor.client.CursorAgentClient.verify_api_key", return_value=None)
+    def test_build_integration_creates_unique_installations(self, mock_verify):
         """Test that each call to build_integration creates a unique integration"""
-        mock_get_metadata.return_value = CursorApiKeyMetadata(
-            apiKeyName="Test Key",
-            createdAt="2024-01-15T10:30:00Z",
-            userEmail="test@example.com",
-        )
 
         state: Mapping[str, Any] = {"config": {"api_key": "test_api_key_123"}}
 
@@ -446,9 +409,9 @@ class CursorIntegrationTest(IntegrationTestCase):
             integration_dict_2["external_id"],
             integration_dict_3["external_id"],
         }
-        assert (
-            len(external_ids) == 3
-        ), "Each build_integration call should create a unique external_id"
+        assert len(external_ids) == 3, (
+            "Each build_integration call should create a unique external_id"
+        )
 
         for integration_dict in [integration_dict_1, integration_dict_2, integration_dict_3]:
             assert "external_id" in integration_dict
@@ -464,7 +427,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         webhook_secrets = {webhook_secret_1, webhook_secret_2, webhook_secret_3}
         assert len(webhook_secrets) == 3, "Each integration should have a unique webhook secret"
 
-    def test_get_dynamic_display_information(self):
+    def test_get_dynamic_display_information(self) -> None:
         """Test that get_dynamic_display_information returns metadata"""
         integration = self.create_integration(
             organization=self.organization,
@@ -491,7 +454,7 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert display_info["api_key_name"] == "Production Key"
         assert display_info["user_email"] == "dev@example.com"
 
-    def test_get_dynamic_display_information_returns_none_when_no_metadata(self):
+    def test_get_dynamic_display_information_returns_none_when_no_metadata(self) -> None:
         """Test that get_dynamic_display_information returns None when metadata is missing"""
         integration = self.create_integration(
             organization=self.organization,
@@ -513,3 +476,66 @@ class CursorIntegrationTest(IntegrationTestCase):
         display_info = installation.get_dynamic_display_information()
 
         assert display_info is None
+
+
+@control_silo_test
+class CursorApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _get_pipeline_url(self) -> str:
+        return reverse(
+            self.endpoint,
+            args=[self.organization.slug, IntegrationPipeline.pipeline_name],
+        )
+
+    def _initialize_pipeline(self) -> Any:
+        return self.client.post(
+            self._get_pipeline_url(),
+            data={"action": "initialize", "provider": "cursor"},
+            format="json",
+        )
+
+    def _advance_step(self, data: dict[str, Any]) -> Any:
+        return self.client.post(self._get_pipeline_url(), data=data, format="json")
+
+    @with_feature("organizations:integrations-cursor")
+    def test_initialize_pipeline(self) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.status_code == 200
+        assert resp.data["step"] == "api_key_config"
+        assert resp.data["stepIndex"] == 0
+        assert resp.data["totalSteps"] == 1
+        assert resp.data["provider"] == "cursor"
+
+    @with_feature("organizations:integrations-cursor")
+    def test_missing_api_key(self) -> None:
+        self._initialize_pipeline()
+        resp = self._advance_step({})
+        assert resp.status_code == 400
+
+    @with_feature("organizations:integrations-cursor")
+    @patch(
+        "sentry.integrations.cursor.client.CursorAgentClient.verify_api_key",
+        return_value=None,
+    )
+    def test_full_pipeline_flow(self, mock_verify: MagicMock) -> None:
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "api_key_config"
+
+        resp = self._advance_step({"apiKey": "cursor-api-key-123"})
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+
+        integration = Integration.objects.get(provider="cursor")
+        assert integration.metadata["api_key"] == "cursor-api-key-123"
+        assert integration.metadata["domain_name"] == "cursor.sh"
+
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration=integration,
+        ).exists()

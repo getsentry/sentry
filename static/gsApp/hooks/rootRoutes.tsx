@@ -1,12 +1,12 @@
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import type {SentryRouteObject} from 'sentry/router/types';
-import errorHandler from 'sentry/utils/errorHandler';
-import withDomainRedirect from 'sentry/utils/withDomainRedirect';
-import withDomainRequired from 'sentry/utils/withDomainRequired';
+import {errorHandler} from 'sentry/utils/errorHandler';
+import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
+import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 
-import OrganizationSubscriptionContext from 'getsentry/components/organizationSubscriptionContext';
+import {OrganizationSubscriptionContext} from 'getsentry/components/organizationSubscriptionContext';
 
-const rootRoutes = (): SentryRouteObject => ({
+export const rootRoutes = (): SentryRouteObject => ({
   children: [
     {
       path: '/checkout/',
@@ -31,5 +31,3 @@ const rootRoutes = (): SentryRouteObject => ({
     },
   ],
 });
-
-export default rootRoutes;

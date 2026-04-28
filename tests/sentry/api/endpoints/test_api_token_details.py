@@ -1,7 +1,9 @@
+from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
 
 
@@ -174,3 +176,37 @@ class ApiTokenDeleteTest(APITestCase):
         self.get_error_response(
             token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND
         )
+
+
+@control_silo_test
+class ApiTokenDetailsImpersonationTest(APITestCase):
+    def setUp(self) -> None:
+        self.impersonator = self.create_user(is_superuser=True)
+        self.target_user = self.create_user()
+
+    def test_impersonated_put_blocked(self) -> None:
+        token = ApiToken.objects.create(user=self.target_user, name="token 1")
+        url = reverse("sentry-api-0-api-token-details", args=[token.id])
+        self.login_as(self.target_user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.put(url, data={"name": "renamed"})
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        token.refresh_from_db()
+        assert token.name == "token 1"
+
+    def test_impersonated_delete_blocked(self) -> None:
+        token = ApiToken.objects.create(user=self.target_user, name="token 1")
+        url = reverse("sentry-api-0-api-token-details", args=[token.id])
+        self.login_as(self.target_user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.delete(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+    def test_impersonated_get_allowed(self) -> None:
+        token = ApiToken.objects.create(user=self.target_user, name="token 1")
+        url = reverse("sentry-api-0-api-token-details", args=[token.id])
+        self.login_as(self.target_user)
+        with simulate_impersonation(self.impersonator):
+            response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK

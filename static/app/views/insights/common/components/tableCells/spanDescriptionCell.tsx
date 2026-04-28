@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
 import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
@@ -20,7 +19,7 @@ interface Props {
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
   extraLinkQueryParams?: Record<string, string>;
-  group?: string;
+  group?: string | null;
   spanAction?: string;
   spanOp?: string;
   system?: string;
@@ -124,5 +123,5 @@ export const WiderHovercard = styled(
 `;
 
 const TitleWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;

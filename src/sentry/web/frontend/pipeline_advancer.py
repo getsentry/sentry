@@ -1,14 +1,19 @@
+from urllib.parse import parse_qs
+
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
+from sentry import features
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri, create_redirect_url
+from sentry.utils.json import dumps_htmlsafe
 from sentry.web.frontend.base import BaseView, all_silo_view
 
 # The request doesn't contain the pipeline type (pipeline information is stored
@@ -16,10 +21,93 @@ from sentry.web.frontend.base import BaseView, all_silo_view
 # and use whichever one works.
 PIPELINE_CLASSES = (IntegrationPipeline, IdentityPipeline)
 
+TRAMPOLINE_HTML = """\
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body
+    style="margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    flex-direction:column;padding:2rem">
+<script type="module" nonce="{nonce}">
+  const data = {data_json};
+  if (window.opener) {{
+    window.opener.postMessage(data, {origin});
+    window.close();
+  }} else if ({fallback_url}) {{
+    // GitHub apps installed directly from GitHub won't have an opener window.
+    // Redirect to the integration install org picker instead of showing a
+    // dead-end page.
+    window.location.assign({fallback_url});
+  }} else {{
+    document.getElementById("fallback").style.display = "flex";
+  }}
+</script>
+<div id="fallback" style="display:none;flex-direction:column;align-items:center;gap:1.5rem;max-width:600px">
+  <p style="font-size:1.1rem;margin:0">Unable to continue. Please restart the flow.</p>
+</div>
+</body>
+</html>"""
+
+
+def _render_trampoline(request: HttpRequest, pipeline: object, provider_id: str) -> HttpResponse:
+    """Render a minimal page that posts callback params back to the opener."""
+    params: dict[str, str] = {"_pipeline_source": "sentry-pipeline"}
+    for key, values in parse_qs(request.META.get("QUERY_STRING", "")).items():
+        if values:
+            params[key] = values[0]
+
+    data_json = str(dumps_htmlsafe(params))
+
+    # When the callback looks like a GitHub direct install (setup_action=install
+    # with an installation_id), pre-compute the fallback redirect URL so the
+    # trampoline can navigate there if there's no opener window.
+    installation_id = request.GET.get("installation_id")
+    if request.GET.get("setup_action") == "install" and installation_id:
+        fallback_url = str(
+            dumps_htmlsafe(reverse("integration-installation", args=[provider_id, installation_id]))
+        )
+    else:
+        fallback_url = "null"
+
+    # In multi-region the opener may be on a different origin (e.g.
+    # org-slug.sentry.io) than the trampoline (sentry.io/extensions/...),
+    # so we need the org-specific URL. In single-region document.origin works.
+    if features.has("system:multi-region"):
+        org = getattr(pipeline, "organization", None)
+        origin = str(dumps_htmlsafe(generate_organization_url(org.slug if org else "")))
+    else:
+        origin = "document.origin"
+
+    nonce = getattr(request, "csp_nonce", "")
+
+    return HttpResponse(
+        TRAMPOLINE_HTML.format(
+            data_json=data_json,
+            origin=origin,
+            nonce=nonce,
+            fallback_url=fallback_url,
+        ),
+        content_type="text/html",
+    )
+
 
 @all_silo_view
 class PipelineAdvancerView(BaseView):
-    """Gets the current pipeline from the request and executes the current step."""
+    """
+    Gets the current pipeline from the request and executes the current step.
+
+    External services (e.g. GitHub OAuth) redirect back to this view after the
+    user completes an action. For legacy template-driven pipelines this view
+    processes the callback server-side via pipeline.current_step().
+
+    For API-driven pipelines (is_api_mode) this view does NOT process the
+    callback. Instead it renders a lightweight trampoline page that relays the
+    callback URL query params (code, state, installation_id, etc.) back to the
+    opener window via postMessage and closes itself. The frontend is
+    responsible for POSTing those params to the pipeline API endpoint to
+    advance the pipeline.
+    """
 
     auth_required = False
 
@@ -49,6 +137,23 @@ class PipelineAdvancerView(BaseView):
         if pipeline is None or not pipeline.is_valid():
             messages.add_message(request, messages.ERROR, _("Invalid request."))
             return self.redirect("/")
+
+        # If the pipeline was initiated via the API, render a trampoline page
+        # that relays the callback params back to the opener window via
+        # postMessage instead of processing the callback server-side.
+        if pipeline.is_api_mode:
+            metrics.incr(
+                "integrations.pipeline_advancer.trampoline",
+                tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
+                sample_rate=1.0,
+            )
+            return _render_trampoline(request, pipeline, provider_id)
+
+        metrics.incr(
+            "integrations.pipeline_advancer.legacy",
+            tags={"provider": provider_id, "pipeline": pipeline.pipeline_name},
+            sample_rate=1.0,
+        )
 
         subdomain = pipeline.fetch_state("subdomain")
         if subdomain is not None and request.subdomain != subdomain:

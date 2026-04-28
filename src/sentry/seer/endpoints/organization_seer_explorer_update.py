@@ -3,18 +3,22 @@ from __future__ import annotations
 import logging
 
 import orjson
-import requests
-from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.models.organization import Organization
-from sentry.seer.explorer.client_utils import has_seer_explorer_access_with_detail
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.autofix.constants import CODING_PAYLOAD_TYPES
+from sentry.seer.explorer.client_utils import (
+    explorer_connection_pool,
+    has_seer_explorer_access_with_detail,
+)
+from sentry.seer.models import SeerApiError
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +29,7 @@ class OrganizationSeerExplorerUpdatePermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -41,8 +45,19 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
         if not has_access:
             return Response({"detail": error}, status=403)
 
-        if not request.data:
+        if not request.data or not isinstance(request.data, dict):
             return Response(status=400, data={"error": "Need a body with a payload"})
+
+        payload = request.data.get("payload", {})
+        payload_type = payload.get("type") if isinstance(payload, dict) else None
+        if payload_type in CODING_PAYLOAD_TYPES:
+            if not organization.get_option(
+                "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
+            ):
+                return Response(
+                    status=403,
+                    data={"detail": "Code generation is disabled for this organization"},
+                )
 
         path = "/v1/automation/explorer/update"
 
@@ -54,15 +69,13 @@ class OrganizationSeerExplorerUpdateEndpoint(OrganizationEndpoint):
             }
         )
 
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
-            data=body,
-            headers={
-                "content-type": "application/json;charset=utf-8",
-                **sign_with_seer_secret(body),
-            },
+        response = make_signed_seer_api_request(
+            explorer_connection_pool,
+            path,
+            body,
         )
 
-        response.raise_for_status()
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
 
         return Response(status=202, data=response.json())

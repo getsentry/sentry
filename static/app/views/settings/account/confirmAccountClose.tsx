@@ -1,5 +1,6 @@
-import Confirm from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
+import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 
 export function ConfirmAccountClose({

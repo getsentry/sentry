@@ -7,10 +7,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
+import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
+import {MemberListStore} from 'sentry/stores/memberListStore';
 import type {Group} from 'sentry/types/group';
 
-import FeedbackAssignedTo from './feedbackAssignedTo';
+import {FeedbackAssignedTo} from './feedbackAssignedTo';
 
 describe('FeedbackAssignedTo', () => {
   const user = UserFixture();
@@ -43,7 +44,9 @@ describe('FeedbackAssignedTo', () => {
     });
 
     render(
-      <FeedbackAssignedTo feedbackIssue={feedbackIssue} feedbackEvent={feedbackEvent} />
+      <FeedbackApiOptions organization={organization}>
+        <FeedbackAssignedTo feedbackIssue={feedbackIssue} feedbackEvent={feedbackEvent} />
+      </FeedbackApiOptions>
     );
 
     await userEvent.click(await screen.findByLabelText('Modify issue assignee'));
@@ -68,13 +71,15 @@ describe('FeedbackAssignedTo', () => {
     });
 
     render(
-      <FeedbackAssignedTo
-        feedbackIssue={{
-          ...feedbackIssue,
-          assignedTo: {id: user.id, type: 'user', name: user.name},
-        }}
-        feedbackEvent={feedbackEvent}
-      />
+      <FeedbackApiOptions organization={organization}>
+        <FeedbackAssignedTo
+          feedbackIssue={{
+            ...feedbackIssue,
+            assignedTo: {id: user.id, type: 'user', name: user.name},
+          }}
+          feedbackEvent={feedbackEvent}
+        />
+      </FeedbackApiOptions>
     );
 
     await userEvent.click(await screen.findByLabelText('Modify issue assignee'));

@@ -30,7 +30,6 @@ class NoteSerializer(serializers.Serializer[None]):
 
     def validate_mentions(self, mentions: list[Actor]) -> list[Actor]:
         if mentions and "projects" in self.context:
-
             separated_actors = separate_actors(mentions)
             # Validate that all mentioned users exist and are on the project.
             users = separated_actors["users"]

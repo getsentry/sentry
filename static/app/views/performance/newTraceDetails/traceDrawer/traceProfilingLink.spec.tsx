@@ -1,4 +1,3 @@
-import type {LocationDescriptor} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -80,16 +79,12 @@ describe('traceProfilingLink', () => {
       }
     );
 
-    const link: LocationDescriptor | null = makeTraceContinuousProfilingLink(
-      node,
-      'profiler',
-      {
-        projectSlug: 'project',
-        organization: OrganizationFixture({slug: 'sentry'}),
-        traceId: 'trace',
-        threadId: '0',
-      }
-    );
+    const link = makeTraceContinuousProfilingLink(node, 'profiler', {
+      projectSlug: 'project',
+      organization: OrganizationFixture({slug: 'sentry'}),
+      traceId: 'trace',
+      threadId: '0',
+    });
 
     // @ts-expect-error mismatch in types?
     expect(link.query.start).toBe(new Date(timestamp - 100).toISOString());

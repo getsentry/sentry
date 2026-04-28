@@ -1,9 +1,10 @@
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import type {FeedbackEvent} from 'sentry/utils/feedback/types';
-import {useApiQueries} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {skipToken, useQueries} from '@tanstack/react-query';
 
-export default function useFeedbackEvents({
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {FeedbackEvent} from 'sentry/utils/feedback/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
+export function useFeedbackEvents({
   feedbackEventIds,
   projectId,
 }: {
@@ -12,31 +13,26 @@ export default function useFeedbackEvents({
 }) {
   const organization = useOrganization();
 
-  const feedbackEventQuery = useApiQueries<FeedbackEvent>(
-    feedbackEventIds.map((feedbackEventId: string) => [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectId!,
-          eventId: feedbackEventId,
-        },
-      }),
-    ]),
-    {
-      staleTime: Infinity,
-      enabled: Boolean(feedbackEventIds.length > 0 && projectId),
-    }
-  );
-
-  const feedbackEvents = feedbackEventQuery
-    .map(query => query.data)
-    .filter(e => e !== undefined);
-  const isPending = feedbackEventQuery.some(query => query.isPending);
-  const isError = feedbackEventQuery.some(query => query.isError);
-
-  return {
-    feedbackEvents,
-    isPending,
-    isError,
-  };
+  return useQueries({
+    queries: feedbackEventIds.map((feedbackEventId: string) =>
+      apiOptions.as<FeedbackEvent>()(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/',
+        {
+          path: projectId
+            ? {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectId,
+                eventId: feedbackEventId,
+              }
+            : skipToken,
+          staleTime: Infinity,
+        }
+      )
+    ),
+    combine: results => ({
+      feedbackEvents: results.map(r => r.data).filter(e => e !== undefined),
+      isPending: results.some(r => r.isPending),
+      isError: results.some(r => r.isError),
+    }),
+  });
 }

@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
-import docs from './index';
+import {docs} from './index';
 
 describe('maui onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
@@ -14,6 +14,11 @@ describe('maui onboarding docs', () => {
           version: '1.99.9',
         },
       },
+      selectedProducts: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.METRICS,
+      ],
     });
 
     // Renders main headings
@@ -38,6 +43,16 @@ describe('maui onboarding docs', () => {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/options.TracesSampleRate/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders logs onboarding docs correctly', async () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/options.EnableLogs/))
     ).toBeInTheDocument();
   });
 });

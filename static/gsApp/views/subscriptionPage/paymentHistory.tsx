@@ -1,16 +1,18 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Pagination from 'sentry/components/pagination';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Pagination} from 'sentry/components/pagination';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   IconCheckmark,
   IconClose,
@@ -20,17 +22,17 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {InvoiceBase} from 'getsentry/types';
-import formatCurrency from 'getsentry/utils/formatCurrency';
-import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
-import SubscriptionPageContainer from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
+import {formatCurrency} from 'getsentry/utils/formatCurrency';
+import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
+import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 enum ReceiptStatus {
   PAID = 'paid',
@@ -46,25 +48,17 @@ function PaymentHistory() {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {
-    data: payments,
-    isPending,
-    isError,
-    getResponseHeader,
-  } = useApiQuery<InvoiceBase[]>(
-    [
-      `/customers/${organization.slug}/invoices/`,
-      {
-        query: {cursor: location.query.cursor},
-      },
-    ],
-    {
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<InvoiceBase[]>()('/customers/$organizationIdOrSlug/invoices/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {cursor: location.query.cursor},
       staleTime: 0,
-    }
-  );
+    }),
+    select: selectJsonWithHeaders,
+  });
 
   const hasBillingPerms = organization.access?.includes('org:billing');
-  const paymentsPageLinks = getResponseHeader?.('Link');
+  const paymentsPageLinks = data?.headers.Link;
 
   return (
     <SubscriptionPageContainer background="primary">
@@ -76,7 +70,7 @@ function PaymentHistory() {
         <LoadingError />
       ) : hasBillingPerms ? (
         <ReceiptGrid
-          payments={payments}
+          payments={data.json}
           organization={organization}
           paymentsPageLinks={paymentsPageLinks}
         />

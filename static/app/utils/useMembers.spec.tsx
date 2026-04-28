@@ -3,8 +3,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
+import {MemberListStore} from 'sentry/stores/memberListStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useMembers} from 'sentry/utils/useMembers';
 
 describe('useMembers', () => {
@@ -101,6 +101,28 @@ describe('useMembers', () => {
 
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
+  });
+
+  it('waits for the member store to finish loading before fetching by ids', async () => {
+    const userFoo = UserFixture({id: '10'});
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/members/`,
+      method: 'GET',
+      body: [{user: userFoo}],
+    });
+
+    const {result} = renderHook(useMembers, {
+      initialProps: {ids: ['10']},
+    });
+
+    expect(result.current.initiallyLoaded).toBe(false);
+    expect(mockRequest).not.toHaveBeenCalled();
+
+    act(() => MemberListStore.loadInitialData([userFoo]));
+    await waitFor(() => expect(result.current.members).toEqual([userFoo]));
+
+    expect(result.current.initiallyLoaded).toBe(true);
+    expect(mockRequest).not.toHaveBeenCalled();
   });
 
   it('only loads emails when needed', () => {

@@ -2,13 +2,12 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Badge} from 'sentry/components/core/badge';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Badge, FeatureBadge} from '@sentry/scraps/badge';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {HookOrDefault} from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type Props = {
   label: React.ReactNode;
@@ -42,17 +41,19 @@ function SettingsNavBadge({badge}: {badge: string | number | null | ReactElement
   return badge;
 }
 
-function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
+export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) {
   return (
-    <SecondaryNav.Item
-      to={to}
-      end={index}
-      trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
-      analyticsItemName={id ? `settings_${id}` : undefined}
-      {...props}
-    >
-      <LabelHook id={id}>{label}</LabelHook>
-    </SecondaryNav.Item>
+    <SecondaryNavigation.ListItem>
+      <SecondaryNavigation.Link
+        to={to}
+        end={index}
+        trailingItems={badge ? <SettingsNavBadge badge={badge} /> : null}
+        analyticsItemName={id ? `settings_${id}` : undefined}
+        {...props}
+      >
+        <LabelHook id={id}>{label}</LabelHook>
+      </SecondaryNavigation.Link>
+    </SecondaryNavigation.ListItem>
   );
 }
 
@@ -61,8 +62,6 @@ const StyledBadge = styled(Badge)`
   height: auto;
   line-height: 1;
   font-size: ${p => p.theme.font.size.xs};
-  padding: 3px ${space(0.75)};
+  padding: 3px ${p => p.theme.space.sm};
   vertical-align: middle;
 `;
-
-export default SettingsNavItem;

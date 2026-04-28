@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -11,7 +12,7 @@ type Props = {
   level?: Level;
 };
 
-function ErrorLevel({className, level = 'unknown'}: Props) {
+export function ErrorLevel({className, level = 'unknown'}: Props) {
   const levelLabel = t('Level: %s', capitalize(level));
   return (
     <Tooltip skipWrapper disabled={level === 'unknown'} title={levelLabel}>
@@ -48,5 +49,3 @@ const ColoredLine = styled('span')<Props>`
     }
   }};
 `;
-
-export default ErrorLevel;

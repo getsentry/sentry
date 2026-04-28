@@ -4,8 +4,11 @@ from enum import StrEnum
 
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.metrics import EventLifecycleMetric
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
-from sentry.notifications.platform.types import NotificationCategory, NotificationProviderKey
+from sentry.notifications.platform.types import (
+    NotificationCategory,
+    NotificationProviderKey,
+    NotificationSource,
+)
 
 
 class NotificationInteractionType(StrEnum):
@@ -19,7 +22,7 @@ class NotificationInteractionType(StrEnum):
 class NotificationEventLifecycleMetric(EventLifecycleMetric):
     interaction_type: NotificationInteractionType
     # The template/source of the notification
-    notification_source: NotificationTemplateSource
+    notification_source: NotificationSource
     # The sender of the notification
     notification_provider: NotificationProviderKey | None = None
     # The category of the notification

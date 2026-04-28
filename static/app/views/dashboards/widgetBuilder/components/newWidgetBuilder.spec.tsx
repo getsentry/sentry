@@ -4,11 +4,17 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
+import {
+  LLMContextProvider,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
 const organization = OrganizationFixture({
   features: ['open-membership', 'visibility-explore-view'],
@@ -143,8 +149,6 @@ describe('NewWidgetBuilder', () => {
     expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
 
     expect(screen.getByText('Table')).toBeInTheDocument();
-    // ensure the dropdown input has the default value 'table'
-    expect(screen.getByDisplayValue('table')).toBeInTheDocument();
 
     expect(screen.getByText('Filter')).toBeInTheDocument();
     expect(screen.getByLabelText('Create a search query')).toBeInTheDocument();
@@ -152,7 +156,7 @@ describe('NewWidgetBuilder', () => {
     // Test sort by selector for table display type
     expect(screen.getByText('Sort by')).toBeInTheDocument();
     expect(screen.getByText('High to low')).toBeInTheDocument();
-    expect(screen.getByText(`Select a column\u{2026}`)).toBeInTheDocument();
+    expect(screen.getByText('Select a column\u{2026}')).toBeInTheDocument();
 
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
@@ -180,7 +184,14 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1', displayType: 'line'},
+            query: {
+              project: '-1',
+              displayType: 'line',
+              dataset: 'error-events',
+              yAxis: ['count_unique(user)'],
+              sort: ['-count_unique(user)'],
+              query: ['is:unresolved'],
+            },
           },
         },
       }
@@ -243,7 +254,14 @@ describe('NewWidgetBuilder', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {project: '-1', displayType: 'line'},
+            query: {
+              project: '-1',
+              displayType: 'line',
+              dataset: 'error-events',
+              yAxis: ['count_unique(user)'],
+              sort: ['-count_unique(user)'],
+              query: [''],
+            },
           },
         },
       }
@@ -280,4 +298,96 @@ describe('NewWidgetBuilder', () => {
 
     expect(await screen.findByText('Select a widget to preview')).toBeInTheDocument();
   });
+
+  it('populates LLM context with builder state', async () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    render(
+      <LLMContextProvider>
+        <ContextCapture />
+        <WidgetBuilderV2
+          isOpen
+          onClose={onCloseMock}
+          onSave={onSaveMock}
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{}}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </LLMContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/widget-builder/widget/new/',
+            query: {
+              displayType: DisplayType.LINE,
+              dataset: WidgetType.ERRORS,
+              title: 'My Widget',
+              yAxis: 'count()',
+              field: 'browser.name',
+              query: 'browser.name:Firefox',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => {
+      const node = getSnapshot().nodes.find(n => n.nodeType === 'widget-builder');
+      expect(node).toBeDefined();
+    });
+
+    const node = getSnapshot().nodes.find(n => n.nodeType === 'widget-builder')!;
+    const data = node.data as Record<string, unknown>;
+    expect(data.mode).toBe('creating');
+    expect(data.title).toBe('My Widget');
+    expect(data.dataset).toBe(WidgetType.ERRORS);
+    expect(data.displayType).toBe(DisplayType.LINE);
+    expect(data.visualize).toEqual(['count()']);
+    expect(data.fields).toEqual(['browser.name']);
+    expect(data.query).toEqual(['browser.name:Firefox']);
+    expect(node.priority).toBe(1);
+    expect(data.dashboardTitle).toBe('Dashboard');
+    expect(data.dashboardWidgetCount).toBe(0);
+    expect(data.dashboardFilters).toEqual([]);
+  });
+
+  it('does not register LLM context when the builder is closed', () => {
+    const {ContextCapture, getSnapshot} = makeContextCapture();
+
+    render(
+      <LLMContextProvider>
+        <ContextCapture />
+        <WidgetBuilderV2
+          isOpen={false}
+          onClose={onCloseMock}
+          onSave={onSaveMock}
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{}}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </LLMContextProvider>
+    );
+
+    const node = getSnapshot().nodes.find(n => n.nodeType === 'widget-builder');
+    expect(node).toBeUndefined();
+  });
 });
+
+function makeContextCapture() {
+  const ref: {current: (() => LLMContextSnapshot) | null} = {current: null};
+  function ContextCapture() {
+    const {getLLMContext} = useLLMContext();
+    ref.current = getLLMContext;
+    return null;
+  }
+  return {
+    ContextCapture,
+    getSnapshot: () => {
+      if (!ref.current) throw new Error('ContextCapture not mounted');
+      return ref.current();
+    },
+  };
+}

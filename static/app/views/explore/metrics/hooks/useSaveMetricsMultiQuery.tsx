@@ -1,19 +1,22 @@
 import {useCallback, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
-import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+import {
+  isVisualize,
+  isVisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 
 const METRICS_DATASET = 'metrics';
 
@@ -61,7 +64,8 @@ export function useSaveMetricsMultiQuery() {
             return null;
           }
 
-          const yAxes = visualizes.map(v => v.yAxis); // There should only be one yAxis per metricQuery.
+          // There can be multiple yAxes per metricQuery, with multi-aggregate support.
+          const yAxes = visualizes.map(v => v.yAxis);
           const chartType = visualize.chartType;
 
           return {
@@ -69,10 +73,13 @@ export function useSaveMetricsMultiQuery() {
               ...groupBys,
               ...(yAxes.length > 0 ? [{yAxes, chartType}] : []),
             ],
-            metric: metricQuery.metric,
+            ...(isVisualizeFunction(visualize) ? {metric: metricQuery.metric} : {}),
             fields: metricQuery.queryParams.fields,
             orderby: metricQuery.queryParams.sortBys[0]
               ? encodeSort(metricQuery.queryParams.sortBys[0])
+              : undefined,
+            aggregateOrderby: metricQuery.queryParams.aggregateSortBys[0]
+              ? encodeSort(metricQuery.queryParams.aggregateSortBys[0])
               : undefined,
             query: metricQuery.queryParams.query ?? '',
             mode: metricQuery.queryParams.mode,

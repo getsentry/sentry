@@ -9,7 +9,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from operator import itemgetter
 from time import time
-from typing import Any, TypedDict
+from typing import Any
 from uuid import UUID
 
 import msgpack
@@ -23,6 +23,8 @@ from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, TraceItem
+from taskbroker_client.constants import CompressionType
+from taskbroker_client.retry import Retry
 
 from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
@@ -36,7 +38,7 @@ from sentry.lang.native.symbolicator import (
     SymbolicatorTaskKind,
 )
 from sentry.lang.native.utils import native_images_from_data
-from sentry.models.eventerror import EventError
+from sentry.models.eventerror import EventErrorType
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -56,15 +58,12 @@ from sentry.profiles.java import (
 from sentry.profiles.utils import (
     Profile,
     apply_stack_trace_rules_to_profile,
-    get_from_profiling_service,
 )
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.constants import CompressionType
 from sentry.taskworker.namespaces import ingest_profiling_tasks
-from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.utils.eap import hex_to_item_id
@@ -138,7 +137,7 @@ def encode_payload(message: dict[str, Any]) -> str:
     processing_deadline_duration=60,
     retry=Retry(times=2, delay=5),
     compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def process_profile_task(
     profile: Profile | None = None,
@@ -288,9 +287,6 @@ def process_profile_task(
 
 
 def _is_deprecated(profile: Profile, project: Project, organization: Organization) -> bool:
-    if not features.has("organizations:profiling-sdks", organization):
-        return False
-
     try:
         event_type = determine_profile_type(profile)
     except UnknownProfileTypeException:
@@ -344,9 +340,7 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         )
         return True
 
-    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
-        event_type, sdk_name, sdk_version
-    ):
+    if is_sdk_deprecated(event_type, sdk_name, sdk_version):
         _track_outcome(
             profile=profile,
             project=project,
@@ -685,7 +679,7 @@ def run_symbolicate(
 
             if not response:
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
             elif response["status"] == "completed":
@@ -696,7 +690,7 @@ def run_symbolicate(
                 )
             elif response["status"] == "failed":
                 profile["symbolicator_error"] = {
-                    "type": EventError.NATIVE_SYMBOLICATOR_FAILED,
+                    "type": EventErrorType.NATIVE_SYMBOLICATOR_FAILED,
                     "status": response.get("status"),
                     "message": response.get("message"),
                 }
@@ -704,7 +698,7 @@ def run_symbolicate(
             else:
                 profile["symbolicator_error"] = {
                     "status": response.get("status"),
-                    "type": EventError.NATIVE_INTERNAL_FAILURE,
+                    "type": EventErrorType.NATIVE_INTERNAL_FAILURE,
                 }
                 return modules, stacktraces, False
     except SymbolicationTimeout:
@@ -1080,62 +1074,6 @@ def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> No
     )
 
 
-@metrics.wraps("process_profile.insert_vroom_profile")
-def _insert_vroom_profile(profile: Profile) -> bool:
-    with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
-        try:
-            path = "/chunk" if "profiler_id" in profile else "/profile"
-            response = get_from_profiling_service(
-                method="POST",
-                path=path,
-                json_data=profile,
-                metric=(
-                    "profiling.profile.payload.size",
-                    {
-                        "type": "chunk" if "profiler_id" in profile else "profile",
-                        "platform": profile["platform"],
-                    },
-                ),
-            )
-
-            sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
-
-            reason = "bad status"
-
-            if response.status == 204:
-                return True
-            elif response.status == 429:
-                reason = "gcs timeout"
-            elif response.status == 412:
-                reason = "duplicate profile"
-
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={
-                    "platform": profile["platform"],
-                    "reason": reason,
-                    "status_code": response.status,
-                },
-                sample_rate=1.0,
-            )
-            return False
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "encountered error"},
-                sample_rate=1.0,
-            )
-            return False
-
-
-def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
-    if _insert_vroom_profile(profile=profile):
-        return True
-    _track_failed_outcome(profile, project, "profiling_failed_vroom_insertion")
-    return False
-
-
 def prepare_android_js_profile(profile: Profile) -> None:
     profile["js_profile"] = {"profile": profile["js_profile"]}
     p = profile["js_profile"]
@@ -1155,11 +1093,6 @@ def clean_android_js_profile(profile: Profile) -> None:
     del p["event_id"]
     del p["release"]
     del p["dist"]
-
-
-class _ProjectKeyKwargs(TypedDict):
-    project_id: int
-    use_case: str
 
 
 @metrics.wraps("process_profile.track_outcome")

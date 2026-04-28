@@ -45,7 +45,7 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
   };
 }
 
-function submitRules(api: Client, endpoint: string, rules: Rule[]) {
+export function submitRules(api: Client, endpoint: string, rules: Rule[]) {
   const applications: Applications = {};
   const submitFormatRules: Record<string, PiiConfig> = {};
 
@@ -70,5 +70,3 @@ function submitRules(api: Client, endpoint: string, rules: Rule[]) {
     data: {relayPiiConfig: JSON.stringify(piiConfig)},
   });
 }
-
-export default submitRules;

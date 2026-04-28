@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectFilters from 'sentry/views/projectDetail/projectFilters';
+import {ProjectFilters} from 'sentry/views/projectDetail/projectFilters';
 
 describe('ProjectDetail > ProjectFilters', () => {
   const onSearch = jest.fn();

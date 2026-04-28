@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload} from 'sentry/icons';
@@ -16,7 +17,7 @@ interface Props {
   tagKey: string;
 }
 
-export default function TagExportDropdown({tagKey, group, organization, project}: Props) {
+export function TagExportDropdown({tagKey, group, organization, project}: Props) {
   const [isExportDisabled, setIsExportDisabled] = useState(false);
   const hasDiscoverQuery = organization.features.includes('discover-query');
   const handleDataExport = useDataExport({
@@ -36,7 +37,7 @@ export default function TagExportDropdown({tagKey, group, organization, project}
       trigger={triggerProps => (
         <Button
           {...triggerProps}
-          borderless
+          priority="transparent"
           size="xs"
           aria-label={t('Export options')}
           icon={<IconDownload />}

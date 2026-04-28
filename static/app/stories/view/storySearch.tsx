@@ -6,28 +6,28 @@ import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {ListBox} from '@sentry/scraps/compactSelect';
+import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
+import {InputGroup} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {Badge} from 'sentry/components/core/badge';
-import {ListBox} from 'sentry/components/core/compactSelect/listBox';
-import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
-  inferComponentSubcategory,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
 } from 'sentry/stories/view/storyTree';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {fzf} from 'sentry/utils/search/fzf';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface SearchSection {
   key: string;
@@ -56,7 +56,7 @@ export function StorySearch() {
       // For components section, consolidate all subcategories into a single section
       if (section === 'core') {
         const allCoreNodes = data.stories.flatMap(subcategoryFolder =>
-          Object.values(subcategoryFolder.children)
+          subcategoryFolder.flat()
         );
 
         if (allCoreNodes.length > 0) {
@@ -96,14 +96,24 @@ export function StorySearch() {
       {item => {
         if (isSearchSection(item)) {
           return (
-            <Section key={item.key} title={<SectionTitle>{item.label}</SectionTitle>}>
+            <Section
+              key={item.key}
+              title={
+                <Text size="xs" uppercase>
+                  {item.label}
+                </Text>
+              }
+            >
               {item.options.map(storyItem => {
-                const subcategoryKey =
-                  item.key === 'core'
-                    ? inferComponentSubcategory(storyItem.name.toLowerCase())
-                    : undefined;
+                const meta = storyFrontmatterIndex[storyItem.filesystemPath];
+                const subcategoryKey = item.key === 'core' ? meta?.category : undefined;
                 const subcategoryLabel = subcategoryKey
-                  ? COMPONENT_SUBCATEGORY_CONFIG[subcategoryKey].label
+                  ? (
+                      COMPONENT_SUBCATEGORY_CONFIG as Record<
+                        string,
+                        {label: string} | undefined
+                      >
+                    )[subcategoryKey]?.label
                   : undefined;
 
                 return (
@@ -113,7 +123,7 @@ export function StorySearch() {
                     {...({
                       label: storyItem.label,
                       trailingItems: subcategoryLabel ? (
-                        <Text size="sm" variant="muted">
+                        <Text size="xs" variant="muted" ellipsis>
                           {subcategoryLabel}
                         </Text>
                       ) : undefined,
@@ -144,13 +154,13 @@ function SearchInput(
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = props;
 
   return (
-    <InputGroup style={{minHeight: 33, height: 33, width: 256}}>
+    <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
         <IconSearch />
       </InputGroup.LeadingItems>
       <InputGroup.Input ref={props.ref} nativeSize={nativeSize} {...nativeProps} />
       <InputGroup.TrailingItems>
-        <Badge variant="internal">/</Badge>
+        <Hotkey value="/" />
       </InputGroup.TrailingItems>
     </InputGroup>
   );
@@ -158,8 +168,10 @@ function SearchInput(
 
 type SearchComboBoxItem<T extends StoryTreeNode> = T | SearchSection;
 
-interface SearchComboBoxProps
-  extends Omit<AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>, 'children'> {
+interface SearchComboBoxProps extends Omit<
+  AriaComboBoxProps<SearchComboBoxItem<StoryTreeNode>>,
+  'children'
+> {
   children: CollectionChildren<SearchComboBoxItem<StoryTreeNode>>;
   defaultItems: Array<SearchComboBoxItem<StoryTreeNode>>;
   inputRef: React.RefObject<HTMLInputElement | null>;
@@ -201,7 +213,7 @@ function SearchComboBox(props: SearchComboBoxProps) {
     onInputChange: setInputValue,
     defaultFilter: filter,
     shouldCloseOnBlur: true,
-    allowsEmptyCollection: false,
+    allowsEmptyCollection: true,
     onSelectionChange: handleSelectionChange,
   });
 
@@ -225,18 +237,48 @@ function SearchComboBox(props: SearchComboBoxProps) {
       <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
       {state.isOpen && (
         <StyledOverlay placement="bottom-start" ref={popoverRef}>
-          <ListBox
-            listState={state}
-            hasSearch={!!state.inputValue}
-            overlayIsOpen={state.isOpen}
-            size="sm"
-            {...listBoxProps}
-          >
-            {props.children}
-          </ListBox>
+          {state.collection.size === 0 ? (
+            inputValue.length === 0 ? (
+              <SearchEmpty />
+            ) : (
+              <SearchNotFound inputValue={inputValue} />
+            )
+          ) : (
+            <ListBox
+              size="sm"
+              virtualized
+              listState={state}
+              hasSearch={!!state.inputValue}
+              overlayIsOpen={state.isOpen}
+              {...listBoxProps}
+              className="story-search-results"
+            >
+              {props.children}
+            </ListBox>
+          )}
         </StyledOverlay>
       )}
     </StorySearchContainer>
+  );
+}
+
+function SearchEmpty() {
+  return (
+    <Flex align="center" justify="start" padding="lg">
+      <Text variant="muted" size="sm">
+        {t('Type to search stories...')}
+      </Text>
+    </Flex>
+  );
+}
+
+function SearchNotFound({inputValue}: {inputValue: string}) {
+  return (
+    <Flex align="center" justify="start" padding="lg">
+      <Text variant="muted" size="sm">
+        {t('No stories match "%s"', inputValue)}
+      </Text>
+    </Flex>
   );
 }
 
@@ -245,32 +287,25 @@ const StorySearchContainer = styled('div')`
   width: 320px;
   flex-grow: 1;
   z-index: ${p => p.theme.zIndex.header};
-  padding: ${p => p.theme.space.md};
-  padding-right: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  margin-left: -${p => p.theme.space['2xl']};
+  margin-left: -${p => p.theme.space.xl};
 `;
 
 const StyledOverlay = styled(Overlay)`
-  position: fixed;
-  top: 48px;
-  left: 256px;
+  position: absolute;
+  top: 100%;
+  left: 0;
   width: 320px;
-  max-height: calc(100dvh - 128px);
-  overflow-y: auto;
 
   /* Make section headers darker in this component */
   p[id][aria-hidden='true'] {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
 
-const SectionTitle = styled('span')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-weight: 600;
-  text-transform: uppercase;
+  .story-search-results {
+    max-height: 320px;
+    min-height: 64px;
+    padding-block-end: calc(${p => p.theme.space.md} + 1px);
+  }
 `;
 
 function getStoryTreeNodeFromKey(

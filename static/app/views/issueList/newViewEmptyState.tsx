@@ -1,19 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
-import Panel from 'sentry/components/panels/panel';
+import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import {Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {SavedSearchVisibility} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
 type SearchSuggestion = {
@@ -79,7 +80,7 @@ export function NewViewEmptyState() {
   );
 
   return (
-    <Wrapper>
+    <Stack justify="center" align="center" marginTop="3xl">
       <Card>
         <CardHeading>{t('Suggested Queries')}</CardHeading>
         <p>{t('Here are a few to get you started.')}</p>
@@ -127,7 +128,7 @@ export function NewViewEmptyState() {
           </QueryGrid>
         </Card>
       )}
-    </Wrapper>
+    </Stack>
   );
 }
 
@@ -144,34 +145,26 @@ const TooltipSubLink = styled(Link)`
   }
 `;
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: ${space(4)};
-`;
-
 const Card = styled(Panel)`
   width: 80%;
   background-color: ${p => p.theme.tokens.background.secondary};
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const CardHeading = styled('h2')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const QueryGrid = styled('ul')`
   display: grid;
   grid-template-columns: 1fr 4fr;
-  column-gap: ${space(2)};
-  margin: 0 -${space(2)};
+  column-gap: ${p => p.theme.space.xl};
+  margin: 0 -${p => p.theme.space.xl};
   padding: 0;
 `;
 
@@ -206,7 +199,7 @@ const QueryButton = styled('button')`
   margin: 0;
   width: 100%;
   text-align: left;
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   border-radius: 0;
 
   &:focus-visible {

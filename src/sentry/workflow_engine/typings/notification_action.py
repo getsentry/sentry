@@ -6,6 +6,9 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
+from sentry.constants import SentryAppInstallationStatus
+from sentry.sentry_apps.services.app.service import app_service
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.utils import json
 
 OPSGENIE_DEFAULT_PRIORITY = "P3"
@@ -36,17 +39,9 @@ class FallthroughChoiceType(Enum):
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
 
-class SentryAppIdentifier(StrEnum):
-    """
-    SentryAppIdentifier is an enum that represents the identifier for a Sentry app.
-    """
-
-    SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
-    SENTRY_APP_ID = "sentry_app_id"
-
-
 class ActionType(StrEnum):
     SLACK = "slack"
+    SLACK_STAGING = "slack_staging"
     MSTEAMS = "msteams"
     DISCORD = "discord"
 
@@ -117,6 +112,12 @@ class ActionFieldMapping(TypedDict):
 ACTION_FIELD_MAPPINGS: dict[str, ActionFieldMapping] = {
     ActionType.SLACK: ActionFieldMapping(
         id="sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+        integration_id_key="workspace",
+        target_identifier_key="channel_id",
+        target_display_key="channel",
+    ),
+    ActionType.SLACK_STAGING: ActionFieldMapping(
+        id="sentry.integrations.slack.staging.notify_action.SlackStagingNotifyServiceAction",
         integration_id_key="workspace",
         target_identifier_key="channel_id",
         target_display_key="channel",
@@ -214,7 +215,8 @@ class BaseActionTranslator(ABC):
         """Return the integration ID for this action, if any"""
         if mapping := ACTION_FIELD_MAPPINGS.get(self.action_type):
             if ActionFieldMappingKeys.INTEGRATION_ID_KEY.value in mapping:
-                return self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
+                value = self.action.get(mapping[ActionFieldMappingKeys.INTEGRATION_ID_KEY.value])
+                return int(value) if value is not None else None
         return None
 
     @property
@@ -241,7 +243,19 @@ class BaseActionTranslator(ABC):
             "target_type": self.target_type if self.target_type is not None else None,
         }
         if self.action_type == ActionType.SENTRY_APP:
-            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            installs = app_service.get_many(
+                filter={
+                    "uuids": [self.target_identifier],
+                    "status": SentryAppInstallationStatus.INSTALLED,
+                }
+            )
+            if not installs:
+                raise SentryAppError(
+                    message="Could not find sentry app install from uuid.",
+                    status_code=400,
+                )
+
+            base_config["target_identifier"] = str(installs[0].sentry_app.id)
 
         return base_config
 
@@ -292,13 +306,13 @@ class SlackActionTranslator(BaseActionTranslator):
     @property
     def required_fields(self) -> list[str]:
         return [
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.INTEGRATION_ID_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ],
-            ACTION_FIELD_MAPPINGS[ActionType.SLACK][
+            ACTION_FIELD_MAPPINGS[self.action_type][
                 ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value
             ],
         ]
@@ -310,6 +324,12 @@ class SlackActionTranslator(BaseActionTranslator):
     @property
     def blob_type(self) -> type[DataBlob]:
         return SlackDataBlob
+
+
+class SlackStagingActionTranslator(SlackActionTranslator):
+    @property
+    def action_type(self) -> ActionType:
+        return ActionType.SLACK_STAGING
 
 
 class DiscordActionTranslator(BaseActionTranslator):
@@ -454,8 +474,9 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         ]
 
     @property
-    def integration_id(self) -> Any | None:
-        return self.action.get("integration")
+    def integration_id(self) -> int | None:
+        value = self.action.get("integration")
+        return int(value) if value is not None else None
 
     @property
     def target_type(self) -> int:
@@ -758,6 +779,7 @@ class EmailDataBlob(DataBlob):
 
 issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {
     ACTION_FIELD_MAPPINGS[ActionType.SLACK]["id"]: SlackActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.SLACK_STAGING]["id"]: SlackStagingActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.DISCORD]["id"]: DiscordActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.MSTEAMS]["id"]: MSTeamsActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.PAGERDUTY]["id"]: PagerDutyActionTranslator,

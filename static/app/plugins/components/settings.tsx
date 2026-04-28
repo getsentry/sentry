@@ -1,20 +1,20 @@
 import {css} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Stack} from 'sentry/components/core/layout';
-import Form from 'sentry/components/deprecatedforms/form';
-import FormState from 'sentry/components/forms/state';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import {Form} from 'sentry/components/deprecatedforms/form';
+import {FormState} from 'sentry/components/forms/state';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
+import {PluginComponentBase} from 'sentry/plugins/pluginComponentBase';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {parseRepo} from 'sentry/utils/git/parseRepo';
-import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {isScmPlugin, trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
   organization: Organization;
@@ -35,7 +35,7 @@ type State = {
   wasConfiguredOnPageLoad: boolean;
 } & PluginComponentBase['state'];
 
-class PluginSettings<
+export class PluginSettings<
   P extends Props = Props,
   S extends State = State,
 > extends PluginComponentBase<P, S> {
@@ -55,13 +55,26 @@ class PluginSettings<
     });
   }
 
-  trackPluginEvent = (eventKey: IntegrationAnalyticsKey) => {
-    trackIntegrationAnalytics(eventKey, {
+  trackPluginEvent = (
+    eventKey:
+      | 'integrations.installation_start'
+      | 'integrations.installation_complete'
+      | 'integrations.config_saved'
+  ) => {
+    const baseParams = {
       integration: this.props.plugin.id,
-      integration_type: 'plugin',
-      view: 'plugin_details',
+      integration_type: 'plugin' as const,
+      view: 'plugin_details' as const,
       already_installed: this.state.wasConfiguredOnPageLoad,
       organization: this.props.organization,
+    };
+    if (eventKey === 'integrations.config_saved') {
+      trackIntegrationAnalytics(eventKey, baseParams);
+      return;
+    }
+    trackIntegrationAnalytics(eventKey, {
+      ...baseParams,
+      is_scm: isScmPlugin(this.props.plugin),
     });
   };
 
@@ -76,6 +89,7 @@ class PluginSettings<
   }
 
   changeField(name: string, value: any) {
+    // eslint-disable-next-line @sentry/no-unnecessary-type-annotation
     const formData: State['formData'] = this.state.formData;
     formData[name] = value;
     // upon changing a field, remove errors
@@ -210,7 +224,7 @@ class PluginSettings<
       );
     }
 
-    const fieldList: State['fieldList'] = this.state.fieldList;
+    const fieldList = this.state.fieldList;
 
     if (!fieldList?.length) {
       return null;
@@ -244,5 +258,3 @@ class PluginSettings<
     );
   }
 }
-
-export default PluginSettings;

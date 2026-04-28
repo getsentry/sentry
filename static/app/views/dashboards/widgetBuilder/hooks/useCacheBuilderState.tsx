@@ -1,11 +1,11 @@
 import {useCallback, useEffect} from 'react';
 
-import createStorage from 'sentry/utils/createStorage';
+import {createStorage} from 'sentry/utils/createStorage';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
-import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 
 const WIDGET_BUILDER_DATASET_STATE_KEY = 'dashboards:widget-builder:dataset';
 
@@ -53,7 +53,7 @@ export function useCacheBuilderState() {
         `${WIDGET_BUILDER_DATASET_STATE_KEY}:${nextDataset}`
       );
       if (previousDatasetState) {
-        const builderState = convertWidgetToBuilderStateParams(
+        const builderState = convertWidgetToBuilderState(
           JSON.parse(previousDatasetState)
         );
         dispatch({

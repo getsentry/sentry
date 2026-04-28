@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import CollapsePanel from 'sentry/components/collapsePanel';
+import {CollapsePanel} from 'sentry/components/collapsePanel';
 import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('CollapsePanel', story => {

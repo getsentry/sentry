@@ -1,10 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import DropdownButton from 'sentry/components/dropdownButton';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {DropdownButton} from 'sentry/components/dropdownButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import NotificationActionItem from 'sentry/components/notificationActions/notificationActionItem';
+import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -40,7 +41,7 @@ type NotificationActionManagerProps = {
   updateAlertCount?: (projectId: number, alertCount: number) => void;
 };
 
-function NotificationActionManager({
+export function NotificationActionManager({
   actions,
   availableActions,
   recipientRoles,
@@ -70,10 +71,7 @@ function NotificationActionManager({
   };
 
   // Lists the available actions for each service
-  const availableServices: Record<
-    NotificationActionService,
-    AvailableNotificationAction[]
-  > = useMemo(() => {
+  const availableServices = useMemo(() => {
     const availableServicesMap: Record<
       NotificationActionService,
       AvailableNotificationAction[]
@@ -95,10 +93,7 @@ function NotificationActionManager({
 
   // Groups the notification actions together by service
   // Will render the notif actions in the order the keys are listed in
-  const actionsMap: Record<
-    NotificationActionService,
-    Array<{action: NotificationAction; index: number}>
-  > = useMemo(() => {
+  const actionsMap = useMemo(() => {
     const notificationActionsMap: Record<
       NotificationActionService,
       Array<{action: NotificationAction; index: number}>
@@ -122,37 +117,35 @@ function NotificationActionManager({
   }, [notificationActions]);
 
   // Groups the pagerduty integrations with their corresponding allowed services
-  const pagerdutyIntegrations: Record<number, AvailableNotificationAction[]> =
-    useMemo(() => {
-      const integrations: Record<number, AvailableNotificationAction[]> = {};
-      availableServices[NotificationActionService.PAGERDUTY].forEach(service => {
-        const integrationId = service.action.integrationId;
-        if (integrationId) {
-          if (integrationId in integrations) {
-            integrations[integrationId]!.push(service);
-          } else {
-            integrations[integrationId] = [service];
-          }
+  const pagerdutyIntegrations = useMemo(() => {
+    const integrations: Record<number, AvailableNotificationAction[]> = {};
+    availableServices[NotificationActionService.PAGERDUTY].forEach(service => {
+      const integrationId = service.action.integrationId;
+      if (integrationId) {
+        if (integrationId in integrations) {
+          integrations[integrationId]!.push(service);
+        } else {
+          integrations[integrationId] = [service];
         }
-      });
-      return integrations;
-    }, [availableServices]);
+      }
+    });
+    return integrations;
+  }, [availableServices]);
 
-  const opsgenieIntegrations: Record<number, AvailableNotificationAction[]> =
-    useMemo(() => {
-      const integrations: Record<number, AvailableNotificationAction[]> = {};
-      availableServices[NotificationActionService.OPSGENIE].forEach(team => {
-        const integrationId = team.action.integrationId;
-        if (integrationId) {
-          if (integrationId in integrations) {
-            integrations[integrationId]!.push(team);
-          } else {
-            integrations[integrationId] = [team];
-          }
+  const opsgenieIntegrations = useMemo(() => {
+    const integrations: Record<number, AvailableNotificationAction[]> = {};
+    availableServices[NotificationActionService.OPSGENIE].forEach(team => {
+      const integrationId = team.action.integrationId;
+      if (integrationId) {
+        if (integrationId in integrations) {
+          integrations[integrationId]!.push(team);
+        } else {
+          integrations[integrationId] = [team];
         }
-      });
-      return integrations;
-    }, [availableServices]);
+      }
+    });
+    return integrations;
+  }, [availableServices]);
   const renderNotificationActions = () => {
     if (!notificationActions) {
       return [];
@@ -259,5 +252,3 @@ function NotificationActionManager({
     </Fragment>
   );
 }
-
-export default NotificationActionManager;

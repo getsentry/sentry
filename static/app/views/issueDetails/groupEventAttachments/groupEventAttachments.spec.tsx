@@ -16,12 +16,12 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import GroupStore from 'sentry/stores/groupStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {GroupStore} from 'sentry/stores/groupStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
-import GroupEventAttachments from './groupEventAttachments';
+import {GroupEventAttachments} from './groupEventAttachments';
 
 describe('GroupEventAttachments', () => {
   const groupId = 'group-id';
@@ -35,14 +35,14 @@ describe('GroupEventAttachments', () => {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
     },
-    route: `/organizations/:orgId/issues/:groupId/attachments/`,
+    route: '/organizations/:orgId/issues/:groupId/attachments/',
   };
   const screenshotRouterConfig: RouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/issues/${groupId}/attachments/`,
       query: {attachmentFilter: 'screenshot'},
     },
-    route: `/organizations/:orgId/issues/:groupId/attachments/`,
+    route: '/organizations/:orgId/issues/:groupId/attachments/',
   };
   let project: Project;
   let getAttachmentsMock: jest.Mock;
@@ -84,7 +84,6 @@ describe('GroupEventAttachments', () => {
         query: {
           screenshot: '1',
           environment: [],
-          statsPeriod: '14d',
         },
       })
     );
@@ -176,9 +175,9 @@ describe('GroupEventAttachments', () => {
             environment: ['staging'],
           },
         },
-        route: `/organizations/:orgId/issues/:groupId/attachments/`,
+        route: '/organizations/:orgId/issues/:groupId/attachments/',
       },
-      organization: {...organization, features: ['issue-details-streamline-enforce']},
+      organization,
     });
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',

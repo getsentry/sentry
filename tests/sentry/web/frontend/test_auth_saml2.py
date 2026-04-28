@@ -222,7 +222,7 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_setup(self, auth_log: mock.MagicMock) -> None:
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
@@ -247,7 +247,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert messages[1].startswith("SSO has been configured for your organization")
 
         # require 2FA disabled when saml is enabled
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             org = Organization.objects.get(id=self.organization.id)
             assert not org.flags.require_2fa
 

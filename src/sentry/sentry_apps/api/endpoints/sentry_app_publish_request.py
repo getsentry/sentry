@@ -114,9 +114,9 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
 
         # Must send to user & partners so that the reply-to email will be each other
         # User is guaranteed to be authenticated since this endpoint requires org:admin
-        assert isinstance(
-            request.user, (User, RpcUser)
-        ), "User must be authenticated for this endpoint"
+        assert isinstance(request.user, (User, RpcUser)), (
+            "User must be authenticated for this endpoint"
+        )
         recipients = ["integrations-platform@sentry.io", request.user.email]
         sent_messages = new_message.send(
             to=recipients,

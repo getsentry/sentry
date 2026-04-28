@@ -1,4 +1,5 @@
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {
   DocsParams,
   OnboardingConfig,
@@ -49,7 +50,7 @@ export const profiling: OnboardingConfig = {
         {
           type: 'code',
           language: 'url',
-          code: `https://github.com/getsentry/sentry-cocoa.git`,
+          code: 'https://github.com/getsentry/sentry-cocoa.git',
         },
         {
           type: 'text',

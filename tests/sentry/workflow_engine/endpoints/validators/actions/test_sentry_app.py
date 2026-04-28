@@ -8,7 +8,7 @@ from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
-from sentry.workflow_engine.typings.notification_action import ActionType, SentryAppIdentifier
+from sentry.workflow_engine.typings.notification_action import ActionType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -27,9 +27,8 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "targetType": ActionType.SENTRY_APP,
-                "targetIdentifier": self.sentry_app_installation.uuid,
+                "targetIdentifier": str(self.sentry_app.id),
             },
             "data": {"settings": self.sentry_app_settings},
         }
@@ -55,34 +54,6 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
 
         validator = BaseActionValidator(
             data=self.valid_data,
-            context={"organization": self.organization},
-        )
-
-        result = validator.is_valid()
-        assert result is True
-        validator.save()
-
-    @mock.patch(
-        "sentry.rules.actions.sentry_apps.utils.app_service.trigger_sentry_app_action_creators"
-    )
-    def test_validate_sentry_app_id(
-        self, mock_trigger_sentry_app_action_creators: mock.MagicMock
-    ) -> None:
-        mock_trigger_sentry_app_action_creators.return_value = RpcAlertRuleActionResult(
-            success=True, message="success"
-        )
-        valid_data = {
-            "type": Action.Type.SENTRY_APP,
-            "config": {
-                "sentryAppIdentifier": SentryAppIdentifier.SENTRY_APP_ID,
-                "targetType": ActionType.SENTRY_APP,
-                "targetIdentifier": str(self.sentry_app.id),
-            },
-            "data": {"settings": self.sentry_app_settings},
-        }
-
-        validator = BaseActionValidator(
-            data=valid_data,
             context={"organization": self.organization},
         )
 
@@ -124,20 +95,17 @@ class TestSentryAppActionValidator(BaseWorkflowTest):
     def test_validate_settings_action_trigger(
         self, mock_trigger_sentry_app_action_creators: mock.MagicMock
     ) -> None:
-        self.create_sentry_app(
+        sentry_app = self.create_sentry_app(
             organization=self.organization,
             name="Test Application",
             is_alertable=True,
         )
-        install = self.create_sentry_app_installation(
-            slug="test-application", organization=self.organization
-        )
+        self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.organization)
         self.valid_data = {
             "type": Action.Type.SENTRY_APP,
             "config": {
-                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
                 "targetType": ActionType.SENTRY_APP,
-                "target_identifier": install.uuid,
+                "target_identifier": str(sentry_app.id),
             },
             "data": {
                 "settings": [

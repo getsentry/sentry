@@ -1,8 +1,7 @@
 from collections.abc import Iterable
-from unittest import skip
 from unittest.mock import MagicMock, patch
 
-from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -10,8 +9,6 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
-from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -130,7 +127,7 @@ class ProjectTest(APITestCase, TestCase):
         assert updated_rule.environment_id == Environment.get_or_create(project, "production").id
 
         # check to make sure old monitor is scheduled for deletion
-        assert RegionScheduledDeletion.objects.filter(
+        assert CellScheduledDeletion.objects.filter(
             object_id=monitor.id, model_name="Monitor"
         ).exists()
 
@@ -632,69 +629,6 @@ class ProjectTest(APITestCase, TestCase):
         assert when_condition_group.organization_id == to_org.id
 
 
-class ProjectOptionsTests(TestCase):
-    """
-    These tests validate that the project model will correctly merge the
-    options from the project and the project template.
-
-    When returning getting options for a project the following hierarchy is used:
-    - Project
-    - Project Template
-    - Default
-
-    If a project has a template option set, it will override the default.
-    If a project has an option set, it will override the template option.
-    """
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.option_key = "sentry:test_data"
-        self.project = self.create_project()
-
-        self.project_template = self.create_project_template(organization=self.project.organization)
-        self.project.template = self.project_template
-
-    def tearDown(self) -> None:
-        super().tearDown()
-
-        self.project_template.delete()
-        self.project.delete()
-
-    def test_get_option(self) -> None:
-        assert self.project.get_option(self.option_key) is None
-        ProjectOption.objects.set_value(self.project, self.option_key, True)
-        assert self.project.get_option(self.option_key) is True
-
-    @skip("Template feature is not active at the moment")
-    def test_get_template_option(self) -> None:
-        assert self.project.get_option(self.option_key) is None
-        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
-        assert self.project.get_option(self.option_key) == "test"
-
-    def test_get_option__override_template(self) -> None:
-        assert self.project.get_option(self.option_key) is None
-        ProjectOption.objects.set_value(self.project, self.option_key, True)
-        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
-
-        assert self.project.get_option(self.option_key) is True
-
-    def test_get_option__without_template(self) -> None:
-        self.project.template = None
-        assert self.project.get_option(self.option_key) is None
-        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
-
-        assert self.project.get_option(self.option_key) is None
-
-    def test_get_option__without_template_and_value(self) -> None:
-        self.project.template = None
-        assert self.project.get_option(self.option_key) is None
-
-        ProjectOption.objects.set_value(self.project, self.option_key, True)
-        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
-
-        assert self.project.get_option(self.option_key) is True
-
-
 class CopyProjectSettingsTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -765,7 +699,7 @@ class CopyProjectSettingsTest(TestCase):
         project.update_option("sentry:resolve_age", 200)
         ProjectTeam.objects.create(team=self.create_team(), project=project)
         self.create_environment(project=project)
-        Rule.objects.filter(project_id=project.id)[0]
+        Rule.objects.filter(project_id=project.id).order_by("id")[0]
 
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)

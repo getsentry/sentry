@@ -3,10 +3,8 @@ import 'react-date-range/dist/theme/default.css';
 
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
-const CalendarStylesWrapper = styled('div')`
-  padding: ${space(2)};
+export const CalendarStylesWrapper = styled('div')`
+  padding: ${p => p.theme.space.xl};
 
   .rdrCalendarWrapper:not(.rdrDateRangeWrapper) .rdrDayHovered .rdrDayNumber:after {
     border: 0;
@@ -20,7 +18,7 @@ const CalendarStylesWrapper = styled('div')`
     right: 0;
     top: 3px;
     bottom: 3px;
-    background-color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rdrDayNumber {
@@ -59,11 +57,11 @@ const CalendarStylesWrapper = styled('div')`
 
   .rdrDayToday .rdrDayNumber {
     border-radius: 2rem;
-    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.interactive.link.accent.active};
+    box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
   }
 
   .rdrDayNumber span:after {
-    background-color: ${p => p.theme.tokens.interactive.link.accent.active};
+    background-color: ${p => p.theme.tokens.background.accent.vibrant};
     font-variant-numeric: tabular-nums;
   }
 
@@ -74,7 +72,7 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrInRange {
-    background: ${p => p.theme.tokens.interactive.link.accent.active};
+    background: ${p => p.theme.tokens.background.accent.vibrant};
   }
 
   .rdrDayInPreview {
@@ -101,8 +99,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrDayEndPreview,
   .rdrDayInPreview {
     border: 0;
-    background: ${p => p.theme.tokens.content.primary};
-    opacity: 0.08;
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
     z-index: -1;
   }
 
@@ -169,7 +166,7 @@ const CalendarStylesWrapper = styled('div')`
   .rdrMonthAndYearWrapper {
     height: 32px;
     align-items: stretch;
-    padding-bottom: ${space(1)};
+    padding-bottom: ${p => p.theme.space.md};
     padding-top: 0;
   }
 
@@ -183,7 +180,7 @@ const CalendarStylesWrapper = styled('div')`
     color: ${p => p.theme.tokens.content.primary};
     font-weight: ${p => p.theme.font.weight.sans.regular};
     font-size: ${p => p.theme.font.size.lg};
-    padding: ${space(0.25)} ${space(1)};
+    padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   }
 
   .rdrMonthsVertical {
@@ -216,7 +213,7 @@ const CalendarStylesWrapper = styled('div')`
       position: absolute;
       inset: 0;
       border-radius: ${p => p.theme.radius.md};
-      background: ${p => p.theme.tokens.content.primary};
+      background: ${p => p.theme.tokens.background.primary};
       opacity: 0.08;
       z-index: -1;
     }
@@ -236,12 +233,12 @@ const CalendarStylesWrapper = styled('div')`
   }
 
   .rdrPprevButton i {
-    border-right-color: ${p => p.theme.tokens.content.primary};
+    border-right-color: ${p => p.theme.tokens.border.primary};
     margin: 0;
   }
 
   .rdrNextButton i {
-    border-left-color: ${p => p.theme.tokens.content.primary};
+    border-left-color: ${p => p.theme.tokens.border.primary};
     margin: 0;
   }
 
@@ -249,5 +246,3 @@ const CalendarStylesWrapper = styled('div')`
     visibility: hidden;
   }
 `;
-
-export default CalendarStylesWrapper;

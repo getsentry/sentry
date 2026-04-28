@@ -122,9 +122,9 @@ def handle_ignored(
                 state["users_seen"] = group.count_users_seen(
                     referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_IGNORED.value
                 )
-            GroupSnooze.objects.create_or_update(
+            GroupSnooze.objects.update_or_create(
                 group=group,
-                values={
+                defaults={
                     "until": ignore_until,
                     "count": ignore_count,
                     "window": ignore_window,
@@ -138,6 +138,7 @@ def handle_ignored(
             Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
                 substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
+            serialized_user = None
             with in_test_hide_transaction_boundary():
                 if acting_user:
                     serialized_user = user_service.serialize_many(

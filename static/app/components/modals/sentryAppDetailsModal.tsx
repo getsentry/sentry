@@ -1,27 +1,29 @@
 import {Fragment, useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
+import {SentryAppAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import Access from 'sentry/components/acl/access';
-import CircleIndicator from 'sentry/components/circleIndicator';
-import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Button} from 'sentry/components/core/button';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Access} from 'sentry/components/acl/access';
+import {CircleIndicator} from 'sentry/components/circleIndicator';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {toPermissions} from 'sentry/utils/consolidatedScopes';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSpecialPermissions, toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
-import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
@@ -33,7 +35,8 @@ type Props = {
 };
 
 // No longer a modal anymore but yea :)
-export default function SentryAppDetailsModal(props: Props) {
+export function SentryAppDetailsModal(props: Props) {
+  const theme = useTheme();
   const {closeModal, organization, sentryApp, isInstalled, onInstall} = props;
 
   useEffect(() => {
@@ -59,9 +62,16 @@ export default function SentryAppDetailsModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${sentryApp.slug}/features/`], {
-    staleTime: 0,
-  });
+  } = useApiQuery<IntegrationFeature[]>(
+    [
+      getApiUrl('/sentry-apps/$sentryAppIdOrSlug/features/', {
+        path: {sentryAppIdOrSlug: sentryApp.slug},
+      }),
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   const installMutation = useMutation({
     mutationFn: onInstall,
@@ -92,12 +102,14 @@ export default function SentryAppDetailsModal(props: Props) {
   };
 
   const permissions = toPermissions(sentryApp.scopes);
+  const specialPermissions = getSpecialPermissions(sentryApp.scopes);
+  const hasStandardPermissions =
+    permissions.read.length > 0 ||
+    permissions.write.length > 0 ||
+    permissions.admin.length > 0;
 
   const renderPermissions = () => {
-    if (
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
-    ) {
+    if (!hasStandardPermissions && specialPermissions.length === 0) {
       return null;
     }
 
@@ -138,6 +150,17 @@ export default function SentryAppDetailsModal(props: Props) {
             </Text>
           </Flex>
         )}
+        {specialPermissions.map(permission => (
+          <Flex key={permission.scope}>
+            <Indicator />
+            <Text>
+              {tct('[label]: [summary]', {
+                label: <strong>{permission.label}</strong>,
+                summary: permission.summary,
+              })}
+            </Text>
+          </Flex>
+        ))}
       </Fragment>
     );
   };
@@ -186,7 +209,7 @@ export default function SentryAppDetailsModal(props: Props) {
                         priority="primary"
                         disabled={isInstalled || disabled}
                         onClick={() => installMutation.mutate()}
-                        style={{marginLeft: space(1)}}
+                        style={{marginLeft: theme.space.md}}
                         data-test-id="install"
                       >
                         {t('Accept & Install')}
@@ -206,9 +229,9 @@ export default function SentryAppDetailsModal(props: Props) {
 const Heading = styled('div')`
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const Name = styled('div')`
@@ -217,7 +240,7 @@ const Name = styled('div')`
 `;
 
 const Description = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   white-space: pre-wrap;
 `;
 
@@ -253,7 +276,7 @@ const Footer = styled('div')`
 `;
 
 const Title = styled('p')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -263,9 +286,9 @@ const Indicator = styled((p: any) => <CircleIndicator size={7} {...p} />)`
 `;
 
 const Features = styled('div')`
-  margin: -${space(0.5)};
+  margin: -${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;

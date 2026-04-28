@@ -1,4 +1,4 @@
-import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
 import type {RouteWithName} from './types';
 
 describe('findFirstRouteWithoutRouteParam', () => {

@@ -1,4 +1,5 @@
-import type {TextProps} from 'sentry/components/core/text';
+import type {TextProps} from '@sentry/scraps/text';
+
 import type {Actor, ObjectStatus} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 
@@ -166,7 +167,7 @@ export interface CheckIn {
    */
   environment: string;
   /**
-   * What was the monitors nextCheckIn value when this check-in occured, this
+   * What was the monitors nextCheckIn value when this check-in occurred, this
    * is when we expected the check-in to happen. May be null for the very first check-in.
    */
   expectedTime: string | null;

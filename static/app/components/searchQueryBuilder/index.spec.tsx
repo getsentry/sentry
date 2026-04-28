@@ -1,7 +1,6 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
-import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
+import {mutationOptions} from '@tanstack/react-query';
 
 import {
   act,
@@ -35,7 +34,7 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import {fetchMutation, mutationOptions} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
 const FILTER_KEYS: TagCollection = {
@@ -424,9 +423,7 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter key menu', () => {
     it('breaks keys into sections', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
 
       // Should show tab button for each section
@@ -787,9 +784,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('logic category', () => {
       it('renders conditional and parenthetical filters', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        });
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
         // Should show conditionals button
@@ -899,48 +894,27 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic ops', () => {
-      describe('flag disabled', () => {
-        it('can remove logic ops by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+      it('can remove logic selector by clicking the delete button', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+        expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Remove logic operator: OR'})
+        );
 
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
+        expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
       });
 
-      describe('flag enabled', () => {
-        it('can remove logic selector by clicking the delete button', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
+      it('can select a different logic operator', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
 
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Remove logic operator: OR'})
-          );
+        expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit logic operator: OR'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: 'AND'}));
 
-          expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
-        });
-
-        it('can select a different logic operator', async () => {
-          render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />, {
-            organization: {
-              features: ['search-query-builder-add-boolean-operator-select'],
-            },
-          });
-
-          expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
-          await userEvent.click(
-            screen.getByRole('button', {name: 'Edit logic operator: OR'})
-          );
-          await userEvent.click(screen.getByRole('option', {name: 'AND'}));
-
-          expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
-        });
+        expect(screen.getByRole('row', {name: 'AND'})).toBeInTheDocument();
       });
     });
 
@@ -1095,9 +1069,7 @@ describe('SearchQueryBuilder', () => {
 
     it('can add a new token by clicking a key suggestion', async () => {
       const mockOnChange = jest.fn();
-      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} onChange={mockOnChange} />);
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
@@ -1109,26 +1081,42 @@ describe('SearchQueryBuilder', () => {
       // onChange should not be called until exiting edit mode
       expect(mockOnChange).not.toHaveBeenCalled();
 
-      // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'contains'});
-      expect(operatorOption).toHaveFocus();
-      await userEvent.click(operatorOption);
-
       await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
 
-      // New token should have a value
+      // New token should have a value, and selecting from dropdown switches operator to "is"
       expect(
         screen.getByRole('row', {
-          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+          name: 'browser.name:Firefox',
         })
       ).toBeInTheDocument();
 
       // Now we call onChange
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith(
-        `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        'browser.name:Firefox',
         expect.anything()
       );
+    });
+
+    it('does not switch operator to "is" when filter already has a value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery={`browser.name:${WildcardOperators.CONTAINS}firefox`}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+      // Operator should remain "contains" since there was already a value
+      expect(
+        await screen.findByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}[firefox,Chrome]`,
+        })
+      ).toBeInTheDocument();
     });
 
     it('can add free text by typing', async () => {
@@ -1147,9 +1135,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('can add a filter after some free text', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(getLastInput());
 
@@ -1160,11 +1146,6 @@ describe('SearchQueryBuilder', () => {
       await userEvent.type(screen.getByRole('combobox'), 'some free text brow');
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
       jest.restoreAllMocks();
-
-      // Should have focus on the operator option
-      const operatorOption = await screen.findByRole('option', {name: 'contains'});
-      expect(operatorOption).toHaveFocus();
-      await userEvent.click(operatorOption);
 
       // Filter value should have focus
       expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
@@ -1249,9 +1230,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('converts text to filter when typing <filter>:', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
       await userEvent.type(
@@ -1281,21 +1260,19 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('selects [Filtered] from dropdown', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {features: ['search-query-builder-input-flow-changes']},
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
 
       await userEvent.type(
         screen.getByRole('combobox', {name: 'Add a search term'}),
         'message:'
       );
-      await userEvent.keyboard('{enter}');
       await userEvent.click(screen.getByRole('option', {name: '[Filtered]'}));
 
+      // Selecting from dropdown switches operator from contains to "is"
       expect(
         await screen.findByRole('row', {
-          name: `message:${WildcardOperators.CONTAINS}"[Filtered]"`,
+          name: 'message:"[Filtered]"',
         })
       ).toBeInTheDocument();
     });
@@ -1348,11 +1325,7 @@ describe('SearchQueryBuilder', () => {
 
     describe('logic items', () => {
       it('will suggest logic items when typing its value', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />, {
-          organization: {
-            features: ['search-query-builder-conditionals-combobox-menus'],
-          },
-        });
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
 
         await userEvent.type(getLastInput(), 'and');
@@ -2172,6 +2145,31 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('unescapes asterisks before fetching tag value suggestions', async () => {
+      const mockGetTagValues = jest.fn().mockResolvedValue([]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+      await userEvent.type(screen.getByRole('combobox'), '\\*\\*\\*\\*');
+
+      await waitFor(() => {
+        expect(mockGetTagValues).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tag: expect.objectContaining({key: 'custom_tag_name'}),
+            searchQuery: '****',
+          })
+        );
+      });
+    });
+
     it('sets the value as not selected when no comma is present', async () => {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
@@ -2236,6 +2234,259 @@ describe('SearchQueryBuilder', () => {
         'browser.name:[Firefox,*random*Value*]',
         expect.anything()
       );
+    });
+
+    it('escapes literal asterisks when adding a dropdown value', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [FieldKey.BROWSER_NAME]: {
+              ...FILTER_KEYS[FieldKey.BROWSER_NAME]!,
+              values: [
+                ...((FILTER_KEYS[FieldKey.BROWSER_NAME]?.values as
+                  | string[]
+                  | undefined) ?? []),
+                'test*',
+              ],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.type(screen.getByRole('combobox'), 'test');
+      await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,test\\*]',
+          expect.anything()
+        );
+      });
+    });
+
+    it('escapes literal asterisks when selecting a single-value dropdown option', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            [FieldKey.IS]: {
+              ...FILTER_KEYS[FieldKey.IS]!,
+              values: [
+                ...((FILTER_KEYS[FieldKey.IS]?.values as string[] | undefined) ?? []),
+                'test*',
+              ],
+            },
+          }}
+          onChange={mockOnChange}
+          initialQuery="is:unresolved"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: is'})
+      );
+      await userEvent.type(screen.getByRole('combobox'), 'test');
+      await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith('is:test\\*', expect.anything());
+      });
+    });
+
+    describe('asterisk escape policy', () => {
+      it('preserves a manually-typed wildcard', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a manually-typed escaped asterisk', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo\\*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:foo\\*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves each form in a mixed multi-value list', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard('foo*,bar\\*{enter}');
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[foo*,bar\\*]',
+            expect.anything()
+          );
+        });
+      });
+
+      it('escapes a predefined dropdown value without touching an existing manual wildcard', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            filterKeys={{
+              ...defaultProps.filterKeys,
+              [FieldKey.BROWSER_NAME]: {
+                ...FILTER_KEYS[FieldKey.BROWSER_NAME]!,
+                values: [
+                  ...((FILTER_KEYS[FieldKey.BROWSER_NAME]?.values as
+                    | string[]
+                    | undefined) ?? []),
+                  'test*',
+                ],
+              },
+            }}
+            onChange={mockOnChange}
+            initialQuery="browser.name:foo*"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.type(screen.getByRole('combobox'), 'test');
+        await userEvent.click(screen.getByRole('option', {name: 'test*'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[foo*,test\\*]',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a manual wildcard when deselecting a neighbor via row click', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:[test*,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:test*',
+            expect.anything()
+          );
+        });
+      });
+
+      it('preserves a manual wildcard when deselecting a neighbor via checkbox', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[test*,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:test*'})
+        ).toBeInTheDocument();
+      });
+
+      it('preserves both wildcard and literal forms when deselecting a neighbor', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery={'browser.name:[foo*,bar\\*,Chrome]'}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:[foo*,bar\\*]',
+            expect.anything()
+          );
+        });
+      });
+
+      it('renders escaped asterisks as a bare asterisk in the filter chip', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery={'browser.name:foo\\*'} />
+        );
+
+        expect(
+          await within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).findByText('foo*')
+        ).toBeInTheDocument();
+      });
     });
   });
 
@@ -2669,6 +2920,204 @@ describe('SearchQueryBuilder', () => {
         expect(within(valueButton).getAllByText('or')).toHaveLength(2);
       });
 
+      it('renders and between negated multi-value filters', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="!browser.name:[one,two,three]"
+          />
+        );
+
+        const valueButton = await screen.findByRole('button', {
+          name: 'Edit value for filter: browser.name',
+        });
+        expect(within(valueButton).getByText('one')).toBeInTheDocument();
+        expect(within(valueButton).getByText('two')).toBeInTheDocument();
+        expect(within(valueButton).getByText('three')).toBeInTheDocument();
+        expect(within(valueButton).getAllByText('and')).toHaveLength(2);
+        expect(within(valueButton).queryByText('or')).not.toBeInTheDocument();
+      });
+
+      it('moves selected values to the top when opening a predefined multi-select', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Firefox,Chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          within(await screen.findByRole('listbox'))
+            .getAllByRole('option')
+            .map(option => option.textContent)
+        ).toEqual(['Firefox', 'Chrome', 'Safari', 'Edge']);
+      });
+
+      it('does not reorder items when toggling a selection', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        // Toggle Chrome on via checkbox
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        // Wait for the value to be committed
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+
+        // Options should remain in the same order
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('does not reset frozen order when predefined sections rebuild', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="assigned:[person1@sentry.io,me]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle person1@sentry.io'})
+        );
+
+        expect(await screen.findByRole('row', {name: 'assigned:me'})).toBeInTheDocument();
+
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
+      it('sorts value suggestions by fuzzy match relevance', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        // "e" matches Chrome, Firefox, and Edge, but Edge should rank
+        // highest as a prefix match
+        await userEvent.keyboard('e');
+
+        const options = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Chrome'));
+        expect(options.indexOf('Edge')).toBeLessThan(options.indexOf('Firefox'));
+      });
+
+      it('recomputes the initial ordering when reopened with new suggestion values', async () => {
+        const {rerender} = render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          within(await screen.findByRole('listbox'))
+            .getAllByRole('option')
+            .map(option => option.textContent)
+        ).toEqual(['Firefox', 'Chrome', 'Safari', 'Edge']);
+
+        await userEvent.click(document.body);
+
+        const updatedFilterKeys: ComponentProps<typeof SearchQueryBuilder>['filterKeys'] =
+          {
+            ...defaultProps.filterKeys,
+            [FieldKey.BROWSER_NAME]: {
+              ...defaultProps.filterKeys[FieldKey.BROWSER_NAME]!,
+              values: ['Safari', 'Opera', 'Firefox', 'Chrome'],
+            },
+          };
+
+        rerender(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:Firefox"
+            filterKeys={updatedFilterKeys}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        expect(
+          within(await screen.findByRole('listbox'))
+            .getAllByRole('option')
+            .map(option => option.textContent)
+        ).toEqual(['Firefox', 'Safari', 'Opera', 'Chrome']);
+      });
+
+      it('does not reorder items when deselecting a value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Chrome,Firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const listbox = await screen.findByRole('listbox');
+        const initialOptions = within(listbox)
+          .getAllByRole('option')
+          .map(option => option.textContent);
+
+        // Deselect Chrome via checkbox
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle Chrome'})
+        );
+
+        // Wait for the value to be committed
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:Firefox'})
+        ).toBeInTheDocument();
+
+        // Options should remain in the same order
+        const optionsAfterToggle = within(screen.getByRole('listbox'))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+        expect(optionsAfterToggle).toEqual(initialOptions);
+      });
+
       it.each([
         ['spaces', 'a b', '"a b"'],
         ['quotes', 'a"b', '"a\\"b"'],
@@ -2861,6 +3310,16 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>42" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('42');
+      });
+
       it('keeps previous value when confirming empty value', async () => {
         const mockOnChange = jest.fn();
         render(
@@ -2891,12 +3350,15 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
         );
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'timesSeen:>100'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}7k{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7k{Enter}');
 
         // Should accept "7k" as a valid value
         expect(
@@ -2948,6 +3410,16 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>50ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: duration'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('50ms');
+      });
+
       it('duration filters have the correct operator options', async () => {
         render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
         await userEvent.click(
@@ -2968,13 +3440,12 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: duration'})
         );
 
-        // Default suggestions
+        // When input is pre-filled with value, it shows as a suggestion
         expect(await screen.findByRole('option', {name: '100ms'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '100s'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '100m'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '100h'})).toBeInTheDocument();
 
         // Entering a number will show unit suggestions for that value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7');
         expect(await screen.findByRole('option', {name: '7ms'})).toBeInTheDocument();
         expect(screen.getByRole('option', {name: '7s'})).toBeInTheDocument();
@@ -3001,12 +3472,15 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: duration'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'duration:>100ms'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}7m{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7m{Enter}');
 
         // Should accept "7m" as a valid value
         expect(
@@ -3020,6 +3494,8 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: duration'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7{Enter}');
 
         // Should accept "7" and add "ms" as the default unit
@@ -3079,10 +3555,20 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
-        // Should start with the > operator and a value of 10ms
+        // Should start with the > operator and a value of 10bytes
         expect(
           await screen.findByRole('row', {name: 'size:>10bytes'})
         ).toBeInTheDocument();
+      });
+
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...sizeProps} initialQuery="size:>50kib" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: size'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('50kib');
       });
 
       it('size filters have the correct operator options', async () => {
@@ -3105,13 +3591,12 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: size'})
         );
 
-        // Default suggestions
-        expect(await screen.findByRole('option', {name: '10bytes'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '10kib'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '10mib'})).toBeInTheDocument();
-        expect(screen.getByRole('option', {name: '10gib'})).toBeInTheDocument();
+        // Default suggestions - based on numeric portion of current value (100)
+        expect(await screen.findByRole('option', {name: '100bytes'})).toBeInTheDocument();
 
         // Entering a number will show unit suggestions for that value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7');
         expect(await screen.findByRole('option', {name: '7bytes'})).toBeInTheDocument();
         expect(screen.getByRole('option', {name: '7kib'})).toBeInTheDocument();
@@ -3138,12 +3623,15 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: size'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'size:>10bytes'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}7kib{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7kib{Enter}');
 
         // Should accept "7kib" as a valid value
         expect(await screen.findByRole('row', {name: 'size:>7kib'})).toBeInTheDocument();
@@ -3155,6 +3643,8 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: size'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('7{Enter}');
 
         // Should accept "7" and add "bytes" as the default unit
@@ -3218,6 +3708,16 @@ describe('SearchQueryBuilder', () => {
         expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
       });
 
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.25" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: rate'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('0.25');
+      });
+
       it('percentage filters have the correct operator options', async () => {
         render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.5" />);
         await userEvent.click(
@@ -3249,12 +3749,15 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: rate'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('a{Enter}');
 
         // Should have the same value because "a" is not a numeric value
         expect(screen.getByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
 
-        await userEvent.keyboard('{Backspace}0.2{Enter}');
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('0.2{Enter}');
 
         // Should accept "0.2" as a valid value
         expect(await screen.findByRole('row', {name: 'rate:>0.2'})).toBeInTheDocument();
@@ -3266,6 +3769,8 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: rate'})
         );
 
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
         await userEvent.keyboard('70%{Enter}');
 
         // 70% should be accepted and converted to 0.7
@@ -3293,6 +3798,91 @@ describe('SearchQueryBuilder', () => {
         // Should have the same value
         expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
         expect(mockOnChange).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('currency', () => {
+      const currencyFilterKeys: TagCollection = {
+        cost: {
+          key: 'cost',
+          name: 'cost',
+        },
+      };
+
+      const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
+        valueType: FieldValueType.CURRENCY,
+        kind: FieldKind.FIELD,
+      });
+
+      const currencyProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: currencyFilterKeys,
+        filterKeySections: [],
+        fieldDefinitionGetter,
+      };
+
+      it('new currency filters start with greater than operator and default value', async () => {
+        render(<SearchQueryBuilder {...currencyProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'cost'}));
+
+        // Should start with the > operator and a value of 100
+        expect(await screen.findByRole('row', {name: 'cost:>100'})).toBeInTheDocument();
+      });
+
+      it('pre-fills input with current value when editing', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>42" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('42');
+      });
+
+      it('currency filters have the correct operator options', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: cost'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '>='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '<='})).toBeInTheDocument();
+      });
+
+      it('currency filters can change operator', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: cost'})
+        );
+
+        await userEvent.click(await screen.findByRole('option', {name: '<='}));
+
+        expect(await screen.findByRole('row', {name: 'cost:<=100'})).toBeInTheDocument();
+      });
+
+      it('currency filters do not allow invalid values', async () => {
+        render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: cost'})
+        );
+
+        const combobox = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'cost:>100'})).toBeInTheDocument();
+
+        await userEvent.clear(combobox);
+        await userEvent.keyboard('7k{Enter}');
+
+        // Should accept "7k" as a valid value
+        expect(await screen.findByRole('row', {name: 'cost:>7k'})).toBeInTheDocument();
       });
     });
 
@@ -3866,36 +4456,24 @@ describe('SearchQueryBuilder', () => {
       });
 
       it('focuses on the filter value when user selects an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
-          organization: {features: ['search-query-builder-input-flow-changes']},
-        });
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count');
         await userEvent.click(screen.getByRole('option', {name: 'count()'}));
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
-        const gtOption = screen.getByRole('option', {name: '>'});
-        expect(gtOption).toHaveFocus();
-        await userEvent.click(gtOption);
-
-        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+        expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
 
       it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async () => {
-        render(<SearchQueryBuilder {...aggregateDefaultProps} />, {
-          organization: {features: ['search-query-builder-input-flow-changes']},
-        });
+        render(<SearchQueryBuilder {...aggregateDefaultProps} />);
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count(');
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
-        const gtOption = screen.getByRole('option', {name: '>'});
-        expect(gtOption).toHaveFocus();
-        await userEvent.click(gtOption);
-
-        expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+        expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
 
       it('focuses on the filter value after only argument is specified', async () => {
@@ -4013,9 +4591,7 @@ describe('SearchQueryBuilder', () => {
           initialQuery="span.op:test"
           disallowLogicalOperators
         />,
-        {
-          organization: {features: ['search-query-builder-conditionals-combobox-menus']},
-        }
+        {}
       );
 
       await userEvent.click(getLastInput());
@@ -4554,7 +5130,7 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test\\*');
+      expect(options[0]).toHaveTextContent('span.description contains test*');
       expect(options[1]).toHaveTextContent('span.description is test*');
     });
 
@@ -4620,7 +5196,7 @@ describe('SearchQueryBuilder', () => {
 
         expect(
           screen.getByRole('row', {
-            name: `span.description:*random*value*`,
+            name: 'span.description:*random*value*',
           })
         ).toBeInTheDocument();
       });
@@ -4712,7 +5288,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('randomValue');
         await userEvent.click(document.body);
 
-        expect(screen.getByRole('row', {name: `randomValue`})).toBeInTheDocument();
+        expect(screen.getByRole('row', {name: 'randomValue'})).toBeInTheDocument();
         expect(getLastInput()).toHaveFocus();
       });
     });
@@ -4811,16 +5387,6 @@ describe('SearchQueryBuilder', () => {
 
   describe('ask seer', () => {
     it('renders ask seer button when user has given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: true,
-            userHasAcknowledged: true,
-          },
-        }),
-      });
-
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
           features: ['gen-ai-features'],
@@ -4835,86 +5401,11 @@ describe('SearchQueryBuilder', () => {
       expect(askSeer).toBeInTheDocument();
     });
 
-    it('renders enable ai button when user has not given consent', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({
-          setupAcknowledgement: {
-            orgHasAcknowledged: false,
-            userHasAcknowledged: false,
-          },
-        }),
-      });
-
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
-
-      await userEvent.click(getLastInput());
-
-      const enableAi = await screen.findByText(/Enable Gen AI/);
-      expect(enableAi).toBeInTheDocument();
-    });
-
-    describe('user clicks on enable gen ai button', () => {
-      it('calls promptsUpdate', async () => {
-        const organization = OrganizationFixture({
-          slug: 'org-slug',
-          features: ['gen-ai-features'],
-        });
-        const promptsUpdateMock = MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/prompts-activity/`,
-          method: 'PUT',
-        });
-        MockApiClient.addMockResponse({
-          url: `/organizations/${organization.slug}/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: false,
-              userHasAcknowledged: false,
-            },
-          }),
-        });
-
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {organization});
-
-        await userEvent.click(getLastInput());
-
-        const enableAi = await screen.findByRole('option', {name: /Enable Gen AI/});
-        expect(enableAi).toBeInTheDocument();
-
-        await userEvent.hover(enableAi);
-        await userEvent.keyboard('{enter}');
-
-        await waitFor(() => {
-          expect(promptsUpdateMock).toHaveBeenCalledWith(
-            expect.any(String),
-            expect.objectContaining({
-              data: {
-                feature: 'seer_autofix_setup_acknowledged',
-                organization_id: organization.id,
-                project_id: undefined,
-                status: 'dismissed',
-              },
-            })
-          );
-        });
-      });
-    });
-
     describe('user clicks on ask seer button', () => {
       it('renders the seer combobox', async () => {
         MockApiClient.addMockResponse({
-          url: `/organizations/org-slug/prompts-activity/`,
+          url: '/organizations/org-slug/prompts-activity/',
           method: 'PUT',
-        });
-        MockApiClient.addMockResponse({
-          url: `/organizations/org-slug/seer/setup-check/`,
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
-          }),
         });
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/recent-searches/',
@@ -4947,7 +5438,6 @@ describe('SearchQueryBuilder', () => {
             <AskSeerComboBox
               initialQuery={query}
               analyticsSource="test"
-              feedbackSource="test"
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
                 mutationFn: async (_value: string) => {
@@ -4963,7 +5453,7 @@ describe('SearchQueryBuilder', () => {
                     status: string;
                     unsupported_reason: string | null;
                   }>({
-                    url: `/organizations/org-slug/trace-explorer-ai/query/`,
+                    url: '/organizations/org-slug/trace-explorer-ai/query/',
                     method: 'POST',
                     data: {},
                   });
@@ -5048,16 +5538,6 @@ describe('SearchQueryBuilder', () => {
     describe('free text', () => {
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
-
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
@@ -5079,21 +5559,12 @@ describe('SearchQueryBuilder', () => {
     describe('consent flow changes enabled', () => {
       it('renders tooltip', async () => {
         const mockOnSearch = jest.fn();
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/seer/setup-check/',
-          body: AutofixSetupFixture({
-            setupAcknowledgement: {
-              orgHasAcknowledged: true,
-              userHasAcknowledged: true,
-            },
-          }),
-        });
 
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
           {
             organization: {
-              features: ['gen-ai-features', 'gen-ai-consent-flow-removal'],
+              features: ['gen-ai-features'],
             },
           }
         );
@@ -5646,6 +6117,97 @@ describe('SearchQueryBuilder', () => {
 
           expect(mockOnChange).toHaveBeenCalledTimes(1);
         });
+      });
+    });
+  });
+
+  describe('async filter keys (getTagKeys)', () => {
+    const asyncTags = [
+      {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
+      {key: 'async_tag_two', name: 'Async Tag Two', kind: FieldKind.TAG},
+    ];
+
+    it('displays async keys in the filter key dropdown', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'async_tag_two'})).toBeInTheDocument();
+    });
+
+    it('deduplicates async keys that overlap with static keys', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: FieldKey.BROWSER_NAME, name: 'Browser Name', kind: FieldKind.FIELD},
+        {key: 'novel_async_key', name: 'Novel Async Key', kind: FieldKind.TAG},
+      ]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('brow');
+
+      // browser.name should appear only once despite being in both static and async keys
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'browser.name'})).toHaveLength(1);
+      });
+    });
+
+    it('can select an async-only key to create a filter token', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('async');
+
+      await userEvent.click(await screen.findByRole('option', {name: 'async_tag_one'}));
+
+      expect(await screen.findByRole('row', {name: /async_tag_one/})).toBeInTheDocument();
+    });
+
+    it('shows async keys when editing an existing filter key', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue(asyncTags);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagKeys={mockGetTagKeys}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
+      await userEvent.clear(input);
+      await userEvent.type(input, 'async');
+
+      expect(
+        await screen.findByRole('option', {name: 'async_tag_one'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'async_tag_two'})).toBeInTheDocument();
+    });
+
+    it('calls getTagKeys with the current search input', async () => {
+      const mockGetTagKeys = jest.fn().mockResolvedValue([]);
+      render(<SearchQueryBuilder {...defaultProps} getTagKeys={mockGetTagKeys} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('some_query');
+
+      await waitFor(() => {
+        expect(mockGetTagKeys).toHaveBeenCalledWith('some_query');
       });
     });
   });

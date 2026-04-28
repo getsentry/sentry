@@ -42,7 +42,7 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.client_config import get_client_config
-from sentry.web.frontend.base import BaseView, control_silo_view, region_silo_view
+from sentry.web.frontend.base import BaseView, cell_silo_view, control_silo_view
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.integrations.messaging.linkage")
@@ -328,7 +328,7 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
         return None
 
 
-@region_silo_view
+@cell_silo_view
 class TeamLinkageView(LinkageView, ABC):
     _ALLOWED_ROLES = frozenset(["admin", "manager", "owner"])
 

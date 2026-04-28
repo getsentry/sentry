@@ -1,0 +1,1404 @@
+/**
+ * To get started with this ESLint Configuration list be sure to read at least
+ * these sections of the docs:
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
+ *
+ * This is your friend:
+ * `npx eslint --inspect-config`
+ */
+
+/**
+ * Import Linting Strategy
+ *
+ * This configuration uses two complementary approaches for linting imports:
+ *
+ * 1. `no-restricted-imports` - Applied to 3rd party dependencies
+ *    - Controls which external packages can be imported
+ *    - Enforces consistent usage of third-party libraries across the codebase
+ *    - Examples: restricting @testing-library/react, lodash, marked, etc.
+ *
+ * 2. `plugin/boundaries` - Applied to local module scopes
+ *    - Enforces architectural boundaries between different parts of the codebase
+ *    - Controls which internal modules can import from each other
+ *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
+ */
+import * as emotion from '@emotion/eslint-plugin';
+import eslint from '@eslint/js';
+import pluginQuery from '@tanstack/eslint-plugin-query';
+import prettier from 'eslint-config-prettier';
+import boundaries from 'eslint-plugin-boundaries';
+import importPlugin from 'eslint-plugin-import';
+import jest from 'eslint-plugin-jest';
+import jestDom from 'eslint-plugin-jest-dom';
+import * as mdx from 'eslint-plugin-mdx';
+import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactYouMightNotNeedAnEffect from 'eslint-plugin-react-you-might-not-need-an-effect';
+import regexp from 'eslint-plugin-regexp';
+import testingLibrary from 'eslint-plugin-testing-library';
+// @ts-expect-error TS (7016): Could not find a declaration file
+import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import unicorn from 'eslint-plugin-unicorn';
+import {globalIgnores} from 'eslint/config';
+import globals from 'globals';
+import invariant from 'invariant';
+import typescript from 'typescript-eslint';
+
+// eslint-disable-next-line boundaries/dependencies
+import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
+// eslint-disable-next-line boundaries/dependencies
+import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
+
+invariant(react.configs.flat, 'For typescript');
+invariant(react.configs.flat.recommended, 'For typescript');
+invariant(react.configs.flat['jsx-runtime'], 'For typescript');
+
+// Some rules can be enabled/disabled via env vars.
+// This is useful for CI, where we want to run the linter with the most strict
+// and slowest settings, and for pre-commit, where we want to run the linter
+// faster.
+// Some output is provided to help people toggle these settings locally.
+const IS_PRECOMMIT =
+  process.env.SENTRY_PRECOMMIT !== undefined &&
+  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
+const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
+const enableTypeAwareLinting = (function () {
+  // If we ask for something specific, use that.
+  if (process.env.SENTRY_ESLINT_TYPEAWARE !== undefined) {
+    return Boolean(JSON.parse(process.env.SENTRY_ESLINT_TYPEAWARE));
+  }
+
+  // If we're inside a pre-commit hook, defer to whether we're in CI.
+  if (IS_PRECOMMIT) {
+    return IS_CI;
+  }
+
+  // By default, enable type-aware linting.
+  return true;
+})();
+
+// Exclude MDX files from type-aware linting
+// https://github.com/orgs/mdx-js/discussions/2454
+const globMDX = '**/*.mdx';
+
+const CHARTCUTERIE_MESSAGE =
+  'Chartcuterie runs server-side in Node.js. This import is not available.';
+
+const restrictedThemeImportPattern = {
+  group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+  importNames: ['lightTheme', 'darkTheme', 'default'],
+  message:
+    "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+};
+
+const restrictedImportPaths = [
+  {
+    name: '@testing-library/react',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@testing-library/react-hooks',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@testing-library/user-event',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@sentry/browser',
+    message:
+      'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
+  },
+  {
+    name: 'marked',
+    message:
+      "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+  },
+  {
+    name: 'lodash',
+    message:
+      "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
+  },
+  {
+    name: 'lodash/get',
+    message:
+      'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
+  },
+  {
+    name: 'react-router',
+    importNames: ['withRouter'],
+    message:
+      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+  },
+  {
+    name: 'react-select',
+    message: "Use 'sentry/components/forms/controls/reactSelectWrapper' instead.",
+  },
+  {
+    name: 'sentry/utils/withSentryRouter',
+    message:
+      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+  },
+  {
+    name: 'qs',
+    message: 'Please use query-string instead of qs',
+  },
+  {
+    name: 'moment',
+    message: 'Please import moment-timezone instead of moment',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsLineChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+  },
+  {
+    name: 'sentry/views/insights/common/components/insightsAreaChartWidget',
+    message:
+      'Do not use this directly in your view component, see https://sentry.sentry.io/stories/shared/views/dashboards/widgets/timeserieswidget/timeserieswidgetvisualization#deeplinking for more information',
+  },
+  {
+    name: 'color',
+    message:
+      'Only @sentry/scraps is allowed to use color package, please use the values set on the team or reach out to design-engineering for help',
+  },
+  {
+    name: '@figma/code-connect',
+    message:
+      'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
+  },
+  {
+    name: '@tanstack/react-form',
+    message: 'Use @sentry/scraps/form instead',
+  },
+  {
+    name: 'framer-motion',
+    importNames: ['Reorder'],
+    message: "Do not use framer-motion's Reorder. Use @dnd-kit/sortable instead.",
+  },
+];
+
+// Used by both: `languageOptions` & `parserOptions`
+const ecmaVersion = 'latest';
+
+export default typescript.config([
+  {
+    // Main parser & linter options
+    // Rules are defined below and inherit these properties
+    // https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+    name: 'eslint/global/languageOptions',
+    languageOptions: {
+      ecmaVersion,
+      sourceType: 'module',
+      globals: {
+        // TODO(ryan953): globals.browser seems to have a bug with trailing whitespace
+        ...Object.fromEntries(Object.keys(globals.browser).map(k => [k.trim(), false])),
+        ...globals.jest,
+        MockApiClient: true,
+        tick: true,
+      },
+      parser: typescript.parser,
+      parserOptions: {
+        ecmaFeatures: {
+          globalReturn: false,
+        },
+        ecmaVersion,
+
+        // https://typescript-eslint.io/packages/parser/#emitdecoratormetadata
+        emitDecoratorMetadata: undefined,
+
+        // https://typescript-eslint.io/packages/parser/#experimentaldecorators
+        experimentalDecorators: undefined,
+
+        // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
+        jsDocParsingMode: 'none',
+
+        // https://typescript-eslint.io/packages/parser/#project
+        // `projectService` is recommended
+        project: false,
+
+        // https://typescript-eslint.io/packages/parser/#projectservice
+        // Specifies using TypeScript APIs to generate type information for rules.
+        projectService: enableTypeAwareLinting,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    linterOptions: {
+      noInlineConfig: false,
+      reportUnusedDisableDirectives: enableTypeAwareLinting ? 'error' : 'off',
+    },
+    settings: {
+      react: {
+        version: '19.2.0',
+        defaultVersion: '19.2',
+      },
+      'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
+      'import/resolver': {typescript: {}},
+      'import/extensions': ['.js', '.jsx'],
+    },
+  },
+  {
+    name: 'eslint/global/files',
+    // Default file selection
+    // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+    files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
+  },
+  // Global ignores
+  // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
+  globalIgnores([
+    '.devenv/**/*',
+    '.github/**/*',
+    '.mypy_cache/**/*',
+    '.pytest_cache/**/*',
+    '.venv/**/*',
+    '**/*.d.ts',
+    '**/dist/**/*',
+    'tests/**/fixtures/**/*',
+    '!tests/js/**/*',
+    '**/vendor/**/*',
+    'build-utils/**/*',
+    'config/chartcuterie/config.js',
+    'figma.config.json',
+    'fixtures/artifact_bundle/**/*',
+    'fixtures/artifact_bundle_debug_ids/**/*',
+    'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
+    'fixtures/profiles/embedded.js',
+    'jest.config.ts',
+    'jest.config.snapshots.ts',
+    'api-docs/**/*',
+    'src/sentry/static/sentry/js/**/*',
+    'src/sentry/templates/sentry/**/*',
+    'stylelint.config.js',
+    '.artifacts/**/*',
+  ]),
+  /**
+   * Rules are grouped by plugin. If you want to override a specific rule inside
+   * the recommended set, then it's recommended to spread the new rule on top
+   * of the predefined ones.
+   *
+   * For example: if you want to enable a new plugin in the codebase and their
+   * recommended rules (or a new rule that's part of an existing plugin)
+   *
+   * 1. First you'd setup a configuration object for that plugin:
+   *    {
+   *      name: 'my-plugin/recommended',
+   *      extends: [myPlugin.configs.recommended],
+   *    },
+   *
+   * 2. Second you'd override the rule you want to deal with, maybe making it a
+   *    warning to start:
+   *    {
+   *      name: 'my-plugin/recommended',
+   *      extends: [myPlugin.configs.recommended],
+   *      rules: {
+   *        ['a-rule-outside-the-recommended-list']: 'error',
+   *        ['a-recommended-rule']: 'warn',
+   *      }
+   *    },
+   *
+   * 3. Finally, once all warnings are fixed, update from 'warning' to 'error',
+   *    or remove the override and rely on the recommended rules again.
+   */
+  {
+    extends: [eslint.configs.recommended],
+    name: 'eslint/rules',
+    // https://eslint.org/docs/latest/rules/
+    rules: {
+      'array-callback-return': 'error',
+      'block-scoped-var': 'error',
+      eqeqeq: 'error',
+      'guard-for-in': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'multiline-comment-style': ['error', 'separate-lines'],
+      'no-alert': 'error',
+      'no-caller': 'error',
+      'no-console': 'error',
+      'no-else-return': ['error', {allowElseIf: false}],
+      'no-eval': 'error',
+      'no-extend-native': 'error',
+      'no-extra-bind': 'error',
+      'no-floating-decimal': 'error',
+      'no-implied-eval': 'error',
+      'no-inner-declarations': 'error',
+      'no-lone-blocks': 'error',
+      'no-multi-str': 'error',
+      'no-native-reassign': 'error',
+      'no-new-func': 'error',
+      'no-new-wrappers': 'error',
+      'no-new': 'error',
+      'no-octal-escape': 'error',
+      'no-param-reassign': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'no-proto': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [restrictedThemeImportPattern],
+          paths: restrictedImportPaths,
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
+          message:
+            'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
+          message:
+            'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
+        },
+        {
+          // Forces us to use type annotations for let variables that are initialized with a type,
+          // except for those declared in for...of or for...in loops.
+          selector:
+            'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
+          message: 'Provide a type annotation',
+        },
+        {
+          // Disallow IIFEs inside JSX (children, attribute values, and spreads)
+          selector:
+            'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
+          message: 'Do not use IIFEs inside JSX.',
+        },
+        {
+          selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+          message:
+            "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
+        },
+        // Forbid absolute URLs in Link's to=. Use ExternalLink instead.
+        {
+          selector:
+            "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+          message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+        },
+      ],
+      'no-return-assign': 'error',
+      'no-script-url': 'error',
+      'no-self-compare': 'error',
+      'no-sequences': 'error',
+      'object-shorthand': ['error', 'properties'],
+      'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
+      quotes: ['error', 'single', {avoidEscape: true, allowTemplateLiterals: false}],
+      radix: 'error',
+      'spaced-comment': [
+        'error',
+        'always',
+        {
+          line: {markers: ['/'], exceptions: ['-', '+']},
+          block: {exceptions: ['*'], balanced: true},
+        },
+      ],
+      'vars-on-top': 'off',
+      'wrap-iife': ['error', 'any'],
+      yoda: 'error',
+      'no-cond-assign': ['error', 'always'],
+
+      // TODO: Evaluate which rules we could practically fix violations from & enable
+      'no-prototype-builtins': 'off',
+    },
+  },
+  {
+    // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
+    extends: [importPlugin.flatConfigs.recommended],
+    name: 'plugin/import',
+    rules: {
+      'import/no-absolute-path': 'error',
+      'import/no-amd': 'error',
+      'import/no-anonymous-default-export': 'error',
+      'import/no-duplicates': 'error',
+      'import/no-extraneous-dependencies': [
+        'error',
+        {includeTypes: true, devDependencies: ['!eslint.config.ts']},
+      ],
+      'import/no-named-default': 'error',
+      'import/no-nodejs-modules': 'error',
+      'import/no-webpack-loader-syntax': 'error',
+      'import/default': 'off', // Disabled in favor of typescript-eslint
+      'import/named': 'off', // Disabled in favor of typescript-eslint
+      'import/namespace': 'off', // Disabled in favor of typescript-eslint
+      'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
+      'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/@sentry/sentry',
+    plugins: {'@sentry': sentryPlugin},
+    rules: {
+      '@sentry/no-calling-components-as-functions': 'error',
+      '@sentry/no-digits-in-tn': 'error',
+      '@sentry/no-dynamic-translations': 'error',
+      '@sentry/no-flag-comments': 'error',
+      '@sentry/no-query-data-type-parameters': 'error',
+      '@sentry/no-static-translations': 'error',
+      '@sentry/no-styled-shortcut': 'error',
+      '@sentry/no-unnecessary-use-callback': 'error',
+    },
+  },
+  {
+    name: 'plugin/@sentry/scraps',
+    plugins: {'@sentry/scraps': sentryScrapsPlugin},
+    rules: {
+      '@sentry/scraps/no-core-import': 'error',
+      '@sentry/scraps/no-token-import': 'error',
+      '@sentry/scraps/use-semantic-token': [
+        'error',
+        {enabledCategories: ['background', 'border', 'content']},
+      ],
+      '@sentry/scraps/restrict-jsx-slot-children': [
+        'error',
+        {
+          slots: [
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuFooter'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.CTAButton',
+                    'MenuComponents.CTALinkButton',
+                    'MenuComponents.ApplyButton',
+                    'MenuComponents.CancelButton',
+                    'MenuComponents.Alert',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+            {
+              componentNames: ['CompactSelect'],
+              propNames: ['menuHeaderTrailingItems'],
+              allowed: [
+                {
+                  source: '@sentry/scraps/compactSelect',
+                  names: [
+                    'MenuComponents.HeaderButton',
+                    'MenuComponents.ClearButton',
+                    'MenuComponents.ResetButton',
+                  ],
+                },
+                {
+                  source: '@sentry/scraps/layout',
+                  names: ['Flex', 'Stack', 'Grid', 'Container'],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'plugin/no-relative-import-paths',
+    // https://github.com/MelvinVermeer/eslint-plugin-no-relative-import-paths?tab=readme-ov-file#rule-options
+    plugins: {'no-relative-import-paths': noRelativeImportPaths},
+    rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        {
+          prefix: 'sentry',
+          rootDir: 'static/app',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
+    },
+  },
+  {
+    name: 'plugin/tanstack/query',
+    plugins: {
+      '@tanstack/query': pluginQuery,
+    },
+    rules: {
+      ...pluginQuery.configs.recommendedStrict.rules,
+      '@tanstack/query/prefer-query-options': 'off',
+      '@tanstack/query/no-rest-destructuring': 'error',
+      '@tanstack/query/exhaustive-deps': [
+        'error',
+        {allowlist: {variables: ['api'], types: ['Client']}},
+      ],
+    },
+  },
+  {
+    name: 'plugin/react',
+    // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
+    extends: [react.configs.flat.recommended, react.configs.flat['jsx-runtime']],
+    rules: {
+      'react/function-component-definition': 'error',
+      'react/jsx-boolean-value': ['error', 'never'],
+      'react/jsx-fragments': ['error', 'element'],
+      'react/jsx-handler-names': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'react/no-did-mount-set-state': 'error',
+      'react/no-did-update-set-state': 'error',
+      'react/no-redundant-should-component-update': 'error',
+      'react/no-typos': 'error',
+      'react/self-closing-comp': 'error',
+      'react/sort-comp': 'error',
+
+      'react/jsx-curly-brace-presence': [
+        'error',
+        {props: 'never', children: 'ignore', propElementValues: 'always'},
+      ],
+      'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
+      'react/no-unescaped-entities': 'off',
+      'react/no-unknown-property': ['error', {ignore: ['css']}],
+      'react/prop-types': 'off', // TODO(ryan953): Fix violations and delete this line
+    },
+  },
+  {
+    name: 'plugin/react-hooks',
+    // https://github.com/facebook/react/tree/main/packages/eslint-plugin-react-hooks
+    plugins: {'react-hooks': reactHooks},
+    rules: {
+      'react-hooks/exhaustive-deps': [
+        'error',
+        {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+      ],
+      'react-hooks/rules-of-hooks': 'error',
+    },
+  },
+  {
+    extends: enableTypeAwareLinting
+      ? [typescript.configs.strictTypeChecked, typescript.configs.stylisticTypeChecked]
+      : [],
+    name: 'plugin/typescript-eslint/type-aware-linting',
+    ignores: [globMDX],
+    rules: enableTypeAwareLinting
+      ? {
+          // Customization
+          '@sentry/no-default-exports': 'error',
+          '@sentry/no-unnecessary-type-annotation': 'error',
+          '@sentry/no-unnecessary-type-narrowing': 'error',
+          '@typescript-eslint/consistent-type-exports': 'error',
+          '@typescript-eslint/no-implied-eval': 'error',
+          '@typescript-eslint/switch-exhaustiveness-check': [
+            'error',
+            {considerDefaultExhaustiveForUnions: true},
+          ],
+
+          // TODO: Evaluate which rules we could practically fix violations from & enable
+          '@typescript-eslint/no-confusing-void-expression': 'off',
+          '@typescript-eslint/no-deprecated': 'off',
+          '@typescript-eslint/no-floating-promises': 'off',
+          '@typescript-eslint/no-misused-promises': 'off',
+          '@typescript-eslint/no-misused-spread': 'off',
+          '@typescript-eslint/no-mixed-enums': 'off',
+          '@typescript-eslint/no-redundant-type-constituents': 'off',
+          '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
+          '@typescript-eslint/no-unnecessary-condition': 'off',
+          '@typescript-eslint/no-unnecessary-type-arguments': 'off',
+          '@typescript-eslint/no-unnecessary-type-conversion': 'off',
+          '@typescript-eslint/no-unsafe-argument': 'off',
+          '@typescript-eslint/no-unsafe-assignment': 'off',
+          '@typescript-eslint/no-unsafe-call': 'off',
+          '@typescript-eslint/no-unsafe-enum-comparison': 'off',
+          '@typescript-eslint/no-unsafe-member-access': 'off',
+          '@typescript-eslint/no-unsafe-return': 'off',
+          '@typescript-eslint/no-useless-default-assignment': 'off',
+          '@typescript-eslint/non-nullable-type-assertion-style': 'off',
+          '@typescript-eslint/prefer-array-find': 'off',
+          '@typescript-eslint/prefer-array-index-of': 'off',
+          '@typescript-eslint/prefer-find': 'off',
+          '@typescript-eslint/prefer-includes': 'off',
+          '@typescript-eslint/prefer-nullish-coalescing': 'off',
+          '@typescript-eslint/prefer-regexp-exec': 'off',
+          '@typescript-eslint/prefer-string-starts-ends-with': 'off',
+          '@typescript-eslint/restrict-plus-operands': 'off',
+          '@typescript-eslint/restrict-template-expressions': 'off',
+          '@typescript-eslint/unbound-method': 'off',
+          '@typescript-eslint/use-unknown-in-catch-callback-variable': 'off',
+        }
+      : {},
+  },
+  {
+    name: 'files/allowing default exports',
+    files: [
+      '*.config.*',
+      '**/__mocks__/*',
+      'static/app/stories/*-loader.ts',
+      'static/app/chartcuterie/config.tsx',
+      'tests/js/*-transform.*',
+      'tests/js/test-*/*',
+    ],
+    rules: {
+      '@sentry/no-default-exports': 'off',
+    },
+  },
+  {
+    name: 'files/chartcuterie-no-browser-imports',
+    files: ['static/app/chartcuterie/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            restrictedThemeImportPattern,
+            // Chartcuterie runs server-side in Node.js via the chartcuterie
+            // rendering service. Browser-only APIs are not available.
+            {
+              group: ['sentry/utils/use*', 'sentry/stores/*', 'sentry/actionCreators/*'],
+              message: CHARTCUTERIE_MESSAGE,
+            },
+          ],
+          paths: [
+            ...restrictedImportPaths,
+            {name: 'react', message: CHARTCUTERIE_MESSAGE},
+            {name: 'react-dom', message: CHARTCUTERIE_MESSAGE},
+            {name: 'react-dom/client', message: CHARTCUTERIE_MESSAGE},
+            {name: 'react-dom/server', message: CHARTCUTERIE_MESSAGE},
+            {name: '@sentry/react', message: CHARTCUTERIE_MESSAGE},
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'plugin/typescript-eslint/custom',
+    ignores: [globMDX],
+    rules: {
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {selector: 'typeLike', format: ['PascalCase'], leadingUnderscore: 'allow'},
+        {selector: 'enumMember', format: ['UPPER_CASE']},
+      ],
+
+      '@typescript-eslint/no-restricted-types': [
+        'error',
+        {
+          types: {
+            object: {
+              message:
+                'The `object` type is hard to use. Use `Record<PropertyKey, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+              fixWith: 'Record<PropertyKey, unknown>',
+            },
+            Buffer: {
+              message:
+                'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
+              suggest: ['Uint8Array'],
+            },
+            '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
+            '[[]]':
+              "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
+            '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
+          },
+        },
+      ],
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/no-use-before-define': 'off', // Enabling this will cause a lot of thrash to the git history
+      '@typescript-eslint/no-useless-empty-export': 'error',
+    },
+  },
+  {
+    extends: [typescript.configs.strict, typescript.configs.stylistic],
+    name: 'plugin/typescript-eslint/overrides',
+    rules: {
+      // Customization
+      'prefer-spread': 'off',
+      '@typescript-eslint/array-type': ['error', {default: 'array-simple'}],
+      '@typescript-eslint/no-loop-func': 'error',
+      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
+      '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
+      '@typescript-eslint/no-unused-vars':
+        // Favor "noUnusedLocals": true in CI, but enable in pre-commit to catch unused imports without running tsc
+        IS_PRECOMMIT && !IS_CI
+          ? [
+              'error',
+              {
+                vars: 'all',
+                args: 'all',
+                caughtErrors: 'none',
+
+                // Ignore vars that start with an underscore
+                // e.g. if you want to omit a property using object spread:
+                //
+                //   const {name: _name, ...props} = this.props;
+                //
+                varsIgnorePattern: '^_',
+                argsIgnorePattern: '^_',
+                destructuredArrayIgnorePattern: '^_',
+              },
+            ]
+          : 'off',
+      '@typescript-eslint/prefer-enum-initializers': 'error',
+
+      // TODO: Evaluate which rules we could practically fix violations from & enable
+      '@typescript-eslint/class-literal-property-style': 'off',
+      '@typescript-eslint/consistent-type-definitions': 'off',
+      '@typescript-eslint/no-dynamic-delete': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-invalid-void-type': 'off',
+      '@typescript-eslint/no-namespace': 'off',
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-this-alias': 'off',
+      '@typescript-eslint/unified-signatures': 'off',
+    },
+  },
+  {
+    name: 'plugin/typescript-sort-keys',
+    // https://github.com/infctr/eslint-plugin-typescript-sort-keys
+    plugins: {'typescript-sort-keys': typescriptSortKeys},
+    rules: {
+      'typescript-sort-keys/interface': [
+        'error',
+        'asc',
+        {caseSensitive: true, natural: false, requiredFirst: true},
+      ],
+    },
+  },
+  {
+    name: 'plugin/@emotion',
+    // https://github.com/emotion-js/emotion/tree/main/packages/eslint-plugin/docs/rules
+    plugins: {'@emotion': emotion},
+    rules: {
+      '@emotion/no-vanilla': 'error',
+      '@emotion/styled-import': 'error',
+      '@emotion/syntax-preference': ['error', 'string'],
+
+      '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
+      '@emotion/jsx-import': 'off', // Not needed, handled by swc
+      '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
+    },
+  },
+  {
+    name: 'plugin/unicorn',
+    // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
+    extends: [unicorn.configs.unopinionated],
+    rules: {
+      'unicorn/custom-error-definition': 'error',
+
+      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
+
+      // TODO: Evaluate which rules we could practically fix violations from & enable
+      'unicorn/consistent-date-clone': 'off',
+      'unicorn/consistent-existence-index-check': 'off',
+      'unicorn/escape-case': 'off',
+      'unicorn/import-style': 'off',
+      'unicorn/no-array-for-each': 'off',
+      'unicorn/no-array-method-this-argument': 'off',
+      'unicorn/no-array-reverse': 'off',
+      'unicorn/no-array-sort': 'off',
+      'unicorn/no-document-cookie': 'off',
+      'unicorn/no-hex-escape': 'off',
+      'unicorn/no-lonely-if': 'off',
+      'unicorn/no-magic-array-flat-depth': 'off',
+      'unicorn/no-named-default': 'off',
+      'unicorn/no-object-as-default-parameter': 'off',
+      'unicorn/no-process-exit': 'off',
+      'unicorn/no-thenable': 'off',
+      'unicorn/no-unnecessary-array-flat-depth': 'off',
+      'unicorn/no-unnecessary-array-splice-count': 'off',
+      'unicorn/no-unnecessary-slice-end': 'off',
+      'unicorn/no-unreadable-array-destructuring': 'off',
+      'unicorn/no-useless-promise-resolve-reject': 'off',
+      'unicorn/no-useless-spread': 'off',
+      'unicorn/no-useless-switch-case': 'off',
+      'unicorn/numeric-separators-style': 'off',
+      'unicorn/prefer-add-event-listener': 'off',
+      'unicorn/prefer-at': 'off',
+      'unicorn/prefer-bigint-literals': 'off',
+      'unicorn/prefer-class-fields': 'off',
+      'unicorn/prefer-code-point': 'off',
+      'unicorn/prefer-dom-node-append': 'off',
+      'unicorn/prefer-dom-node-dataset': 'off',
+      'unicorn/prefer-dom-node-remove': 'off',
+      'unicorn/prefer-dom-node-text-content': 'off',
+      'unicorn/prefer-global-this': 'off',
+      'unicorn/prefer-math-min-max': 'off',
+      'unicorn/prefer-module': 'off',
+      'unicorn/prefer-number-properties': 'off',
+      'unicorn/prefer-optional-catch-binding': 'off',
+      'unicorn/prefer-set-has': 'off',
+      'unicorn/prefer-single-call': 'off',
+      'unicorn/prefer-string-raw': 'off',
+      'unicorn/prefer-string-replace-all': 'off',
+      'unicorn/prefer-string-slice': 'off',
+      'unicorn/prefer-string-starts-ends-with': 'off',
+      'unicorn/prefer-structured-clone': 'off',
+      'unicorn/prefer-switch': 'off',
+      'unicorn/prefer-ternary': 'off',
+      'unicorn/prefer-top-level-await': 'off',
+      'unicorn/prefer-type-error': 'off',
+      'unicorn/require-array-join-separator': 'off',
+      'unicorn/require-number-to-fixed-digits-argument': 'off',
+      'unicorn/text-encoding-identifier-case': 'off',
+    },
+  },
+  {
+    name: 'plugin/jest',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    // https://github.com/jest-community/eslint-plugin-jest/tree/main/docs/rules
+    extends: [jest.configs['flat/recommended'], jest.configs['flat/style']],
+    rules: {
+      'jest/max-nested-describe': 'error',
+      'jest/no-disabled-tests': 'error', // `recommended` set this to warn, we've upgraded to error
+      'jest/no-duplicate-hooks': 'error',
+      'jest/no-large-snapshots': ['error', {maxSize: 2000}], // We don't recommend snapshots, but if there are any keep it small
+      'jest/no-standalone-expect': [
+        'error',
+        {additionalTestBlockFunctions: ['it.isKnownFlake']},
+      ],
+
+      'jest/expect-expect': 'off', // Disabled as we have many tests which render as simple validations
+      'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
+    },
+  },
+  {
+    name: 'plugin/jest-dom',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    // https://github.com/testing-library/eslint-plugin-jest-dom/tree/main?tab=readme-ov-file#supported-rules
+    extends: [jestDom.configs['flat/recommended']],
+  },
+  {
+    extends: [regexp.configs.recommended],
+    name: 'plugin/regexp',
+    rules: {
+      'prefer-regex-literals': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-misleading-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-obscure-range': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-super-linear-backtracking': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/no-unused-capturing-group': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/optimal-quantifier-concatenation': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/strict': 'off', // TODO(JoshuaKGoldberg): do we want this?
+      'regexp/use-ignore-case': 'off', // TODO(JoshuaKGoldberg): do we want this?
+    },
+  },
+  {
+    name: 'plugin/testing-library',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    // https://github.com/testing-library/eslint-plugin-testing-library/tree/main/docs/rules
+    extends: [testingLibrary.configs['flat/react']],
+    rules: {
+      'testing-library/no-unnecessary-act': 'off',
+      'testing-library/render-result-naming-convention': 'off',
+    },
+  },
+  {
+    // turn off features that conflict with formatter
+    name: 'plugin/prettier',
+    extends: [prettier],
+    rules: {
+      // import sorting is handled by oxfmt
+      'import/order': 'off',
+      'sort-imports': 'off',
+      'import/newline-after-import': 'off',
+      'import/no-duplicates': 'off',
+    },
+  },
+  {
+    name: 'plugin/react-you-might-not-need-an-effect',
+    ...reactYouMightNotNeedAnEffect.configs.recommended,
+    rules: {
+      'react-you-might-not-need-an-effect/no-derived-state': 'error',
+      'react-you-might-not-need-an-effect/no-chain-state-updates': 'off',
+      'react-you-might-not-need-an-effect/no-event-handler': 'off',
+      'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change': 'off',
+      'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'off',
+      'react-you-might-not-need-an-effect/no-initialize-state': 'off',
+      'react-you-might-not-need-an-effect/no-manage-parent': 'off',
+      'react-you-might-not-need-an-effect/no-empty-effect': 'off',
+    },
+  },
+  {
+    name: 'files/*.config.*',
+    files: ['**/*.config.*'],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'files/fixtures',
+    files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
+    rules: {
+      '@sentry/no-calling-components-as-functions': 'off',
+    },
+  },
+  {
+    name: 'eslint',
+    files: ['static/eslint/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      'no-console': 'off',
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'files/scripts',
+    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/index.js'],
+    languageOptions: {
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: {
+      'no-console': 'off',
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'files/jest related',
+    files: [
+      'tests/js/jest-pegjs-transform.js',
+      'tests/js/sentry-test/jest-environment.js',
+      'tests/js/sentry-test/mocks/*',
+      'tests/js/sentry-test/loadFixtures.ts',
+      'tests/js/setup.ts',
+    ],
+    languageOptions: {
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: {
+      'import/no-nodejs-modules': 'off',
+    },
+  },
+  {
+    name: 'files/insights-chart-widgets',
+    files: ['static/app/views/insights/common/components/widgets/*.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow these imports only in the above widgets directory in `files`
+          paths: restrictedImportPaths.filter(
+            ({name}) =>
+              ![
+                'sentry/views/insights/common/components/insightsLineChartWidget',
+                'sentry/views/insights/common/components/insightsAreaChartWidget',
+                'sentry/views/insights/common/components/insightsTimeSeriesWidget',
+              ].includes(name)
+          ),
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/components-core',
+    files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [restrictedThemeImportPattern],
+          // Allow color package only in the components/core directory
+          paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/figma-code-connect',
+    files: ['**/*.figma.{tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // Allow @figma/code-connect only in *.figma.tsx files
+          paths: restrictedImportPaths.filter(({name}) => name !== '@figma/code-connect'),
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/sentry-test',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    rules: {
+      'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in tests
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [restrictedThemeImportPattern],
+          paths: [
+            ...restrictedImportPaths,
+            {
+              name: 'sentry/locale',
+              message: 'Translations are not needed in tests.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/sentry-stories',
+    files: ['**/*.stories.tsx'],
+    rules: {
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+      'no-loss-of-precision': 'off', // Sometimes we have wild numbers hard-coded in stories
+    },
+  },
+  {
+    // We specify rules explicitly for the sdk-loader here so we do not have
+    // eslint ignore comments included in the source file, which is consumed
+    // by users.
+    name: 'files/js-sdk-loader.ts',
+    files: ['**/js-sdk-loader.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    name: 'files/gsApp',
+    files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        {
+          prefix: 'getsentry',
+          rootDir: 'static/gsApp',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/gsAdmin',
+    files: ['static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'error',
+        {
+          prefix: 'admin',
+          rootDir: 'static/gsAdmin',
+          allowSameFolder: true, // TODO(ryan953): followup and investigate `allowSameFolder`, maybe exceptions for *.spec.tsx files?
+        },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            restrictedThemeImportPattern,
+            {
+              group: ['sentry/locale'],
+              message: 'Do not import locale into gsAdmin. No translations required.',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/getsentry-test',
+    files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      // Allow imports from gsApp into getsentry-test fixtures
+      'no-restricted-imports': 'off',
+    },
+  },
+  // MDX Configuration
+  {
+    name: 'files/mdx',
+    files: ['**/*.mdx'],
+    extends: [mdx.flat],
+    rules: {
+      'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
+  },
+  {
+    name: 'plugin/boundaries',
+    plugins: {
+      boundaries,
+    },
+    settings: {
+      // Analyze both static and dynamic imports for boundary checks
+      // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
+      'boundaries/dependency-nodes': ['import', 'dynamic-import'],
+      // order matters here because of nested directories
+      'boundaries/elements': [
+        // --- figma code connect ---
+        {
+          type: 'figma-code-connect',
+          pattern: '**/*.figma.{tsx,jsx}',
+          mode: 'full',
+        },
+        // --- stories ---
+        {
+          type: 'story-files',
+          pattern: ['static/**/*.stories.{ts,tsx}', 'static/**/*.mdx'],
+          mode: 'full',
+        },
+        {
+          type: 'story-book',
+          pattern: ['static/app/stories', '**/__stories__'],
+        },
+        // --- debug tools (e.g. notifications) ---
+        {
+          type: 'debug-tools',
+          pattern: 'static/app/debug',
+        },
+        // --- tests ---
+        {
+          type: 'test-sentry',
+          pattern: [
+            'static/app/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/sentry-test/**/*.*',
+            'static/app/**/*{t,T}estUtils*.{js,mjs,ts,tsx}',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-getsentry',
+          pattern: [
+            'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'tests/js/getsentry-test/**/*.*',
+          ],
+          mode: 'full',
+        },
+        {
+          type: 'test-gsAdmin',
+          pattern: ['static/gsAdmin/**/*.spec.{ts,js,tsx,jsx}'],
+          mode: 'full',
+        },
+        {
+          type: 'test',
+          pattern: 'tests/js',
+        },
+        // --- scraps core components ---
+        {
+          type: 'core',
+          pattern: 'static/app/components/core',
+        },
+        // --- sentry ---
+        {
+          type: 'sentry-images',
+          pattern: 'static/images',
+        },
+        {
+          type: 'sentry-locale',
+          pattern: '(static/app/locale.tsx|src/sentry/locale/**/*.*)',
+          mode: 'full',
+        },
+        {
+          type: 'sentry-logos',
+          pattern: 'src/sentry/static/sentry/images/logos',
+        },
+        {
+          type: 'sentry-fonts',
+          pattern: 'static/fonts',
+        },
+        {
+          type: 'sentry-fixture',
+          pattern: 'tests/js/fixtures',
+        },
+        {
+          type: 'sentry',
+          pattern: 'static/app',
+        },
+        // --- getsentry ---
+        {
+          type: 'getsentry',
+          pattern: 'static/gsApp',
+        },
+        // --- admin ---
+        {
+          type: 'gsAdmin',
+          pattern: 'static/gsAdmin',
+        },
+        // --- configs ---
+        {
+          type: 'configs',
+          pattern: '(package.json|config/**/*.*|*.config.{mjs,js,ts})',
+          mode: 'full',
+        },
+        {
+          type: 'build-utils',
+          pattern: 'build-utils',
+        },
+        {
+          type: 'scripts',
+          pattern: 'scripts',
+        },
+        // --- eslint ---
+        {
+          type: 'eslint',
+          pattern: 'static/eslint',
+        },
+      ],
+    },
+    rules: {
+      ...boundaries.configs.strict.rules,
+      'boundaries/no-ignored': 'off',
+      'boundaries/no-private': 'off',
+      'boundaries/no-unknown': 'off',
+      // Deprecated in v6 in favor of boundaries/dependencies. The strict preset
+      // still enables it, so we turn it off to avoid running both rules.
+      'boundaries/element-types': 'off',
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'disallow',
+          message: '{{from.type}} is not allowed to import {{to.type}}',
+          rules: [
+            // --- figma code connect ---
+            {
+              from: [{type: 'figma-code-connect'}],
+              allow: [{to: {type: 'core*'}}],
+            },
+            {
+              from: [{type: 'sentry*'}],
+              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
+            },
+            {
+              from: [{type: 'getsentry*'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'getsentry*'}},
+                {to: {type: 'sentry*'}},
+              ],
+            },
+            {
+              from: [{type: 'gsAdmin*'}],
+              disallow: [{to: {type: 'sentry-locale'}}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'gsAdmin*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'getsentry*'}},
+              ],
+            },
+            {
+              from: [{type: 'test-sentry'}],
+              allow: [
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+              ],
+            },
+            {
+              // todo does test-gesentry need test-sentry?
+              from: [{type: 'test-getsentry'}],
+              allow: [
+                {to: {type: 'test-getsentry'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'getsentry*'}},
+                {to: {type: 'sentry*'}},
+              ],
+            },
+            {
+              from: [{type: 'test-gsAdmin'}],
+              allow: [
+                {to: {type: 'test-gsAdmin'}},
+                {to: {type: 'test-getsentry'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'test'}},
+                {to: {type: 'core*'}},
+                {to: {type: 'gsAdmin*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'getsentry*'}},
+              ],
+            },
+            {
+              from: [{type: 'test'}],
+              allow: [
+                {to: {type: 'test'}},
+                {to: {type: 'test-sentry'}},
+                {to: {type: 'sentry*'}},
+              ],
+            },
+            {
+              from: [{type: 'configs'}],
+              allow: [{to: {type: 'configs'}}, {to: {type: 'build-utils'}}],
+            },
+            // --- stories ---
+            {
+              from: [{type: 'story-files'}, {type: 'story-book'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'story-book'}},
+              ],
+            },
+            // --- debug tools (e.g. notifications) ---
+            {
+              from: [{type: 'debug-tools'}],
+              allow: [
+                {to: {type: 'core*'}},
+                {to: {type: 'sentry*'}},
+                {to: {type: 'debug-tools'}},
+              ],
+            },
+            // --- core ---
+            // todo: sentry* shouldn't be allowed
+            {
+              from: [{type: 'core'}],
+              allow: [{to: {type: 'core*'}}, {to: {type: 'sentry*'}}],
+            },
+            // --- core entry points (enforce isolation) ---
+            {
+              to: {
+                type: 'core',
+                internalPath:
+                  '!(*.{ts,tsx}|*/index.{ts,tsx}|**/*.png|**/__stories__/*.{ts,tsx})',
+              },
+              disallow: {
+                from: {type: '*'},
+              },
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/core-inspector',
+    files: ['static/app/components/core/inspector.tsx'],
+    rules: {
+      'boundaries/dependencies': 'off',
+    },
+  },
+]);

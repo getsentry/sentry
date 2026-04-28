@@ -941,6 +941,20 @@ describe('getActiveProductTrial', () => {
     expect(replay_pt).toBeNull();
   });
 
+  it('returns null when trial is isStarted but startDate is in the future', () => {
+    const trials: ProductTrial[] = [
+      {
+        category: DataCategory.SPANS,
+        isStarted: true,
+        reasonCode: 4001,
+        startDate: moment().utc().add(5, 'days').format(),
+        endDate: moment().utc().add(35, 'days').format(),
+      },
+    ];
+    const pt = getActiveProductTrial(trials, DataCategory.SPANS);
+    expect(pt).toBeNull();
+  });
+
   it('returns null trial when no trials for category', () => {
     const pt = getProductTrial(TEST_TRIALS, DataCategory.ATTACHMENTS);
     expect(pt).toBeNull();
@@ -1007,7 +1021,7 @@ describe('isNewPayingCustomer', () => {
 });
 
 describe('getOnDemandCategories', () => {
-  const plan = PlanDetailsLookupFixture('am1_business')!;
+  const plan = PlanDetailsLookupFixture('am1_business');
   it('filters out unconfigurable categories for per-category budget mode', () => {
     const categories = getOnDemandCategories({
       plan,
@@ -1032,7 +1046,7 @@ describe('getOnDemandCategories', () => {
 
 describe('getOnDemandCategories - AM2 logBytes support', () => {
   it('does not include logBytes in getOnDemandCategories for AM2 plans in per-category mode', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const plan = PlanDetailsLookupFixture('am2_business');
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.PER_CATEGORY,
@@ -1041,7 +1055,7 @@ describe('getOnDemandCategories - AM2 logBytes support', () => {
   });
 
   it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', () => {
-    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const plan = PlanDetailsLookupFixture('am2_business');
     const categories = getOnDemandCategories({
       plan,
       budgetMode: OnDemandBudgetMode.SHARED,
@@ -1333,6 +1347,96 @@ describe('productIsEnabled', () => {
       onDemandBudget: 1000,
     };
     expect(productIsEnabled(subscription, DataCategory.PROFILE_DURATION)).toBe(true);
+  });
+  it('returns true for gifted-only data categories (reserved=0, free>0)', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+
+    subscription.categories.uptime = {
+      ...subscription.categories.uptime!,
+      reserved: 0,
+      free: 1,
+      prepaid: 1,
+    };
+    expect(productIsEnabled(subscription, DataCategory.UPTIME)).toBe(true);
+  });
+
+  it('returns false for categories with no quota at all', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(false);
+  });
+
+  it('returns true for categories with both reserved and gifted quota', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 1,
+      free: 1,
+      prepaid: 2,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+  });
+
+  it('returns true for categories with unlimited prepaid (UNLIMITED_RESERVED sentinel)', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: UNLIMITED_RESERVED,
+      free: 0,
+      prepaid: UNLIMITED_RESERVED,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+  });
+
+  it('returns true for categories with softCapType TRUE_FORWARD even with no prepaid quota', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'TRUE_FORWARD',
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+  });
+
+  it('returns true for categories with softCapType ON_DEMAND even with no prepaid quota', () => {
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: 'ON_DEMAND',
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+  });
+
+  it('returns true for subscriptions with hasSoftCap=true even when softCapType is null and no prepaid quota', () => {
+    subscription.hasSoftCap = true;
+    subscription.categories.monitorSeats = {
+      ...subscription.categories.monitorSeats!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    expect(productIsEnabled(subscription, DataCategory.MONITOR_SEATS)).toBe(true);
+
+    subscription.categories.uptime = {
+      ...subscription.categories.uptime!,
+      reserved: 0,
+      free: 0,
+      prepaid: 0,
+      softCapType: null,
+    };
+    expect(productIsEnabled(subscription, DataCategory.UPTIME)).toBe(true);
   });
 });
 

@@ -1,9 +1,10 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ContextPickerModal from 'sentry/components/contextPickerModal';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Project = {
   id: string;
@@ -22,17 +23,16 @@ type Props = {
    */
   noProjectRedirectPath: LocationDescriptor;
   projects: Project[];
-  router: InjectedRouter;
   allowAllProjectsSelection?: boolean;
 };
 
-function PickProjectToContinue({
+export function PickProjectToContinue({
   noProjectRedirectPath,
   nextPath,
-  router,
   projects,
   allowAllProjectsSelection = false,
 }: Props) {
+  const navigate = useNavigate();
   const nextPathQuery = nextPath.query;
   let navigating = false;
   let path = `${nextPath.pathname}?project=`;
@@ -48,8 +48,14 @@ function PickProjectToContinue({
   }
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
-  if (projects.length === 1) {
-    router.replace(path + projects[0]!.id);
+  const shouldRedirect = projects.length === 1;
+  useEffect(() => {
+    if (shouldRedirect) {
+      navigate(path + projects[0]!.id, {replace: true});
+    }
+  }, [shouldRedirect, navigate, path, projects]);
+
+  if (shouldRedirect) {
     return null;
   }
 
@@ -62,7 +68,7 @@ function PickProjectToContinue({
         nextPath={`${path}:project`}
         onFinish={to => {
           navigating = true;
-          router.replace(to);
+          navigate(to, {replace: true});
           modalProps.closeModal();
         }}
         projectSlugs={projects.map(p => p.slug)}
@@ -74,7 +80,7 @@ function PickProjectToContinue({
         // we want this to be executed only if the user didn't select any project
         // (closed modal either via button, Esc, clicking outside, ...)
         if (!navigating) {
-          router.push(noProjectRedirectPath);
+          navigate(noProjectRedirectPath);
         }
       },
     }
@@ -87,5 +93,3 @@ const ContextPickerBackground = styled('div')`
   height: 100vh;
   width: 100%;
 `;
-
-export default PickProjectToContinue;

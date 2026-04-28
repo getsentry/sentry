@@ -22,7 +22,7 @@ function BaseSimilarSpectrum({className, highSpectrumLabel, lowSpectrumLabel}: P
   );
 }
 
-const SimilarSpectrum = styled(BaseSimilarSpectrum)`
+export const SimilarSpectrum = styled(BaseSimilarSpectrum)`
   display: flex;
   font-size: ${p => p.theme.font.size.sm};
 `;
@@ -37,5 +37,3 @@ const SpectrumItem = styled('span')<ItemProps>`
   width: 14px;
   ${p => `background-color: ${SIMILARITY_SCORE_COLORS[p.colorIndex]};`};
 `;
-
-export default SimilarSpectrum;

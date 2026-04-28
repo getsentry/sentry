@@ -152,5 +152,5 @@ class IssuePlugin2GroupActionTest(TestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 400
         assert response.json() == {
-            "message": "Unable to create issues: there are " "no events associated with this group"
+            "message": "Unable to create issues: there are no events associated with this group"
         }

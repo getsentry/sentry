@@ -79,7 +79,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         sample_description = "sample bug report"
         html_url = f"https://github.com/foo/bar/issues/{self.issue_num}"
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name=self.repo,
                 provider="integrations:github",

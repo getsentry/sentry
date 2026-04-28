@@ -1,7 +1,4 @@
-export default function trackPendoEvent(
-  eventName: string,
-  data: Record<PropertyKey, unknown>
-) {
+export function trackPendoEvent(eventName: string, data: Record<PropertyKey, unknown>) {
   // make sure we have the tracking function
   if (typeof window.pendo?.track !== 'function') {
     return;

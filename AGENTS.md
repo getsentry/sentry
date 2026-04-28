@@ -34,7 +34,7 @@ This section contains critical command execution instructions that apply across 
 
 ### Python Command Execution Requirements
 
-**CRITICAL**: When running Python commands (pytest, mypy, pre-commit, etc.), you MUST use the virtual environment.
+**CRITICAL**: When running Python commands (pytest, mypy, prek, etc.), you MUST use the virtual environment.
 
 #### For AI Agents (automated commands)
 
@@ -61,40 +61,49 @@ cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 #### Setup
 
 ```bash
-# Install dependencies and setup development environment
-make develop
+# Refreshes dependencies.
+# SENTRY_DEVENV_FRONTEND_ONLY=1 skips over migrations which is not needed for pytest. HIGHLY RECOMMENDED.
+SENTRY_DEVENV_FRONTEND_ONLY=1 devenv sync
 
-# Or use the newer devenv command
+# refresh dependencies, apply migrations
+# Only relevant if you want a working development server.
 devenv sync
 
-# Activate the Python virtual environment (required for running tests and Python commands)
-direnv allow
-
-# Start dev dependencies
-devservices up
-
-# Start the development server
-devservices serve
+direnv allow    # activate the environment
+devservices up  # bring up services
 ```
+
+That is all that is required to run `pytest`.
+
+`devservices serve` starts the development server.
 
 #### Linting
 
-```bash
-# Preferred: Run pre-commit hooks on specific files
-pre-commit run --files src/sentry/path/to/file.py
+prek is the single entrypoint for all lint, format, and type-checking tools.
 
-# Run all pre-commit hooks
-pre-commit run --all-files
+Before considering a task complete, run:
+
+```bash
+cd /path/to/sentry && .venv/bin/prek run -q
 ```
+
+prek detects changed files automatically. To run a specific hook:
+
+```bash
+.venv/bin/prek run -q mypy --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
+```
+
+If a hook fails, fix the issues, stage changes, then re-run until it passes.
 
 #### Testing
 
-```bash
-# Run Python tests (always use these parameters)
-pytest -svv --reuse-db
+For backend-scoped changes, always try `make test-selective` first. It detects which tests are affected by your local diff and runs only those, making the feedback loop much faster. Fall back to `pytest` when you need to run a specific file or `test-selective` doesn't cover your case.
 
-# Run specific test file
-pytest -svv --reuse-db tests/sentry/api/test_base.py
+```bash
+# Run a specific test file.
+# Do not run pytest by itself; it'll take forever!
+.venv/bin/pytest -n3 -svv --reuse-db tests/sentry/api/test_base.py
 ```
 
 #### Database Operations
@@ -119,12 +128,18 @@ make reset-db
 #### Development Setup
 
 ```bash
-# Start the development server
+# Start the full development server (requires devservices up)
 pnpm run dev
 
 # Start only the UI development server with hot reload
+# Proxies API requests to production sentry.io
 pnpm run dev-ui
 ```
+
+**Dev server URLs:**
+
+- Full devserver: http://dev.getsentry.net:8000
+- Frontend-only (`dev-ui`): https://sentry.dev.getsentry.net:7999/
 
 #### Typechecking
 
@@ -157,22 +172,32 @@ CI=true pnpm test <file_path>
 CI=true pnpm test components/avatar.spec.tsx
 ```
 
-> For detailed development patterns, see nested AGENTS.md files:
->
-> - **Backend patterns**: `src/AGENTS.md`
-> - **Backend testing patterns**: `tests/AGENTS.md`
-> - **Frontend patterns**: `static/AGENTS.md`
+### Git worktrees
+
+Each worktree has its own `.venv`. When you create a new worktree with `git worktree add`, a post-checkout hook runs `devenv sync` in the new worktree to setup the dev environment. Otherwise run `devenv sync` once in the new worktree, then `direnv allow` to validate and activate the dev environment.
 
 ### Context-Aware Loading
 
-Cursor is configured to automatically load relevant AGENTS.md files based on the file being edited (via `.cursor/rules/*.mdc`). This provides context-specific guidance without token bloat:
+Use the right AGENTS.md for the area you're working in:
 
-- Editing `src/**/*.py` → Loads `src/AGENTS.md` (backend patterns)
-- Editing `tests/**/*.py` → Loads `tests/AGENTS.md` (testing patterns)
-- Editing `static/**/*.{ts,tsx,js,jsx}` → Loads `static/AGENTS.md` (frontend patterns)
-- Always loads this file (`AGENTS.md`) for general Sentry context
+- **Backend** (`src/**/*.py`) → `src/AGENTS.md` (backend patterns)
+- **Tests** (`tests/**/*.py`, `src/**/tests/**/*.py`) → `tests/AGENTS.md` (testing patterns)
+- **Frontend** (`static/**/*.{ts,tsx,js,jsx,css,scss}`) → `static/AGENTS.md` (frontend patterns)
+- **General** → This file (`AGENTS.md`) for Sentry overview and commands
 
-**Note**: These `.mdc` files only _reference_ AGENTS.md files—they don't duplicate content. All actual guidance should be added to the appropriate AGENTS.md file, not to Cursor rules.
+Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
+
+## Viewer/Organization Context
+
+- Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
+
+## Agent Skills
+
+Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:
+
+- Prefer diff-first review workflows. When no explicit file or patch is provided, default to the current branch diff.
+- Keep skill descriptions aligned with natural user requests like PR review, branch audit, and Warden follow-up.
+- If a downstream review harness controls the final response shape, do not hardcode a competing output format in the skill. Specify required evidence instead.
 
 ## Backend
 
@@ -182,3 +207,50 @@ For backend testing patterns and best practices, see `tests/AGENTS.md`.
 ## Frontend
 
 For frontend development patterns, design system guidelines, and React testing best practices, see `static/AGENTS.md`.
+
+## Feature Flags (FlagPole)
+
+New features should be gated behind a feature flag.
+
+1. **Register** the flag in `src/sentry/features/temporary.py`:
+
+   ```python
+   manager.add("organizations:my-feature", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+   ```
+
+   Use `api_expose=True` if the frontend needs to check the flag. Use `ProjectFeature` and a `projects:` prefix for project-scoped flags.
+
+2. **Python check**:
+
+   ```python
+   if features.has("organizations:my-feature", organization, actor=user):
+   ```
+
+3. **Frontend check** (requires `api_expose=True`):
+
+   ```typescript
+   organization.features.includes('my-feature');
+   ```
+
+4. **Tests**:
+
+   ```python
+   with self.feature("organizations:my-feature"):
+       ...
+   ```
+
+5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
+
+See https://develop.sentry.dev/feature-flags/ for full docs.
+
+## Customer Information
+
+**Never include customer information in pull requests, commits, or code.** This covers organization slugs, user emails, account names, internal IDs tied to specific customers, support ticket details, and any other data that identifies a Sentry customer. Use anonymized or synthetic examples (`org-slug`, `user@example.com`) in PR descriptions, commit messages, code comments, tests, and fixtures. If a real identifier is needed for debugging, keep it in internal tooling (Slack, tickets, private notes)—not in the public git history.
+
+## Pull Requests
+
+Frontend (`static/`) and backend (`src/`, `tests/`) are **not atomically deployed**. A CI check enforces this.
+
+- If your changes touch both frontend and backend, split them into **separate PRs**.
+- Land the backend PR first when the frontend depends on new API changes.
+- Pure test additions alongside `src/` changes are fine in one PR.

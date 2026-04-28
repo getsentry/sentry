@@ -1,7 +1,7 @@
 import type {Request} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {defined} from 'sentry/utils';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 type Options = {
   linkPreviousHref: string;
@@ -11,7 +11,7 @@ type Options = {
 const BASE_DELAY = 3000;
 const MAX_DELAY = 60000;
 
-class CursorPoller {
+export class CursorPoller {
   constructor(options: Options) {
     this.options = options;
     this.setEndpoint(options.linkPreviousHref);
@@ -117,5 +117,3 @@ class CursorPoller {
     });
   }
 }
-
-export default CursorPoller;

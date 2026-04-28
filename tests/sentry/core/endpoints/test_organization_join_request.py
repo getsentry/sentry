@@ -5,11 +5,13 @@ from urllib.parse import parse_qs, urlparse
 import orjson
 from django.core import mail
 
+from sentry import audit_log
 from sentry.analytics.events.join_request_created import JoinRequestCreatedEvent
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
@@ -148,6 +150,11 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         )
 
         self.assert_org_member_mapping(org_member=join_request)
+
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
+        )
 
         users_able_to_approve_requests = {user1, user2}
         expected_subject = f"Access request to {self.organization.name}"

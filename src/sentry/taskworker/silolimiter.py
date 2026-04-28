@@ -1,8 +1,9 @@
 from collections.abc import Callable, Iterable
 from typing import Any, cast
 
+from taskbroker_client.task import P, R, Task
+
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.taskworker.task import P, R, Task
 
 
 class TaskSiloLimit(SiloLimit):

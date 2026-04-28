@@ -24,7 +24,6 @@ def is_demo_mode_enabled() -> bool:
 
 
 def is_demo_user(user: User | AnonymousUser | None | RpcUser) -> bool:
-
     if not user:
         return False
 
@@ -32,7 +31,6 @@ def is_demo_user(user: User | AnonymousUser | None | RpcUser) -> bool:
 
 
 def is_demo_org(organization: Organization | RpcOrganization | None) -> bool:
-
     if not organization:
         return False
 

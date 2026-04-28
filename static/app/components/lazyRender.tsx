@@ -24,6 +24,10 @@ const DEFAULT_OPTIONS: IntersectionObserverInit = {
 export interface LazyRenderProps {
   children: React.ReactNode;
   containerHeight?: number;
+  /**
+   * When true, skips lazy loading and renders children immediately.
+   */
+  disabled?: boolean;
   observerOptions?: Partial<IntersectionObserverInit>;
   /**
    * Removes the wrapping div once visible
@@ -39,8 +43,10 @@ export interface LazyRenderProps {
  * @param props.children
  */
 export function LazyRender(props: LazyRenderProps) {
-  // If the browser doesn't support IntersectionObserver, render the children immediately.
-  const [visible, setVisible] = useState<boolean>(!supportsIntersectionObserver());
+  // If disabled or the browser doesn't support IntersectionObserver, render the children immediately.
+  const [visible, setVisible] = useState<boolean>(
+    !!props.disabled || !supportsIntersectionObserver()
+  );
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   const onRefNode = useCallback(

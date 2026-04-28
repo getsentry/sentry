@@ -21,7 +21,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.user = self.create_user()
         self.org = self.create_organization()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(
                 user_id=self.user.id, organization=self.org, role="admin"
             )
@@ -76,7 +76,7 @@ class VercelExtensionConfigurationTest(TestCase):
     @responses.activate
     def test_logged_in_as_member(self) -> None:
         with (
-            assume_test_silo_mode(SiloMode.REGION),
+            assume_test_silo_mode(SiloMode.CELL),
             unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
@@ -101,7 +101,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(user_id=self.user.id, organization=org)
 
         resp = self.client.get(self.path, self.params)
@@ -121,7 +121,7 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             OrganizationMember.objects.create(user_id=self.user.id, organization=org)
         self.params["orgSlug"] = org.slug
 

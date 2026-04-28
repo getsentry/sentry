@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
@@ -67,7 +67,7 @@ class TeamPostSerializer(serializers.Serializer):
 
 
 @extend_schema(tags=["Teams"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -214,7 +214,17 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 except OrganizationMember.DoesNotExist:
                     pass
                 else:
-                    OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
+                    omt = OrganizationMemberTeam.objects.create(
+                        team=team, organizationmember=member
+                    )
+                    self.create_audit_entry(
+                        request=request,
+                        organization=organization,
+                        target_object=omt.id,
+                        target_user_id=member.user_id,
+                        event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
+                        data={"email": member.get_email(), "team_slug": team.slug},
+                    )
 
             self.create_audit_entry(
                 request=request,

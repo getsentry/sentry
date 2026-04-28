@@ -1,7 +1,7 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+
 import {t} from 'sentry/locale';
 
 interface DifferentialFlamegraphNegationSwitchProps {
@@ -12,12 +12,9 @@ export function DifferentialFlamegraphNegationSwitch(
   props: DifferentialFlamegraphNegationSwitchProps
 ) {
   const onNegatedChange = props.onNegatedChange;
-  const onWrapChange = useCallback(
-    (value: 'negated' | 'regular') => {
-      onNegatedChange(value === 'negated');
-    },
-    [onNegatedChange]
-  );
+  const onWrapChange = (value: 'negated' | 'regular') => {
+    onNegatedChange(value === 'negated');
+  };
 
   return (
     <DifferentialFlamegraphNegationSwitchContainer>

@@ -1,4 +1,4 @@
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.users.models.user import User
@@ -153,11 +153,8 @@ class DashboardFavoriteUserTest(TestCase):
             self.organization, self.user.id, [should_be_first.id, should_be_second.id]
         )
 
-        for favorite_dashboard in [second_favorite_dashboard, first_favorite_dashboard]:
-            favorite_dashboard.refresh_from_db()
-
-        assert second_favorite_dashboard.position == 1
-        assert first_favorite_dashboard.position == 0
+        assert DashboardFavoriteUser.objects.get(id=second_favorite_dashboard.id).position == 1
+        assert DashboardFavoriteUser.objects.get(id=first_favorite_dashboard.id).position == 0
 
     def test_deletes_and_increments_existing_positions(self) -> None:
         first_dashboard = self.create_dashboard(
@@ -172,13 +169,79 @@ class DashboardFavoriteUserTest(TestCase):
 
         assert DashboardFavoriteUser.objects.count() == 2
 
-        DashboardFavoriteUser.objects.delete_favorite_dashboard(
+        DashboardFavoriteUser.objects.unfavorite_dashboard(
             self.organization, self.user.id, first_dashboard
         )
 
         dashboard = DashboardFavoriteUser.objects.get_favorite_dashboard(
             self.organization, self.user.id, second_dashboard
         )
-        assert DashboardFavoriteUser.objects.count() == 1
+        # Row still exists but with favorited=False
+        assert DashboardFavoriteUser.objects.count() == 2
+        assert DashboardFavoriteUser.objects.filter(favorited=True).count() == 1
+        unfavorited = DashboardFavoriteUser.objects.get(dashboard=first_dashboard)
+        assert unfavorited.favorited is False
+        assert unfavorited.position is None
         assert dashboard is not None
         assert dashboard.position == 0
+
+
+class DashboardRevisionTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.dashboard = self.create_dashboard(title="My Dashboard", organization=self.organization)
+
+    def test_create_for_dashboard_stores_correct_fields(self) -> None:
+        snapshot = {"title": "My Dashboard", "widgets": []}
+        revision = DashboardRevision.create_for_dashboard(self.dashboard, self.user, snapshot)
+
+        assert revision.dashboard == self.dashboard
+        assert revision.title == self.dashboard.title
+        assert revision.snapshot == snapshot
+        assert revision.snapshot_schema_version == DashboardRevision.SNAPSHOT_SCHEMA_VERSION
+        assert revision.created_by_id == self.user.id
+        assert revision.source == "edit"
+
+    def test_create_for_dashboard_stores_custom_source(self) -> None:
+        revision = DashboardRevision.create_for_dashboard(
+            self.dashboard, self.user, {}, source="edit-with-agent"
+        )
+        assert revision.source == "edit-with-agent"
+
+    def test_create_for_dashboard_prunes_beyond_retention_limit(self) -> None:
+        for i in range(DashboardRevision.RETENTION_LIMIT):
+            DashboardRevision.objects.create(
+                dashboard=self.dashboard,
+                created_by_id=self.user.id,
+                title=f"Revision {i}",
+                snapshot={},
+                snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+            )
+
+        DashboardRevision.create_for_dashboard(self.dashboard, self.user, {})
+
+        assert (
+            DashboardRevision.objects.filter(dashboard=self.dashboard).count()
+            == DashboardRevision.RETENTION_LIMIT
+        )
+
+    def test_create_for_dashboard_retains_newest_revisions(self) -> None:
+        titles = [f"Revision {i}" for i in range(DashboardRevision.RETENTION_LIMIT)]
+        for title in titles:
+            DashboardRevision.objects.create(
+                dashboard=self.dashboard,
+                created_by_id=self.user.id,
+                title=title,
+                snapshot={},
+                snapshot_schema_version=DashboardRevision.SNAPSHOT_SCHEMA_VERSION,
+            )
+
+        new_revision = DashboardRevision.create_for_dashboard(self.dashboard, self.user, {})
+
+        surviving_ids = set(
+            DashboardRevision.objects.filter(dashboard=self.dashboard).values_list("id", flat=True)
+        )
+        # The oldest revision was pruned; the new one and the 9 most recent survive
+        oldest = DashboardRevision.objects.filter(title="Revision 0").first()
+        assert oldest is None
+        assert new_revision.id in surviving_ids

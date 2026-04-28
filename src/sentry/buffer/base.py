@@ -38,13 +38,6 @@ class Buffer(Service):
         "process",
         "process_pending",
         "validate",
-        "push_to_sorted_set",
-        "push_to_hash",
-        "get_sorted_set",
-        "get_hash",
-        "get_hash_length",
-        "delete_hash",
-        "delete_key",
     )
 
     def get(
@@ -57,54 +50,6 @@ class Buffer(Service):
         We can't fetch values from tasks, so just assume buffer values are all 0 here.
         """
         return {col: 0 for col in columns}
-
-    def get_hash(self, model: type[models.Model], field: dict[str, BufferField]) -> dict[str, str]:
-        return {}
-
-    def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
-        raise NotImplementedError
-
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
-        return []
-
-    def bulk_get_sorted_set(
-        self, keys: list[str], min: float, max: float
-    ) -> dict[int, list[float]]:
-        return {}
-
-    def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
-        return None
-
-    def push_to_hash(
-        self,
-        model: type[models.Model],
-        filters: dict[str, BufferField],
-        field: str,
-        value: str,
-    ) -> None:
-        return None
-
-    def push_to_hash_bulk(
-        self,
-        model: type[models.Model],
-        filters: dict[str, BufferField],
-        data: dict[str, str],
-    ) -> None:
-        raise NotImplementedError
-
-    def delete_hash(
-        self,
-        model: type[models.Model],
-        filters: dict[str, BufferField],
-        fields: list[str],
-    ) -> None:
-        return None
-
-    def delete_key(self, key: str, min: float, max: float) -> None:
-        return None
-
-    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
-        return None
 
     def incr(
         self,

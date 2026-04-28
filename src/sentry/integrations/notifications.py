@@ -35,7 +35,6 @@ def _get_channel_and_integration_by_user(
     organization: Organization,
     provider: ExternalProviders,
 ) -> Mapping[str, RpcIntegration]:
-
     identities = identity_service.get_user_identities_by_provider_type(
         user_id=user_id,
         provider_type=EXTERNAL_PROVIDERS[provider],

@@ -67,10 +67,6 @@ declare global {
      */
     __openAllTooltips: () => void;
     /**
-     * Pipeline
-     */
-    __pipelineInitialData: PipelineInitialData;
-    /**
      * Assets public location
      */
     __sentryGlobalStaticPrefix: string;
@@ -125,6 +121,12 @@ declare global {
      * The superuser cookie used on the backend
      */
     superUserCookieName?: string;
+  }
+  interface FocusOptions {
+    /**
+     * https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/focus#focusvisible
+     */
+    focusVisible?: boolean;
   }
 }
 
@@ -219,6 +221,7 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
@@ -232,11 +235,6 @@ export interface Config {
     id: string;
   };
 }
-
-export type PipelineInitialData = {
-  name: string;
-  props: Record<string, any>;
-};
 
 export interface Broadcast {
   dateCreated: string;

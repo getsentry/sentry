@@ -1,16 +1,19 @@
-from unittest.mock import ANY
+from unittest.mock import ANY, patch
 
 import pytest
 from django.urls import reverse
 from django.utils.functional import cached_property
 
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodComparisonApproval,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 
 
 class BuildsEndpointTest(APITestCase):
-
     @cached_property
     def user_auth_token(self):
         auth_token = self.create_user_auth_token(
@@ -29,13 +32,6 @@ class BuildsEndpointTest(APITestCase):
 
     def _assert_is_successful(self, response):
         assert response.status_code == 200, f"status {response.status_code} body {response.json()}"
-
-    def test_needs_feature(self) -> None:
-        response = self._request({})
-        assert response.status_code == 403
-        assert response.json() == {
-            "detail": "Feature organizations:preprod-frontend-routes is not enabled for the organization."
-        }
 
     def test_invalid_token(self) -> None:
         response = self._request({}, token="Invalid")
@@ -59,13 +55,11 @@ class BuildsEndpointTest(APITestCase):
         assert response.status_code == 403
         assert response.json() == {"detail": "You do not have permission to perform this action."}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_no_builds(self) -> None:
         response = self._request({})
         self._assert_is_successful(response)
         assert response.json() == []
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_one_build(self) -> None:
         self.create_preprod_artifact()
         response = self._request({})
@@ -96,6 +90,8 @@ class BuildsEndpointTest(APITestCase):
                     "download_count": 0,
                     "is_installable": False,
                     "release_notes": None,
+                    "error_code": None,
+                    "error_message": None,
                 },
                 "vcs_info": {
                     "head_sha": None,
@@ -111,24 +107,22 @@ class BuildsEndpointTest(APITestCase):
                 "posted_status_checks": None,
                 "project_slug": "bar",
                 "size_info": None,
+                "snapshot_comparison_info": None,
             }
         ]
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_bad_project(self) -> None:
         self.create_preprod_artifact()
         response = self._request({"project": [1]})
         assert response.status_code == 403
         assert response.json() == {"detail": "You do not have permission to perform this action."}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_bad_project_slug(self) -> None:
         self.create_preprod_artifact()
         response = self._request({"projectSlug": ["invalid"]})
         assert response.status_code == 403
         assert response.json() == {"detail": "You do not have permission to perform this action."}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_build_in_another_project(self) -> None:
         another_project = self.create_project(name="Baz", slug="baz")
         self.create_preprod_artifact(project=another_project)
@@ -136,7 +130,6 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert response.json() == []
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_build_in_another_project_slug(self) -> None:
         another_project = self.create_project(name="Baz", slug="baz")
         self.create_preprod_artifact(project=another_project)
@@ -144,21 +137,18 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert response.json() == []
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_build_in_this_project(self) -> None:
         self.create_preprod_artifact()
         response = self._request({"project": [self.project.id]})
         self._assert_is_successful(response)
         assert len(response.json()) == 1
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_build_in_this_project_slug(self) -> None:
         self.create_preprod_artifact()
         response = self._request({"projectSlug": [self.project.slug]})
         self._assert_is_successful(response)
         assert len(response.json()) == 1
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_multiple_projects(self) -> None:
         project_a = self.create_project(name="AAA", slug="aaa")
         self.create_preprod_artifact(project=project_a)
@@ -168,7 +158,6 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert len(response.json()) == 2
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_multiple_project_slugs(self) -> None:
         project_a = self.create_project(name="AAA", slug="aaa")
         self.create_preprod_artifact(project=project_a)
@@ -178,7 +167,6 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert len(response.json()) == 2
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_per_page_respected(self) -> None:
         self.create_preprod_artifact()
         self.create_preprod_artifact()
@@ -186,7 +174,6 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert len(response.json()) == 1
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_start_end_respected(self) -> None:
         self.create_preprod_artifact(date_added=before_now(days=5))
         middle = self.create_preprod_artifact(date_added=before_now(days=3))
@@ -197,14 +184,12 @@ class BuildsEndpointTest(APITestCase):
         assert len(response.json()) == 1
         assert response.json()[0]["id"] == str(middle.id)
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_invalid(self) -> None:
         self.create_preprod_artifact(app_id="foo")
         response = self._request({"query": "no_such_key:foo"})
         assert response.status_code == 400
         assert response.json() == {"detail": "Invalid key for this search: no_such_key"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_app_id_equals(self) -> None:
         self.create_preprod_artifact(app_id="foo")
         self.create_preprod_artifact(app_id="bar")
@@ -213,7 +198,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(response.json()) == 1
         assert response.json()[0]["app_info"]["app_id"] == "foo"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_app_id_not_equals(self) -> None:
         self.create_preprod_artifact(app_id="foo")
         self.create_preprod_artifact(app_id="bar")
@@ -222,7 +206,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(response.json()) == 1
         assert response.json()[0]["app_info"]["app_id"] == "bar"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_app_id_in(self) -> None:
         self.create_preprod_artifact(app_id="foo")
         self.create_preprod_artifact(app_id="bar")
@@ -231,7 +214,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(response.json()) == 1
         assert response.json()[0]["app_info"]["app_id"] == "foo"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_app_id_in_is_list(self) -> None:
         self.create_preprod_artifact(app_id="foo")
         self.create_preprod_artifact(app_id="bar")
@@ -239,7 +221,6 @@ class BuildsEndpointTest(APITestCase):
         self._assert_is_successful(response)
         assert len(response.json()) == 0
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_app_id_not_in(self) -> None:
         self.create_preprod_artifact(app_id="foo")
         self.create_preprod_artifact(app_id="bar")
@@ -249,7 +230,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(response.json()) == 1
         assert response.json()[0]["app_info"]["app_id"] == "baz"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_download_count_for_installable_artifact(self) -> None:
         # Create an installable artifact (has both installable_app_file_id and build_number)
         artifact = self.create_preprod_artifact(
@@ -272,7 +252,6 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["distribution_info"]["download_count"] == 15
         assert data[0]["distribution_info"]["is_installable"] is True
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_is_installable(self) -> None:
         self.create_preprod_artifact(app_id="not_installable")
         artifact = self.create_preprod_artifact(
@@ -288,7 +267,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "installable"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_is_not_installable(self) -> None:
         self.create_preprod_artifact(app_id="not_installable")
         artifact = self.create_preprod_artifact(
@@ -304,7 +282,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "not_installable"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_download_count_zero_for_non_installable_artifact(self) -> None:
         # Create a non-installable artifact (no installable_app_file_id)
         self.create_preprod_artifact()
@@ -316,7 +293,6 @@ class BuildsEndpointTest(APITestCase):
         assert data[0]["distribution_info"]["download_count"] == 0
         assert data[0]["distribution_info"]["is_installable"] is False
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_download_count_multiple_artifacts(self) -> None:
         # Create multiple installable artifacts with different download counts
         artifact1 = self.create_preprod_artifact(
@@ -354,7 +330,6 @@ class BuildsEndpointTest(APITestCase):
         assert app_one["distribution_info"]["download_count"] == 100
         assert app_two["distribution_info"]["download_count"] == 75
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_install_size(self) -> None:
         # Create artifacts with different install sizes via size metrics
         small_artifact = self.create_preprod_artifact(app_id="small.app")
@@ -377,7 +352,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "small.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_build_configuration_name(self) -> None:
         debug_config = self.create_preprod_build_configuration(name="Debug")
         release_config = self.create_preprod_build_configuration(name="Release")
@@ -391,7 +365,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "debug.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_git_head_ref(self) -> None:
         main_cc = self.create_commit_comparison(organization=self.organization, head_ref="main")
         feature_cc = self.create_commit_comparison(
@@ -407,7 +380,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "main.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_has_git_head_ref(self) -> None:
         cc_with_branch = self.create_commit_comparison(
             organization=self.organization, head_ref="main"
@@ -428,7 +400,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "with_branch.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_not_has_git_head_ref(self) -> None:
         cc_with_branch = self.create_commit_comparison(
             organization=self.organization, head_ref="main"
@@ -450,7 +421,6 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"without_branch.app", "no_cc.app"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_git_head_sha(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, head_sha="abc123" + "0" * 34
@@ -468,7 +438,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "sha1.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_git_base_sha(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, base_sha="base111" + "1" * 33
@@ -486,7 +455,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "base1.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_git_pr_number(self) -> None:
         cc1 = self.create_commit_comparison(organization=self.organization, pr_number=123)
         cc2 = self.create_commit_comparison(organization=self.organization, pr_number=456)
@@ -500,10 +468,7 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "pr123.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_apple(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -517,10 +482,7 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "ios.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_android(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -538,10 +500,7 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"android.apk", "android.aab"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_in(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -559,10 +518,7 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"ios.app", "android.apk", "android.aab"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_platform_name_not_in(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
         )
@@ -580,7 +536,6 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"android.apk", "android.aab"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_greater_than(self) -> None:
         self.create_preprod_artifact(app_id="build100.app", build_number=100)
         self.create_preprod_artifact(app_id="build200.app", build_number=200)
@@ -592,7 +547,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "build300.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_less_than(self) -> None:
         self.create_preprod_artifact(app_id="build100.app", build_number=100)
         self.create_preprod_artifact(app_id="build200.app", build_number=200)
@@ -604,7 +558,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "build100.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_greater_than_or_equal(self) -> None:
         self.create_preprod_artifact(app_id="build100.app", build_number=100)
         self.create_preprod_artifact(app_id="build200.app", build_number=200)
@@ -617,7 +570,6 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"build200.app", "build300.app"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_less_than_or_equal(self) -> None:
         self.create_preprod_artifact(app_id="build100.app", build_number=100)
         self.create_preprod_artifact(app_id="build200.app", build_number=200)
@@ -630,7 +582,6 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"build100.app", "build200.app"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_contains(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/add-login"
@@ -653,7 +604,6 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"login.app", "signup.app"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_query_operator_not_contains(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/add-login"
@@ -674,7 +624,6 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert data[0]["app_info"]["app_id"] == "crash.app"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_app_id(self) -> None:
         self.create_preprod_artifact(app_id="com.example.myapp")
         self.create_preprod_artifact(app_id="com.other.app")
@@ -686,7 +635,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.example.myapp"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_app_name(self) -> None:
         self.create_preprod_artifact(app_id="com.example.one", app_name="MyAwesomeApp")
         self.create_preprod_artifact(app_id="com.example.two", app_name="OtherApp")
@@ -697,7 +645,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.example.one"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_build_version(self) -> None:
         self.create_preprod_artifact(app_id="app1", build_version="1.2.3-beta")
         self.create_preprod_artifact(app_id="app2", build_version="2.0.0-release")
@@ -708,7 +655,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "app1"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_commit_sha(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, head_sha="abc123def456" + "0" * 28
@@ -726,7 +672,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "app1"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_branch(self) -> None:
         cc1 = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/new-login"
@@ -744,7 +689,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "app1"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_pr_number(self) -> None:
         cc1 = self.create_commit_comparison(organization=self.organization, pr_number=12345)
         cc2 = self.create_commit_comparison(organization=self.organization, pr_number=67890)
@@ -758,7 +702,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "app1"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_by_build_id(self) -> None:
         artifact1 = self.create_preprod_artifact(app_id="app1")
         self.create_preprod_artifact(app_id="app2")
@@ -769,7 +712,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["id"] == str(artifact1.id)
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_no_matches(self) -> None:
         self.create_preprod_artifact(app_id="com.example.app")
         self.create_preprod_artifact(app_id="com.other.app")
@@ -779,7 +721,6 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert len(data) == 0
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_empty_query(self) -> None:
         self.create_preprod_artifact(app_id="app1")
         self.create_preprod_artifact(app_id="app2")
@@ -789,7 +730,6 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert len(data) == 2
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_whitespace_only(self) -> None:
         self.create_preprod_artifact(app_id="app1")
         self.create_preprod_artifact(app_id="app2")
@@ -799,7 +739,6 @@ class BuildsEndpointTest(APITestCase):
         data = response.json()
         assert len(data) == 2
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_case_insensitive(self) -> None:
         self.create_preprod_artifact(app_id="com.Example.MyApp")
 
@@ -809,7 +748,6 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.Example.MyApp"
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_multiple_matches(self) -> None:
         self.create_preprod_artifact(app_id="com.test.one", app_name="TestApp")
         self.create_preprod_artifact(app_id="com.test.two", build_version="1.0-test")
@@ -821,10 +759,7 @@ class BuildsEndpointTest(APITestCase):
         app_ids = {d["app_info"]["app_id"] for d in data}
         assert app_ids == {"com.test.one", "com.test.two"}
 
-    @with_feature("organizations:preprod-frontend-routes")
     def test_free_text_search_with_structured_filter(self) -> None:
-        from sentry.preprod.models import PreprodArtifact
-
         cc = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/awesome"
         )
@@ -845,19 +780,169 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "com.example.android"
 
+    def test_size_state_filter(self) -> None:
+        artifact_not_ran = self.create_preprod_artifact(app_id="not_ran.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact_not_ran,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            error_code=PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            error_message="Size analysis not supported",
+        )
+        artifact_completed = self.create_preprod_artifact(app_id="completed.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact_completed, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        self.create_preprod_artifact(app_id="no_metrics.app")
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 3
+
+        response = self._request({"query": "size_state:completed"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 1
+        assert response.json()[0]["app_info"]["app_id"] == "completed.app"
+
+        response = self._request({"query": "!size_state:not_ran"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 2
+
+    def test_size_state_filter_mixed_metrics(self) -> None:
+        artifact = self.create_preprod_artifact(app_id="mixed.app")
+        self.create_preprod_artifact_size_metrics(
+            artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED
+        )
+        self.create_preprod_artifact_size_metrics(
+            artifact,
+            state=PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+            metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
+            error_code=PreprodArtifactSizeMetrics.ErrorCode.SKIPPED,
+            error_message="Size analysis not supported",
+        )
+        response = self._request({"query": "!size_state:not_ran"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 0
+
+    def test_size_state_invalid_values(self) -> None:
+        self.create_preprod_artifact(app_id="test.app")
+        assert self._request({"query": "size_state:bogus"}).status_code == 400
+        assert self._request({"query": "size_state:[bogus, completed]"}).status_code == 400
+
+    def test_distribution_error_code_filter(self) -> None:
+        self.create_preprod_artifact(
+            app_id="quota.app",
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.NO_QUOTA,
+            installable_app_error_message="Distribution quota exceeded",
+        )
+        self.create_preprod_artifact(
+            app_id="skipped.app",
+            installable_app_error_code=PreprodArtifact.InstallableAppErrorCode.SKIPPED,
+            installable_app_error_message="Distribution not requested",
+        )
+        self.create_preprod_artifact(app_id="ok.app")
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 3
+
+        response = self._request({"query": "distribution_error_code:no_quota"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 1
+        assert response.json()[0]["app_info"]["app_id"] == "quota.app"
+
+        response = self._request({"query": "!distribution_error_code:skipped"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 2
+
+        response = self._request({"query": "distribution_error_code:[no_quota, skipped]"})
+        self._assert_is_successful(response)
+        assert len(response.json()) == 2
+
+    def test_distribution_error_code_invalid_values(self) -> None:
+        self.create_preprod_artifact(app_id="test.app")
+        assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
+
+    @patch("sentry.preprod.api.endpoints.builds.get_size_retention_cutoff")
+    def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
+        mock_cutoff.return_value = before_now(days=30)
+        self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
+        self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
+
+        response = self._request({})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["app_info"]["app_id"] == "recent.app"
+
+    def test_query_image_count(self) -> None:
+        matching_artifact = self.create_preprod_artifact(app_id="com.match.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=matching_artifact, image_count=25)
+        non_matching_artifact = self.create_preprod_artifact(app_id="com.nomatch.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=non_matching_artifact, image_count=3)
+
+        response = self._request({"display": "snapshot", "query": "image_count:>=20"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.match.app"}
+
+    def test_query_images_changed(self) -> None:
+        head_artifact = self.create_preprod_artifact(app_id="com.changed.app")
+        head_metrics = self.create_preprod_snapshot_metrics(
+            preprod_artifact=head_artifact, image_count=10
+        )
+        base_artifact = self.create_preprod_artifact(app_id="com.base.app")
+        base_metrics = self.create_preprod_snapshot_metrics(
+            preprod_artifact=base_artifact, image_count=10
+        )
+        self.create_preprod_snapshot_comparison(
+            head_snapshot_metrics=head_metrics,
+            base_snapshot_metrics=base_metrics,
+            images_changed=10,
+        )
+
+        unrelated_artifact = self.create_preprod_artifact(app_id="com.unrelated.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=unrelated_artifact, image_count=10)
+
+        response = self._request({"display": "snapshot", "query": "images_changed:>5"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.changed.app"}
+
+    def test_query_is_approved(self) -> None:
+        approved_artifact = self.create_preprod_artifact(app_id="com.approved.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=approved_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=approved_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        pending_artifact = self.create_preprod_artifact(app_id="com.pending.app")
+        self.create_preprod_snapshot_metrics(preprod_artifact=pending_artifact)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=pending_artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.NEEDS_APPROVAL,
+        )
+
+        response = self._request({"display": "snapshot", "query": "is_approved:true"})
+        self._assert_is_successful(response)
+        app_ids = {entry["app_info"]["app_id"] for entry in response.json()}
+        assert app_ids == {"com.approved.app"}
+
 
 class QuerysetForQueryTest(APITestCase):
     """Tests for the queryset_for_query, artifact_in_queryset, and artifact_matches_query functions."""
 
     def test_queryset_for_query_empty_query(self) -> None:
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         queryset = queryset_for_query("", self.organization)
         assert artifact in queryset
 
     def test_queryset_for_query_with_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
 
         artifact1 = self.create_preprod_artifact(app_id="com.example.one")
         self.create_preprod_artifact(app_id="com.example.two")
@@ -868,8 +953,7 @@ class QuerysetForQueryTest(APITestCase):
         assert results[0].id == artifact1.id
 
     def test_queryset_for_query_platform_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
-        from sentry.preprod.models import PreprodArtifact
+        from sentry.preprod.artifact_search import queryset_for_query
 
         ios_artifact = self.create_preprod_artifact(
             app_id="ios.app", artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE
@@ -885,27 +969,27 @@ class QuerysetForQueryTest(APITestCase):
 
     def test_queryset_for_query_invalid_query(self) -> None:
         from sentry.exceptions import InvalidSearchQuery
-        from sentry.preprod.api.endpoints.builds import queryset_for_query
+        from sentry.preprod.artifact_search import queryset_for_query
 
         with pytest.raises(InvalidSearchQuery):
             queryset_for_query("invalid_key:value", self.organization)
 
     def test_artifact_in_queryset_returns_true(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
+        from sentry.preprod.artifact_search import artifact_in_queryset, queryset_for_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         queryset = queryset_for_query("", self.organization)
         assert artifact_in_queryset(artifact, queryset) is True
 
     def test_artifact_in_queryset_returns_false(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
+        from sentry.preprod.artifact_search import artifact_in_queryset, queryset_for_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.one")
         queryset = queryset_for_query("app_id:com.example.two", self.organization)
         assert artifact_in_queryset(artifact, queryset) is False
 
     def test_artifact_in_queryset_with_filtered_queryset(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_in_queryset, queryset_for_query
+        from sentry.preprod.artifact_search import artifact_in_queryset, queryset_for_query
 
         artifact1 = self.create_preprod_artifact(app_id="foo")
         artifact2 = self.create_preprod_artifact(app_id="bar")
@@ -915,13 +999,13 @@ class QuerysetForQueryTest(APITestCase):
         assert artifact_in_queryset(artifact2, queryset) is False
 
     def test_artifact_matches_query_returns_true(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         assert artifact_matches_query(artifact, "app_id:com.example.app", self.organization) is True
 
     def test_artifact_matches_query_returns_false(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.one")
         assert (
@@ -929,14 +1013,13 @@ class QuerysetForQueryTest(APITestCase):
         )
 
     def test_artifact_matches_query_empty_query(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.app")
         assert artifact_matches_query(artifact, "", self.organization) is True
 
     def test_artifact_matches_query_complex_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
-        from sentry.preprod.models import PreprodArtifact
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         cc = self.create_commit_comparison(
             organization=self.organization, head_ref="feature/test", pr_number=123
@@ -962,7 +1045,7 @@ class QuerysetForQueryTest(APITestCase):
         )
 
     def test_artifact_matches_query_with_numeric_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(build_number=100)
 
@@ -971,14 +1054,14 @@ class QuerysetForQueryTest(APITestCase):
 
     def test_artifact_matches_query_invalid_query(self) -> None:
         from sentry.exceptions import InvalidSearchQuery
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact()
         with pytest.raises(InvalidSearchQuery):
             artifact_matches_query(artifact, "invalid_key:value", self.organization)
 
     def test_artifact_matches_query_free_text_search(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         artifact = self.create_preprod_artifact(app_id="com.example.myapp")
 
@@ -986,7 +1069,7 @@ class QuerysetForQueryTest(APITestCase):
         assert artifact_matches_query(artifact, "nonexistent", self.organization) is False
 
     def test_artifact_matches_query_installable_filter(self) -> None:
-        from sentry.preprod.api.endpoints.builds import artifact_matches_query
+        from sentry.preprod.artifact_search import artifact_matches_query
 
         non_installable = self.create_preprod_artifact(app_id="not_installable")
         installable = self.create_preprod_artifact(

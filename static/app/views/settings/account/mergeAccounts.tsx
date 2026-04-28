@@ -1,41 +1,37 @@
 import {createContext, Fragment, useContext, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Input} from 'sentry/components/core/input';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import TimeSince from 'sentry/components/timeSince';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {
-  fetchMutation,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const IsPrimaryUserContext = createContext<boolean>(false);
 
-const ENDPOINT = '/auth-v2/merge-accounts/';
-const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';
+const ENDPOINT = getApiUrl('/auth-v2/merge-accounts/');
+const VERIFICATION_CODE_ENDPOINT = getApiUrl('/auth-v2/user-merge-verification-codes/');
 
 interface UserWithOrganizations extends Omit<AvatarUser, 'options'> {
   lastActive: string;
@@ -152,7 +148,7 @@ function MergeAccounts() {
         <SettingsPageHeader title={t('Merge Accounts')} />
         <div>
           {t(
-            `Only one account was found with your primary email address. You're all set.`
+            "Only one account was found with your primary email address. You're all set."
           )}
         </div>
       </Fragment>
@@ -165,7 +161,7 @@ function MergeAccounts() {
       <SettingsPageHeader title={t('Merge Accounts')} />
       <List symbol="colored-numeric">
         <StyledListItem>{t('Generate Verification Code')}</StyledListItem>
-        <div>{t(`Check your email for your code. You'll need it in Step 3.`)}</div>
+        <div>{t("Check your email for your code. You'll need it in Step 3.")}</div>
         <ButtonSection>
           <Button
             priority="primary"
@@ -240,11 +236,11 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
           }
         )}
       </TextBlock>
-      <TextBlock>{t(`Your currently active account:`)}</TextBlock>
+      <TextBlock>{t('Your currently active account:')}</TextBlock>
       <IsPrimaryUserContext value>
         <Users users={currentAccount} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>
-      <TextBlock>{t(`Your other accounts:`)}</TextBlock>
+      <TextBlock>{t('Your other accounts:')}</TextBlock>
       <IsPrimaryUserContext value={false}>
         <Users users={otherAccounts} onSelect={onSelect} selectedUsers={selectedUsers} />
       </IsPrimaryUserContext>
@@ -341,10 +337,10 @@ function UserRow({user, onSelect, selectedUsers}: UserRowProps) {
   );
 }
 
-const tableLayout = css`
+const tableLayout = (p: {theme: Theme}) => css`
   display: grid;
   grid-template-columns: auto 140px 140px 60px;
-  gap: ${space(1)};
+  gap: ${p.theme.space.md};
   align-items: center;
 `;
 
@@ -353,7 +349,7 @@ const UserPanelItem = styled(PanelItem)`
 `;
 
 const Name = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 
@@ -367,18 +363,18 @@ const UserPanelHeader = styled(PanelHeader)`
 `;
 
 const StyledListItem = styled(ListItem)`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.xl};
   line-height: 1.3;
 `;
 
 const ButtonSection = styled('div')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const StyledInput = styled(Input)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(3)};
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
   flex: 1;
 `;

@@ -1,4 +1,3 @@
-import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
@@ -6,12 +5,12 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
-import StartDurationWidget from './startDurationWidget';
+import {StartDurationWidget} from './startDurationWidget';
 
-jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
 describe('StartDurationWidget', () => {
@@ -73,7 +72,7 @@ describe('StartDurationWidget', () => {
       query: {
         app_start_type: 'cold',
       },
-    } as Location);
+    });
 
     render(<StartDurationWidget />);
     expect(await screen.findByText('Average Cold Start')).toBeInTheDocument();
@@ -85,7 +84,7 @@ describe('StartDurationWidget', () => {
       query: {
         app_start_type: 'warm',
       },
-    } as Location);
+    });
 
     render(<StartDurationWidget />);
     expect(await screen.findByText('Average Warm Start')).toBeInTheDocument();

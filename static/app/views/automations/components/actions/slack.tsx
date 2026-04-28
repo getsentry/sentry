@@ -1,5 +1,6 @@
-import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {
   OptionalRowLine,
@@ -95,7 +96,7 @@ function NotesField() {
     <AutomationBuilderInput
       name={`${actionId}.data.notes`}
       aria-label={t('Notes')}
-      placeholder={t('example notes')}
+      placeholder={t('e.g. @jane, @on-call-team')}
       value={action.data.notes ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         onUpdate({

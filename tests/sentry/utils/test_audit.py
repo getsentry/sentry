@@ -37,7 +37,7 @@ class CreateAuditEntryTest(TestCase):
         self.project = self.create_project(teams=[self.team], platform="java")
 
     def assert_no_delete_log_created(self):
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert not DeletedOrganization.objects.filter(slug=self.org.slug).exists()
             assert not DeletedTeam.objects.filter(slug=self.team.slug).exists()
             assert not DeletedProject.objects.filter(slug=self.project.slug).exists()
@@ -134,7 +134,7 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Organization.objects.get(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )
@@ -541,3 +541,31 @@ class CreateAuditEntryTest(TestCase):
         assert entry.organization_id == self.org.id
         assert entry.target_object == self.org.id
         assert audit_log.get(entry.event).render(entry) == "disabled sso (GitHub)"
+
+    def test_repo_settings_edit_legacy_data_renders(self) -> None:
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
+            data={"repository_count": 3},
+        )
+        audit_log_event = audit_log.get(entry.event)
+        assert audit_log_event.render(entry) == "updated repository settings for 3 repositories"
+
+    def test_repo_settings_edit_new_data_renders(self) -> None:
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("REPO_SETTINGS_EDIT"),
+            data={
+                "repository_names": "repo-a, repo-b",
+                "code_review_change": " (enabled code review)",
+            },
+        )
+        audit_log_event = audit_log.get(entry.event)
+        assert (
+            audit_log_event.render(entry)
+            == "updated repository settings for repo-a, repo-b (enabled code review)"
+        )

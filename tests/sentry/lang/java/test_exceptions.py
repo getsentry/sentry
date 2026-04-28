@@ -1,4 +1,5 @@
 import re
+from typing import Any
 
 from sentry.lang.java.exceptions import Exceptions
 
@@ -7,11 +8,13 @@ def build_event(exceptions_values):
     return {"exception": {"values": exceptions_values}}
 
 
-def test_get_processable_exceptions_filters_by_module_and_type():
+def test_get_processable_exceptions_filters_by_type() -> None:
     data = build_event(
         [
             {"type": "RuntimeException", "module": "java.lang", "value": "boom"},
             {"type": "IllegalStateException", "value": "oops"},
+            # Root-package obfuscated exception (R8 aggressive mode) — no module.
+            {"type": "kj", "value": "compose boom"},
             {"module": "kotlin", "value": "meh"},
             {"value": "just text"},
         ]
@@ -20,12 +23,14 @@ def test_get_processable_exceptions_filters_by_module_and_type():
     excs = Exceptions(data)
     processable = excs.get_processable_exceptions()
 
-    assert len(processable) == 1
+    assert len(processable) == 3
     assert processable[0]["type"] == "RuntimeException"
     assert processable[0]["module"] == "java.lang"
+    assert processable[1]["type"] == "IllegalStateException"
+    assert processable[2]["type"] == "kj"
 
 
-def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values():
+def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values() -> None:
     data = build_event(
         [
             {
@@ -49,7 +54,7 @@ def test_value_class_names_matches_fqcn_inner_and_quoted_multiple_values():
     assert "Tf.k" in class_names
 
 
-def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values():
+def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values() -> None:
     # First exception is processable by type/module mapping
     exc1 = {"type": "g$a", "module": "org.a.b", "value": "something with org.a.b.g$a"}
     # Next exceptions only have value matches, spread across multiple exceptions
@@ -92,7 +97,30 @@ def test_deobfuscate_and_save_deobfuscates_types_and_values_multiple_values():
     assert exc3["raw_value"].startswith("Caused by com.example.myapp.MainActivity")
 
 
-def test_deobfuscate_value_replaces_longest_tokens_first():
+def test_deobfuscate_and_save_root_package_exception() -> None:
+    # R8 aggressive mode produces root-package classes with no module;
+    # raw_module must be preserved as None when originally absent.
+    exc: dict[str, Any] = {"type": "kj", "value": "compose boom"}
+    data = build_event([exc])
+
+    excs = Exceptions(data)
+
+    mapped_exceptions = [
+        {
+            "type": "DiagnosticComposeException",
+            "module": "androidx.compose.runtime.tooling",
+        }
+    ]
+
+    excs.deobfuscate_and_save(None, mapped_exceptions)
+
+    assert exc["raw_type"] == "kj"
+    assert exc["raw_module"] is None
+    assert exc["type"] == "DiagnosticComposeException"
+    assert exc["module"] == "androidx.compose.runtime.tooling"
+
+
+def test_deobfuscate_value_replaces_longest_tokens_first() -> None:
     # Overlapping tokens: a.b$c$1 (longer) and a.b$c (shorter)
     exc = {"value": "Found both inner a.b$c$1 and outer a.b$c in text"}
     data = build_event([exc])
@@ -116,7 +144,7 @@ def test_deobfuscate_value_replaces_longest_tokens_first():
     assert exc["raw_value"].startswith("Found both inner a.b$c$1")
 
 
-def test_deobfuscate_value_preserves_quotes_in_replacements():
+def test_deobfuscate_value_preserves_quotes_in_replacements() -> None:
     exc = {"value": "Got 'o' and \"j4\" in message"}
     data = build_event([exc])
 
@@ -134,7 +162,7 @@ def test_deobfuscate_value_preserves_quotes_in_replacements():
     assert exc["raw_value"].startswith("Got '")
 
 
-def test_deobfuscate_is_noop_when_no_classes_mapping():
+def test_deobfuscate_is_noop_when_no_classes_mapping() -> None:
     # Only value matches; no module/type entries and no classes mapping
     original = "Refs com.example.A and a.b$c$1 and 'o'"
     exc = {"value": original}

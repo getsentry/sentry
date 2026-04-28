@@ -1,42 +1,35 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
-import React, {
-  Fragment,
-  memo,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, {Fragment, memo, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromId from 'sentry/utils/useProjectFromId';
-import useProjects from 'sentry/utils/useProjects';
-import CellAction, {
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useProjects} from 'sentry/utils/useProjects';
+import {
   Actions,
   ActionTriggerType,
+  CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
@@ -93,8 +86,8 @@ import {
   getLogSeverityLevel,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
-  ourlogToJson,
   type LogTableRowItem,
+  ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
 import {
@@ -110,7 +103,6 @@ type LogsRowProps = {
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   blockRowExpanding?: boolean;
-  canDeferRenderElements?: boolean;
   embedded?: boolean;
   embeddedOptions?: {
     openWithExpandedIds?: string[];
@@ -158,7 +150,6 @@ export const LogRowContent = memo(function LogRowContent({
   onCollapse,
   onExpandHeight,
   blockRowExpanding,
-  canDeferRenderElements,
   onEmbeddedRowClick,
   logStart,
   logEnd,
@@ -171,18 +162,7 @@ export const LogRowContent = memo(function LogRowContent({
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
-  const [shouldRenderHoverElements, _setShouldRenderHoverElements] = useState(
-    canDeferRenderElements ? false : true
-  );
-
-  const setShouldRenderHoverElements = useCallback(
-    (value: boolean) => {
-      if (canDeferRenderElements) {
-        _setShouldRenderHoverElements(value);
-      }
-    },
-    [canDeferRenderElements, _setShouldRenderHoverElements]
-  );
+  const [shouldRenderHoverElements, setShouldRenderHoverElements] = useState(false);
 
   // This only applies in embedded views where clicking doesn't expand row details.
   function onClick(event: SyntheticEvent) {
@@ -197,10 +177,22 @@ export const LogRowContent = memo(function LogRowContent({
   }
 
   function onPointerUp(event: SyntheticEvent) {
-    if (event.target instanceof Element && isInsideButton(event.target)) {
-      // do not expand the context menu if you clicked a button
-      return;
+    // do not expand the context menu if...
+    if (event.target instanceof Element) {
+      // ... you clicked a button
+      if (isInsideButton(event.target)) {
+        return;
+      }
+
+      // ... you clicked outside the row (e.g. a portal button)
+      if (
+        !(event.currentTarget instanceof Node) ||
+        !event.currentTarget.contains(event.target)
+      ) {
+        return;
+      }
     }
+
     if (window.getSelection()?.toString() === '') {
       toggleExpanded();
     }
@@ -267,9 +259,11 @@ export const LogRowContent = memo(function LogRowContent({
     sharedHoverTimeoutRef,
     timeout: prefetchTimeout,
   });
+  const [caseInsensitivity] = useCaseInsensitivity();
 
   const rendererExtra: RendererExtra = {
     highlightTerms,
+    caseSensitiveHighlighting: !caseInsensitivity,
     logColors,
     useFullSeverityText: false,
     location,
@@ -352,7 +346,7 @@ export const LogRowContent = memo(function LogRowContent({
                 aria-label={t('Toggle trace details')}
                 aria-expanded={expanded}
                 size="zero"
-                borderless
+                priority="transparent"
                 onClick={() => toggleExpanded()}
               />
             ) : (
@@ -406,9 +400,14 @@ export const LogRowContent = memo(function LogRowContent({
             type: FieldValueType.STRING,
           };
 
+          const shouldRenderActions =
+            !embedded &&
+            field !== OurLogKnownFieldKey.TIMESTAMP &&
+            shouldRenderHoverElements;
+
           return (
             <LogTableBodyCell key={field} data-test-id={'log-table-cell-' + field}>
-              {shouldRenderHoverElements ? (
+              {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
                   dataRow={dataRow as unknown as TableDataRow}
@@ -434,11 +433,7 @@ export const LogRowContent = memo(function LogRowContent({
                         break;
                     }
                   }}
-                  allowActions={
-                    field === OurLogKnownFieldKey.TIMESTAMP || embedded
-                      ? []
-                      : ALLOWED_CELL_ACTIONS
-                  }
+                  allowActions={ALLOWED_CELL_ACTIONS}
                   triggerType={ActionTriggerType.ELLIPSIS}
                 >
                   {renderedField}
@@ -484,6 +479,7 @@ function LogRowDetails({
   const projectSlug = project?.slug ?? '';
   const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
+  const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
@@ -544,22 +540,23 @@ function LogRowDetails({
             <DetailsContent>
               <DetailsBody>
                 {isRegularLogResponseItem(dataRow) ? (
-                  LogBodyRenderer({
-                    item: getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta),
-                    extra: {
+                  <LogBodyRenderer
+                    item={getLogRowItem(OurLogKnownFieldKey.MESSAGE, dataRow, meta)}
+                    extra={{
                       highlightTerms,
                       logColors,
                       wrapBody: true,
                       location,
                       organization,
+                      caseSensitiveHighlighting: !caseInsensitivity,
                       projectSlug,
                       attributes,
                       attributeTypes,
                       meta,
                       theme,
                       traceItemMeta: data?.meta,
-                    },
-                  })
+                    }}
+                  />
                 ) : (
                   <span>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</span>
                 )}
@@ -573,6 +570,7 @@ function LogRowDetails({
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
                   rendererExtra={{
+                    caseSensitiveHighlighting: !caseInsensitivity,
                     highlightTerms,
                     logColors,
                     location,
@@ -616,9 +614,9 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
   return (
     <LogDetailTableActionsButtonBar>
       <Button
-        priority="link"
+        priority="transparent"
         size="sm"
-        borderless
+        icon={<IconAdd />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -626,13 +624,12 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconAdd size="md" style={{paddingRight: space(0.5)}} />
         {t('Add to filter')}
       </Button>
       <Button
-        priority="link"
+        priority="transparent"
         size="sm"
-        borderless
+        icon={<IconSubtract />}
         onClick={() => {
           addSearchFilter({
             key: OurLogKnownFieldKey.MESSAGE,
@@ -641,7 +638,6 @@ function LogRowDetailsFilterActions({tableDataRow}: {tableDataRow: LogTableRowIt
           });
         }}
       >
-        <IconSubtract size="md" style={{paddingRight: space(0.5)}} />
         {t('Exclude from filter')}
       </Button>
     </LogDetailTableActionsButtonBar>
@@ -665,7 +661,7 @@ function LogRowDetailsActions({
   // Memoize in case we are attempting to copy large JSON objects.
   const json = useMemo(() => ourlogToJson(data), [data]);
 
-  const betterCopyToClipboard = useCallback(() => {
+  const betterCopyToClipboard = () => {
     if (!json) {
       return;
     }
@@ -678,7 +674,7 @@ function LogRowDetailsActions({
         organization,
       });
     });
-  }, [copy, organization, tableDataRow, json]);
+  };
 
   return (
     <Fragment>
@@ -689,13 +685,12 @@ function LogRowDetailsActions({
       )}
       <LogDetailTableActionsButtonBar>
         <Button
-          priority="link"
+          priority="transparent"
           size="sm"
-          borderless
+          icon={<IconJson />}
           onClick={betterCopyToClipboard}
           disabled={isPending || isError || !json}
         >
-          <IconJson size="md" style={{paddingRight: space(0.5)}} />
           {t('Copy as JSON')}
         </Button>
       </LogDetailTableActionsButtonBar>

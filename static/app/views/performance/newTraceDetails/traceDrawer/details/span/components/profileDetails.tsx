@@ -6,7 +6,6 @@ import {
   type SpanProfileDetailsProps,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -44,5 +43,5 @@ export function ProfileDetails({
 }
 
 const EmbededContentWrapper = styled('div')`
-  margin-top: ${space(0.5)};
+  margin-top: ${p => p.theme.space.xs};
 `;

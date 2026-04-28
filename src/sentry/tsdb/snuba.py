@@ -740,7 +740,6 @@ class SnubaTSDB(BaseTSDB):
         group_on_time: bool = True,
         project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
-
         aggregation = self.get_aggregate_function(model)
 
         if self._should_use_upsampled_aggregation(model, project_ids):
@@ -800,7 +799,6 @@ class SnubaTSDB(BaseTSDB):
         aggregation_override: str | None = None,
         project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
-
         if aggregation_override:
             aggregation = aggregation_override
         else:

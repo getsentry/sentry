@@ -1,17 +1,18 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex} from 'sentry/components/core/layout';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDeleteDetectorsMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorsMutation';
 import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDetectorsMutation';
 
@@ -67,8 +68,8 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to enable this %s monitor?`,
-      `Are you sure you want to enable these %s monitors?`,
+      'Are you sure you want to enable this %s monitor?',
+      'Are you sure you want to enable these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
@@ -83,39 +84,27 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to disable this %s monitor?`,
-      `Are you sure you want to disable these %s monitors?`,
+      'Are you sure you want to disable this %s monitor?',
+      'Are you sure you want to disable these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleUpdate = useCallback(
-    ({enabled}: {enabled: boolean}) => {
-      openConfirmModal({
-        message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
-        confirmText: enabled ? t('Enable') : t('Disable'),
-        priority: 'danger',
-        onConfirm: async () => {
-          if (allInQuerySelected) {
-            await updateDetectors({enabled, query, projects: selection.projects});
-          } else {
-            await updateDetectors({enabled, ids: Array.from(selected)});
-          }
-          togglePageSelected(false);
-        },
-      });
-    },
-    [
-      selected,
-      allInQuerySelected,
-      updateDetectors,
-      getEnableConfirmMessage,
-      getDisableConfirmMessage,
-      togglePageSelected,
-      selection.projects,
-      query,
-    ]
-  );
+  const handleUpdate = ({enabled}: {enabled: boolean}) => {
+    openConfirmModal({
+      message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
+      confirmText: enabled ? t('Enable') : t('Disable'),
+      priority: 'danger',
+      onConfirm: async () => {
+        if (allInQuerySelected) {
+          await updateDetectors({enabled, query, projects: selection.projects});
+        } else {
+          await updateDetectors({enabled, ids: Array.from(selected)});
+        }
+        togglePageSelected(false);
+      },
+    });
+  };
 
   const getDeleteConfirmMessage = useCallback(() => {
     if (allInQuerySelected) {
@@ -127,13 +116,13 @@ export function DetectorsTableActions({
       );
     }
     return tn(
-      `Are you sure you want to delete this %s monitor?`,
-      `Are you sure you want to delete these %s monitors?`,
+      'Are you sure you want to delete this %s monitor?',
+      'Are you sure you want to delete these %s monitors?',
       selected.size
     );
   }, [allInQuerySelected, queryCount, selected.size]);
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = () => {
     openConfirmModal({
       message: getDeleteConfirmMessage(),
       confirmText: t('Delete'),
@@ -147,15 +136,7 @@ export function DetectorsTableActions({
         togglePageSelected(false);
       },
     });
-  }, [
-    selected,
-    allInQuerySelected,
-    deleteDetectors,
-    getDeleteConfirmMessage,
-    togglePageSelected,
-    selection.projects,
-    query,
-  ]);
+  };
 
   return (
     <Fragment>

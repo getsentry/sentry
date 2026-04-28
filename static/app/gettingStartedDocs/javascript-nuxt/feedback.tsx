@@ -1,4 +1,4 @@
-import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import {crashReportCallout} from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -50,7 +50,7 @@ export const feedback: OnboardingConfig = {
               label: 'JavaScript',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/nuxt";`,
+                importStatement: 'import * as Sentry from "@sentry/nuxt";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

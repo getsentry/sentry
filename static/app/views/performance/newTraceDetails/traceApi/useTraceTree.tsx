@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
 
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {isEmptyTrace} from './utils';
 

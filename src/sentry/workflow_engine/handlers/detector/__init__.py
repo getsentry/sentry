@@ -1,4 +1,5 @@
 __all__ = [
+    "BaseDetectorHandler",
     "DataPacketEvaluationType",
     "DataPacketType",
     "DetectorHandler",
@@ -9,6 +10,7 @@ __all__ = [
 ]
 
 from .base import (
+    BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
     DetectorHandler,

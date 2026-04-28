@@ -1,7 +1,7 @@
 import type {Organization} from 'sentry/types/organization';
-import useProjects from 'sentry/utils/useProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 
-function useProjectFromSlug({
+export function useProjectFromSlug({
   organization,
   projectSlug,
 }: {
@@ -14,5 +14,3 @@ function useProjectFromSlug({
   });
   return fetching ? undefined : projects[0];
 }
-
-export default useProjectFromSlug;

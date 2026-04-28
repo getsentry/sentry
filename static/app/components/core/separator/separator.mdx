@@ -2,19 +2,18 @@
 title: Separator
 description: A flexible separator component that creates visual divisions between content with customizable orientation and styling.
 category: utilities
-source: 'sentry/components/core/separator'
+source: '@sentry/scraps/separator'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/separator/separator.tsx
 ---
 
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Separator} from 'sentry/components/core/separator';
-import {Text} from 'sentry/components/core/text';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
+
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/separator';
-
-export {documentation};
+export const documentation = import('!!type-loader!@sentry/scraps/separator');
 
 The `Separator` component creates visual divisions between content areas. It renders as an HTML `<hr>` element with flexible styling options and supports both horizontal and vertical orientations.
 

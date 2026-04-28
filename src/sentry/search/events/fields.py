@@ -94,9 +94,9 @@ class PseudoField:
 
     def validate(self) -> None:
         assert self.alias is not None, f"{self.name}: alias is required"
-        assert (
-            self.expression is None or self.expression_fn is None
-        ), f"{self.name}: only one of expression, expression_fn is allowed"
+        assert self.expression is None or self.expression_fn is None, (
+            f"{self.name}: only one of expression, expression_fn is allowed"
+        )
 
 
 def project_threshold_config_expression(
@@ -484,18 +484,23 @@ def parse_arguments(_function: str, columns: str) -> list[str]:
     quoted = False
     in_tag = False
     escaped = False
+    in_filter = False
 
     i, j = 0, 0
 
     while j < len(columns):
-        if not in_tag and i == j and columns[j] == '"':
+        if not in_filter and not in_tag and i == j and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
-        elif not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
+        elif not in_filter and not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
             # when the argument begins with tags[,
             # then this is the beginning of the tag that may contain commas
             in_tag = True
+        elif not quoted and i == j and columns[j] == "`":
+            # When the argument starts with `
+            # then its a filter that may contain any number of characters
+            in_filter = True
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
             i += 1
@@ -511,6 +516,9 @@ def parse_arguments(_function: str, columns: str) -> list[str]:
             # when we see a non-escaped quote while inside
             # of a quoted string, we should end it
             in_tag = False
+        elif in_filter and columns[j] == "`":
+            # When we see a ` while we're in a filter end it
+            in_filter = False
         elif quoted and escaped:
             # when we are inside a quoted string and have
             # begun an escape character, we should end it
@@ -520,7 +528,7 @@ def parse_arguments(_function: str, columns: str) -> list[str]:
             # a comma, it should not be considered an
             # argument separator
             pass
-        elif columns[j] == ",":
+        elif not in_filter and columns[j] == ",":
             # when we see a comma outside of a quoted string
             # it is an argument separator
             args.append(columns[i:j].strip())
@@ -1444,9 +1452,9 @@ class DiscoverFunction:
     def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
-            assert (
-                arg.has_default
-            ), f"{self.name}: optional argument at index {i} does not have default"
+            assert arg.has_default, (
+                f"{self.name}: optional argument at index {i} does not have default"
+            )
 
         # assert that the function has only one of the following specified
         # `column`, `aggregate`, or `transform`
@@ -1465,15 +1473,15 @@ class DiscoverFunction:
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert (
-                arg.name not in names
-            ), f"{self.name}: argument {arg.name} specified more than once"
+            assert arg.name not in names, (
+                f"{self.name}: argument {arg.name} specified more than once"
+            )
             names.add(arg.name)
 
         for calculation in self.calculated_args:
-            assert (
-                calculation["name"] not in names
-            ), "{}: argument {} specified more than once".format(self.name, calculation["name"])
+            assert calculation["name"] not in names, (
+                "{}: argument {} specified more than once".format(self.name, calculation["name"])
+            )
             names.add(calculation["name"])
 
         self.validate_result_type(self.default_result_type)
@@ -1508,9 +1516,9 @@ class DiscoverFunction:
                 )
 
     def validate_result_type(self, result_type) -> None:
-        assert (
-            result_type is None or result_type in RESULT_TYPES
-        ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
+        assert result_type is None or result_type in RESULT_TYPES, (
+            f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
+        )
 
     def is_accessible(
         self,
@@ -1652,11 +1660,7 @@ FUNCTIONS = {
                     ),
                     tupleElement(project_threshold_config, 2)
                 )
-            """.replace(
-                    "\n", ""
-                ).replace(
-                    " ", ""
-                ),
+            """.replace("\n", "").replace(" ", ""),
             ),
             default_result_type="number",
         ),
@@ -1684,11 +1688,7 @@ FUNCTIONS = {
                     ),
                     multiply(tupleElement(project_threshold_config, 2), 4)
                 ))
-                """.replace(
-                    "\n", ""
-                ).replace(
-                    " ", ""
-                ),
+                """.replace("\n", "").replace(" ", ""),
             ),
             default_result_type="integer",
         ),
@@ -1734,11 +1734,7 @@ FUNCTIONS = {
                         plus(uniq(user), {parameter_sum})
                     ),
                 0)
-            """.replace(
-                    " ", ""
-                ).replace(
-                    "\n", ""
-                ),
+            """.replace(" ", "").replace("\n", ""),
             ),
             default_result_type="number",
         ),
@@ -2192,18 +2188,18 @@ class SnQLFunction(DiscoverFunction):
     def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
-            assert (
-                arg.has_default
-            ), f"{self.name}: optional argument at index {i} does not have default"
+            assert arg.has_default, (
+                f"{self.name}: optional argument at index {i} does not have default"
+            )
 
         assert sum([self.snql_aggregate is not None, self.snql_column is not None]) == 1
 
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert (
-                arg.name not in names
-            ), f"{self.name}: argument {arg.name} specified more than once"
+            assert arg.name not in names, (
+                f"{self.name}: argument {arg.name} specified more than once"
+            )
             names.add(arg.name)
 
         self.validate_result_type(self.default_result_type)
@@ -2266,16 +2262,15 @@ class MetricsFunction(SnQLFunction):
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
         self.snql_gauge = kwargs.pop("snql_gauge", None)
-        self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
         self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
-            assert (
-                arg.has_default
-            ), f"{self.name}: optional argument at index {i} does not have default"
+            assert arg.has_default, (
+                f"{self.name}: optional argument at index {i} does not have default"
+            )
 
         assert (
             sum(
@@ -2285,7 +2280,6 @@ class MetricsFunction(SnQLFunction):
                     self.snql_counter is not None,
                     self.snql_gauge is not None,
                     self.snql_column is not None,
-                    self.snql_metric_layer is not None,
                 ]
             )
             >= 1
@@ -2294,9 +2288,9 @@ class MetricsFunction(SnQLFunction):
         # assert that no duplicate argument names are used
         names = set()
         for arg in self.args:
-            assert (
-                arg.name not in names
-            ), f"{self.name}: argument {arg.name} specified more than once"
+            assert arg.name not in names, (
+                f"{self.name}: argument {arg.name} specified more than once"
+            )
             names.add(arg.name)
 
         self.validate_result_type(self.default_result_type)

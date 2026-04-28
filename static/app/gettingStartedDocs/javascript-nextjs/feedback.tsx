@@ -1,4 +1,4 @@
-import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
+import {crashReportCallout} from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import type {
   DocsParams,
   OnboardingConfig,
@@ -59,7 +59,7 @@ export const feedback: OnboardingConfig = {
               filename: 'instrumentation-client.(js|ts)',
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/nextjs";`,
+                importStatement: 'import * as Sentry from "@sentry/nextjs";',
                 dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),

@@ -11,6 +11,7 @@ import sqlparse
 from django.contrib.auth.models import AnonymousUser
 from sentry_relay.processing import meta_with_chunks
 
+from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
@@ -22,6 +23,7 @@ from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.users.models.user import User
@@ -609,6 +611,19 @@ class SimpleEventSerializer(EventSerializer):
     """
 
     def get_attrs(self, item_list, user, **kwargs):
+        # Batch-fetch event bodies from nodestore in a single multi-get RPC.
+        # serialize() accesses properties (tags, message, title,
+        # get_event_metadata, etc.) that fall through to nodestore when the
+        # corresponding Snuba columns are missing from _snuba_data. Without
+        # this pre-fetch, each event triggers a separate Bigtable get — an
+        # N+1 pattern (~100 sequential RPCs, each ~90ms).
+        # Skip events whose node data is already loaded (e.g. when the caller
+        # used eventstore.get_events which calls bind_nodes internally).
+        if options.get("issues.group_events.batch_nodestore_enabled"):
+            unbound = [e for e in item_list if e.data._node_data is None]
+            if unbound:
+                eventstore.backend.bind_nodes(unbound)
+
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized

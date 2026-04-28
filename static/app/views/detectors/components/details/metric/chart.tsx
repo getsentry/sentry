@@ -2,28 +2,29 @@ import {useMemo} from 'react';
 import {type Theme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
 
+import {Alert} from '@sentry/scraps/alert';
+import {LinkButton} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import Feature from 'sentry/components/acl/feature';
 import {AreaChart, type AreaChartProps} from 'sentry/components/charts/areaChart';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
-import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
-import {Alert} from 'sentry/components/core/alert';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Placeholder from 'sentry/components/placeholder';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -44,6 +45,27 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 import {useMetricTimestamps} from 'sentry/views/detectors/hooks/useMetricTimestamps';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getDetectorChartFormatters} from 'sentry/views/detectors/utils/detectorChartFormatting';
+
+/**
+ * Shift data points from bucket-start to bucket-end timestamps.
+ * The API returns timestamps at the start of each bucket (e.g. 1pm for 1pm–2pm),
+ * but we want to display them at the end (2pm) since the value represents
+ * the data collected during the preceding interval.
+ *
+ * The reason we do this for metric charts is that it's important that the data points
+ * visually align with the open period markers. If an open period starts at 1pm, it should
+ * be vertically aligned with the data point for 12pm-1pm.
+ */
+function shiftSeriesToBucketEnd(seriesList: Series[], intervalSeconds: number): Series[] {
+  const offsetMs = intervalSeconds * 1000;
+  return seriesList.map(s => ({
+    ...s,
+    data: s.data.map(point => ({
+      ...point,
+      name: (point.name as number) + offsetMs,
+    })),
+  }));
+}
 
 interface IncidentTooltipContext {
   period: IncidentPeriod;
@@ -97,11 +119,16 @@ const CHART_HEIGHT = 180;
 interface UseMetricDetectorChartProps {
   detector: MetricDetector;
   openPeriods: GroupOpenPeriod[];
+  enabled?: boolean;
   /**
    * Relative time period (e.g., '7d'). Use either statsPeriod or absolute start/end.
    */
   end?: string | null;
   height?: number;
+  /**
+   * Display a persistent highlight area for the open period with the given ID.
+   */
+  highlightedOpenPeriodId?: string;
   start?: string | null;
   statsPeriod?: string | null;
 }
@@ -163,7 +190,7 @@ type UseMetricDetectorChartResult =
   | {chartProps: null; error: null; isAnomalyThresholdCutOff: false; isLoading: true}
   | {
       chartProps: null;
-      error: RequestError;
+      error: Error;
       isAnomalyThresholdCutOff: false;
       isLoading: false;
     };
@@ -173,7 +200,9 @@ export function useMetricDetectorChart({
   start,
   end,
   detector,
+  enabled = true,
   openPeriods,
+  highlightedOpenPeriodId,
   height = CHART_HEIGHT,
 }: UseMetricDetectorChartProps): UseMetricDetectorChartResult {
   const navigate = useNavigate();
@@ -186,7 +215,14 @@ export function useMetricDetectorChart({
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
   const datasetConfig = getDatasetConfig(dataset);
   const aggregate = datasetConfig.fromApiAggregate(snubaQuery.aggregate);
-  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
+  const {
+    series,
+    comparisonSeries,
+    isLoading,
+    error,
+    unit,
+    outputType: serverOutputType,
+  } = useMetricDetectorSeries({
     detectorDataset: dataset,
     dataset: snubaQuery.dataset,
     extrapolationMode: snubaQuery.extrapolationMode,
@@ -200,6 +236,7 @@ export function useMetricDetectorChart({
     statsPeriod,
     start,
     end,
+    options: {enabled},
   });
 
   const metricTimestamps = useMetricTimestamps(series);
@@ -237,6 +274,7 @@ export function useMetricDetectorChart({
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
+    highlightedIncidentId: highlightedOpenPeriodId,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
@@ -246,14 +284,14 @@ export function useMetricDetectorChart({
       const startMs = context.period.start;
       const endMs = context.period.end ?? Date.now();
       const intervalSeconds = Number(snubaQuery.timeWindow) || 60;
-      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+      const zoomRange = computeZoomRangeMs({
         startMs,
         endMs,
         intervalSeconds,
       });
       navigate({
         pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+        query: buildDetectorZoomQuery(location.query, zoomRange),
       });
     },
   });
@@ -287,18 +325,24 @@ export function useMetricDetectorChart({
 
     // Line series not working well with the custom series type
     baseSeries.push(openPeriodMarkerResult.incidentMarkerSeries as any);
+    if (openPeriodMarkerResult.highlightedIncidentAreaSeries) {
+      baseSeries.push(openPeriodMarkerResult.highlightedIncidentAreaSeries as any);
+    }
 
     return baseSeries;
   }, [
     thresholdAdditionalSeries,
     filteredAnomalyThresholdSeries,
     openPeriodMarkerResult.incidentMarkerSeries,
+    openPeriodMarkerResult.highlightedIncidentAreaSeries,
   ]);
 
   const yAxes = useMemo(() => {
     const {formatYAxisLabel, outputType} = getDetectorChartFormatters({
       detectionType,
       aggregate,
+      unit,
+      serverOutputType,
     });
 
     const isPercentage = outputType === 'percentage';
@@ -347,14 +391,16 @@ export function useMetricDetectorChart({
     maxValue,
     minValue,
     openPeriodMarkerResult.incidentMarkerYAxis,
+    serverOutputType,
+    unit,
   ]);
 
   const grid = useMemo(() => {
     return {
-      left: space(0.25),
-      right: space(0.25),
-      top: space(1.5),
-      bottom: space(1),
+      left: '2px',
+      right: '2px',
+      top: '12px',
+      bottom: '8px',
       ...openPeriodMarkerResult.incidentMarkerGrid,
     };
   }, [openPeriodMarkerResult.incidentMarkerGrid]);
@@ -367,16 +413,36 @@ export function useMetricDetectorChart({
       showTimeInTooltip: true,
       height,
       stacked: false,
-      series,
+      series: shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
       additionalSeries,
       yAxes: yAxes.length > 1 ? yAxes : undefined,
       yAxis: yAxes.length === 1 ? yAxes[0] : undefined,
       grid,
       xAxis: openPeriodMarkerResult.incidentMarkerXAxis,
       tooltip: {
+        // Data points are shifted to bucket-end timestamps
+        // so we need to subtract the interval to get the bucket-start time.
+        formatAxisLabel: (
+          value,
+          isTimestamp,
+          utc,
+          showTimeInTooltip,
+          addSecondsToTimeFormat,
+          bucketSize
+        ) =>
+          defaultFormatAxisLabel(
+            value - snubaQuery.timeWindow * 1000,
+            isTimestamp,
+            utc,
+            showTimeInTooltip,
+            addSecondsToTimeFormat,
+            bucketSize
+          ).toString(),
         valueFormatter: getDetectorChartFormatters({
           detectionType,
           aggregate,
+          unit,
+          serverOutputType,
         }).formatTooltipValue,
       },
       ...chartZoomProps,
@@ -384,7 +450,7 @@ export function useMetricDetectorChart({
         chartZoomProps.onChartReady(chart);
         openPeriodMarkerResult.onChartReady(chart);
       },
-    };
+    } satisfies AreaChartProps;
   }, [
     additionalSeries,
     aggregate,
@@ -396,6 +462,9 @@ export function useMetricDetectorChart({
     isLoading,
     openPeriodMarkerResult,
     series,
+    serverOutputType,
+    snubaQuery.timeWindow,
+    unit,
     yAxes,
   ]);
 
@@ -469,7 +538,7 @@ function OpenInButton({detector}: OpenInButtonProps) {
         size="xs"
         to={destination.to}
         disabled={isUsingMigratedExtrapolationMode}
-        title={disabledTooltip}
+        tooltipProps={{title: disabledTooltip}}
       >
         {destination.buttonText}
       </LinkButton>
@@ -565,7 +634,9 @@ export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChar
   }
   if (error || !chartProps) {
     const errorMessage =
-      typeof error?.responseJSON?.detail === 'string' ? error.responseJSON.detail : null;
+      error instanceof RequestError && typeof error?.responseJSON?.detail === 'string'
+        ? error.responseJSON.detail
+        : null;
     return (
       <ChartContainer overflow="hidden">
         {errorMessage && (

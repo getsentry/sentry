@@ -3,16 +3,16 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
-import {Flex} from 'sentry/components/core/layout';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import TextOverflow from 'sentry/components/textOverflow';
+import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
 
 interface Props {
@@ -35,9 +35,9 @@ const hideDropdown = css`
   }
 `;
 
-export default function FeedbackShortId({className, feedbackItem, style}: Props) {
+export function FeedbackShortId({className, feedbackItem, style}: Props) {
   const organization = useOrganization();
-  const projectSlug = useCurrentFeedbackProject();
+  const projectSlug = feedbackItem.project?.slug ?? '';
 
   // we need the stringifyUrl part so that the whole item is a string
   // for the copy url button below. normalizeUrl can return an object if `query`
@@ -51,7 +51,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
     queryString.stringifyUrl({
       url: '?',
       query: {
-        feedbackSlug: `${projectSlug}:${feedbackItem.id}`,
+        feedbackSlug: projectSlug ? `${projectSlug}:${feedbackItem.id}` : feedbackItem.id,
         project: feedbackItem.project?.id,
       },
     });
@@ -76,7 +76,7 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
           'aria-label': t('Short-ID copy actions'),
           icon: <IconChevron direction="down" size="xs" />,
           size: 'zero',
-          borderless: true,
+          priority: 'transparent',
           showChevron: false,
         }}
         position="bottom"

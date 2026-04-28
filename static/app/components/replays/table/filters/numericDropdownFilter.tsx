@@ -7,11 +7,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery} from 'sentry/views/explore/replays/types';
 
 const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
 
-export default function NumericDropdownFilter({
+export function NumericDropdownFilter({
   type,
   val,
   formatter = DEFAULT_NUMERIC_DROPDOWN_FORMATTER,
@@ -82,7 +82,6 @@ export default function NumericDropdownFilter({
           data-visible-on-hover
           icon={<IconEllipsis size="xs" />}
           size="zero"
-          translucentBorder
         />
       )}
     />

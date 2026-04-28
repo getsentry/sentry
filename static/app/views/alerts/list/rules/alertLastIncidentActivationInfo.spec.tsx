@@ -5,7 +5,7 @@ import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
+import {AlertLastIncidentActivationInfo} from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import {CombinedAlertType, IncidentStatus} from 'sentry/views/alerts/types';
 
 describe('AlertLastIncidentActivationInfo', () => {

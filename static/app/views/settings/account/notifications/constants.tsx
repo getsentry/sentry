@@ -1,4 +1,9 @@
-export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
+export const SUPPORTED_PROVIDERS = [
+  'email',
+  'slack',
+  'slack_staging',
+  'msteams',
+] as const;
 export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
 
 type ProviderValue = 'always' | 'never';
@@ -34,11 +39,6 @@ export const NOTIFICATION_SETTINGS_TYPES = [
   'email',
   'spikeProtection',
   'brokenMonitors',
-] as const;
-
-export const SELF_NOTIFICATION_SETTINGS_TYPES = [
-  'personalActivityNotifications',
-  'selfAssignOnResolve',
 ] as const;
 
 // 'alerts' | 'workflow' ...

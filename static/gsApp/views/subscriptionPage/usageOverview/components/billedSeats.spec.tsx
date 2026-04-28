@@ -5,9 +5,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory, type Subscription} from 'getsentry/types';
-import BilledSeats from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
+import {BilledSeats} from 'getsentry/views/subscriptionPage/usageOverview/components/billedSeats';
 
 describe('BilledSeats', () => {
   const organization = OrganizationFixture();
@@ -18,9 +18,10 @@ describe('BilledSeats', () => {
     SubscriptionStore.set(organization.slug, subscription);
 
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
   });
 
@@ -83,7 +84,7 @@ describe('BilledSeats', () => {
     };
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/billing-seats/current/?billingMetric=${DataCategory.SEER_USER}`,
+      url: `/customers/${organization.slug}/billing-seats/current/`,
       method: 'GET',
       body: [
         {
@@ -107,6 +108,7 @@ describe('BilledSeats', () => {
           status: 'ASSIGNED',
         },
       ],
+      match: [MockApiClient.matchQuery({billingMetric: DataCategory.SEER_USER})],
     });
     render(
       <BilledSeats

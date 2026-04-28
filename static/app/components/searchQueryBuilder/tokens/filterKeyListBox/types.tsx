@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/core/compactSelect/types';
+} from '@sentry/scraps/compactSelect';
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
@@ -52,7 +52,7 @@ export interface AskSeerItem extends SelectOptionWithKey<string> {
   value: string;
 }
 
-export interface AskSeerConsentItem extends SelectOptionWithKey<string> {
+interface AskSeerConsentItem extends SelectOptionWithKey<string> {
   type: 'ask-seer-consent';
   value: string;
 }

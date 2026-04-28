@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectQuickLinks from 'sentry/views/projectDetail/projectQuickLinks';
+import {ProjectQuickLinks} from 'sentry/views/projectDetail/projectQuickLinks';
 
 describe('ProjectDetail > ProjectQuickLinks', () => {
   const organization = OrganizationFixture({features: ['performance-view']});
@@ -24,7 +24,7 @@ describe('ProjectDetail > ProjectQuickLinks', () => {
     const keyTransactions = screen.getByRole('link', {name: 'View Transactions'});
 
     await userEvent.click(userFeedback);
-    expect(router.location.pathname).toBe('/organizations/org-slug/feedback/');
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/feedback/');
     expect(router.location.query).toEqual({project: '2'});
 
     await userEvent.click(keyTransactions);

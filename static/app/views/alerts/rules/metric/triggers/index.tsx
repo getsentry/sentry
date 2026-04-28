@@ -1,14 +1,14 @@
 import {Component, Fragment} from 'react';
 
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
-import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
+import {removeAtArrayIndex} from 'sentry/utils/array/removeAtArrayIndex';
+import {replaceAtArrayIndex} from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
-import AnomalyDetectionFormField from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
-import DynamicAlertsFeedbackButton from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
+import {AnomalyDetectionFormField} from 'sentry/views/alerts/rules/metric/triggers/anomalyAlertsForm';
+import {DynamicAlertsFeedbackButton} from 'sentry/views/alerts/rules/metric/triggers/dynamicAlertsFeedbackButton';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 import {
   AlertRuleComparisonType,
@@ -51,7 +51,7 @@ type Props = {
 /**
  * A list of forms to add, edit, and delete triggers.
  */
-class Triggers extends Component<Props> {
+export class Triggers extends Component<Props> {
   handleDeleteTrigger = (index: number) => {
     const {triggers, onChange} = this.props;
     const updatedTriggers = removeAtArrayIndex(triggers, index);
@@ -169,5 +169,3 @@ class Triggers extends Component<Props> {
     );
   }
 }
-
-export default Triggers;

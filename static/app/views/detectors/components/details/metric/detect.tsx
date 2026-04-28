@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Heading, Text} from 'sentry/components/core/text';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {
   FilterWrapper,
   ProvidedFormattedQuery,
@@ -21,6 +20,7 @@ import type {
   MetricCondition,
   MetricDetector,
 } from 'sentry/types/workflowEngine/detectors';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -31,6 +31,7 @@ import {
   isAnomalyDetectionComparison,
 } from 'sentry/views/detectors/utils/anomalyDetectionLabels';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 function getDetectorTypeLabel(detector: MetricDetector) {
   if (detector.config.detectionType === 'dynamic') {
@@ -85,8 +86,6 @@ export function getConditionDescription({
   condition: MetricCondition;
   config: MetricDetector['config'];
 }) {
-  const comparisonValue =
-    typeof condition.comparison === 'number' ? String(condition.comparison) : '';
   const unit = getMetricDetectorSuffix(config.detectionType, aggregate);
 
   if (config.detectionType === 'dynamic') {
@@ -105,17 +104,21 @@ export function getConditionDescription({
     return t('Dynamic threshold');
   }
 
+  // This should never happen, but we need to narrow the type
+  if (typeof condition.comparison !== 'number') {
+    return t('Invalid comparison value');
+  }
+
   if (config.detectionType === 'percent') {
-    const direction =
-      condition.type === DataConditionType.GREATER ? t('higher') : t('lower');
-    const delta = config.comparisonDelta;
-    const timeRange = getExactDuration(delta);
+    const direction = condition.comparison >= 100 ? t('higher') : t('lower');
+    const deltaComparison = percentThresholdAbsoluteToDelta(condition.comparison);
+    const timeRange = getExactDuration(config.comparisonDelta);
 
     if (condition.conditionResult === DetectorPriorityLevel.OK) {
       return t(
-        `Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+        'Below or equal to %(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s',
         {
-          comparisonValue,
+          comparisonValue: deltaComparison,
           unit,
           direction,
           timeRange,
@@ -124,9 +127,9 @@ export function getConditionDescription({
     }
 
     return t(
-      `%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s`,
+      '%(comparisonValue)s%(unit)s %(direction)s than the previous %(timeRange)s',
       {
-        comparisonValue,
+        comparisonValue: deltaComparison,
         unit,
         direction,
         timeRange,
@@ -134,7 +137,7 @@ export function getConditionDescription({
     );
   }
 
-  return `${makeDirectionText(condition)} ${comparisonValue}${unit}`;
+  return `${makeDirectionText(condition)} ${condition.comparison}${unit}`;
 }
 
 function DetectorPriorities({detector}: {detector: MetricDetector}) {
@@ -158,7 +161,9 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
           </Flex>
           <Text>
             {getConditionDescription({
-              aggregate: detector.dataSources[0].queryObj.snubaQuery.aggregate,
+              aggregate: stripEquationPrefix(
+                detector.dataSources[0].queryObj.snubaQuery.aggregate
+              ),
               condition,
               config: detector.config,
             })}
@@ -199,7 +204,9 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
           <Value>
             <Flex>
               <FilterWrapper>
-                {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
+                {datasetConfig.fromApiAggregate(
+                  stripEquationPrefix(dataSource.queryObj.snubaQuery.aggregate)
+                )}
               </FilterWrapper>
             </Flex>
           </Value>

@@ -1,12 +1,13 @@
 import {useCallback} from 'react';
+import {useMutation, type MutateOptions} from '@tanstack/react-query';
 
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
+import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
+import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {MutateOptions} from 'sentry/utils/queryClient';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 type TPayload =
@@ -24,12 +25,8 @@ interface Props {
   projectIds: string[];
 }
 
-export default function useMutateFeedback({
-  feedbackIds,
-  organization,
-  projectIds,
-}: Props) {
-  const {listQueryKey} = useFeedbackQueryKeys();
+export function useMutateFeedback({feedbackIds, organization, projectIds}: Props) {
+  const {listApiOptions} = useFeedbackApiOptions();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
   const {mutate} = useMutation<TData, TError, TVariables, TContext>({
@@ -45,10 +42,12 @@ export default function useMutateFeedback({
       // TODO: it would be excellent if `PUT /issues/` could return the same data
       // as `GET /issues/` when query params are set. IE: it should expand inbox & owners
       // Then we could push new data into the cache instead of re-fetching it again
+
+      const listQueryKeyOptions = parseQueryKey(listApiOptions.queryKey).options ?? {};
       const options = isSingleId
         ? {}
         : ids === 'all'
-          ? listQueryKey?.[2]!
+          ? listQueryKeyOptions
           : {query: {id: ids, project: projectIds}};
       return fetchMutation({method: 'PUT', url, options, data: payload});
     },

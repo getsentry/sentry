@@ -24,7 +24,7 @@ class UserSerializerTest(TestCase):
             type=available_authenticators(ignore_backup=True)[0].type, user=user, config={}
         )
 
-        result = serialize(user)
+        result = serialize(user, user)
         assert result["id"] == str(user.id)
         assert result["has2fa"] is True
         assert len(result["emails"]) == 1
@@ -48,6 +48,30 @@ class UserSerializerTest(TestCase):
 
         result = serialize(user)
         assert result["isSuperuser"] is True
+
+    def test_superuser_can_see_other_user_emails(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        other_user = self.create_user()
+
+        result = serialize(other_user, superuser)
+        assert len(result["emails"]) == 1
+        assert result["emails"][0]["email"] == other_user.email
+        assert result["emails"][0]["is_verified"]
+
+    def test_non_requester_cannot_see_emails(self) -> None:
+        viewer = self.create_user()
+        other_user = self.create_user()
+
+        result = serialize(other_user, viewer)
+        assert result["emails"] == []
+
+    def test_superuser_does_not_get_self_fields_for_other_user(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        other_user = self.create_user()
+
+        result = serialize(other_user, superuser)
+        assert "options" not in result
+        assert "flags" not in result
 
 
 @control_silo_test

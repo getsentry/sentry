@@ -1,18 +1,18 @@
 import {useCallback} from 'react';
+import {useMutation, type MutateOptions} from '@tanstack/react-query';
 
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {MutateOptions} from 'sentry/utils/queryClient';
-import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
-export type TData = GroupActivity;
-export type TError = RequestError;
-export type TVariables = [TPayload, TMethod];
-export type TContext = unknown;
+type TData = GroupActivity;
+type TError = RequestError;
+type TVariables = [TPayload, TMethod];
+type TContext = unknown;
 
 type DeleteCommentCallback = (
   noteId: string,
@@ -47,12 +47,7 @@ interface Props {
     | undefined;
 }
 
-export default function useMutateActivity({
-  organization,
-  group,
-  onMutate,
-  onSettled,
-}: Props) {
+export function useMutateActivity({organization, group, onMutate, onSettled}: Props) {
   const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {

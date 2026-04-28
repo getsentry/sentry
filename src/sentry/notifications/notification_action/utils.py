@@ -1,6 +1,5 @@
 import logging
 
-from sentry import features, options
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -10,6 +9,10 @@ from sentry.notifications.notification_action.registry import (
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.notifications.platform.templates.issue import (
+    IssueNotificationData,
+    SerializableRuleProxy,
+)
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -17,18 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 def should_fire_workflow_actions(org: Organization, type_id: int) -> bool:
-    ga_type_ids = options.get("workflow_engine.issue_alert.group.type_id.ga")
-    rollout_type_ids = options.get("workflow_engine.issue_alert.group.type_id.rollout")
-
-    return (
-        type_id in ga_type_ids  # We have completely rolled out these group types
-        or (
-            type_id
-            in rollout_type_ids  # While we are rolling out these groups & we are single  processing
-            and features.has("organizations:workflow-engine-single-process-workflows", org)
-        )
-        or (type_id == MetricIssue.type_id)
-    )
+    return True
 
 
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
@@ -118,3 +110,31 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
         raise
+
+
+def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotificationData:
+    action = invocation.action
+    detector = invocation.detector
+    event_data = invocation.event_data
+
+    handler = issue_alert_handler_registry.get(action.type)
+    rule_instance = handler.create_rule_instance_from_action(
+        action=action,
+        detector=detector,
+        event_data=event_data,
+    )
+    tags = action.data.get("tags", None)
+    tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
+    notes = action.data.get("notes", None)
+    rule = SerializableRuleProxy.from_rule(rule_instance)
+
+    event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
+
+    return IssueNotificationData(
+        tags=tag_list,
+        notes=notes,
+        event_id=event_id,
+        group_id=event_data.group.id,
+        notification_uuid=invocation.notification_uuid,
+        rule=rule,
+    )

@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {Pagination} from 'sentry/components/pagination';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 
-import MergedItem from './mergedItem';
+import {MergedItem} from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
 
 type Props = {
@@ -27,7 +27,7 @@ type Props = {
   pageLinks?: string;
 };
 
-function MergedList({
+export function MergedList({
   fingerprints = [],
   pageLinks,
   onToggleCollapse,
@@ -73,5 +73,3 @@ function MergedList({
     </Fragment>
   );
 }
-
-export default MergedList;

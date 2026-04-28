@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_plugin import OrganizationPluginSerializer
@@ -13,7 +13,7 @@ from sentry.models.organization import Organization
 from sentry.plugins.base import plugins
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

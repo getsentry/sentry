@@ -1,4 +1,4 @@
-import PageHeader from 'admin/components/pageHeader';
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
@@ -7,7 +7,7 @@ const getRow = (row: any) => [
   <td key="permission">{row.permission}</td>,
 ];
 
-export default function BillingAdmins() {
+export function BillingAdmins() {
   return (
     <div>
       <PageHeader title="Billing Admin Users" />

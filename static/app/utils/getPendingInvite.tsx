@@ -7,7 +7,7 @@ type PendingInvite = {
   url: string;
 };
 
-export default function getPendingInvite(): PendingInvite | null {
+export function getPendingInvite(): PendingInvite | null {
   const data = Cookies.get('pending-invite');
 
   if (!data) {

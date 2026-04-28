@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MonitorEnvironmentSerializerTest(TestCase):
-    def test_serialize_with_deleted_environment(self):
+    def test_serialize_with_deleted_environment(self) -> None:
         """
         Test that MonitorEnvironmentSerializer handles missing environments gracefully.
         This can happen when an environment is deleted but MonitorEnvironment records still reference it.
@@ -29,7 +29,7 @@ class MonitorEnvironmentSerializerTest(TestCase):
 
 
 class MonitorCheckInSerializerTest(TestCase):
-    def test_serialize_with_deleted_environment(self):
+    def test_serialize_with_deleted_environment(self) -> None:
         """
         Test that MonitorCheckInSerializer handles missing environments gracefully.
         This can happen when an environment is deleted but check-ins still reference it.

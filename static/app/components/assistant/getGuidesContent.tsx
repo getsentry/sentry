@@ -1,13 +1,11 @@
+import {ExternalLink} from '@sentry/scraps/link';
+
 import type {GuidesContent} from 'sentry/components/assistant/types';
-import {ExternalLink, Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoModeGuides} from 'sentry/utils/demoMode/guides';
 
-export default function getGuidesContent(
-  organization: Organization | null
-): GuidesContent {
+export function getGuidesContent(): GuidesContent {
   if (isDemoModeActive()) {
     return getDemoModeGuides();
   }
@@ -28,7 +26,7 @@ export default function getGuidesContent(
           title: t('Find problematic releases'),
           target: 'issue_sidebar_releases',
           description: t(
-            `See which release introduced the issue and which release it last appeared in.`
+            'See which release introduced the issue and which release it last appeared in.'
           ),
         },
         {
@@ -44,7 +42,7 @@ export default function getGuidesContent(
           title: t('Pinpoint hotspots'),
           target: 'issue_sidebar_tags',
           description: t(
-            `Tags are key/value string pairs that are automatically indexed and searchable in Sentry.`
+            'Tags are key/value string pairs that are automatically indexed and searchable in Sentry.'
           ),
         },
         {
@@ -93,27 +91,6 @@ export default function getGuidesContent(
       ],
     },
     {
-      guide: 'alerts_write_owner',
-      requiredTargets: ['alerts_write_owner'],
-      steps: [
-        {
-          target: 'alerts_write_owner',
-          description: tct(
-            `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
-            {
-              link: (
-                <Link
-                  to={organization?.slug ? `/settings/${organization.slug}` : `/settings`}
-                />
-              ),
-            }
-          ),
-          nextText: t('Allow'),
-          hasNextGuide: true,
-        },
-      ],
-    },
-    {
       guide: 'trace_view',
       requiredTargets: ['trace_view_guide_row', 'trace_view_guide_row_details'],
       steps: [
@@ -121,14 +98,14 @@ export default function getGuidesContent(
           title: t('Event Breakdown'),
           target: 'trace_view_guide_breakdown',
           description: t(
-            `The event breakdown shows you the breakdown of event types within a trace.`
+            'The event breakdown shows you the breakdown of event types within a trace.'
           ),
         },
         {
           title: t('Events'),
           target: 'trace_view_guide_row',
           description: t(
-            `You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.`
+            'You can quickly see errors and transactions in a trace alongside the project, transaction duration and any errors or performance issues related to the transaction.'
           ),
         },
         {

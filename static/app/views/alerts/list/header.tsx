@@ -1,34 +1,46 @@
+import {Fragment} from 'react';
+
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {TabList} from '@sentry/scraps/tabs';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {TabList} from 'sentry/components/core/tabs';
-import CreateAlertButton from 'sentry/components/createAlertButton';
-import FeedbackButton from 'sentry/components/feedbackButton/feedbackButton';
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   activeTab: 'stream' | 'rules';
 };
 
-function AlertHeader({activeTab}: Props) {
-  const router = useRouter();
+export function AlertHeader({activeTab}: Props) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   /**
    * Incidents list is currently at the organization level, but the link needs to
    * go down to a specific project scope.
    */
   const handleNavigateToSettings = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigateTo(`/settings/${organization.slug}/projects/:projectId/alerts/`, router);
+    navigateTo(
+      `/settings/${organization.slug}/projects/:projectId/alerts/`,
+      navigate,
+      location
+    );
   };
 
   const alertRulesLink = (
@@ -56,33 +68,54 @@ function AlertHeader({activeTab}: Props) {
           />
         </Layout.Title>
       </Layout.HeaderContent>
-      <Layout.HeaderActions>
-        <ButtonBar>
-          <CreateAlertButton
-            organization={organization}
-            iconProps={{size: 'sm'}}
-            size="sm"
-            priority="primary"
-            referrer="alert_stream"
-            showPermissionGuide
-            projectSlug={
-              selection.projects.length === 1
-                ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
-                : undefined
-            }
-          >
-            {t('Create Alert')}
-          </CreateAlertButton>
-          <FeedbackButton />
-          <LinkButton
-            size="sm"
-            onClick={handleNavigateToSettings}
-            href="#"
-            icon={<IconSettings size="sm" />}
-            aria-label={t('Settings')}
-          />
-        </ButtonBar>
-      </Layout.HeaderActions>
+      {hasPageFrameFeature ? (
+        <Fragment>
+          <TopBar.Slot name="actions">
+            <LinkButton
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="sm" />}
+              tooltipProps={{title: t('Settings')}}
+              aria-label={t('Settings')}
+            />
+          </TopBar.Slot>
+          <TopBar.Slot name="feedback">
+            <FeedbackButton
+              aria-label={t('Give Feedback')}
+              tooltipProps={{title: t('Give Feedback')}}
+            >
+              {null}
+            </FeedbackButton>
+          </TopBar.Slot>
+        </Fragment>
+      ) : (
+        <Layout.HeaderActions>
+          <Grid flow="column" align="center" gap="md">
+            <CreateAlertButton
+              organization={organization}
+              iconProps={{size: 'sm'}}
+              size="sm"
+              priority="primary"
+              referrer="alert_stream"
+              projectSlug={
+                selection.projects.length === 1
+                  ? ProjectsStore.getById(`${selection.projects[0]}`)?.slug
+                  : undefined
+              }
+            >
+              {t('Create Alert')}
+            </CreateAlertButton>
+            <FeedbackButton />
+            <LinkButton
+              size="sm"
+              onClick={handleNavigateToSettings}
+              href="#"
+              icon={<IconSettings size="sm" />}
+              aria-label={t('Settings')}
+            />
+          </Grid>
+        </Layout.HeaderActions>
+      )}
       <Layout.HeaderTabs value={activeTab}>
         <TabList>
           {alertRulesLink}
@@ -100,5 +133,3 @@ function AlertHeader({activeTab}: Props) {
     </Layout.Header>
   );
 }
-
-export default AlertHeader;

@@ -6,7 +6,7 @@ from sentry.testutils.cases import TestCase
 
 
 class DetectorFilterTest(TestCase):
-    def test_detector_filter_with_invalid_values(self):
+    def test_detector_filter_with_invalid_values(self) -> None:
         """Test that non-numeric detector IDs are gracefully handled"""
         # Empty string should return empty Q
         with pytest.raises(InvalidSearchQuery):
@@ -20,7 +20,7 @@ class DetectorFilterTest(TestCase):
         with pytest.raises(InvalidSearchQuery):
             _make_detector_filter(["https://example.com/detector/123"])
 
-    def test_detector_filter_with_valid_values(self):
+    def test_detector_filter_with_valid_values(self) -> None:
         """Test that numeric detector IDs work correctly"""
         # Valid numeric string
         result = _make_detector_filter(["123"])
@@ -35,7 +35,7 @@ class DetectorFilterTest(TestCase):
         result = _make_detector_filter(["*"])
         assert "id__in" in str(result)
 
-    def test_detector_filter_with_mixed_values(self):
+    def test_detector_filter_with_mixed_values(self) -> None:
         """Test mix of valid and invalid detector IDs"""
         # Mix of valid and invalid - should raise exception
         with pytest.raises(InvalidSearchQuery):

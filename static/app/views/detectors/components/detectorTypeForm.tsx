@@ -2,19 +2,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink, Link} from 'sentry/components/core/link';
-import {Radio} from 'sentry/components/core/radio';
-import {Text} from 'sentry/components/core/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Radio} from '@sentry/scraps/radio';
+import {Text} from '@sentry/scraps/text';
+
 import Hook from 'sentry/components/hook';
 import {t, tct} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
+import {HookStore} from 'sentry/stores/hookStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import useOrganization from 'sentry/utils/useOrganization';
-import {
-  makeAutomationBasePathname,
-  makeAutomationCreatePathname,
-} from 'sentry/views/automations/pathnames';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 
 export function DetectorTypeForm() {
@@ -22,36 +20,34 @@ export function DetectorTypeForm() {
 
   return (
     <Stack gap="xl">
-      <Stack gap="sm">
-        <Text size="lg" bold>
-          {t('Select monitor type')}
-        </Text>
-        <Text as="p">
-          {tct(
-            'Do you want to alert existing issues? Create a [newAlertLink:new alert], or [connectAlertLink:connect an existing one].',
-            {
-              newAlertLink: <Link to={makeAutomationCreatePathname(organization.slug)} />,
-              connectAlertLink: (
-                <Link to={makeAutomationBasePathname(organization.slug)} />
-              ),
-            }
-          )}
-        </Text>
-      </Stack>
       <MonitorTypeField />
+      <Text as="p" size="md">
+        {tct('Want to just alert on an existing issue? [link:Create an issue alert].', {
+          link: <Link to={makeAutomationCreatePathname(organization.slug)} />,
+        })}
+      </Text>
+      <Text as="p" size="md">
+        {t(
+          'If you’re looking for an Error Monitors, those are created by Sentry. To customize an error monitor, click into an existing one.'
+        )}
+      </Text>
     </Stack>
   );
 }
 
 type SelectableDetectorType = Extract<
   DetectorType,
-  'metric_issue' | 'monitor_check_in_failure' | 'uptime_domain_failure'
+  | 'metric_issue'
+  | 'monitor_check_in_failure'
+  | 'uptime_domain_failure'
+  | 'preprod_size_analysis'
 >;
 
 const ALLOWED_DETECTOR_TYPES = [
   'metric_issue',
   'monitor_check_in_failure',
   'uptime_domain_failure',
+  'preprod_size_analysis',
 ] as const satisfies SelectableDetectorType[];
 
 const detectorTypeParser = parseAsStringEnum(ALLOWED_DETECTOR_TYPES)
@@ -69,9 +65,11 @@ interface DetectorTypeOption {
   visualization: React.ReactNode;
   disabled?: boolean;
   infoBanner?: React.ReactNode;
+  show?: boolean;
 }
 
 function MonitorTypeField() {
+  const organization = useOrganization();
   const [selectedDetectorType, setDetectorType] = useDetectorTypeQueryState();
 
   const useMetricDetectorLimit =
@@ -87,12 +85,21 @@ function MonitorTypeField() {
     {
       id: 'metric_issue',
       name: getDetectorTypeLabel('metric_issue'),
-      description: t('Monitor error counts, transaction duration, and more!'),
+      description: t(
+        'Monitor error counts, logs, application metrics, span duration, crash rates, and more.'
+      ),
       visualization: <MetricVisualization />,
       infoBanner: canCreateMetricDetector ? undefined : (
         <Hook name="component:metric-alert-quota-message" />
       ),
       disabled: !canCreateMetricDetector,
+    },
+    {
+      id: 'preprod_size_analysis',
+      name: getDetectorTypeLabel('preprod_size_analysis'),
+      description: t('Monitor mobile app build sizes and detect regressions.'),
+      visualization: <MobileBuildVisualization />,
+      show: !!organization?.features?.includes('preprod-size-monitors-frontend'),
     },
     {
       id: 'monitor_check_in_failure',
@@ -120,34 +127,38 @@ function MonitorTypeField() {
 
   return (
     <Stack gap="md" role="radiogroup" aria-label={t('Monitor type')}>
-      {options.map(({id, name, description, visualization, infoBanner, disabled}) => {
-        const checked = selectedDetectorType === id;
-        return (
-          <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
-            <OptionBody>
-              <Flex direction="column" gap="sm">
-                <Radio
-                  name="detectorType"
-                  checked={checked}
-                  onChange={() => handleChange(id)}
-                  aria-label={name}
-                  disabled={disabled}
-                />
-                <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
-                  {name}
-                </Text>
-                {description && (
-                  <Text size="md" variant="muted">
-                    {description}
+      {options
+        .filter(({show}) => show === undefined || show)
+        .map(({id, name, description, visualization, infoBanner, disabled}) => {
+          const checked = selectedDetectorType === id;
+          return (
+            <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
+              <OptionBody>
+                <Flex direction="column" gap="sm">
+                  <Radio
+                    name="detectorType"
+                    checked={checked}
+                    onChange={() => handleChange(id)}
+                    aria-label={name}
+                    disabled={disabled}
+                  />
+                  <Text size="lg" bold variant={disabled ? 'muted' : undefined}>
+                    {name}
                   </Text>
-                )}
-              </Flex>
-              {visualization && <Visualization>{visualization}</Visualization>}
-            </OptionBody>
-            {infoBanner && (checked || disabled) && <OptionInfo>{infoBanner}</OptionInfo>}
-          </OptionLabel>
-        );
-      })}
+                  {description && (
+                    <Text size="md" variant="muted">
+                      {description}
+                    </Text>
+                  )}
+                </Flex>
+                {visualization && <Visualization>{visualization}</Visualization>}
+              </OptionBody>
+              {infoBanner && (checked || disabled) && (
+                <OptionInfo>{infoBanner}</OptionInfo>
+              )}
+            </OptionLabel>
+          );
+        })}
     </Stack>
   );
 }
@@ -182,7 +193,7 @@ const OptionLabel = styled('label')<{disabled?: boolean}>`
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
-    outline: solid 1px ${p => p.theme.tokens.border.accent.vibrant};
+    outline: solid 1px ${p => p.theme.tokens.focus.default};
   }
 
   ${OptionBody} {
@@ -687,6 +698,82 @@ function UptimeVisualization() {
       <rect width="4" height="14" x="444.254" y="20.991" fill={danger} rx="2" />
       <rect width="4" height="14" x="456.254" y="20.991" fill={danger} rx="2" />
       <rect width="4" height="14" x="468.254" y="20.991" fill={danger} rx="2" />
+    </svg>
+  );
+}
+
+function MobileBuildVisualization() {
+  const theme = useTheme();
+  const danger = theme.colors.red400;
+  const accent =
+    theme.chart.getColorPalette(0)[0] ?? theme.tokens.graphics.accent.vibrant;
+  const bg = theme.tokens.background.primary;
+
+  return (
+    <svg fill="none" viewBox="0 0 480 56">
+      <rect x="0" y="0" width="480" height="27.6" fill={danger} fillOpacity="0.1" />
+      <line
+        x1="0"
+        y1="27.6"
+        x2="480"
+        y2="27.6"
+        stroke={danger}
+        strokeWidth="0.5"
+        strokeDasharray="2.4 2.4"
+      />
+      <polyline
+        fill="none"
+        stroke={accent}
+        strokeWidth="1.0"
+        points="7.9,38.5 18.1,40.1 28.3,42.4 38.5,39.4 48.7,49.2 58.9,38.7 69.1,22.6 79.3,41.0 89.5,41.9 99.7,33.6 109.9,40.3 120.0,43.2 130.2,38.3 140.4,44.8 150.6,38.8 160.8,42.3 171.0,39.9 181.2,15.9 191.4,42.6 201.6,39.6 211.8,40.6 222.0,38.1 232.2,42.8 242.4,40.5 252.5,39.0 262.7,41.5 272.9,40.1 283.1,39.4 293.3,8.5 303.5,41.0 313.7,42.1 323.9,38.7 334.1,49.2 344.3,39.2 354.5,42.4 364.7,39.7 374.9,38.5 385.1,43.0 395.2,16.6 405.4,38.8 415.6,40.8 425.8,41.7 436.0,38.3 446.2,41.2 456.4,39.6 466.6,42.3 476.8,40.3"
+      />
+      <circle cx="7.9" cy="38.5" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="18.1" cy="40.1" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="28.3" cy="42.4" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="38.5" cy="39.4" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="48.7" cy="49.2" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="58.9" cy="38.7" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="69.1" cy="22.6" r="2" fill={bg} strokeWidth="1.5" stroke={danger} />
+      <circle cx="79.3" cy="41.0" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="89.5" cy="41.9" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="99.7" cy="33.6" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="109.9" cy="40.3" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="120.0" cy="43.2" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="130.2" cy="38.3" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="140.4" cy="44.8" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="150.6" cy="38.8" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="160.8" cy="42.3" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="171.0" cy="39.9" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="181.2" cy="15.9" r="2" fill={bg} strokeWidth="1.5" stroke={danger} />
+      <circle cx="191.4" cy="42.6" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="201.6" cy="39.6" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="211.8" cy="40.6" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="222.0" cy="38.1" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="232.2" cy="42.8" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="242.4" cy="40.5" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="252.5" cy="39.0" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="262.7" cy="41.5" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="272.9" cy="40.1" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="283.1" cy="39.4" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="293.3" cy="8.5" r="2" fill={bg} strokeWidth="1.5" stroke={danger} />
+      <circle cx="303.5" cy="41.0" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="313.7" cy="42.1" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="323.9" cy="38.7" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="334.1" cy="49.2" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="344.3" cy="39.2" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="354.5" cy="42.4" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="364.7" cy="39.7" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="374.9" cy="38.5" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="385.1" cy="43.0" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="395.2" cy="16.6" r="2" fill={bg} strokeWidth="1.5" stroke={danger} />
+      <circle cx="405.4" cy="38.8" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="415.6" cy="40.8" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="425.8" cy="41.7" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="436.0" cy="38.3" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="446.2" cy="41.2" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="456.4" cy="39.6" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="466.6" cy="42.3" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
+      <circle cx="476.8" cy="40.3" r="2" fill={bg} strokeWidth="1.5" stroke={accent} />
     </svg>
   );
 }

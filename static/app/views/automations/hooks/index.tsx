@@ -1,5 +1,15 @@
+import {
+  queryOptions,
+  skipToken,
+  useMutation,
+  useQueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tn} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
@@ -10,88 +20,55 @@ import type {
   DataConditionHandler,
   DataConditionHandlerGroupType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import type {
-  ApiQueryKey,
-  UseApiQueryOptions,
-  UseMutationOptions,
-} from 'sentry/utils/queryClient';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const makeAutomationsQueryKey = ({
-  orgSlug,
-  query,
-  sortBy,
-  priorityDetector,
-  ids,
-  limit,
-  cursor,
-  projects,
-  detector,
-}: {
-  orgSlug: string;
-  cursor?: string;
-  detector?: string[];
-  ids?: string[];
-  limit?: number;
-  priorityDetector?: string;
-  projects?: number[];
-  query?: string;
-  sortBy?: string;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-    path: {organizationIdOrSlug: orgSlug},
-  }),
-  {
-    query: {
+export const automationsApiOptions = (
+  organization: Organization,
+  options?: {
+    cursor?: string;
+    detector?: string[];
+    ids?: string[];
+    limit?: number;
+    priorityDetector?: string;
+    projects?: number[];
+    query?: string;
+    sortBy?: string;
+  }
+) => {
+  const query = options
+    ? {
+        query: options.query,
+        sortBy: options.sortBy,
+        priorityDetector: options.priorityDetector,
+        id: options.ids,
+        per_page: options.limit,
+        cursor: options.cursor,
+        project: options.projects,
+        detector: options.detector,
+      }
+    : undefined;
+
+  return queryOptions({
+    ...apiOptions.as<Automation[]>()('/organizations/$organizationIdOrSlug/workflows/', {
+      path: {organizationIdOrSlug: organization.slug},
       query,
-      sortBy,
-      priorityDetector,
-      id: ids,
-      per_page: limit,
-      cursor,
-      project: projects,
-      detector,
-    },
-  },
-];
+      staleTime: 0,
+    }),
+    retry: false,
+  });
+};
 
 const makeAutomationQueryKey = (orgSlug: string, automationId: string): ApiQueryKey => [
   getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
     path: {organizationIdOrSlug: orgSlug, workflowId: automationId},
   }),
 ];
-
-interface UseAutomationsQueryOptions {
-  cursor?: string;
-  detector?: string[];
-  ids?: string[];
-  limit?: number;
-  priorityDetector?: string;
-  projects?: number[];
-  query?: string;
-  sortBy?: string;
-}
-export function useAutomationsQuery(
-  options: UseAutomationsQueryOptions = {},
-  queryOptions: Partial<UseApiQueryOptions<Automation[]>> = {}
-) {
-  const {slug: orgSlug} = useOrganization();
-
-  return useApiQuery<Automation[]>(makeAutomationsQueryKey({orgSlug, ...options}), {
-    staleTime: 0,
-    retry: false,
-    ...queryOptions,
-  });
-}
 
 export function useAutomationQuery(automationId: string) {
   const {slug} = useOrganization();
@@ -102,45 +79,33 @@ export function useAutomationQuery(automationId: string) {
   });
 }
 
-const makeAutomationFireHistoryQueryKey = ({
-  orgSlug,
-  automationId,
-  cursor,
-  limit,
-  query = {},
-}: {
+interface AutomationFireHistoryApiOptionsParams {
   automationId: string;
-  orgSlug: string;
-  cursor?: string;
-  limit?: number;
-  query?: Record<string, any>;
-}): ApiQueryKey => [
-  getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/', {
-    path: {organizationIdOrSlug: orgSlug, workflowId: automationId},
-  }),
-  {query: {...query, per_page: limit, cursor}},
-];
-
-interface UseAutomationFireHistoryQueryOptions {
-  automationId: string;
+  organization: Organization;
   cursor?: string;
   limit?: number;
   query?: Record<string, any>;
 }
-export function useAutomationFireHistoryQuery(
-  options: UseAutomationFireHistoryQueryOptions,
-  queryOptions: Partial<UseApiQueryOptions<AutomationFireHistory[]>> = {}
-) {
-  const {slug} = useOrganization();
-
-  return useApiQuery<AutomationFireHistory[]>(
-    makeAutomationFireHistoryQueryKey({orgSlug: slug, ...options}),
-    {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: false,
-      ...queryOptions,
-    }
-  );
+export function automationFireHistoryApiOptions({
+  automationId,
+  cursor,
+  limit,
+  organization,
+  query = {},
+}: AutomationFireHistoryApiOptionsParams) {
+  return queryOptions({
+    ...apiOptions.as<AutomationFireHistory[]>()(
+      '/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/',
+      {
+        path: automationId
+          ? {organizationIdOrSlug: organization.slug, workflowId: automationId}
+          : skipToken,
+        query: {...query, per_page: limit, cursor},
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      }
+    ),
+    retry: false,
+  });
 }
 
 export function useDataConditionsQuery(groupType: DataConditionHandlerGroupType) {
@@ -194,11 +159,7 @@ export function useCreateAutomation() {
       ),
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
     },
     onError: _ => {
@@ -224,11 +185,7 @@ export function useDeleteAutomationMutation() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(t('Alert deleted'));
     },
@@ -266,11 +223,7 @@ export function useDeleteAutomationsMutation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(t('Alerts deleted'));
     },
@@ -313,11 +266,7 @@ export function useUpdateAutomation() {
       );
       // Invalidate list query
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
     },
     onError: _ => {
@@ -355,11 +304,7 @@ export function useUpdateAutomationsMutation() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
@@ -375,46 +320,45 @@ export function useUpdateAutomationsMutation() {
   });
 }
 
+interface SendTestNotificationVariables {
+  actions: Array<Omit<Action, 'id'>>;
+  projectSlug?: string;
+}
+
 export function useSendTestNotification(
-  options?: UseMutationOptions<void, RequestError, Array<Omit<Action, 'id'>>>
+  options?: UseMutationOptions<void, RequestError, SendTestNotificationVariables>
 ) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<void, RequestError, Array<Omit<Action, 'id'>>>({
-    mutationFn: data =>
+  return useMutation<void, RequestError, SendTestNotificationVariables>({
+    mutationFn: ({actions, projectSlug}) =>
       api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
           path: {organizationIdOrSlug: org.slug},
         }),
         {
           method: 'POST',
-          data: {actions: data},
+          data: {actions, projectSlug},
         }
       ),
     ...options,
-    onSuccess: (data, variables, context) => {
+    onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
-            path: {organizationIdOrSlug: org.slug},
-          }),
-        ],
+        queryKey: automationsApiOptions(org).queryKey,
       });
       addSuccessMessage(
-        tn('Notification fired!', 'Notifications sent!', variables.length)
+        tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );
-      options?.onSuccess?.(data, variables, context);
+      options?.onSuccess?.(data, variables, onMutateResult, context);
     },
-    onError: (error, variables, context) => {
-      const detail = error.responseJSON?.detail;
-      const message = typeof detail === 'string' ? detail : detail?.message;
-
+    onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
-        message || tn('Notification failed', 'Notifications failed', variables.length)
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ||
+          tn('Notification failed', 'Notifications failed', variables.actions.length)
       );
-      options?.onError?.(error, variables, context);
+      options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

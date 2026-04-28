@@ -94,7 +94,7 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         sample_description = "sample bug report"
         html_url = f"https://github.example.com/api/v3/foo/bar/issues/{self.issue_num}"
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 name=self.repo,
                 provider="integrations:github_enterprise",

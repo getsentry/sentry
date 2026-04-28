@@ -63,33 +63,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.sub.project.delete()
         assert self.send_update(self.critical_threshold + 1) is False
 
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_has_downgraded_incidents(self, mock_metrics: MagicMock) -> None:
+    @patch(
+        "sentry.incidents.subscription_processor.is_metric_subscription_allowed",
+        return_value=False,
+    )
+    def test_process_update_returns_false_when_downgraded(self, mock_is_enabled: MagicMock) -> None:
         message = self.build_subscription_update(
             self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
         )
 
         with self.capture_on_commit_callbacks(execute=True):
             assert SubscriptionProcessor.process(self.sub, message) is False
-            mock_metrics.incr.assert_has_calls(
-                [call("incidents.alert_rules.ignore_update_missing_incidents")]
-            )
-
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_has_downgraded_incidents_performance(self, mock_metrics: MagicMock) -> None:
-        snuba_query = self.get_snuba_query(self.detector)
-        snuba_query.update(time_window=15 * 60, dataset=Dataset.Transactions.value)
-        snuba_query.save()
-
-        message = self.build_subscription_update(
-            self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
-        )
-
-        with self.capture_on_commit_callbacks(execute=True):
-            assert SubscriptionProcessor.process(self.sub, message) is False
-            mock_metrics.incr.assert_has_calls(
-                [call("incidents.alert_rules.ignore_update_missing_incidents_performance")]
-            )
+        mock_is_enabled.assert_called_once()
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_invalid_aggregation_value(self, mock_metrics: MagicMock) -> None:
@@ -100,22 +85,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-
-    @patch("sentry.incidents.subscription_processor.metrics")
-    def test_has_downgraded_on_demand(self, mock_metrics: MagicMock) -> None:
-        snuba_query = self.get_snuba_query(self.detector)
-        snuba_query.update(time_window=15 * 60, dataset=Dataset.PerformanceMetrics.value)
-        snuba_query.save()
-
-        message = self.build_subscription_update(
-            self.sub, value=self.critical_threshold + 1, time_delta=timedelta()
-        )
-
-        with self.capture_on_commit_callbacks(execute=True):
-            assert SubscriptionProcessor.process(self.sub, message) is False
-            mock_metrics.incr.assert_has_calls(
-                [call("incidents.alert_rules.ignore_update_missing_on_demand")]
-            )
 
     @patch("sentry.incidents.subscription_processor.metrics")
     def test_skip_already_processed_update(self, mock_metrics: MagicMock) -> None:
@@ -933,7 +902,6 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
 
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_crash_rate_detector_when_session_count_is_higher_than_minimum_threshold(self) -> None:
-
         # Send Critical Update
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
@@ -948,7 +916,6 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(
         self, helper_metrics: MagicMock
     ) -> None:
-
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
             value=update_value,

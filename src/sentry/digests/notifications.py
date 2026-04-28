@@ -172,7 +172,6 @@ def _build_digest_impl(
 
 
 def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
-
     rules: dict[int, Rule] = {}
     if not workflow_ids:
         return rules
@@ -220,7 +219,6 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
 
 
 def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
-
     if not records:
         return DigestInfo({}, {}, {})
 

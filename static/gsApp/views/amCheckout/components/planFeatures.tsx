@@ -1,11 +1,11 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Container, Flex, Grid} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Heading, Text} from 'sentry/components/core/text';
 import {
   IconAdd,
   IconCheckmark,
@@ -15,7 +15,7 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
-import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
 
 import {DEFAULT_TIER, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {PlanTier, type Plan} from 'getsentry/types';
@@ -199,7 +199,7 @@ function MonitoringAndDataFeatures({
   planOptions: Plan[];
 }) {
   const activePlanTypeIndex = useMemo(
-    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase()),
     [activePlan]
   );
   const featureKeyToInfo: Partial<
@@ -218,7 +218,7 @@ function MonitoringAndDataFeatures({
 
   const previousIncluded: Partial<Record<FeatureKey, number>> = {};
   planOptions.forEach(plan => {
-    const planType: PlanType = plan.name.toLowerCase() as PlanType;
+    const planType = plan.name.toLowerCase() as PlanType;
 
     Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
       if (!orderedKeys.includes(category as DataCategory)) {
@@ -384,7 +384,7 @@ function MonitoringAndDataFeatures({
 
 function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
   const activePlanTypeIndex = useMemo(
-    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase() as PlanType),
+    () => ORDERED_PLAN_TYPES.indexOf(activePlan.name.toLowerCase()),
     [activePlan]
   );
 
@@ -486,7 +486,7 @@ function FeatureItem({
   );
 }
 
-function PlanFeatures({
+export function PlanFeatures({
   planOptions,
   activePlan,
 }: {
@@ -503,20 +503,19 @@ function PlanFeatures({
     if (priorPlan && priorPlan?.basePrice > 0) {
       perPlanPriceDiffs[planOption.id] = {
         plan: planOption,
-        ...Object.entries(planOption.planCategories ?? {}).reduce(
-          (acc, [category, eventBuckets]) => {
-            const priorPlanEventBuckets =
-              priorPlan?.planCategories[category as DataCategory];
-            const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
-            const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
-            const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
-            if (perUnitPriceDiff > 0) {
-              acc[category as DataCategory] = perUnitPriceDiff;
-            }
-            return acc;
-          },
-          {} as Partial<Record<DataCategory, number>>
-        ),
+        ...Object.entries(planOption.planCategories ?? {}).reduce<
+          Partial<Record<DataCategory, number>>
+        >((acc, [category, eventBuckets]) => {
+          const priorPlanEventBuckets =
+            priorPlan?.planCategories[category as DataCategory];
+          const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+          const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+          const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
+          if (perUnitPriceDiff > 0) {
+            acc[category as DataCategory] = perUnitPriceDiff;
+          }
+          return acc;
+        }, {}),
       };
     }
   });
@@ -531,7 +530,7 @@ function PlanFeatures({
         gap="xl"
         direction="column"
       >
-        <Grid columns={{xs: '1fr', sm: `repeat(2, 1fr)`}} gap="xl">
+        <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>
@@ -588,5 +587,3 @@ function PlanFeatures({
     </Flex>
   );
 }
-
-export default PlanFeatures;

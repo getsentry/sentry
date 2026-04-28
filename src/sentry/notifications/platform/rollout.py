@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from sentry import features, options
 from sentry.models.organization import Organization
-from sentry.notifications.platform.templates.types import NotificationTemplateSource
+from sentry.notifications.platform.types import NotificationSource
 from sentry.organizations.services.organization.model import RpcOrganization
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class NotificationRolloutService:
 
     organization: RpcOrganization | Organization
 
-    def should_notify(self, source: NotificationTemplateSource) -> bool:
+    def should_notify(self, source: NotificationSource) -> bool:
         option_key = self.has_feature_flag_access()
         if option_key is None:
             return False
@@ -52,7 +52,7 @@ class NotificationRolloutService:
 
         return option_key
 
-    def get_rollout_rate(self, option_key: str, source: NotificationTemplateSource) -> float:
+    def get_rollout_rate(self, option_key: str, source: NotificationSource) -> float:
         try:
             rollout_rates = options.get(option_key)
         except options.UnknownOption:

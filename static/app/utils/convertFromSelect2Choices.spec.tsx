@@ -1,4 +1,4 @@
-import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
+import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 
 describe('convertFromSelect2Choices', () => {
   it('changes a flat array of strings into array of {label, value}', () => {

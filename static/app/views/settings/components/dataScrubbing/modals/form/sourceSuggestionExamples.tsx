@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type Props = {
   examples: string[];
   sourceName: string;
 };
 
-function SourceSuggestionExamples({examples, sourceName}: Props) {
+export function SourceSuggestionExamples({examples, sourceName}: Props) {
   return (
     <Wrapper>
       <ExampleCard
@@ -28,8 +27,6 @@ function SourceSuggestionExamples({examples, sourceName}: Props) {
   );
 }
 
-export default SourceSuggestionExamples;
-
 const ExampleCard = styled(Hovercard)`
   width: 400px;
 
@@ -42,7 +39,7 @@ const Content = styled('span')`
   display: inline-grid;
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.font.size.sm};
   text-decoration: underline;

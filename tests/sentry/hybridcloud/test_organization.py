@@ -54,7 +54,7 @@ def basic_filled_out_org() -> tuple[Organization, list[User]]:
     Factories.create_team_membership(team=team_3, user=owner)
     inactive_team_membership = Factories.create_team_membership(team=team_3, user=other_user)
     inactive_team_membership.is_active = False
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         inactive_team_membership.save()
 
     return org, [owner, other_user]
@@ -84,7 +84,7 @@ def assert_for_list(a: list[Any], b: list[Any], assertion: Callable[[Any, Any], 
         assertion(a_thing, b_thing)
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_team_equals(orm_team: Team, team: RpcTeam) -> None:
     assert team.id == orm_team.id
     assert team.slug == orm_team.slug
@@ -92,7 +92,7 @@ def assert_team_equals(orm_team: Team, team: RpcTeam) -> None:
     assert team.organization_id == orm_team.organization_id
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_project_equals(orm_project: Project, project: RpcProject) -> None:
     assert project.id == orm_project.id
     assert project.status == orm_project.status
@@ -102,7 +102,7 @@ def assert_project_equals(orm_project: Project, project: RpcProject) -> None:
     assert project.first_event == orm_project.first_event
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_team_member_equals(
     orm_team_member: OrganizationMemberTeam, team_member: RpcTeamMember
 ) -> None:
@@ -116,7 +116,7 @@ def assert_team_member_equals(
     }
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_organization_member_equals(
     orm_organization_member: OrganizationMember, organization_member: RpcOrganizationMember
 ) -> None:
@@ -149,7 +149,7 @@ def assert_organization_member_equals(
         )
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
     assert org.id == orm_org.id
     assert org.name == orm_org.name
@@ -160,7 +160,7 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
         org_flag = getattr(org.flags, field_name)
         assert orm_flag == org_flag
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         assert_for_list(
             list(Team.objects.filter(organization_id=org.id)), org.teams, assert_team_equals
         )
@@ -171,7 +171,7 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
         )
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_get_organization_by_id_works(user_context: User | None, orm_org: Organization) -> None:
     assert (
         organization_service.get_organization_by_id(
@@ -206,7 +206,7 @@ def test_get_organization_id(org_factory: Callable[[], tuple[Organization, list[
         assert_get_organization_by_id_works(user_context, orm_org)
 
 
-@assume_test_silo_mode(SiloMode.REGION)
+@assume_test_silo_mode(SiloMode.CELL)
 def assert_get_org_by_id_works(user_context: User | None, orm_org: Organization) -> None:
     assert (
         organization_service.get_org_by_id(id=-2, user_id=user_context.id if user_context else None)
@@ -243,7 +243,7 @@ def test_idempotency(org_factory: Callable[[], tuple[Organization, list[User]]])
         member = organization_service.add_organization_member(
             organization_id=orm_org.id, default_org_role=orm_org.default_role, user_id=new_user.id
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
 
         member = organization_service.add_organization_member(
@@ -251,7 +251,7 @@ def test_idempotency(org_factory: Callable[[], tuple[Organization, list[User]]])
             default_org_role=orm_org.default_role,
             email="me@thing.com",
         )
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
 
 
@@ -342,7 +342,7 @@ def test_send_sso_unlink_emails() -> None:
         )
         assert result is None
 
-    with assume_test_silo_mode(SiloMode.REGION):
+    with assume_test_silo_mode(SiloMode.CELL):
         # No members should be linked or invalid now
         assert (
             OrganizationMember.objects.filter(

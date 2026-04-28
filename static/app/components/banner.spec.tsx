@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Banner from 'sentry/components/banner';
+import {Banner} from 'sentry/components/banner';
 
 describe('Banner', () => {
   it('can be dismissed', async () => {

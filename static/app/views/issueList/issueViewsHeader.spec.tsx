@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import IssueViewsHeader from 'sentry/views/issueList/issueViewsHeader';
+import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
 
 describe('IssueViewsHeader', () => {
   const view = GroupSearchViewFixture();

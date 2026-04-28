@@ -62,5 +62,4 @@ const storeConfig: OnboardingDrawerStoreDefinition = {
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-const OnboardingDrawerStore = createStore(storeConfig);
-export default OnboardingDrawerStore;
+export const OnboardingDrawerStore = createStore(storeConfig);

@@ -23,7 +23,7 @@ type Props = {
   title?: string;
 };
 
-function SentryDocumentTitle({
+export function SentryDocumentTitle({
   title = '',
   orgSlug,
   projectSlug,
@@ -65,5 +65,3 @@ function SentryDocumentTitle({
 
   return children;
 }
-
-export default SentryDocumentTitle;

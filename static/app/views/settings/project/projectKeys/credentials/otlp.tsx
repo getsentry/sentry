@@ -1,10 +1,11 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextCopyInput from 'sentry/components/textCopyInput';
+import {FieldGroup} from 'sentry/components/forms/fieldGroup';
+import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 
 interface OtlpTabProps {
@@ -68,7 +69,7 @@ export function OtlpTab({
           <FieldGroup
             label={t('OTLP Logs Endpoint')}
             help={tct(
-              `Set this URL as your OTLP exporter's log endpoint. [link:Learn more]`,
+              "Set this URL as your OTLP exporter's log endpoint. [link:Learn more]",
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-logs" />
@@ -85,7 +86,7 @@ export function OtlpTab({
 
           <FieldGroup
             label={t('OTLP Logs Endpoint Headers')}
-            help={t(`Set these security headers when configuring your OTLP exporter.`)}
+            help={t('Set these security headers when configuring your OTLP exporter.')}
             inline={false}
             flexibleControlStateSize
           >
@@ -101,7 +102,7 @@ export function OtlpTab({
           <FieldGroup
             label={t('OTLP Traces Endpoint')}
             help={tct(
-              `Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]`,
+              "Set this URL as your OTLP exporter's trace endpoint. [link:Learn more]",
               {
                 link: (
                   <ExternalLink href="https://docs.sentry.io/concepts/otlp/#opentelemetry-traces" />
@@ -118,7 +119,7 @@ export function OtlpTab({
 
           <FieldGroup
             label={t('OTLP Traces Endpoint Headers')}
-            help={t(`Set these security headers when configuring your OTLP exporter.`)}
+            help={t('Set these security headers when configuring your OTLP exporter.')}
             inline={false}
             flexibleControlStateSize
           >
@@ -137,10 +138,16 @@ export function OtlpTab({
         inline={false}
         flexibleControlStateSize
       >
-        <CodeBlock language="yaml" filename="config.yaml">
+        <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
           {buildCollectorConfig}
-        </CodeBlock>
+        </UnsetHeightCodeBlock>
       </FieldGroup>
     </Fragment>
   );
 }
+
+const UnsetHeightCodeBlock = styled(CodeBlock)`
+  pre {
+    height: unset;
+  }
+`;

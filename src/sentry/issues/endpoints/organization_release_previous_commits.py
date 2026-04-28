@@ -6,7 +6,7 @@ from sentry import analytics
 from sentry.analytics.events.release_get_previous_commits import ReleaseGetPreviousCommitsEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -16,7 +16,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.ratelimits.config import RateLimitConfig
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

@@ -7,7 +7,7 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';
+import {ProjectOwnershipModal} from 'sentry/views/settings/project/projectOwnership/modal';
 
 interface CreateOwnershipRuleProps extends ModalRenderProps {
   issueId: string;

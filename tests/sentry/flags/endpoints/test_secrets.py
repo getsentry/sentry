@@ -130,9 +130,9 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
             # Generic
             response = self.client.post(self.url, data={"secret": "a" * 9, "provider": "generic"})
             assert response.status_code == 400, response.content
-            assert response.json()["secret"] == [
-                "Ensure this field has at least 10 characters."
-            ], "generic"
+            assert response.json()["secret"] == ["Ensure this field has at least 10 characters."], (
+                "generic"
+            )
 
             response = self.client.post(self.url, data={"secret": "a" * 65, "provider": "generic"})
             assert response.status_code == 400, response.content
@@ -152,9 +152,9 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
                 data={"secret": "webhook-" + "a" * (31 - len("webhook-")), "provider": "statsig"},
             )
             assert response.status_code == 400, response.content
-            assert response.json()["secret"] == [
-                "Ensure this field has at least 32 characters."
-            ], "statsig"
+            assert response.json()["secret"] == ["Ensure this field has at least 32 characters."], (
+                "statsig"
+            )
 
             response = self.client.post(
                 self.url,

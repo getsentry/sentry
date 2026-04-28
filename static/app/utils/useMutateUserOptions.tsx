@@ -1,13 +1,12 @@
+import {useMutation} from '@tanstack/react-query';
 import merge from 'lodash/merge';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
-
 type UpdateUserOptionsVariables = Partial<User['options']>;
 
 interface Props {
@@ -15,7 +14,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-export default function useMutateUserOptions({onSuccess, onError}: Props = {}) {
+export function useMutateUserOptions({onSuccess, onError}: Props = {}) {
   const user = useUser();
   const api = useApi({persistInFlight: false});
   return useMutation<User, RequestError, UpdateUserOptionsVariables>({

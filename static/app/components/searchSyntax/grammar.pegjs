@@ -376,6 +376,8 @@ numeric_in_list
       return tc.tokenValueNumberList(item1, items);
     }
 
+// NOTE: These wildcard operators are internal implementation details and
+// should not be included in product docs. Users should use `*` instead.
 wildcard_op
   = wildcard_unicode
     (contains / starts_with / ends_with )
@@ -454,6 +456,8 @@ open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"
 negation       = "!"
+// NOTE: These wildcard operators are internal implementation details and
+// should not be included in product docs. Users should use `*` instead.
 wildcard_unicode     = [\uF00D]
 contains             = "Contains"
 starts_with          = "StartsWith"

@@ -41,7 +41,7 @@ from tests.sentry.feedback import MockSeerResponse
         ),
     ],
 )
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+@patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_get_feedback_title_from_seer_invalid_response(
     mock_make_seer_request, status_code, json_data
 ):
@@ -52,7 +52,7 @@ def test_get_feedback_title_from_seer_invalid_response(
     mock_make_seer_request.assert_called_once()
 
 
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+@patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with HTTP error response."""
     mock_response = MockSeerResponse(500, {})
@@ -61,7 +61,7 @@ def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
     mock_make_seer_request.assert_called_once()
 
 
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+@patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with exception during API call."""
     mock_make_seer_request.side_effect = Exception("Network error")
@@ -69,7 +69,7 @@ def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
     assert mock_make_seer_request.call_count == 1
 
 
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+@patch("sentry.feedback.usecases.title_generation.make_title_generation_request")
 def test_get_feedback_title_from_seer_success(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with successful response."""
     mock_response = MockSeerResponse(200, {"title": "Login Button Issue"})

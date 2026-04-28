@@ -15,7 +15,6 @@ class OrganizationMemberSCIMSerializer(Serializer):
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberSCIMSerializerResponse:
-
         result: OrganizationMemberSCIMSerializerResponse = {
             "schemas": [SCIM_SCHEMA_USER],
             "id": str(obj.id),

@@ -2,47 +2,37 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+import {useQueryClient} from '@tanstack/react-query';
+
+import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Heading} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
-import {TabList, Tabs} from 'sentry/components/core/tabs';
-import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
-import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
+import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
-import {
-  getConfigName,
-  getFieldProps,
-  getOptions,
-  hasErrorInFields,
-  loadAsyncThenFetchAllFields,
-} from 'sentry/components/externalIssues/utils';
-import type {FieldValue} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getConfigName} from 'sentry/components/externalIssues/utils';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {
   GroupIntegration,
   Integration,
   IntegrationExternalIssue,
   IntegrationIssueConfig,
-  IssueConfigField,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-  type ApiQueryKey,
-} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const openExternalIssueModal = ({
   group,
@@ -83,7 +73,7 @@ const SUBMIT_LABEL_BY_ACTION = {
 interface ExternalIssueFormProps extends ModalRenderProps {
   group: Group;
   integration: Integration;
-  onChange: (onSuccess?: () => void, onError?: () => void) => void;
+  onChange: () => void;
 }
 
 function makeIntegrationIssueConfigQueryKey({
@@ -98,7 +88,16 @@ function makeIntegrationIssueConfigQueryKey({
   action?: ExternalIssueAction;
 }): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/issues/${groupId}/integrations/${integrationId}/`,
+    getApiUrl(
+      '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
+      {
+        path: {
+          organizationIdOrSlug: orgSlug,
+          issueId: groupId,
+          integrationId,
+        },
+      }
+    ),
     {query: {action}},
   ];
 }
@@ -110,23 +109,23 @@ export function ExternalIssueForm({
   closeModal,
   Header,
   Body,
+  Footer,
 }: ExternalIssueFormProps) {
   const api = useApi({persistInFlight: true});
-  const [model] = useState(() => new FormModel());
   const organization = useOrganization();
-  const endpointString = makeIntegrationIssueConfigQueryKey({
-    orgSlug: organization.slug,
-    groupId: group.id,
-    integrationId: integration.id,
-  })[0];
+  const {url: endpointString} = parseQueryKey(
+    makeIntegrationIssueConfigQueryKey({
+      orgSlug: organization.slug,
+      groupId: group.id,
+      integrationId: integration.id,
+    })
+  );
   const queryClient = useQueryClient();
   const title = tct('[integration] Issue', {integration: integration.provider.name});
 
   const [hasTrackedLoad, setHasTrackedLoad] = useState(false);
   const [loadSpan, setLoadSpan] = useState<Span | null>(null);
-  const [submitSpan, setSubmitSpan] = useState<Span | null>(null);
   const [action, setAction] = useState<ExternalIssueAction>('create');
-  const {cache, updateCache} = useAsyncOptionsCache();
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
 
   const {
@@ -162,7 +161,7 @@ export function ExternalIssueForm({
    * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
    */
   const refetchWithDynamicFields = useCallback(
-    (dynamicValues: Record<string, FieldValue>) => {
+    (dynamicValues: Record<string, unknown>) => {
       setIsDynamicallyRefetching(true);
       const requestOptions: RequestOptions = {
         method: 'GET',
@@ -250,98 +249,90 @@ export function ExternalIssueForm({
     }
   }, [isPending, isError, loadSpan, organization, group, integration, hasTrackedLoad]);
 
-  const handleClick = useCallback(
-    (newAction: ExternalIssueAction) => {
-      setAction(newAction);
-      refetch();
+  const handleClick = (newAction: ExternalIssueAction) => {
+    setAction(newAction);
+    refetch();
+  };
+
+  const handleSubmit = useCallback(
+    async (values: Record<string, unknown>) => {
+      const span = startSpan('submit');
+      try {
+        const data: IntegrationExternalIssue = await api.requestPromise(endpointString, {
+          method: action === 'create' ? 'POST' : 'PUT',
+          data: values,
+        });
+        trackAnalytics('issue_details.external_issue_created', {
+          organization,
+          ...getAnalyticsDataForGroup(group),
+          external_issue_provider: integration.provider.key,
+          external_issue_type: 'first_party',
+        });
+        addSuccessMessage(MESSAGES_BY_ACTION[action]);
+        onChange();
+        closeModal();
+        span?.end();
+        return data;
+      } catch (err) {
+        span?.end();
+        throw err;
+      }
     },
-    [refetch]
+    [
+      api,
+      endpointString,
+      action,
+      organization,
+      group,
+      integration,
+      startSpan,
+      closeModal,
+      onChange,
+    ]
   );
 
-  const handlePreSubmit = useCallback(() => {
-    setSubmitSpan(startSpan('submit'));
-  }, [startSpan]);
-
-  const handleSubmitError = useCallback(() => {
-    submitSpan?.end();
-  }, [submitSpan]);
-
-  const handleSubmitSuccess = useCallback(
-    (_data: IntegrationExternalIssue) => {
-      trackAnalytics('issue_details.external_issue_created', {
-        organization,
-        ...getAnalyticsDataForGroup(group),
-        external_issue_provider: integration.provider.key,
-        external_issue_type: 'first_party',
-      });
-      onChange(() => addSuccessMessage(MESSAGES_BY_ACTION[action]));
-      closeModal();
-      submitSpan?.end();
-    },
-    [organization, group, integration, submitSpan, action, closeModal, onChange]
-  );
+  // Track the field that triggered the last dynamic refetch so we can
+  // preserve its value when the form remounts with new config.
+  const [lastChangedField, setLastChangedField] = useState<Record<string, unknown>>({});
 
   const onFieldChange = useCallback(
-    (fieldName: string, value: FieldValue) => {
+    (fieldName: string, value: unknown) => {
       if (dynamicFieldValues.hasOwnProperty(fieldName)) {
+        setLastChangedField({[fieldName]: value});
         setDynamicFieldValue(fieldName, value);
-        refetchWithDynamicFields({...dynamicFieldValues, [fieldName]: value});
+        refetchWithDynamicFields({
+          ...dynamicFieldValues,
+          [fieldName]: value,
+        });
       }
     },
     [dynamicFieldValues, refetchWithDynamicFields, setDynamicFieldValue]
   );
 
-  // Even if we pass onFieldChange as a prop, the model only uses the first instance.
-  // In order to use the correct dynamicFieldValues, we need to set it whenever this function is changed.
-  useEffect(() => {
-    model.setFormOptions({onFieldChange});
-  }, [model, onFieldChange]);
-
-  const getExternalIssueFieldProps = useCallback(
-    (field: IssueConfigField) => {
-      return getFieldProps({
-        field,
-        loadOptions: (input: string) =>
-          getOptions({
-            field,
-            input,
-            dynamicFieldValues,
-            model,
-            successCallback: updateCache,
-          }),
-      });
-    },
-    [updateCache, dynamicFieldValues, model]
-  );
-
-  const formFields = useMemo(() => {
+  const formFields = useMemo((): JsonFormAdapterFieldConfig[] => {
     if (!integrationDetails) {
       return [];
     }
-    return loadAsyncThenFetchAllFields({
-      configName: getConfigName(action),
-      integrationDetails,
-      fetchedFieldOptionsCache: cache,
-    });
-  }, [integrationDetails, action, cache]);
+    const config = integrationDetails[getConfigName(action)];
+    return (config ?? []) as JsonFormAdapterFieldConfig[];
+  }, [integrationDetails, action]);
 
-  const initialData = formFields.reduce<Record<string, FieldValue>>(
-    (accumulator, field: IssueConfigField) => {
-      accumulator[field.name] = field.default;
-      return accumulator;
-    },
-    {}
+  const hasFormErrors = formFields.some(
+    field => field.name === 'error' && field.type === 'blank'
   );
 
-  const hasFormErrors = useMemo(() => {
-    return hasErrorInFields({fields: formFields});
-  }, [formFields]);
+  // Key changes when field config changes, forcing the form to remount with fresh defaults.
+  // Includes field names and defaults so the form resets even when only defaults change.
+  const formKey = useMemo(
+    () => formFields.map(f => `${f.name}:${JSON.stringify(f.default)}`).join(','),
+    [formFields]
+  );
 
   if (isPending) {
     return (
       <Fragment>
         <Header closeButton>
-          <h4>{title}</h4>
+          <Heading as="h4">{title}</Heading>
         </Header>
         <Body>
           <LoadingIndicator />
@@ -359,7 +350,7 @@ export function ExternalIssueForm({
     return (
       <Fragment>
         <Header closeButton>
-          <h4>{title}</h4>
+          <Heading as="h4">{title}</Heading>
         </Header>
         <Body>
           <LoadingError message={errorMessage} />
@@ -369,41 +360,42 @@ export function ExternalIssueForm({
   }
 
   return (
-    <ExternalForm
-      Header={Header}
-      Body={Body}
-      formFields={formFields}
-      isLoading={isPending || isDynamicallyRefetching}
-      formProps={{
-        initialData,
-        onFieldChange,
-        model,
-        footerClass: 'modal-footer',
-        submitDisabled: isPending || hasFormErrors,
-        submitLabel: SUBMIT_LABEL_BY_ACTION[action],
-        apiEndpoint: endpointString,
-        apiMethod: action === 'create' ? 'POST' : 'PUT',
-        onPreSubmit: handlePreSubmit,
-        onSubmitError: handleSubmitError,
-        onSubmitSuccess: handleSubmitSuccess,
-      }}
-      title={title}
-      navTabs={
-        <TabsContainer>
-          <Tabs value={action} onChange={handleClick}>
-            <TabList>
-              <TabList.Item key="create">{t('Create')}</TabList.Item>
-              <TabList.Item key="link">{t('Link')}</TabList.Item>
-            </TabList>
-          </Tabs>
-        </TabsContainer>
-      }
-      bodyText={null}
-      getFieldProps={getExternalIssueFieldProps}
-    />
+    <Fragment>
+      <Header closeButton>
+        <Heading as="h4">{title}</Heading>
+      </Header>
+      <TabsContainer>
+        <Tabs value={action} onChange={handleClick}>
+          <TabList>
+            <TabList.Item key="create">{t('Create')}</TabList.Item>
+            <TabList.Item key="link">{t('Link')}</TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
+      <Body>
+        <BackendJsonSubmitForm
+          key={formKey}
+          fields={formFields}
+          initialValues={lastChangedField}
+          onSubmit={handleSubmit}
+          submitLabel={SUBMIT_LABEL_BY_ACTION[action]}
+          isLoading={isDynamicallyRefetching}
+          dynamicFieldValues={dynamicFieldValues}
+          onFieldChange={onFieldChange}
+          submitDisabled={hasFormErrors}
+          footer={({SubmitButton, disabled}) => (
+            <Footer>
+              <SubmitButton disabled={disabled}>
+                {SUBMIT_LABEL_BY_ACTION[action]}
+              </SubmitButton>
+            </Footer>
+          )}
+        />
+      </Body>
+    </Fragment>
   );
 }
 
 const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
 `;

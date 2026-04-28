@@ -27,7 +27,7 @@ def get_activity_notifiers(project):
     name="sentry.tasks.activity.send_activity_notifications",
     namespace=notifications_tasks,
     processing_deadline_duration=180,
-    silo_mode=SiloMode.REGION,
+    silo_mode=SiloMode.CELL,
 )
 def send_activity_notifications(activity_id: int) -> None:
     from sentry.models.activity import Activity

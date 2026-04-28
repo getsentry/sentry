@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -31,7 +31,7 @@ from sentry.notifications.models.notificationaction import NotificationAction
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Alerts"])
 class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ECOSYSTEM
@@ -63,8 +63,12 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         parsed_kwargs["action"] = action
         action_projects = action.projects.all()
 
-        # If the action has no projects, skip the project access check
+        # Notification actions not scoped to a particular project require org-level write access for mutations.
         if not action_projects:
+            if request.method != "GET" and not request.access.has_scope("org:write"):
+                raise PermissionDenied(
+                    detail="You do not have permission to modify this organization-wide notification action."
+                )
             return (parsed_args, parsed_kwargs)
 
         if request.method == "GET":

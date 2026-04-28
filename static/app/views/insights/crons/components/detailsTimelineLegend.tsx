@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {ExternalLink} from 'sentry/components/core/link';
-import {Text} from 'sentry/components/core/text';
-import QuestionTooltip from 'sentry/components/questionTooltip';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
+import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct, tn} from 'sentry/locale';
 import {
   DEFAULT_CHECKIN_MARGIN,

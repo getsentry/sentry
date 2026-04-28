@@ -1,10 +1,12 @@
+import logging
+
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidParams
@@ -18,8 +20,10 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
+logger = logging.getLogger(__name__)
 
-@region_silo_endpoint
+
+@cell_silo_endpoint
 class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -67,19 +71,16 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
         """
         fields = request.GET.getlist("field", [])
         for field in fields:
-            try:
-                metric_field = parse_field(field, allow_mri=True)
-                if (
-                    metric_field.op is None
-                    and not metric_field.metric_mri.startswith("e:")
-                    and metric_field.metric_mri
-                    != "d:sessions/duration.exited@second"  # this is special case, derived metric without 'e' as entity
-                ):
-                    raise ParseError(
-                        detail="You can not use generic metric public field without operation"
-                    )
-            except InvalidParams as exc:
-                raise ParseError(detail=str(exc))
+            metric_field = parse_field(field, allow_mri=True)
+            if (
+                metric_field.op is None
+                and not metric_field.metric_mri.startswith("e:")
+                and metric_field.metric_mri
+                != "d:sessions/duration.exited@second"  # this is special case, derived metric without 'e' as entity
+            ):
+                raise ParseError(
+                    detail="You can not use generic metric public field without operation"
+                )
 
     def get(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
@@ -93,9 +94,10 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                     allow_mri=True,
                     paginator_kwargs={"limit": limit, "offset": offset},
                 )
+                metrics_query = query.to_metrics_query()
                 data = get_series(
                     projects,
-                    metrics_query=query.to_metrics_query(),
+                    metrics_query=metrics_query,
                     use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
@@ -109,6 +111,25 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                 )
 
                 data["query"] = query.query
+
+                # EAP shadow read for session metrics
+                try:
+                    from sentry import features
+                    from sentry.release_health.eap_sessions_rollout import (
+                        compare_get_series_results,
+                        get_series_eap,
+                        is_session_metrics_query,
+                    )
+
+                    if features.has(
+                        "organizations:session-health-eap", organization
+                    ) and is_session_metrics_query(metrics_query):
+                        eap_result = get_series_eap(metrics_query, organization.id)
+                        if eap_result is not None:
+                            compare_get_series_results(data, eap_result)
+                except Exception:
+                    logger.exception("eap_sessions.get_series_double_read_failed")
+
             except (
                 InvalidParams,
                 DerivedMetricException,

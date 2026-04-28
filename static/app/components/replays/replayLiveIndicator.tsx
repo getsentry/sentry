@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -8,13 +9,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import usePollReplayRecord from 'sentry/utils/replays/hooks/usePollReplayRecord';
+import {usePollReplayRecord} from 'sentry/utils/replays/hooks/usePollReplayRecord';
 import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
-import useOrganization from 'sentry/utils/useOrganization';
-import useTimeout from 'sentry/utils/useTimeout';
-import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useTimeout} from 'sentry/utils/useTimeout';
+import {useReplaySummaryContext} from 'sentry/views/explore/replays/detail/ai/replaySummaryContext';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 const LIVE_TOOLTIP_MESSAGE = t('This replay is in progress.');
 
@@ -44,7 +44,7 @@ const pulse = keyframes`
 `;
 
 const LiveIndicator = styled('div')`
-  background: ${p => p.theme.tokens.content.success};
+  background: ${p => p.theme.tokens.background.success.vibrant};
   height: 8px;
   width: 8px;
   position: relative;
@@ -59,7 +59,7 @@ const LiveIndicator = styled('div')`
   &:before {
     content: '';
     animation: ${pulse} 3s ease-out infinite;
-    border: 6px solid ${p => p.theme.tokens.content.success};
+    border: 6px solid ${p => p.theme.tokens.border.success};
     position: absolute;
     border-radius: 50%;
     height: 20px;

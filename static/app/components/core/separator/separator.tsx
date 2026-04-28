@@ -1,8 +1,8 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import type {ContainerProps} from 'sentry/components/core/layout/container';
-import {getBorder, getMargin, getSpacing, rc} from 'sentry/components/core/layout/styles';
+import type {ContainerProps} from '@sentry/scraps/layout';
+import {getBorder, getMargin, getSpacing, rc} from '@sentry/scraps/layout';
 
 export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
   orientation: 'horizontal' | 'vertical';

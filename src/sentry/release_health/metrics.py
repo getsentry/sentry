@@ -10,7 +10,6 @@ from snuba_sdk.expressions import Granularity, Limit, Offset
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.release_health.base import (
-    AllowedResolution,
     CrashFreeBreakdown,
     CurrentAndPreviousCrashFreeRates,
     EnvironmentName,
@@ -28,7 +27,6 @@ from sentry.release_health.base import (
     ReleaseName,
     ReleasesAdoption,
     ReleaseSessionsTimeBounds,
-    SessionsQueryConfig,
     SessionsQueryResult,
     StatsPeriod,
 )
@@ -147,7 +145,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         rollup: int,
     ) -> dict[int, float | None]:
-
         project_ids = [p.id for p in projects]
 
         select = [
@@ -184,7 +181,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         rollup: int,
         org_id: int | None = None,
     ) -> CurrentAndPreviousCrashFreeRates:
-
         projects, proj_org_id = self._get_projects_and_org_id(project_ids)
 
         if org_id is None:
@@ -404,13 +400,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         return rv
 
-    def sessions_query_config(self, organization: Any) -> SessionsQueryConfig:
-        return SessionsQueryConfig(
-            allowed_resolution=AllowedResolution.ten_seconds,
-            allow_session_status_query=True,
-            restrict_date_range=False,
-        )
-
     def run_sessions_query(
         self,
         org_id: int,
@@ -426,7 +415,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         org_id: OrganizationId,
         environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
-
         projects, org_id = self._get_projects_and_org_id([project_id])
 
         select = [
@@ -843,7 +831,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         end: datetime,
     ) -> Mapping[tuple[int, str, str], int]:
-
         project_ids = [p.id for p in projects]
 
         select = [
@@ -902,7 +889,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime,
         buckets: int,
     ) -> Mapping[ProjectRelease, list[list[int]]]:
-
         project_ids = [p.id for p in projects]
 
         metric_field = {
@@ -1011,10 +997,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             projects, where, org_id, rollup, summary_start, now
         )
 
-        # XXX: In order to be able to dual-read and compare results from both
-        # old and new backend, this should really go back through the
-        # release_health service instead of directly calling `self`. For now
-        # that makes the entire backend too hard to test though.
         release_adoption = self.get_release_adoption(project_releases, environments)
 
         rv: dict[ProjectRelease, ReleaseHealthOverview] = {}
@@ -1121,7 +1103,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         start: datetime,
         environments: Sequence[EnvironmentName] | None = None,
     ) -> Callable[[datetime], CrashFreeBreakdown]:
-
         projects = self._get_projects([project_id])
 
         where = [
@@ -1201,7 +1182,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Sequence[EnvironmentName] | None = None,
         now: datetime | None = None,
     ) -> Sequence[CrashFreeBreakdown]:
-
         projects, org_id = self._get_projects_and_org_id([project_id])
 
         if now is None:
@@ -1239,7 +1219,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_ids: Iterable[int],
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
-
         if now is None:
             now = datetime.now(timezone.utc)
 
@@ -1289,7 +1268,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         self,
         project_releases: Sequence[ProjectRelease],
         now: datetime | None = None,
-    ) -> Mapping[ProjectRelease, str]:
+    ) -> Mapping[ProjectRelease, datetime]:
         if now is None:
             now = datetime.now(timezone.utc)
 
@@ -1330,14 +1309,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             use_case_id=USE_CASE_ID,
         )
 
-        ret_val = {}
+        ret_val: dict[ProjectRelease, datetime] = {}
         groups = raw_result["groups"]
         for group in groups:
             by = group.get("by")
             proj_id = by.get("project_id")
             release = by.get("release")
             totals = group.get("totals")
-            ret_val[(proj_id, release)] = totals["oldest"]
+            ret_val[(proj_id, release)] = datetime.fromisoformat(totals["oldest"])
         return ret_val
 
     def get_project_releases_count(
@@ -1348,7 +1327,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         stats_period: str | None = None,
         environments: Sequence[EnvironmentName] | None = None,
     ) -> int:
-
         projects = self._get_projects(project_ids)
 
         now = datetime.now(timezone.utc)
@@ -1615,7 +1593,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         end: datetime | None,
         environment_ids: Sequence[int] | None = None,
     ) -> Sequence[ProjectWithCount]:
-
         projects, org_id = self._get_projects_and_org_id(project_ids)
 
         select = [MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None)]
@@ -1673,7 +1650,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         environments: Sequence[str] | None = None,
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
-
         if len(project_ids) == 0:
             return []
 

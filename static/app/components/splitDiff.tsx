@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
 
-import {Flex} from '@sentry/scraps/layout';
-
 import {unreachable} from 'sentry/utils/unreachable';
 
 // @TODO(jonasbadalic): This used to be defined on the theme, but is component specific and lacks dark mode.
@@ -94,72 +92,103 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
     return processedLines;
   }, [base, target, type]);
 
+  const displayRows = useMemo(
+    () =>
+      groupedChanges.map(line => {
+        const highlightAdded = line.find(result => result.added);
+        const highlightRemoved = line.find(result => result.removed);
+        const displayData = getDisplayData(line, highlightAdded, highlightRemoved);
+
+        return {
+          highlightAdded,
+          highlightRemoved,
+          leftSegments: displayData.filter(result => !result.added),
+          rightSegments: displayData.filter(result => !result.removed),
+        };
+      }),
+    [groupedChanges]
+  );
+
   return (
-    <SplitTable className={className} data-test-id="split-diff">
+    <SplitDiffContainer className={className} data-test-id="split-diff">
       <SplitBody>
-        {groupedChanges.map((line, j) => {
-          const highlightAdded = line.find(result => result.added);
-          const highlightRemoved = line.find(result => result.removed);
-
+        {displayRows.map((row, j) => {
           return (
-            <tr key={j}>
-              <Cell isRemoved={highlightRemoved}>
-                <Flex wrap="wrap">
-                  {getDisplayData(line, highlightAdded, highlightRemoved)
-                    .filter(result => !result.added)
-                    .map((result, i) => (
-                      <Word key={i} isRemoved={result.removed}>
-                        {result.value}
-                      </Word>
-                    ))}
-                </Flex>
-              </Cell>
+            <Cell
+              key={`left-${j}`}
+              data-test-id="split-diff-left-cell"
+              row={j + 1}
+              side="left"
+              isRemoved={row.highlightRemoved}
+            >
+              <Line>
+                {row.leftSegments.map((result, i) => (
+                  <Word key={i} isRemoved={result.removed}>
+                    {result.value}
+                  </Word>
+                ))}
+              </Line>
+            </Cell>
+          );
+        })}
 
-              <Gap />
-
-              <Cell isAdded={highlightAdded}>
-                <Flex wrap="wrap">
-                  {getDisplayData(line, highlightAdded, highlightRemoved)
-                    .filter(result => !result.removed)
-                    .map((result, i) => (
-                      <Word key={i} isAdded={result.added}>
-                        {result.value}
-                      </Word>
-                    ))}
-                </Flex>
-              </Cell>
-            </tr>
+        {displayRows.map((row, j) => {
+          return (
+            <Cell
+              key={`right-${j}`}
+              data-test-id="split-diff-right-cell"
+              row={j + 1}
+              side="right"
+              isAdded={row.highlightAdded}
+            >
+              <Line>
+                {row.rightSegments.map((result, i) => (
+                  <Word key={i} isAdded={result.added}>
+                    {result.value}
+                  </Word>
+                ))}
+              </Line>
+            </Cell>
           );
         })}
       </SplitBody>
-    </SplitTable>
+    </SplitDiffContainer>
   );
 }
 
-const SplitTable = styled('table')`
-  table-layout: fixed;
-  border-collapse: collapse;
+const SplitDiffContainer = styled('div')`
   width: 100%;
 `;
 
-const SplitBody = styled('tbody')`
+const SplitBody = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr);
 `;
 
-const Cell = styled('td')<{isAdded?: Change; isRemoved?: Change}>`
-  vertical-align: top;
+const Cell = styled('div')<{
+  row: number;
+  side: 'left' | 'right';
+  isAdded?: Change;
+  isRemoved?: Change;
+}>`
+  grid-row: ${p => p.row};
+  grid-column: ${p => (p.side === 'left' ? 1 : 3)};
+  min-width: 0;
+  min-height: 1.4em;
+  overflow: hidden;
   ${p => p.isRemoved && `background-color: ${DIFF_COLORS.removedRow}`};
   ${p => p.isAdded && `background-color: ${DIFF_COLORS.addedRow}`};
 `;
 
-const Gap = styled('td')`
-  width: 20px;
+const Line = styled('div')`
+  white-space: pre-wrap;
 `;
 
 const Word = styled('span')<{isAdded?: boolean; isRemoved?: boolean}>`
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
   ${p => p.isRemoved && `background-color: ${DIFF_COLORS.removed}`};
   ${p => p.isAdded && `background-color: ${DIFF_COLORS.added}`};
 `;

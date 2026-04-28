@@ -1,6 +1,6 @@
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 
 describe('RangeSlider', () => {
   it('changes value / has right label', () => {

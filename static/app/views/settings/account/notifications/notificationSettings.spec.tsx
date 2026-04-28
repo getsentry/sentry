@@ -3,8 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SELF_NOTIFICATION_SETTINGS_TYPES} from 'sentry/views/settings/account/notifications/constants';
-import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields2';
+import {NOTIFICATION_SETTING_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import NotificationSettings from 'sentry/views/settings/account/notifications/notificationSettings';
 
 function renderMockRequests() {
@@ -34,7 +33,8 @@ describe('NotificationSettings', () => {
       'approval',
       'reports',
       'email',
-      ...SELF_NOTIFICATION_SETTINGS_TYPES,
+      'personalActivityNotifications',
+      'selfAssignOnResolve',
     ] as const) {
       expect(
         await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
@@ -64,7 +64,8 @@ describe('NotificationSettings', () => {
       'reports',
       'email',
       'quota',
-      ...SELF_NOTIFICATION_SETTINGS_TYPES,
+      'personalActivityNotifications',
+      'selfAssignOnResolve',
     ] as const) {
       expect(
         await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))

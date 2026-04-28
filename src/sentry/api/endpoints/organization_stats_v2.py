@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
@@ -44,7 +44,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         help_text=(
             "This defines the range of the time series, relative to now. "
             "The range is given in a `<number><unit>` format. "
-            "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks."
+            "For example `1d` for a one day range. Possible units are `m` for minutes, `h` for hours, `d` for days and `w` for weeks. "
             "You must either provide a `statsPeriod`, or a `start` and `end`."
         ),
         required=False,
@@ -58,13 +58,13 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         required=False,
     )
     start = serializers.DateTimeField(
-        help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+        help_text="This defines the start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
         "Use along with `end` instead of `statsPeriod`.",
         required=False,
     )
     end = serializers.DateTimeField(
         help_text=(
-            "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds."
+            "This defines the inclusive end of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
             "Use along with `start` instead of `statsPeriod`."
         ),
         required=False,
@@ -153,7 +153,7 @@ class StatsApiResponse(TypedDict):
 
 
 @extend_schema(tags=["Organizations"])
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationStatsEndpointV2(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
@@ -188,7 +188,6 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
-
             tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(

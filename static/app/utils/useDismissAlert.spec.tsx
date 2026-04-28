@@ -1,13 +1,13 @@
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {setMockDate} from 'sentry-test/utils';
 
-import localStorage from 'sentry/utils/localStorage';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 jest.mock('sentry/utils/localStorage');
 
-const mockSetItem = jest.mocked(localStorage.setItem);
-const mockGetItem = jest.mocked(localStorage.getItem);
+const mockSetItem = jest.mocked(localStorageWrapper.setItem);
+const mockGetItem = jest.mocked(localStorageWrapper.getItem);
 
 const key = 'test_123';
 const now = new Date('2020-01-01');

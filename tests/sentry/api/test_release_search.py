@@ -36,7 +36,6 @@ class ParseSearchQueryTest(TestCase):
         ]
 
     def test_release_stage(self) -> None:
-
         assert parse_search_query(f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}") == [
             SearchFilter(
                 key=SearchKey(name=RELEASE_STAGE_ALIAS),

@@ -1,6 +1,9 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {TempestCredentials} from 'sentry/views/settings/project/tempest/types';
 
 const makeFetchTempestCredentialsQueryKey = ({
@@ -9,7 +12,12 @@ const makeFetchTempestCredentialsQueryKey = ({
 }: {
   orgSlug: string;
   projectSlug: string;
-}) => [`/projects/${orgSlug}/${projectSlug}/tempest-credentials/`] as const;
+}) =>
+  [
+    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/', {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+    }),
+  ] as const;
 
 export function useFetchTempestCredentials(organization: Organization, project: Project) {
   const tempestCredentialsQuery = useApiQuery<TempestCredentials[]>(

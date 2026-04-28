@@ -29,13 +29,6 @@ export type EventGroupComponent = {
   name: string | null;
   values: EventGroupComponent[] | string[];
 };
-export type EventGroupingConfig = {
-  base: string | null;
-  delegates: string[];
-  id: string;
-  strategies: string[];
-};
-
 type VariantEvidence = {
   desc: string;
   fingerprint: string;
@@ -78,7 +71,6 @@ interface ChecksumVariant extends BaseVariant {
 interface HasComponentGrouping {
   client_values?: string[];
   component?: EventGroupComponent;
-  config?: EventGroupingConfig;
   matched_rule?: string;
   values?: string[];
 }
@@ -191,6 +183,8 @@ export type Frame = {
   mapUrl?: string | null;
   minGroupingLevel?: number;
   origAbsPath?: string | null;
+  parentIndex?: number | null;
+  sampleCount?: number | null;
   sourceLink?: string | null;
   symbolicatorStatus?: SymbolicatorStatus;
 };
@@ -202,7 +196,7 @@ export type ExceptionValue = {
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
-  value: string;
+  value: string | null;
   frames?: Frame[] | null;
   rawModule?: string | null;
   rawType?: string | null;
@@ -278,7 +272,7 @@ export type EntryDebugMeta = {
   type: EntryType.DEBUGMETA;
 };
 
-export type EntryBreadcrumbs = {
+type EntryBreadcrumbs = {
   data: {
     values: RawCrumb[];
   };
@@ -337,8 +331,10 @@ interface EntryRequestDataDefault {
   query?: Array<[key: string, value: string] | null> | string;
 }
 
-export interface EntryRequestDataGraphQl
-  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+export interface EntryRequestDataGraphQl extends Omit<
+  EntryRequestDataDefault,
+  'apiTarget' | 'data'
+> {
   apiTarget: 'graphql';
   data: {
     query: string;
@@ -385,6 +381,11 @@ export type Entry =
   | EntryCsp
   | EntryGeneric
   | EntryResources;
+
+/** Maps each EntryType to its corresponding Entry subtype. */
+export type EntryMap = {
+  [E in Entry as E['type']]: E;
+};
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
@@ -436,8 +437,7 @@ export enum DeviceContextKey {
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#device-context
 export interface DeviceContext
-  extends Partial<Record<DeviceContextKey, unknown>>,
-    BaseContext {
+  extends Partial<Record<DeviceContextKey, unknown>>, BaseContext {
   type: 'device';
   [DeviceContextKey.NAME]: string;
   [DeviceContextKey.ARCH]?: string;
@@ -493,8 +493,7 @@ enum RuntimeContextKey {
 
 // https://develop.sentry.dev/sdk/event-payloads/contexts/#runtime-context
 interface RuntimeContext
-  extends Partial<Record<RuntimeContextKey, unknown>>,
-    BaseContext {
+  extends Partial<Record<RuntimeContextKey, unknown>>, BaseContext {
   type: 'runtime';
   [RuntimeContextKey.BUILD]?: string;
   [RuntimeContextKey.NAME]?: string;
@@ -798,8 +797,10 @@ interface TraceEventContexts extends EventContexts {
   profile?: ProfileContext;
 }
 
-export interface EventTransaction
-  extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
+export interface EventTransaction extends Omit<
+  EventBase,
+  'entries' | 'type' | 'contexts'
+> {
   contexts: TraceEventContexts;
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
@@ -812,28 +813,27 @@ export interface EventTransaction
   perfProblem?: PerformanceDetectorData;
 }
 
-export interface AggregateEventTransaction
-  extends Omit<
-    EventTransaction,
-    | 'crashFile'
-    | 'culprit'
-    | 'dist'
-    | 'dateReceived'
-    | 'errors'
-    | 'location'
-    | 'metadata'
-    | 'message'
-    | 'occurrence'
-    | 'type'
-    | 'size'
-    | 'user'
-    | 'eventID'
-    | 'fingerprints'
-    | 'id'
-    | 'projectID'
-    | 'tags'
-    | 'title'
-  > {
+export interface AggregateEventTransaction extends Omit<
+  EventTransaction,
+  | 'crashFile'
+  | 'culprit'
+  | 'dist'
+  | 'dateReceived'
+  | 'errors'
+  | 'location'
+  | 'metadata'
+  | 'message'
+  | 'occurrence'
+  | 'type'
+  | 'size'
+  | 'user'
+  | 'eventID'
+  | 'fingerprints'
+  | 'id'
+  | 'projectID'
+  | 'tags'
+  | 'title'
+> {
   count: number;
   frequency: number;
   total: number;

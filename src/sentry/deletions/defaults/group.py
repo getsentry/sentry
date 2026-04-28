@@ -28,9 +28,12 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.seer.models.night_shift import SeerNightShiftRunIssue
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.delete_seer_grouping_records import may_schedule_task_to_delete_hashes_from_seer
+from sentry.tasks.seer.delete_seer_grouping_records import (
+    may_schedule_task_to_delete_hashes_from_seer,
+)
 from sentry.utils import metrics
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -93,6 +96,7 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     models.UserReport,
     models.EventAttachment,
     NotificationMessage,
+    SeerNightShiftRunIssue,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 
@@ -252,9 +256,8 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         from sentry import similarity
 
         # Don't do MinHash work if we use embeddings-based similarity.
-        if not self.skip_models or similarity not in self.skip_models:
-            if not instance.project.get_option("sentry:similarity_backfill_completed"):
-                similarity.delete(None, instance)
+        if not instance.project.get_option("sentry:similarity_backfill_completed"):
+            similarity.delete(None, instance)
 
         return super().delete_instance(instance)
 

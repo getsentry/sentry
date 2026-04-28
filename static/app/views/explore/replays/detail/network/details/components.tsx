@@ -1,0 +1,160 @@
+import type {ReactNode} from 'react';
+import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
+
+export const Indent = styled('div')`
+  padding-left: ${p => p.theme.space.md};
+  padding-right: ${p => p.theme.space.md};
+`;
+
+export function InspectorMargin(props: ContainerProps<'div'>) {
+  return <Container padding="md" {...props} />;
+}
+
+const NotFoundText = styled('span')`
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+`;
+
+const WarningText = styled('span')`
+  color: ${p => p.theme.tokens.content.danger};
+`;
+
+export function Warning({warnings}: {warnings: string[]}) {
+  if (warnings.includes('JSON_TRUNCATED') || warnings.includes('TEXT_TRUNCATED')) {
+    return (
+      <WarningText>{t('Truncated (~~) due to exceeding 150k characters')}</WarningText>
+    );
+  }
+
+  if (warnings.includes('INVALID_JSON')) {
+    return <WarningText>{t('Invalid JSON')}</WarningText>;
+  }
+
+  return null;
+}
+
+export function SizeTooltip({children}: {children: ReactNode}) {
+  return (
+    <Tooltip
+      title={t('It is possible the network transfer size is smaller due to compression.')}
+    >
+      {children}
+    </Tooltip>
+  );
+}
+
+export type KeyValueTuple = {
+  key: string;
+  value: string | ReactNode;
+  type?: 'warning' | 'error';
+};
+
+export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
+  return data.length ? (
+    <StyledKeyValueTable noMargin>
+      {data.map(({key, value, type}) => (
+        <KeyValueTableRow
+          key={key}
+          keyName={key}
+          type={type}
+          value={
+            <Container as="span" overflow="auto">
+              {value}
+            </Container>
+          }
+        />
+      ))}
+    </StyledKeyValueTable>
+  ) : (
+    <Indent>
+      <NotFoundText>{notFoundText}</NotFoundText>
+    </Indent>
+  );
+}
+
+const SectionTitle = styled('dt')``;
+
+const SectionTitleExtra = styled('span')`
+  flex-grow: 1;
+  text-align: right;
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
+const SectionData = styled('dd')`
+  font-size: ${p => p.theme.font.size.xs};
+`;
+
+const ToggleButton = styled('button')`
+  background: ${p => p.theme.tokens.background.primary};
+  border: 0;
+  color: ${p => p.theme.tokens.content.primary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  line-height: ${p => p.theme.font.lineHeight.comfortable};
+
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: ${p => p.theme.space.md};
+
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
+
+  :hover {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+  }
+
+  :active {
+    background: ${p => p.theme.tokens.interactive.transparent.neutral.background.active};
+  }
+`;
+
+export function SectionItem({
+  children,
+  title,
+  titleExtra,
+}: {
+  children: ReactNode;
+  title: ReactNode;
+  titleExtra?: ReactNode;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <Fragment>
+      <SectionTitle>
+        <ToggleButton aria-label={t('toggle section')} onClick={() => setIsOpen(!isOpen)}>
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" />
+          {title}
+          {titleExtra ? <SectionTitleExtra>{titleExtra}</SectionTitleExtra> : null}
+        </ToggleButton>
+      </SectionTitle>
+      <SectionData>{isOpen ? children : null}</SectionData>
+    </Fragment>
+  );
+}
+
+const StyledKeyValueTable = styled(KeyValueTable)`
+  & > dt {
+    font-size: ${p => p.theme.font.size.sm};
+    padding-left: ${p => p.theme.space['3xl']};
+  }
+  & > dd {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: ${p => p.theme.font.size.sm};
+    display: flex;
+    justify-content: flex-end;
+    white-space: normal;
+    text-align: right;
+  }
+`;

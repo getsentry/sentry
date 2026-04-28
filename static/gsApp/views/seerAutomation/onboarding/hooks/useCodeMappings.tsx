@@ -1,9 +1,10 @@
 import {useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseCodeMappingsParams {
   enabled: boolean;
@@ -18,13 +19,15 @@ export function useCodeMappings({enabled}: UseCodeMappingsParams) {
     isLoading,
     isPending,
     isError,
-  } = useApiQuery<RepositoryProjectPathConfig[]>(
-    [`/organizations/${organization.slug}/code-mappings/`],
-    {
-      // Code mappings are not updated frequently, so we can cache them for a longer time.
-      staleTime: FIFTEEN_MINUTES,
-      enabled,
-    }
+  } = useQuery(
+    apiOptions.as<RepositoryProjectPathConfig[]>()(
+      '/organizations/$organizationIdOrSlug/code-mappings/',
+      {
+        path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        // Code mappings are not updated frequently, so we can cache them for a longer time.
+        staleTime: FIFTEEN_MINUTES,
+      }
+    )
   );
 
   // Create a map of repository ID to project slugs based on code mappings.

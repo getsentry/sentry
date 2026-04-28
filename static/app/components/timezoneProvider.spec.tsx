@@ -2,7 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {TimezoneProvider, UserTimezoneProvider, useTimezone} from './timezoneProvider';
 

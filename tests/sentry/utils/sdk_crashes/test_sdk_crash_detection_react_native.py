@@ -331,6 +331,83 @@ def test_sentry_wrapped_not_detected(
     assert mock_sdk_crash_reporter.report.call_count == 0
 
 
+@pytest.mark.parametrize(
+    ["function", "module", "filename", "detected"],
+    [
+        # fetch instrumentation pass-through (ESM build) — should be ignored
+        (
+            "fetch",
+            "@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            False,
+        ),
+        # fetch instrumentation pass-through (CJS build) — should be ignored
+        (
+            "fetch",
+            "@sentry/core/build/cjs/instrument/fetch",
+            "node_modules/@sentry/core/build/cjs/instrument/fetch.js",
+            False,
+        ),
+        # Different function in the same module — should be detected
+        (
+            "instrumentFetch",
+            "@sentry/core/build/esm/instrument/fetch",
+            "node_modules/@sentry/core/build/esm/instrument/fetch.js",
+            True,
+        ),
+        # XHR instrumentation — should be detected (not covered by the ignore pattern)
+        (
+            "fetch",
+            "@sentry/core/build/esm/instrument/xhr",
+            "node_modules/@sentry/core/build/esm/instrument/xhr.js",
+            True,
+        ),
+    ],
+)
+@decorators
+def test_fetch_instrumentation_not_detected(
+    mock_sdk_crash_reporter,
+    mock_random,
+    store_event,
+    configs,
+    function: str,
+    module: str,
+    filename: str,
+    detected: bool,
+) -> None:
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=[
+                        *get_frames(),
+                        {
+                            "function": function,
+                            "module": module,
+                            "filename": filename,
+                            "abs_path": f"app:///{filename}",
+                        },
+                    ],
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    if detected:
+        assert mock_sdk_crash_reporter.report.call_count == 1
+    else:
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+
 @decorators
 def test_sentry_wrapped_end_detected(
     mock_sdk_crash_reporter, mock_random, store_event, configs

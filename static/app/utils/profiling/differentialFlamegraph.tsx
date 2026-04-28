@@ -6,7 +6,7 @@ import {Flamegraph, sortFlamegraphAlphabetically} from './flamegraph';
 import type {FlamegraphFrame} from './flamegraphFrame';
 
 export class DifferentialFlamegraph extends Flamegraph {
-  colors: Map<FlamegraphFrame['node'], ColorChannels> = new Map();
+  colors = new Map<FlamegraphFrame['node'], ColorChannels>();
   colorBuffer: number[] = [];
 
   isDifferentialFlamegraph = true;
@@ -19,7 +19,7 @@ export class DifferentialFlamegraph extends Flamegraph {
   static ALPHA_SCALING = 0.8;
   public negated = false;
 
-  weights: Map<FlamegraphFrame['node'], {after: number; before: number}> = new Map();
+  weights = new Map<FlamegraphFrame['node'], {after: number; before: number}>();
 
   static FrameKey(frame: FlamegraphFrame): string {
     return (

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, DefaultDict
+from typing import Any
 
 from sentry.api.serializers.models.rule import generate_rule_label
 from sentry.models.environment import Environment
@@ -36,10 +36,10 @@ def generate_diff_labels(
     present_state: dict[str, dict[str, str | int]],
     rule: Rule,
     key: str,
-) -> DefaultDict[str, list[str]]:
+) -> defaultdict[str, list[str]]:
     added_statement = "Added {} '{}'"
     removed_statement = "Removed {} '{}'"
-    changed_data: DefaultDict[str, list[str]] = defaultdict(list)
+    changed_data: defaultdict[str, list[str]] = defaultdict(list)
 
     prior_ids = set(prior_state.keys())
     present_ids = set(present_state.keys())
@@ -105,7 +105,7 @@ def get_changed_data(
     changed_actions = generate_diff_labels(prior_actions_data, present_actions_data, rule, "action")
 
     changed_conditions_actions = {**changed_conditions, **changed_actions}
-    changed_data: DefaultDict[str, list[str]] = defaultdict(list, changed_conditions_actions)
+    changed_data: defaultdict[str, list[str]] = defaultdict(list, changed_conditions_actions)
 
     current_frequency = get_frequency_label(rule_data.get("frequency"))
     previous_frequency = get_frequency_label(rule_data_before.get("frequency"))

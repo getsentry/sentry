@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {ChartPanel} from 'sentry/views/insights/common/components/chartPanel';
 
 describe('chartPanel', () => {
   const {organization} = initializeOrg({

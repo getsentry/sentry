@@ -206,6 +206,30 @@ class TestDetectorSerializer(TestCase):
 
         assert result["latestGroup"]["id"] == str(group2.id)
 
+    def test_serialize_normalizes_migrated_detection_type(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id,
+            name="Migrated Detector",
+            type=MetricIssue.slug,
+            config={
+                "threshold_period": 1,
+                "detection_type": "static",
+                "comparison_delta": 3600,
+            },
+        )
+        result = serialize(detector)
+        assert result["config"]["detectionType"] == "percent"
+        assert result["config"]["comparisonDelta"] == 3600
+
+    def test_serialize_does_not_normalize_static_without_comparison_delta(self) -> None:
+        detector = self.create_detector(
+            project_id=self.project.id,
+            name="Static Detector",
+            type=MetricIssue.slug,
+        )
+        result = serialize(detector)
+        assert result["config"]["detectionType"] == "static"
+
     def test_serialize_bulk(self) -> None:
         detectors = [
             self.create_detector(

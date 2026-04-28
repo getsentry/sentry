@@ -1,30 +1,30 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Text} from 'sentry/components/core/text';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Text} from '@sentry/scraps/text';
+
 import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {Duration} from 'sentry/components/duration';
+import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
 import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   buildDetectorZoomQuery,
   computeZoomRangeMs,
@@ -158,14 +158,14 @@ function LatestGroupWithOpenPeriods({
     (start: Date, end?: Date) => {
       const startMs = start.getTime();
       const endMs = (end ?? new Date()).getTime();
-      const {start: zoomStart, end: zoomEnd} = computeZoomRangeMs({
+      const zoomRange = computeZoomRangeMs({
         startMs,
         endMs,
         intervalSeconds,
       });
       navigate({
         pathname: location.pathname,
-        query: buildDetectorZoomQuery(location.query, zoomStart, zoomEnd),
+        query: buildDetectorZoomQuery(location.query, zoomRange),
       });
     },
     [location.pathname, location.query, navigate, intervalSeconds]
@@ -198,7 +198,7 @@ function LatestGroupWithOpenPeriods({
 
       <SimpleTable.Row>
         <EventOrGroupCell>
-          <EventOrGroupHeader data={group} />
+          <GroupHeaderRow data={group} />
         </EventOrGroupCell>
         <SimpleTable.RowCell>
           <GroupStatusTag fontSize="md">{group.substatus ?? group.status}</GroupStatusTag>
@@ -268,7 +268,7 @@ export function DetectorDetailsOpenPeriodIssues({
   };
 
   return (
-    <Section
+    <DetailSection
       title={tn('Ongoing Issue', 'Ongoing Issues', numIssues)}
       trailingItems={
         <LinkButton
@@ -299,7 +299,7 @@ export function DetectorDetailsOpenPeriodIssues({
           </SimpleTable>
         )}
       </ErrorBoundary>
-    </Section>
+    </DetailSection>
   );
 }
 

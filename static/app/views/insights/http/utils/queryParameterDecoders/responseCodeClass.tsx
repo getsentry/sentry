@@ -5,7 +5,7 @@ const DEFAULT = '';
 
 type ResponseCodeClass = (typeof OPTIONS)[number];
 
-export default function decode(
+export function decodeResponseCodeClass(
   value: string | string[] | undefined | null
 ): ResponseCodeClass {
   const decodedValue = decodeScalar(value, DEFAULT);
@@ -19,5 +19,5 @@ export default function decode(
 
 function isAValidOption(maybeOption: string): maybeOption is ResponseCodeClass {
   // Manually widen  to allow the comparison to string
-  return (OPTIONS as unknown as string[]).includes(maybeOption as ResponseCodeClass);
+  return (OPTIONS as unknown as string[]).includes(maybeOption);
 }

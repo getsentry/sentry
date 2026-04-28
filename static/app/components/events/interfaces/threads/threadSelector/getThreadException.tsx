@@ -30,7 +30,7 @@ function getException(
   return undefined;
 }
 
-function getThreadException(
+export function getThreadException(
   event: Event,
   thread?: Thread
 ): Required<ExceptionType> | undefined {
@@ -66,5 +66,3 @@ function getThreadException(
 
   return undefined;
 }
-
-export default getThreadException;

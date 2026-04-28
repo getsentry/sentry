@@ -10,8 +10,8 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
-import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
+import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
+import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 
 import {ExternalIssueSidebarList} from './externalIssueSidebarList';
 

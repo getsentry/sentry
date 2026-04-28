@@ -214,3 +214,62 @@ class GroupResolutionTest(TestCase):
             )
 
             resolution.delete()
+
+    def test_stale_current_release_version_with_semver_flip(self) -> None:
+        now = timezone.now()
+        current_at_resolution = self.create_release(
+            version="hotfix_pkg@1.3.0",
+            date_added=now - timedelta(minutes=45),
+        )
+        resolved_in_release = self.create_release(
+            version="hotfix_pkg@1.5.0",
+            date_added=now - timedelta(minutes=30),
+        )
+        # Out-of-order: older semver but created later
+        event_release = self.create_release(
+            version="hotfix_pkg@1.4.0",
+            date_added=now - timedelta(minutes=15),
+        )
+        # Non-semver release makes follows_semver False at resolution time;
+        # by event time it's no longer in the recent 3 so follows_semver flips to True
+        self.create_release(
+            version="hotfix_pkg@nightly-100",
+            date_added=now - timedelta(minutes=60),
+        )
+
+        GroupResolution.objects.create(
+            release=resolved_in_release,
+            current_release_version=current_at_resolution.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        # Fix is in 1.5.0; event on 1.4.0 (< 1.5.0 in semver) should NOT regress
+        assert GroupResolution.has_resolution(self.group, event_release)
+
+    def test_genuine_regression_detected_with_stale_current_release_version(self) -> None:
+        now = timezone.now()
+        current_at_resolution = self.create_release(
+            version="regtest_pkg@1.3.0",
+            date_added=now - timedelta(minutes=45),
+        )
+        resolved_in_release = self.create_release(
+            version="regtest_pkg@1.5.0",
+            date_added=now - timedelta(minutes=30),
+        )
+        event_release = self.create_release(
+            version="regtest_pkg@1.7.0",
+            date_added=now - timedelta(minutes=15),
+        )
+
+        GroupResolution.objects.create(
+            release=resolved_in_release,
+            current_release_version=current_at_resolution.version,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+        )
+
+        # Event on 1.7.0 > resolved-in 1.5.0, so this IS a regression
+        assert not GroupResolution.has_resolution(self.group, event_release)

@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Flex} from 'sentry/components/core/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
 
 import {useStory} from './useStory';
 

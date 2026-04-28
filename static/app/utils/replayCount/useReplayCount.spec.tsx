@@ -2,13 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
+import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
 
 describe('useReplayCount', () => {
   const organization = OrganizationFixture();
   const initialProps = {
     bufferLimit: 100,
-    dataSource: 'discover',
+    dataSource: 'events' as const,
     fieldName: 'replay_id',
     organization,
     statsPeriod: '90d',

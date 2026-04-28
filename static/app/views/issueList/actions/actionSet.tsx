@@ -1,24 +1,27 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
-import ArchiveActions from 'sentry/components/actions/archive';
+import {Button} from '@sentry/scraps/button';
+
+import {ArchiveActions} from 'sentry/components/actions/archive';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
+import {GroupStore} from 'sentry/stores/groupStore';
 import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
-import ResolveActions from './resolveActions';
-import ReviewAction from './reviewAction';
+import {ResolveActionsContainer as ResolveActions} from './resolveActions';
+import {ReviewAction} from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
@@ -35,7 +38,7 @@ type Props = {
   selectedProjectSlug?: string;
 };
 
-function ActionSet({
+export function ActionSet({
   queryCount,
   query,
   allInQuerySelected,
@@ -49,6 +52,54 @@ function ActionSet({
   selectedProjectSlug,
 }: Props) {
   const organization = useOrganization();
+  const area = useAnalyticsArea();
+
+  const handleUpdate = useCallback(
+    (data: IssueUpdateData) => {
+      if ('status' in data && data.status === 'ignored') {
+        const statusDetails =
+          'ignoreCount' in data.statusDetails
+            ? 'ignoreCount'
+            : 'ignoreDuration' in data.statusDetails
+              ? 'ignoreDuration'
+              : 'ignoreUserCount' in data.statusDetails
+                ? 'ignoreUserCount'
+                : undefined;
+        trackAnalytics('issues_stream.archived', {
+          organization,
+          action_status_details: statusDetails,
+          action_substatus: data.substatus,
+          area,
+        });
+      }
+      if ('status' in data && data.status === 'resolved') {
+        const statusDetails =
+          'inRelease' in data.statusDetails
+            ? 'inRelease'
+            : 'inNextRelease' in data.statusDetails
+              ? 'inNextRelease'
+              : 'inCommit' in data.statusDetails
+                ? 'inCommit'
+                : 'inUpcomingRelease' in data.statusDetails
+                  ? 'inUpcomingRelease'
+                  : undefined;
+        trackAnalytics('issues_stream.resolved', {
+          organization,
+          action_status_details: statusDetails,
+          area,
+        });
+      }
+      if ('priority' in data) {
+        trackAnalytics('issues_stream.updated_priority', {
+          organization,
+          priority: data.priority,
+          area,
+        });
+      }
+      onUpdate(data);
+    },
+    [area, onUpdate, organization]
+  );
   const numIssues = issues.size;
   const confirm = getConfirm({
     numIssues,
@@ -121,7 +172,7 @@ function ActionSet({
       label: t('Mark Reviewed'),
       hidden: !nestReview,
       disabled: !canMarkReviewed,
-      onAction: () => onUpdate({inbox: false}),
+      onAction: () => handleUpdate({inbox: false}),
     },
     {
       key: 'bookmark',
@@ -130,7 +181,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.BOOKMARK),
-          onConfirm: () => onUpdate({isBookmarked: true}),
+          onConfirm: () => handleUpdate({isBookmarked: true}),
           message: confirm({action: ConfirmAction.BOOKMARK, canBeUndone: false}),
           confirmText: label('bookmark'),
         });
@@ -143,7 +194,7 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNBOOKMARK),
-          onConfirm: () => onUpdate({isBookmarked: false}),
+          onConfirm: () => handleUpdate({isBookmarked: false}),
           message: confirm({
             action: ConfirmAction.UNBOOKMARK,
             canBeUndone: false,
@@ -160,7 +211,8 @@ function ActionSet({
       onAction: () => {
         openConfirmModal({
           bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
-          onConfirm: () => onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
+          onConfirm: () =>
+            handleUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
           message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
           confirmText: label('unresolve'),
         });
@@ -193,7 +245,7 @@ function ActionSet({
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
               onConfirm: () =>
-                onUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
+                handleUpdate({status: GroupStatus.UNRESOLVED, statusDetails: {}}),
               message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
               confirmText: label('unarchive'),
             });
@@ -205,14 +257,14 @@ function ActionSet({
       ) : null}
       <ResolveActions
         onShouldConfirm={onShouldConfirm}
-        onUpdate={onUpdate}
+        onUpdate={handleUpdate}
         anySelected={anySelected}
         confirm={confirm}
         label={label}
         selectedProjectSlug={selectedProjectSlug}
       />
       <ArchiveActions
-        onUpdate={onUpdate}
+        onUpdate={handleUpdate}
         shouldConfirm={onShouldConfirm(ConfirmAction.ARCHIVE)}
         confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
         confirmLabel={label('archive')}
@@ -222,7 +274,7 @@ function ActionSet({
         size="xs"
         onClick={handleMergeClick}
         disabled={mergeDisabled}
-        title={makeMergeTooltip()}
+        tooltipProps={{title: makeMergeTooltip()}}
       >
         {t('Merge')}
       </Button>
@@ -233,7 +285,7 @@ function ActionSet({
           onChange: priority => {
             openConfirmModal({
               bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
-              onConfirm: () => onUpdate({priority}),
+              onConfirm: () => handleUpdate({priority}),
               message: confirm({
                 action: ConfirmAction.SET_PRIORITY,
                 append: ` to ${priority}`,
@@ -244,7 +296,9 @@ function ActionSet({
           },
         })}
       />
-      {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}
+      {!nestReview && (
+        <ReviewAction disabled={!canMarkReviewed} onUpdate={handleUpdate} />
+      )}
       <DropdownMenu
         size="sm"
         items={menuItems}
@@ -274,5 +328,3 @@ function isActionSupported(
 
   return {enabled: true};
 }
-
-export default ActionSet;

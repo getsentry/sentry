@@ -1,7 +1,7 @@
 import {FieldValueType} from 'sentry/utils/fields';
 import type {SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import FilterSelector from 'sentry/views/dashboards/globalFilter/filterSelector';
-import NumericFilterSelector from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
+import {FilterSelector} from 'sentry/views/dashboards/globalFilter/filterSelector';
+import {NumericFilterSelector} from 'sentry/views/dashboards/globalFilter/numericFilterSelector';
 import {getFieldDefinitionForDataset} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
@@ -30,9 +30,10 @@ function getFilterSelector(
   }
 }
 
-function GenericFilterSelector({globalFilter, ...props}: GenericFilterSelectorProps) {
+export function GenericFilterSelector({
+  globalFilter,
+  ...props
+}: GenericFilterSelectorProps) {
   const FilterSelectorForType = getFilterSelector(globalFilter);
   return <FilterSelectorForType globalFilter={globalFilter} {...props} />;
 }
-
-export default GenericFilterSelector;

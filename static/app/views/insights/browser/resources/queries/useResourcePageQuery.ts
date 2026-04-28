@@ -31,12 +31,12 @@ export const useResourcePagesQuery = (
 
   const sorts = [sort];
 
-  const finalSorts: Sort[] = sorts?.length
+  const finalSorts = sorts?.length
     ? sorts
     : [
         {
           field: 'epm()',
-          kind: 'desc',
+          kind: 'desc' as const,
         },
       ];
 
@@ -61,7 +61,7 @@ export const useResourcePagesQuery = (
       fields: [
         'transaction',
         'epm()',
-        `avg(span.self_time)`,
+        'avg(span.self_time)',
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         RESOURCE_RENDER_BLOCKING_STATUS,
       ],

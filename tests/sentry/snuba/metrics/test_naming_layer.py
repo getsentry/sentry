@@ -14,7 +14,7 @@ from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
         "session.abnormal",
         "session.crashed",
         "session.unhandled",
-        "session.crash_free_user_rate" "foo.bar.bar",
+        "session.crash_free_user_ratefoo.bar.bar",
         "foo_bar.bar",
     ],
 )
@@ -73,6 +73,7 @@ def test_invalid_public_name_regex(name) -> None:
 )
 def test_parse_mri_with_valid_mri(name, expected) -> None:
     parsed_mri = parse_mri(name)
+    assert parsed_mri is not None
     assert parsed_mri == expected
     assert parsed_mri.mri_string == name
 

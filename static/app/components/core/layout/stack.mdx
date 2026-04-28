@@ -2,19 +2,20 @@
 title: Stack
 description: A simplified layout component built on Flex that provides easy vertical stacking with responsive props and spacing controls.
 category: layout
-source: 'sentry/components/core/layout/stack'
+source: '@sentry/scraps/layout'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/stack.tsx
 ---
 
-import {Container, Stack} from 'sentry/components/core/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+
 import * as Storybook from 'sentry/stories';
 
-import documentation from '!!type-loader!@sentry/scraps/layout/stack';
+export const documentation = import('!!type-loader!@sentry/scraps/layout/stack');
 
-export {documentation};
+import {SIZES} from './__stories__/consts';
 
-export function CustomComponent(props) {
+export function CustomComponent(/** @type {Record<string, any>} */ props) {
   return <div {...props} />;
 }
 
@@ -58,13 +59,13 @@ The `Stack` implements composition via <a href="/stories/layout/composition">ren
   >
     {props => (
       <CustomComponent {...props}>
-        <Container padding="sm" border="primary" radius="sm" background="surface">
+        <Container padding="sm" border="primary" radius="sm" background="secondary">
           First Item
         </Container>
-        <Container padding="sm" border="primary" radius="sm" background="surface">
+        <Container padding="sm" border="primary" radius="sm" background="secondary">
           Second Item
         </Container>
-        <Container padding="sm" border="primary" radius="sm" background="surface">
+        <Container padding="sm" border="primary" radius="sm" background="secondary">
           Third Item
         </Container>
       </CustomComponent>
@@ -150,10 +151,10 @@ Like other layout components, `Stack` inherits all spacing props like `m`, `p`, 
 The `Stack` `gap` property follows the same spacing system as other layout components.
 
 <Storybook.Demo>
-  {['xs', 'sm', 'md', 'lg', 'xl', '2xl'].map(size => (
+  {SIZES.map(size => (
     <Stack direction="column" gap="sm" key={size}>
       <strong>{size} gap</strong>
-      <Stack m="md" gap={size} align="center">
+      <Stack margin="md" gap={size} align="center">
         <Container padding="md" border="primary" radius="md" background="primary">
           Item 1
         </Container>
@@ -182,7 +183,7 @@ All props support responsive values using breakpoint objects. Breakpoints are: `
 Example of a responsive stack that uses a static gap, but changes direction based on the breakpoint.
 
 <Storybook.Demo>
-  <Stack direction={{xs: 'column', sm: 'row', md: 'column'}} gap="md" p="md">
+  <Stack direction={{xs: 'column', sm: 'row', md: 'column'}} gap="md" padding="md">
     <Container padding="md" border="primary" radius="md" background="primary">
       Responsive
     </Container>

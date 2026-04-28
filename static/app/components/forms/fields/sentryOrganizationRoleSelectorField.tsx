@@ -2,9 +2,9 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
 import type {InputFieldProps} from './inputField';
-import SelectField from './selectField';
+import {SelectField} from './selectField';
 
-function SentryOrganizationRoleSelectorField({
+export function SentryOrganizationRoleSelectorField({
   placeholder = t('Choose a role'),
   ...props
 }: InputFieldProps) {
@@ -15,5 +15,3 @@ function SentryOrganizationRoleSelectorField({
 
   return <SelectField placeholder={placeholder} options={projectOptions} {...props} />;
 }
-
-export default SentryOrganizationRoleSelectorField;

@@ -1,11 +1,11 @@
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Container, Flex} from 'sentry/components/core/layout';
+import {MOBILE_BUILDS_ALLOWED_KEYS} from 'sentry/components/preprod/constants';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
   {value: PreprodBuildsDisplay.SIZE, label: t('Size')},
@@ -30,6 +30,16 @@ interface PreprodBuildsSearchControlsProps {
    */
   projects: number[];
   /**
+   * List of attribute keys to show in the search bar. When provided, only these
+   * keys will be available. When omitted, all keys except HIDDEN_PREPROD_ATTRIBUTES
+   * are shown.
+   */
+  allowedKeys?: string[];
+  /**
+   * Hide the display mode toggle
+   */
+  hideDisplayToggle?: boolean;
+  /**
    * Called on every keystroke (for controlled input with debounce)
    */
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
@@ -47,15 +57,12 @@ export function PreprodBuildsSearchControls({
   initialQuery,
   display,
   projects,
+  allowedKeys = MOBILE_BUILDS_ALLOWED_KEYS,
+  hideDisplayToggle,
   onChange,
   onSearch,
   onDisplayChange,
 }: PreprodBuildsSearchControlsProps) {
-  const organization = useOrganization();
-  const hasDistributionFeature = organization.features.includes(
-    'preprod-build-distribution'
-  );
-
   return (
     <Flex
       align={{xs: 'stretch', sm: 'center'}}
@@ -66,12 +73,13 @@ export function PreprodBuildsSearchControls({
       <Container flex="1">
         <PreprodSearchBar
           initialQuery={initialQuery}
+          allowedKeys={allowedKeys}
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}
         />
       </Container>
-      {hasDistributionFeature && (
+      {!hideDisplayToggle && (
         <Container maxWidth="200px">
           <CompactSelect
             options={displaySelectOptions}

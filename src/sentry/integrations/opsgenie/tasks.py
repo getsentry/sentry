@@ -1,6 +1,7 @@
 import logging
 
 from django.db import router, transaction
+from taskbroker_client.retry import Retry
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -11,7 +12,6 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.namespaces import integrations_tasks
-from sentry.taskworker.retry import Retry
 
 ALERT_LEGACY_INTEGRATIONS = {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
 ALERT_LEGACY_INTEGRATIONS_WITH_NAME = {

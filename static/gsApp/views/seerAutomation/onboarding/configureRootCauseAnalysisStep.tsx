@@ -5,29 +5,29 @@ import * as Sentry from '@sentry/react';
 import configureRootCauseAnalysisImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {Flex} from 'sentry/components/core/layout/flex';
-import {Switch} from 'sentry/components/core/switch';
 import {useUpdateBulkAutofixAutomationSettings} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import type {BackendRepository} from 'sentry/components/events/autofix/preferences/hooks/useBulkAutofixAutomationSettings';
 import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelItem from 'sentry/components/panels/panelItem';
-import Placeholder from 'sentry/components/placeholder';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Placeholder} from 'sentry/components/placeholder';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {useSeerOnboardingContext} from './hooks/seerOnboardingContext';
 import {useCodeMappings} from './hooks/useCodeMappings';
@@ -88,11 +88,11 @@ export function ConfigureRootCauseAnalysisStep() {
     addRepositoryProjectMappings,
   ]);
 
-  const handlePreviousStep = useCallback(() => {
+  const handlePreviousStep = () => {
     setCurrentStep(currentStep - 1);
-  }, [setCurrentStep, currentStep]);
+  };
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     // Build a map from repo ID to full repo object
     const repoMap = new Map(
       selectedRootCauseAnalysisRepositories.map(repo => [repo.id, repo])
@@ -123,7 +123,7 @@ export function ConfigureRootCauseAnalysisStep() {
           integration_id: repo.integrationId,
           organization_id: parseInt(organization.id, 10),
           owner,
-          provider: repo.provider?.name,
+          provider: repo.provider?.name?.toLowerCase(),
           name,
         });
       }
@@ -157,20 +157,12 @@ export function ConfigureRootCauseAnalysisStep() {
           setCurrentStep(currentStep + 1);
         },
         onError: () => {
+          Sentry.captureException(new Error('Seer Onboarding: Unable to update autofix'));
           addErrorMessage(t('Failed to save settings'));
         },
       }
     );
-  }, [
-    setCurrentStep,
-    currentStep,
-    updateAutofix,
-    repositoryProjectMapping,
-    selectedRootCauseAnalysisRepositories,
-    autoCreatePREnabled,
-    organization,
-    setAutoCreatePR,
-  ]);
+  };
 
   const handleRepositoryProjectMappingsChange = useCallback(
     (repoId: string, index: number, newValue: string | undefined) => {
@@ -189,12 +181,9 @@ export function ConfigureRootCauseAnalysisStep() {
     [changeRepositoryProjectMapping, repositoryProjectMapping]
   );
 
-  const handleAutoCreatePRChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setAutoCreatePREnabled(e.target.checked);
-    },
-    [setAutoCreatePREnabled]
-  );
+  const handleAutoCreatePRChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAutoCreatePREnabled(e.target.checked);
+  };
 
   const availableRepositories = useMemo(() => {
     return (
@@ -274,7 +263,7 @@ export function ConfigureRootCauseAnalysisStep() {
                   <AddRepoRow>
                     <CompactSelect
                       size="sm"
-                      searchable
+                      search
                       value={undefined}
                       strategy="fixed"
                       trigger={triggerProps => (

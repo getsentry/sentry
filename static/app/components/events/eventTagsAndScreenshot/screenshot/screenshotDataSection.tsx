@@ -1,15 +1,16 @@
 import {useState} from 'react';
 
+import {LinkButton} from '@sentry/scraps/button';
+
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {Link} from 'sentry/components/core/link';
-import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
-import ScreenshotModal, {
+import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
+import {
   modalCss,
+  ScreenshotModal,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -17,12 +18,11 @@ import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface ScreenshotDataSectionProps {
   event: Event;
@@ -38,7 +38,6 @@ export function ScreenshotDataSection({
 }: ScreenshotDataSectionProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasStreamlinedUI = useHasStreamlinedUI();
   const {data: attachments} = useFetchEventAttachments(
     {
       orgSlug: organization.slug,
@@ -111,17 +110,15 @@ export function ScreenshotDataSection({
 
   return showScreenshot ? (
     <InterimSection
-      title={hasStreamlinedUI ? title : <Link to={linkPath}>{title}</Link>}
+      title={title}
       showPermalink={false}
       help={t('This image was captured around the time that the event occurred.')}
       data-test-id="screenshot-data-section"
       type={SectionKey.SCREENSHOT}
       actions={
-        hasStreamlinedUI ? (
-          <LinkButton to={linkPath} size="xs">
-            {t('View All')}
-          </LinkButton>
-        ) : null
+        <LinkButton to={linkPath} size="xs">
+          {t('View All')}
+        </LinkButton>
       }
       {...props}
     >

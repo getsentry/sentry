@@ -1,26 +1,23 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {space} from 'sentry/styles/space';
-import testableTransition from 'sentry/utils/testableTransition';
-
-const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
+export const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
   <motion.h2
     variants={{
       initial: {clipPath: 'inset(0% 100% 0% 0%)', opacity: 1},
       animate: {clipPath: 'inset(0% 0% 0% 0%)', opacity: 1},
       exit: {opacity: 0},
     }}
-    transition={testableTransition({
+    transition={{
       duration: 0.3,
-    })}
+    }}
     {...props}
   />
 ))<{step: number}>`
   position: relative;
   display: inline-grid;
   grid-template-columns: max-content auto;
-  gap: ${space(2)};
+  gap: ${p => p.theme.space.xl};
   align-items: center;
   font-size: 21px;
 
@@ -37,5 +34,3 @@ const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>) => (
     font-size: 1rem;
   }
 `;
-
-export default StepHeading;

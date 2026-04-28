@@ -5,15 +5,15 @@ import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
-import MarkArea from 'sentry/components/charts/components/markArea';
-import MarkLine from 'sentry/components/charts/components/markLine';
+import {MarkArea} from 'sentry/components/charts/components/markArea';
+import {MarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import {stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
@@ -78,7 +78,7 @@ function createIncidentSeries(
   const formatter = ({value, marker}: any) => {
     const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
     return [
-      `<div class="tooltip-series"><div>`,
+      '<div class="tooltip-series"><div>',
       `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
         openPeriod.id
       }</strong></span>${
@@ -90,7 +90,7 @@ function createIncidentSeries(
             )}`
           : ''
       }`,
-      `</div></div>`,
+      '</div></div>',
       `<div class="tooltip-footer">${time}</div>`,
       '<div class="tooltip-arrow"></div>',
     ].join('');
@@ -180,7 +180,10 @@ export function getMetricDetectorChartOption(
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj.snubaQuery;
 
-  const series: AreaChartSeries[] = timeseriesData.map(s => s);
+  const series: AreaChartSeries[] = timeseriesData.map(s => ({
+    ...s,
+    seriesName: stripEquationPrefix(s.seriesName),
+  }));
   const areaSeries: AreaChartSeries[] = [];
   const colors = theme.chart.getColorPalette(0);
   // Ensure series data appears below incident/mark lines
@@ -279,7 +282,7 @@ export function getMetricDetectorChartOption(
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            seriesName ?? series[0]!.seriesName,
+            seriesName ? stripEquationPrefix(seriesName) : series[0]!.seriesName,
             snubaQuery.aggregate
           )
         );
@@ -334,7 +337,7 @@ export function getMetricDetectorChartOption(
           }
         });
 
-        if (selectedOpenPeriod && openPeriod.id === selectedOpenPeriod.id) {
+        if (openPeriod.id === selectedOpenPeriod?.id) {
           const selectedIncidentColor =
             incidentColor === theme.colors.yellow400
               ? theme.colors.yellow100
@@ -401,7 +404,11 @@ export function getMetricDetectorChartOption(
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
-        alertAxisFormatter(value, timeseriesData[0]!.seriesName, snubaQuery.aggregate),
+        alertAxisFormatter(
+          value,
+          stripEquationPrefix(timeseriesData[0]!.seriesName),
+          snubaQuery.aggregate
+        ),
     },
     max: isCrashFreeAlert(snubaQuery.dataset)
       ? 100
@@ -421,9 +428,9 @@ export function getMetricDetectorChartOption(
       yAxis,
       series,
       grid: {
-        left: space(0.25),
-        right: space(2),
-        top: space(3),
+        left: theme.space['2xs'],
+        right: theme.space.xl,
+        top: theme.space['2xl'],
         bottom: 0,
       },
     },

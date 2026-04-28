@@ -8,7 +8,6 @@ import {
   type Polarity,
 } from 'sentry/components/percentChange';
 import {IconArrow} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
 import {
   DEEMPHASIS_VARIANT,
   LOADING_PLACEHOLDER,
@@ -56,7 +55,7 @@ export function DifferenceToPreviousPeriodValue({
 
 const Difference = styled(ColorizedRating)`
   display: flex;
-  gap: ${space(0.25)};
+  gap: ${p => p.theme.space['2xs']};
   margin-bottom: 6cqh;
 
   @container (min-height: 50px) {

@@ -42,11 +42,6 @@ export function TextCondition({
     );
   }
 
-  if (condition.id === IssueAlertConditionType.REAPPEARED_EVENT) {
-    return (
-      <Fragment>{t('The issue changes state from archived to escalating')}</Fragment>
-    );
-  }
   return <Fragment>{condition.name}</Fragment>;
 }
 

@@ -12,6 +12,8 @@ from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClie
 from sentry.integrations.github_enterprise.integration import (
     GitHubEnterpriseIntegration,
     GitHubEnterpriseIntegrationProvider,
+    _api_base_url,
+    get_user_info,
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -22,11 +24,45 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+
+
+class ApiBaseUrlTest(TestCase):
+    def test_ghes_url(self) -> None:
+        assert _api_base_url("github.example.org") == "https://github.example.org/api/v3"
+
+    def test_ghe_cloud_url(self) -> None:
+        assert _api_base_url("acme-corp.ghe.com") == "https://api.acme-corp.ghe.com"
+
+    @responses.activate
+    def test_get_user_info_ghe_cloud_calls_api_subdomain(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.acme-corp.ghe.com/user",
+            json={"login": "testuser", "id": 1},
+            status=200,
+        )
+        result = get_user_info("acme-corp.ghe.com", "mytoken")
+        assert result == {"login": "testuser", "id": 1}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://api.acme-corp.ghe.com/user"
+
+    @responses.activate
+    def test_get_user_info_ghes_calls_api_v3(self) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://github.example.org/api/v3/user",
+            json={"login": "testuser", "id": 1},
+            status=200,
+        )
+        result = get_user_info("github.example.org", "mytoken")
+        assert result == {"login": "testuser", "id": 1}
+        assert len(responses.calls) == 1
+        assert responses.calls[0].request.url == "https://github.example.org/api/v3/user"
 
 
 @control_silo_test
@@ -71,7 +107,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.expires_at = "3000-01-01T00:00:00Z"
 
         # These will be set up in specific tests
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.project = self.create_project()
             self.group = self.create_group()
 
@@ -370,8 +406,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example", "default_branch": "main"},
-                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "main"},
+                    {
+                        "id": 10,
+                        "name": "example",
+                        "full_name": "test/example",
+                        "default_branch": "main",
+                    },
+                    {
+                        "id": 11,
+                        "name": "exhaust",
+                        "full_name": "test/exhaust",
+                        "default_branch": "main",
+                    },
                 ]
             },
         )
@@ -381,8 +427,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example", "default_branch": "main"},
-            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "main"},
+            {
+                "identifier": "test/example",
+                "name": "example",
+                "external_id": "10",
+                "default_branch": "main",
+            },
+            {
+                "identifier": "test/exhaust",
+                "name": "exhaust",
+                "external_id": "11",
+                "default_branch": "main",
+            },
         ]
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
@@ -392,7 +448,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -424,7 +480,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -458,7 +514,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -493,7 +549,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     def test_get_commit_context_all_frames(self, _: MagicMock, __: MagicMock) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -587,7 +643,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     def test_extract_branch_from_source_url(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -609,7 +665,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     def test_extract_source_path_from_source_url(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Test-Organization/foo",
@@ -640,8 +696,18 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             json={
                 "total_count": 2,
                 "repositories": [
-                    {"name": "repo1", "full_name": "Test-Organization/repo1", "archived": False},
-                    {"name": "repo2", "full_name": "Test-Organization/repo2", "archived": False},
+                    {
+                        "id": 1,
+                        "name": "repo1",
+                        "full_name": "Test-Organization/repo1",
+                        "archived": False,
+                    },
+                    {
+                        "id": 2,
+                        "name": "repo2",
+                        "full_name": "Test-Organization/repo2",
+                        "archived": False,
+                    },
                 ],
             },
         )
@@ -774,7 +840,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -799,7 +865,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -822,7 +888,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=False)
 
         assert len(responses.calls) == 1
@@ -840,7 +906,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 0
@@ -855,7 +921,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 0
@@ -875,7 +941,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, user, assign=True)
 
         assert len(responses.calls) == 1
@@ -911,7 +977,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
         responses.calls.reset()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_assignee_outbound(external_issue, None, assign=True)
 
         # Should not make any API calls when user is None and assign=True
@@ -950,7 +1016,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             json={"state": "closed", "number": 123},
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
             )
@@ -993,7 +1059,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             json={"state": "open", "number": 123},
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=False, project_id=self.project.id
             )
@@ -1031,7 +1097,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
 
         # Test resolve when already closed - should not make update call
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
             )
@@ -1047,7 +1113,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         installation = self.integration.get_installation(self.organization.id)
 
         # Create external issue without project mapping
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             external_issue = self.create_integration_external_issue(
                 group=self.group,
                 integration=self.integration,
@@ -1055,7 +1121,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             )
 
         # No responses needed - should return early
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             # Should not raise an exception, just return early
             installation.sync_status_outbound(
                 external_issue, is_resolved=True, project_id=self.project.id
@@ -1090,7 +1156,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             status=404,
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with pytest.raises(IntegrationError):
                 installation.sync_status_outbound(
                     external_issue, is_resolved=True, project_id=self.project.id
@@ -1133,7 +1199,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         )
 
         # Test that error is raised properly
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             with pytest.raises(IntegrationError):
                 installation.sync_status_outbound(
                     external_issue, is_resolved=True, project_id=self.project.id

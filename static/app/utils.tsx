@@ -19,7 +19,7 @@ export function defined<T>(item: T): item is Exclude<T, null | undefined> {
 }
 
 export function nl2br(str: string): string {
-  return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
+  return str.replace(/\r\n|\r|\n/g, '<br />');
 }
 
 export function escape(str: string): string {
@@ -169,4 +169,14 @@ export function urlEncode(object: Record<string, any>): string {
   return Object.keys(object)
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
     .join('&');
+}
+
+export function isNumericString(value: string): boolean {
+  const s = value.trim();
+
+  if (!s) {
+    return false;
+  }
+
+  return /^-?(?:\d+|\d*\.\d+)(?:[eE][+-]?\d+)?$/.test(s);
 }

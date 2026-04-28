@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
-import PanelItem from 'sentry/components/panels/panelItem';
-import TimeSince from 'sentry/components/timeSince';
-import {space} from 'sentry/styles/space';
+import {PanelItem} from 'sentry/components/panels/panelItem';
+import {TimeSince} from 'sentry/components/timeSince';
 import type {InternetProtocol} from 'sentry/types/user';
 
 import {tableLayout} from './utils';
 
-function SessionRow({
+export function SessionRow({
   ipAddress,
   lastSeen,
   firstSeen,
@@ -32,10 +31,8 @@ function SessionRow({
   );
 }
 
-export default SessionRow;
-
 const IpAddress = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${p => p.theme.space.xs};
   font-weight: ${p => p.theme.font.weight.sans.medium};
 `;
 const CountryCode = styled('div')`

@@ -1,25 +1,25 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/core/button';
-import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
-import {ExternalLink} from 'sentry/components/core/link';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
+import {TimeSince} from 'sentry/components/timeSince';
+import {Version} from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import configStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Release} from 'sentry/types/release';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import useOrganization from 'sentry/utils/useOrganization';
-import {isVersionInfoSemver} from 'sentry/views/releases/utils';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 
 function makeReleaseOption(
   release: Release,
@@ -59,55 +59,54 @@ interface CustomResolutionModalProps extends ModalRenderProps {
   projectSlug: string | undefined;
 }
 
-function CustomResolutionModal(props: CustomResolutionModalProps) {
+export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [version, setVersion] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery);
-  const currentUser = configStore.get('user');
+  const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const releaseListUrl = props.projectSlug
-    ? getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: props.projectSlug,
-        },
-      })
-    : getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+  const releaseListOptions = props.projectSlug
+    ? apiOptions.as<Release[]>()(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: props.projectSlug,
+          },
+          query: {query: debouncedSearch},
+          staleTime: 60_000,
+        }
+      )
+    : apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
         path: {organizationIdOrSlug: organization.slug},
+        query: {query: debouncedSearch},
+        staleTime: 60_000,
       });
 
-  const {data: releases = [], isFetching} = useApiQuery<Release[]>(
-    [
-      releaseListUrl,
-      {
-        query: {
-          query: debouncedSearch,
-        },
-      },
-    ],
-    {
-      staleTime: 60_000,
-      retry: false,
-    }
-  );
+  const {data: releases = [], isFetching} = useQuery({
+    ...releaseListOptions,
+    retry: false,
+  });
 
   const shouldLookupExact = debouncedSearch.trim().length > 0;
 
   // Attempt to find the exact release, the list is capped at the most recent 100 releases
-  const {data: exactRelease} = useApiQuery<Release>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
-        path: {organizationIdOrSlug: organization.slug, version: debouncedSearch.trim()},
-      }),
-    ],
-    {
-      enabled: shouldLookupExact,
-      staleTime: 30_000,
-      retry: false,
-    }
-  );
+  const {data: exactRelease} = useQuery({
+    ...apiOptions.as<Release>()(
+      '/organizations/$organizationIdOrSlug/releases/$version/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          version: debouncedSearch.trim(),
+        },
+        staleTime: 30_000,
+      }
+    ),
+    enabled: shouldLookupExact,
+    retry: false,
+  });
 
   const options = useMemo((): Array<SelectOption<string>> => {
     const baseOptions = releases.map(release =>
@@ -115,10 +114,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     );
 
     if (exactRelease) {
-      const exactOption: (typeof baseOptions)[number] = makeReleaseOption(
-        exactRelease,
-        currentUser?.email
-      );
+      const exactOption = makeReleaseOption(exactRelease, currentUser?.email);
 
       const filtered = baseOptions.filter(opt => opt.value !== exactOption.value);
       filtered.unshift(exactOption);
@@ -151,14 +147,15 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
         <StyledCompactSelect
           id="version"
           clearable
-          searchable
-          disableSearchFilter
+          search={{
+            placeholder: t('Search versions'),
+            filter: false,
+            onChange: setSearchQuery,
+          }}
           options={options}
           value={version}
           loading={isFetching}
-          searchPlaceholder={t('Search versions')}
           emptyMessage={isFetching ? t('Loading releases\u2026') : t('No releases found')}
-          onSearch={setSearchQuery}
           onChange={option => {
             setVersion(option?.value ? String(option.value) : '');
             setSelectionError(null);
@@ -214,8 +211,6 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
     </form>
   );
 }
-
-export default CustomResolutionModal;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;

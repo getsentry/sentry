@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
+import {AutofixHighlightPopup} from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import {t} from 'sentry/locale';
 

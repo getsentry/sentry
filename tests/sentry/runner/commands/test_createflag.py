@@ -1,6 +1,6 @@
 from datetime import date
 
-from flagpole import Feature
+from flagpole import Feature, OwnerInfo
 from flagpole.conditions import ConditionOperatorKind, EqualsCondition, InCondition, Segment
 from sentry.runner.commands.createflag import createflag, createissueflag
 from sentry.testutils.cases import CliTestCase
@@ -20,7 +20,7 @@ class TestCreateFlag(CliTestCase):
         parsed_feature = self.convert_output_to_feature(rv.output)
         assert parsed_feature.name == "feature.organizations:new-flag"
         assert parsed_feature.segments == []
-        assert parsed_feature.owner == "test"
+        assert parsed_feature.owner == OwnerInfo(team="test")
 
     def test_no_segments(self) -> None:
         cli_input = ["new Flag", "Test Owner", "projects", "n"]
@@ -29,7 +29,7 @@ class TestCreateFlag(CliTestCase):
         parsed_feature = self.convert_output_to_feature(rv.output)
         assert parsed_feature.name == "feature.projects:new-flag"
         assert parsed_feature.segments == []
-        assert parsed_feature.owner == "Test Owner"
+        assert parsed_feature.owner == OwnerInfo(team="Test Owner")
 
     def test_no_conditions_in_segment(self) -> None:
         cli_input = ["y", "New segment", "50", "n", "n"]
@@ -43,7 +43,7 @@ class TestCreateFlag(CliTestCase):
         assert rv.exit_code == 0
         parsed_feature = self.convert_output_to_feature(rv.output)
         assert parsed_feature.name == "feature.organizations:new-flag"
-        assert parsed_feature.owner == "Test Owner"
+        assert parsed_feature.owner == OwnerInfo(team="Test Owner")
 
         assert len(parsed_feature.segments) == 1
         new_segment = parsed_feature.segments[0]
@@ -75,7 +75,7 @@ class TestCreateFlag(CliTestCase):
         assert rv.exit_code == 0, rv.output
         parsed_feature = self.convert_output_to_feature(rv.output)
         assert parsed_feature.name == "feature.organizations:new-flag"
-        assert parsed_feature.owner == "Test Owner"
+        assert parsed_feature.owner == OwnerInfo(team="Test Owner")
 
         assert len(parsed_feature.segments) == 1
         new_segment = parsed_feature.segments[0]
@@ -117,7 +117,7 @@ class TestCreateIssueFlag(CliTestCase):
         assert self.convert_output_to_features(rv.output) == [
             Feature(
                 name="feature.organizations:issue-uptime-domain-failure-visible",
-                owner="Test Owner",
+                owner=OwnerInfo(team="Test Owner"),
                 enabled=True,
                 segments=[
                     Segment(
@@ -155,7 +155,7 @@ class TestCreateIssueFlag(CliTestCase):
             ),
             Feature(
                 name="feature.organizations:issue-uptime-domain-failure-ingest",
-                owner="Test Owner",
+                owner=OwnerInfo(team="Test Owner"),
                 enabled=True,
                 segments=[
                     Segment(
@@ -193,7 +193,7 @@ class TestCreateIssueFlag(CliTestCase):
             ),
             Feature(
                 name="feature.organizations:issue-uptime-domain-failure-post-process-group",
-                owner="Test Owner",
+                owner=OwnerInfo(team="Test Owner"),
                 enabled=True,
                 segments=[
                     Segment(

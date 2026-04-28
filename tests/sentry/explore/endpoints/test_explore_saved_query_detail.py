@@ -96,6 +96,104 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["starred"] is True
         assert response.data["position"] == 1
 
+    def test_get_with_cross_events(self) -> None:
+        self.model.query = {
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+            "crossEvents": [
+                {"query": "span.op:db", "type": "spans"},
+                {"query": "severity:error", "type": "logs"},
+            ],
+        }
+        self.model.save()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {"query": "span.op:db", "type": "spans"},
+            {"query": "severity:error", "type": "logs"},
+        ]
+
+    def test_get_with_cross_events_metrics(self) -> None:
+        self.model.query = {
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+            "crossEvents": [
+                {
+                    "query": "",
+                    "type": "metrics",
+                    "metric": {
+                        "name": "http.response_time",
+                        "type": "distribution",
+                        "unit": "millisecond",
+                    },
+                },
+            ],
+        }
+        self.model.save()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
+        ]
+
+    def test_put_adds_cross_events_metrics(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "With metrics cross events",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "crossEvents": [
+                        {
+                            "query": "",
+                            "type": "metrics",
+                            "metric": {
+                                "name": "http.response_time",
+                                "type": "distribution",
+                                "unit": "millisecond",
+                            },
+                        },
+                    ],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {
+                "query": "",
+                "type": "metrics",
+                "metric": {
+                    "name": "http.response_time",
+                    "type": "distribution",
+                    "unit": "millisecond",
+                },
+            },
+        ]
+
     def test_get_changed_reason(self) -> None:
         migrated_query = ExploreSavedQuery.objects.create(
             organization=self.org,
@@ -185,6 +283,80 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             }
         ]
 
+    def test_put_adds_cross_events(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "With cross events",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "crossEvents": [
+                        {"query": "span.op:db", "type": "spans"},
+                        {"query": "severity:error", "type": "logs"},
+                    ],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["crossEvents"] == [
+            {"query": "span.op:db", "type": "spans"},
+            {"query": "severity:error", "type": "logs"},
+        ]
+
+    def test_put_removes_cross_events(self) -> None:
+        self.model.query = {
+            "query": [{"fields": ["span.op"], "mode": "samples"}],
+            "crossEvents": [{"query": "span.op:db", "type": "spans"}],
+        }
+        self.model.save()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "Cross events cleared",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert "crossEvents" not in response.data
+
+    def test_put_invalid_cross_events(self) -> None:
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "Too many cross events",
+                    "projects": self.project_ids,
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "crossEvents": [
+                        {"query": "a", "type": "spans"},
+                        {"query": "b", "type": "logs"},
+                        {"query": "c", "type": "spans"},
+                    ],
+                },
+            )
+
+        assert response.status_code == 400, response.content
+
     def test_put_query_without_access(self) -> None:
         with self.feature(self.feature_name):
             url = reverse(
@@ -222,7 +394,13 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             )
 
             response = self.client.put(
-                url, {"name": "New query", "projects": [], "range": "24h", "mode": "samples"}
+                url,
+                {
+                    "name": "New query",
+                    "projects": [],
+                    "range": "24h",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                },
             )
 
             assert response.status_code == 200
@@ -283,6 +461,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
                     "projects": self.project_ids,
                     "range": "24h",
                     "dataset": "spans",
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
                 },
             )
             assert response.status_code == 200

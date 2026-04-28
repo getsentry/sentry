@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
-
 const StyledGrid = styled('div')`
   display: grid;
-  gap: ${space(2)};
-  padding-bottom: ${space(2)};
+  gap: ${p => p.theme.space.xl};
+  padding-bottom: ${p => p.theme.space.xl};
 
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 260px 260px 260px;

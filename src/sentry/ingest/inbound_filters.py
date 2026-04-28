@@ -137,10 +137,8 @@ def get_filter_state(filter_id, project):
 
     if filter_state is None:
         raise ValueError(
-            "Could not find filter state for filter {}."
-            " You need to register default filter state in projectoptions.defaults.".format(
-                filter_id
-            )
+            f"Could not find filter state for filter {filter_id}."
+            " You need to register default filter state in projectoptions.defaults."
         )
 
     if flt == _legacy_browsers_filter:
@@ -368,14 +366,16 @@ def _hydration_error_filter() -> RuleCondition:
     418 - Hydration failed because the initial UI does not match what was rendered on the server.
     419 - The server could not finish this Suspense boundary, likely due to an error during server rendering.
         Switched to client rendering.
+    421 - This Suspense boundary received an update before it finished hydrating. This caused the boundary to switch to client rendering.
+        The usual way to fix this is to wrap the original update in startTransition.
     422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
     423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire
         root will switch to client rendering.
     425 - Text content does not match server-rendered HTML.
     """
     values = [
-        (None, "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"),
-        (None, "*https://react.dev/errors/{418,419,422,423,425}*"),
+        (None, "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*"),
+        (None, "*https://react.dev/errors/{418,419,421,422,423,425}*"),
     ]
 
     return _error_message_condition(values)

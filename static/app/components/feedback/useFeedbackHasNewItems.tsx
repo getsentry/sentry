@@ -1,21 +1,24 @@
 import {useEffect, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {useFeedbackListApiOptions} from 'sentry/components/feedback/useFeedbackListApiOptions';
+
+type FeedbackListApiOptions = ReturnType<typeof useFeedbackListApiOptions>;
 
 interface Props {
-  listPrefetchQueryKey: ApiQueryKey | undefined;
+  listPrefetchApiOptions: FeedbackListApiOptions;
 }
 
 const POLLING_INTERVAL_MS = 10_000;
 
-export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
+export function useFeedbackHasNewItems({listPrefetchApiOptions}: Props) {
   const [foundData, setFoundData] = useState(false);
 
-  const {data} = useApiQuery<unknown[]>(listPrefetchQueryKey ?? [''], {
+  const {data} = useQuery({
+    ...listPrefetchApiOptions,
     refetchInterval: POLLING_INTERVAL_MS,
     staleTime: 0,
-    enabled: Boolean(listPrefetchQueryKey) && !foundData,
+    enabled: !foundData,
   });
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export default function useFeedbackHasNewItems({listPrefetchQueryKey}: Props) {
   useEffect(() => {
     // New key, start polling again
     setFoundData(false);
-  }, [listPrefetchQueryKey]);
+  }, [listPrefetchApiOptions]);
 
   return Boolean(data?.length);
 }

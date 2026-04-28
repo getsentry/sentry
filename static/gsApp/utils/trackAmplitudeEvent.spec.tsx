@@ -2,9 +2,9 @@ import * as Amplitude from '@amplitude/analytics-browser';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {UserFixture} from 'sentry-fixture/user';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-import trackAmplitudeEvent from 'getsentry/utils/trackAmplitudeEvent';
+import {trackAmplitudeEvent} from 'getsentry/utils/trackAmplitudeEvent';
 
 jest.unmock('getsentry/utils/trackAmplitudeEvent');
 

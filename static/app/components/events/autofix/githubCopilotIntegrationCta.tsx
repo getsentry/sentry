@@ -1,19 +1,34 @@
+import {useQuery} from '@tanstack/react-query';
+
+import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import {ExternalLink} from 'sentry/components/core/link';
-import {useCodingAgentIntegrations} from 'sentry/components/events/autofix/useAutofix';
-import Placeholder from 'sentry/components/placeholder';
-import {t, tct} from 'sentry/locale';
+import {organizationIntegrationsCodingAgents} from 'sentry/components/events/autofix/useAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
-import useOrganization from 'sentry/utils/useOrganization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 
 export function GithubCopilotIntegrationCta() {
   const organization = useOrganization();
+  const user = useUser();
 
-  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} =
-    useCodingAgentIntegrations();
+  const {data: codingAgentIntegrations, isLoading: isLoadingIntegrations} = useQuery(
+    organizationIntegrationsCodingAgents(organization)
+  );
+
+  const handleInstallClick = () => {
+    trackAnalytics('coding_integration.install_clicked', {
+      organization,
+      project_slug: '', // GitHub Copilot CTA is not project-specific
+      provider: 'github_copilot',
+      source: 'cta',
+      user_id: user.id,
+    });
+  };
 
   const githubCopilotIntegration = codingAgentIntegrations?.integrations.find(
     integration => integration.provider === 'github_copilot'
@@ -58,13 +73,8 @@ export function GithubCopilotIntegrationCta() {
             </Flex>
           </Heading>
           <Text>
-            {tct(
-              'Connect GitHub Copilot to hand off Seer root cause analysis to GitHub Copilot coding agent for seamless code fixes. [docsLink:Read the docs] to learn more.',
-              {
-                docsLink: (
-                  <ExternalLink href="https://docs.sentry.io/organization/integrations/github-copilot/" />
-                ),
-              }
+            {t(
+              'Connect GitHub Copilot to hand off Seer root cause analysis to GitHub Copilot coding agent for seamless code fixes.'
             )}
           </Text>
           <div>
@@ -72,6 +82,7 @@ export function GithubCopilotIntegrationCta() {
               to={`/settings/${organization.slug}/integrations/github_copilot/`}
               priority="default"
               size="sm"
+              onClick={handleInstallClick}
             >
               {t('Install GitHub Copilot Integration')}
             </LinkButton>
@@ -96,13 +107,8 @@ export function GithubCopilotIntegrationCta() {
           </Flex>
         </Heading>
         <Text>
-          {tct(
-            'GitHub Copilot integration is installed. You can trigger GitHub Copilot from Issue Fix to create pull requests. [docsLink:Read the docs] to learn more.',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/organization/integrations/github-copilot/" />
-              ),
-            }
+          {t(
+            'GitHub Copilot integration is installed. You can trigger GitHub Copilot from Issue Fix to create pull requests.'
           )}
         </Text>
       </Flex>

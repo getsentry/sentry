@@ -1,10 +1,10 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {PAGE_URL_PARAM} from 'sentry/components/pageFilters/constants';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,

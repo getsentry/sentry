@@ -4,7 +4,6 @@ from sentry.new_migrations.monkey.state import DeletionAction
 
 
 class Migration(CheckedMigration):
-
     dependencies = [
         ("bad_flow_delete_field_double_pending_app", "0001_initial"),
     ]

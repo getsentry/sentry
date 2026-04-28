@@ -1,5 +1,4 @@
 import logging
-from concurrent.futures import ThreadPoolExecutor
 from typing import TypedDict
 
 import sentry_sdk
@@ -9,22 +8,26 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableResponse
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_trace import count_performance_issues
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap.occurrences.common_queries import count_occurrences_grouped_by_trace_ids
+from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import SnubaData, SnubaParams
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import RPCBase, TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import _run_uptime_results_query, _uptime_results_query
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +55,50 @@ def extract_uptime_count(uptime_result: list[TraceItemTableResponse]) -> int:
     return len(first_column.results) if first_column.results else 0
 
 
-@region_silo_endpoint
+def run_errors_query(trace_id: str, snuba_params: SnubaParams) -> int:
+    errors_query = DiscoverQueryBuilder(
+        dataset=Dataset.Events,
+        selected_columns=[
+            "count_if(event.type, notEquals, transaction) as errors",
+        ],
+        params={},
+        snuba_params=snuba_params,
+        query=f"trace:{trace_id}",
+        limit=1,
+    )
+    errors = errors_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+    snuba_count = int(errors["data"][0].get("errors", 0)) if errors.get("data") else 0
+    errors_count = snuba_count
+
+    callsite = "api.trace.count_errors"
+    if EAPOccurrencesComparator.should_check_experiment(callsite):
+        eap_count = count_occurrences_grouped_by_trace_ids(
+            snuba_params=snuba_params,
+            trace_ids=[trace_id],
+            referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+            occurrence_category=OccurrenceCategory.ERROR,
+        ).get(trace_id, 0)
+        errors_count = EAPOccurrencesComparator.check_and_choose(
+            snuba_count,
+            eap_count,
+            callsite,
+            is_experimental_data_a_null_result=(eap_count == 0),
+            reasonable_match_comparator=lambda snuba, eap: eap <= snuba,
+            debug_context={
+                "trace_id": trace_id,
+                "organization_id": (
+                    snuba_params.organization.id if snuba_params.organization is not None else None
+                ),
+                "project_ids": [project.id for project in snuba_params.projects],
+                "start": snuba_params.start.isoformat() if snuba_params.start else None,
+                "end": snuba_params.end.isoformat() if snuba_params.end else None,
+            },
+        )
+
+    return errors_count
+
+
+@cell_silo_endpoint
 class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -160,19 +206,9 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
             # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
             # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
             # parallelizing the queries here, but ideally this parallelization happens by calling run_bulk_table_queries
-            errors_query = DiscoverQueryBuilder(
-                dataset=Dataset.Events,
-                selected_columns=[
-                    "count_if(event.type, notEquals, transaction) as errors",
-                ],
-                params={},
-                snuba_params=snuba_params,
-                query=f"trace:{trace_id}",
-                limit=1,
-            )
             include_uptime = request.GET.get("include_uptime", "0") == "1"
             max_workers = 3 + (1 if include_uptime else 0)
-            with ThreadPoolExecutor(
+            with ContextPropagatingThreadPoolExecutor(
                 thread_name_prefix=__name__,
                 max_workers=max_workers,
             ) as query_thread_pool:
@@ -182,9 +218,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                 perf_issues_future = query_thread_pool.submit(
                     count_performance_issues, trace_id, snuba_params
                 )
-                errors_future = query_thread_pool.submit(
-                    errors_query.run_query, Referrer.API_TRACE_VIEW_GET_EVENTS.value
-                )
+                errors_future = query_thread_pool.submit(run_errors_query, trace_id, snuba_params)
 
                 uptime_future = None
                 if include_uptime:
@@ -195,8 +229,7 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
 
             results = spans_future.result()
             perf_issues = perf_issues_future.result()
-            errors = errors_future.result()
-            results["errors"] = errors
+            errors_count = errors_future.result()
 
             uptime_count = None
             if uptime_future:
@@ -205,15 +238,19 @@ class OrganizationTraceMetaEndpoint(OrganizationEventsEndpointBase):
                     uptime_count = extract_uptime_count(uptime_result)
                 except Exception:
                     logger.exception("Failed to fetch uptime results")
-        return Response(self.serialize(results, perf_issues, uptime_count))
+        return Response(self.serialize(results, errors_count, perf_issues, uptime_count))
 
     def serialize(
-        self, results: dict[str, EAPResponse], perf_issues: int, uptime_count: int | None = None
+        self,
+        results: dict[str, EAPResponse],
+        errors_count: int,
+        perf_issues: int,
+        uptime_count: int | None = None,
     ) -> SerializedResponse:
         response: SerializedResponse = {
             # Values can be null if there's no result
             "logs": results["logs_meta"]["data"][0].get("count()") or 0,
-            "errors": results["errors"]["data"][0].get("errors") or 0,
+            "errors": errors_count,
             "performance_issues": perf_issues,
             "span_count": results["spans_meta"]["data"][0].get("count()") or 0,
             "transaction_child_count_map": results["transaction_children"]["data"],

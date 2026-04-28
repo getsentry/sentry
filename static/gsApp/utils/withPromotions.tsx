@@ -1,10 +1,14 @@
-import type LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {QueryClient, QueryObserverResult} from 'sentry/utils/queryClient';
-import {useQueryClient} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
+import {
+  useQueryClient,
+  type QueryClient,
+  type QueryObserverResult,
+} from '@tanstack/react-query';
+
+import type {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {PromotionData} from 'getsentry/types';
-import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
+import {usePromotionTriggerCheck} from 'getsentry/utils/usePromotionTriggerCheck';
 
 type InjectedPromotionProps = {
   isError?: boolean;
@@ -14,7 +18,7 @@ type InjectedPromotionProps = {
   refetch?: () => Promise<QueryObserverResult<PromotionData, unknown>>;
 };
 
-const withPromotions = <P extends InjectedPromotionProps>(
+export const withPromotions = <P extends InjectedPromotionProps>(
   WrappedComponent: React.ComponentType<P> | typeof LoadingIndicator
 ) => {
   function WithPromotions(props: Omit<P, keyof InjectedPromotionProps>) {
@@ -37,5 +41,3 @@ const withPromotions = <P extends InjectedPromotionProps>(
 
   return WithPromotions;
 };
-
-export default withPromotions;

@@ -19,12 +19,10 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 
 const mockSetQueryParams = jest.fn();
 
-function Wrapper(crossEvents?: CrossEvent[]) {
-  return function ({children}: {children: ReactNode}) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
+function wrapper(crossEvents?: CrossEvent[]) {
+  return function Wrapped({children}: {children: ReactNode}) {
     const [query] = useResettableState(defaultQuery);
 
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const readableQueryParams = useMemo(
       () =>
         new ReadableQueryParams({
@@ -57,26 +55,26 @@ function Wrapper(crossEvents?: CrossEvent[]) {
 
 describe('useCrossEventQueries', () => {
   it('returns undefined if there are no cross event queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper(),
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper(),
     });
 
     expect(result.current).toBeUndefined();
   });
 
   it('returns undefined if cross event queries array is empty', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([]),
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([]),
     });
 
     expect(result.current).toBeUndefined();
   });
 
   it('returns object of array of queries', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
         {type: 'logs', query: 'test:a'},
-        {type: 'metrics', query: 'test:b'},
+        {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
       ]),
     });
@@ -84,14 +82,14 @@ describe('useCrossEventQueries', () => {
     // Since MAX_CROSS_EVENT_QUERIES is 2, the third query ('spans') will be dropped.
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
-      metricQuery: ['test:b'],
-      spanQuery: [],
+      spanQuery: ['test:b'],
+      metricQuery: [],
     });
   });
 
   it('appends queries with the same types', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
         {type: 'spans', query: 'test:a'},
         {type: 'spans', query: 'test:b'},
         {type: 'spans', query: 'test:c'},
@@ -101,14 +99,14 @@ describe('useCrossEventQueries', () => {
     // Only first 2 are kept
     expect(result.current).toStrictEqual({
       logQuery: [],
-      metricQuery: [],
       spanQuery: ['test:a', 'test:b'],
+      metricQuery: [],
     });
   });
 
   it('ignores queries with invalid types', () => {
-    const {result} = renderHookWithProviders(() => useCrossEventQueries(), {
-      additionalWrapper: Wrapper([
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
         {type: 'logs', query: 'test:a'},
         {type: 'invalid' as any, query: 'test:b'},
         {type: 'spans', query: 'test:c'},
@@ -117,8 +115,100 @@ describe('useCrossEventQueries', () => {
 
     expect(result.current).toStrictEqual({
       logQuery: ['test:a'],
-      metricQuery: [],
       spanQuery: ['test:c'],
+      metricQuery: [],
+    });
+  });
+
+  it('prepends metric identity fields to metric queries', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {
+          type: 'metrics',
+          query: 'env:prod',
+          metric: {name: 'my_metric', type: 'distribution', unit: 'ms'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:distribution metric.unit:ms ) env:prod',
+      ],
+    });
+  });
+
+  it('defaults metric.unit to none when absent on the metric', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {
+          type: 'metrics',
+          query: '',
+          metric: {name: 'my_metric', type: 'counter'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: ['( metric.name:my_metric metric.type:counter metric.unit:none )'],
+    });
+  });
+
+  it('matches both !has:metric.unit and metric.unit:none when unit is explicitly none', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {
+          type: 'metrics',
+          query: 'env:prod',
+          metric: {name: 'my_metric', type: 'counter', unit: 'none'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:counter ( !has:metric.unit OR metric.unit:none ) ) env:prod',
+      ],
+    });
+  });
+
+  it('preserves multi-filter queries alongside metric identity filters', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {
+          type: 'metrics',
+          query: 'env:prod status:ok',
+          metric: {name: 'my_metric', type: 'distribution', unit: 'ms'},
+        },
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [
+        '( metric.name:my_metric metric.type:distribution metric.unit:ms ) env:prod status:ok',
+      ],
+    });
+  });
+
+  it('drops metric entries without a selected metric name', () => {
+    const {result} = renderHookWithProviders(useCrossEventQueries, {
+      additionalWrapper: wrapper([
+        {type: 'metrics', query: 'env:prod', metric: {name: '', type: ''}},
+      ]),
+    });
+
+    expect(result.current).toStrictEqual({
+      logQuery: [],
+      spanQuery: [],
+      metricQuery: [],
     });
   });
 });

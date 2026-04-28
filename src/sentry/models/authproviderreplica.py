@@ -10,7 +10,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_model,
+    cell_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from sentry.auth.provider import Provider
 
 
-@region_silo_model
+@cell_silo_model
 class AuthProviderReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

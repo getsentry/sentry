@@ -1,6 +1,6 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import Form from 'sentry/components/deprecatedforms/form';
+import {Form} from 'sentry/components/deprecatedforms/form';
 
 describe('Form', () => {
   describe('render()', () => {

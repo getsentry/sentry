@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import audit_log, features, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import StaffPermissionMixin
@@ -105,7 +105,7 @@ def _create_invite_object(
     return omi
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
     # TODO (mifu67): make these PUBLIC once ready

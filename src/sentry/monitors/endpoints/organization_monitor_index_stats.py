@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsMixin, region_silo_endpoint
+from sentry.api.base import StatsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
@@ -39,7 +39,7 @@ def normalize_to_epoch(timestamp: datetime, seconds: int) -> int:
     return epoch - (epoch % seconds)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

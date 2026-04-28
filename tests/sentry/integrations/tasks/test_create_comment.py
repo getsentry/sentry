@@ -1,13 +1,13 @@
 from unittest import mock
 
 import pytest
+from taskbroker_client.retry import RetryTaskError
 
 from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import create_comment
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
-from sentry.taskworker.retry import RetryTaskError
 from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of

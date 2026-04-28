@@ -1,17 +1,16 @@
-import type {IssueAlertRule} from 'sentry/types/alerts';
-import {useMutation} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
-import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+import {useMutation} from '@tanstack/react-query';
 
-interface Variables
-  extends Partial<
-    Pick<
-      RequestDataFragment,
-      'conditions' | 'actions' | 'actionMatch' | 'frequency' | 'name'
-    >
-  > {
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+interface Variables extends Partial<
+  Pick<
+    RequestDataFragment,
+    'conditions' | 'actions' | 'actionMatch' | 'frequency' | 'name'
+  >
+> {
   projectSlug: string;
 }
 

@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import {Button} from '@sentry/scraps/button';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
@@ -93,7 +94,7 @@ export function useDataExport({
   ]);
 }
 
-function DataExport({
+export function DataExport({
   children,
   disabled,
   payload,
@@ -141,9 +142,11 @@ function DataExport({
         <Button
           size={size}
           priority="default"
-          title={t(
-            "You can get on with your life. We'll email you when your data's ready."
-          )}
+          tooltipProps={{
+            title: t(
+              "You can get on with your life. We'll email you when your data's ready."
+            ),
+          }}
           disabled
           icon={icon}
         >
@@ -155,9 +158,11 @@ function DataExport({
           disabled={disabled || false}
           size={size}
           priority="default"
-          title={t(
-            "Put your data to work. Start your export and we'll email you when it's finished."
-          )}
+          tooltipProps={{
+            title: t(
+              "Put your data to work. Start your export and we'll email you when it's finished."
+            ),
+          }}
           icon={icon}
         >
           {children ? children : t('Export All to CSV')}
@@ -166,5 +171,3 @@ function DataExport({
     </Feature>
   );
 }
-
-export default DataExport;

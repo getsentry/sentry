@@ -9,7 +9,7 @@ from sentry.silo.base import SiloMode
 LAUNCHPAD_RPC_SHARED_SECRET_SETTING = "LAUNCHPAD_RPC_SHARED_SECRET"
 
 
-@AuthenticationSiloLimit(SiloMode.REGION)
+@AuthenticationSiloLimit(SiloMode.CELL)
 class LaunchpadRpcSignatureAuthentication(HmacSignatureAuthentication):
     """
     Authentication for Launchpad RPC requests.

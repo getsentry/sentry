@@ -3,7 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {NewQuery} from 'sentry/types/organization';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 
 describe('EventSamplesTable', () => {
@@ -14,7 +14,7 @@ describe('EventSamplesTable', () => {
         statsPeriod: '99d',
       },
     },
-    route: `/organizations/:orgId/insights/mobile/screen-loads/`,
+    route: '/organizations/:orgId/insights/mobile/screen-loads/',
   };
 
   const mockLocation = LocationFixture({
@@ -36,7 +36,7 @@ describe('EventSamplesTable', () => {
     mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
 
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events/`,
+      url: '/organizations/org-slug/events/',
       method: 'GET',
       match: [
         MockApiClient.matchQuery({

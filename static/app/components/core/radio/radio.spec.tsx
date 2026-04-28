@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Radio} from 'sentry/components/core/radio';
+import {Radio} from '@sentry/scraps/radio';
 
 describe('radio', () => {
   it('disabled', () => {

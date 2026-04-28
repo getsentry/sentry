@@ -1,34 +1,39 @@
 import {Fragment, useCallback, useState} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Alert} from 'sentry/components/core/alert';
-import {Button} from 'sentry/components/core/button';
-import {Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
-import ErrorBoundary from 'sentry/components/errorBoundary';
-import useDrawer from 'sentry/components/globalDrawer';
-import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import TimeSince from 'sentry/components/timeSince';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {TimeSince} from 'sentry/components/timeSince';
 import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
-import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
-import Section from 'sentry/components/workflowEngine/ui/section';
+import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
+import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
-import toArray from 'sentry/utils/array/toArray';
-import {useQueryClient} from 'sentry/utils/queryClient';
+import {toArray} from 'sentry/utils/array/toArray';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getMonitorRefetchInterval,
   getNextCheckInEnv,
 } from 'sentry/views/alerts/rules/crons/utils';
+import {
+  DisableDetectorAction,
+  EditDetectorAction,
+} from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
 import {DetectorDetailsDescription} from 'sentry/views/detectors/components/details/common/description';
@@ -43,7 +48,7 @@ import {
 import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
 import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
-import MonitorQuickStartGuide from 'sentry/views/insights/crons/components/monitorQuickStartGuide';
+import {MonitorQuickStartGuide} from 'sentry/views/insights/crons/components/monitorQuickStartGuide';
 import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
 import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
 import {TimezoneOverride} from 'sentry/views/insights/crons/components/timezoneOverride';
@@ -51,6 +56,7 @@ import type {MonitorBucket, MonitorEnvironment} from 'sentry/views/insights/cron
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
+import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type CronDetectorDetailsProps = {
   detector: CronDetector;
@@ -69,6 +75,7 @@ function hasLastCheckIn(envs: MonitorEnvironment[]) {
 export function CronDetectorDetails({detector, project}: CronDetectorDetailsProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasPageFrameFeature = useHasPageFrameFeature();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
@@ -160,15 +167,31 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
         <DetailLayout.Body>
           <DetailLayout.Main>
             <Flex gap="sm" justify="between" align="center">
-              <PageFilterBar condensed>
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              <TimezoneOverride
-                monitor={dataSource.queryObj}
-                userTimezone={userTimezone}
-                onTimezoneSelected={setTimezoneOverride}
-              />
+              <Flex align="center" gap="sm" justify="between" wrap="wrap" flex="1">
+                <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
+                  <DatePageFilter />
+                </PageFilterBar>
+                {hasPageFrameFeature ? (
+                  <Flex align="center" gap="sm" marginLeft="auto">
+                    <TimezoneOverride
+                      monitor={dataSource.queryObj}
+                      size="sm"
+                      userTimezone={userTimezone}
+                      onTimezoneSelected={setTimezoneOverride}
+                    />
+                    <DisableDetectorAction detector={detector} />
+                    <EditDetectorAction detector={detector} />
+                  </Flex>
+                ) : null}
+              </Flex>
+              {hasPageFrameFeature ? null : (
+                <TimezoneOverride
+                  monitor={dataSource.queryObj}
+                  userTimezone={userTimezone}
+                  onTimezoneSelected={setTimezoneOverride}
+                />
+              )}
             </Flex>
             <DisabledAlert
               detector={detector}
@@ -195,7 +218,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     intervalSeconds={intervalSeconds}
                   />
                 </ErrorBoundary>
-                <Section title={t('Recent Check-Ins')}>
+                <DetailSection title={t('Recent Check-Ins')}>
                   <div>
                     <MonitorCheckIns
                       monitorSlug={dataSource.queryObj.slug}
@@ -203,7 +226,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       project={project}
                     />
                   </div>
-                </Section>
+                </DetailSection>
                 <DetectorDetailsAutomations detector={detector} />
               </Fragment>
             ) : (
@@ -214,22 +237,22 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             )}
           </DetailLayout.Main>
           <DetailLayout.Sidebar>
-            <Section title={t('Detect')}>
+            <DetailSection title={t('Detect')}>
               {tn(
                 'One failed check-in.',
                 '%s consecutive failed check-ins.',
                 failure_issue_threshold ?? 1
               )}
-            </Section>
-            <Section title={t('Resolve')}>
+            </DetailSection>
+            <DetailSection title={t('Resolve')}>
               {tn(
                 'One successful check-in.',
                 '%s consecutive successful check-ins.',
                 recovery_threshold ?? 1
               )}
-            </Section>
+            </DetailSection>
             <DetectorDetailsAssignee owner={detector.owner} />
-            <Section title={t('Schedule')}>
+            <DetailSection title={t('Schedule')}>
               <div>
                 {scheduleAsText(dataSource.queryObj.config)}{' '}
                 {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
@@ -240,14 +263,14 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                   </Text>
                 )}
               </div>
-            </Section>
-            <Section title={t('Legend')}>
+            </DetailSection>
+            <DetailSection title={t('Legend')}>
               <DetailsTimelineLegend
                 checkInMargin={dataSource.queryObj.config.checkin_margin}
                 maxRuntime={dataSource.queryObj.config.max_runtime}
                 showUnknownLegend={showUnknownLegend}
               />
-            </Section>
+            </DetailSection>
             <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
               <KeyValueTableRow
@@ -259,7 +282,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                       text={dataSource.queryObj.slug}
                       aria-label={t('Copy monitor slug to clipboard')}
                       size="zero"
-                      borderless
+                      priority="transparent"
                     />
                   </Flex>
                 }

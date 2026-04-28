@@ -3,16 +3,15 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Tooltip} from 'sentry/components/core/tooltip';
-import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
+import {BreadcrumbItem} from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
-import {space} from 'sentry/styles/space';
 import {uniq} from 'sentry/utils/array/uniq';
-import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
+import {useActiveReplayTab} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import type {GraphicsVariant} from 'sentry/utils/theme';
 
@@ -26,7 +25,7 @@ interface Props {
   className?: string;
 }
 
-export default function ReplayTimelineEvents({
+export function ReplayTimelineEvents({
   className,
   durationMs,
   frames,
@@ -109,7 +108,7 @@ function Event({
 
   const overlayStyle = css`
     /* We make sure to override existing styles */
-    padding: ${space(0.5)} !important;
+    padding: ${theme.space.xs} !important;
     max-width: 291px !important;
     width: 291px;
 
@@ -217,6 +216,6 @@ const IconNode = styled('button')<{
   border-radius: 50%;
   color: ${p => p.theme.colors.white};
   ${getBackgroundGradient}
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.shadow.low};
   user-select: none;
 `;

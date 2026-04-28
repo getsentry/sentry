@@ -1,9 +1,9 @@
+import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 import capitalize from 'lodash/capitalize';
 import snakeCase from 'lodash/snakeCase';
 
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 /**
  * This converts parameters in a route to be the upper version of it with a slight adjustment with IDs
@@ -22,13 +22,13 @@ const camelCaseRouteParameter = (word: string) => {
 };
 
 /**
- * @param routes Routes from React Router
+ * @param matches Matches from React Router
  * @returns A string representing the route path
  * Ex: /organizations/:orgid/alerts/new/:alerttype/ ->
  * Organizations :orgid Alerts New :alerttype
  */
-export function getEventPath(routes: PlainRoute[]) {
-  const routeString = getRouteStringFromRoutes(routes);
+export function getEventPath(matches: Array<UIMatch<unknown, unknown>>) {
+  const routeString = getRouteStringFromRoutes({matches});
   return routeString
     .split('/')
     .map(camelCaseRouteParameter)

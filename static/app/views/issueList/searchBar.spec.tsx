@@ -3,10 +3,10 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import TagStore from 'sentry/stores/tagStore';
+import {TagStore} from 'sentry/stores/tagStore';
 import type {Tag, TagValue} from 'sentry/types/group';
 import {IsFieldValues} from 'sentry/utils/fields';
-import IssueListSearchBar from 'sentry/views/issueList/searchBar';
+import {IssueListSearchBar} from 'sentry/views/issueList/searchBar';
 
 describe('IssueListSearchBar', () => {
   const {organization} = initializeOrg();
@@ -87,6 +87,8 @@ describe('IssueListSearchBar', () => {
       );
 
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+      // Event property fields like stack.filename should also be suggested
+      expect(screen.getByRole('option', {name: 'stack.filename'})).toBeInTheDocument();
     });
 
     it('displays conflicting tags', async () => {

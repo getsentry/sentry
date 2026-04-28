@@ -160,6 +160,6 @@ class ErrorsQueryBuilderTest(TestCase):
         # Verify the condition uses datetime comparison, not epoch integer
         assert received_condition.op == Op.GT
         # The RHS should be a datetime or datetime-formatted Function, not an integer
-        assert not isinstance(
-            received_condition.rhs, int
-        ), "error.received should compare against datetime, not epoch integer"
+        assert not isinstance(received_condition.rhs, int), (
+            "error.received should compare against datetime, not epoch integer"
+        )

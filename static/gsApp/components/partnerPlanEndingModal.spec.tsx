@@ -7,7 +7,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
 import PartnerPlanEndingModal from 'getsentry/components/partnerPlanEndingModal';
-import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {PlanName} from 'getsentry/types';
 
 describe('PartnerPlanEndingModal', () => {
@@ -16,7 +16,7 @@ describe('PartnerPlanEndingModal', () => {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/`,
+      url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [
         MemberFixture({
@@ -36,7 +36,7 @@ describe('PartnerPlanEndingModal', () => {
     SubscriptionStore.set(org.slug, sub);
 
     const mockCall = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/partner-migration-request/?referrer=partner_plan_ending_modal`,
+      url: '/organizations/org-slug/partner-migration-request/?referrer=partner_plan_ending_modal',
       method: 'POST',
     });
 

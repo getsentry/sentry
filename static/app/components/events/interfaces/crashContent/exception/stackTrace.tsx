@@ -1,8 +1,8 @@
-import EmptyMessage from 'sentry/components/emptyMessage';
-import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {Content as StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
@@ -11,7 +11,6 @@ import type {PlatformKey} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   chainedException: boolean;
@@ -29,7 +28,7 @@ type Props = {
   threadId?: number;
 };
 
-function StackTrace({
+export function StackTrace({
   stackView,
   stacktrace,
   chainedException,
@@ -44,7 +43,6 @@ function StackTrace({
   frameSourceMapDebuggerData,
   stackType,
 }: Props) {
-  const hasStreamlinedUI = useHasStreamlinedUI();
   if (!defined(stacktrace)) {
     return null;
   }
@@ -90,7 +88,6 @@ function StackTrace({
         newestFirst={newestFirst}
         event={event}
         meta={meta}
-        hideIcon={hasStreamlinedUI}
       />
     );
   }
@@ -107,9 +104,6 @@ function StackTrace({
       threadId={threadId}
       frameSourceMapDebuggerData={frameSourceMapDebuggerData}
       hideSourceMapDebugger={stackType === StackType.MINIFIED}
-      hideIcon={hasStreamlinedUI}
     />
   );
 }
-
-export default StackTrace;

@@ -118,9 +118,7 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
     def test_no_subscription(self) -> None:
         self.task(12345)
         self.metrics.incr.assert_called_once_with(
-            "uptime.subscriptions.{}.subscription_does_not_exist".format(
-                self.status_translations[self.expected_status]
-            ),
+            f"uptime.subscriptions.{self.status_translations[self.expected_status]}.subscription_does_not_exist",
             sample_rate=1.0,
         )
 
@@ -130,9 +128,7 @@ class BaseUptimeSubscriptionTaskTest(ConfigPusherTestMixin, metaclass=abc.ABCMet
         )
         self.task(sub.id)
         self.metrics.incr.assert_called_once_with(
-            "uptime.subscriptions.{}.incorrect_status".format(
-                self.status_translations[self.expected_status]
-            ),
+            f"uptime.subscriptions.{self.status_translations[self.expected_status]}.incorrect_status",
             sample_rate=1.0,
         )
         self.assert_redis_config("default", sub, None, None)
@@ -497,9 +493,7 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         )
         self.task(sub.id)
         self.metrics.incr.assert_called_once_with(
-            "uptime.subscriptions.{}.incorrect_status".format(
-                self.status_translations[self.expected_status]
-            ),
+            f"uptime.subscriptions.{self.status_translations[self.expected_status]}.incorrect_status",
             sample_rate=1.0,
         )
         self.assert_redis_config("default", sub, None, None)

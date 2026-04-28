@@ -42,6 +42,7 @@ class DynamicSDKLoaderOptions(TypedDict):
     hasPerformance: bool
     hasDebug: bool
     hasFeedback: bool
+    hasLogsAndMetrics: bool
 
 
 class ProjectKeySerializerResponse(TypedDict):
@@ -115,6 +116,9 @@ class ProjectKeySerializer(Serializer):
                 "hasDebug": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_DEBUG),
                 "hasFeedback": get_dynamic_sdk_loader_option(
                     obj, DynamicSdkLoaderOption.HAS_FEEDBACK
+                ),
+                "hasLogsAndMetrics": get_dynamic_sdk_loader_option(
+                    obj, DynamicSdkLoaderOption.HAS_LOGS_AND_METRICS
                 ),
             },
         }

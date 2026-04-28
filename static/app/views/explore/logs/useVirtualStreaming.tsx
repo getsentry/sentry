@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {logger} from '@sentry/react';
+import type {InfiniteData} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 
 import type {ApiResult} from 'sentry/api';
-import type {InfiniteData} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   useLogsAutoRefreshContinued,
   useLogsAutoRefreshEnabled,
@@ -22,7 +22,6 @@ import type {
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {useLogsQueryKeyWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
-
 /**
  * Virtual Streaming
  *
@@ -220,7 +219,7 @@ export function useVirtualStreaming({
     hasWarnedRef.current = true;
 
     logger.warn(
-      `No most recent page data timestamp found, skipping virtual streaming update`,
+      'No most recent page data timestamp found, skipping virtual streaming update',
       {
         logId:
           data?.pages?.[data.pages.length - 1]?.[0]?.data?.[0]?.[OurLogKnownFieldKey.ID],
@@ -321,7 +320,7 @@ function getApproximateTimestamp(row: {
   }
   if (!timestampHasWarned) {
     timestampHasWarned = true;
-    logger.warn(`No timestamp precise found for log row, using timestamp instead`, {
+    logger.warn('No timestamp precise found for log row, using timestamp instead', {
       logId: row[OurLogKnownFieldKey.ID],
       traceId: row[OurLogKnownFieldKey.TRACE_ID],
       timestamp: row[OurLogKnownFieldKey.TIMESTAMP],

@@ -2,10 +2,9 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
 import type {TracePeriod} from 'sentry/views/explore/metrics/metricsFrozenContext';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -103,7 +102,7 @@ function MetricsSectionContent() {
   return (
     <Fragment>
       <SearchQueryBuilder
-        placeholder={t('Search metrics for this trace')}
+        placeholder={t('Search application metrics for this trace')}
         filterKeys={{}}
         getTagValues={() => new Promise<string[]>(() => [])}
         initialQuery={metricsSearch.formatString()}
@@ -118,10 +117,10 @@ function MetricsSectionContent() {
 }
 
 const TableContainer = styled('div')`
-  margin-top: ${space(2)};
+  margin-top: ${p => p.theme.space.xl};
 `;
 
 const StyledPanel = styled(Panel)`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   margin: 0;
 `;

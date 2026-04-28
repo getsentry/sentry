@@ -59,7 +59,6 @@ def get_first_last_release_for_event(
     cache_key = get_first_last_release_for_group_cache_key(group.id, release_age_type, order_type)
     release = cache.get(cache_key)
     if release is None:
-
         try:
             release = get_first_last_release_for_group(
                 group, order_type, release_age_type == ModelAgeType.NEWEST

@@ -1,18 +1,18 @@
 import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   useApiQuery,
   type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
   ok: boolean;
 }
 
 export interface AutofixSetupResponse {
-  autofixEnabled: boolean;
   billing: {
     hasAutofixQuota: boolean;
   } | null;
@@ -21,10 +21,6 @@ export interface AutofixSetupResponse {
     reason: string | null;
   };
   seerReposLinked: boolean;
-  setupAcknowledgement: {
-    orgHasAcknowledged: boolean;
-    userHasAcknowledged: boolean;
-  };
   githubWriteIntegration?: {
     ok: boolean;
     repos: AutofixSetupRepoDefinition[];
@@ -37,7 +33,12 @@ function makeAutofixSetupQueryKey(
   checkWriteAccess?: boolean
 ): ApiQueryKey {
   return [
-    `/organizations/${orgSlug}/issues/${groupId}/autofix/setup/${checkWriteAccess ? '?check_write_access=true' : ''}`,
+    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+    }),
+    {
+      query: checkWriteAccess ? {check_write_access: true} : undefined,
+    },
   ];
 }
 
@@ -59,11 +60,7 @@ export function useAutofixSetup(
 
   return {
     ...queryData,
-    autofixEnabled: Boolean(queryData.data?.autofixEnabled),
-    canStartAutofix: Boolean(
-      queryData.data?.integration.ok &&
-        queryData.data?.setupAcknowledgement.orgHasAcknowledged
-    ),
+    canStartAutofix: Boolean(queryData.data?.integration.ok),
     canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
     seerReposLinked: Boolean(queryData.data?.seerReposLinked),

@@ -1,7 +1,7 @@
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
@@ -11,7 +11,7 @@ import {
   DEFAULT_LAYOUTS,
   PAGE_CHART_OPTIONS,
 } from 'sentry/views/insights/sessions/components/chartMap';
-import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {ChartSelectionTitle} from 'sentry/views/insights/sessions/components/chartSelectionTitle';
 import {CHART_TITLES} from 'sentry/views/insights/sessions/settings';
 
 type TChart = keyof typeof CHART_MAP;

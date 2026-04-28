@@ -13,7 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('EventAttachments', () => {
   const {organization, project} = initializeOrg({
@@ -50,9 +50,7 @@ describe('EventAttachments', () => {
 
     expect(await screen.findByText('Attachments (0)')).toBeInTheDocument();
 
-    await tick();
-
-    expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'View crashes'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/1/attachments/?attachmentFilter=onlyCrash'
     );
@@ -144,8 +142,9 @@ describe('EventAttachments', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/?download`,
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/`,
       body: 'file contents',
+      match: [MockApiClient.matchQuery({download: true})],
     });
 
     render(<EventAttachments {...props} />, {

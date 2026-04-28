@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import type {Project} from 'sentry/types/project';
-import EventView from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 
 export interface InitializeDataSettings {
   features?: string[];

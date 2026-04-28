@@ -6,29 +6,29 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
+import {Button} from '@sentry/scraps/button';
+import {Radio} from '@sentry/scraps/radio';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
-import {Button} from 'sentry/components/core/button';
-import {Radio} from 'sentry/components/core/radio';
+import {COLLAPSE_COUNT, CollapsePanel} from 'sentry/components/collapsePanel';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import List from 'sentry/components/list';
-import ListItem from 'sentry/components/list/listItem';
+import {List} from 'sentry/components/list';
+import {ListItem} from 'sentry/components/list/listItem';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {
   useCreateProjectAndRulesError,
   useIsCreatingProjectAndRules,
 } from 'sentry/components/onboarding/useCreateProjectAndRules';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
 import {categoryList, createablePlatforms} from 'sentry/data/platformPickerCategories';
-import platforms from 'sentry/data/platforms';
+import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',
@@ -124,6 +124,7 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
+  hasScmOnboarding?: boolean;
   newOrg?: boolean;
 }
 
@@ -137,6 +138,7 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
+  hasScmOnboarding,
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
   const createProjectAndRulesError = useCreateProjectAndRulesError();
@@ -193,47 +195,72 @@ export function FrameworkSuggestionModal({
 
   useEffect(() => {
     trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_rendered'
-        : 'project_creation.select_framework_modal_rendered',
+      hasScmOnboarding
+        ? 'onboarding.scm_select_framework_modal_rendered'
+        : newOrg
+          ? 'onboarding.select_framework_modal_rendered'
+          : 'project_creation.select_framework_modal_rendered',
       {
         platform: selectedPlatform.key,
         organization,
       }
     );
-  }, [selectedPlatform.key, organization, newOrg]);
+  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
 
-    trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
-        : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
-      {
-        platform: selectedPlatform.key,
-        framework: selectedFramework.key,
+    if (hasScmOnboarding) {
+      trackAnalytics('onboarding.scm_platform_selected', {
         organization,
-      }
-    );
+        platform: selectedFramework.key,
+        source: 'manual',
+      });
+    } else {
+      trackAnalytics(
+        newOrg
+          ? 'onboarding.select_framework_modal_configure_sdk_button_clicked'
+          : 'project_creation.select_framework_modal_configure_sdk_button_clicked',
+        {
+          platform: selectedPlatform.key,
+          framework: selectedFramework.key,
+          organization,
+        }
+      );
+    }
 
     onConfigure(selectedFramework);
-  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
+  }, [
+    selectedPlatform,
+    selectedFramework,
+    organization,
+    onConfigure,
+    newOrg,
+    hasScmOnboarding,
+  ]);
 
   const handleSkip = useCallback(() => {
-    trackAnalytics(
-      newOrg
-        ? 'onboarding.select_framework_modal_skip_button_clicked'
-        : 'project_creation.select_framework_modal_skip_button_clicked',
-      {
-        platform: selectedPlatform.key,
+    if (hasScmOnboarding) {
+      trackAnalytics('onboarding.scm_platform_selected', {
         organization,
-      }
-    );
+        platform: selectedPlatform.key,
+        source: 'manual',
+      });
+    } else {
+      trackAnalytics(
+        newOrg
+          ? 'onboarding.select_framework_modal_skip_button_clicked'
+          : 'project_creation.select_framework_modal_skip_button_clicked',
+        {
+          platform: selectedPlatform.key,
+          organization,
+        }
+      );
+    }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {
@@ -399,9 +426,11 @@ const Header = styled('header')`
   position: relative;
   height: 30px;
 
-  margin: -${space(4)} -${space(2)} 0 -${space(3)};
+  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space.xl}
+    0 -${p => p.theme.space['2xl']};
   @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${space(4)} -${space(4)} 0 -${space(4)};
+    margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['3xl']}
+      0 -${p => p.theme.space['3xl']};
   }
 `;
 
@@ -420,16 +449,16 @@ const TopFrameworksImageWrapper = styled('div')`
   width: 256px;
   height: 108px;
   min-height: 108px;
-  margin: 0px auto ${space(2)};
+  margin: 0px auto ${p => p.theme.space.xl};
 `;
 
 const Heading = styled('h6')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
   text-align: center;
 `;
 
 const Description = styled(TextBlock)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${p => p.theme.space.xl};
   text-align: center;
 `;
 
@@ -481,15 +510,15 @@ const RadioLabel = styled(RadioLineItem)`
   display: inline-grid;
   grid-template-columns: max-content max-content 1fr;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-  gap: ${space(1.5)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  gap: ${p => p.theme.space.lg};
   input {
     cursor: pointer;
   }
 `;
 
 const RadioBox = styled(Radio)`
-  padding: ${space(0.5)};
+  padding: ${p => p.theme.space.xs};
 `;
 
 // Style the modals document and section elements as flex containers

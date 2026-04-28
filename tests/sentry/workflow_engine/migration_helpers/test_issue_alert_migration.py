@@ -25,7 +25,6 @@ from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
@@ -40,11 +39,6 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.detector import (
-    UnableToAcquireLockApiError,
-    ensure_default_detectors,
-)
-from sentry.workflow_engine.types import ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
@@ -150,12 +144,18 @@ class IssueAlertMigratorTest(TestCase):
         assert error_detector.project_id == self.project.id
         assert error_detector.enabled is True
         assert error_detector.owner_user_id is None
-        assert error_detector.owner_team is None
+        assert error_detector.owner_team_id is None
         assert error_detector.type == ErrorGroupType.slug
         assert error_detector.config == {}
 
-        error_detector_workflow = DetectorWorkflow.objects.get(detector=error_detector)
-        assert error_detector_workflow.workflow == workflow
+        ## This ensures that the error detector is not directly connected to the workflow,
+        # _and_ confirms that the issue stream detector would trigger for the general use case.
+        assert not DetectorWorkflow.objects.filter(detector=error_detector).exists()
+        assert DetectorWorkflow.objects.filter(
+            detector__type=IssueStreamGroupType.slug,
+            detector__project=self.project,
+            workflow=workflow,
+        ).exists()
 
         return error_detector
 
@@ -168,7 +168,7 @@ class IssueAlertMigratorTest(TestCase):
         assert issue_stream_detector.name == "Issue Stream"
         assert issue_stream_detector.enabled is True
         assert issue_stream_detector.owner_user_id is None
-        assert issue_stream_detector.owner_team is None
+        assert issue_stream_detector.owner_team_id is None
         assert issue_stream_detector.config == {}
 
         issue_stream_detector_workflow = DetectorWorkflow.objects.get(
@@ -225,7 +225,7 @@ class IssueAlertMigratorTest(TestCase):
     def test_run(self) -> None:
         self.assert_issue_alert_migrated(self.issue_alert)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -250,7 +250,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -266,7 +266,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, logic_type=DataConditionGroup.Type.ALL)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -280,7 +280,7 @@ class IssueAlertMigratorTest(TestCase):
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -298,7 +298,7 @@ class IssueAlertMigratorTest(TestCase):
 
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -316,7 +316,7 @@ class IssueAlertMigratorTest(TestCase):
 
         self.assert_issue_alert_migrated(issue_alert, is_enabled=True)
 
-        dcg_actions = DataConditionGroupAction.objects.all()[0]
+        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
         assert action.type == Action.Type.SLACK
 
@@ -626,38 +626,3 @@ class IssueAlertMigratorTest(TestCase):
             IssueAlertMigrator(issue_alert, self.user.id, is_dry_run=True).run()
 
         self.assert_nothing_migrated(issue_alert)
-
-
-class TestEnsureDefaultDetectors(TestCase):
-    def setUp(self) -> None:
-        self.slugs = [ErrorGroupType.slug, IssueStreamGroupType.slug]
-        self.names = [ERROR_DETECTOR_NAME, ISSUE_STREAM_DETECTOR_NAME]
-
-    def test_ensure_default_detector(self) -> None:
-        project = self.create_project()
-        error_detector, issue_stream_detector = ensure_default_detectors(project)
-
-        assert error_detector.name == ERROR_DETECTOR_NAME
-        assert error_detector.project_id == project.id
-        assert error_detector.type == ErrorGroupType.slug
-        assert issue_stream_detector.name == ISSUE_STREAM_DETECTOR_NAME
-        assert issue_stream_detector.project_id == project.id
-        assert issue_stream_detector.type == IssueStreamGroupType.slug
-
-    def test_ensure_default_detector__already_exists(self) -> None:
-        project = self.create_project()
-        detectors = Detector.objects.filter(project=project)
-        with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
-            default_detectors = ensure_default_detectors(project)
-            assert {default_detectors[0].id, default_detectors[1].id} == {
-                detectors.id for detectors in detectors
-            }
-            # No lock if it already exists.
-            mock_lock.assert_not_called()
-
-    def test_ensure_default_detector__lock_fails(self) -> None:
-        with patch("sentry.workflow_engine.processors.detector.locks.get") as mock_lock:
-            mock_lock.return_value.blocking_acquire.side_effect = UnableToAcquireLock
-            with pytest.raises(UnableToAcquireLockApiError):
-                project = self.create_project()
-                ensure_default_detectors(project)

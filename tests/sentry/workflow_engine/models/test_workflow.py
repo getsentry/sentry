@@ -71,7 +71,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
 
@@ -82,7 +82,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
         workflow2.full_clean()
@@ -95,7 +95,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=self.user.id,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
         self.organization.delete()
@@ -112,7 +112,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 30},
         )
         self.create_workflow(
@@ -122,7 +122,7 @@ class WorkflowTest(BaseWorkflowTest):
             when_condition_group=self.create_data_condition_group(),
             created_by_id=None,
             owner_user_id=None,
-            owner_team=None,
+            owner_team_id=None,
             config={"frequency": 5},
         )
         assert Workflow.objects.filter(name=name).count() == 2

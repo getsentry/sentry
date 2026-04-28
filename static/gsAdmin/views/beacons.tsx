@@ -1,9 +1,10 @@
 import moment from 'moment-timezone';
 
-import {Link} from 'sentry/components/core/link';
-import Truncate from 'sentry/components/truncate';
+import {Link} from '@sentry/scraps/link';
 
-import PageHeader from 'admin/components/pageHeader';
+import {Truncate} from 'sentry/components/truncate';
+
+import {PageHeader} from 'admin/components/pageHeader';
 import ResultGrid from 'admin/components/resultGrid';
 
 const getRow = (row: any) => [
@@ -35,7 +36,7 @@ const getRow = (row: any) => [
   </td>,
 ];
 
-export default function Beacons() {
+export function Beacons() {
   return (
     <div>
       <PageHeader title="Beacons" />

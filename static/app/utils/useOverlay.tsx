@@ -87,7 +87,8 @@ const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
 };
 
 export interface UseOverlayProps
-  extends Partial<AriaOverlayProps>,
+  extends
+    Partial<AriaOverlayProps>,
     Partial<OverlayTriggerProps>,
     Partial<OverlayTriggerStateProps> {
   /**
@@ -130,7 +131,7 @@ export interface UseOverlayProps
   strategy?: PopperProps<any>['strategy'];
 }
 
-function useOverlay({
+export function useOverlay({
   isOpen,
   onClose,
   defaultOpen,
@@ -348,5 +349,3 @@ function useOverlay({
     },
   };
 }
-
-export default useOverlay;

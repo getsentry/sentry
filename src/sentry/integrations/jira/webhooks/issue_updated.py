@@ -12,7 +12,7 @@ from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.ratelimits.config import RateLimitConfig
@@ -25,7 +25,7 @@ from .base import JiraWebhookBase
 logger = logging.getLogger(__name__)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraWebhookBase):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {

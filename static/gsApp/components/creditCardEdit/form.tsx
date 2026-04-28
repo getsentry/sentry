@@ -1,7 +1,9 @@
-import PaymentIntentForm from 'getsentry/components/creditCardEdit/intentForms/paymentIntentForm';
-import SetupIntentForm from 'getsentry/components/creditCardEdit/intentForms/setupIntentForm';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+
+import {PaymentIntentForm} from 'getsentry/components/creditCardEdit/intentForms/paymentIntentForm';
+import {SetupIntentForm} from 'getsentry/components/creditCardEdit/intentForms/setupIntentForm';
 import type {CreditCardSetupProps} from 'getsentry/components/creditCardEdit/setup';
-import StripeWrapper from 'getsentry/components/stripeWrapper';
+import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 
 export interface CreditCardFormProps extends CreditCardSetupProps {
   /**
@@ -11,14 +13,14 @@ export interface CreditCardFormProps extends CreditCardSetupProps {
   /**
    * The endpoint to get the intent data.
    */
-  intentDataEndpoint: string;
+  intentDataQueryKey: ApiQueryKey;
   /**
    * The amount to charge the user (for a payment intent).
    */
   amount?: number;
 }
 
-function CreditCardForm(props: CreditCardFormProps) {
+export function CreditCardForm(props: CreditCardFormProps) {
   return (
     <StripeWrapper paymentElementMode={props.cardMode} amount={props.amount}>
       {props.cardMode === 'setup' ? (
@@ -29,5 +31,3 @@ function CreditCardForm(props: CreditCardFormProps) {
     </StripeWrapper>
   );
 }
-
-export default CreditCardForm;

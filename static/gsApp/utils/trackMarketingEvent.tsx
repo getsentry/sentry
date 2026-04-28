@@ -1,6 +1,6 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {ConfigStore} from 'sentry/stores/configStore';
 
-function trackMarketingEvent(
+export function trackMarketingEvent(
   event_type: string,
   options?: {event_label?: string; plan?: string}
 ) {
@@ -29,5 +29,3 @@ function trackMarketingEvent(
     event_label: options?.event_label,
   });
 }
-
-export default trackMarketingEvent;

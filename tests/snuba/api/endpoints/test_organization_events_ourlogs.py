@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import ANY, patch
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
 from django.test import override_settings
@@ -38,7 +38,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["id", "log.body"],
@@ -54,11 +54,11 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert len(data) == 2
         assert data == [
             {
-                "id": UUID(bytes=bytes(reversed(logs[0].item_id))).hex,
+                "id": logs[0].item_id.hex(),
                 "log.body": "foo",
             },
             {
-                "id": UUID(bytes=bytes(reversed(logs[1].item_id))).hex,
+                "id": logs[1].item_id.hex(),
                 "log.body": "bar",
             },
         ]
@@ -80,7 +80,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.ten_mins_ago + timedelta(microseconds=2),
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["log.body", "timestamp"],
@@ -121,7 +121,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["log.body"],
@@ -155,7 +155,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["log.body", "timestamp"],
@@ -182,7 +182,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.ten_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["project"],
@@ -212,7 +212,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.ten_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["message", "trace"],
@@ -245,7 +245,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             {"body": "bar"},
             timestamp=three_days_ago,
         )
-        self.store_ourlogs([log1, log2])
+        self.store_eap_items([log1, log2])
 
         request = {
             "field": ["message"],
@@ -290,7 +290,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             {"body": "foo"},
             timestamp=one_day_ago,
         )
-        self.store_ourlogs([log1])
+        self.store_eap_items([log1])
 
         request = {
             "field": ["message", "count()"],
@@ -316,7 +316,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             attributes={"sentry.payload_size_bytes": 1234567},
             timestamp=one_day_ago,
         )
-        self.store_ourlogs([log1])
+        self.store_eap_items([log1])
 
         request = {
             "field": ["message", "payload_size"],
@@ -340,7 +340,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             {"body": "test"},
             timestamp=self.ten_mins_ago,
         )
-        self.store_ourlogs([log])
+        self.store_eap_items([log])
 
         response = self.do_request(
             {
@@ -388,7 +388,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.nine_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "cursor": "",
@@ -417,7 +417,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert len(data) == 2
         for result, source in zip(data, reversed(logs)):
             assert result == {
-                "sentry.item_id": UUID(bytes=bytes(reversed(source.item_id))).hex,
+                "sentry.item_id": source.item_id.hex(),
                 "project.id": self.project.id,
                 "trace": source.trace_id,
                 "severity_number": source.attributes["sentry.severity_number"].int_value,
@@ -468,7 +468,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             ),
         ]
 
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request(
             {
@@ -556,7 +556,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.ten_mins_ago,
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["id", "timestamp", "message"],
@@ -594,7 +594,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 log_id="0" + uuid4().hex[1:],  # qux's id sorts after bar's id
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         response = self.do_request(
             {
                 "field": ["id", "timestamp", "message"],
@@ -637,7 +637,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=self.nine_mins_ago,
             )
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request(
             {
@@ -669,7 +669,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             )
             for i in range(n)
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         response = self.do_request(
             {
@@ -703,7 +703,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             )
             for i in range(n)
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
 
         request = {
             "field": ["timestamp", "message"],
@@ -760,7 +760,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=hour_3 - timedelta(minutes=30),
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         for hour in [hour_4, hour_3]:
             self.store_outcomes(
                 {
@@ -837,7 +837,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 timestamp=hour_3 - timedelta(minutes=30),
             ),
         ]
-        self.store_ourlogs(logs)
+        self.store_eap_items(logs)
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
@@ -902,7 +902,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert links["next"]["results"] == "true"
 
     def test_bytes_scanned(self):
-        self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
+        self.store_eap_items([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
 
         request = {
             "field": ["timestamp", "message"],
@@ -916,7 +916,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.data["meta"]["bytesScanned"] > 0
 
     def test_count_message(self):
-        self.store_ourlogs([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
+        self.store_eap_items([self.create_ourlog({"body": "log"}, timestamp=self.ten_mins_ago)])
         request = {
             "field": ["count(message)"],
             "project": self.project.id,
@@ -951,7 +951,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         project1 = self.create_project()
         project2 = self.create_project()
 
-        self.store_ourlogs(
+        self.store_eap_items(
             [self.create_ourlog({"body": "log"}, project=project1, timestamp=self.ten_mins_ago)]
         )
 

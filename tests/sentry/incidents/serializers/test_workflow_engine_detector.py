@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
@@ -182,6 +183,31 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
             WorkflowEngineDetectorSerializer(prepare_component_fields=True),
         )
         assert serialized_detector == sentry_app_expected
+
+    def test_snooze_enabled_detector(self) -> None:
+        serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
+        assert "snooze" not in serialized
+
+    def test_snooze_disabled_detector(self) -> None:
+        self.detector.update(enabled=False)
+        serialized = serialize(self.detector, self.user, WorkflowEngineDetectorSerializer())
+        assert serialized["snooze"] is True
+
+    def test_orphaned_trigger_without_detector(self) -> None:
+        serializer = WorkflowEngineDetectorSerializer()
+        result: defaultdict[Any, dict[str, Any]] = defaultdict(dict)
+        detectors = {self.detector.id: self.detector}
+
+        serialized_data_conditions: list[dict[str, Any]] = [
+            {
+                "alertRuleId": None,
+                "actions": [],
+                "alertThreshold": "100",
+                "label": "critical",
+            },
+        ]
+        serializer.add_triggers_and_actions(result, detectors, {}, serialized_data_conditions, {})
+        assert self.detector not in result
 
     def test_new_models_only(self) -> None:
         # test that we can still serialize if objects do not have lookup table entries

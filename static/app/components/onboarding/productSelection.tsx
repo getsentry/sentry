@@ -1,19 +1,19 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useEffectEvent, useMemo} from 'react';
+import {useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
+
+import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {Button} from 'sentry/components/core/button';
-import {Checkbox} from 'sentry/components/core/checkbox';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {space} from 'sentry/styles/space';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
@@ -26,7 +26,7 @@ interface DisabledProduct {
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
 
-function getDisabledProducts(organization: Organization): DisabledProducts {
+export function getDisabledProducts(organization: Organization): DisabledProducts {
   const disabledProducts: DisabledProducts = {};
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
@@ -79,7 +79,10 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   if (!hasMetrics) {
     disabledProducts[ProductSolution.METRICS] = {
       reason,
-      onClick: createClickHandler('organizations:tracemetrics-enabled', 'Metrics'),
+      onClick: createClickHandler(
+        'organizations:tracemetrics-enabled',
+        'Application Metrics'
+      ),
     };
   }
   return disabledProducts;
@@ -92,14 +95,47 @@ export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-aspnetcore': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
-  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
+  dotnet: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-aspnet': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-aspnetcore': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-awslambda': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-gcpfunctions': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-maui': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-winforms': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'dotnet-wpf': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
   dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
@@ -143,31 +179,37 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  godot: [ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   java: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-log4j2': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-logback': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-spring': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   'java-spring-boot': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.LOGS,
     ProductSolution.METRICS,
+    ProductSolution.PROFILING,
   ],
   javascript: [
     ProductSolution.PERFORMANCE_MONITORING,
@@ -224,6 +266,7 @@ export const platformProductAvailability = {
   'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   'javascript-astro': [
@@ -232,6 +275,7 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  native: [ProductSolution.LOGS],
   node: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -322,6 +366,7 @@ export const platformProductAvailability = {
   'php-symfony': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
   python: [
@@ -390,6 +435,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'python-litestar': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'python-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -447,6 +498,8 @@ export const platformProductAvailability = {
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
   ],
+  unity: [ProductSolution.LOGS, ProductSolution.METRICS],
+  unreal: [ProductSolution.LOGS],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -496,7 +549,6 @@ function Product({
           </Stack>
         ))
       }
-      delay={500}
       isHoverable
     >
       <ProductButton
@@ -564,9 +616,7 @@ export function ProductSelection({
     [params.product]
   );
 
-  const products: ProductSolution[] | undefined = platform
-    ? platformProductAvailability[platform]
-    : undefined;
+  const products = platform ? platformProductAvailability[platform] : undefined;
 
   const disabledProducts = useMemo(
     () => disabledProductsProp ?? getDisabledProducts(organization),
@@ -583,39 +633,36 @@ export function ProductSelection({
     initializeProducts();
   }, []);
 
-  const handleClickProduct = useCallback(
-    (product: ProductSolution) => {
-      const newProduct = new Set(
-        urlProducts.includes(product)
-          ? urlProducts.filter(p => p !== product)
-          : [...urlProducts, product]
-      );
+  const handleClickProduct = (product: ProductSolution) => {
+    const newProduct = new Set(
+      urlProducts.includes(product)
+        ? urlProducts.filter(p => p !== product)
+        : [...urlProducts, product]
+    );
 
-      if (products?.includes(ProductSolution.PROFILING)) {
-        // Ensure that if profiling is enabled, tracing is also enabled
-        if (
-          product === ProductSolution.PROFILING &&
-          newProduct.has(ProductSolution.PROFILING)
-        ) {
-          newProduct.add(ProductSolution.PERFORMANCE_MONITORING);
-        } else if (
-          product === ProductSolution.PERFORMANCE_MONITORING &&
-          !newProduct.has(ProductSolution.PERFORMANCE_MONITORING)
-        ) {
-          newProduct.delete(ProductSolution.PROFILING);
-        }
+    if (products?.includes(ProductSolution.PROFILING)) {
+      // Ensure that if profiling is enabled, tracing is also enabled
+      if (
+        product === ProductSolution.PROFILING &&
+        newProduct.has(ProductSolution.PROFILING)
+      ) {
+        newProduct.add(ProductSolution.PERFORMANCE_MONITORING);
+      } else if (
+        product === ProductSolution.PERFORMANCE_MONITORING &&
+        !newProduct.has(ProductSolution.PERFORMANCE_MONITORING)
+      ) {
+        newProduct.delete(ProductSolution.PROFILING);
       }
+    }
 
-      const selectedProducts = Array.from(newProduct);
+    const selectedProducts = Array.from(newProduct);
 
-      onChange?.({
-        previousProducts: urlProducts,
-        products: selectedProducts,
-      });
-      setParams({product: selectedProducts});
-    },
-    [products, setParams, urlProducts, onChange]
-  );
+    onChange?.({
+      previousProducts: urlProducts,
+      products: selectedProducts,
+    });
+    setParams({product: selectedProducts});
+  };
 
   if (!products) {
     // if the platform does not support any product, we don't render anything
@@ -643,7 +690,7 @@ export function ProductSelection({
       )}
       {products.includes(ProductSolution.METRICS) && (
         <Product
-          label={t('Metrics')}
+          label={t('Application Metrics')}
           description={t(
             'Custom metrics for tracking application performance and usage, automatically trace-connected.'
           )}
@@ -701,6 +748,6 @@ const ProductButton = Button;
 const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
 `;

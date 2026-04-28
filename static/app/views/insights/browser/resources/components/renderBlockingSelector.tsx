@@ -1,17 +1,17 @@
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanFields} from 'sentry/views/insights/types';
 
 const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanFields;
 
-function RenderBlockingSelector({value}: {value?: string}) {
+export function RenderBlockingSelector({value}: {value?: string}) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -46,5 +46,3 @@ function RenderBlockingSelector({value}: {value?: string}) {
     />
   );
 }
-
-export default RenderBlockingSelector;

@@ -1,68 +1,50 @@
-import {Fragment, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {CommitRowProps} from 'sentry/components/commitRow';
-import {SuspectCommitHeader} from 'sentry/components/events/styles';
+import {Flex} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
+
+import {CommitRow} from 'sentry/components/commitRow';
 import {SuspectCommitFeedback} from 'sentry/components/events/suspectCommitFeedback';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {Group} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import useCommitters from 'sentry/utils/useCommitters';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-interface CommitWithGroupOwner extends Commit {
-  group_owner_id: number;
-}
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useCommitters} from 'sentry/utils/useCommitters';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 
 interface Props {
-  commitRow: React.ComponentType<CommitRowProps>;
   eventId: string;
+  group: Group;
   projectSlug: Project['slug'];
-  group?: Group;
 }
 
-export function SuspectCommits({
-  group,
-  eventId,
-  projectSlug,
-  commitRow: CommitRow,
-}: Props) {
+export function SuspectCommits({group, eventId, projectSlug}: Props) {
   const organization = useOrganization();
-  const [isExpanded, setIsExpanded] = useState(false);
   const project = useProjectFromSlug({organization, projectSlug});
   const {data} = useCommitters({
     eventId,
     projectSlug,
     group,
   });
-  const committers = data?.committers ?? [];
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
 
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  function getUniqueCommitsWithAuthors() {
-    // Get a list of suspect commits with author information attached
-    return committers.map((committer: any) => ({
-      ...committer.commits[0],
-      author: committer.author,
-      group_owner_id: committer.group_owner_id,
-    }));
-  }
-
-  const commits = getUniqueCommitsWithAuthors();
+  const committers = useMemo(
+    () => (data?.committers ?? []).slice(0, 100),
+    [data?.committers]
+  );
 
   useRouteAnalyticsParams({
-    num_suspect_commits: commits.length,
-    suspect_commit_calculation: commits[0]?.suspectCommitType ?? 'no suspect commit',
+    num_suspect_commits: committers.length,
+    suspect_commit_calculation:
+      committers[0]?.commits[0]?.suspectCommitType ?? 'no suspect commit',
   });
 
   if (!committers.length) {
@@ -90,89 +72,46 @@ export function SuspectCommits({
     });
   };
 
-  const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
-
-  return hasStreamlinedUI ? (
+  return (
     <SuspectCommitWrapper>
       <ScrollCarousel
-        gap={1.5}
+        gap="lg"
         transparentMask
         jumpItemCount={1}
         aria-label={t('Suspect commits')}
       >
-        {commits.slice(0, 100).map((commit, commitIndex) => (
-          <StreamlinedPanel key={commitIndex}>
-            <SuspectCommitFeedback
-              commit={commit as CommitWithGroupOwner}
-              organization={organization}
-            />
-            <Title>{t('Suspect Commit')}</Title>
-            <div>
-              <CommitRow
-                key={commit.id}
-                commit={commit}
-                onCommitClick={() => handleCommitClick(commit, commitIndex)}
-                onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
-                project={project}
-              />
-            </div>
-          </StreamlinedPanel>
-        ))}
+        {committers.map((committer, index) => {
+          const commit: Commit = {...committer.commits[0]!, author: committer.author};
+          return (
+            <GradientPanel key={index}>
+              <Flex justify="between" align="end" padding="md md xs lg">
+                <Heading as="h4" size="lg">
+                  {t('Suspect Commit')}
+                </Heading>
+                {!isSelfHosted && committer.group_owner_id !== undefined && (
+                  <SuspectCommitFeedback
+                    groupOwnerId={committer.group_owner_id}
+                    organization={organization}
+                  />
+                )}
+              </Flex>
+              <div>
+                <CommitRow
+                  commit={commit}
+                  onCommitClick={() => handleCommitClick(commit, index)}
+                  onPullRequestClick={() => handlePullRequestClick(commit, index)}
+                  project={project}
+                />
+              </div>
+            </GradientPanel>
+          );
+        })}
       </ScrollCarousel>
     </SuspectCommitWrapper>
-  ) : (
-    <div>
-      <SuspectCommitHeader>
-        <h3 data-test-id="suspect-commit">{commitHeading}</h3>
-        {commits.length > 1 && (
-          <ExpandButton
-            onClick={() => setIsExpanded(!isExpanded)}
-            data-test-id="expand-commit-list"
-          >
-            {isExpanded ? (
-              <Fragment>
-                {t('Show less')} <IconSubtract size="md" />
-              </Fragment>
-            ) : (
-              <Fragment>
-                {t('Show more')} <IconAdd size="md" />
-              </Fragment>
-            )}
-          </ExpandButton>
-        )}
-      </SuspectCommitHeader>
-      <StyledPanel>
-        {commits.slice(0, isExpanded ? 100 : 1).map((commit, commitIndex) => (
-          <CommitRow
-            key={commit.id}
-            commit={commit}
-            onCommitClick={() => handleCommitClick(commit, commitIndex)}
-            onPullRequestClick={() => handlePullRequestClick(commit, commitIndex)}
-          />
-        ))}
-      </StyledPanel>
-    </div>
   );
 }
 
-const StyledPanel = styled(Panel)`
-  margin: 0;
-`;
-
-const ExpandButton = styled('button')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-`;
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: bold;
-  padding: 10px 12px 0 12px;
-`;
-
-const StreamlinedPanel = styled(Panel)`
-  position: relative;
+const GradientPanel = styled(Panel)`
   background: ${p => p.theme.tokens.background.primary}
     linear-gradient(to right, rgba(245, 243, 247, 0), ${p => p.theme.colors.surface200});
   overflow: hidden;
@@ -180,14 +119,14 @@ const StreamlinedPanel = styled(Panel)`
   width: 100%;
   min-width: 65%;
   &:last-child {
-    margin-right: ${space(2)};
+    margin-right: ${p => p.theme.space.xl};
   }
   &:first-child {
-    margin-left: ${space(2)};
+    margin-left: ${p => p.theme.space.xl};
   }
 `;
 
 const SuspectCommitWrapper = styled('div')`
-  margin-right: -${space(2)};
-  margin-left: -${space(2)};
+  margin-right: -${p => p.theme.space.xl};
+  margin-left: -${p => p.theme.space.xl};
 `;

@@ -12,13 +12,19 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.sentry_data_models import IssueDetails
+from sentry.seer.utils import filter_repo_by_provider
 
 logger = logging.getLogger(__name__)
 
 
 MAX_NUM_ISSUES_DEFAULT = 10
 MAX_NUM_DAYS_AGO_DEFAULT = 90
+
+
+class NoProjectsForRepoError(Exception):
+    """Raised when a repo exists but has no Sentry projects via code mappings."""
 
 
 class SeerResponseError(TypedDict):
@@ -42,7 +48,7 @@ def handle_fetch_issues_exceptions[R](
 @dataclass
 class RepoInfo:
     organization_id: int
-    provider: str
+    provider: SeerSCMProvider
     external_id: str
 
 
@@ -60,19 +66,15 @@ class SeerResponse(TypedDict):
 
 def get_repo_and_projects(
     organization_id: int,
-    provider: str,
+    provider: SeerSCMProvider,
     external_id: str,
+    owner: str,
+    name: str,
     run_id: int | None = None,
 ) -> RepoProjects:
     """
     Returns auxilliary info about the repo and its projects.
-    This info is often needed to go from repo -> project -> issue.
-
-    Note
-    ----
-    `provider` refers to the field in the DB, e.g. `"integrations:github"`.
-
-    In seer.automation.models.RepoDefinition, this is the `provider_raw` attribute, not `provider`.
+    This info is currently required to go from repo -> project -> issue.
     """
     sentry_sdk.set_tags(
         {
@@ -80,26 +82,40 @@ def get_repo_and_projects(
             "provider": provider,
             "external_id": external_id,
             "run_id": run_id,
+            "owner": owner,
+            "name": name,
         }
     )
-    repo = Repository.objects.get(
-        organization_id=organization_id, provider=provider, external_id=external_id
-    )
+    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
+    if repo is None:
+        raise Repository.DoesNotExist
     repo_configs = list(
         RepositoryProjectPathConfig.objects.filter(
             organization_id=organization_id,
             repository_id=repo.id,
         )
     )
-    projects = [config.project for config in repo_configs]
+
+    projects = []
+    valid_configs = []
+    for config in repo_configs:
+        try:
+            project = config.project
+        except Project.DoesNotExist:
+            continue
+        else:
+            valid_configs.append(config)
+            projects.append(project)
+
     if not projects:
-        raise ValueError("No Sentry projects found for repo")
+        raise NoProjectsForRepoError("No Sentry projects found for repo")
+
     return RepoProjects(
         organization_id=organization_id,
         provider=provider,
         external_id=external_id,
         repo=repo,
-        repo_configs=repo_configs,
+        repo_configs=valid_configs,
         projects=projects,
     )
 
@@ -152,7 +168,9 @@ def get_latest_issue_event(group_id: int | str, organization_id: int) -> dict[st
     if isinstance(group_id, str) and not group_id.isdigit():
         group = _group_by_short_id(group_id, organization_id)
     else:
-        group = Group.objects.filter(id=int(group_id)).first()
+        group = Group.objects.filter(
+            id=int(group_id), project__organization_id=organization_id
+        ).first()
 
     if not group:
         logger.warning(

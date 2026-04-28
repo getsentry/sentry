@@ -100,9 +100,7 @@ def main() -> int:
     print(f"writing {r(pkg_info)}...")
     with open(pkg_info, "w") as f:
         f.write(
-            f"Metadata-Version: 2.1\n"
-            f"Name: {package_name}\n"
-            f"Version: {cfg['metadata']['version']}\n"
+            f"Metadata-Version: 2.1\nName: {package_name}\nVersion: {cfg['metadata']['version']}\n"
         )
 
     return 0

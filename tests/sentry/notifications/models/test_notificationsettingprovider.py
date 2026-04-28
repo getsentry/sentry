@@ -43,7 +43,7 @@ class NotificationSettingTest(TestCase):
         )
 
         # Deletion is deferred and tasks aren't run in tests.
-        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
             self.team.delete()
 
         with self.tasks():
@@ -61,7 +61,7 @@ class NotificationSettingTest(TestCase):
             provider="slack",
         )
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             self.project.delete()
         assert_no_notification_settings()
 
@@ -74,6 +74,6 @@ class NotificationSettingTest(TestCase):
             value="never",
             provider="slack",
         )
-        with assume_test_silo_mode(SiloMode.REGION), outbox_runner():
+        with assume_test_silo_mode(SiloMode.CELL), outbox_runner():
             self.organization.delete()
         assert_no_notification_settings()

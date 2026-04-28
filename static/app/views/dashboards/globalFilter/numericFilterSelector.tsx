@@ -1,13 +1,17 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Button} from '@sentry/scraps/button';
+import {
+  CompactSelect,
+  MenuComponents,
+  type SelectOption,
+} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {OP_LABELS as NATIVE_OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -31,6 +35,8 @@ import {
   parseFilterValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
+import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 
 enum CustomOperator {
   BETWEEN = 'between',
@@ -201,7 +207,7 @@ function useBetweenOperatorFilter(
   };
 }
 
-function NumericFilterSelector({
+export function NumericFilterSelector({
   globalFilter,
   onRemoveFilter,
   onUpdateFilter,
@@ -299,7 +305,8 @@ function NumericFilterSelector({
           : () => (
               <StyledButton
                 aria-label={t('Remove Filter')}
-                size="zero"
+                size="xs"
+                priority="transparent"
                 onClick={() => onRemoveFilter(globalFilter)}
               >
                 {t('Remove Filter')}
@@ -323,34 +330,27 @@ function NumericFilterSelector({
         </MenuBodyWrap>
       }
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps}>
-          {filter.renderSelectorTrigger()}
-        </OverlayTrigger.Button>
+        <Container maxWidth={FILTER_SELECTOR_TRIGGER_MAX_WIDTH}>
+          <OverlayTrigger.Button {...triggerProps}>
+            {filter.renderSelectorTrigger()}
+          </OverlayTrigger.Button>
+        </Container>
       )}
       menuFooter={
         hasStagedChanges
-          ? ({closeOverlay}: any) => (
-              <FooterWrap>
-                <FooterInnerWrap>
-                  <Button borderless size="xs" onClick={closeOverlay}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    priority="primary"
-                    disabled={!filter.isValidValue}
-                    onClick={() => {
-                      onUpdateFilter({
-                        ...globalFilter,
-                        value: filter.buildFilterQuery(),
-                      });
-                      closeOverlay();
-                    }}
-                  >
-                    {t('Apply')}
-                  </Button>
-                </FooterInnerWrap>
-              </FooterWrap>
+          ? () => (
+              <Flex gap="md" justify="end">
+                <MenuComponents.CancelButton />
+                <MenuComponents.ApplyButton
+                  disabled={!filter.isValidValue}
+                  onClick={() => {
+                    onUpdateFilter({
+                      ...globalFilter,
+                      value: filter.buildFilterQuery(),
+                    });
+                  }}
+                />
+              </Flex>
             )
           : null
       }
@@ -358,33 +358,8 @@ function NumericFilterSelector({
   );
 }
 
-export default NumericFilterSelector;
-
 const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};
-`;
-
-const FooterWrap = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.xl};
-
-  /* If there's FooterMessage above */
-  &:not(:first-child) {
-    margin-top: ${p => p.theme.space.md};
-  }
-`;
-const FooterInnerWrap = styled('div')`
-  grid-row: -1;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  justify-self: end;
-  justify-items: end;
-
-  &:empty {
-    display: none;
-  }
 `;
 
 const StyledOperatorButton = styled(Button)`
@@ -393,7 +368,7 @@ const StyledOperatorButton = styled(Button)`
 `;
 
 const StyledButton = styled(Button)`
-  font-size: inherit;
+  font-size: inherit; /* Inherit font size from MenuHeader */
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};

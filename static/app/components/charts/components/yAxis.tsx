@@ -4,7 +4,7 @@ import merge from 'lodash/merge';
 
 type Props = YAXisComponentOption & {theme: Theme};
 
-export default function YAxis({theme, ...props}: Props): YAXisComponentOption {
+export function YAxis({theme, ...props}: Props): YAXisComponentOption {
   return merge(
     {
       axisLine: {

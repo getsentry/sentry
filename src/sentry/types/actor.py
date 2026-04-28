@@ -84,7 +84,7 @@ class Actor(RpcModel):
         from sentry.organizations.services.organization import RpcTeam
         from sentry.users.models.user import User
 
-        result: list["Actor"] = []
+        result: list[Actor] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
         team_slugs: MutableMapping[int, str] = {}
         for obj in objects:
@@ -297,7 +297,6 @@ class ActorOwned(Protocol):
 
 
 def parse_and_validate_actor(actor_identifier: str | None, organization_id: int) -> Actor | None:
-
     if not actor_identifier:
         return None
 

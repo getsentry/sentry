@@ -153,7 +153,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     @responses.activate
     def test_plugin_migration(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="sentryuser/repo",
@@ -183,13 +183,13 @@ class BitbucketInstalledEndpointTest(APITestCase):
         )
 
         with self.tasks():
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 org = serialize_rpc_organization(self.organization)
             BitbucketIntegrationProvider().post_install(
                 integration=integration, organization=org, extra={}
             )
 
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 assert (
                     Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
                 )
@@ -203,7 +203,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
     @responses.activate
     def test_disable_plugin_when_fully_migrated(self) -> None:
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             project = Project.objects.create(organization_id=self.organization.id)
 
             plugin = plugins.get("bitbucket")
@@ -232,7 +232,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
         assert "bitbucket" in [p.slug for p in plugins.for_project(project)]
 
         with self.tasks():
-            with assume_test_silo_mode(SiloMode.REGION):
+            with assume_test_silo_mode(SiloMode.CELL):
                 org = serialize_rpc_organization(self.organization)
             BitbucketIntegrationProvider().post_install(
                 integration=integration, organization=org, extra={}

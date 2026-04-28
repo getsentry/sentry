@@ -10,6 +10,7 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -22,9 +23,9 @@ class OrganizationAuthTokenDetailsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ENTERPRISE
+    owner = ApiOwner.ECOSYSTEM
     authentication_classes = (SessionNoAuthTokenAuthentication,)
-    permission_classes = (OrgAuthTokenPermission,)
+    permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     def convert_args(self, request: Request, token_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, *args, **kwargs)

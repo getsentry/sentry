@@ -6,7 +6,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import VersionHoverCard from './versionHoverCard';
+import {VersionHoverCard} from './versionHoverCard';
 
 describe('VersionHoverCard', () => {
   const organization = OrganizationFixture();
@@ -31,7 +31,7 @@ describe('VersionHoverCard', () => {
     });
   });
 
-  it('renders', async () => {
+  it.isKnownFlake('renders', async () => {
     render(
       <VersionHoverCard
         organization={organization}

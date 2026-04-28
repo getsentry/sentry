@@ -1,9 +1,10 @@
 import logging
 from urllib.parse import urlparse
 
+from taskbroker_client.retry import Retry
+
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.taskworker.retry import Retry
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.rdap.query import resolve_rdap_network_details
 

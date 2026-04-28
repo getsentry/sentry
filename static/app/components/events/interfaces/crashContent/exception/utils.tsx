@@ -2,8 +2,9 @@ import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
+
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {ExternalLink} from 'sentry/components/core/link';
 import {IconOpen} from 'sentry/icons';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
@@ -30,7 +31,7 @@ export const renderLinksInText = ({
   //    The "i" modifier makes the regex match both upper and lower case characters
 
   const urlRegex =
-    /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(?:[-a-zA-Z0-9@:%_+~#?&/=,[\].]*[-a-zA-Z0-9@:%_+~#?&/=,[\]])?/gi;
+    /https?:\/\/(?:www\.)?[-\w@:%.+~#=]{1,256}\.[a-z0-9]{1,6}(?:[-\w@:%+~#?&/=,[\].]*[-\w@:%+~#?&/=,[\]])?/gi;
 
   const parts = exceptionText.split(urlRegex);
   const urls = exceptionText.match(urlRegex) || [];

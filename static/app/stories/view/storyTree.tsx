@@ -1,15 +1,17 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {Flex} from 'sentry/components/core/layout';
-import {Link} from 'sentry/components/core/link';
 import {IconChevron} from 'sentry/icons';
+import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
+import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
 import {useStoryParams} from 'sentry/stories/view';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useOrganization from 'sentry/utils/useOrganization';
+import {fzf} from 'sentry/utils/search/fzf';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useStoryBookFiles} from './useStoriesLoader';
 
@@ -44,7 +46,7 @@ export class StoryTreeNode {
           : '';
       this.slug = `${pathPrefix}${this.label.replaceAll(' ', '-').toLowerCase()}`;
     } else {
-      this.slug = `${this.label.replaceAll(' ', '-').toLowerCase()}`;
+      this.slug = this.label.replaceAll(' ', '-').toLowerCase();
     }
   }
 
@@ -109,17 +111,7 @@ export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
 
 type StorySection = 'overview' | StoryCategory;
 
-type ComponentSubcategory =
-  | 'typography'
-  | 'layout'
-  | 'buttons'
-  | 'forms'
-  | 'navigation'
-  | 'status'
-  | 'display'
-  | 'overlays'
-  | 'utilities'
-  | 'shared';
+type ComponentSubcategory = NonNullable<MDXFrontmatter['category']>;
 
 export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   overview: {label: 'Overview'},
@@ -129,75 +121,45 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   product: {label: 'Shared'},
 };
 
+interface SubcategoryConfig {
+  label: string;
+  subgroups?: Array<{components: string[]; label: string}>;
+}
+
 export const COMPONENT_SUBCATEGORY_CONFIG: Record<
   ComponentSubcategory,
-  {
-    components: string[];
-    label: string;
-  }
+  SubcategoryConfig
 > = {
-  layout: {
-    label: 'Layout',
-    components: [
-      'composition',
-      'container',
-      'flex',
-      'grid',
-      'stack',
-      'surface',
-      'disclosure',
-    ],
-  },
-  typography: {
-    label: 'Typography',
-    components: ['heading', 'prose', 'text', 'inlinecode', 'quote'],
-  },
-  buttons: {
-    label: 'Buttons',
-    components: ['button', 'linkbutton', 'buttonbar'],
-  },
+  layout: {label: 'Layout'},
+  typography: {label: 'Typography'},
+  buttons: {label: 'Buttons'},
+  controls: {label: 'Controls'},
   forms: {
     label: 'Forms',
-    components: [
-      'input',
-      'inputgroup',
-      'numberinput',
-      'numberdraginput',
-      'checkbox',
-      'radio',
-      'switch',
-      'slider',
-      'select',
-      'multiselect',
-      'compactselect',
-      'composite',
-      'segmentedcontrol',
+    subgroups: [
+      {
+        label: 'Primitives',
+        components: [
+          'input',
+          'inputgroup',
+          'numberinput',
+          'numberdraginput',
+          'checkbox',
+          'radio',
+          'switch',
+          'slider',
+          'select',
+          'multiselect',
+        ],
+      },
     ],
   },
-  navigation: {
-    label: 'Navigation',
-    components: ['link', 'tabs', 'menulistitem'],
-  },
-  status: {
-    label: 'Status & Feedback',
-    components: ['alert', 'badge', 'tag', 'toast'],
-  },
-  display: {
-    label: 'Data Display',
-    components: ['avatar', 'image', 'codeblock'],
-  },
-  overlays: {
-    label: 'Overlays',
-    components: ['slideoverpanel', 'tooltip'],
-  },
-  utilities: {
-    label: 'Utilities',
-    components: ['separator', 'interactionstatelayer'],
-  },
-  shared: {
-    label: 'Shared',
-    components: [],
-  },
+  navigation: {label: 'Navigation'},
+  status: {label: 'Status'},
+  display: {label: 'Display'},
+  overlays: {label: 'Overlays'},
+  utilities: {label: 'Utilities'},
+  shared: {label: 'Shared'},
 };
 
 export const SECTION_ORDER: StorySection[] = [
@@ -212,6 +174,7 @@ const COMPONENT_SUBCATEGORY_ORDER: ComponentSubcategory[] = [
   'layout',
   'typography',
   'buttons',
+  'controls',
   'forms',
   'navigation',
   'status',
@@ -283,8 +246,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
 
           for (const file of subcategoryFiles.sort()) {
             const name = inferComponentName(file);
-            const node = new StoryTreeNode(formatName(name), 'core', file);
-            result.push(node);
+            result.push(new StoryTreeNode(formatName(name), 'core', file));
           }
         }
       }
@@ -405,10 +367,10 @@ function inferStoryLocation(path: string): StoryLocation {
     return {section: 'patterns'};
   }
 
-  // Components - determine subcategory
+  // Components - determine subcategory from frontmatter, fall back to 'shared'
   if (isCoreFile(path)) {
-    const componentName = inferComponentName(path).toLowerCase();
-    const subcategory = inferComponentSubcategory(componentName);
+    const category = storyFrontmatterIndex[path]?.category;
+    const subcategory = isComponentSubcategory(category) ? category : 'shared';
     return {section: 'core', subcategory};
   }
 
@@ -416,13 +378,10 @@ function inferStoryLocation(path: string): StoryLocation {
   return {section: 'product'};
 }
 
-export function inferComponentSubcategory(componentName: string): ComponentSubcategory {
-  for (const [subcategory, config] of Object.entries(COMPONENT_SUBCATEGORY_CONFIG)) {
-    if (config.components.includes(componentName)) {
-      return subcategory as ComponentSubcategory;
-    }
-  }
-  return 'shared';
+function isComponentSubcategory(
+  value: string | undefined
+): value is ComponentSubcategory {
+  return value !== undefined && value in COMPONENT_SUBCATEGORY_CONFIG;
 }
 
 function isOverviewFile(file: string) {
@@ -542,6 +501,7 @@ function sortTreeRecursively(node: StoryTreeNode) {
 /**
  * Builds a nested tree structure from component files grouped by subcategory.
  * Creates folder nodes for each subcategory (Typography, Buttons, Layout, etc.).
+ * Supports optional subgroups within a subcategory (e.g., "Primitives" inside "Forms").
  */
 function buildComponentTree(
   filesBySubcategory: Map<ComponentSubcategory, string[]>
@@ -555,19 +515,56 @@ function buildComponentTree(
       continue;
     }
 
-    // Create folder node for subcategory
-    const label = COMPONENT_SUBCATEGORY_CONFIG[subcategory].label;
-    if (files[0]) {
-      const folderNode = new StoryTreeNode(label, subcategory, files[0]);
+    const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
+    if (!files[0]) {
+      continue;
+    }
 
-      // Add component stories as children
-      for (const file of files.sort()) {
-        const name = inferComponentName(file);
+    const folderNode = new StoryTreeNode(config.label, subcategory, files[0]);
+
+    // Collect subgroup component names for filtering
+    const subgroupComponents = new Set(config.subgroups?.flatMap(sg => sg.components));
+
+    // Add top-level files (those not in any subgroup), sorted alphabetically
+    for (const file of files.sort()) {
+      const name = inferComponentName(file);
+      if (!subgroupComponents.has(name.toLowerCase())) {
         folderNode.children[name] = new StoryTreeNode(formatName(name), 'core', file);
       }
-
-      roots.push(folderNode);
     }
+
+    // Add subgroup folder nodes
+    if (config.subgroups) {
+      for (const subgroup of config.subgroups) {
+        const subgroupFiles = files.filter(f =>
+          subgroup.components.includes(inferComponentName(f).toLowerCase())
+        );
+        if (subgroupFiles.length > 0 && subgroupFiles[0]) {
+          const subgroupNode = new StoryTreeNode(
+            subgroup.label,
+            subcategory,
+            subgroupFiles[0]
+          );
+          // Add subgroup components in config order (not alphabetically)
+          for (const componentName of subgroup.components) {
+            const file = subgroupFiles.find(
+              f => inferComponentName(f).toLowerCase() === componentName
+            );
+            if (file) {
+              const name = inferComponentName(file);
+              subgroupNode.children[componentName] = new StoryTreeNode(
+                formatName(name),
+                'core',
+                file
+              );
+            }
+          }
+          folderNode.children[`_subgroup_${subgroup.label}`] = subgroupNode;
+        }
+      }
+    }
+
+    roots.push(folderNode);
   }
 
   return roots;

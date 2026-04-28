@@ -75,7 +75,7 @@ def get_test_message(default_project):
 
 @pytest.fixture
 def random_group_id() -> str:
-    return f"test-consumer-{random.randint(0, 2 ** 16)}"
+    return f"test-consumer-{random.randint(0, 2**16)}"
 
 
 @django_db_all(transaction=True)
@@ -87,7 +87,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_task(
     get_test_message,
     random_group_id,
 ):
-
     topic = Topic.INGEST_EVENTS
     topic_event_name = get_topic_definition(topic)["real_topic_name"]
 

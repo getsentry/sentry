@@ -2,7 +2,7 @@ import {createContext, useEffect, useState} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TransactionListTableData =
   | {

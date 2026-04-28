@@ -1,16 +1,16 @@
 import type {CSSProperties} from 'react';
 
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 
 interface Props {
   className?: string;
   style?: CSSProperties;
 }
 
-export default function FeedbackFilters({className, style}: Props) {
+export function FeedbackFilters({className, style}: Props) {
   return (
     <PageFilterBar className={className} style={style}>
       <ProjectPageFilter resetParamsOnChange={['cursor']} />

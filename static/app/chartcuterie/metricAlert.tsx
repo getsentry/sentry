@@ -2,8 +2,8 @@ import type {Theme} from '@emotion/react';
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
-import XAxis from 'sentry/components/charts/components/xAxis';
-import AreaSeries from 'sentry/components/charts/series/areaSeries';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {AreaSeries} from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {MetricChartData} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 import {

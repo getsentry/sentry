@@ -391,7 +391,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
     def test_format_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="TEST/sentry",
@@ -418,7 +418,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
     def test_extract_branch_from_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="TEST/sentry",
@@ -449,7 +449,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
     def test_extract_source_path_from_source_url(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="TEST/sentry",

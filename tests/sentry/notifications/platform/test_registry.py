@@ -2,7 +2,10 @@ from sentry.notifications.platform.discord.provider import DiscordNotificationPr
 from sentry.notifications.platform.email.provider import EmailNotificationProvider
 from sentry.notifications.platform.msteams.provider import MSTeamsNotificationProvider
 from sentry.notifications.platform.registry import provider_registry, template_registry
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.slack.provider import (
+    SlackNotificationProvider,
+    SlackStagingNotificationProvider,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -12,6 +15,7 @@ class NotificationProviderRegistryTest(TestCase):
         expected_providers = [
             EmailNotificationProvider,
             SlackNotificationProvider,
+            SlackStagingNotificationProvider,
             MSTeamsNotificationProvider,
             DiscordNotificationProvider,
         ]

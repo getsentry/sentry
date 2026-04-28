@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {t} from 'sentry/locale';
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 
 const offsetFromEdge = 5;
 
-export default function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
+export function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
   if (jump === 'up') {
     return (
       <JumpButton
@@ -43,5 +44,6 @@ export default function JumpButtons({jump, onClick, tableHeaderHeight}: Props) {
 
 const JumpButton = styled(Button)`
   position: absolute;
-  justify-self: center;
+  left: 50%;
+  transform: translateX(-50%);
 `;

@@ -81,8 +81,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         # Enable usage of external relays, for use with Relay. See
         # https://github.com/getsentry/relay.
         "organizations:relay": True,
-        # Enable core remote-config backend APIs
-        "organizations:remote-config": False,
         # Enable core Session Replay backend APIs
         "organizations:session-replay": False,
         # Measure usage by spans instead of transactions
@@ -125,8 +123,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
     }
 
     permanent_project_features = {
-        # Enable data forwarding functionality for projects.
-        "projects:data-forwarding": True,
         # Enable functionality for rate-limiting events on projects.
         "projects:rate-limits": True,
         # Enable functionality to specify custom inbound filters on events.

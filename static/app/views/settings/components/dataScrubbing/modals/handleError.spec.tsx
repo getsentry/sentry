@@ -1,4 +1,4 @@
-import handleError from 'sentry/views/settings/components/dataScrubbing/modals/handleError';
+import {handleError} from 'sentry/views/settings/components/dataScrubbing/modals/handleError';
 
 describe('Data Scrubbing handleError', () => {
   it.each([

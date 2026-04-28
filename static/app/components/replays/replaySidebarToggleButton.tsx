@@ -1,4 +1,5 @@
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -12,7 +13,7 @@ export function ReplaySidebarToggleButton({isOpen, setIsOpen}: Props) {
     <Button
       size="sm"
       onClick={() => setIsOpen(!isOpen)}
-      icon={<IconChevron direction={isOpen ? 'right' : 'left'} />}
+      icon={<IconChevron direction={isOpen ? 'right' : 'left'} isDouble />}
     >
       {isOpen ? t('Collapse Sidebar') : t('Open Sidebar')}
     </Button>

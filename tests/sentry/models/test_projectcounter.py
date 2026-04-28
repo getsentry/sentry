@@ -45,9 +45,9 @@ def create_existing_group(project, message):
         assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
 
-        assert (
-            group.times_seen == 1
-        ), "Error: No new group was created. This is probably because the given message matched that of an existing group."
+        assert group.times_seen == 1, (
+            "Error: No new group was created. This is probably because the given message matched that of an existing group."
+        )
 
         assert group_creation_spy.call_count == 1
         assert group_creation_results[0] == group
@@ -329,9 +329,7 @@ def test_preallocation_early_return(default_project) -> None:
     refill_cached_short_ids(default_project.id, block_size)
     assert Counter.objects.get(
         project_id=default_project.id
-    ).value == current_value + calculate_cached_id_block_size(
-        1
-    )  # Value hasn't changed
+    ).value == current_value + calculate_cached_id_block_size(1)  # Value hasn't changed
     assert redis.llen(redis_key) == calculate_cached_id_block_size(
         1
     )  # Redis values haven't changed

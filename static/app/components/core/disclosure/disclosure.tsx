@@ -8,13 +8,15 @@ import {
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState, type DisclosureState} from '@react-stately/disclosure';
 
-import {Button} from 'sentry/components/core/button';
-import {Container, Flex} from 'sentry/components/core/layout';
-import {Text} from 'sentry/components/core/text';
+import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {IconChevron} from 'sentry/icons';
 
 interface DisclosureProps
-  extends Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
+  extends
+    Omit<AriaDisclosureProps, 'isDisabled' | 'isExpanded'>,
     React.HTMLAttributes<HTMLDivElement> {
   children: NonNullable<React.ReactNode>;
   as?: 'section' | 'div';
@@ -114,11 +116,11 @@ const StretchedButton = styled(Button)`
   padding-left: ${p => p.theme.space.xs};
 `;
 
-interface DisclosureContentProps {
+interface DisclosureContentProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
 }
 
-function Content({children}: DisclosureContentProps) {
+function Content({children, ...props}: DisclosureContentProps) {
   const {panelProps, panelRef, context} = useDisclosureContext();
 
   return (
@@ -128,6 +130,7 @@ function Content({children}: DisclosureContentProps) {
       padding={context.size}
       size={context.size}
       width="100%"
+      {...props}
     >
       <Text as="div" size={context.size}>
         {children}

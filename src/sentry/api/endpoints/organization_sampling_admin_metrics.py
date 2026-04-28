@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.permissions import StaffPermission
 from sentry.api.utils import get_date_range_from_params
@@ -25,7 +25,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.dates import parse_stats_period
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationDynamicSamplingAdminMetricsEndpoint(OrganizationEndpoint):
     """
     The purpose of this endpoint is to provide a way to query metrics for

@@ -1,14 +1,14 @@
 import moment from 'moment-timezone';
 
-import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
-import {Tag} from 'sentry/components/core/badge/tag';
-import {Link} from 'sentry/components/core/link';
-import {Tooltip} from 'sentry/components/core/tooltip';
+import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
+import {Link} from '@sentry/scraps/link';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import CustomerContact from 'admin/components/customerContact';
-import CustomerName from 'admin/components/customerName';
-import CustomerStatus from 'admin/components/customerStatus';
-import PercentChange from 'admin/components/percentChange';
+import {CustomerContact} from 'admin/components/customerContact';
+import {CustomerName} from 'admin/components/customerName';
+import {CustomerStatus} from 'admin/components/customerStatus';
+import {PercentChange} from 'admin/components/percentChange';
 import ResultGrid from 'admin/components/resultGrid';
 import type {Subscription} from 'getsentry/types';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
@@ -77,11 +77,11 @@ const getRow = (row: Subscription) => [
   </td>,
 ];
 
-function CustomerGrid(props: Props) {
+export function CustomerGrid(props: Props) {
   return (
     <ResultGrid
       inPanel
-      isRegional
+      isCellScoped
       path="/_admin/customers/"
       method="GET"
       columns={[
@@ -203,5 +203,3 @@ function CustomerGrid(props: Props) {
     />
   );
 }
-
-export default CustomerGrid;

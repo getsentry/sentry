@@ -4,12 +4,12 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import ConfigStore from 'sentry/stores/configStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
 import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
@@ -97,7 +97,7 @@ describe('OrganizationStats', () => {
     // Render the cards
     expect(screen.getAllByText('Total')[0]).toBeInTheDocument();
     // Total from cards and project table should match
-    expect(screen.getAllByText('67')).toHaveLength(2);
+    await waitFor(() => expect(screen.getAllByText('67')).toHaveLength(2));
 
     expect(screen.getAllByText('Accepted')[0]).toBeInTheDocument();
     // Total from cards and project table should match
@@ -336,7 +336,7 @@ describe('OrganizationStats', () => {
     });
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
-    await userEvent.click(screen.getByTestId('proj-1'));
+    await userEvent.click(await screen.findByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getAllByText('proj-1')).toHaveLength(2);
   });
@@ -502,9 +502,9 @@ describe('OrganizationStats', () => {
     expect(screen.queryByRole('option', {name: 'Issue Scans'})).not.toBeInTheDocument();
   });
 
-  it('shows size analysis when billing feature flag is enabled', async () => {
+  it('always shows size analysis (GA)', async () => {
     const newOrg = OrganizationFixture({
-      features: ['size-analysis-billing'],
+      features: [],
     });
 
     render(<OrganizationStats />, {
@@ -517,24 +517,9 @@ describe('OrganizationStats', () => {
     ).toBeInTheDocument();
   });
 
-  it('does not show size analysis when billing feature flag is disabled', async () => {
+  it('shows installable build when expose category feature flag is enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: [],
-    });
-
-    render(<OrganizationStats />, {
-      organization: newOrg,
-    });
-
-    await userEvent.click(await screen.findByText('Category'));
-    expect(
-      screen.queryByRole('option', {name: 'Size Analysis Builds'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows installable build when billing feature flag is enabled', async () => {
-    const newOrg = OrganizationFixture({
-      features: ['installable-build-billing'],
+      features: ['expose-category-installable-build'],
     });
 
     render(<OrganizationStats />, {
@@ -545,7 +530,7 @@ describe('OrganizationStats', () => {
     expect(screen.getByRole('option', {name: 'Build Distributions'})).toBeInTheDocument();
   });
 
-  it('does not show installable build when billing feature flag is disabled', async () => {
+  it('does not show installable build when expose category feature flag is disabled', async () => {
     const newOrg = OrganizationFixture({
       features: [],
     });
@@ -560,9 +545,9 @@ describe('OrganizationStats', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows Metrics category when tracemetrics-stats feature flag is enabled', async () => {
+  it('shows Application Metric Counts category when tracemetrics-enabled and explore-dev-features flags are enabled', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats'],
+      features: ['team-insights', 'tracemetrics-enabled', 'explore-dev-features'],
     });
 
     render(<OrganizationStats />, {
@@ -570,12 +555,14 @@ describe('OrganizationStats', () => {
     });
 
     await userEvent.click(await screen.findByText('Category'));
-    expect(screen.getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Application Metric Counts'})
+    ).toBeInTheDocument();
   });
 
-  it('does not show Metrics category when tracemetrics-stats feature flag is disabled', async () => {
+  it('does not show Application Metric Counts category without explore-dev-features flag', async () => {
     const newOrg = OrganizationFixture({
-      features: ['team-insights'],
+      features: ['team-insights', 'tracemetrics-enabled'],
     });
 
     render(<OrganizationStats />, {
@@ -583,7 +570,37 @@ describe('OrganizationStats', () => {
     });
 
     await userEvent.click(await screen.findByText('Category'));
-    expect(screen.queryByRole('option', {name: 'Metrics'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Application Metric Counts'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Application Metrics category when tracemetrics-stats-bytes-ui flag is enabled', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled', 'tracemetrics-stats-bytes-ui'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(screen.getByRole('option', {name: 'Application Metrics'})).toBeInTheDocument();
+  });
+
+  it('does not show Application Metrics category without tracemetrics-stats-bytes-ui flag', async () => {
+    const newOrg = OrganizationFixture({
+      features: ['team-insights', 'tracemetrics-enabled'],
+    });
+
+    render(<OrganizationStats />, {
+      organization: newOrg,
+    });
+
+    await userEvent.click(await screen.findByText('Category'));
+    expect(
+      screen.queryByRole('option', {name: 'Application Metrics'})
+    ).not.toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {

@@ -2,17 +2,17 @@ import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import CheckboxField from 'sentry/components/forms/fields/checkboxField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
-import FormModel from 'sentry/components/forms/model';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
-import ConfigStore from 'sentry/stores/configStore';
-import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+import {CheckboxField} from 'sentry/components/forms/fields/checkboxField';
+import {TextField} from 'sentry/components/forms/fields/textField';
+import {Form} from 'sentry/components/forms/form';
+import {FormModel} from 'sentry/components/forms/model';
+import {Panel} from 'sentry/components/panels/panel';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
-import ClientSecretModal from './clientSecretModal';
+import {ClientSecretModal} from './clientSecretModal';
 
 const fieldProps = {
   stacked: true,
@@ -20,7 +20,7 @@ const fieldProps = {
   flexibleControlStateSize: true,
 } as const;
 
-function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
+export function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
   const systemFeatures = ConfigStore.get('features');
   const formModel = new InstanceLevelOAuthClientModel();
 
@@ -95,6 +95,8 @@ function NewInstanceLevelOAuthClient({Body, Header}: ModalRenderProps) {
                 <PanelHeader>Permissions</PanelHeader>
                 <PanelBody withPadding>
                   <PermissionSelection
+                    displaySpecialPermissions={false}
+                    hasContinuousIntegration={false}
                     permissions={{
                       Event: 'no-access',
                       Member: 'no-access',
@@ -145,5 +147,3 @@ class InstanceLevelOAuthClientModel extends FormModel {
     }, {});
   }
 }
-
-export default NewInstanceLevelOAuthClient;

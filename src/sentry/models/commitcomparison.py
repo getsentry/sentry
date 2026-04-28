@@ -1,12 +1,12 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import DefaultFieldsModel, region_silo_model
+from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_model
+@cell_silo_model
 class CommitComparison(DefaultFieldsModel):
     """
     Captures Git information provided by our users and links with our richer data models.
@@ -34,6 +34,8 @@ class CommitComparison(DefaultFieldsModel):
     # Pull request information
     pr_number = models.PositiveIntegerField(null=True)
 
+    extras = models.JSONField(default=dict, db_default={})
+
     # Sentry data, can be hydrated separately
     head_commit = FlexibleForeignKey(
         "sentry.Commit",
@@ -56,4 +58,18 @@ class CommitComparison(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["organization_id", "head_repo_name", "head_sha"]),
             models.Index(fields=["organization_id", "head_repo_name", "base_sha"]),
+        ]
+        constraints = [
+            # For comparisons (base_sha present - PR scenario)
+            models.UniqueConstraint(
+                fields=["organization_id", "head_repo_name", "head_sha", "base_sha"],
+                condition=models.Q(base_sha__isnull=False),
+                name="sentry_commitcomparison_org_comparison_uniq",
+            ),
+            # For single commits (base_sha NULL - main branch scenario)
+            models.UniqueConstraint(
+                fields=["organization_id", "head_repo_name", "head_sha"],
+                condition=models.Q(base_sha__isnull=True),
+                name="sentry_commitcomparison_org_commit_uniq",
+            ),
         ]

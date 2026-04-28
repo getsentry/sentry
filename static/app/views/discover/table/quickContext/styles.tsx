@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {FlexProps} from 'sentry/components/core/layout';
-import {Flex, Stack} from 'sentry/components/core/layout';
-import {space} from 'sentry/styles/space';
+import type {FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 export function ContextContainer(props: FlexProps) {
   return <Stack {...props} />;
@@ -11,7 +10,7 @@ export function ContextContainer(props: FlexProps) {
 export const ContextHeader = styled('div')`
   display: flex;
   align-items: center;
-  margin-bottom: ${space(0.75)};
+  margin-bottom: ${p => p.theme.space.sm};
 `;
 
 export const ContextTitle = styled('h6')`
@@ -31,13 +30,13 @@ export const Wrapper = styled('div')`
   background: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
   width: 320px;
-  padding: ${space(1.5)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 export const NoContextWrapper = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   height: 50px;
-  padding: ${space(1)};
+  padding: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;

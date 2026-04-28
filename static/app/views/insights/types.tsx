@@ -15,7 +15,6 @@ export enum ModuleName {
   RESOURCE = 'resource',
   AGENT_MODELS = 'agent-models',
   AGENT_TOOLS = 'agent-tools',
-  AI_GENERATIONS = 'ai-generations',
   MCP_TOOLS = 'mcp-tools',
   MCP_RESOURCES = 'mcp-resources',
   MCP_PROMPTS = 'mcp-prompts',
@@ -53,6 +52,7 @@ export enum SpanFields {
   SPAN_SYSTEM = 'span.system',
   SPAN_CATEGORY = 'span.category',
   TRANSACTION_SPAN_ID = 'transaction.span_id',
+  TRANSACTION_EVENT_ID = 'transaction.event_id',
   SPAN_SELF_TIME = 'span.self_time',
   TRACE = 'trace',
   PROFILE_ID = 'profile_id',
@@ -81,6 +81,7 @@ export enum SpanFields {
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
+  SENTRY_ORIGIN = 'sentry.origin',
 
   // Cache fields
   CACHE_HIT = 'cache.hit',
@@ -120,6 +121,8 @@ export enum SpanFields {
   GEN_AI_OUTPUT_MESSAGES = 'gen_ai.output.messages',
   GEN_AI_SYSTEM_INSTRUCTIONS = 'gen_ai.system_instructions',
   GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
+  GEN_AI_CONTEXT_WINDOW_SIZE = 'gen_ai.context.window_size',
+  GEN_AI_CONTEXT_UTILIZATION = 'gen_ai.context.utilization',
   MCP_CLIENT_NAME = 'mcp.client.name',
   MCP_TRANSPORT = 'mcp.transport',
   MCP_TOOL_NAME = 'mcp.tool.name',
@@ -129,12 +132,19 @@ export enum SpanFields {
   AI_TOTAL_COST = 'ai.total_cost',
   AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
 
+  // Span Operation Breakdown fields
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_RESOURCE = 'spans.resource',
+  SPANS_UI = 'spans.ui',
+
   // DB fields
   DB_SYSTEM = 'db.system', // TODO: this is a duplicate of `SPAN_SYSTEM`
 
   // Mobile fields
   MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = 'measurements.time_to_initial_display',
-  MEASUREMENTS_TIME_TO_FILL_DISPLAY = 'measurements.time_to_full_display',
+  MEASUREMENTS_TIME_TO_FULL_DISPLAY = 'measurements.time_to_full_display',
   MOBILE_FROZEN_FRAMES = 'mobile.frozen_frames',
   MOBILE_TOTAL_FRAMES = 'mobile.total_frames',
   MOBILE_SLOW_FRAMES = 'mobile.slow_frames',
@@ -212,7 +222,7 @@ export type SpanNumberFields =
   | SpanFields.SLOW_FRAMES_RATE
   | SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH
   | SpanFields.MEASUREMENTS_TIME_TO_INITIAL_DISPLAY
-  | SpanFields.MEASUREMENTS_TIME_TO_FILL_DISPLAY
+  | SpanFields.MEASUREMENTS_TIME_TO_FULL_DISPLAY
   | SpanFields.GEN_AI_COST_INPUT_TOKENS
   | SpanFields.GEN_AI_COST_OUTPUT_TOKENS
   | SpanFields.GEN_AI_COST_TOTAL_TOKENS
@@ -253,7 +263,11 @@ export type SpanNumberFields =
   | SpanFields.TTFD;
 
 // TODO: Enforce that these fields all come from SpanFields
-export type SpanStringFields =
+// These fields should never be `null` when coming from the backend. This list
+// is _not_ up-to-date! If you discover more nullable string fields, update this
+// list. In theory, maybe _all_ of these fields are actually nullable in
+// reality, which means we'll need to update a lot of code.
+type NonNullableStringFields =
   | SpanFields.COMMAND
   | SpanFields.REQUEST_METHOD
   | SpanFields.HTTP_REQUEST_METHOD
@@ -265,6 +279,7 @@ export type SpanStringFields =
   | SpanFields.KIND
   | SpanFields.STATUS_MESSAGE
   | SpanFields.GEN_AI_AGENT_NAME
+  | SpanFields.GEN_AI_FUNCTION_ID
   | SpanFields.GEN_AI_REQUEST_MODEL
   | SpanFields.GEN_AI_REQUEST_MESSAGES
   | SpanFields.GEN_AI_INPUT_MESSAGES
@@ -292,6 +307,7 @@ export type SpanStringFields =
   | SpanFields.CLS_SOURCE
   | SpanFields.LCP_ELEMENT
   | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRANSACTION_EVENT_ID
   | SpanFields.DB_SYSTEM
   | SpanFields.CODE_FILEPATH
   | SpanFields.CODE_FUNCTION
@@ -300,7 +316,6 @@ export type SpanStringFields =
   | SpanFields.DEVICE_CLASS
   | SpanFields.SPAN_ACTION
   | SpanFields.SPAN_DOMAIN
-  | SpanFields.NORMALIZED_DESCRIPTION
   | SpanFields.MESSAGING_MESSAGE_BODY_SIZE
   | SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY
   | SpanFields.MESSAGING_MESSAGE_RETRY_COUNT
@@ -310,7 +325,6 @@ export type SpanStringFields =
   | SpanFields.FILE_EXTENSION
   | SpanFields.SPAN_OP
   | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_GROUP
   | SpanFields.SPAN_CATEGORY
   | SpanFields.SPAN_SYSTEM
   | SpanFields.TIMESTAMP
@@ -324,7 +338,12 @@ export type SpanStringFields =
   | SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME
   | SpanFields.USER
   | SpanFields.PROFILER_ID
-  | SpanFields.USER_DISPLAY;
+  | SpanFields.USER_DISPLAY
+  | SpanFields.SENTRY_ORIGIN;
+
+type NullableStringFields = SpanFields.NORMALIZED_DESCRIPTION | SpanFields.SPAN_GROUP;
+
+export type SpanStringFields = NullableStringFields | NonNullableStringFields;
 
 type WebVitalsMeasurements =
   | SpanFields.CLS_SCORE
@@ -475,6 +494,14 @@ type CustomResponseFields = {
   [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]: '' | 'non-blocking' | 'blocking';
 };
 
+// Fields that are used as arguments to division() queries.
+// Kept narrow to avoid a cartesian product explosion in SpanResponseRaw.
+// See the comment on the division() line below for details.
+type DivisibleSpanFields =
+  | SpanFields.MOBILE_FROZEN_FRAMES
+  | SpanFields.MOBILE_TOTAL_FRAMES
+  | SpanFields.MOBILE_SLOW_FRAMES;
+
 type SpanResponseRaw = {
   [Property in SpanNumberFields as `${Aggregate}(${Property})`]: number;
 } & {
@@ -482,7 +509,9 @@ type SpanResponseRaw = {
 } & {
   [Property in WebVitalsMeasurements as `${WebVitalsFunctions}(${Property})`]: number;
 } & {
-  [Property in SpanStringFields as `${Property}`]: string;
+  [Property in NonNullableStringFields as `${Property}`]: string;
+} & {
+  [Property in NullableStringFields as `${Property}`]: string | null;
 } & {
   [Property in SpanNumberFields as `${Property}`]: number;
 } & {
@@ -495,7 +524,12 @@ type SpanResponseRaw = {
       | `${Property}(${string},${string},${string})`
       | `${Property}(${string},${string},${string},${string})`]: number;
     // TODO: We should allow a nicer way to define functions with multiple arguments and different arg types
-  } & Record<`division(${SpanNumberFields},${SpanNumberFields})`, number> & {
+    // Subset of SpanNumberFields that are actually used in division() queries.
+    // Previously this was Record<`division(${SpanNumberFields},${SpanNumberFields})`, number>
+    // which produced a 56×56 = 3,136 key cartesian product. In practice only
+    // mobile frame rate fields are divided, so we restrict the domain here.
+    // If you need to divide a new field, add it to DivisibleSpanFields below.
+  } & Record<`division(${DivisibleSpanFields},${DivisibleSpanFields})`, number> & {
     // TODO: This should include all valid HTTP codes or just all integers
     [Property in HttpResponseFunctions as `${Property}(${number})`]: number;
   } & {

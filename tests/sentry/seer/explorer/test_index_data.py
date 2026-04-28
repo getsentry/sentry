@@ -109,7 +109,7 @@ class TestGetTransactionsForProject(APITransactionTestCase, SnubaTestCase, SpanT
                         "description": f"span-{i}-{trace_suffix}",
                         "sentry_tags": {"transaction": transaction_name},
                         "trace_id": trace_id,
-                        "parent_span_id": None if i == 0 else f"parent-{i-1}",
+                        "parent_span_id": None if i == 0 else f"parent-{i - 1}",
                         "is_segment": i == 0,  # First span is the transaction span
                     },
                     start_ts=self.ten_mins_ago + timedelta(minutes=start_offset_minutes + i),
@@ -797,9 +797,9 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
         for group in groups:
             latest_event = group.get_latest_event()
             transaction_tag = latest_event.get_tag("transaction")
-            assert (
-                transaction_tag == transaction_name
-            ), f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
+            assert transaction_tag == transaction_name, (
+                f"Expected transaction tag '{transaction_name}', got '{transaction_tag}'"
+            )
 
         result = get_issues_for_transaction(transaction_name, self.project.id)
 
@@ -821,6 +821,103 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             assert (
                 "tags" in issue.events[0] or issue.events[0].get("transaction") == transaction_name
             )
+
+    def test_get_issues_for_transaction_populates_short_id_and_project(self) -> None:
+        """Test that short_id and project fields are populated from the group."""
+        transaction_name = "api/orders/list"
+
+        event = self.store_event(
+            data={
+                "message": "Order processing failed",
+                "tags": [["transaction", transaction_name]],
+                "fingerprint": ["order-error"],
+                "platform": "python",
+                "timestamp": self.ten_mins_ago.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issues_for_transaction(transaction_name, self.project.id)
+
+        assert result is not None
+        assert len(result.issues) == 1
+
+        issue = result.issues[0]
+        group = event.group
+        assert issue.short_id == group.qualified_short_id
+        assert issue.project == group.project_id
+
+    def test_get_issues_for_transaction_populates_filename_and_function_from_metadata(
+        self,
+    ) -> None:
+        """Test that filename and function are populated from group metadata when the event has an exception with a stacktrace."""
+        transaction_name = "api/payments/process"
+
+        self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "Invalid payment amount",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "filename": "payments/processor.py",
+                                        "function": "process_payment",
+                                        "lineno": 42,
+                                        "in_app": True,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": [["transaction", transaction_name]],
+                "fingerprint": ["payment-error"],
+                "platform": "python",
+                "timestamp": self.ten_mins_ago.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issues_for_transaction(transaction_name, self.project.id)
+
+        assert result is not None
+        assert len(result.issues) == 1
+
+        issue = result.issues[0]
+        assert issue.filename == "payments/processor.py"
+        assert issue.function == "process_payment"
+
+    def test_get_issues_for_transaction_handles_missing_metadata_fields(self) -> None:
+        """Test that filename and function are None when not present in group metadata."""
+        transaction_name = "api/auth/login"
+
+        # A simple message event without an exception stacktrace will not populate
+        # filename or function in the group metadata
+        self.store_event(
+            data={
+                "message": "Login failed",
+                "tags": [["transaction", transaction_name]],
+                "fingerprint": ["login-error"],
+                "platform": "python",
+                "timestamp": self.ten_mins_ago.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        result = get_issues_for_transaction(transaction_name, self.project.id)
+
+        assert result is not None
+        assert len(result.issues) == 1
+
+        issue = result.issues[0]
+        assert issue.filename is None
+        assert issue.function is None
 
     def test_get_issues_for_transaction_with_quotes(self) -> None:
         """Test that transaction names with quotes and search operators are properly escaped in search queries."""

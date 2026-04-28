@@ -23,14 +23,13 @@ class DebugMeta(Interface):
     external_type = "debugmeta"
 
     @classmethod
-    def to_python(cls, data, **kwargs):
+    def to_python(cls, data):
         return super().to_python(
             {
                 "images": data.get("images", None) or [],
                 "sdk_info": data.get("sdk_info"),
                 "is_debug_build": data.get("is_debug_build"),
-            },
-            **kwargs,
+            }
         )
 
     def to_json(self):

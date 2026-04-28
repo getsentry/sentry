@@ -1,7 +1,7 @@
 import type {CalendarProps} from 'react-date-range';
 import {Calendar} from 'react-date-range';
 
-import CalendarStylesWrapper from './calendarStylesWrapper';
+import {CalendarStylesWrapper} from './calendarStylesWrapper';
 
 export interface DatePickerProps extends CalendarProps {}
 

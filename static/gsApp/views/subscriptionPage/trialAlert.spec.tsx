@@ -4,7 +4,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import TrialAlert from 'getsentry/views/subscriptionPage/trialAlert';
+import {TrialAlert} from 'getsentry/views/subscriptionPage/trialAlert';
 
 describe('Subscription > TrialAlert', () => {
   const organization = OrganizationFixture();
@@ -134,7 +134,7 @@ describe('Subscription > TrialAlert', () => {
     expect(screen.getByText('Performance Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        `With your trial you have access to Sentry's performance features.`
+        "With your trial you have access to Sentry's performance features."
       )
     ).toBeInTheDocument();
   });

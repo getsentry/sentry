@@ -2,18 +2,17 @@ import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {createTeam} from 'sentry/actionCreators/teams';
-import CreateTeamForm from 'sentry/components/teams/createTeamForm';
+import {CreateTeamForm} from 'sentry/components/teams/createTeamForm';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 
 interface Props extends ModalRenderProps {
   organization: Organization;
   onClose?: (team: Team) => void;
 }
 
-function CreateTeamModal({Body, Header, ...props}: Props) {
-  const {onClose, closeModal, organization} = props;
+function CreateTeamModal({Body, Header, organization, onClose, closeModal}: Props) {
   const api = useApi();
 
   const handleSubmit: React.ComponentProps<typeof CreateTeamForm>['onSubmit'] = async (
@@ -34,9 +33,11 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
 
   return (
     <Fragment>
-      <Header closeButton>{t('Create Team')}</Header>
+      <Header closeButton>
+        <h5>{t('Create Team')}</h5>
+      </Header>
       <Body>
-        <CreateTeamForm {...props} onSubmit={handleSubmit} />
+        <CreateTeamForm organization={organization} onSubmit={handleSubmit} />
       </Body>
     </Fragment>
   );

@@ -5,7 +5,6 @@ from tests.sentry.apidocs import generate_schema
 
 
 def test_simple() -> None:
-
     op_id = "This is a test"
 
     class ExampleEndpoint(Endpoint):

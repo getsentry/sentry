@@ -13,26 +13,29 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Flex} from 'sentry/components/core/layout';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -43,8 +46,6 @@ import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/use
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
-import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
@@ -71,12 +72,14 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
+export type TraceWaterfallSource = 'issues' | 'performance' | 'replay' | 'trace_view';
+
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
   replay: ReplayRecord | null;
   rootEventResults: TraceRootEventQueryResults;
-  source: string;
+  source: TraceWaterfallSource;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
   traceSlug: string;
@@ -88,6 +91,7 @@ export interface TraceWaterfallProps {
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
   const api = useApi();
+  const navigate = useNavigate();
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -279,13 +283,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             return;
           }
           const {eventId: _eventId, ...query} = qs.parse(location.search);
-          browserHistory.replace({
-            pathname: location.pathname,
-            query: {
-              ...query,
-              node: nextNodePath,
+          navigate(
+            {
+              pathname: location.pathname,
+              query: {
+                ...query,
+                node: nextNodePath,
+              },
             },
-          });
+            {replace: true}
+          );
           queryStringAnimationTimeoutRef.current = null;
         }, debounce);
 
@@ -304,7 +311,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [navigate, traceDispatch]
   );
 
   const onRowClick = useCallback(
@@ -660,6 +667,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     return null;
   }
 
+  let waterfallTraceId: string | undefined = props.traceSlug;
+  if (props.source === 'replay') {
+    waterfallTraceId = undefined;
+  }
+
   return (
     <Flex direction="column" flex={1}>
       <Flex gap="md">
@@ -671,6 +683,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         <TraceOpenInExploreButton
           trace_id={props.traceSlug}
           traceEventView={props.traceEventView}
+          source={props.source}
+          replayId={props.replay?.id}
         />
         <TraceResetZoomButton
           viewManager={viewManager}
@@ -697,18 +711,24 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
             Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
           )}
         >
-          <Trace
-            trace={props.tree}
-            rerender={rerender}
-            trace_id={props.traceSlug}
-            onRowClick={onRowClick}
-            onTraceSearch={onTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            scheduler={traceScheduler}
-            forceRerender={forceRender}
-            isLoading={props.tree.type === 'loading' || onLoadScrollStatus === 'pending'}
-          />
+          {tourProps => (
+            <div {...tourProps}>
+              <Trace
+                trace={props.tree}
+                rerender={rerender}
+                trace_id={waterfallTraceId}
+                onRowClick={onRowClick}
+                onTraceSearch={onTraceSearch}
+                previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+                manager={viewManager}
+                scheduler={traceScheduler}
+                forceRerender={forceRender}
+                isLoading={
+                  props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+                }
+              />
+            </div>
+          )}
         </DemoTourElement>
 
         {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
@@ -758,8 +778,8 @@ export const TraceGrid = styled('div')<{
       'drawer'
       `
       : p.layout === 'drawer left'
-        ? `'drawer trace'`
-        : `'trace drawer'`};
+        ? "'drawer trace'"
+        : "'trace drawer'"};
   grid-template-columns: ${p =>
     p.layout === 'drawer bottom'
       ? '1fr'

@@ -1,4 +1,4 @@
-import type {Literal, Node, Parent} from 'hast';
+import type {Literal, Node, Parent} from 'unist';
 import {visit} from 'unist-util-visit';
 
 /**
@@ -51,7 +51,7 @@ export function remarkUnwrapMdxParagraphs() {
 function isParagraph(node?: Node): node is Parent {
   return node?.type === 'paragraph';
 }
-function isText(node: Node): node is Literal {
+function isText(node: Node): node is Literal & {value: string} {
   return node.type === 'text';
 }
 function isMdxJsxNode(node: Node): node is Parent {

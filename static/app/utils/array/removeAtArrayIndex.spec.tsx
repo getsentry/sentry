@@ -1,4 +1,4 @@
-import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import {removeAtArrayIndex} from 'sentry/utils/array/removeAtArrayIndex';
 
 describe('utils/removeAtArrayIndex', () => {
   it('removes simple value at index', () => {

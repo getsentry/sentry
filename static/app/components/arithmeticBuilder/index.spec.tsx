@@ -19,13 +19,20 @@ const getSpanFieldDefinition = (key: string) => {
   return getFieldDefinition(key, 'span', argument?.kind);
 };
 
-function ArithmeticBuilderWrapper({expression}: {expression: string}) {
+function ArithmeticBuilderWrapper({
+  expression,
+  references,
+}: {
+  expression: string;
+  references?: Set<string>;
+}) {
   return (
     <ArithmeticBuilder
       aggregations={aggregations}
       functionArguments={functionArguments}
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
+      references={references}
     />
   );
 }
@@ -206,8 +213,9 @@ describe('ArithmeticBuilder', () => {
     const expression = '( sum(span.duration) + count_if(span.op,equals,db) )';
     render(<ArithmeticBuilderWrapper expression={expression} />);
 
-    const rows = screen.getAllByRole('row');
-    expect(rows).toHaveLength(11);
+    await waitFor(() => {
+      expect(screen.getAllByRole('row')).toHaveLength(11);
+    });
 
     // the combobox inside the free text tokens will get the focus
     const freeTextTokens = screen.getAllByRole('combobox', {name: 'Add a term'});
@@ -254,5 +262,13 @@ describe('ArithmeticBuilder', () => {
     }
 
     expect(screen.getAllByRole('row')).toHaveLength(1);
+  });
+
+  it('throws when provided invalid references', () => {
+    expect(() => {
+      render(
+        <ArithmeticBuilderWrapper expression="A + B" references={new Set(['!invalid'])} />
+      );
+    }).toThrow('Invalid reference: !invalid');
   });
 });

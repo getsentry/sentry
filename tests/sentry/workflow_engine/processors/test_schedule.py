@@ -367,17 +367,17 @@ class TestProjectChooser:
                 project_chooser._project_id_to_cohort(pid) for pid in processed_projects
             }
             if run == 0:
-                assert (
-                    processed_cohorts == all_cohorts
-                ), f"First run should process all cohorts, got {processed_cohorts}"
+                assert processed_cohorts == all_cohorts, (
+                    f"First run should process all cohorts, got {processed_cohorts}"
+                )
             previous_cohorts.append(processed_cohorts)
             if len(previous_cohorts) > 6:
                 previous_cohorts.pop(0)
             elif len(previous_cohorts) == 6:
                 processed_in_last_cycle = set().union(*previous_cohorts)
-                assert (
-                    processed_in_last_cycle == all_cohorts
-                ), f"Run {run} should process all cohorts, got {processed_in_last_cycle}"
+                assert processed_in_last_cycle == all_cohorts, (
+                    f"Run {run} should process all cohorts, got {processed_in_last_cycle}"
+                )
             processed_cohorts_over_time.append(processed_cohorts)
 
     def test_scenario_once_per_minute_cohort_count_1(self, mock_buffer: Mock) -> None:
@@ -412,9 +412,9 @@ class TestProjectChooser:
             processed_cohorts = {chooser._project_id_to_cohort(pid) for pid in processed_projects}
 
             # With cohort count = 1, should always process cohort 0
-            assert processed_cohorts == {
-                0
-            }, f"Run {minute} should process cohort 0, got {processed_cohorts}"
+            assert processed_cohorts == {0}, (
+                f"Run {minute} should process cohort 0, got {processed_cohorts}"
+            )
 
             # Since all projects are in cohort 0, processing cohort 0 means ALL projects
             assert set(processed_projects) == set(all_project_ids), (

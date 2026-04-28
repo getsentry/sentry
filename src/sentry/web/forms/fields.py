@@ -1,11 +1,6 @@
-from django.forms import CharField, EmailField, Field, TypedChoiceField, ValidationError
-from django.forms.utils import flatatt
-from django.forms.widgets import TextInput, Widget
-from django.utils.html import format_html
-from django.utils.safestring import mark_safe
+from django.forms import EmailField, TypedChoiceField, ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from sentry.users.models.user import User
 from sentry.utils.email.address import is_valid_email_address
 
 
@@ -26,47 +21,6 @@ class CustomTypedChoiceField(TypedChoiceField):
                 code="invalid_choice",
                 params={"value": value},
             )
-
-
-class UserField(CharField):
-    class widget(TextInput):
-        def render(self, name, value, attrs=None, renderer=None):
-            if not attrs:
-                attrs = {}
-            attrs.setdefault("placeholder", "username")
-            if isinstance(value, int):
-                value = User.objects.get(id=value).username
-            return super().render(name, value, attrs=attrs, renderer=renderer)
-
-    def clean(self, value):
-        value = super().clean(value)
-        if not value:
-            return None
-        try:
-            return User.objects.get(username=value, is_active=True)
-        except User.DoesNotExist:
-            raise ValidationError(_("Invalid username"))
-
-
-class ReadOnlyTextWidget(Widget):
-    def render(self, name, value, attrs=None, renderer=None):
-        final_attrs = self.build_attrs(attrs)
-        if not value:
-            value = mark_safe("<em>%s</em>" % _("Not set"))
-        return format_html("<div{0}>{1}</div>", flatatt(final_attrs), value)
-
-
-class ReadOnlyTextField(Field):
-    widget = ReadOnlyTextWidget
-
-    def __init__(self, *args, **kwargs):
-        kwargs.setdefault("required", False)
-        super().__init__(*args, **kwargs)
-
-    def bound_data(self, data, initial):
-        # Always return initial because the widget doesn't
-        # render an input field.
-        return initial
 
 
 def email_address_validator(value):

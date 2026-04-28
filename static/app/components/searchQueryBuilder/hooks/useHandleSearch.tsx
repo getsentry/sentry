@@ -15,8 +15,8 @@ import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import useApi from 'sentry/utils/useApi';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useApi} from 'sentry/utils/useApi';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type UseHandleSearchProps = {
   parsedQuery: ParseResult | null;
@@ -41,7 +41,7 @@ async function saveAsRecentSearch({
 }) {
   // Only save recent search query if there is a type provided.
   // Do not save empty string queries (i.e. if they clear search)
-  if (typeof recentSearches === 'undefined' || !query) {
+  if (recentSearches === undefined || !query) {
     return;
   }
 

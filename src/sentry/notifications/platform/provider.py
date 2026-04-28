@@ -1,7 +1,12 @@
-from typing import Protocol
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
+from sentry.notifications.platform.threading import ThreadContext
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
@@ -10,16 +15,86 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 
 
 class NotificationProviderError(Exception):
     pass
 
 
-class IntegrationNotificationClient[RenderableT](Protocol):
+type SendResult = SendSuccessResult | SendFailure
+
+
+class SendFailureStatus(Enum):
+    HALT = "halt"
+    """A known configuration or access issue — not actionable by our team."""
+    FAILURE = "failure"
+    """An unexpected error — should be investigated."""
+
+
+@dataclass(frozen=True)
+class ProviderThreadingContext:
+    """
+    Base class for provider-specific threading context passed to integration clients.
+    Each provider subclasses this with its own fields (e.g., Slack adds thread_ts).
+    """
+
+    reply_broadcast: bool = False
+
+
+@dataclass(frozen=True)
+class SendSuccessResult:
+    """Successful send outcome."""
+
+    provider_message_id: str | None = None
+    """Provider-specific message identifier (e.g., Slack's `ts`)."""
+
+    is_threaded: bool = False
+    """Whether the notification was sent with threading."""
+
+
+@dataclass(frozen=True)
+class SendFailure:
+    """Failed send outcome (halt or unexpected failure)."""
+
+    status: SendFailureStatus
+    is_threaded: bool = False
+    exception: Exception | None = None
+    """The exception that caused the failure, for lifecycle recording."""
+    error_code: int | None = None
+    """HTTP status code or provider error code."""
+    error_details: dict[str, Any] | None = None
+    """Extra debugging context — logged, not used for control flow."""
+
+
+def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) -> SendFailure:
+    """Maps an IntegrationError to a SendFailure with the appropriate status.
+
+    Shared by all integration-backed notification providers.
+    """
+    if isinstance(e, IntegrationConfigurationError):
+        status = SendFailureStatus.HALT
+    else:
+        status = SendFailureStatus.FAILURE
+    return SendFailure(
+        status=status,
+        exception=e,
+        error_code=e.error_code,
+        is_threaded=is_threaded,
+    )
+
+
+class IntegrationNotificationClient[RenderableT, ThreadingResponseT = dict[str, Any]](Protocol):
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: RenderableT
     ) -> None: ...
+
+    def send_notification_with_threading(
+        self,
+        target: IntegrationNotificationTarget,
+        payload: RenderableT,
+        threading_context: ProviderThreadingContext,
+    ) -> ThreadingResponseT: ...
 
 
 class NotificationProvider[RenderableT](Protocol):
@@ -79,8 +154,18 @@ class NotificationProvider[RenderableT](Protocol):
         ...
 
     @classmethod
-    def send(cls, *, target: NotificationTarget, renderable: RenderableT) -> None:
+    def send(
+        cls,
+        *,
+        target: NotificationTarget,
+        renderable: RenderableT,
+        thread_context: ThreadContext | None = None,
+    ) -> SendResult:
         """
         Using the renderable format for the provider, send a notification to the target.
+
+        If thread_context is provided, delegates to _send_with_threading.
+        Returns a SendResult with the provider-specific message identifier on success,
+        or error details on failure.
         """
         ...

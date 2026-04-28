@@ -12,81 +12,6 @@ describe('getHighlightedSpanAttributes', () => {
     jest.clearAllMocks();
   });
 
-  it('should emit Sentry error when gen_ai span has model but no cost', () => {
-    const attributes = {
-      'gen_ai.request.model': 'gpt-4',
-      'gen_ai.cost.total_tokens': '0',
-      'gen_ai.usage.input_tokens': '100',
-      'gen_ai.operation.type': 'ai_client',
-    };
-
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
-
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-      'Gen AI span missing cost calculation',
-      {
-        level: 'warning',
-        tags: {
-          feature: 'agent-monitoring',
-          span_type: 'gen_ai',
-          has_model: 'true',
-          has_cost: 'false',
-          model: 'gpt-4',
-        },
-        extra: {
-          total_costs: '0',
-          attributes,
-        },
-      }
-    );
-  });
-
-  it('should not emit Sentry error when gen_ai span has model and cost', () => {
-    const attributes = {
-      'gen_ai.request.model': 'gpt-4',
-      'gen_ai.cost.total_tokens': '0.05',
-      'gen_ai.operation.type': 'ai_client',
-    };
-
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
-
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
-  });
-
-  it('should not emit Sentry error when gen_ai span has no model', () => {
-    const attributes = {
-      'gen_ai.cost.total_tokens': '0',
-      'gen_ai.operation.type': 'ai_client',
-    };
-
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
-
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
-  });
-
-  it('should not emit Sentry error for non-gen_ai spans', () => {
-    const attributes = {
-      'gen_ai.request.model': 'gpt-4',
-      'gen_ai.cost.total_tokens': '0',
-    };
-
-    getHighlightedSpanAttributes({
-      spanId: '123',
-      attributes,
-    });
-
-    expect(Sentry.captureMessage).not.toHaveBeenCalled();
-  });
-
   it('should emit Sentry error when gen_ai span with auto.ai origin is missing required attributes', () => {
     const attributes = {
       'gen_ai.origin': 'auto.ai.openai',
@@ -192,5 +117,49 @@ describe('getHighlightedSpanAttributes', () => {
         },
       }
     );
+  });
+
+  it('should include context utilization when attribute is present', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.context.utilization': '0.45',
+      'gen_ai.context.window_size': '128000',
+      'gen_ai.usage.total_tokens': '57600',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Context Utilization')).toBeDefined();
+  });
+
+  it('should not include context utilization when attribute is absent', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
+  });
+
+  it('should not include context utilization when value is 0', () => {
+    const attributes = {
+      'gen_ai.operation.type': 'ai_client',
+      'gen_ai.context.utilization': '0',
+      'gen_ai.context.window_size': '128000',
+    };
+
+    const result = getHighlightedSpanAttributes({
+      spanId: '123',
+      attributes,
+    });
+
+    expect(result.find(attr => attr.name === 'Context Utilization')).toBeUndefined();
   });
 });

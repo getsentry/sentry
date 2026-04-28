@@ -48,12 +48,28 @@ _LOG_BUILT_IN_NUMBER_FIELDS = [
 ]
 
 
+_METRIC_BUILT_IN_STRING_FIELDS = [
+    "metric.name",
+    "metric.type",
+    "metric.unit",
+    "timestamp",
+    "project",
+    "environment",
+    "release",
+    "trace",
+]
+
+_METRIC_BUILT_IN_NUMBER_FIELDS = [
+    "value",
+]
+
+
 def _get_built_in_fields(item_type: str = "spans") -> list[dict[str, Any]]:
     """
     Get built-in fields for the specified item type.
 
     Args:
-        item_type: Type of trace item ("spans" or "logs")
+        item_type: Type of trace item ("spans", "logs", or "tracemetrics")
 
     Returns:
         List of built-in field definitions with key and type.
@@ -61,6 +77,9 @@ def _get_built_in_fields(item_type: str = "spans") -> list[dict[str, Any]]:
     if item_type == "logs":
         string_fields = _LOG_BUILT_IN_STRING_FIELDS
         number_fields = _LOG_BUILT_IN_NUMBER_FIELDS
+    elif item_type == "tracemetrics":
+        string_fields = _METRIC_BUILT_IN_STRING_FIELDS
+        number_fields = _METRIC_BUILT_IN_NUMBER_FIELDS
     else:
         string_fields = _SPAN_BUILT_IN_STRING_FIELDS
         number_fields = _SPAN_BUILT_IN_NUMBER_FIELDS

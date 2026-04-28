@@ -15,10 +15,10 @@ fingerprint:
 - sdk-nextjs
 title: Es Dee Kay
 variants:
-  custom_fingerprint:
+  custom_server_fingerprint:
     contributes: true
     hint: null
-    key: custom_fingerprint
+    key: custom_server_fingerprint
     matched_rule: sdk:"sentry.javascript.nextjs" -> "sdk-nextjs"
     type: custom_fingerprint
     values:

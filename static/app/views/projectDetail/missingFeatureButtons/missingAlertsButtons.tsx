@@ -1,6 +1,7 @@
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
-import CreateAlertButton from 'sentry/components/createAlertButton';
+import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+
+import {CreateAlertButton} from 'sentry/components/createAlertButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -11,9 +12,9 @@ type Props = {
   projectSlug: string;
 };
 
-function MissingAlertsButtons({organization, projectSlug}: Props) {
+export function MissingAlertsButtons({organization, projectSlug}: Props) {
   return (
-    <ButtonBar>
+    <Grid flow="column" align="center" gap="md">
       <CreateAlertButton
         organization={organization}
         iconProps={{size: 'xs'}}
@@ -22,14 +23,20 @@ function MissingAlertsButtons({organization, projectSlug}: Props) {
         referrer="project_detail"
         projectSlug={projectSlug}
         hideIcon
+        analyticsEventKey="project_detail.alerts_create_alert_clicked"
+        analyticsEventName="Project Detail: Alerts Create Alert Clicked"
       >
         {t('Create Alert')}
       </CreateAlertButton>
-      <LinkButton size="sm" external href={DOCS_URL}>
+      <LinkButton
+        size="sm"
+        external
+        href={DOCS_URL}
+        analyticsEventKey="project_detail.alerts_learn_more_clicked"
+        analyticsEventName="Project Detail: Alerts Learn More Clicked"
+      >
         {t('Learn More')}
       </LinkButton>
-    </ButtonBar>
+    </Grid>
   );
 }
-
-export default MissingAlertsButtons;

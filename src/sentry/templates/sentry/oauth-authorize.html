@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_assets %}
 {% load sentry_avatars %}
 
 {% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
@@ -55,8 +56,27 @@
     </div>
 
     <div class="auth-footer">
-      <button type="submit" class="btn btn-primary" name="op" value="approve">{% trans "Approve" %}</button>
+      <button type="submit" class="btn btn-primary" name="op" value="approve" disabled>{% trans "Approve" %}</button>
       <button type="submit" class="btn btn-danger" name="op" value="deny">{% trans "Deny" %}</button>
     </div>
   </form>
+  {% script %}
+  <script>
+    (function () {
+      var btn = document.querySelector('[name="op"][value="approve"]');
+      function onFirstInteraction() {
+        document.removeEventListener('pointermove', onFirstInteraction);
+        document.removeEventListener('pointerdown', onFirstInteraction);
+        document.removeEventListener('keydown', onFirstInteraction);
+        setTimeout(function () {
+          btn.disabled = false;
+        }, 1000);
+      }
+
+      document.addEventListener('pointermove', onFirstInteraction);
+      document.addEventListener('pointerdown', onFirstInteraction);
+      document.addEventListener('keydown', onFirstInteraction);
+    })();
+  </script>
+  {% endscript %}
 {% endblock %}

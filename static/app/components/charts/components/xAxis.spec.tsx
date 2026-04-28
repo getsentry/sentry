@@ -1,7 +1,7 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
-import XAxis from 'sentry/components/charts/components/xAxis';
+import {XAxis} from 'sentry/components/charts/components/xAxis';
 
 const theme = ThemeFixture();
 

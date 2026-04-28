@@ -3,15 +3,15 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react-lite';
 
-import type {ButtonProps} from 'sentry/components/core/button';
-import {Button} from 'sentry/components/core/button';
-import FormContext from 'sentry/components/forms/formContext';
+import type {ButtonProps} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
+
+import {FormContext} from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
-import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
+import {fieldIsRequiredMessage, FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
-import Panel from 'sentry/components/panels/panel';
+import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 type RenderProps = {
   model: FormModel;
@@ -19,19 +19,18 @@ type RenderProps = {
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 
-export interface FormProps
-  extends Pick<
-    FormOptions,
-    | 'allowUndo'
-    | 'resetOnError'
-    | 'saveOnBlur'
-    | 'apiEndpoint'
-    | 'apiMethod'
-    | 'onFieldChange'
-    | 'onSubmitError'
-    | 'onSubmitSuccess'
-    | 'mapFormErrors'
-  > {
+export interface FormProps extends Pick<
+  FormOptions,
+  | 'allowUndo'
+  | 'resetOnError'
+  | 'saveOnBlur'
+  | 'apiEndpoint'
+  | 'apiMethod'
+  | 'onFieldChange'
+  | 'onSubmitError'
+  | 'onSubmitSuccess'
+  | 'mapFormErrors'
+> {
   additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
@@ -81,7 +80,7 @@ export interface FormProps
   submitPriority?: ButtonProps['priority'];
 }
 
-function getSubmitButtonTitle(form: FormModel) {
+export function getSubmitButtonTitle(form: FormModel) {
   if (form.isFormIncomplete) {
     return t('Required fields must be filled out');
   }
@@ -110,7 +109,7 @@ function getSubmitButtonTitle(form: FormModel) {
   return t('Fields must contain valid inputs');
 }
 
-function Form({
+export function Form({
   'data-test-id': dataTestId,
   allowUndo,
   apiEndpoint,
@@ -198,40 +197,24 @@ function Form({
     [formModel, onSubmitError]
   );
 
-  const handleSubmit = useCallback(
-    (e: any) => {
-      if (!skipPreventDefault) {
-        e.preventDefault();
-      }
-      if (formModel.isSaving) {
-        return;
-      }
+  const handleSubmit = (e: any) => {
+    if (!skipPreventDefault) {
+      e.preventDefault();
+    }
+    if (formModel.isSaving) {
+      return;
+    }
 
-      onPreSubmit?.();
+    onPreSubmit?.();
 
-      onSubmit?.(
-        formModel.getData(),
-        handleSubmitSuccess,
-        handleSubmitError,
-        e,
-        formModel
-      );
+    onSubmit?.(formModel.getData(), handleSubmitSuccess, handleSubmitError, e, formModel);
 
-      if (!onSubmit) {
-        formModel.saveForm();
-      }
-    },
-    [
-      formModel,
-      handleSubmitError,
-      handleSubmitSuccess,
-      onPreSubmit,
-      onSubmit,
-      skipPreventDefault,
-    ]
-  );
+    if (!onSubmit) {
+      formModel.saveForm();
+    }
+  };
 
-  const shouldShowFooter = typeof hideFooter === 'undefined' ? !saveOnBlur : !hideFooter;
+  const shouldShowFooter = hideFooter === undefined ? !saveOnBlur : !hideFooter;
 
   return (
     <FormContext value={contextData}>
@@ -269,7 +252,7 @@ function Form({
               <Observer>
                 {() => (
                   <Button
-                    title={getSubmitButtonTitle(formModel)}
+                    tooltipProps={{title: getSubmitButtonTitle(formModel)}}
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={
@@ -293,8 +276,6 @@ function Form({
   );
 }
 
-export default Form;
-
 const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   display: flex;
   justify-content: flex-end;
@@ -309,7 +290,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
     css`
       ${Panel} & {
         margin-top: 0;
-        padding-right: ${space(2)};
+        padding-right: ${p.theme.space.xl};
       }
 
       /* Better padding with form inside of a modal */
@@ -326,7 +307,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
 const DefaultButtons = styled('div')`
   display: grid;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   grid-auto-flow: column;
   justify-content: flex-end;
   flex: 1;

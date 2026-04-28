@@ -1,5 +1,6 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import configureCodeReviewImg from 'sentry-images/spot/seer-config-check.svg';
 
@@ -13,15 +14,15 @@ import {
   GuidedSteps,
   useGuidedStepsContext,
 } from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelBody from 'sentry/components/panels/panelBody';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PanelBody} from 'sentry/components/panels/panelBody';
+import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {t} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {useSeerOnboardingContext} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
-import {useBulkUpdateRepositorySettings} from 'getsentry/views/seerAutomation/onboarding/hooks/useBulkUpdateRepositorySettings';
 
 import {MaxWidthPanel, PanelDescription, StepContent} from './common';
 import {RepositorySelector} from './repositorySelector';
@@ -41,7 +42,7 @@ export function ConfigureCodeReviewStep() {
   const {mutate: updateRepositorySettings, isPending: isUpdateRepositorySettingsPending} =
     useBulkUpdateRepositorySettings();
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = () => {
     const existingRepostoriesToRemove = unselectedCodeReviewRepositories
       .filter(repo => repo.settings?.enabledCodeReview)
       .map(repo => repo.id);
@@ -68,6 +69,9 @@ export function ConfigureCodeReviewStep() {
               resolve();
             },
             onError: () => {
+              Sentry.captureException(
+                new Error('Seer Onboarding: Unable to enable code review')
+              );
               reject(new Error(t('Failed to enable AI Code Review')));
             },
           }
@@ -130,15 +134,7 @@ export function ConfigureCodeReviewStep() {
           t('Failed to update AI Code Review settings, reload and try again')
         );
       });
-  }, [
-    clearRootCauseAnalysisRepositories,
-    selectedCodeReviewRepositories,
-    unselectedCodeReviewRepositories,
-    currentStep,
-    setCurrentStep,
-    updateRepositorySettings,
-    organization,
-  ]);
+  };
 
   return (
     <Fragment>
@@ -147,14 +143,14 @@ export function ConfigureCodeReviewStep() {
           <PanelBody>
             <PanelDescription>
               <Flex direction="column" gap="lg">
-                <Text>{t(`You've successfully connected to GitHub!`)}</Text>
+                <Text>{t("You've successfully connected to GitHub!")}</Text>
                 <Separator orientation="horizontal" border="muted" />
 
                 <Flex direction="column" gap="sm">
                   <Text bold>{t('AI Code Review')}</Text>
                   <Text variant="muted" density="comfortable">
                     {t(
-                      `For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. `
+                      "For all selected repositories below, Seer's AI Code Review will be run to review your PRs and flag potential bugs. "
                     )}
                   </Text>
                 </Flex>

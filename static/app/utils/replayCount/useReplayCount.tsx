@@ -2,13 +2,13 @@ import {useCallback} from 'react';
 
 import type {ApiResult} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
-import getApiUrl from 'sentry/utils/api/getApiUrl';
-import useAggregatedQueryKeys from 'sentry/utils/api/useAggregatedQueryKeys';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {
   bufferLimit: number;
-  dataSource: string;
+  dataSource: 'events' | 'transactions' | 'search_issues';
   fieldName: string;
   organization: Organization;
   statsPeriod: string;
@@ -42,12 +42,11 @@ function mapToBool<V>(obj: Record<string, V>): Record<string, boolean> {
  * Import one of the configured helpers instead:
  *   - `useReplayExists()`
  *   - `useReplayCountForIssues()`
- *   - `useReplayCountForTransactions()`
  *   - `useReplayCountForFeedbacks()`
  *
  * @private
  */
-export default function useReplayCount({
+export function useReplayCount({
   bufferLimit,
   dataSource,
   fieldName,

@@ -105,7 +105,7 @@ GITHUB_ACTION_DATA_BLOBS = [
     },
     # Complete example
     {
-        "integration": "00000",
+        "integration": "33333",
         "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
         "dynamic_form_fields": [
             {

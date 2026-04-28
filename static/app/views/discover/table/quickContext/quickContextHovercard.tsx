@@ -2,26 +2,24 @@ import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Flex} from 'sentry/components/core/layout';
 import {Body, Hovercard} from 'sentry/components/hovercard';
-import Version from 'sentry/components/version';
+import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {EventData} from 'sentry/utils/discover/eventView';
-import type EventView from 'sentry/utils/discover/eventView';
+import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import EventContext from './eventContext';
-import IssueContext from './issueContext';
-import ReleaseContext from './releaseContext';
+import {EventContext} from './eventContext';
+import {IssueContext} from './issueContext';
+import {ReleaseContext} from './releaseContext';
 import {NoContextWrapper} from './styles';
 import {ContextType} from './utils';
-
-const HOVER_DELAY = 400;
 
 function getHoverBody(
   dataRow: EventData,
@@ -115,7 +113,7 @@ function HoverHeader({
 
         {!hideCopy && copyContent && (
           <CopyToClipboardButton
-            borderless
+            priority="transparent"
             aria-label={t('Copy to clipboard')}
             data-test-id="quick-context-hover-header-copy-button"
             onCopy={() => {
@@ -158,7 +156,6 @@ export function QuickContextHovercard(props: ContextProps) {
     <StyledHovercard
       {...hovercardProps}
       showUnderline
-      delay={HOVER_DELAY}
       header={getHoverHeader(dataRow, contextType, organization)}
       body={getHoverBody(
         dataRow,

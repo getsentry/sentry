@@ -6,7 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
-import ProjectsStore from 'sentry/stores/projectsStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 describe('Frame Variables', () => {
   it('renders', async () => {
@@ -18,7 +18,7 @@ describe('Frame Variables', () => {
     });
     const initialRouterConfig = {
       location: {
-        pathname: `/organizations/org-slug/issues/1/`,
+        pathname: '/organizations/org-slug/issues/1/',
         query: {project: project.id},
       },
       route: '/organizations/:orgId/issues/:groupId/',

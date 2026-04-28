@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
+import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
 
-const ImageVisualization = styled(ImageViewer)`
+export const ImageVisualization = styled(ImageViewer)`
   padding: 0;
   height: 100%;
   img {
@@ -10,5 +10,3 @@ const ImageVisualization = styled(ImageViewer)`
     height: 100%;
   }
 `;
-
-export default ImageVisualization;

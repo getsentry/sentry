@@ -3,7 +3,7 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import load_grouping_config
@@ -14,7 +14,7 @@ from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
@@ -46,7 +46,12 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
             )
             != StacktraceOrder.MOST_RECENT_LAST
         )
-        grouping_config.initial_context["reverse_stacktraces"] = should_reverse_stacktraces
+        # Create an instance-level copy so we don't mutate the class-level dict,
+        # which is shared across all instances of this config.
+        grouping_config.initial_context = {
+            **grouping_config.initial_context,
+            "reverse_stacktraces": should_reverse_stacktraces,
+        }
 
         grouping_info = get_grouping_info(grouping_config, project, event)
 

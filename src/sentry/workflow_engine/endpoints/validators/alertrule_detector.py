@@ -1,12 +1,14 @@
+from typing import Any
+
 from rest_framework import serializers
 
 
-class AlertRuleDetectorValidator(serializers.Serializer):
+class AlertRuleDetectorValidator(serializers.Serializer[Any]):
     rule_id = serializers.CharField(required=False)
     alert_rule_id = serializers.CharField(required=False)
     detector_id = serializers.CharField(required=False)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         super().validate(attrs)
         if (
             not attrs.get("rule_id")

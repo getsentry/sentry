@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
+import {Button} from '@sentry/scraps/button';
+
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 
 interface AccordionItemContent {
   content: React.ReactNode;
@@ -37,7 +37,7 @@ function Accordion({expandedIndex, setExpandedIndex, items}: Props) {
               aria-expanded={index === expandedIndex}
               disabled={index === expandedIndex}
               size="zero"
-              borderless
+              priority="transparent"
               onClick={() => setExpandedIndex(index)}
             />
           </AccordionHeader>
@@ -53,7 +53,7 @@ const AccordionItem = styled('li')`
 `;
 
 const AccordionContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+  padding: ${p => p.theme.space.md} 0 0 0;
   margin: 0;
   list-style-type: none;
 `;
@@ -61,12 +61,12 @@ const AccordionContainer = styled('ul')`
 const AccordionHeader = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
 `;
 
 const AccordionContent = styled('div')`
-  padding: 0 ${space(2)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 export {Accordion};

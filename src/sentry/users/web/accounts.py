@@ -237,7 +237,7 @@ def recover_confirm(
             if mode == "relocate":
                 # Relocation form requires users to accept TOS and privacy policy with an org
                 # associated. We only need the first membership, since all of user's orgs will be in
-                # the same region.
+                # the same cell.
                 membership = OrganizationMemberMapping.objects.filter(user=user).first()
                 assert membership is not None
                 mapping = OrganizationMapping.objects.get(
@@ -251,7 +251,7 @@ def recover_confirm(
                 rpc_user = user_service.get_user(user_id=user.id)
                 user_service.verify_user_email(email=user.email, user_id=user.id)
                 orgs = organization_service.get_organizations_by_user_and_scope(
-                    region_name=mapping.region_name, user=rpc_user
+                    cell_name=mapping.cell_name, user=rpc_user
                 )
                 for org in orgs:
                     terms_accepted.send_robust(
@@ -324,9 +324,9 @@ def start_confirm_email(request: HttpRequest) -> HttpResponse:
             status=429,
         )
 
-    assert isinstance(
-        request.user, User
-    ), "User must have an associated email to send confirm emails to"
+    assert isinstance(request.user, User), (
+        "User must have an associated email to send confirm emails to"
+    )
     if "primary-email" in request.POST:
         email = request.POST.get("email")
         try:

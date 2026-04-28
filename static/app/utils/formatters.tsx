@@ -32,13 +32,13 @@ export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
 
 const numberFormatSteps = [
-  [1_000_000_000, 'b'],
-  [1_000_000, 'm'],
-  [1_000, 'k'],
+  [1_000_000_000, 'B'],
+  [1_000_000, 'M'],
+  [1_000, 'K'],
 ] as const;
 
 /**
- * Formats a number with an abbreviation e.g. 1000 -> 1k.
+ * Formats a number with an abbreviation e.g. 1000 -> 1K.
  *
  * @param number the number to format
  * @param maximumSignificantDigits the number of significant digits to include
@@ -91,7 +91,7 @@ export function formatAbbreviatedNumber(
 /**
  * Formats a number with an abbreviation and rounds to 2
  * decimal digits without forcing trailing zeros.
- * e. g. 1000 -> 1k, 1234 -> 1.23k
+ * e. g. 1000 -> 1K, 1234 -> 1.23K
  */
 export function formatAbbreviatedNumberWithDynamicPrecision(
   value: number | string
@@ -135,7 +135,7 @@ export function formatRate(
 
   // 0 is special!
   if (value === 0) {
-    return `${0}${RATE_UNIT_LABELS[unit]}`;
+    return `0${RATE_UNIT_LABELS[unit]}`;
   }
 
   const minimumValue = options.minimumValue ?? 0;
@@ -238,69 +238,6 @@ function getShortSpanOperationDescription(operation?: string) {
   }
 
   return t('span');
-}
-
-/**
- * Formats a change rate with a sign (+/-) and 2 decimal places.
- *
- * e.g. `0.46 -> '+0.46%'`, `-0.46 -> '-0.46%'`, `0 -> '0.00%'`
- *
- * @param change the change rate to format
- * @param options formatting options
- * @param options.minimumValue minimum value threshold, below which "<{minimumValue}%" is shown
- */
-export function formatPercentRate(change: number, options?: {minimumValue?: number}) {
-  const {minimumValue} = options ?? {};
-
-  if (change === 0) {
-    return '0.00%';
-  }
-
-  if (minimumValue && Math.abs(change) > 0 && Math.abs(change) < minimumValue) {
-    return change > 0 ? `<+${minimumValue.toFixed(2)}%` : `<-${minimumValue.toFixed(2)}%`;
-  }
-
-  if (change > 0) {
-    return `+${change.toFixed(2)}%`;
-  }
-
-  return `${change.toFixed(2)}%`;
-}
-
-/**
- * Formats a duration in milliseconds into a human readable string. This function will
- * filter out "units" that are larger than the duration i.e. if the duration is 1000ms,
- * it will return `'1s'` instead of `'0d 0h 0m 1s'`.
- *
- * e.g. 12345678 -> `'12d 12h 34m 56s'`
- *
- * @param duration the duration in milliseconds to format
- * @param numLargestUnitsToShow the number of largest units to include in the output
- */
-export function formatTimeDuration(duration?: number, numLargestUnitsToShow?: number) {
-  if (duration === undefined) return undefined;
-
-  const d = Math.floor(duration / DAY);
-  const h = Math.floor((duration % DAY) / HOUR);
-  const m = Math.floor((duration % HOUR) / MINUTE);
-  const s = Math.floor((duration % MINUTE) / SECOND);
-
-  const parts = [
-    duration >= DAY ? t('%sd', d) : undefined,
-    duration >= HOUR ? t('%sh', h) : undefined,
-    duration >= MINUTE ? t('%sm', m) : undefined,
-    t('%ss', s),
-  ].filter(Boolean);
-
-  if (
-    typeof numLargestUnitsToShow === 'number' &&
-    numLargestUnitsToShow > 0 &&
-    parts.length > numLargestUnitsToShow
-  ) {
-    parts.splice(numLargestUnitsToShow, parts.length - numLargestUnitsToShow);
-  }
-
-  return parts.join(' ');
 }
 
 export function formatDollars(value: number) {

@@ -11,14 +11,19 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.conduit.auth import get_conduit_credentials
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.explorer.client import SeerExplorerClient
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.explorer.client_utils import (
+    has_seer_explorer_access_with_detail,
+    snapshot_to_markdown,
+)
+from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +44,24 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional context from the user's screen.",
     )
+    page_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        default=None,
+        help_text="The UI page name where the request originated (e.g., route string).",
+    )
+    override_ce_enable = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Override context engine rollout flag (applies to reasoning platform only).",
+    )
+    override_code_mode_enable = serializers.BooleanField(
+        required=False,
+        default=None,
+        allow_null=True,
+        help_text="Override code mode tools flag from the frontend toggle.",
+    )
 
 
 class OrganizationSeerExplorerChatPermission(OrganizationPermission):
@@ -48,7 +71,7 @@ class OrganizationSeerExplorerChatPermission(OrganizationPermission):
     }
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
@@ -78,6 +101,16 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         """
         Get the current state of a Seer Explorer session.
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+
+        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_dashboards_ai_generate_access = has_seer_access and features.has(
+            "organizations:dashboards-ai-generate", organization, actor=request.user
+        )
+
+        if not has_access and not has_dashboards_ai_generate_access:
+            raise PermissionDenied(error)
+
         if not run_id:
             return Response({"session": None}, status=404)
 
@@ -87,6 +120,14 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             return Response({"session": state.dict()})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            if e.status == 404:
+                return Response({"session": None}, status=404)
+            return Response(
+                {"detail": "Failed to fetch run state"},
+                status=500,
+            )
         except ValueError:
             logger.exception("Error getting Explorer run state")
             return Response({"session": None}, status=404)
@@ -105,8 +146,21 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
 
         Returns:
         - run_id: The run ID.
-        - conduit: Optional Conduit credentials for streaming (if streaming is enabled).
         """
+        has_access, error = has_seer_explorer_access_with_detail(organization, request.user)
+
+        has_seer_access, _ = has_seer_access_with_detail(organization, request.user)
+        has_dashboards_ai_generate_access = has_seer_access and features.has(
+            "organizations:dashboards-ai-generate", organization, actor=request.user
+        )
+        # Orgs with dashboards AI generate access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
+        can_continue_dashboards_generate_run = (
+            has_dashboards_ai_generate_access and run_id is not None
+        )
+
+        if not has_access and not can_continue_dashboards_generate_run:
+            raise PermissionDenied(error)
+
         serializer = SeerExplorerChatSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -115,21 +169,37 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
         query = validated_data["query"]
         insert_index = validated_data.get("insert_index")
         on_page_context = validated_data.get("on_page_context")
+        page_name = validated_data.get("page_name")
+        override_ce_enable = validated_data["override_ce_enable"]
+        override_code_mode_enable = validated_data.get("override_code_mode_enable")
 
-        # Generate Conduit credentials for streaming if enabled
-        conduit_credentials = None
-        if features.has("organizations:seer-explorer-streaming", organization):
+        # If the frontend sent a structured LLMContext JSON snapshot, convert to markdown.
+        if on_page_context:
             try:
-                conduit_credentials = get_conduit_credentials(organization.id)
-            except ValueError as e:
-                sentry_sdk.capture_exception(e, level="warning")
+                snapshot = json.loads(on_page_context)
+                if isinstance(snapshot, dict) and "nodes" in snapshot:
+                    on_page_context = snapshot_to_markdown(snapshot)
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
 
         try:
+            enable_coding = organization.get_option(
+                "sentry:enable_seer_coding", False
+            ) and features.has(
+                "organizations:seer-explorer-chat-coding", organization, actor=request.user
+            )
+            enable_code_mode_tools = features.has(
+                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
+            )
+            if override_code_mode_enable is not None and enable_code_mode_tools:
+                enable_code_mode_tools = override_code_mode_enable
             client = SeerExplorerClient(
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_coding=True,
+                enable_coding=enable_coding,
+                enable_code_mode_tools=enable_code_mode_tools,
+                reasoning_effort="medium",
             )
             if run_id:
                 # Continue existing conversation
@@ -138,33 +208,25 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
                     prompt=query,
                     insert_index=insert_index,
                     on_page_context=on_page_context,
-                    conduit_channel_id=(
-                        conduit_credentials.channel_id if conduit_credentials else None
-                    ),
-                    conduit_url=conduit_credentials.url if conduit_credentials else None,
+                    page_name=page_name,
+                    request=request,
                 )
             else:
                 # Start new conversation
                 result_run_id = client.start_run(
                     prompt=query,
                     on_page_context=on_page_context,
-                    conduit_channel_id=(
-                        conduit_credentials.channel_id if conduit_credentials else None
-                    ),
-                    conduit_url=conduit_credentials.url if conduit_credentials else None,
+                    page_name=page_name,
+                    override_ce_enable=override_ce_enable,
+                    request=request,
                 )
 
-            # Build response
-            response_data: dict[str, object] = {"run_id": result_run_id}
-
-            # Include conduit credentials for frontend if streaming is enabled
-            if conduit_credentials:
-                response_data["conduit"] = {
-                    "token": conduit_credentials.token,
-                    "channel_id": conduit_credentials.channel_id,
-                    "url": conduit_credentials.url,
-                }
-
-            return Response(response_data)
+            return Response({"run_id": result_run_id})
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
+        except SeerApiError as e:
+            sentry_sdk.capture_exception(e)
+            return Response(
+                {"detail": "Failed to start or continue chat session"},
+                status=500,
+            )

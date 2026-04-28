@@ -1,6 +1,6 @@
 import {defined} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const useInsightsEap = (): boolean => {
   const organization = useOrganization();

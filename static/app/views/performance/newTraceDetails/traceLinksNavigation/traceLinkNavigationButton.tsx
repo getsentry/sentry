@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
 
-import {LinkButton} from '@sentry/scraps/button/linkButton';
+import {LinkButton} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useFindAdjacentTrace} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -50,7 +50,7 @@ export function TraceLinkNavigationButton({
         adjacentTraceStartTimestamp: linkedTraceWindowTimestamp,
         iconDirection: 'left' as const,
         ariaLabel: t('Previous Trace'),
-        title: tct(`Go to the previous trace of the same session. [link:Learn More]`, {
+        title: tct('Go to the previous trace of the same session. [link:Learn More]', {
           link: (
             <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
           ),
@@ -62,7 +62,7 @@ export function TraceLinkNavigationButton({
       adjacentTraceStartTimestamp: currentTraceStartTimestamp,
       iconDirection: 'right' as const,
       ariaLabel: t('Next Trace'),
-      title: tct(`Go to the next trace of the same session. [link:Learn More]`, {
+      title: tct('Go to the next trace of the same session. [link:Learn More]', {
         link: (
           <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#previous-and-next-traces" />
         ),
@@ -105,8 +105,8 @@ export function TraceLinkNavigationButton({
         position: 'top',
         delay: 400,
         isHoverable: true,
+        title,
       }}
-      title={title}
       onClick={closeSpanDetailsDrawer}
       disabled={!traceId || isTraceLoading || !isTraceAvailable}
       to={getTraceDetailsUrl({

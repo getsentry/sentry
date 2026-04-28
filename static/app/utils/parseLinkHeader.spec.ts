@@ -1,4 +1,4 @@
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 describe('parseLinkHeader', () => {
   it('should extract next & prev links from a string', () => {

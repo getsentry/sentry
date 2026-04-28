@@ -2,10 +2,10 @@ import type {RefObject} from 'react';
 import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import divide from 'sentry/utils/number/divide';
+import {divide} from 'sentry/utils/number/divide';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import useMouseTracking from 'sentry/utils/useMouseTracking';
+import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
+import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 
 type Opts<T extends Element> = {
   elem: RefObject<T | null>;
@@ -16,7 +16,7 @@ type Opts<T extends Element> = {
  * calculations on a zoomed timeline, accounting for the zoom level, current
  * playback position, and timeline boundaries.
  */
-export default function useTimelineMouseTracking<T extends Element>({
+export function useTimelineMouseTracking<T extends Element>({
   elem,
   scale,
 }: Opts<T> & {scale: number}) {

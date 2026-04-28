@@ -3,14 +3,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import {WidgetBuilderQueryFilterBuilder} from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {
+  useSpanItemAttributes,
+  useTraceItemDatasetAttributes,
+} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
-jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/views/explore/contexts/traceItemAttributeContext');
 
 describe('QueryFilterBuilder', () => {
   let organization: Organization;
@@ -21,11 +24,18 @@ describe('QueryFilterBuilder', () => {
     });
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
     jest
-      .mocked(useTraceItemTags)
-      .mockReturnValue({tags: {}, secondaryAliases: {}, isLoading: false});
+      .mocked(useTraceItemDatasetAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
   });
@@ -102,6 +112,64 @@ describe('QueryFilterBuilder', () => {
     );
 
     expect(await screen.findByPlaceholderText('Legend Alias')).toBeInTheDocument();
+  });
+
+  it('does not render a legend alias input for the details widget', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.DETAILS,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Search for spans, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not allow adding multiple filters for the details widget', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderQueryFilterBuilder
+          onQueryConditionChange={() => {}}
+          validatedWidgetResponse={{} as any}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              query: [],
+              dataset: WidgetType.SPANS,
+              displayType: DisplayType.DETAILS,
+            },
+          },
+        },
+      }
+    );
+
+    expect(
+      await screen.findByPlaceholderText('Search for spans, users, tags, and more')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('+ Add Filter')).not.toBeInTheDocument();
   });
 
   it('limits number of filter queries to 3', async () => {

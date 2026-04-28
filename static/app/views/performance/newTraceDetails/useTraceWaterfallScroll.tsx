@@ -1,7 +1,7 @@
 import {useCallback, useRef} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
+import {useApi} from 'sentry/utils/useApi';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';

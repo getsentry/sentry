@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SignedRequestAuthentication
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.db.models.base import BaseModel
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
@@ -80,7 +80,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
         return Response(status=201)
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
     object_type = "project"
 
@@ -118,7 +118,7 @@ class OrganizationUnsubscribeProject(OrganizationUnsubscribeBase[Project]):
         )
 
 
-@region_silo_endpoint
+@cell_silo_endpoint
 class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
     object_type = "issue"
 
@@ -143,9 +143,9 @@ class OrganizationUnsubscribeIssue(OrganizationUnsubscribeBase[Group]):
         return issue
 
     def unsubscribe(self, request: Request, instance: Group):
-        GroupSubscription.objects.create_or_update(
+        GroupSubscription.objects.update_or_create(
             group=instance,
             project_id=instance.project_id,
             user_id=request.user.pk,
-            values={"is_active": False},
+            defaults={"is_active": False},
         )

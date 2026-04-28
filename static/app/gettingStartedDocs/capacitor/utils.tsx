@@ -58,13 +58,11 @@ const isVue = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.VUE2 || siblingOption === SiblingOption.VUE3;
 
 function getPerformanceIntegration(siblingOption: string): string {
-  return `${
-    isVue(siblingOption)
-      ? `routingInstrumentation: SentryVue.vueRouterInstrumentation(router),`
-      : isAngular(siblingOption)
-        ? `routingInstrumentation: SentryAngular.routingInstrumentation,`
-        : ''
-  }`;
+  return isVue(siblingOption)
+    ? 'routingInstrumentation: SentryVue.vueRouterInstrumentation(router),'
+    : isAngular(siblingOption)
+      ? 'routingInstrumentation: SentryAngular.routingInstrumentation,'
+      : '';
 }
 
 const performanceAngularErrorHandler = `,
@@ -170,9 +168,9 @@ const getStaticParts = (params: Params): string[] => {
   const staticParts = [`dsn: "${params.dsn.public}"`];
 
   if (params.platformOptions.siblingOption === SiblingOption.VUE2) {
-    staticParts.unshift(`Vue`);
+    staticParts.unshift('Vue');
   } else if (params.platformOptions.siblingOption === SiblingOption.VUE3) {
-    staticParts.unshift(`app`);
+    staticParts.unshift('app');
   }
 
   return staticParts;
@@ -202,7 +200,7 @@ export function getSetupConfiguration({
     configuration.push({
       type: 'text',
       text: tct(
-        `You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]`,
+        'You should init the Sentry capacitor SDK in your [code:main.ts] file as soon as possible during application load up, before initializing Sentry [siblingName:]',
         {
           siblingName: getSiblingName(siblingOption),
           code: <code />,

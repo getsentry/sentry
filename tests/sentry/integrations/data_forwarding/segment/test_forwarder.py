@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 
 class SegmentDataForwarderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.data_forwarder = DataForwarder.objects.create(
             organization=self.organization,
@@ -26,7 +26,7 @@ class SegmentDataForwarderTest(TestCase):
         self.forwarder = SegmentForwarder()
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
 
         event = self.store_event(
@@ -63,7 +63,7 @@ class SegmentDataForwarderTest(TestCase):
         } == payload
 
     @responses.activate
-    def test_forward_event_http_error(self):
+    def test_forward_event_http_error(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track", status=500)
 
         event = self.store_event(

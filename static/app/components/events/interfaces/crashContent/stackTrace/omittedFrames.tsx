@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 export function OmittedFrames({
@@ -28,5 +27,5 @@ const FramesOmittedListItem = styled('li')`
   border-left: 2px solid ${p => p.theme.colors.red400};
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   background: ${p => p.theme.colors.red100};
-  padding: ${space(1)} ${space(2)};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;

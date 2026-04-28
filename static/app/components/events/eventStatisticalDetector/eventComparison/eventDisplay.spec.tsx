@@ -205,7 +205,7 @@ describe('eventDisplay', () => {
     );
 
     expect(await screen.findByText('event1')).toBeInTheDocument();
-    expect(screen.getByText('mock-value-for-event1')).toBeInTheDocument();
+    expect(await screen.findByText('mock-value-for-event1')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous Event'})).toBeDisabled();
 
     await userEvent.click(screen.getByRole('button', {name: 'Next Event'}));

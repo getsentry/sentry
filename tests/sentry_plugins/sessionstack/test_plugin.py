@@ -13,7 +13,7 @@ EXPECTED_SESSION_URL = (
 )
 
 ACCESS_TOKENS_URL = (
-    "https://api.sessionstack.com/v1/websites/0/sessions/" "588778a6c5762c1d566653ff/access_tokens"
+    "https://api.sessionstack.com/v1/websites/0/sessions/588778a6c5762c1d566653ff/access_tokens"
 )
 
 

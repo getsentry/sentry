@@ -45,12 +45,6 @@ describe('IssueDiff', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('is loading when initially rendering', async () => {
-    render(<IssueDiff baseIssueId="base" targetIssueId="target" />);
-    expect(screen.queryByTestId('split-diff')).not.toBeInTheDocument();
-    expect(await screen.findByTestId('split-diff')).toBeInTheDocument();
-  });
-
   it('can dynamically import SplitDiff', async () => {
     render(
       <IssueDiff

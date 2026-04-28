@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Link} from 'sentry/components/core/link';
+import {Link} from '@sentry/scraps/link';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -12,7 +13,7 @@ interface Props {
   flag: GroupTag;
 }
 
-export default function FlagDetailsLink({flag, children}: Props) {
+export function FlagDetailsLink({flag, children}: Props) {
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
 

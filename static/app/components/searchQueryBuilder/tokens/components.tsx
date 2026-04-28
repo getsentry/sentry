@@ -7,7 +7,7 @@ import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import type {
   ContainerProps,
   ContainerPropsWithRenderFunction,
-} from '@sentry/scraps/layout/container';
+} from '@sentry/scraps/layout';
 
 type BaseGridCellProps = FlexProps & DOMAttributes<FocusableElement>;
 
@@ -42,6 +42,8 @@ export function FilterWrapper({children, ...props}: FilterWrapperProps) {
 }
 
 const StyledFilterWrapper = styled(Container)<{state: 'invalid' | 'warning' | 'valid'}>`
+  max-width: calc(100% - ${p => p.theme.space['2xl']});
+
   :focus,
   &[aria-selected='true'] {
     background-color: ${p => p.theme.colors.gray100};

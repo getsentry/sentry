@@ -13,19 +13,15 @@ import {profiling} from 'sentry/gettingStartedDocs/python/profiling';
 
 import {onboarding} from './onboarding';
 
-const docs: Docs = {
+export const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   featureFlagOnboarding: featureFlag,
   feedbackOnboardingJsLoader,
-  profilingOnboarding: profiling({basePackage: 'sentry-sdk[sanic]'}),
+  profilingOnboarding: profiling(),
   agentMonitoringOnboarding: agentMonitoring,
   mcpOnboarding: mcp,
-  logsOnboarding: logs({
-    packageName: 'sentry-sdk[sanic]',
-  }),
+  logsOnboarding: logs(),
   metricsOnboarding: metrics(),
 };
-
-export default docs;

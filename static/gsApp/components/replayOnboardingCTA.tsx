@@ -1,28 +1,29 @@
 import type {ReactNode} from 'react';
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/core/button';
-import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
-import OnboardingDrawerStore, {
+import {
   OnboardingDrawerKey,
+  OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
-import useApi from 'sentry/utils/useApi';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useApi} from 'sentry/utils/useApi';
+import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 
 import {
   openAM2UpsellModal,
   openAM2UpsellModalSamePrice,
 } from 'getsentry/actionCreators/modal';
 import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
-import usePreviewData from 'getsentry/components/upgradeNowModal/usePreviewData';
-import withSubscription from 'getsentry/components/withSubscription';
+import {usePreviewData} from 'getsentry/components/upgradeNowModal/usePreviewData';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 import {redirectToManage} from './upgradeNowModal/utils';
 
@@ -54,7 +55,7 @@ function ReplayOnboardingCTAUpsell({
     });
   }, [organization, subscription]);
 
-  const onEmailOwner = useCallback(async () => {
+  const onEmailOwner = async () => {
     await sendReplayOnboardRequest({
       orgSlug: organization.slug,
       api,
@@ -72,7 +73,7 @@ function ReplayOnboardingCTAUpsell({
         });
       },
     });
-  }, [api, organization, subscription, dismiss]);
+  };
 
   const [didClickOpenModal, setDidClickOpenModal] = useState<boolean>();
   const previewData = usePreviewData({
@@ -81,9 +82,9 @@ function ReplayOnboardingCTAUpsell({
     enabled: !subscription.canSelfServe || !hasBillingAccess,
   });
 
-  const handleOpenModal = useCallback(() => {
+  const handleOpenModal = () => {
     setDidClickOpenModal(true);
-  }, []);
+  };
 
   // Once we have 1) previewData, and 2) the user clicked the button; then open the modal
   useEffect(() => {
@@ -145,7 +146,7 @@ function ReplayOnboardingCTAUpsell({
     subscription,
   ]);
 
-  const onClickManageSubscription = useCallback(() => {
+  const onClickManageSubscription = () => {
     trackGetsentryAnalytics('replay.list_page.manage_sub', {
       organization,
       surface: 'replay_onboarding_banner',
@@ -154,7 +155,7 @@ function ReplayOnboardingCTAUpsell({
       channel: subscription.channel,
       has_billing_scope: organization.access?.includes('org:billing'),
     });
-  }, [organization, subscription]);
+  };
 
   if (!subscription.canSelfServe) {
     // Two cases:
@@ -257,7 +258,9 @@ function ReplayOnboardingCTAUpsell({
   );
 }
 
-const ButtonList = styled(ButtonBar)`
+const ButtonList = styled((props: GridProps) => (
+  <Grid flow="column" align="center" gap="md" {...props} />
+))`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
