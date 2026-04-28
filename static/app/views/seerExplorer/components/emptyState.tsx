@@ -10,8 +10,8 @@ import {t, tct} from 'sentry/locale';
 
 const SUGGESTED_QUESTIONS = [
   t('Which of my open issues are getting worse, not better?'),
-  t('Are there any critical issues without an assigned owner or team?'),
   t('What are my slowest DB queries?'),
+  t("Walk me through what's on my screen and what I can focus on next."),
 ];
 
 interface EmptyStateProps {

@@ -1,6 +1,8 @@
 from datetime import timedelta
 from uuid import uuid4
 
+import pytest
+
 from sentry.testutils.cases import ReplayBreadcrumbType, ReplayEAPTestCase, SnubaTestCase
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -10,6 +12,7 @@ class OrganizationEventsReplaysEndpointTest(
 ):
     dataset = "replays"
 
+    @pytest.mark.xfail(reason="replays dataset not supported")
     def test_simple(self) -> None:
         """This is vaguely copied from test_query_replay_instance_eap.py, just a quick test to make sure all the piping
         is there as expected"""

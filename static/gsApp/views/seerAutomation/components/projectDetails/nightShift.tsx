@@ -1,15 +1,20 @@
+import {useMutation} from '@tanstack/react-query';
+
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Project, SeerNightshiftTweaks} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const DEFAULT_TWEAKS: Required<SeerNightshiftTweaks> = {
   enabled: false,
@@ -43,6 +48,7 @@ interface Props {
 }
 
 export function NightShift({canWrite, project}: Props) {
+  const organization = useOrganization();
   const tweaks = {...DEFAULT_TWEAKS, ...project.seerNightshiftTweaks};
 
   const {mutate, isPending} = useUpdateProject(project);
@@ -54,6 +60,16 @@ export function NightShift({canWrite, project}: Props) {
         onError: () => addErrorMessage(t('Unable to update Night Shift settings.')),
       }
     );
+
+  const {mutate: triggerRun, isPending: isTriggering} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${project.slug}/seer/night-shift/`,
+      }),
+    onSuccess: () => addSuccessMessage(t('Night Shift run started.')),
+    onError: () => addErrorMessage(t('Unable to start Night Shift run.')),
+  });
 
   const disabled = !canWrite || isPending;
 
@@ -85,12 +101,25 @@ export function NightShift({canWrite, project}: Props) {
         />
       </Row>
       <Row
+        label={t('Runs')}
+        hintText={t('View past Night Shift runs for this organization.')}
+      >
+        <Link to={`/organizations/${organization.slug}/seer/workflows/`}>
+          {t('View runs')}
+        </Link>
+      </Row>
+      <Row
         label={t('Test Run')}
         hintText={t(
           'Kick off a one-off Night Shift run against this project to preview behavior.'
         )}
       >
-        <Button priority="primary" disabled={!canWrite} onClick={() => {}}>
+        <Button
+          priority="primary"
+          disabled={!canWrite || isTriggering}
+          busy={isTriggering}
+          onClick={() => triggerRun()}
+        >
           {t('Run Now')}
         </Button>
       </Row>

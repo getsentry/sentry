@@ -1,5 +1,6 @@
 import {useEffect} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 import scrollToElement from 'scroll-to-element';
@@ -19,6 +20,7 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
@@ -91,13 +93,12 @@ function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
   ];
 }
 
-function makeOrganizationQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
-    {query: {detailed: 0, include_feature_flags: 1}},
-  ];
+function organizationApiOptions(orgId: string) {
+  return apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: orgId},
+    query: {detailed: 0, include_feature_flags: 1},
+    staleTime: Infinity,
+  });
 }
 
 function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
@@ -117,7 +118,6 @@ export function CustomerDetails() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const SUBSCRIPTION_QUERY_KEY = makeSubscriptionQueryKey(orgId);
-  const ORGANIZATION_QUERY_KEY = makeOrganizationQueryKey(orgId);
   const BILLING_CONFIG_QUERY_KEY = makeBillingConfigQueryKey(orgId);
   const {
     data: subscription,
@@ -130,7 +130,7 @@ export function CustomerDetails() {
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
-  } = useApiQuery<Organization>(ORGANIZATION_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(organizationApiOptions(orgId));
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
