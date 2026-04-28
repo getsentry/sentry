@@ -34,7 +34,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         id: int,
         as_user: RpcUser | None = None,
     ) -> Any | None:
-        repository = Repository.objects.filter(id=id).first()
+        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
         if repository is None:
             return None
         return serialize(repository, user=as_user)
