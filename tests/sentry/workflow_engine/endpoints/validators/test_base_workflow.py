@@ -131,7 +131,7 @@ class TestWorkflowValidator(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
         assert validator.errors["triggers"][0] == ErrorDetail(
-            string="Condition type 'new_high_priority_issue' is not a valid trigger condition. Only trigger condition types are permitted in triggers.",
+            string="Condition type 'new_high_priority_issue' is not a valid trigger condition.",
             code="invalid",
         )
 
@@ -152,7 +152,7 @@ class TestWorkflowValidator(TestCase):
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is False
         assert validator.errors["actionFilters"][0] == ErrorDetail(
-            string="Condition type 'first_seen_event' is not allowed in action filters. Trigger condition types cannot be used in action filters.",
+            string="Condition type 'first_seen_event' is not a valid action filter condition.",
             code="invalid",
         )
 

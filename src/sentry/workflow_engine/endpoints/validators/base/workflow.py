@@ -111,8 +111,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         for condition in value.get("conditions", []):
             if Condition(condition["type"]) not in TRIGGER_CONDITIONS:
                 raise serializers.ValidationError(
-                    f"Condition type '{condition['type']}' is not a valid trigger condition. "
-                    f"Only trigger condition types are permitted in triggers."
+                    f"Condition type '{condition['type']}' is not a valid trigger condition."
                 )
         return value
 
@@ -124,8 +123,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             for condition in condition_group.get("conditions", []):
                 if Condition(condition["type"]) in TRIGGER_CONDITIONS:
                     raise serializers.ValidationError(
-                        f"Condition type '{condition['type']}' is not allowed in action filters. "
-                        f"Trigger condition types cannot be used in action filters."
+                        f"Condition type '{condition['type']}' is not a valid action filter condition."
                     )
 
             validated_actions = []
