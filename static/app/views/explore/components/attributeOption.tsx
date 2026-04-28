@@ -10,7 +10,7 @@ export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
   return {
     label: tag.name,
     value: tag.key,
-    textValue: tag.name,
+    textValue: tag.key,
     trailingItems: <TypeBadge kind={tag.kind} />,
     showDetailsInOverlay: true,
     details: (
