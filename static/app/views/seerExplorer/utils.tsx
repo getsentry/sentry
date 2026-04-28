@@ -1053,11 +1053,16 @@ export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOpt
 
 /**
  * Checks if Seer Explorer is enabled for the organization.
- * Requires all of the following conditions:
- * - 'seer-explorer' feature flag
- * - Organization has open membership
- * Does not check general AI features access or org consent.
+ * Requires the rollout flag and:
+ * - 'gen-ai-features' feature flag
+ * - Organization has not disabled open membership
+ * - Organization has not disabled AI features (hideAiFeatures is false)
  */
 export function isSeerExplorerEnabled(organization: Organization): boolean {
-  return organization.openMembership && organization.features.includes('seer-explorer');
+  return (
+    organization.openMembership &&
+    !organization.hideAiFeatures &&
+    organization.features.includes('gen-ai-features') &&
+    organization.features.includes('seer-explorer')
+  );
 }

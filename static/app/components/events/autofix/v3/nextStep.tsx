@@ -105,7 +105,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   });
 
   const handleYesClick = useCallback(() => {
-    startStep('solution', runId);
+    startStep('solution', {runId});
     trackAnalytics('autofix.root_cause.find_solution', {
       organization,
       group_id: group.id,
@@ -116,7 +116,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('root_cause', runId, userContext);
+      startStep('root_cause', {runId, userContext});
       trackAnalytics('autofix.root_cause.re_run', {
         organization,
         group_id: group.id,
@@ -156,7 +156,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const {isPolling, startStep} = autofix;
 
   const handleYesClick = useCallback(() => {
-    startStep('code_changes', runId);
+    startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
       organization,
       group_id: group.id,
@@ -167,7 +167,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('solution', runId, userContext);
+      startStep('solution', {runId, userContext});
       trackAnalytics('autofix.solution.re_run', {
         organization,
         group_id: group.id,
@@ -216,7 +216,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
 
   const handleNoClick = useCallback(
     (userContext: string) => {
-      startStep('code_changes', runId, userContext);
+      startStep('code_changes', {runId, userContext});
       trackAnalytics('autofix.code_changes.re_run', {
         organization,
         group_id: group.id,

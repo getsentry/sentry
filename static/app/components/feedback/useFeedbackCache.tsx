@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {defined} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 
 type TFeedbackIds = 'all' | string[];
@@ -14,14 +15,9 @@ type ListCache = {
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
-function isIssueEndpointUrl(query: any) {
-  // v2 keys have metadata at [0] and URL at [1]
-  const key = query.queryKey;
-  const url =
-    typeof key[0] === 'object' && key[0]?.version === 'v2'
-      ? (key[1] ?? '')
-      : (key[0] ?? '');
-  return issueApiEndpointRegexp.test(String(url));
+function isIssueEndpointUrl(query: {queryKey: readonly unknown[]}) {
+  const url = safeParseQueryKey(query.queryKey)?.url;
+  return url !== undefined && issueApiEndpointRegexp.test(url);
 }
 
 export function useFeedbackCache() {

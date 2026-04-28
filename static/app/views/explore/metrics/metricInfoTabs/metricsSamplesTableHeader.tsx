@@ -119,7 +119,7 @@ function getFieldLabel(field: SampleTableColumnKey): ReactNode {
     [TraceMetricKnownFieldKey.TRACE]: () => t('Trace ID'),
     [TraceMetricKnownFieldKey.METRIC_VALUE]: () => t('Value'),
     [TraceMetricKnownFieldKey.TIMESTAMP]: () => t('Timestamp'),
-    [TraceMetricKnownFieldKey.METRIC_NAME]: () => t('Metric'),
+    [TraceMetricKnownFieldKey.METRIC_NAME]: () => t('Application Metric'),
     [VirtualTableSampleColumnKey.PROJECT_BADGE]: () => t('Project'),
   };
   return fieldLabels[field]?.() ?? null;
