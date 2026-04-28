@@ -9,6 +9,7 @@ from requests.exceptions import Timeout
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -335,3 +336,24 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         assert MockService.return_value.notify_async.call_count == 2
+
+    @with_feature("organizations:sentry-app-webhook-circuit-breaker")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.utils.sentry_apps.webhooks.NotificationService")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.CircuitBreaker")
+    def test_email_failure_records_halt_and_propagates(
+        self, MockBreaker, mock_safe_urlopen, MockService, mock_record
+    ):
+        """If _notify_webhook_disabled raises, the email error is recorded as a
+        halt and propagated directly (circuit_breaker_tracking has already
+        completed by the time we reach the except block)."""
+        self._configure_breaker(MockBreaker, CircuitBreakerState.BROKEN)
+        MockService.has_access.side_effect = RuntimeError("email boom")
+        mock_safe_urlopen.side_effect = WebhookTimeoutError("hard timeout")
+
+        with pytest.raises(RuntimeError, match="email boom"):
+            send_and_save_webhook_request(self.sentry_app, self._make_event())
+
+        assert_halt_metric(mock_record=mock_record, error_msg=RuntimeError("email boom"))

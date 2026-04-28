@@ -15,7 +15,6 @@ from rest_framework import status
 from sentry import features, options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
-from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import GenericNotificationTarget
@@ -110,7 +109,7 @@ def _create_circuit_breaker(
 def _notify_webhook_disabled(
     circuit_breaker: CircuitBreaker,
     sentry_app: SentryApp | RpcSentryApp,
-    organization_context: RpcUserOrganizationContext | None,
+    owner_context: RpcUserOrganizationContext | None,
 ) -> None:
     dedup_ttl = circuit_breaker.broken_state_duration + circuit_breaker.recovery_duration + 60
     client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
@@ -129,27 +128,20 @@ def _notify_webhook_disabled(
     if not email or "@" not in email:
         return
 
-    if organization_context is None:
+    if owner_context is None:
         return
-    organization = organization_context.organization
-
-    # The settings link lives on the OWNER org's developer-settings page (which may be
-    # a different cell from the consumer org). organization_mapping_service is anchored
-    # on control silo and is callable from any silo.
-    owner_mapping = organization_mapping_service.get(organization_id=sentry_app.owner_id)
-    if owner_mapping is None:
-        return
+    owner_org = owner_context.organization
 
     data = SentryAppWebhookDisabled(
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
         webhook_url=sentry_app.webhook_url or "",
         settings_url=absolute_uri(
-            f"/settings/{owner_mapping.slug}/developer-settings/{sentry_app.slug}/"
+            f"/settings/{owner_org.slug}/developer-settings/{sentry_app.slug}/"
         ),
     )
 
-    if not NotificationService.has_access(organization, data.source):
+    if not NotificationService.has_access(owner_org, data.source):
         return
 
     NotificationService(data=data).notify_async(
@@ -265,21 +257,28 @@ def send_and_save_webhook_request(
 
         assert url is not None
         try:
-            organization_context = organization_service.get_organization_by_id(
-                id=app_platform_event.install.organization_id,
+            owner_context = organization_service.get_organization_by_id(
+                id=sentry_app.owner_id,
                 include_projects=False,
                 include_teams=False,
             )
-            circuit_breaker = _create_circuit_breaker(sentry_app, organization_context)
+            circuit_breaker = _create_circuit_breaker(sentry_app, owner_context)
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, org_id, lifecycle):
                 return Response()
 
             with circuit_breaker_tracking(circuit_breaker):
-                response = _send_webhook_request(url, app_platform_event, organization_context)
+                response = _send_webhook_request(url, app_platform_event, owner_context)
 
         except WebhookTimeoutError:
             if circuit_breaker and circuit_breaker.get_state() == CircuitBreakerState.BROKEN:
-                _notify_webhook_disabled(circuit_breaker, sentry_app, organization_context)
+                try:
+                    _notify_webhook_disabled(circuit_breaker, sentry_app, owner_context)
+                except Exception as email_error:
+                    lifecycle.add_extras(
+                        {"reason_str": str(SentryAppWebhookHaltReason.EMAIL_FAILED)}
+                    )
+                    lifecycle.record_halt(halt_reason=email_error)
+                    raise
             lifecycle.record_halt(
                 halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.HARD_TIMEOUT}"
             )
