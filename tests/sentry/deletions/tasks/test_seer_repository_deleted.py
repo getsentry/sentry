@@ -16,7 +16,7 @@ class NotifySeerRepositoryDeletedTest(TestCase):
         self.provider = "integrations:github"
         self.repository_name = "acme/widget"
 
-    @patch("sentry.deletions.tasks.seer.make_seer_request")
+    @patch("sentry.seer.code_review.utils.make_seer_request")
     @patch("sentry.deletions.tasks.seer.logger")
     def test_notifies_seer_via_signed_endpoint(
         self, mock_logger: Any, mock_make_seer_request: Any
@@ -51,7 +51,7 @@ class NotifySeerRepositoryDeletedTest(TestCase):
             },
         )
 
-    @patch("sentry.deletions.tasks.seer.make_seer_request")
+    @patch("sentry.seer.code_review.utils.make_seer_request")
     def test_propagates_seer_errors(self, mock_make_seer_request: Any) -> None:
         mock_make_seer_request.side_effect = RuntimeError("seer unavailable")
 
