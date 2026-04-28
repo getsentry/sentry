@@ -270,7 +270,22 @@ def sync_prebuilt_queries_starred(organization, user_id):
     This ensures that prebuilt queries are starred by default for all users.
     """
     with transaction.atomic(router.db_for_write(ExploreSavedQueryStarred)):
-        prebuilt_query_ids_without_starred_status = (
+        prebuilt_starred = list(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=organization,
+                user_id=user_id,
+                starred=True,
+                explore_saved_query__prebuilt_id__isnull=False,
+            )
+            .order_by("position")
+            .select_related("explore_saved_query")
+        )
+        starred_names = [s.explore_saved_query.name for s in prebuilt_starred]
+        # If the user's prebuilt stars are still in alphabetical order, treat them
+        # as not customized and keep new prebuilts in alphabetical order too.
+        is_default_order = starred_names == sorted(starred_names)
+
+        missing_queries = (
             ExploreSavedQuery.objects.filter(
                 organization=organization,
                 prebuilt_id__isnull=False,
@@ -281,14 +296,15 @@ def sync_prebuilt_queries_starred(organization, user_id):
                     user_id=user_id,
                 ).values_list("explore_saved_query_id", flat=True)
             )
-            .order_by("prebuilt_id")  # Ensures prebuilt queries are starred in the correct order
-            .values_list("id", flat=True)
+            .order_by("name")
         )
-        for prebuilt_query_id in prebuilt_query_ids_without_starred_status:
-            # Not using bulk_create because we need to handle position with insert_starred_query
-            ExploreSavedQueryStarred.objects.insert_starred_query(
-                organization, user_id, ExploreSavedQuery.objects.get(id=prebuilt_query_id)
-            )
+        for query in missing_queries:
+            if is_default_order:
+                ExploreSavedQueryStarred.objects.insert_starred_query_alphabetically(
+                    organization, user_id, query
+                )
+            else:
+                ExploreSavedQueryStarred.objects.insert_starred_query(organization, user_id, query)
 
 
 @extend_schema(tags=["Discover"])
