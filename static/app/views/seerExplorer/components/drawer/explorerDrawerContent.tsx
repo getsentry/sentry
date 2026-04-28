@@ -19,7 +19,6 @@ import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu
 import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {useBlockNavigation} from 'sentry/views/seerExplorer/hooks/useBlockNavigation';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import type {Block} from 'sentry/views/seerExplorer/types';
@@ -44,20 +43,15 @@ export function ExplorerDrawerContent({
   const {closeDrawer} = useDrawer();
 
   const [inputValue, setInputValue] = useState('');
-  const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
   const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const blockEnterHandlers = useRef<
-    Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>
-  >(new Map());
   const userScrolledUpRef = useRef<boolean>(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    setHoveredBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
 
@@ -257,10 +251,7 @@ export function ExplorerDrawerContent({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    if (hoveredBlockIndex !== -1) {
-      setHoveredBlockIndex(-1);
-      textareaRef.current?.focus();
-    }
+    textareaRef.current?.focus();
   };
 
   const handleInputClick = useCallback(() => {
@@ -323,26 +314,6 @@ export function ExplorerDrawerContent({
     blockRefs.current = blockRefs.current.slice(0, blocks.length);
   }, [blocks]);
 
-  // Block keyboard listeners
-  useBlockNavigation({
-    isOpen: true, // Drawer content is always visible when rendered
-    isMinimized: false,
-    focusedBlockIndex: hoveredBlockIndex,
-    blocks,
-    blockRefs,
-    textareaRef,
-    isFileApprovalPending,
-    isQuestionPending,
-    onKeyPress: (blockIndex, key) => {
-      const handler = blockEnterHandlers.current.get(blockIndex);
-      const handled = handler?.(key) ?? false;
-      return handled;
-    },
-    onNavigate: () => {
-      userScrolledUpRef.current = true;
-    },
-  });
-
   // - Deep link effect -------------------------------------------------------
   useSeerExplorerDeepLink({callback: switchToRun});
 
@@ -394,7 +365,6 @@ export function ExplorerDrawerContent({
                 }}
                 block={block}
                 blockIndex={index}
-                isHovered={hoveredBlockIndex === index}
                 runId={runId ?? undefined}
                 getPageReferrer={getPageReferrer}
                 isAwaitingFileApproval={isFileApprovalPending}
@@ -403,15 +373,6 @@ export function ExplorerDrawerContent({
                 readOnly={readOnly}
                 showThinking={showThinking}
                 onNavigate={undefined} // TODO: close drawer on link navigate? useDrawerContentContext
-                onRegisterEnterHandler={handler => {
-                  blockEnterHandlers.current.set(index, handler);
-                }}
-                onMouseEnter={() => {
-                  setHoveredBlockIndex(index);
-                }}
-                onMouseLeave={() => {
-                  setHoveredBlockIndex(-1);
-                }}
               />
             ))}
             {!readOnly &&
