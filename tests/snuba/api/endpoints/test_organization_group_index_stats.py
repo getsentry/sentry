@@ -238,6 +238,69 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert response_data[0]["filtered"]["count"] == "1"
         assert response_data[0]["lifetime"]["count"] == "1"
 
+    def _store_platform_tag_collision_events(self):
+        """Three events in one group, all tagged `platform=XB1`. SDK
+        platform stays at the default (e.g. 'python'). Used to exercise
+        the column-vs-tag name collision."""
+        for i, ts in enumerate(
+            [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]
+        ):
+            event = self.store_event(
+                data={
+                    "event_id": f"{i + 1}" * 32,
+                    "timestamp": ts.isoformat(),
+                    "fingerprint": ["platform-collision-group"],
+                    "tags": {"platform": "XB1"},
+                },
+                project_id=self.project.id,
+            )
+        return event.group
+
+    def test_platform_tag_collision_badge_disagrees_without_option(self) -> None:
+        """Documents today's bug: surfacing matches the tag (3 events
+        come back) but the badge resolves `platform` to the SDK column
+        and reports 0 matches."""
+        group = self._store_platform_tag_collision_events()
+        self.login_as(user=self.user)
+
+        response = self.get_response(query="platform:XB1", groups=[group.id])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["count"] == "3"
+        # Badge disagrees: filter resolves to the SDK `platform` column,
+        # which never holds 'XB1'.
+        assert response.data[0]["filtered"]["count"] == "0"
+
+    def test_platform_tag_collision_badge_agrees_with_option(self) -> None:
+        """With the option on, the badge query uses the same tag-aware
+        resolver as the surfacing query and the badge agrees."""
+        group = self._store_platform_tag_collision_events()
+        self.login_as(user=self.user)
+
+        with self.options({"issues.search.tag_aware_resolver_for_seen_stats": True}):
+            response = self.get_response(query="platform:XB1", groups=[group.id])
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["count"] == "3"
+        # Badge now matches surfacing.
+        assert response.data[0]["filtered"]["count"] == "3"
+
+    def test_explicit_tags_form_works_regardless_of_option(self) -> None:
+        """`tags[platform]:XB1` early-returns in both resolvers, so the
+        badge has always agreed with surfacing for the explicit form.
+        Regression guard."""
+        group = self._store_platform_tag_collision_events()
+        self.login_as(user=self.user)
+
+        for option_value in (False, True):
+            with self.options({"issues.search.tag_aware_resolver_for_seen_stats": option_value}):
+                response = self.get_response(query="tags[platform]:XB1", groups=[group.id])
+            assert response.status_code == 200
+            assert response.data[0]["filtered"]["count"] == "3"
+            assert response.data[0]["count"] == "3"
+
     def test_error_upsampling_with_allowlisted_project(self) -> None:
         """Test that count is upsampled for allowlisted projects in group index stats."""
         with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
