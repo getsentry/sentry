@@ -28,6 +28,41 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
+_CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+
+class CodeModeField(serializers.Field):
+    """Accepts 'off'|'on'|'only' strings, or booleans for backwards compat.
+
+    DRF's CharField rejects raw booleans before the field-level validator
+    runs, so we handle coercion in to_internal_value instead.
+    """
+
+    def to_internal_value(self, data: object) -> str | None:
+        if data is None:
+            return None
+        if data is True:
+            return "on"
+        if data is False:
+            return "off"
+        if isinstance(data, str):
+            lowered = data.lower()
+            if lowered in ("true",):
+                return "on"
+            if lowered in ("false",):
+                return "off"
+            if lowered in _CODE_MODE_VALUES:
+                return lowered
+        raise serializers.ValidationError(
+            f"Invalid value '{data}'. Must be 'off', 'on', 'only', or a boolean."
+        )
+
+    def to_representation(self, value: object) -> str | None:
+        if value is None:
+            return None
+        return str(value)
+
+
 class SeerExplorerChatSerializer(serializers.Serializer):
     query = serializers.CharField(
         required=True,
@@ -56,11 +91,11 @@ class SeerExplorerChatSerializer(serializers.Serializer):
         default=True,
         help_text="Override context engine rollout flag (applies to reasoning platform only).",
     )
-    override_code_mode_enable = serializers.BooleanField(
+    override_code_mode_enable = CodeModeField(
         required=False,
         default=None,
         allow_null=True,
-        help_text="Override code mode tools flag from the frontend toggle.",
+        help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
     )
 
 
@@ -188,11 +223,15 @@ class OrganizationSeerExplorerChatEndpoint(OrganizationEndpoint):
             ) and features.has(
                 "organizations:seer-explorer-chat-coding", organization, actor=request.user
             )
-            enable_code_mode_tools = features.has(
+            has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
             )
-            if override_code_mode_enable is not None and enable_code_mode_tools:
+            if not has_code_mode_feature:
+                enable_code_mode_tools = "off"
+            elif override_code_mode_enable is not None:
                 enable_code_mode_tools = override_code_mode_enable
+            else:
+                enable_code_mode_tools = "on"
             client = SeerExplorerClient(
                 organization,
                 request.user,
