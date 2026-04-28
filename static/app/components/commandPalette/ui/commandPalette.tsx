@@ -1224,7 +1224,15 @@ export const modalCss = (theme: Theme) => {
       border-radius: ${theme.radius.xl};
       border-bottom-right-radius: ${theme.radius.md};
       border-bottom-left-radius: ${theme.radius.md};
+      transform: translateZ(0);
+      backface-visibility: hidden;
       will-change: transform;
+
+      * {
+        -webkit-font-smoothing: auto;
+        -moz-osx-font-smoothing: auto;
+        text-rendering: optimizeLegibility;
+      }
     }
   `;
 };
