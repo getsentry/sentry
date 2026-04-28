@@ -1890,6 +1890,22 @@ class UnfurlTest(TestCase):
         assert args is not None
         assert args["query"].getlist("yAxis") == ["count(span.duration)"]
 
+    def test_unfurl_explore_aggregate_field_takes_precedence_over_visualize(self) -> None:
+        url = (
+            "https://sentry.io/organizations/org1/explore/traces/"
+            "?aggregateField=%7B%22groupBy%22%3A%22gen_ai.tool.name%22%7D"
+            "&aggregateField=%7B%22yAxes%22%3A%5B%22count(span.duration)%22%5D%2C%22chartType%22%3A0%7D"
+            "&visualize=%7B%22chartType%22%3A0%2C%22yAxes%22%3A%5B%22count_unique(user.id)%22%5D%7D"
+            "&project=1&query=user.id%1234&statsPeriod=30d"
+        )
+        link_type, args = match_link(url)
+
+        assert link_type == LinkType.EXPLORE
+        assert args is not None
+        assert args["query"].getlist("yAxis") == ["count(span.duration)"]
+        assert args["query"].getlist("groupBy") == ["gen_ai.tool.name"]
+        assert args["chart_type"] == 0
+
     def test_unfurl_explore_multi_aggregate_uses_first_chart(self) -> None:
         # Two charts: count with chartType=2 (area, first) and avg (second).
         # The unfurl must render only the first chart and not merge avg's
