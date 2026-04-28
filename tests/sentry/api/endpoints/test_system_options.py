@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from django.test import override_settings
 from django.urls import reverse
 
@@ -118,6 +120,33 @@ class SystemOptionsTest(APITestCase):
         response = self.client.put(self.url, {"mail.host": "lolcalhost"})
         assert response.status_code == 200
         assert options.get("mail.host") == "lolcalhost"
+
+    @patch("sentry.api.endpoints.system_options.logger")
+    def test_put_redacts_credential_option_value_in_log(self, mock_logger: MagicMock) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+        response = self.client.put(self.url, {"github-app.webhook-secret": "super-secret-value"})
+        assert response.status_code == 200
+        assert options.get("github-app.webhook-secret") == "super-secret-value"
+
+        mock_logger.info.assert_called_once()
+        args, kwargs = mock_logger.info.call_args
+        assert args[0] == "options.update"
+        assert kwargs["extra"]["option_key"] == "github-app.webhook-secret"
+        assert kwargs["extra"]["option_value"] == "[redacted]"
+
+    @patch("sentry.api.endpoints.system_options.logger")
+    def test_put_does_not_redact_non_secret_option(self, mock_logger: MagicMock) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+        response = self.client.put(self.url, {"system.admin-email": "new_admin@example.com"})
+        assert response.status_code == 200
+
+        mock_logger.info.assert_called_once()
+        args, kwargs = mock_logger.info.call_args
+        assert args[0] == "options.update"
+        assert kwargs["extra"]["option_key"] == "system.admin-email"
+        assert kwargs["extra"]["option_value"] == "new_admin@example.com"
 
     def test_update_channel(self) -> None:
         assert options.get_last_update_channel("auth.allow-registration") is None
