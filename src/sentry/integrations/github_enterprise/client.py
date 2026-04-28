@@ -7,13 +7,19 @@ class GitHubEnterpriseApiClient(GitHubBaseClient):
     integration_name = IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def __init__(self, base_url, integration, app_id, private_key, verify_ssl, org_integration_id):
-        self.base_url = f"https://{base_url}"
+        self._is_ghe_cloud: bool = base_url.endswith(".ghe.com")
+        if self._is_ghe_cloud:
+            self.base_url = f"https://api.{base_url}"
+        else:
+            self.base_url = f"https://{base_url}"
         self.integration = integration
         self.app_id = app_id
         self.private_key = private_key
         super().__init__(verify_ssl=verify_ssl, org_integration_id=org_integration_id)
 
     def build_url(self, path: str) -> str:
+        if self._is_ghe_cloud:
+            return super().build_url(path)
         if path.startswith("/"):
             if path == "/graphql":
                 path = "/api/graphql"

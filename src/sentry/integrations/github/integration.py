@@ -65,7 +65,12 @@ from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError, ApiInvalidRequestError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiInvalidRequestError,
+    ApiPaginationTruncated,
+    IntegrationError,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -262,6 +267,7 @@ class GitHubIntegration(
         page_number_limit: int | None = None,
         accessible_only: bool = False,
         use_cache: bool = False,
+        raise_on_page_limit: bool = False,
     ) -> list[RepositoryInfo]:
         """
         args:
@@ -271,6 +277,10 @@ class GitHubIntegration(
           (which may return repos outside the installation's scope)
         * use_cache - when True, serve repos from a short-lived cache instead
           of re-fetching all pages from GitHub on every call
+        * raise_on_page_limit - when True and GitHub pagination stops at the
+          page_number_limit cap with more data still available, raise
+          ApiPaginationTruncated (partial result attached). Ignored when
+          ``use_cache`` is True.
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -288,23 +298,30 @@ class GitHubIntegration(
                 for i in raw_repos
             ]
 
-        def _get_all_repos():
-            if use_cache:
-                return client.get_repos_cached()
-            return client.get_repos(page_number_limit=page_number_limit)
+        query_lower = query.lower() if query else None
 
-        if not query:
-            all_repos = _get_all_repos()
-            return to_repo_info(r for r in all_repos if not r.get("archived"))
+        def _process(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
+            filtered = (r for r in raw_repos if not r.get("archived"))
+            if query_lower is not None:
+                filtered = (r for r in filtered if query_lower in r["full_name"].lower())
+            return to_repo_info(filtered)
 
-        if accessible_only:
-            all_repos = _get_all_repos()
-            query_lower = query.lower()
-            return to_repo_info(
-                r
-                for r in all_repos
-                if not r.get("archived") and query_lower in r["full_name"].lower()
-            )
+        def _fetch_and_process() -> list[RepositoryInfo]:
+            try:
+                raw = (
+                    client.get_repos_cached()
+                    if use_cache
+                    else client.get_repos(
+                        page_number_limit=page_number_limit,
+                        raise_on_page_limit=raise_on_page_limit,
+                    )
+                )
+            except ApiPaginationTruncated as e:
+                raise ApiPaginationTruncated(_process(e.partial_data)) from e
+            return _process(raw)
+
+        if not query or accessible_only:
+            return _fetch_and_process()
 
         assert not use_cache, "use_cache is not supported with the Search API path"
         full_query = build_repository_query(self.model.metadata, self.model.name, query)

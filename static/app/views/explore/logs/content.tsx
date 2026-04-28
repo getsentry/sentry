@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -19,11 +20,11 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
+import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
-import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {LogsTabOnboarding} from 'sentry/views/explore/logs/logsOnboarding';
@@ -67,13 +68,14 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <LogsQueryParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            source="location"
+          <LogsPageStack
+            flex={1}
+            data-footer-constrained={tableExpando.enabled ? '' : undefined}
+            data-hide-footer={tableExpando.expanded === true ? '' : undefined}
           >
-            <ViewportConstrainedPage
-              constrained={tableExpando.enabled}
-              hideFooter={tableExpando.expanded === true}
+            <LogsQueryParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              source="location"
             >
               <LogsHeader />
               <LogsPageDataProvider allowHighFidelity>
@@ -90,13 +92,25 @@ export default function LogsContent() {
                   />
                 )}
               </LogsPageDataProvider>
-            </ViewportConstrainedPage>
-          </LogsQueryParamsProvider>
+            </LogsQueryParamsProvider>
+          </LogsPageStack>
         </AnalyticsArea>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
+
+const LogsPageStack = styled(Stack)`
+  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
+    &[data-footer-constrained] ~ footer {
+      display: none;
+    }
+  }
+
+  &[data-hide-footer] ~ footer {
+    display: none;
+  }
+`;
 
 const logsFeedbackOptions = {
   messagePlaceholder: t('How can we make logs work better for you?'),

@@ -341,6 +341,25 @@ class GetSentryAppsTest(SentryAppsTest):
             scopes=["org:write"],
         )
 
+    def test_client_secret_is_not_masked_for_token_only_scope(self) -> None:
+        manager_user = self.create_user(email="bleep@example.com")
+        self.create_member(organization=self.organization, user=manager_user, role="manager")
+
+        sentry_app = self.create_sentry_app(
+            name="Boo Far", organization=self.organization, scopes=("org:ci",)
+        )
+
+        self.login_as(manager_user)
+        response = self.get_success_response(qs_params={"status": "unpublished"}, status_code=200)
+        self.assert_response_has_serialized_sentry_app(
+            response=response,
+            sentry_app=sentry_app,
+            organization=self.organization,
+            has_features=True,
+            mask_secret=False,
+            scopes=["org:ci"],
+        )
+
     def test_client_secret_is_masked(self) -> None:
         manager_user = self.create_user(email="bloop@example.com")
         self.create_member(organization=self.organization, user=manager_user, role="manager")
@@ -796,19 +815,19 @@ class PostSentryAppsTest(SentryAppsTest):
         }
 
     def test_create_integration_with_token_only_scopes(self) -> None:
-        """Test that token-only scopes (like project:distribution) can be granted
+        """Test that token-only scopes (like project:distribution and org:ci) can be granted
         even if the user doesn't have them in their role."""
         self.create_project(organization=self.organization)
 
-        # Token-only scopes like project:distribution are not in any user role,
-        # but should still be grantable to integration tokens
+        # Token-only scopes are not in any user role, but should still be
+        # grantable to integration tokens.
         data = self.get_data(
             events=(),
-            scopes=("project:read", "project:distribution"),
+            scopes=("project:read", "project:distribution", "org:ci"),
             isInternal=True,
         )
         response = self.get_success_response(**data, status_code=201)
-        assert response.data["scopes"] == ["project:distribution", "project:read"]
+        assert response.data["scopes"] == ["org:ci", "project:distribution", "project:read"]
 
     def test_create_internal_integration_with_non_globally_unique_name(self) -> None:
         # Internal integration names should only need to be unique within an organization.

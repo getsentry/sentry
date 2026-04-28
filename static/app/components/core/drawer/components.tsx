@@ -229,6 +229,14 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   pointer-events: auto;
   height: 100%;
 
+  /* Extend the panel's background 20px past its right edge so the bounce-in
+     overshoot doesn't briefly expose the page beneath. A box-shadow is used
+     (vs. a pseudo-element) because the panel's own overflow: auto would clip
+     anything positioned outside its bounds. */
+  box-shadow:
+    20px 0 0 ${p => p.theme.tokens.background.overlay},
+    ${p => p.theme.shadow.high};
+
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;
   --drawer-max-width: ${MAX_WIDTH_PERCENT}%;
