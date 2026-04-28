@@ -2,8 +2,8 @@
 !src
 !src/sentry
 !src/sentry/static
-!src/sentry/static/images
-!src/sentry/static/images/logos/**
+!src/sentry/static/sentry/images
+!src/sentry/static/sentry/images/logos/**
 !src/sentry/locale
 !src/sentry/locale/**
 !build-utils
@@ -13,7 +13,6 @@
 !package.json
 !stylelint.config.js
 !tsconfig.json
-!config
 !rspack.config.ts
 !pnpm-lock.yaml
 !tests
