@@ -114,7 +114,7 @@ export function CodeChangesCard({autofix, section}: CodeChangesCardProps) {
                 <Button
                   priority="primary"
                   icon={<IconRefresh />}
-                  onClick={() => startStep('code_changes', runId)}
+                  onClick={() => startStep('code_changes', {runId})}
                 >
                   {t('Re-run')}
                 </Button>

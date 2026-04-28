@@ -3,7 +3,7 @@ import {SentryGlobalSearch} from '@sentry-internal/global-search';
 import {useMutation} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,10 +20,10 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
-import {limitedMetricsSupportPrefixes} from 'sentry/data/platformCategories';
 import {
   IconAdd,
   IconAllProjects,
+  IconBuilding,
   IconCompass,
   IconDashboard,
   IconDiscord,
@@ -48,13 +48,19 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -124,8 +130,11 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
  */
 export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const user = useUser();
   const {projects} = useProjects();
+  const {organizations} = useLegacyStore(OrganizationsStore);
+  const sentryConfig = useLegacyStore(ConfigStore);
   const params = useParams();
   const location = useLocation();
   const {mutateAsync: mutateUserOptions} = useMutateUserOptions();
@@ -178,15 +187,10 @@ export function GlobalCommandPaletteActions() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const hasMetricsSupportedPlatform = projects.some(project =>
-    Array.from(limitedMetricsSupportPrefixes).some(metricsPrefix =>
-      (project.platform || 'unknown').startsWith(metricsPrefix)
-    )
-  );
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
-        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}}>
+        <CMDKAction display={{label: t('Issues'), icon: <IconIssues />}} limit={4}>
           <CMDKAction display={{label: t('Feed')}} to={`${prefix}/issues/`} />
           {Object.values(ISSUE_TAXONOMY_CONFIG)
             .filter(
@@ -228,18 +232,17 @@ export function GlobalCommandPaletteActions() {
           )}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}}>
+        <CMDKAction display={{label: t('Explore'), icon: <IconCompass />}} limit={4}>
           <CMDKAction display={{label: t('Traces')}} to={`${prefix}/explore/traces/`} />
           {organization.features.includes('ourlogs-enabled') && (
             <CMDKAction display={{label: t('Logs')}} to={`${prefix}/explore/logs/`} />
           )}
-          {hasMetricsSupportedPlatform &&
-            organization.features.includes('tracemetrics-enabled') && (
-              <CMDKAction
-                display={{label: t('Metrics')}}
-                to={`${prefix}/explore/metrics/`}
-              />
-            )}
+          {organization.features.includes('tracemetrics-enabled') && (
+            <CMDKAction
+              display={{label: t('Application Metrics')}}
+              to={`${prefix}/explore/metrics/`}
+            />
+          )}
           {organization.features.includes('explore-errors') && (
             <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
           )}
@@ -282,7 +285,7 @@ export function GlobalCommandPaletteActions() {
           ))}
         </CMDKAction>
 
-        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}}>
+        <CMDKAction display={{label: t('Dashboards'), icon: <IconDashboard />}} limit={4}>
           <CMDKAction
             display={{label: t('All Dashboards')}}
             to={`${prefix}/dashboards/`}
@@ -315,6 +318,7 @@ export function GlobalCommandPaletteActions() {
                 label: t('Insights'),
                 icon: <IconGraph type="area" />,
               }}
+              limit={4}
             >
               {!hasInsightsRollout && (
                 <CMDKAction
@@ -368,7 +372,7 @@ export function GlobalCommandPaletteActions() {
           )}
 
         {hasWorkflowEngineUI && (
-          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}}>
+          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
             <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
             <CMDKAction
               display={{label: t('My Monitors')}}
@@ -402,7 +406,7 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         )}
 
-        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}}>
+        <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {getUserOrgNavigationConfiguration()
             .flatMap(section => section.items)
             .sort((a, b) => a.title.localeCompare(b.title))
@@ -421,7 +425,75 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        <CMDKAction display={{label: t('Project Settings'), icon: <IconSettings />}}>
+        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+          <CMDKAction
+            display={{label: t('Switch Organization'), icon: <IconBuilding />}}
+            keywords={[t('organization'), t('change'), t('change organization')]}
+            prompt={t('Select an organization...')}
+            resource={(_query: string, {state}: CMDKResourceContext): CMDKQueryOptions =>
+              // organization.slug and the org slugs list are the meaningful cache keys;
+              // including the full objects would be too costly to serialize.
+              // eslint-disable-next-line @tanstack/query/exhaustive-deps
+              cmdkQueryOptions({
+                queryKey: [
+                  'switch-organization',
+                  organization.slug,
+                  organizations.map(org => org.slug).join(','),
+                  location.pathname,
+                ],
+                queryFn: () => {
+                  const navigateToOrg = (org: (typeof organizations)[number]) => {
+                    const newPath = location.pathname
+                      .replace(
+                        `/organizations/${organization.slug}/`,
+                        `/organizations/${org.slug}/`
+                      )
+                      .replace(
+                        `/settings/${organization.slug}/`,
+                        `/settings/${org.slug}/`
+                      );
+                    const url = resolveRoute(newPath, null, org);
+                    if (url.startsWith('http')) {
+                      window.location.assign(url);
+                    } else {
+                      navigate(url);
+                    }
+                  };
+
+                  return [
+                    {
+                      display: {
+                        label: organization.name,
+                        icon: (
+                          <OrganizationAvatar organization={organization} size={16} />
+                        ),
+                        trailingItem: <Tag variant="muted">{t('Current')}</Tag>,
+                      },
+                      onAction: () => navigateToOrg(organization),
+                    },
+                    ...organizations
+                      .filter(org => org.slug !== organization.slug)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(org => ({
+                        display: {
+                          label: org.name,
+                          icon: <OrganizationAvatar organization={org} size={16} />,
+                        },
+                        onAction: () => navigateToOrg(org),
+                      })),
+                  ];
+                },
+                enabled: state === 'selected',
+                staleTime: Infinity,
+              })
+            }
+          />
+        )}
+
+        <CMDKAction
+          display={{label: t('Project Settings'), icon: <IconSettings />}}
+          limit={4}
+        >
           {visibleProjectSettingsNavItems.map(navItem => {
             const suffix = navItem.path.replace(
               '/settings/:orgId/projects/:projectId/',
@@ -433,6 +505,7 @@ export function GlobalCommandPaletteActions() {
                 display={{label: navItem.title, icon: PROJECT_SETTINGS_ICONS[suffix]}}
                 keywords={navItem.keywords}
                 prompt={t('Select a project...')}
+                limit={4}
                 resource={(
                   _query: string,
                   {state}: CMDKResourceContext
