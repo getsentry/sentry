@@ -18,13 +18,13 @@ export interface SnapshotDiffPair {
   head_image: SnapshotImage;
 }
 
-export interface SnapshotComparisonRunInfo {
+interface SnapshotComparisonRunInfo {
   completed_at?: string;
   duration_ms?: number;
   state?: ComparisonState;
 }
 
-export interface SnapshotApprover {
+interface SnapshotApprover {
   source: 'sentry' | 'github';
   approved_at?: string | null;
   avatar_url?: string | null;
@@ -34,7 +34,7 @@ export interface SnapshotApprover {
   username?: string | null;
 }
 
-export interface SnapshotApprovalInfo {
+interface SnapshotApprovalInfo {
   approvers: SnapshotApprover[];
   status: 'approved' | 'requires_approval';
   is_auto_approved?: boolean;

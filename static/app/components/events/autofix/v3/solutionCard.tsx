@@ -86,7 +86,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
             <Button
               priority="primary"
               icon={<IconRefresh />}
-              onClick={() => startStep('solution', runId)}
+              onClick={() => startStep('solution', {runId})}
             >
               {t('Re-run')}
             </Button>

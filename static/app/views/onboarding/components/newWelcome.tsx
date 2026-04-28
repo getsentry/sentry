@@ -94,7 +94,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   {
     id: OnboardingWelcomeProductId.METRICS,
     icon: <IconGraph size="md" variant="secondary" />,
-    title: t('Metrics'),
+    title: t('Application Metrics'),
     description: t(
       'Track application performance and usage over time with custom metrics.'
     ),

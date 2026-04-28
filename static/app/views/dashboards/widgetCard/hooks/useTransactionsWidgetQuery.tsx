@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {useQueries} from '@tanstack/react-query';
+import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {ApiResult} from 'sentry/api';
@@ -10,6 +10,8 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {
@@ -23,6 +25,7 @@ import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {fetchDataQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
@@ -83,9 +86,13 @@ export function useTransactionsSeriesQuery(
     onDemandControlContext
   );
 
-  // Build query keys for all widget queries
-  const queryKeys = useMemo(() => {
-    const keys = filteredWidget.queries.map((_, queryIndex) => {
+  // Check if organization has the async queue feature
+  const hasQueueFeature = organization.features.includes(
+    'visibility-dashboards-async-queue'
+  );
+
+  const queryResults = useQueries({
+    queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
         queryIndex,
@@ -126,115 +133,94 @@ export function useTransactionsSeriesQuery(
         queryParams.end = getUtcDateString(queryParams.end);
       }
 
-      // Build the API query key for events-stats endpoint
-      return [
-        getApiUrl('/organizations/$organizationIdOrSlug/events-stats/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET' as const,
-          query: queryParams,
-        },
-      ] satisfies ApiQueryKey;
-    });
-    return keys;
-  }, [
-    filteredWidget,
-    organization,
-    pageFilters,
-    isMEPEnabled,
-    useOnDemandMetrics,
-    widgetInterval,
-  ]);
+      return queryOptions({
+        ...apiOptions.as<TransactionsSeriesResponse>()(
+          '/organizations/$organizationIdOrSlug/events-stats/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            method: 'GET' as const,
+            query: queryParams,
+            staleTime: getWidgetStaleTime(pageFilters),
+          }
+        ),
+        queryFn: (context): Promise<ApiResponse<TransactionsSeriesResponse>> => {
+          // For on-demand metrics, we need to use a special request function
+          if (useOnDemandMetrics) {
+            const onDemandRequestData = getSeriesRequestData(
+              filteredWidget,
+              queryIndex,
+              organization,
+              pageFilters,
+              DiscoverDatasets.METRICS_ENHANCED,
+              getReferrer(filteredWidget.displayType),
+              widgetInterval
+            );
 
-  // Create stable queryFn that uses queue
-  const createQueryFn = useCallback(
-    (queryIndex: number) =>
-      async (context: any): Promise<ApiResult<TransactionsSeriesResponse>> => {
-        // For on-demand metrics, we need to use a special request function
-        if (useOnDemandMetrics) {
-          const requestData = getSeriesRequestData(
-            filteredWidget,
-            queryIndex,
-            organization,
-            pageFilters,
-            DiscoverDatasets.METRICS_ENHANCED,
-            getReferrer(filteredWidget.displayType),
-            widgetInterval
-          );
+            onDemandRequestData.queryExtras = {
+              ...onDemandRequestData.queryExtras,
+              dataset: DiscoverDatasets.METRICS_ENHANCED,
+            };
 
-          requestData.queryExtras = {
-            ...requestData.queryExtras,
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
-          };
+            const toApiResponse = (
+              result: ApiResult<TransactionsSeriesResponse>
+            ): ApiResponse<TransactionsSeriesResponse> => ({
+              json: result[0],
+              headers: {},
+            });
 
+            if (queue) {
+              return new Promise((resolve, reject) => {
+                const fetchFnRef = {
+                  current: () =>
+                    doOnDemandMetricsRequest(
+                      context.meta?.api,
+                      onDemandRequestData,
+                      filteredWidget.widgetType
+                    )
+                      .then(toApiResponse)
+                      .then(resolve, reject),
+                };
+                queue.addItem({fetchDataRef: fetchFnRef});
+              });
+            }
+
+            return doOnDemandMetricsRequest(
+              context.meta?.api,
+              onDemandRequestData,
+              filteredWidget.widgetType
+            ).then(toApiResponse);
+          }
+
+          // Standard request flow
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
                 current: () =>
-                  doOnDemandMetricsRequest(
-                    context.meta?.api,
-                    requestData,
-                    filteredWidget.widgetType
-                  ).then(resolve, reject),
+                  apiFetch<TransactionsSeriesResponse>(context).then(resolve, reject),
               };
               queue.addItem({fetchDataRef: fetchFnRef});
             });
           }
 
-          return doOnDemandMetricsRequest(
-            context.meta?.api,
-            requestData,
-            filteredWidget.widgetType
-          );
-        }
-
-        // Standard request flow
-        if (queue) {
-          return new Promise((resolve, reject) => {
-            const fetchFnRef = {
-              current: () =>
-                fetchDataQuery<TransactionsSeriesResponse>(context).then(resolve, reject),
-            };
-            queue.addItem({fetchDataRef: fetchFnRef});
-          });
-        }
-
-        // Fallback: call directly if queue not available
-        return fetchDataQuery<TransactionsSeriesResponse>(context);
-      },
-    [useOnDemandMetrics, filteredWidget, organization, pageFilters, queue, widgetInterval]
-  );
-
-  // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
-  const queryResults = useQueries({
-    queries: queryKeys.map((queryKey, queryIndex) => ({
-      queryKey,
-      queryFn: createQueryFn(queryIndex),
-      staleTime: getWidgetStaleTime(pageFilters),
-      enabled,
-      // Retry on 429 status codes up to 10 times, unless queue handles it
-      retry: hasQueueFeature
-        ? false
-        : (failureCount: number, error: any) => {
-            // Retry up to 10 times on rate limit errors
-            if (error?.status === 429 && failureCount < 10) {
-              return true;
-            }
-            return false;
-          },
-      retryDelay: getRetryDelay,
-      placeholderData: (previousData: unknown) => previousData,
-    })),
+          return apiFetch<TransactionsSeriesResponse>(context);
+        },
+        enabled,
+        retry: hasQueueFeature
+          ? false
+          : (failureCount, error) => {
+              return (
+                error instanceof RequestError && error.status === 429 && failureCount < 10
+              );
+            },
+        retryDelay: getRetryDelay,
+        placeholderData: keepPreviousData,
+      });
+    }),
   });
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
-    const allHaveData = queryResults.every(q => q?.data?.[0]);
+    const allHaveData = queryResults.every(q => q?.data);
     const errorMessage = queryResults.find(q => q?.error)?.error?.message;
 
     if (!allHaveData || isFetching) {
@@ -250,11 +236,11 @@ export function useTransactionsSeriesQuery(
     const rawData: TransactionsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
-      if (!q?.data?.[0]) {
+      if (!q?.data) {
         return;
       }
 
-      const responseData = q.data[0];
+      const responseData = q.data;
       rawData[requestIndex] = responseData;
 
       const transformedResult = TransactionsConfig.transformSeries!(

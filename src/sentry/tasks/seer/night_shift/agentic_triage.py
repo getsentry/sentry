@@ -18,7 +18,10 @@ from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
     priority_label,
 )
-from sentry.tasks.seer.night_shift.triage_tools import get_event_details_agentic_triage
+from sentry.tasks.seer.night_shift.triage_tools import (
+    get_event_details_agentic_triage,
+    get_issue_details_agentic_triage,
+)
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
@@ -73,7 +76,10 @@ def _triage_candidates(
             category_value=f"org-{organization.id}",
             intelligence_level="high",
             reasoning_effort="high",
-            custom_tools=[get_event_details_agentic_triage],
+            custom_tools=[
+                get_event_details_agentic_triage,
+                get_issue_details_agentic_triage,
+            ],
         )
 
         agent_run_id = client.start_run(
@@ -224,6 +230,12 @@ def _build_triage_prompt(
         When fetching event data for an issue, always use the `get_event_details_agentic_triage`
         tool instead of `get_event_details`. It returns the same data in a cleaner,
         more readable format tuned for triage.
+
+        Similarly, when fetching issue-level metadata, always use the
+        `get_issue_details_agentic_triage` tool instead of `get_issue_details`.
+        It returns the header, tag distribution, and recent human activity in a
+        compact markdown format. Do not rely on it for stacktraces — call
+        `get_event_details_agentic_triage` for that.
 
         Before recording any verdict, you MUST read the relevant application code.
         Surface reading of the error message and stacktrace is not enough — many
