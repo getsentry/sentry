@@ -147,8 +147,8 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert response.status_code == 204
         seer_repos = list(SeerProjectRepository.objects.filter(project=self.project))
         assert len(seer_repos) == 1
-        assert seer_repos[0].branch_name in ("", None)
-        assert seer_repos[0].instructions in ("", None)
+        assert seer_repos[0].branch_name == ""
+        assert seer_repos[0].instructions == ""
 
     def test_post_with_automation_handoff(self) -> None:
         """Test that POST request correctly handles automation_handoff field"""
@@ -187,6 +187,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 123)
+        self.project.update_option("sentry:seer_automation_handoff_auto_create_pr", True)
 
         request_data = {
             "repositories": [
@@ -209,6 +210,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert self.project.get_option("sentry:seer_automation_handoff_point") is None
         assert self.project.get_option("sentry:seer_automation_handoff_target") is None
         assert self.project.get_option("sentry:seer_automation_handoff_integration_id") is None
+        assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     def test_post_with_invalid_automation_handoff_target(self) -> None:
         """Test that POST request fails with invalid target value"""
@@ -258,6 +260,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
     def test_post_with_auto_create_pr_in_handoff_config(self) -> None:
         """Test that POST request correctly handles auto_create_pr in automation_handoff"""
+        # Request data with automation_handoff including auto_create_pr
         request_data = {
             "repositories": [
                 {
@@ -325,7 +328,6 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         response = self.client.post(self.url, data=request_data)
 
         assert response.status_code == 204
-        # auto_create_pr defaults to False, which the helper persists by deleting the option.
         assert self.project.get_option("sentry:seer_automation_handoff_auto_create_pr") is False
 
     def test_post_validates_repository_exists_in_organization(self) -> None:
