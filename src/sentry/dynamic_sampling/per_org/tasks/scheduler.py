@@ -21,6 +21,7 @@ from sentry.dynamic_sampling.per_org.tasks.steps.outcomes_volume import (
 from sentry.dynamic_sampling.per_org.tasks.steps.recalibration import apply_recalibration
 from sentry.dynamic_sampling.per_org.tasks.steps.sliding_window import apply_sliding_window
 from sentry.dynamic_sampling.per_org.tasks.telemetry import (
+    SCHEDULER_BEAT_ORG_STATUS_METRIC,
     SCHEDULER_BEAT_STATUS_METRIC,
     TelemetryStatus,
     emit_status,
@@ -67,8 +68,9 @@ def schedule_per_org_calculations() -> None:
         run_calculations_per_org_task.apply_async(args=(org.id,))
         dispatched += 1
 
-    emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.DISPATCHED, amount=dispatched)
-    emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.ROLLOUT_EXCLUDED, amount=skipped)
+    emit_status(SCHEDULER_BEAT_STATUS_METRIC, TelemetryStatus.COMPLETED)
+    emit_status(SCHEDULER_BEAT_ORG_STATUS_METRIC, TelemetryStatus.DISPATCHED, amount=dispatched)
+    emit_status(SCHEDULER_BEAT_ORG_STATUS_METRIC, TelemetryStatus.ROLLOUT_EXCLUDED, amount=skipped)
 
 
 @instrumented_task(

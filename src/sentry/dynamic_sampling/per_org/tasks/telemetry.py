@@ -15,6 +15,7 @@ F = TypeVar("F", bound=Callable[..., object])
 METRIC_PREFIX = "dynamic_sampling"
 
 SCHEDULER_BEAT_STATUS_METRIC = "dynamic_sampling.schedule_per_org_calculations.status"
+SCHEDULER_BEAT_ORG_STATUS_METRIC = "dynamic_sampling.schedule_per_org_calculations.org_status"
 SCHEDULER_BUCKET_STATUS_METRIC = "dynamic_sampling.schedule_per_org_calculations_bucket.status"
 SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
