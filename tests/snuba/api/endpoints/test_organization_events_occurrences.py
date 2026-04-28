@@ -510,3 +510,84 @@ class OrganizationEventsOccurrencesDatasetEndpointTest(
         assert group_sql_hits == 1, [
             q["sql"] for q in ctx.captured_queries if Group._meta.db_table in q["sql"]
         ]
+
+    def test_eap_occurrence_stores_exception_stack_as_array_attributes(self) -> None:
+        expected_filenames = ["sentry/web/urls.py", "django/views/base.py"]
+        expected_http_url = "https://example.com/items/123"
+        event_id = uuid.uuid4().hex
+        trace_id = uuid.uuid4().hex
+        group = self.create_group(project=self.project)
+        occ = self.create_eap_occurrence(
+            event_id=event_id,
+            group_id=group.id,
+            trace_id=trace_id,
+            project=self.project,
+            attributes={
+                "fingerprint": ["exception-stack-array"],
+                "request": {"url": expected_http_url},
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "bad value",
+                            "mechanism": {"type": "generic", "handled": True},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "/app/sentry/web/urls.py",
+                                        "filename": "sentry/web/urls.py",
+                                        "module": "sentry.web.urls",
+                                        "function": "dispatch",
+                                        "in_app": True,
+                                        "lineno": 45,
+                                        "colno": 12,
+                                    },
+                                    {
+                                        "abs_path": "/usr/lib/django/views/base.py",
+                                        "filename": "django/views/base.py",
+                                        "module": "django.views.base",
+                                        "function": "handler",
+                                        "in_app": False,
+                                        "lineno": 200,
+                                        "colno": 0,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+        )
+        expected_col_nums = ["12", "0"]
+        assert occ.attributes["http_url"].WhichOneof("value") == "string_value"
+        assert occ.attributes["http_url"].string_value == expected_http_url
+
+        assert "frame_filenames" in occ.attributes
+        filenames_attr = occ.attributes["frame_filenames"]
+        assert filenames_attr.WhichOneof("value") == "array_value"
+        decoded_filenames = [
+            v.string_value
+            for v in filenames_attr.array_value.values
+            if v.WhichOneof("value") == "string_value"
+        ]
+        assert decoded_filenames == expected_filenames
+
+        self.store_eap_items([occ])
+
+        response = self.request_with_feature_flag(
+            {
+                # stack.filename -> frame_filenames (array); http.url -> http_url (string)
+                "field": ["id", "stack.filename", "http.url", "stack.colno"],
+                "statsPeriod": "1h",
+                "project": [self.project.id],
+            }
+        )
+        data = response.data.get("data", [])
+        assert len(data) == 1
+        assert data[0]["id"] == event_id
+
+        api_fn = data[0].get("stack.filename")
+        assert api_fn == expected_filenames
+        assert data[0].get("http.url") == expected_http_url
+        # EAP converts all non-string arrays to strings.
+        assert data[0].get("stack.colno") == expected_col_nums
