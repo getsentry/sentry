@@ -111,7 +111,13 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
     },
     onSuccess: data => {
       addSuccessMessage(t('Saved'));
-      setApiQueryData(queryClient, getMemberQueryKey(organization.slug, member.id), data);
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+      setApiQueryData<Member>(
+        queryClient,
+        getMemberQueryKey(organization.slug, member.id),
+        data
+      );
     },
     onError: error => {
       addErrorMessage(
@@ -132,7 +138,9 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
       onSuccess: data => {
         addSuccessMessage(t('Sent invite!'));
 
-        setApiQueryData(
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+        setApiQueryData<Member>(
           queryClient,
           getMemberQueryKey(organization.slug, member.id),
           data

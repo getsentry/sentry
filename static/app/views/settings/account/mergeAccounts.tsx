@@ -84,7 +84,13 @@ function MergeAccounts() {
     onSuccess: data => {
       addSuccessMessage(t('Accounts merged!'));
       setSelectedUserIds([]);
-      setApiQueryData(queryClient, makeMergeAccountsEndpointKey(), data);
+      // Will be fixed soon when we get rid of setApiQueryData.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+      setApiQueryData<UserWithOrganizations[]>(
+        queryClient,
+        makeMergeAccountsEndpointKey(),
+        data
+      );
     },
     onError: (err: RequestError) => {
       if (err.responseJSON && !('raw' in err.responseJSON)) {

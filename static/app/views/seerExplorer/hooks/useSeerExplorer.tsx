@@ -181,7 +181,9 @@ export const useSeerExplorer = () => {
       setOptimistic(null);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
-        setApiQueryData(
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+        setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           makeErrorSeerExplorerData('An error occurred')
@@ -229,7 +231,10 @@ export const useSeerExplorer = () => {
       setWaitingForInterrupt(false);
       if (params.runId !== null) {
         // API data is disabled for null runId (new runs).
-        setApiQueryData(
+
+        // Will be fixed soon when we get rid of setApiQueryData.
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+        setApiQueryData<SeerExplorerResponse>(
           queryClient,
           makeSeerExplorerQueryKey(params.orgSlug, params.runId),
           makeErrorSeerExplorerData('An error occurred')

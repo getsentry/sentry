@@ -47,7 +47,9 @@ export default function ProjectKeyDetails() {
   );
 
   function onDataChange(data: ProjectKey) {
-    setApiQueryData(
+    // Will be fixed soon when we get rid of setApiQueryData.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
+    setApiQueryData<ProjectKey>(
       queryClient,
       [
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
