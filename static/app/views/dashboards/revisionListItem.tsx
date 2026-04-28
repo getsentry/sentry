@@ -15,7 +15,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import type {DashboardRevision} from './hooks/useDashboardRevisions';
 import {useDashboardRevisionDetails} from './hooks/useDashboardRevisions';
-import {typeIcons} from './widgetBuilder/components/typeSelector';
+import {DISPLAY_TYPE_ICONS} from './widgetBuilder/components/typeSelector';
 import type {WidgetChange} from './dashboardRevisionsDiff';
 import {diffFilters, diffWidgets, formatProjectIds} from './dashboardRevisionsDiff';
 import type {DashboardDetails} from './types';
@@ -275,7 +275,7 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
             flexShrink={0}
             style={{color: theme.tokens.content.secondary}}
           >
-            {typeIcons[widget.displayType] ?? <IconGraph />}
+            {DISPLAY_TYPE_ICONS[widget.displayType] ?? <IconGraph />}
           </Flex>
           <Text
             bold
