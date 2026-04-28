@@ -68,27 +68,23 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
         }
         assert "dateCreated" in data
 
-    def test_returns_null_avatar_url_for_gravatar_type(self) -> None:
+    def test_returns_gravatar_avatar_type(self) -> None:
         self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.GRAVATAR)
         self._create_revision()
         with self.feature("organizations:dashboards-revisions"):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
-        created_by = response.data[0]["createdBy"]
-        assert created_by["avatarType"] == "gravatar"
-        assert created_by["avatarUrl"] is None
+        assert response.data[0]["createdBy"]["avatarType"] == "gravatar"
 
-    def test_returns_upload_avatar_url_for_upload_type(self) -> None:
-        avatar = self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.UPLOAD)
+    def test_returns_upload_avatar_type(self) -> None:
+        self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.UPLOAD)
         self._create_revision()
         with self.feature("organizations:dashboards-revisions"):
             response = self.client.get(self.url)
 
         assert response.status_code == 200
-        created_by = response.data[0]["createdBy"]
-        assert created_by["avatarType"] == "upload"
-        assert created_by["avatarUrl"] == avatar.absolute_url()
+        assert response.data[0]["createdBy"]["avatarType"] == "upload"
 
     def test_returns_revisions_newest_first(self) -> None:
         first = self._create_revision(title="First")

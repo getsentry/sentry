@@ -720,13 +720,12 @@ class DashboardRevisionSerializer(Serializer):
         created_by = attrs.get("created_by")
         if created_by:
             avatar = created_by.get("avatar") or {}
-            avatar_type = avatar.get("avatarType")
             created_by_data: dict[str, Any] | None = {
                 "id": created_by["id"],
                 "name": created_by["name"],
                 "email": created_by["email"],
-                "avatarType": avatar_type,
-                "avatarUrl": avatar.get("avatarUrl") if avatar_type == "upload" else None,
+                "avatarType": avatar.get("avatarType"),
+                "avatarUrl": avatar.get("avatarUrl"),
             }
         else:
             created_by_data = None
