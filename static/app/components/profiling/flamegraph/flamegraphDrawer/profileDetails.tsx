@@ -222,7 +222,7 @@ function TransactionDeviceDetails({
       {
         key: 'version',
         label: t('OS Version'),
-        value: profileMetadata.deviceOSVersion,
+        value: transactionSpan[SpanFields.OS_VERSION] || profileMetadata.deviceOSVersion,
       },
       {
         key: 'locale',

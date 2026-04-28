@@ -79,6 +79,7 @@ export enum SpanFields {
   PRECISE_START_TS = 'precise.start_ts',
   PRECISE_FINISH_TS = 'precise.finish_ts',
   OS_NAME = 'os.name',
+  OS_VERSION = 'os.version',
   THREAD_ID = 'thread.id',
   COMMAND = 'command',
   REQUEST_METHOD = 'request.method',
@@ -339,6 +340,7 @@ type NonNullableStringFields =
   | SpanFields.RELEASE
   | SpanFields.ENVIRONMENT
   | SpanFields.OS_NAME
+  | SpanFields.OS_VERSION
   | SpanFields.SPAN_STATUS_CODE
   | SpanFields.SPAN_AI_PIPELINE_GROUP
   | SpanFields.PROJECT

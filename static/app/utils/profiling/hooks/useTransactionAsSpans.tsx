@@ -58,6 +58,7 @@ export function useTransactionAsSpans({
         SpanFields.RELEASE,
         SpanFields.ENVIRONMENT,
         SpanFields.OS_NAME,
+        SpanFields.OS_VERSION,
         SpanFields.DEVICE_MODEL,
         SpanFields.DEVICE_MANUFACTURER,
       ],
