@@ -2,6 +2,13 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
+jest.mock('@react-aria/utils', () => ({
+  ...jest.requireActual('@react-aria/utils'),
+  isMac: jest.fn(() => false),
+}));
+
+const {isMac} = jest.requireMock<{isMac: jest.Mock}>('@react-aria/utils');
+
 function keyToKey(k: string): string {
   return k;
 }
@@ -331,5 +338,53 @@ describe('useHotkeys', () => {
     });
 
     expect(callback).toHaveBeenCalled();
+  describe('mod modifier', () => {
+    afterEach(() => {
+      isMac.mockReturnValue(false);
+    });
+
+    it('matches command on macOS', () => {
+      isMac.mockReturnValue(true);
+      const callback = jest.fn();
+
+      renderHook(p => useHotkeys(p), {
+        initialProps: [{match: 'mod+k', callback}],
+      });
+
+      events.keydown!(makeKeyEventFixture('k', {metaKey: true}));
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      events.keydown!(makeKeyEventFixture('k', {ctrlKey: true}));
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('matches control on non-mac platforms', () => {
+      isMac.mockReturnValue(false);
+      const callback = jest.fn();
+
+      renderHook(p => useHotkeys(p), {
+        initialProps: [{match: 'mod+k', callback}],
+      });
+
+      events.keydown!(makeKeyEventFixture('k', {ctrlKey: true}));
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      events.keydown!(makeKeyEventFixture('k', {metaKey: true}));
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects extra non-mod modifiers', () => {
+      // mod+k on Mac canonicalizes to command+k; pressing command+ctrl+k
+      // should NOT fire because ctrl is an unused modifier.
+      isMac.mockReturnValue(true);
+      const callback = jest.fn();
+
+      renderHook(p => useHotkeys(p), {
+        initialProps: [{match: 'mod+k', callback}],
+      });
+
+      events.keydown!(makeKeyEventFixture('k', {metaKey: true, ctrlKey: true}));
+      expect(callback).not.toHaveBeenCalled();
+    });
   });
 });
