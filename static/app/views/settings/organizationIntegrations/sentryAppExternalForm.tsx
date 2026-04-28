@@ -132,6 +132,16 @@ function cloneFieldGroups(fieldGroups: FieldGroups): FieldGroups {
   };
 }
 
+function useSerializedValueMemo<T>(value: T, serializedValue: string): T {
+  const ref = useRef<{serializedValue: string; value: T} | null>(null);
+
+  if (ref.current?.serializedValue !== serializedValue) {
+    ref.current = {serializedValue, value};
+  }
+
+  return ref.current.value;
+}
+
 function getAllSchemaFields(fieldGroups: FieldGroups) {
   return [...(fieldGroups.required_fields ?? []), ...(fieldGroups.optional_fields ?? [])];
 }
@@ -258,25 +268,24 @@ export function SentryAppExternalForm({
   const serializedExtraFields = JSON.stringify(extraFields ?? {});
   const serializedExtraRequestBody = JSON.stringify(extraRequestBody ?? {});
   const serializedResetValues = JSON.stringify(resetValues ?? {});
-  const serializedResolvedFieldGroups = JSON.stringify(
-    cloneSchemaConfig(config, getFieldDefault)
-  );
+  const nextResolvedFieldGroups = cloneSchemaConfig(config, getFieldDefault);
+  const serializedResolvedFieldGroups = JSON.stringify(nextResolvedFieldGroups);
 
-  const normalizedExtraFields = useMemo(
-    () => JSON.parse(serializedExtraFields) as Record<string, unknown>,
-    [serializedExtraFields]
+  const normalizedExtraFields = useSerializedValueMemo<Record<string, unknown>>(
+    extraFields ?? {},
+    serializedExtraFields
   );
-  const normalizedExtraRequestBody = useMemo(
-    () => JSON.parse(serializedExtraRequestBody) as Record<string, unknown>,
-    [serializedExtraRequestBody]
+  const normalizedExtraRequestBody = useSerializedValueMemo<Record<string, unknown>>(
+    extraRequestBody ?? {},
+    serializedExtraRequestBody
   );
-  const normalizedResetValues = useMemo(
-    () => JSON.parse(serializedResetValues) as ResetValues,
-    [serializedResetValues]
+  const normalizedResetValues = useSerializedValueMemo<ResetValues | undefined>(
+    resetValues,
+    serializedResetValues
   );
-  const resolvedFieldGroups = useMemo(
-    () => JSON.parse(serializedResolvedFieldGroups) as FieldGroups,
-    [serializedResolvedFieldGroups]
+  const resolvedFieldGroups = useSerializedValueMemo(
+    nextResolvedFieldGroups,
+    serializedResolvedFieldGroups
   );
 
   const [fieldGroups, setFieldGroups] = useState<FieldGroups>(() =>
