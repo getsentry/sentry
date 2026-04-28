@@ -59,7 +59,7 @@ import {SubscribeAction} from 'sentry/views/issueDetails/actions/subscribeAction
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
-import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
@@ -230,11 +230,11 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           }
           onComplete?.();
           queryClient.invalidateQueries({
-            queryKey: makeFetchGroupQueryKey({
+            queryKey: groupApiOptions({
               organizationSlug: organization.slug,
               groupId: group.id,
               environments,
-            }),
+            }).queryKey,
           });
         },
       }

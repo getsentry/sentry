@@ -33,6 +33,7 @@ import {
   useQueryParamsTitle,
 } from 'sentry/views/explore/queryParams/context';
 import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
+import {SpansCommandPaletteActions} from 'sentry/views/explore/spans/spansCommandPaletteActions';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent, SpansTabOnboarding} from 'sentry/views/explore/spans/spansTab';
 import {
@@ -85,6 +86,7 @@ function ExploreContentInner() {
 
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
+      <SpansCommandPaletteActions />
       <PageFiltersContainer maxPickableDays={datePageFilterProps.maxPickableDays}>
         <AnalyticsArea name="explore.spans">
           <Stack flex={1}>

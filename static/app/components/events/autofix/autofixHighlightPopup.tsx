@@ -21,7 +21,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {FlippedReturnIcon} from 'sentry/components/events/autofix/insights/autofixInsightCard';
 import {
-  makeAutofixQueryKey,
+  autofixApiOptions,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -91,10 +91,10 @@ function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {
@@ -132,10 +132,10 @@ function useCloseCommentThread({groupId, runId}: {groupId: string; runId: string
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
     },
     onError: () => {
@@ -177,10 +177,10 @@ function useRethinkWithCommentThread({groupId, runId}: {groupId: string; runId: 
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, true),
+        queryKey: autofixApiOptions(orgSlug, groupId, true).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
+        queryKey: autofixApiOptions(orgSlug, groupId, false).queryKey,
       });
       addLoadingMessage(t('Rethinking based on this thread...'));
     },
