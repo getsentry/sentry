@@ -3763,14 +3763,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Bug fix for prev/next event navigation
-register(
-    "eventstore.adjacent_event_ids_apply_query_conditions",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Demo mode
 register(
     "demo-mode.enabled",
