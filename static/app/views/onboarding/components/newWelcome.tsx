@@ -1,11 +1,8 @@
 import {useEffect} from 'react';
 import {motion, type MotionProps} from 'framer-motion';
 
-import IllustrationBug from 'sentry-images/spot/seer-config-bug-1.svg';
-
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -44,23 +41,18 @@ const STAGGER_CONTAINER: MotionProps = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',
-  variants: {
-    initial: {},
-    animate: {
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.1,
-      },
-    },
-    exit: {},
+  transition: {
+    staggerChildren: 0.125,
+    delayChildren: 0.075,
+    duration: 0.25,
+    ease: 'easeOut',
   },
-};
-
-const STAGGER_CHILDREN = {
-  initial: {},
-  animate: {
-    transition: {
-      staggerChildren: 0.04,
+  variants: {
+    exit: {
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.0125,
+      },
     },
   },
 };
@@ -120,7 +112,7 @@ const PRODUCT_OPTIONS: ProductOption[] = [
   {
     id: OnboardingWelcomeProductId.SEER,
     icon: <IconSeer size="md" variant="secondary" />,
-    title: t('Seer: AI Debugging Agent'),
+    title: t('Seer'),
     description: t(
       'Catch breaking changes, automatically root cause issues in production, and fix what you missed.'
     ),
@@ -149,37 +141,23 @@ export function NewWelcomeUI(props: StepProps) {
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
-        {hasScmOnboarding ? null : <WelcomeBackgroundNewUi />}
-        <Stack gap="2xl" align="center">
-          <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM}>
+        <WelcomeBackgroundNewUi />
+        <Stack gap="3xl" align={hasScmOnboarding ? 'start' : 'center'} width="100%">
+          <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
-              <Stack gap="2xl" align="center">
-                <motion.div
-                  variants={{
-                    initial: {
-                      opacity: 0,
-                      scale: 0.9,
-                    },
-                    animate: {
-                      opacity: 1,
-                      scale: 1,
-                      transition: {duration: 0.5},
-                    },
-                    exit: {y: -120, opacity: 0},
-                  }}
-                  transition={{duration: 0.9}}
-                >
-                  <Image src={IllustrationBug} alt="" width="200px" />
-                </motion.div>
-                <Heading as="h2" size="4xl" align="center">
+              <Stack gap="lg">
+                <Heading as="h2" size="4xl">
                   <Text as="span" bold>
-                    {t('Your code is probably broken.')}
+                    {t('Code breaks.')}
                   </Text>
                   <br />
                   <Text as="span" bold>
-                    {t('Let’s fix it faster.')}
+                    {t('We’ll help you fix it faster')}
                   </Text>
                 </Heading>
+                <Text variant="muted" size="xl" density="comfortable">
+                  {t('Monitor, debug, and fix your code, all in one place.')}
+                </Text>
               </Stack>
             ) : (
               <Flex direction="column" gap="sm" paddingBottom="2xl">
@@ -223,8 +201,12 @@ export function NewWelcomeUI(props: StepProps) {
 
           <MotionGrid
             columns={{xs: '1fr', md: 'repeat(3, 1fr)'}}
-            gap="lg"
-            variants={STAGGER_CHILDREN}
+            gap="3xl"
+            {...ONBOARDING_WELCOME_STAGGER_ITEM}
+            border="muted"
+            background="secondary"
+            radius="lg"
+            padding="2xl"
           >
             {PRODUCT_OPTIONS.map(product => (
               <NewWelcomeProductCard key={product.id} product={product} />
@@ -238,7 +220,7 @@ export function NewWelcomeUI(props: StepProps) {
                 onClick={handleComplete}
                 data-test-id="onboarding-welcome-start"
               >
-                {t('Get started')}
+                {t('Let’s get started')}
               </Button>
             </MotionContainer>
           ) : (

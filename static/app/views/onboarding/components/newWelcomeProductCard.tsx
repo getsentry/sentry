@@ -5,7 +5,6 @@ import {motion} from 'framer-motion';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {ONBOARDING_WELCOME_STAGGER_ITEM} from 'sentry/views/onboarding/consts';
 import {OnboardingWelcomeProductId} from 'sentry/views/onboarding/types';
 
 export interface ProductOption {
@@ -20,15 +19,7 @@ interface NewWelcomeProductCardProps {
   product: ProductOption;
 }
 
-const CardContainer = styled(Container)<{seer?: boolean}>`
-  ${p =>
-    p.seer &&
-    `
-    @media (min-width: ${p.theme.breakpoints.md}) {
-      grid-column: span 2;
-    }
-  `}
-`;
+const CardContainer = styled(Container)<{seer?: boolean}>``;
 
 const MotionCardContainer = motion.create(CardContainer);
 
@@ -37,22 +28,15 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
   const consideredSeerCard = id === OnboardingWelcomeProductId.SEER;
 
   return (
-    <MotionCardContainer
-      {...ONBOARDING_WELCOME_STAGGER_ITEM}
-      border="muted"
-      radius="lg"
-      padding="xl"
-      background="primary"
-      seer={consideredSeerCard}
-    >
+    <MotionCardContainer seer={consideredSeerCard}>
       <Grid
         columns="min-content 1fr"
         rows="min-content min-content"
-        gap="xs lg"
+        gap="md"
         align="center"
         areas={`
           "cell1 cell2"
-          ". cell4"
+          "cell4 cell4"
         `}
       >
         <Flex area="cell1" align="center">
@@ -60,7 +44,7 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
         </Flex>
         <Flex area="cell2" gap="md">
           <Container>
-            <Text bold size="lg" density="comfortable">
+            <Text bold size="md" density="comfortable">
               {title}
             </Text>
           </Container>
@@ -70,7 +54,7 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
           <Container>
             <Text
               as="p"
-              variant="muted"
+              variant="secondary"
               size="md"
               density="comfortable"
               textWrap="pretty"
