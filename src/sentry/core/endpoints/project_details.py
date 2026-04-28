@@ -115,12 +115,15 @@ class ProjectMemberSerializer(serializers.Serializer):
     preprodSnapshotStatusChecksEnabled = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnAdded = serializers.BooleanField(required=False)
     preprodSnapshotStatusChecksFailOnRemoved = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnChanged = serializers.BooleanField(required=False)
+    preprodSnapshotStatusChecksFailOnRenamed = serializers.BooleanField(required=False)
     preprodSizeEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionEnabledByCustomer = serializers.BooleanField(required=False, allow_null=True)
     preprodDistributionPrCommentsEnabledByCustomer = serializers.BooleanField(
         required=False, allow_null=True
     )
     preprodSnapshotPrCommentsEnabled = serializers.BooleanField(required=False, allow_null=True)
+    preprodSnapshotPrCommentsOnlyIfDiff = serializers.BooleanField(required=False, allow_null=True)
     preprodSizeEnabledQuery = serializers.CharField(required=False, allow_null=True)
     preprodDistributionEnabledQuery = serializers.CharField(required=False, allow_null=True)
 
@@ -169,8 +172,11 @@ class ProjectMemberSerializer(serializers.Serializer):
         "preprodSnapshotStatusChecksEnabled",
         "preprodSnapshotStatusChecksFailOnAdded",
         "preprodSnapshotStatusChecksFailOnRemoved",
+        "preprodSnapshotStatusChecksFailOnChanged",
+        "preprodSnapshotStatusChecksFailOnRenamed",
         "preprodDistributionPrCommentsEnabledByCustomer",
         "preprodSnapshotPrCommentsEnabled",
+        "preprodSnapshotPrCommentsOnlyIfDiff",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -893,6 +899,22 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_removed"] = (
                     result["preprodSnapshotStatusChecksFailOnRemoved"]
                 )
+        if result.get("preprodSnapshotStatusChecksFailOnChanged") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_changed",
+                result["preprodSnapshotStatusChecksFailOnChanged"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_changed"] = (
+                    result["preprodSnapshotStatusChecksFailOnChanged"]
+                )
+        if result.get("preprodSnapshotStatusChecksFailOnRenamed") is not None:
+            if project.update_option(
+                "sentry:preprod_snapshot_status_checks_fail_on_renamed",
+                result["preprodSnapshotStatusChecksFailOnRenamed"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_status_checks_fail_on_renamed"] = (
+                    result["preprodSnapshotStatusChecksFailOnRenamed"]
+                )
         if "preprodDistributionPrCommentsEnabledByCustomer" in result:
             if project.update_option(
                 "sentry:preprod_distribution_pr_comments_enabled_by_customer",
@@ -908,6 +930,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:preprod_snapshot_pr_comments_enabled"] = result[
                     "preprodSnapshotPrCommentsEnabled"
+                ]
+        if "preprodSnapshotPrCommentsOnlyIfDiff" in result:
+            if project.update_option(
+                "sentry:preprod_snapshot_pr_comments_only_if_diff",
+                result["preprodSnapshotPrCommentsOnlyIfDiff"],
+            ):
+                changed_proj_settings["sentry:preprod_snapshot_pr_comments_only_if_diff"] = result[
+                    "preprodSnapshotPrCommentsOnlyIfDiff"
                 ]
         if "debugFilesRole" in result:
             if result["debugFilesRole"] is None:

@@ -375,6 +375,10 @@ export default function ReleasesList() {
       trackAnalytics('preprod.releases.mobile-builds.tab-clicked', {
         organization,
       });
+    } else if (newTab === 'snapshots') {
+      trackAnalytics('preprod.releases.snapshots.tab-clicked', {
+        organization,
+      });
     }
   };
 

@@ -16,6 +16,7 @@ import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {PlatformizedResourceSummaryPage} from 'sentry/views/insights/browser/resources/views/platformizedSummaryPage';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModuleFeature} from 'sentry/views/insights/common/components/moduleFeature';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -23,6 +24,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasPlatformizedInsights} from 'sentry/views/insights/common/utils/useHasPlatformizedInsights';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
@@ -178,6 +180,11 @@ function PageWithProviders() {
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.SPANS],
   });
+
+  const hasPlatformizedInsights = useHasPlatformizedInsights();
+  if (hasPlatformizedInsights) {
+    return <PlatformizedResourceSummaryPage />;
+  }
 
   return (
     <ModulePageProviders

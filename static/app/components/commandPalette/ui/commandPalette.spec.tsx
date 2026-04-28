@@ -18,6 +18,7 @@ jest.mock('@tanstack/react-virtual', () => ({
       getTotalSize: () => count * 48,
       measureElement: jest.fn(),
       measure: jest.fn(),
+      scrollToIndex: jest.fn(),
     };
   },
 }));
@@ -132,6 +133,36 @@ describe('CommandPalette', () => {
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => expect(router.location.pathname).toBe('/other/'));
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('ArrowUp from the first item wraps to the last selectable item', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{ArrowUp}{Enter}');
+
+    expect(closeSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole('option', {name: 'Child Action'})).toBeInTheDocument();
+  });
+
+  it('ArrowDown from the last selectable item wraps to the first item', async () => {
+    const closeSpy = jest.spyOn(modalActions, 'closeModal');
+    const {router} = render(
+      <GlobalActionsComponent>
+        <AllActions />
+      </GlobalActionsComponent>
+    );
+
+    await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.keyboard('{ArrowUp}{ArrowDown}{Enter}');
+
+    await waitFor(() => expect(router.location.pathname).toBe('/target/'));
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 

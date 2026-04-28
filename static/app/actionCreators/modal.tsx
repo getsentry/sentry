@@ -158,7 +158,8 @@ export async function toggleCommandPalette(
   organization: Organization,
   state: CommandPaletteState,
   dispatch: CommandPaletteDispatch,
-  source: 'button' | 'keyboard'
+  source: 'button' | 'keyboard',
+  openSeerExplorer?: (options?: {initialQuery?: string}) => void
 ) {
   const {CommandPalette: Modal, modalCss} =
     await import('sentry/components/commandPalette/ui/commandPalette');
@@ -173,10 +174,13 @@ export async function toggleCommandPalette(
   } else {
     trackAnalytics('command_palette.opened', {organization, source});
     dispatch({type: 'toggle modal'});
-    openModal(deps => <Modal {...deps} {...options} />, {
-      modalCss,
-      onClose: closeCommandPaletteModal,
-    });
+    openModal(
+      deps => <Modal {...deps} {...options} openSeerExplorer={openSeerExplorer} />,
+      {
+        modalCss,
+        onClose: closeCommandPaletteModal,
+      }
+    );
   }
 }
 type RecoveryModalOptions = {

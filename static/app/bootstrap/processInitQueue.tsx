@@ -152,10 +152,7 @@ export async function processInitQueue() {
   // custom plugins that rely on `window.SentryApp` so they can start migrating
   // their plugins ASAP, as `SentryApp` will be loaded async and will require
   // callbacks to access it, instead of via `window` global.
-  if (
-    typeof window.__onSentryInit !== 'undefined' &&
-    !Array.isArray(window.__onSentryInit)
-  ) {
+  if (window.__onSentryInit !== undefined && !Array.isArray(window.__onSentryInit)) {
     return;
   }
 

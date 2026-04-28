@@ -3279,6 +3279,18 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# TTL (in seconds) for the per-segment lock acquired at flush time to
+# prevent two flushers from producing the same segment concurrently.
+# The lock is never explicitly released and only expires via this TTL.
+# Pick a value larger than the expected flush+produce latency but smaller than
+# `spans.buffer.root-timeout` so a re-entered segment isn't blocked from its
+# next flush cycle. If set to 0, no locks will be acquired.
+register(
+    "spans.buffer.flusher.flush-lock-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Compression level for spans buffer segments. Default -1 disables compression, 0-22 for zstd levels
 register(
@@ -3746,14 +3758,6 @@ register(
 )
 register(
     "eventstore.adjacent_event_ids_use_snql",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Bug fix for prev/next event navigation
-register(
-    "eventstore.adjacent_event_ids_apply_query_conditions",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
