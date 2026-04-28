@@ -1,32 +1,40 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {TextareaField} from 'sentry/components/forms/fields/textareaField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import type {FormProps} from 'sentry/components/forms/form';
-import {Form} from 'sentry/components/forms/form';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import type {GDPRDetails, Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
 
 interface GDPREditModalProps extends ModalRenderProps {
   prefix: 'euRep' | 'dpo';
   subscription: Subscription;
 }
+
+const gdprSchema = z.object({
+  name: z.string(),
+  address: z.string(),
+  phone: z.string(),
+  email: z.string(),
+});
+
+type GDPRFormValues = z.infer<typeof gdprSchema>;
 
 function GDPREditModal({
   Header,
@@ -35,61 +43,94 @@ function GDPREditModal({
   prefix,
   subscription,
 }: GDPREditModalProps) {
-  const api = useApi();
-  const onSubmit: FormProps['onSubmit'] = (formData, success, failure) => {
-    addLoadingMessage();
-    api.request(`/customers/${subscription.slug}/`, {
-      method: 'PUT',
-      data: {gdprDetails: formData},
-      success: data => {
-        SubscriptionStore.set(subscription.slug, data);
-        clearIndicators();
-        success(data);
-        closeModal();
-      },
-      error: error => {
-        clearIndicators();
-        failure(error);
-      },
-    });
-  };
+  const mutation = useMutation({
+    mutationFn: (value: GDPRFormValues) => {
+      addLoadingMessage();
+      return fetchMutation<Subscription>({
+        url: `/customers/${subscription.slug}/`,
+        method: 'PUT',
+        data: {
+          gdprDetails: {
+            [`${prefix}Name`]: value.name,
+            [`${prefix}Address`]: value.address,
+            [`${prefix}Phone`]: value.phone,
+            [`${prefix}Email`]: value.email,
+          },
+        },
+      });
+    },
+    onSuccess: data => {
+      SubscriptionStore.set(subscription.slug, data);
+      clearIndicators();
+      closeModal();
+    },
+    onError: () => {
+      clearIndicators();
+    },
+  });
 
-  const initialData: Partial<GDPRDetails> = subscription.gdprDetails ?? {};
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      name: subscription.gdprDetails?.[`${prefix}Name`] ?? '',
+      address: subscription.gdprDetails?.[`${prefix}Address`] ?? '',
+      phone: subscription.gdprDetails?.[`${prefix}Phone`] ?? '',
+      email: subscription.gdprDetails?.[`${prefix}Email`] ?? '',
+    } satisfies GDPRFormValues,
+    validators: {onDynamic: gdprSchema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
 
   return (
     <Fragment>
       <Header>
         <h4>{sectionTitles[prefix]}</h4>
       </Header>
-      <Form initialData={initialData} onSubmit={onSubmit} hideFooter>
+      <form.AppForm form={form}>
         <FormWrapper>
-          <TextField key="name" name={`${prefix}Name`} label={t('Full Name')} />
-          <TextareaField
-            key="address"
-            name={`${prefix}Address`}
-            label={t('Address')}
-            rows={2}
-            autosize
-          />
-          <TextField key="phone" name={`${prefix}Phone`} label={t('Phone Number')} />
-          <TextField key="email" name={`${prefix}Email`} label={t('Email')} inline />
+          <form.AppField name="name">
+            {field => (
+              <field.Layout.Row label={t('Full Name')}>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="address">
+            {field => (
+              <field.Layout.Row label={t('Address')}>
+                <field.TextArea
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  rows={2}
+                  autosize
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="phone">
+            {field => (
+              <field.Layout.Row label={t('Phone Number')}>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+          <form.AppField name="email">
+            {field => (
+              <field.Layout.Row label={t('Email')}>
+                <field.Input value={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
         </FormWrapper>
         <Footer>
           <Grid flow="column" align="center" gap="md">
-            <Button
-              type="button"
-              onClick={() => {
-                closeModal();
-              }}
-            >
+            <Button type="button" onClick={closeModal}>
               {t('Cancel')}
             </Button>
-            <Button type="submit" priority="primary">
-              {t('Save Changes')}
-            </Button>
+            <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
           </Grid>
         </Footer>
-      </Form>
+      </form.AppForm>
     </Fragment>
   );
 }
