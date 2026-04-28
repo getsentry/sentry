@@ -1,3 +1,5 @@
+import type {ComponentProps} from 'react';
+import {queryOptions} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -462,6 +464,56 @@ describe('BackendJsonSubmitForm', () => {
 
       await waitFor(() => expect(searchResponse).toHaveBeenCalled());
       expect(await screen.findByText('test-repo')).toBeInTheDocument();
+    });
+
+    it('uses custom async query options instead of the default URL request', async () => {
+      const defaultSearchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        body: [],
+      });
+      const customQueryOptionsCalls: string[] = [];
+      const customAsyncQueryOptionsFactory: NonNullable<
+        ComponentProps<typeof BackendJsonSubmitForm>['customAsyncQueryOptions']
+      >[string] = debouncedInput => {
+        customQueryOptionsCalls.push(debouncedInput);
+        return queryOptions({
+          queryKey: ['custom-async-repo', debouncedInput],
+          queryFn: () => [
+            {
+              value: debouncedInput,
+              label: `Custom ${debouncedInput}`,
+            },
+          ],
+        });
+      };
+
+      render(
+        <BackendJsonSubmitForm
+          fields={[
+            {
+              name: 'repo',
+              type: 'select',
+              label: 'Repository',
+              url: '/search',
+              choices: [],
+            },
+          ]}
+          onSubmit={onSubmit}
+          submitLabel="Create"
+          customAsyncQueryOptions={{repo: customAsyncQueryOptionsFactory}}
+        />,
+        {organization: org}
+      );
+
+      const textbox = screen.getByRole('textbox', {name: 'Repository'});
+      await userEvent.click(textbox);
+      await userEvent.type(textbox, 'test');
+
+      await waitFor(() => {
+        expect(customQueryOptionsCalls).toContain('test');
+      });
+      expect(await screen.findByText('Custom test')).toBeInTheDocument();
+      expect(defaultSearchResponse).not.toHaveBeenCalled();
     });
 
     it('async select gracefully handles non-array API response', async () => {

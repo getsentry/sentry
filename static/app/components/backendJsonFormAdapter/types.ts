@@ -29,6 +29,8 @@ interface JsonFormAdapterBoolean extends JsonFormAdapterBase {
 
 interface JsonFormAdapterString extends JsonFormAdapterBase {
   type: 'string' | 'text' | 'textarea' | 'url' | 'email';
+  autosize?: boolean;
+  maxRows?: number;
 }
 
 interface JsonFormAdapterSecret extends JsonFormAdapterBase {
