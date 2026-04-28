@@ -247,17 +247,23 @@ export default function SnapshotsPage() {
   }, []);
 
   const statusCounts = useMemo<Record<DiffStatus, number> | null>(() => {
-    if (!data || comparisonType !== 'diff') {
+    if (comparisonType !== 'diff') {
       return null;
     }
-    return {
-      [DiffStatus.CHANGED]: data.changed_count ?? 0,
-      [DiffStatus.ADDED]: data.added_count ?? 0,
-      [DiffStatus.REMOVED]: data.removed_count ?? 0,
-      [DiffStatus.RENAMED]: data.renamed_count ?? 0,
-      [DiffStatus.UNCHANGED]: data.unchanged_count ?? 0,
+    const counts = {
+      [DiffStatus.CHANGED]: 0,
+      [DiffStatus.ADDED]: 0,
+      [DiffStatus.REMOVED]: 0,
+      [DiffStatus.RENAMED]: 0,
+      [DiffStatus.UNCHANGED]: 0,
     };
-  }, [data, comparisonType]);
+    for (const item of sidebarItems) {
+      if (item.type in counts) {
+        counts[item.type as DiffStatus]++;
+      }
+    }
+    return counts;
+  }, [sidebarItems, comparisonType]);
 
   const currentItem =
     (selectedItemKey && filteredItems.find(i => i.key === selectedItemKey)) ||
@@ -376,7 +382,7 @@ export default function SnapshotsPage() {
       <Flex flexShrink={0} overflow="auto" style={{width: sidebarWidth}}>
         <SnapshotSidebarContent
           items={filteredItems}
-          totalItemCount={sidebarItems.length}
+          totalItemCount={filteredItems.length}
           currentItemKey={currentItemKey}
           isAllSelected={isAllSelected}
           searchQuery={searchQuery}

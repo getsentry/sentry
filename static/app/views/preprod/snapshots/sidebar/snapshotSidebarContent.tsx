@@ -66,14 +66,14 @@ export function SnapshotSidebarContent({
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!listRef.current || !currentItemKey) {
+    if (!listRef.current || !currentItemKey || isAllSelected) {
       return;
     }
     const el = listRef.current.querySelector(
       `[data-item-name="${CSS.escape(currentItemKey)}"]`
     );
     el?.scrollIntoView({block: 'nearest'});
-  }, [currentItemKey, items]);
+  }, [currentItemKey, items, isAllSelected]);
 
   const renderItem = (item: SidebarItem) => {
     const isSelected = !isAllSelected && item.key === currentItemKey;
