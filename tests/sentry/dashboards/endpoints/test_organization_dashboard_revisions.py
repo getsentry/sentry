@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.models.dashboard import Dashboard, DashboardRevision
 from sentry.testutils.cases import APITestCase
 from sentry.users.models.user_avatar import UserAvatarType
+from sentry.utils.avatar import get_gravatar_url
 
 
 class OrganizationDashboardRevisionsTestCase(APITestCase):
@@ -75,7 +76,9 @@ class GetOrganizationDashboardRevisionsTest(OrganizationDashboardRevisionsTestCa
             response = self.client.get(self.url)
 
         assert response.status_code == 200
-        assert response.data[0]["createdBy"]["avatarType"] == "gravatar"
+        created_by = response.data[0]["createdBy"]
+        assert created_by["avatarType"] == "gravatar"
+        assert created_by["avatarUrl"] == get_gravatar_url(self.user.email, size=32)
 
     def test_returns_upload_avatar_type(self) -> None:
         self.create_user_avatar(user=self.user, avatar_type=UserAvatarType.UPLOAD)
