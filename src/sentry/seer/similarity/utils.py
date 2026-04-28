@@ -583,7 +583,10 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
         automation_handoff=automation_handoff,
     )
 
-    write_preference_to_sentry_db(project, preference)
+    try:
+        write_preference_to_sentry_db(project, preference)
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 def report_token_count_metric(
