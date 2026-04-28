@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 from typing import Any, Literal, overload
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone as django_timezone
 from pydantic import BaseModel
@@ -37,6 +38,7 @@ from sentry.seer.explorer.on_completion_hook import (
 from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefinition
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
+from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -345,10 +347,13 @@ class SeerExplorerClient:
             raise SeerApiError("Seer request failed", response.status)
         result = response.json()
 
-        self._maybe_trigger_explorer_index_for_new_run(
-            result.get("has_explorer_index"),
-            result.get("has_org_project_context"),
-        )
+        try:
+            self._maybe_trigger_explorer_index_for_new_run(
+                result.get("has_explorer_index"),
+                result.get("has_org_project_context"),
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         return result["run_id"]
 
@@ -368,23 +373,27 @@ class SeerExplorerClient:
             logger.info("seer.explorer_index.killswitch.enable flag enabled, skipping")
             return
 
-        projects = list(
-            Project.objects.filter(
-                organization_id=self.organization.id,
-                status=ObjectStatus.ACTIVE,
+        if not has_explorer_index:
+            projects = list(
+                Project.objects.filter(
+                    organization_id=self.organization.id,
+                    status=ObjectStatus.ACTIVE,
+                )
             )
-        )
 
-        projects_batch = [
-            (p.id, self.organization.id) for p in projects if p.flags.has_transactions
-        ]
+            projects_batch = [
+                (p.id, self.organization.id) for p in projects if p.flags.has_transactions
+            ]
 
-        if not projects_batch:
-            return
+            if projects_batch:
+                for _ in dispatch_explorer_index_projects(
+                    iter(projects_batch), django_timezone.now()
+                ):
+                    pass
 
-        # Consume the generator to dispatch all batches
-        for _ in dispatch_explorer_index_projects(iter(projects_batch), django_timezone.now()):
-            pass
+        if not has_org_project_context and options.get("explorer.context_engine_indexing.enable"):
+            index_org_project_knowledge.apply_async(args=[self.organization.id])
+            build_service_map.apply_async(args=[self.organization.id])
 
     def continue_run(
         self,
