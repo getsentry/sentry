@@ -93,11 +93,7 @@ export function traceItemAttributeKeysOptions({
   return queryOptions({
     ...baseOptions,
     queryFn: async (ctx: QueryFunctionContext<ApiQueryKey>) => {
-      const cached = findEmptyPrefixMatch(ctx.client, ctx.queryKey);
-      if (cached) {
-        return cached;
-      }
-      return originalQueryFn(ctx);
+      return findEmptyPrefixMatch(ctx.client, ctx.queryKey) ?? originalQueryFn(ctx);
     },
   });
 }
