@@ -1019,7 +1019,7 @@ class TestStartRunExplorerIndexTrigger(TestCase):
             run_id = client.start_run("Why are my errors spiking?")
 
         assert run_id == 123
-        mock_dispatch.assert_called_once()
+        mock_dispatch.assert_not_called()
         mock_index_knowledge.apply_async.assert_called_once_with(args=[self.organization.id])
         mock_build_service_map.apply_async.assert_called_once_with(args=[self.organization.id])
 
