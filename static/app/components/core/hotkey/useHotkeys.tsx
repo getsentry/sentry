@@ -2,26 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import {toArray} from 'sentry/utils/array/toArray';
 
-import {getKeyCode} from './keyMappings';
-
-const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
-  // TODO(design-eng): we should just use `key`, `keyCode` is deprecated
-  const keyCode = getKeyCode(key);
-  switch (keyCode) {
-    case getKeyCode('command'):
-      return evt.metaKey;
-    case getKeyCode('shift'):
-      return evt.shiftKey;
-    case getKeyCode('ctrl'):
-      return evt.ctrlKey;
-    case getKeyCode('alt'):
-      return evt.altKey;
-    default:
-      return keyCode === evt.keyCode;
-  }
-};
-
-const modifiers = ['command', 'shift', 'ctrl', 'alt'];
+import {canonicalize, matchesKey, MODIFIER_KEYS} from './keyMappings';
 
 type Hotkey = {
   /**
@@ -70,12 +51,14 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
         const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
 
         for (const keyset of keysets) {
-          const keys = keyset.split('+');
-          const unusedModifiers = modifiers.filter(modifier => !keys.includes(modifier));
+          const keys = keyset.split('+').map(canonicalize);
+          const unusedModifiers = MODIFIER_KEYS.filter(
+            modifier => !keys.includes(modifier)
+          );
 
           const allKeysPressed =
-            keys.every(key => isKeyPressed(key, evt)) &&
-            unusedModifiers.every(modifier => !isKeyPressed(modifier, evt));
+            keys.every(key => matchesKey(key, evt)) &&
+            unusedModifiers.every(modifier => !matchesKey(modifier, evt));
 
           const inputHasFocus =
             !hotkey.includeInputs && evt.target instanceof HTMLElement
