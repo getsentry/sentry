@@ -13,7 +13,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -109,30 +108,12 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     };
   }
 
+  // Clear optimistic dashboard state when the URL changes
   useEffect(() => {
     if (dashboardId && !isEqual(dashboardId, selectedDashboard?.id)) {
       setSelectedDashboardState(null);
     }
   }, [dashboardId, selectedDashboard?.id]);
-
-  // If we don't have a selected dashboard, and one isn't going to arrive
-  // we can redirect to the first dashboard in the list.
-  useEffect(() => {
-    if (!dashboardId) {
-      const firstDashboardId = dashboards?.length
-        ? dashboards[0]?.id
-        : 'default-overview';
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${firstDashboardId}/`,
-          query: {
-            ...location.query,
-          },
-        }),
-        {replace: true}
-      );
-    }
-  }, [dashboards, dashboardId, organization.slug, location.query, navigate]);
 
   useEffect(() => {
     // Only redirect if there are saved filters and none of the filters
@@ -175,21 +156,6 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       {replace: true}
     );
   }, [location, navigate, selectedDashboard]);
-
-  useEffect(() => {
-    if (!organization.features.includes('dashboards-basic')) {
-      // Redirect to Dashboards v1
-      navigate(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboards/`,
-          query: {
-            ...location.query,
-          },
-        }),
-        {replace: true}
-      );
-    }
-  }, [location.query, navigate, organization.slug, organization.features]);
 
   useEffect(() => {
     // Clean up the query cache when the dashboard unmounts to prevent
