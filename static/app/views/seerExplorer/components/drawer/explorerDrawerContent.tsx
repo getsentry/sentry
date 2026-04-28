@@ -48,7 +48,9 @@ export function ExplorerDrawerContent({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const blockEnterHandlers = useRef(new Map());
+  const blockEnterHandlers = useRef(
+    new Map<number, (key: 'Enter' | 'ArrowUp' | 'ArrowDown') => boolean>()
+  );
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 

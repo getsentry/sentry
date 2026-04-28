@@ -142,7 +142,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
   // All state lives in refs — no re-renders needed. Consumers read
   // the latest data imperatively via getSnapshot().
   const stateRef = useRef(INITIAL_STATE);
-  const nodeDataRef = useRef(new Map());
+  const nodeDataRef = useRef(new Map<string, unknown>());
 
   const getSnapshot = useCallback((fromNodeId?: string): LLMContextSnapshot => {
     return serializeState(stateRef.current, nodeDataRef.current, fromNodeId);
