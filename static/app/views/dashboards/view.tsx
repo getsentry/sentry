@@ -40,7 +40,7 @@ export default function ViewEditDashboard() {
   return (
     <DashboardBasicFeature organization={organization}>
       <OrgDashboards initialDashboard={optimisticDashboard}>
-        {({dashboard, dashboards, error, onDashboardUpdate}) => {
+        {({dashboard, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
           ) : dashboard ? (
@@ -49,7 +49,6 @@ export default function ViewEditDashboard() {
                 key={dashboard.id}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
-                dashboards={dashboards}
                 onDashboardUpdate={onDashboardUpdate}
               />
             </ErrorBoundary>
