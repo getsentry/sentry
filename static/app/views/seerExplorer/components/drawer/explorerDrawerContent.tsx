@@ -43,7 +43,6 @@ export function ExplorerDrawerContent({
   const {closeDrawer} = useDrawer();
 
   const [inputValue, setInputValue] = useState('');
-  const [hoveredBlockIndex, setHoveredBlockIndex] = useState(-1);
   const [showThinking, setShowThinking] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -53,7 +52,6 @@ export function ExplorerDrawerContent({
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    setHoveredBlockIndex(-1);
     textareaRef.current?.focus();
   }, []);
 
@@ -253,10 +251,7 @@ export function ExplorerDrawerContent({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-    if (hoveredBlockIndex !== -1) {
-      setHoveredBlockIndex(-1);
-      textareaRef.current?.focus();
-    }
+    textareaRef.current?.focus();
   };
 
   const handleInputClick = useCallback(() => {
