@@ -132,12 +132,10 @@ describe('SnapshotStatusChecks', () => {
     );
   });
 
-  it('disables and visually clears per-category toggles when status checks are disabled', async () => {
+  it('hides per-category toggles and shows a hint when status checks are disabled', async () => {
     const project = ProjectFixture({
       options: {},
       preprodSnapshotStatusChecksEnabled: false,
-      preprodSnapshotStatusChecksFailOnChanged: true,
-      preprodSnapshotStatusChecksFailOnRemoved: true,
     });
     render(<SnapshotStatusChecks />, {
       organization,
@@ -145,31 +143,21 @@ describe('SnapshotStatusChecks', () => {
       initialRouterConfig,
     });
 
-    const failOnAdded = await screen.findByRole('checkbox', {
-      name: 'Fail on Added Snapshots',
-    });
-    const failOnRemoved = screen.getByRole('checkbox', {
-      name: 'Fail on Removed Snapshots',
-    });
-    const failOnChanged = screen.getByRole('checkbox', {
-      name: 'Fail on Changed Snapshots',
-    });
-    const failOnRenamed = screen.getByRole('checkbox', {
-      name: 'Fail on Renamed Snapshots',
-    });
-
-    expect(failOnAdded).toBeDisabled();
-    expect(failOnRemoved).toBeDisabled();
-    expect(failOnChanged).toBeDisabled();
-    expect(failOnRenamed).toBeDisabled();
-
-    // Stored values may be on, but the disabled state should read as off so
-    // users don't see a confusing mix of "off but on" toggles.
-    expect(failOnAdded).not.toBeChecked();
-    expect(failOnRemoved).not.toBeChecked();
-    expect(failOnChanged).not.toBeChecked();
-    expect(failOnRenamed).not.toBeChecked();
-
+    expect(
+      await screen.findByText('Enable status checks to configure failure conditions')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Fail on Added Snapshots'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Fail on Removed Snapshots'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Fail on Changed Snapshots'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {name: 'Fail on Renamed Snapshots'})
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', {name: 'Enable Snapshot Status Checks'})
     ).toBeEnabled();

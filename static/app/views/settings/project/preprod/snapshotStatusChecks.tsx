@@ -1,6 +1,9 @@
+import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -39,10 +42,6 @@ export function SnapshotStatusChecks() {
     onSuccess: (response: Project) => ProjectsStore.onUpdateSuccess(response),
   };
 
-  const disabledHint = enabled
-    ? false
-    : t('Enable Snapshot Status Checks above to configure.');
-
   return (
     <FieldGroup title={t('Snapshots - Status Checks')}>
       <AutoSaveForm
@@ -63,87 +62,87 @@ export function SnapshotStatusChecks() {
         )}
       </AutoSaveForm>
 
-      <AutoSaveForm
-        name="preprodSnapshotStatusChecksFailOnChanged"
-        schema={schema}
-        initialValue={failOnChanged}
-        mutationOptions={mutationOptions}
-      >
-        {field => (
-          <field.Layout.Row
-            label={t('Fail on Changed Snapshots')}
-            hintText={t(
-              'Status check will fail if snapshot pixel content changes in a build.'
+      {enabled ? (
+        <Fragment>
+          <AutoSaveForm
+            name="preprodSnapshotStatusChecksFailOnChanged"
+            schema={schema}
+            initialValue={failOnChanged}
+            mutationOptions={mutationOptions}
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Fail on Changed Snapshots')}
+                hintText={t(
+                  'Status check will fail if snapshot pixel content changes in a build.'
+                )}
+              >
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
             )}
-          >
-            <field.Switch
-              checked={enabled ? field.state.value : false}
-              onChange={field.handleChange}
-              disabled={disabledHint}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
+          </AutoSaveForm>
 
-      <AutoSaveForm
-        name="preprodSnapshotStatusChecksFailOnRemoved"
-        schema={schema}
-        initialValue={failOnRemoved}
-        mutationOptions={mutationOptions}
-      >
-        {field => (
-          <field.Layout.Row
-            label={t('Fail on Removed Snapshots')}
-            hintText={t('Status check will fail if snapshots are removed from a build.')}
+          <AutoSaveForm
+            name="preprodSnapshotStatusChecksFailOnRemoved"
+            schema={schema}
+            initialValue={failOnRemoved}
+            mutationOptions={mutationOptions}
           >
-            <field.Switch
-              checked={enabled ? field.state.value : false}
-              onChange={field.handleChange}
-              disabled={disabledHint}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
+            {field => (
+              <field.Layout.Row
+                label={t('Fail on Removed Snapshots')}
+                hintText={t(
+                  'Status check will fail if snapshots are removed from a build.'
+                )}
+              >
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
 
-      <AutoSaveForm
-        name="preprodSnapshotStatusChecksFailOnAdded"
-        schema={schema}
-        initialValue={failOnAdded}
-        mutationOptions={mutationOptions}
-      >
-        {field => (
-          <field.Layout.Row
-            label={t('Fail on Added Snapshots')}
-            hintText={t('Status check will fail if new snapshots are added in a build.')}
+          <AutoSaveForm
+            name="preprodSnapshotStatusChecksFailOnAdded"
+            schema={schema}
+            initialValue={failOnAdded}
+            mutationOptions={mutationOptions}
           >
-            <field.Switch
-              checked={enabled ? field.state.value : false}
-              onChange={field.handleChange}
-              disabled={disabledHint}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
+            {field => (
+              <field.Layout.Row
+                label={t('Fail on Added Snapshots')}
+                hintText={t(
+                  'Status check will fail if new snapshots are added in a build.'
+                )}
+              >
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
 
-      <AutoSaveForm
-        name="preprodSnapshotStatusChecksFailOnRenamed"
-        schema={schema}
-        initialValue={failOnRenamed}
-        mutationOptions={mutationOptions}
-      >
-        {field => (
-          <field.Layout.Row
-            label={t('Fail on Renamed Snapshots')}
-            hintText={t('Status check will fail if snapshots are renamed in a build.')}
+          <AutoSaveForm
+            name="preprodSnapshotStatusChecksFailOnRenamed"
+            schema={schema}
+            initialValue={failOnRenamed}
+            mutationOptions={mutationOptions}
           >
-            <field.Switch
-              checked={enabled ? field.state.value : false}
-              onChange={field.handleChange}
-              disabled={disabledHint}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
+            {field => (
+              <field.Layout.Row
+                label={t('Fail on Renamed Snapshots')}
+                hintText={t(
+                  'Status check will fail if snapshots are renamed in a build.'
+                )}
+              >
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
+        </Fragment>
+      ) : (
+        <Container padding="md">
+          <Text align="center" variant="muted" italic>
+            {t('Enable status checks to configure failure conditions')}
+          </Text>
+        </Container>
+      )}
     </FieldGroup>
   );
 }
