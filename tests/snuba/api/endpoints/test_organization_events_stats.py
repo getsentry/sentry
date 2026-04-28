@@ -2666,8 +2666,8 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             )
         assert response.status_code == 200
         assert mock_raw_query.call_count == 2
-        # Should've reset to the default for between 1 and 24h
-        assert mock_raw_query.mock_calls[1].args[0].query.granularity.granularity == 300
+        # Should've reset to the chart default for a 2h window (1m)
+        assert mock_raw_query.mock_calls[1].args[0].query.granularity.granularity == 60
 
         with self.feature(self.enabled_features):
             response = self.client.get(
