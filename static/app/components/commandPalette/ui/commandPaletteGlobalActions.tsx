@@ -193,8 +193,7 @@ function ResolvedIdentifierCommandPaletteAction() {
             }
           );
           const project =
-            projects.find(p => p.slug === shortIdLookup.projectSlug) ??
-            (group.project as Project);
+            projects.find(p => p.slug === shortIdLookup.projectSlug) ?? group.project;
           return {
             event: null,
             group,
@@ -226,8 +225,7 @@ function ResolvedIdentifierCommandPaletteAction() {
           }
         );
         const project =
-          projects.find(p => p.slug === eventIdLookup.projectSlug) ??
-          (group.project as Project);
+          projects.find(p => p.slug === eventIdLookup.projectSlug) ?? group.project;
         return {
           event: eventIdLookup.event,
           eventUrl: `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdLookup.eventId}/`,
